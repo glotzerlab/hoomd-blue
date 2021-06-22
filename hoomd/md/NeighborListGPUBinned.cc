@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file NeighborListGPUBinned.cc
@@ -18,22 +17,16 @@ namespace py = pybind11;
 #endif
 
 NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> sysdef,
-                                             Scalar r_cut,
-                                             Scalar r_buff,
-                                             std::shared_ptr<CellList> cl)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl), m_param(0)
+                                             Scalar r_buff)
+    : NeighborListGPU(sysdef, r_buff), m_cl(std::make_shared<CellListGPU>(sysdef)), m_param(0)
     {
-    // create a default cell list if one was not specified
-    if (!m_cl)
-        m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
-
     // with multiple GPUs, use indirect access via particle data arrays
     m_use_index = m_exec_conf->allConcurrentManagedAccess();
 
     // with multiple GPUs, request a cell list per device
     m_cl->setPerDevice(m_exec_conf->allConcurrentManagedAccess());
 
-    m_cl->setComputeXYZF(! m_use_index);
+    m_cl->setComputeXYZF(!m_use_index);
     m_cl->setComputeIdx(m_use_index);
 
     m_cl->setRadius(1);
@@ -50,30 +43,26 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
     const unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
     for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
-        unsigned int s=1;
+        unsigned int s = 1;
 
         while (s <= warp_size)
             {
-            valid_params.push_back(block_size*10000 + s);
+            valid_params.push_back(block_size * 10000 + s);
             s = s * 2;
             }
         }
 
     m_tuner.reset(new Autotuner(valid_params, 5, 100000, "nlist_binned", this->m_exec_conf));
-
-    // cell sizes need update by default
-    m_update_cell_size = true;
     }
 
-NeighborListGPUBinned::~NeighborListGPUBinned()
-    {
-    }
+NeighborListGPUBinned::~NeighborListGPUBinned() { }
 
 void NeighborListGPUBinned::buildNlist(uint64_t timestep)
     {
     if (m_storage_mode != full)
         {
-        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << std::endl;
+        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU"
+                                  << std::endl;
         throw std::runtime_error("Error computing neighbor list");
         }
 
@@ -95,28 +84,52 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(),
+                                   access_location::device,
+                                   access_mode::read);
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(),
+                                     access_location::device,
+                                     access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
 
     // access the cell list data arrays
-    ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_cell_xyzf(m_cl->getXYZFArray(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_cell_idx(m_cl->getIndexArray(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_cell_adj(m_cl->getCellAdjArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(),
+                                          access_location::device,
+                                          access_mode::read);
+    ArrayHandle<Scalar4> d_cell_xyzf(m_cl->getXYZFArray(),
+                                     access_location::device,
+                                     access_mode::read);
+    ArrayHandle<unsigned int> d_cell_idx(m_cl->getIndexArray(),
+                                         access_location::device,
+                                         access_mode::read);
+    ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(),
+                                    access_location::device,
+                                    access_mode::read);
+    ArrayHandle<unsigned int> d_cell_adj(m_cl->getCellAdjArray(),
+                                         access_location::device,
+                                         access_mode::read);
 
-    const ArrayHandle<unsigned int>& d_cell_size_per_device = m_cl->getPerDevice() ?
-        ArrayHandle<unsigned int>(m_cl->getCellSizeArrayPerDevice(),access_location::device, access_mode::read) :
-        ArrayHandle<unsigned int>(GlobalArray<unsigned int>(), access_location::device, access_mode::read);
-    const ArrayHandle<unsigned int>& d_cell_idx_per_device = m_cl->getPerDevice() ?
-        ArrayHandle<unsigned int>(m_cl->getIndexArrayPerDevice(), access_location::device, access_mode::read) :
-        ArrayHandle<unsigned int>(GlobalArray<unsigned int>(), access_location::device, access_mode::read);
+    const ArrayHandle<unsigned int>& d_cell_size_per_device
+        = m_cl->getPerDevice() ? ArrayHandle<unsigned int>(m_cl->getCellSizeArrayPerDevice(),
+                                                           access_location::device,
+                                                           access_mode::read)
+                               : ArrayHandle<unsigned int>(GlobalArray<unsigned int>(),
+                                                           access_location::device,
+                                                           access_mode::read);
+    const ArrayHandle<unsigned int>& d_cell_idx_per_device
+        = m_cl->getPerDevice() ? ArrayHandle<unsigned int>(m_cl->getIndexArrayPerDevice(),
+                                                           access_location::device,
+                                                           access_mode::read)
+                               : ArrayHandle<unsigned int>(GlobalArray<unsigned int>(),
+                                                           access_location::device,
+                                                           access_mode::read);
 
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_conditions(m_conditions,
+                                           access_location::device,
+                                           access_mode::readwrite);
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
@@ -124,7 +137,7 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
     ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_r_listsq(m_r_listsq, access_location::device, access_mode::read);
 
-    #ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVCC__
     auto& gpu_map = m_exec_conf->getGPUIds();
 
     // prefetch some cell list arrays
@@ -133,13 +146,15 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
             // prefetch cell adjacency
-            cudaMemPrefetchAsync(d_cell_adj.data, m_cl->getCellAdjArray().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
+            cudaMemPrefetchAsync(d_cell_adj.data,
+                                 m_cl->getCellAdjArray().getNumElements() * sizeof(unsigned int),
+                                 gpu_map[idev]);
             }
         }
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    #endif
+#endif
 
     m_exec_conf->beginMultiGPU();
 
@@ -175,11 +190,11 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
                              m_filter_body,
                              m_diameter_shift,
                              m_cl->getGhostWidth(),
-                             m_exec_conf->getComputeCapability()/10,
                              m_pdata->getGPUPartition(),
                              m_use_index);
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     this->m_tuner->end();
 
     m_exec_conf->endMultiGPU();
@@ -190,9 +205,12 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
 
 void export_NeighborListGPUBinned(py::module& m)
     {
-    py::class_<NeighborListGPUBinned, NeighborListGPU, std::shared_ptr<NeighborListGPUBinned> >(m, "NeighborListGPUBinned")
-                    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
-                    .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
-                    .def_property("deterministic", &NeighborListGPUBinned::getDeterministic, &NeighborListGPUBinned::setDeterministic)
-                     ;
+    py::class_<NeighborListGPUBinned, NeighborListGPU, std::shared_ptr<NeighborListGPUBinned>>(
+        m,
+        "NeighborListGPUBinned")
+        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
+        .def_property("deterministic",
+                      &NeighborListGPUBinned::getDeterministic,
+                      &NeighborListGPUBinned::setDeterministic);
     }

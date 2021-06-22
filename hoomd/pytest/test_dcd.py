@@ -1,4 +1,5 @@
 import hoomd
+from hoomd.conftest import operation_pickling_check
 import pytest
 import numpy as np
 
@@ -24,7 +25,7 @@ def test_write(simulation_factory, two_particle_snapshot_factory, tmp_path):
     positions = []
 
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         position1 = np.asarray(snap.particles.position[0])
         position2 = np.asarray(snap.particles.position[1])
         positions.append([list(position1), list(position2)])
@@ -38,3 +39,10 @@ def test_write(simulation_factory, two_particle_snapshot_factory, tmp_path):
         for i in range(len(traj)):
             for j in [0, 1]:
                 np.testing.assert_allclose(traj[i].position[j], positions[i][j])
+
+
+def test_pickling(simulation_factory, two_particle_snapshot_factory, tmp_path):
+    filename = tmp_path / "temporary_test_file.dcd"
+    sim = simulation_factory(two_particle_snapshot_factory())
+    dcd_dump = hoomd.write.DCD(filename, hoomd.trigger.Periodic(1))
+    operation_pickling_check(dcd_dump, sim)

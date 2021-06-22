@@ -1,0 +1,414 @@
+name: Test
+# Edit the `test.yml` in `.github/workflows/templates` and run `make_workflows.py` to update the
+# workflow.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+      types: [opened, labeled, reopened, synchronize]
+
+  # Trigger on pushes to the mainline branches. This prevents building commits twice when the pull
+  # request source branch is in the same repository.
+  push:
+    branches:
+    - "master"
+    - "maint"
+
+  # Trigger on request.
+  workflow_dispatch:
+
+
+env:
+  # prevent deadlocked MPI tests from causing the job to cancel
+  MPIEXEC_TIMEOUT: 3000
+  # allow mpirun to execute as root in the tests
+  OMPI_ALLOW_RUN_AS_ROOT: 1
+  OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+  # allow openmpi to oversubscribe cores
+  OMPI_MCA_rmaps_base_oversubscribe: 1
+  # prevent errors from mis-configured openib systems
+  OMPI_MCA_btl: "vader,self"
+  # skip running the CPU tests in GPU builds
+  _HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_: 1
+  # import HOOMD out of the build directory
+  PYTHONPATH: ${{ github.workspace }}/install
+
+
+# Use multiple jobs to reduce the amount of time spent on GPU runners. Use GitHub Hosted runners for
+# compiling all tests configurations (GPU and CPU), then upload the build directory (sans object
+# files) as an artifact. Test jobs depend on the build job, download the install directory, and run
+# the tests. Upload each build configuration to a separate artifact.
+
+# Github Actions does not support any form of templating at this time, not even YAML anchors.
+# To minimize the number of duplicated lines, encode the job configuration as an array in config:
+# [image, (mpi), (tbb)]
+jobs:
+  build:
+    name: Build [${{ join(matrix.config, '_') }}]
+    runs-on: ubuntu-latest
+    container:
+      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+    strategy:
+      matrix:
+        include:
+        - {config: [clang11_py39, mpi, tbb, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+
+    env:
+      CXXFLAGS: '-Werror'
+    steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
+    - name: Checkout
+      uses: actions/checkout@v2.3.4
+      with:
+        path: code
+        submodules: true
+    - name: Configure
+      run: |
+        mkdir -p build
+        cd build
+        cmake ../code -GNinja \
+                      -DCMAKE_BUILD_TYPE=Release \
+                      -DENABLE_GPU=${ENABLE_GPU:-"OFF"} \
+                      -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
+                      -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
+                      -DBUILD_JIT=${BUILD_JIT:-"OFF"} \
+                      -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
+      env:
+        ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
+        ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
+        ENABLE_TBB: ${{ contains(matrix.config, 'tbb') }}
+        BUILD_JIT: ${{ contains(matrix.config, 'jit') }}
+    - name: Build
+      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
+      working-directory: build
+
+    - name: Remove object files
+      run: find build -type f -name '*.o' -delete
+    # Tar the build directory to preserve permissions and reduce HTTP requests on upload.
+    - name: 'Tar build'
+      run: tar --use-compress-program='zstd -10 -T0' -cvf build.tar build
+    - name: 'Tar install'
+      run: tar --use-compress-program='zstd -10 -T0' -cvf install.tar install
+    # Upload the tarballs. Retain the file for a limited time in case developers need to download
+    # and run tests locally for further debugging.
+    - name: 'Upload build'
+      uses: actions/upload-artifact@v2.2.3
+      with:
+        name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
+        path: build.tar
+        retention-days: 7
+    - name: 'Upload install'
+      uses: actions/upload-artifact@v2.2.3
+      with:
+        name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
+        path: install.tar
+        retention-days: 7
+
+
+  pytest:
+    name: Run pytest [${{ join(matrix.config, '_') }}]
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
+    strategy:
+      matrix:
+        include:
+        - {config: [clang11_py39, mpi, tbb, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+
+    steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
+    - name: Download install
+      uses: actions/download-artifact@v2.0.9
+      with:
+        name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
+    - name: Untar install
+      run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
+
+    - name: Run pytest (serial)
+      run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1
+    - name: Run pytest (mpi)
+      if: ${{ contains(matrix.config, 'mpi') }}
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
+    - name: Run pytest (serial without cupy)
+      if: ${{ contains(matrix.config[0], 'cuda') }}
+      run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional
+      env:
+        _HOOMD_DISALLOW_CUPY_: 1
+    - name: Run pytest (mpi without cupy)
+      if: ${{ contains(matrix.config[0], 'cuda') && contains(matrix.config, 'mpi') }}
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
+      env:
+        _HOOMD_DISALLOW_CUPY_: 1
+
+
+  ctest:
+    name: Run ctest [${{ join(matrix.config, '_') }}]
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
+    strategy:
+      matrix:
+        include:
+        - {config: [clang11_py39, mpi, tbb, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+
+    steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
+    - name: Download build
+      uses: actions/download-artifact@v2.0.9
+      with:
+        name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
+    - name: Untar build
+      run: tar --use-compress-program='zstd -10 -T0' -xvf build.tar
+
+    - name: Run tests
+      run: >-
+        ctest
+        -T test
+        --output-on-failure
+        --test-output-size-failed 1048576
+        --test-output-size-passed 1048576
+      working-directory: build
+
+
+  validate:
+    name: Validate [${{ join(matrix.config, '_') }}]
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
+    strategy:
+      matrix:
+        include:
+        - {config: [clang11_py39, mpi, tbb, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
+    steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
+    - name: Download install
+      uses: actions/download-artifact@v2.0.9
+      with:
+        name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
+    - name: Untar install
+      run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
+
+    - name: Run pytest (serial)
+      if: ${{ !contains(matrix.config, 'mpi') }}
+      run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate
+    - name: Run pytest (mpi)
+      if: ${{ contains(matrix.config, 'mpi') }}
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
+
+
+  build_release:
+    name: Build [${{ join(matrix.config, '_') }}]
+    runs-on: ubuntu-latest
+    container:
+      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+    strategy:
+      matrix:
+        include:
+        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [clang10_py38, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang9_py38, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang8_py38, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang7_py38, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc8_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc7_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang6_py37, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }
+
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
+    - name: Checkout
+      uses: actions/checkout@v2.3.4
+      with:
+        path: code
+        submodules: true
+    - name: Configure
+      run: |
+        mkdir -p build
+        cd build
+        cmake ../code -GNinja \
+                      -DCMAKE_BUILD_TYPE=Release \
+                      -DENABLE_GPU=${ENABLE_GPU:-"OFF"} \
+                      -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
+                      -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
+                      -DBUILD_JIT=${BUILD_JIT:-"OFF"} \
+                      -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
+      env:
+        ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
+        ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
+        ENABLE_TBB: ${{ contains(matrix.config, 'tbb') }}
+        BUILD_JIT: ${{ contains(matrix.config, 'jit') }}
+    - name: Build
+      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
+      working-directory: build
+
+    - name: Remove object files
+      run: find build -type f -name '*.o' -delete
+    # Tar the build directory to preserve permissions and reduce HTTP requests on upload.
+    - name: 'Tar build'
+      run: tar --use-compress-program='zstd -10 -T0' -cvf build.tar build
+    - name: 'Tar install'
+      run: tar --use-compress-program='zstd -10 -T0' -cvf install.tar install
+    # Upload the tarballs. Retain the file for a limited time in case developers need to download
+    # and run tests locally for further debugging.
+    - name: 'Upload build'
+      uses: actions/upload-artifact@v2.2.3
+      with:
+        name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
+        path: build.tar
+        retention-days: 7
+    - name: 'Upload install'
+      uses: actions/upload-artifact@v2.2.3
+      with:
+        name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
+        path: install.tar
+        retention-days: 7
+
+
+  pytest_release:
+    name: Run pytest [${{ join(matrix.config, '_') }}]
+    needs: build_release
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
+    strategy:
+      matrix:
+        include:
+        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [clang10_py38, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang9_py38, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang8_py38, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang7_py38, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc8_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc7_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang6_py37, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }
+
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
+    - name: Download install
+      uses: actions/download-artifact@v2.0.9
+      with:
+        name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
+    - name: Untar install
+      run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
+
+    - name: Run pytest (serial)
+      run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1
+    - name: Run pytest (mpi)
+      if: ${{ contains(matrix.config, 'mpi') }}
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
+    - name: Run pytest (serial without cupy)
+      if: ${{ contains(matrix.config[0], 'cuda') }}
+      run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional
+      env:
+        _HOOMD_DISALLOW_CUPY_: 1
+    - name: Run pytest (mpi without cupy)
+      if: ${{ contains(matrix.config[0], 'cuda') && contains(matrix.config, 'mpi') }}
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
+      env:
+        _HOOMD_DISALLOW_CUPY_: 1
+
+
+  ctest_release:
+    name: Run ctest [${{ join(matrix.config, '_') }}]
+    needs: build_release
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
+    strategy:
+      matrix:
+        include:
+        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [clang10_py38, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang9_py38, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang8_py38, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang7_py38, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc8_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc7_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang6_py37, jit], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }
+
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
+    - name: Download build
+      uses: actions/download-artifact@v2.0.9
+      with:
+        name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
+    - name: Untar build
+      run: tar --use-compress-program='zstd -10 -T0' -xvf build.tar
+
+    - name: Run tests
+      run: >-
+        ctest
+        -T test
+        --output-on-failure
+        --test-output-size-failed 1048576
+        --test-output-size-passed 1048576
+      working-directory: build
+
+
+  # This job is used to provide a single requirement for branch merge conditions. GitHub considers
+  # the check passing even if it is skipped, so this job raises errors when required jobs were not
+  # run.
+  tests_complete:
+    name: Unit test
+    needs: [pytest, ctest, validate]
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Error if pytest did not succeed
+        if: needs.pytest.result != 'success'
+        run: exit 1
+      - name: Error if ctest did not succeed
+        if: needs.ctest.result != 'success'
+        run: exit 1
+      - name: Error if validate did not succeed
+        if: needs.validate.result != 'success'
+        run: exit 1
+      - run: echo "Done!"

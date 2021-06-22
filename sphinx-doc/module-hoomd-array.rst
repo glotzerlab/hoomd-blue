@@ -18,4 +18,3 @@ hoomd.data.array
     :members: HOOMDGPUArray
 
     .. autoclass:: HOOMDArray
-

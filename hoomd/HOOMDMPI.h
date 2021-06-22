@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: jglaser
 
 #ifndef __HOOMD_MPI_H__
@@ -25,12 +24,12 @@
 #include <sstream>
 #include <vector>
 
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/map.hpp>
 #include <cereal/types/set.hpp>
 #include <cereal/types/string.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/vector.hpp>
 #include <cereal/types/utility.hpp> // std::pair
-#include <cereal/archives/binary.hpp>
+#include <cereal/types/vector.hpp>
 
 #ifdef SINGLE_PRECISION
 //! Define MPI_FLOAT as Scalar MPI data type
@@ -44,153 +43,142 @@ const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_DOUBLE_INT;
 
 #ifdef ENABLE_TBB
 // https://www.threadingbuildingblocks.org/docs/help/reference/appendices/known_issues/linux_os.html
-#include <tbb/concurrent_vector.h>
-#include <tbb/concurrent_unordered_set.h>
 #include <tbb/concurrent_unordered_map.h>
+#include <tbb/concurrent_unordered_set.h>
+#include <tbb/concurrent_vector.h>
 #endif
 
-typedef struct{
+typedef struct
+    {
     Scalar s;
     int i;
-    }Scalar_Int;
-
+    } Scalar_Int;
 
 namespace cereal
-   {
-   //! Serialization functions for some of our data types
-   //! Serialization of Scalar4
-   template<class Archive>
-   void serialize(Archive & ar, Scalar4 & s, const unsigned int version)
-       {
-       ar & (Scalar &) s.x;
-       ar & (Scalar &) s.y;
-       ar & (Scalar &) s.z;
-       ar & (Scalar &) s.w;
-       }
-
-    //! Serialization of Scalar3
-    template<class Archive>
-    void serialize(Archive & ar, Scalar3 & s, const unsigned int version)
-        {
-        ar & s.x;
-        ar & s.y;
-        ar & s.z;
-        }
-
-
-    //! Serialization of int3
-    template<class Archive>
-    void serialize(Archive & ar, int3 & i, const unsigned int version)
-        {
-        ar & i.x;
-        ar & i.y;
-        ar & i.z;
-        }
-
-    //! serialization of uint2
-    template<class Archive>
-    void serialize(Archive & ar, uint2 & u, const unsigned int version)
-        {
-        ar & u.x;
-        ar & u.y;
-        }
-
-    //! serialization of uint3
-    template<class Archive>
-    void serialize(Archive & ar, uint3 & u, const unsigned int version)
-        {
-        ar & u.x;
-        ar & u.y;
-        ar & u.z;
-        }
-
-    //! serialization of uchar3
-    template<class Archive>
-    void serialize(Archive & ar, uchar3 & u, const unsigned int version)
-        {
-        ar & u.x;
-        ar & u.y;
-        ar & u.z;
-        }
-
-      #ifdef ENABLE_TBB
-      //! Serialization for tbb::concurrent_vector
-      template <class Archive, class T, class A> inline
-      void save( Archive & ar, tbb::concurrent_vector<T, A> const & vector )
-        {
-        ar( make_size_tag( static_cast<size_type>(vector.size()) ) ); // number of elements
-        for(auto && v : vector)
-            ar( v );
-        }
-
-      template <class Archive, class T, class A> inline
-      void load( Archive & ar, tbb::concurrent_vector<T, A> & vector )
-        {
-        size_type size;
-        ar( make_size_tag( size ) );
-
-        vector.resize( static_cast<std::size_t>( size ) );
-        for(auto && v : vector)
-            ar( v );
-        }
-
-    //! Serialization of tbb::concurrent_unordered_set
-    namespace tbb_unordered_set_detail
-        {
-        //! @internal
-        template <class Archive, class SetT> inline
-        void save( Archive & ar, SetT const & set )
-            {
-            ar( make_size_tag( static_cast<size_type>(set.size()) ) );
-
-            for( const auto & i : set )
-                ar( i );
-            }
-
-        //! @internal
-        template <class Archive, class SetT> inline
-        void load( Archive & ar, SetT & set )
-            {
-            size_type size;
-            ar( make_size_tag( size ) );
-
-            set.clear();
-
-            for( size_type i = 0; i < size; ++i )
-                {
-                typename SetT::key_type key;
-
-                ar( key );
-                set.emplace( std::move( key ) );
-                }
-            }
-        }
-
-    //! Saving for tbb::concurrent_unordered_set
-    template <class Archive, class K, class H, class KE, class A> inline
-    void save(Archive & ar, tbb::concurrent_unordered_set<K, H, KE, A> const & unordered_set )
-        {
-        tbb_unordered_set_detail::save( ar, unordered_set );
-        }
-
-    //! Loading for tbb::concurrent_unordered_set
-    template <class Archive, class K, class H, class KE, class A> inline
-    void load( Archive & ar, tbb::concurrent_unordered_set<K, H, KE, A> & unordered_set )
-        {
-        tbb_unordered_set_detail::load( ar, unordered_set );
-        }
-    #endif
+    {
+//! Serialization functions for some of our data types
+//! Serialization of Scalar4
+template<class Archive> void serialize(Archive& ar, Scalar4& s, const unsigned int version)
+    {
+    ar&(Scalar&)s.x;
+    ar&(Scalar&)s.y;
+    ar&(Scalar&)s.z;
+    ar&(Scalar&)s.w;
     }
 
+//! Serialization of Scalar3
+template<class Archive> void serialize(Archive& ar, Scalar3& s, const unsigned int version)
+    {
+    ar& s.x;
+    ar& s.y;
+    ar& s.z;
+    }
+
+//! Serialization of int3
+template<class Archive> void serialize(Archive& ar, int3& i, const unsigned int version)
+    {
+    ar& i.x;
+    ar& i.y;
+    ar& i.z;
+    }
+
+//! serialization of uint2
+template<class Archive> void serialize(Archive& ar, uint2& u, const unsigned int version)
+    {
+    ar& u.x;
+    ar& u.y;
+    }
+
+//! serialization of uint3
+template<class Archive> void serialize(Archive& ar, uint3& u, const unsigned int version)
+    {
+    ar& u.x;
+    ar& u.y;
+    ar& u.z;
+    }
+
+//! serialization of uchar3
+template<class Archive> void serialize(Archive& ar, uchar3& u, const unsigned int version)
+    {
+    ar& u.x;
+    ar& u.y;
+    ar& u.z;
+    }
+
+#ifdef ENABLE_TBB
+//! Serialization for tbb::concurrent_vector
+template<class Archive, class T, class A>
+inline void save(Archive& ar, tbb::concurrent_vector<T, A> const& vector)
+    {
+    ar(make_size_tag(static_cast<size_type>(vector.size()))); // number of elements
+    for (auto&& v : vector)
+        ar(v);
+    }
+
+template<class Archive, class T, class A>
+inline void load(Archive& ar, tbb::concurrent_vector<T, A>& vector)
+    {
+    size_type size;
+    ar(make_size_tag(size));
+
+    vector.resize(static_cast<std::size_t>(size));
+    for (auto&& v : vector)
+        ar(v);
+    }
+
+//! Serialization of tbb::concurrent_unordered_set
+namespace tbb_unordered_set_detail
+    {
+//! @internal
+template<class Archive, class SetT> inline void save(Archive& ar, SetT const& set)
+    {
+    ar(make_size_tag(static_cast<size_type>(set.size())));
+
+    for (const auto& i : set)
+        ar(i);
+    }
+
+//! @internal
+template<class Archive, class SetT> inline void load(Archive& ar, SetT& set)
+    {
+    size_type size;
+    ar(make_size_tag(size));
+
+    set.clear();
+
+    for (size_type i = 0; i < size; ++i)
+        {
+        typename SetT::key_type key;
+
+        ar(key);
+        set.emplace(std::move(key));
+        }
+    }
+    } // namespace tbb_unordered_set_detail
+
+//! Saving for tbb::concurrent_unordered_set
+template<class Archive, class K, class H, class KE, class A>
+inline void save(Archive& ar, tbb::concurrent_unordered_set<K, H, KE, A> const& unordered_set)
+    {
+    tbb_unordered_set_detail::save(ar, unordered_set);
+    }
+
+//! Loading for tbb::concurrent_unordered_set
+template<class Archive, class K, class H, class KE, class A>
+inline void load(Archive& ar, tbb::concurrent_unordered_set<K, H, KE, A>& unordered_set)
+    {
+    tbb_unordered_set_detail::load(ar, unordered_set);
+    }
+#endif
+    } // namespace cereal
 
 //! Wrapper around MPI_Bcast that handles any serializable object
-template<typename T>
-void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
+template<typename T> void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
     {
     int rank;
     MPI_Comm_rank(mpi_comm, &rank);
 
-    char *buf = NULL;
+    char* buf = NULL;
     unsigned int recv_count;
     if (rank == (int)root)
         {
@@ -211,7 +199,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
         }
 
     MPI_Bcast(&recv_count, 1, MPI_INT, root, mpi_comm);
-    if (rank != (int) root)
+    if (rank != (int)root)
         buf = new char[recv_count];
 
     MPI_Bcast(buf, recv_count, MPI_BYTE, root, mpi_comm);
@@ -219,7 +207,8 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
     if (rank != (int)root)
         {
         // de-serialize
-        std::stringstream s(std::string(buf, recv_count), std::ios_base::in | std::ios_base::binary);
+        std::stringstream s(std::string(buf, recv_count),
+                            std::ios_base::in | std::ios_base::binary);
         cereal::BinaryInputArchive ar(s);
 
         ar >> val;
@@ -230,20 +219,23 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
 
 //! Wrapper around MPI_Scatterv that scatters a vector of serializable objects
 template<typename T>
-void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root, const MPI_Comm mpi_comm)
+void scatter_v(const std::vector<T>& in_values,
+               T& out_value,
+               unsigned int root,
+               const MPI_Comm mpi_comm)
     {
     int rank;
     int size;
     MPI_Comm_rank(mpi_comm, &rank);
     MPI_Comm_size(mpi_comm, &size);
 
-    assert(in_values.size() == (unsigned int) size);
+    assert(in_values.size() == (unsigned int)size);
 
     unsigned int recv_count;
-    int *send_counts = NULL;
-    int *displs = NULL;
+    int* send_counts = NULL;
+    int* displs = NULL;
 
-    char *sbuf = NULL;
+    char* sbuf = NULL;
     if (rank == (int)root)
         {
         send_counts = new int[size];
@@ -252,7 +244,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
         typename std::vector<T>::const_iterator it;
         std::vector<std::string> str;
         unsigned int len = 0;
-        for (it = in_values.begin(); it!= in_values.end(); ++it)
+        for (it = in_values.begin(); it != in_values.end(); ++it)
             {
             unsigned int idx = (unsigned int)(it - in_values.begin());
             std::stringstream s(std::ios_base::out | std::ios_base::binary);
@@ -263,7 +255,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
             s.flush();
             str.push_back(s.str());
 
-            displs[idx] = (idx > 0) ? displs[idx-1]+send_counts[idx-1] : 0;
+            displs[idx] = (idx > 0) ? displs[idx - 1] + send_counts[idx - 1] : 0;
             send_counts[idx] = (unsigned int)(str[idx].length());
             len += send_counts[idx];
             }
@@ -278,7 +270,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
     MPI_Scatter(send_counts, 1, MPI_INT, &recv_count, 1, MPI_INT, root, mpi_comm);
 
     // allocate receive buffer
-    char *rbuf = new char[recv_count];
+    char* rbuf = new char[recv_count];
 
     // scatter actual data
     MPI_Scatterv(sbuf, send_counts, displs, MPI_BYTE, rbuf, recv_count, MPI_BYTE, root, mpi_comm);
@@ -289,7 +281,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
 
     ar >> out_value;
 
-    if (rank == (int) root)
+    if (rank == (int)root)
         {
         delete[] send_counts;
         delete[] displs;
@@ -300,7 +292,10 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
 
 //! Wrapper around MPI_Gatherv
 template<typename T>
-void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root, const MPI_Comm mpi_comm)
+void gather_v(const T& in_value,
+              std::vector<T>& out_values,
+              unsigned int root,
+              const MPI_Comm mpi_comm)
     {
     int rank;
     int size;
@@ -318,9 +313,9 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
     std::string str = s.str();
     unsigned int send_count = (unsigned int)str.length();
 
-    int *recv_counts = NULL;
-    int *displs = NULL;
-    if (rank == (int) root)
+    int* recv_counts = NULL;
+    int* displs = NULL;
+    if (rank == (int)root)
         {
         out_values.resize(size);
         recv_counts = new int[size];
@@ -330,27 +325,36 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
     // gather lengths of buffers
     MPI_Gather(&send_count, 1, MPI_INT, recv_counts, 1, MPI_INT, root, mpi_comm);
 
-    char *rbuf = NULL;
-    if (rank == (int) root)
+    char* rbuf = NULL;
+    if (rank == (int)root)
         {
         unsigned int len = 0;
-        for (unsigned int i = 0; i < (unsigned int) size; i++)
+        for (unsigned int i = 0; i < (unsigned int)size; i++)
             {
-            displs[i] = (i > 0) ? displs[i-1] + recv_counts[i-1] : 0;
+            displs[i] = (i > 0) ? displs[i - 1] + recv_counts[i - 1] : 0;
             len += recv_counts[i];
             }
         rbuf = new char[len];
         }
 
     // now gather actual objects
-    MPI_Gatherv((void *)str.data(), send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, root, mpi_comm);
+    MPI_Gatherv((void*)str.data(),
+                send_count,
+                MPI_BYTE,
+                rbuf,
+                recv_counts,
+                displs,
+                MPI_BYTE,
+                root,
+                mpi_comm);
 
     // on root processor, de-serialize data
-    if (rank == (int) root)
+    if (rank == (int)root)
         {
         for (unsigned int i = 0; i < out_values.size(); i++)
             {
-            std::stringstream s(std::string(rbuf + displs[i], recv_counts[i]), std::ios_base::in | std::ios_base::binary);
+            std::stringstream s(std::string(rbuf + displs[i], recv_counts[i]),
+                                std::ios_base::in | std::ios_base::binary);
             cereal::BinaryInputArchive ar(s);
 
             ar >> out_values[i];
@@ -364,7 +368,7 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
 
 //! Wrapper around MPI_Allgatherv
 template<typename T>
-void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm mpi_comm)
+void all_gather_v(const T& in_value, std::vector<T>& out_values, const MPI_Comm mpi_comm)
     {
     int rank;
     int size;
@@ -384,28 +388,36 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
 
     // allocate memory for buffer lengths
     out_values.resize(size);
-    int *recv_counts = new int[size];
-    int *displs = new int[size];
+    int* recv_counts = new int[size];
+    int* displs = new int[size];
 
     // gather lengths of buffers
     MPI_Allgather(&send_count, 1, MPI_INT, recv_counts, 1, MPI_INT, mpi_comm);
 
     // allocate receiver buffer
     unsigned int len = 0;
-    for (unsigned int i = 0; i < (unsigned int) size; i++)
+    for (unsigned int i = 0; i < (unsigned int)size; i++)
         {
-        displs[i] = (i > 0) ? displs[i-1] + recv_counts[i-1] : 0;
+        displs[i] = (i > 0) ? displs[i - 1] + recv_counts[i - 1] : 0;
         len += recv_counts[i];
         }
-    char *rbuf = new char[len];
+    char* rbuf = new char[len];
 
     // now gather actual objects
-    MPI_Allgatherv((void *)str.data(), send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, mpi_comm);
+    MPI_Allgatherv((void*)str.data(),
+                   send_count,
+                   MPI_BYTE,
+                   rbuf,
+                   recv_counts,
+                   displs,
+                   MPI_BYTE,
+                   mpi_comm);
 
     // de-serialize data
     for (unsigned int i = 0; i < out_values.size(); i++)
         {
-        std::stringstream s(std::string(rbuf + displs[i], recv_counts[i]), std::ios_base::in | std::ios_base::binary);
+        std::stringstream s(std::string(rbuf + displs[i], recv_counts[i]),
+                            std::ios_base::in | std::ios_base::binary);
         cereal::BinaryInputArchive ar(s);
 
         ar >> out_values[i];
@@ -417,14 +429,13 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
     }
 
 //! Wrapper around MPI_Send that handles any serializable object
-template<typename T>
-void send(const T& val,const unsigned int dest, const MPI_Comm mpi_comm)
+template<typename T> void send(const T& val, const unsigned int dest, const MPI_Comm mpi_comm)
     {
     int rank;
     MPI_Comm_rank(mpi_comm, &rank);
-    if(rank == static_cast<int>(dest) ) //Quick exit, if dest is src
-      return;
-    char *buf = NULL;
+    if (rank == static_cast<int>(dest)) // Quick exit, if dest is src
+        return;
+    char* buf = NULL;
     int recv_count;
 
     std::stringstream s(std::ios_base::out | std::ios_base::binary);
@@ -442,30 +453,29 @@ void send(const T& val,const unsigned int dest, const MPI_Comm mpi_comm)
     buf = new char[recv_count];
     str.copy(buf, recv_count);
 
-    MPI_Send(&recv_count, 1 , MPI_INT, dest, 0, mpi_comm);
+    MPI_Send(&recv_count, 1, MPI_INT, dest, 0, mpi_comm);
 
-    MPI_Send(buf, recv_count, MPI_BYTE, dest, 0 , mpi_comm);
+    MPI_Send(buf, recv_count, MPI_BYTE, dest, 0, mpi_comm);
 
     delete[] buf;
     }
 
 //! Wrapper around MPI_Recv that handles any serializable object
-template<typename T>
-void recv(T& val,const unsigned int src, const MPI_Comm mpi_comm)
+template<typename T> void recv(T& val, const unsigned int src, const MPI_Comm mpi_comm)
     {
     int rank;
     MPI_Comm_rank(mpi_comm, &rank);
-    if( rank == static_cast<int>(src) ) //Quick exit if src is dest.
-      return;
+    if (rank == static_cast<int>(src)) // Quick exit if src is dest.
+        return;
 
     int recv_count;
 
-    MPI_Recv(&recv_count, 1, MPI_INT, src, 0 , mpi_comm, MPI_STATUS_IGNORE);
+    MPI_Recv(&recv_count, 1, MPI_INT, src, 0, mpi_comm, MPI_STATUS_IGNORE);
 
-    char *buf = NULL;
+    char* buf = NULL;
     buf = new char[recv_count];
 
-    MPI_Recv(buf, recv_count, MPI_BYTE, src, 0 , mpi_comm, MPI_STATUS_IGNORE);
+    MPI_Recv(buf, recv_count, MPI_BYTE, src, 0, mpi_comm, MPI_STATUS_IGNORE);
 
     // de-serialize
     std::stringstream s(std::string(buf, recv_count), std::ios_base::in | std::ios_base::binary);
@@ -474,7 +484,6 @@ void recv(T& val,const unsigned int src, const MPI_Comm mpi_comm)
 
     delete[] buf;
     }
-
 
 #endif // ENABLE_MPI
 #endif // __HOOMD_MPI_H__

@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander, grva, baschult
 
 /*! \file ForceCompute.cc
@@ -29,16 +28,16 @@ namespace py = pybind11;
     \post All forces are initialized to 0
 */
 ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-     : Compute(sysdef), m_particles_sorted(false)
+    : Compute(sysdef), m_particles_sorted(false)
     {
     assert(m_pdata);
     assert(m_pdata->getMaxN() > 0);
 
     // allocate data on the host
     unsigned int max_num_particles = m_pdata->getMaxN();
-    GlobalArray<Scalar4>  force(max_num_particles,m_exec_conf);
-    GlobalArray<Scalar>   virial(max_num_particles,6,m_exec_conf);
-    GlobalArray<Scalar4>  torque(max_num_particles,m_exec_conf);
+    GlobalArray<Scalar4> force(max_num_particles, m_exec_conf);
+    GlobalArray<Scalar> virial(max_num_particles, 6, m_exec_conf);
+    GlobalArray<Scalar4> torque(max_num_particles, m_exec_conf);
     m_force.swap(force);
     TAG_ALLOCATION(m_force);
     m_virial.swap(virial);
@@ -50,12 +49,12 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
         ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-        memset(h_force.data, 0, sizeof(Scalar4)*m_force.getNumElements());
-        memset(h_torque.data, 0, sizeof(Scalar4)*m_torque.getNumElements());
-        memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
+        memset(h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+        memset(h_torque.data, 0, sizeof(Scalar4) * m_torque.getNumElements());
+        memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
         }
 
-    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -63,21 +62,32 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
         // set up GPU memory mappings
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaMemAdvise(m_force.get(), sizeof(Scalar4)*m_force.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-            cudaMemAdvise(m_virial.get(), sizeof(Scalar)*m_virial.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-            cudaMemAdvise(m_torque.get(), sizeof(Scalar4)*m_torque.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_force.get(),
+                          sizeof(Scalar4) * m_force.getNumElements(),
+                          cudaMemAdviseSetAccessedBy,
+                          gpu_map[idev]);
+            cudaMemAdvise(m_virial.get(),
+                          sizeof(Scalar) * m_virial.getNumElements(),
+                          cudaMemAdviseSetAccessedBy,
+                          gpu_map[idev]);
+            cudaMemAdvise(m_torque.get(),
+                          sizeof(Scalar4) * m_torque.getNumElements(),
+                          cudaMemAdviseSetAccessedBy,
+                          gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
         }
-    #endif
+#endif
 
     m_virial_pitch = m_virial.getPitch();
 
     // connect to the ParticleData to receive notifications when particles change order in memory
-     m_pdata->getParticleSortSignal().connect<ForceCompute, &ForceCompute::setParticlesSorted>(this);
+    m_pdata->getParticleSortSignal().connect<ForceCompute, &ForceCompute::setParticlesSorted>(this);
 
-    // connect to the ParticleData to receive notifications when the maximum number of particles changes
-     m_pdata->getMaxParticleNumberChangeSignal().connect<ForceCompute, &ForceCompute::reallocate>(this);
+    // connect to the ParticleData to receive notifications when the maximum number of particles
+    // changes
+    m_pdata->getMaxParticleNumberChangeSignal().connect<ForceCompute, &ForceCompute::reallocate>(
+        this);
 
     // reset external virial
     for (unsigned int i = 0; i < 6; ++i)
@@ -97,16 +107,16 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
 void ForceCompute::reallocate()
     {
     m_force.resize(m_pdata->getMaxN());
-    m_virial.resize(m_pdata->getMaxN(),6);
+    m_virial.resize(m_pdata->getMaxN(), 6);
     m_torque.resize(m_pdata->getMaxN());
 
         {
         ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-        memset(h_force.data, 0, sizeof(Scalar4)*m_force.getNumElements());
-        memset(h_torque.data, 0, sizeof(Scalar4)*m_torque.getNumElements());
-        memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
+        memset(h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+        memset(h_torque.data, 0, sizeof(Scalar4) * m_torque.getNumElements());
+        memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
         }
 
     // the pitch of the virial array may have changed
@@ -118,7 +128,7 @@ void ForceCompute::reallocate()
 
 void ForceCompute::updateGPUAdvice()
     {
-    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -130,54 +140,76 @@ void ForceCompute::updateGPUAdvice()
             {
             // set preferred location
             auto range = gpu_partition.getRange(idev);
-            unsigned int nelem =  range.second - range.first;
+            unsigned int nelem = range.second - range.first;
 
             if (!nelem)
                 continue;
 
-            cudaMemAdvise(m_force.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_force.get() + range.first,
+                          sizeof(Scalar4) * nelem,
+                          cudaMemAdviseSetPreferredLocation,
+                          gpu_map[idev]);
             for (unsigned int i = 0; i < 6; ++i)
-                cudaMemAdvise(m_virial.get()+i*m_virial.getPitch()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_torque.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_virial.get() + i * m_virial.getPitch() + range.first,
+                              sizeof(Scalar) * nelem,
+                              cudaMemAdviseSetPreferredLocation,
+                              gpu_map[idev]);
+            cudaMemAdvise(m_torque.get() + range.first,
+                          sizeof(Scalar4) * nelem,
+                          cudaMemAdviseSetPreferredLocation,
+                          gpu_map[idev]);
 
-            cudaMemPrefetchAsync(m_force.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_force.get() + range.first,
+                                 sizeof(Scalar4) * nelem,
+                                 gpu_map[idev]);
             for (unsigned int i = 0; i < 6; ++i)
-                cudaMemPrefetchAsync(m_virial.get()+i*m_virial.getPitch()+range.first, sizeof(Scalar)*nelem, gpu_map[idev]);
-            cudaMemPrefetchAsync(m_torque.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_virial.get() + i * m_virial.getPitch() + range.first,
+                                     sizeof(Scalar) * nelem,
+                                     gpu_map[idev]);
+            cudaMemPrefetchAsync(m_torque.get() + range.first,
+                                 sizeof(Scalar4) * nelem,
+                                 gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
 
         // set up GPU memory mappings
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaMemAdvise(m_force.get(), sizeof(Scalar4)*m_force.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-            cudaMemAdvise(m_virial.get(), sizeof(Scalar)*m_virial.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-            cudaMemAdvise(m_torque.get(), sizeof(Scalar4)*m_torque.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_force.get(),
+                          sizeof(Scalar4) * m_force.getNumElements(),
+                          cudaMemAdviseSetAccessedBy,
+                          gpu_map[idev]);
+            cudaMemAdvise(m_virial.get(),
+                          sizeof(Scalar) * m_virial.getNumElements(),
+                          cudaMemAdviseSetAccessedBy,
+                          gpu_map[idev]);
+            cudaMemAdvise(m_torque.get(),
+                          sizeof(Scalar4) * m_torque.getNumElements(),
+                          cudaMemAdviseSetAccessedBy,
+                          gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
         }
-    #endif
+#endif
     }
 
 /*! Frees allocated memory
-*/
+ */
 ForceCompute::~ForceCompute()
     {
-    m_pdata->getParticleSortSignal().disconnect<ForceCompute, &ForceCompute::setParticlesSorted>(this);
-    m_pdata->getMaxParticleNumberChangeSignal().disconnect<ForceCompute, &ForceCompute::reallocate>(this);
+    m_pdata->getParticleSortSignal().disconnect<ForceCompute, &ForceCompute::setParticlesSorted>(
+        this);
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<ForceCompute, &ForceCompute::reallocate>(
+        this);
     }
 
 /*! Sums the total potential energy calculated by the last call to compute() and returns it.
-*/
+ */
 Scalar ForceCompute::calcEnergySum()
     {
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);
-    // always perform the sum in double precision for better accuracy
-    // this is cheating and is really just a temporary hack to get logging up and running
-    // the potential accuracy loss in simulations needs to be evaluated here and a proper
-    // summation algorithm put in place
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
     double pe_total = 0.0;
-    for (unsigned int i=0; i < m_pdata->getN(); i++)
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         pe_total += (double)h_force.data[i].w;
         }
@@ -185,18 +217,24 @@ Scalar ForceCompute::calcEnergySum()
     if (m_comm)
         {
         // reduce potential energy on all processors
-        MPI_Allreduce(MPI_IN_PLACE, &pe_total, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &pe_total,
+                      1,
+                      MPI_DOUBLE,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
         }
 #endif
     return Scalar(pe_total);
     }
 
-/*! Sums the potential energy of a particle group calculated by the last call to compute() and returns it.
-*/
+/*! Sums the potential energy of a particle group calculated by the last call to compute() and
+ * returns it.
+ */
 Scalar ForceCompute::calcEnergyGroup(std::shared_ptr<ParticleGroup> group)
     {
     unsigned int group_size = group->getNumMembers();
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
 
     double pe_total = 0.0;
 
@@ -210,18 +248,23 @@ Scalar ForceCompute::calcEnergyGroup(std::shared_ptr<ParticleGroup> group)
     if (m_comm)
         {
         // reduce potential energy on all processors
-        MPI_Allreduce(MPI_IN_PLACE, &pe_total, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &pe_total,
+                      1,
+                      MPI_DOUBLE,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
         }
 #endif
     return Scalar(pe_total);
     }
 /*! Sums the force of a particle group calculated by the last call to compute() and returns it.
-*/
+ */
 
 vec3<double> ForceCompute::calcForceGroup(std::shared_ptr<ParticleGroup> group)
     {
     unsigned int group_size = group->getNumMembers();
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
 
     vec3<double> f_total = vec3<double>();
 
@@ -235,37 +278,47 @@ vec3<double> ForceCompute::calcForceGroup(std::shared_ptr<ParticleGroup> group)
     if (m_comm)
         {
         // reduce potential energy on all processors
-        MPI_Allreduce(MPI_IN_PLACE, &f_total, 3, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &f_total,
+                      3,
+                      MPI_DOUBLE,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
         }
 #endif
     return vec3<double>(f_total);
     }
 
-/*! Sums the virial contributions of a particle group calculated by the last call to compute() and returns it.
-*/
+/*! Sums the virial contributions of a particle group calculated by the last call to compute() and
+ * returns it.
+ */
 std::vector<Scalar> ForceCompute::calcVirialGroup(std::shared_ptr<ParticleGroup> group)
     {
     const unsigned int group_size = group->getNumMembers();
-    const ArrayHandle<Scalar> h_virial(m_virial,access_location::host,access_mode::read);
+    const ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::read);
 
-    std::vector<Scalar> total_virial(6,0.);
+    std::vector<Scalar> total_virial(6, 0.);
 
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         const unsigned int j = group->getMemberIndex(group_idx);
 
-        for(int i=0; i < 6; i++)
-            total_virial[i] += h_virial.data[m_virial_pitch*i +  j];
+        for (int i = 0; i < 6; i++)
+            total_virial[i] += h_virial.data[m_virial_pitch * i + j];
         }
 #ifdef ENABLE_MPI
     if (m_comm)
         {
         // reduce potential energy on all processors
-        MPI_Allreduce(MPI_IN_PLACE, total_virial.data(), 6, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE,
+                      total_virial.data(),
+                      6,
+                      MPI_HOOMD_SCALAR,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
         }
 #endif
     return total_virial;
-
     }
 
 pybind11::object ForceCompute::getEnergiesPython()
@@ -417,7 +470,7 @@ pybind11::object ForceCompute::getVirialsPython()
         dims[0] = 0;
         dims[1] = 0;
         }
-    std::vector<double> virial(dims[0]*dims[1]);
+    std::vector<double> virial(dims[0] * dims[1]);
 
     // This is slow: TODO implement a proper gather operation
     for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
@@ -462,9 +515,7 @@ void ForceCompute::compute(uint64_t timestep)
     Compute::compute(timestep);
     // recompute forces if the particles were sorted, this is a new timestep, or the particle data
     // flags do not match
-    if (m_particles_sorted ||
-        shouldCompute(timestep) ||
-        m_pdata->getFlags() != m_computed_flags)
+    if (m_particles_sorted || shouldCompute(timestep) || m_pdata->getFlags() != m_computed_flags)
         {
         computeForces(timestep);
         }
@@ -486,7 +537,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
     computeForces(0);
 
 #ifdef ENABLE_HIP
-    if(m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled())
         {
         hipDeviceSynchronize();
         CHECK_CUDA_ERROR();
@@ -499,7 +550,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
         computeForces(0);
 
 #ifdef ENABLE_HIP
-    if(m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled())
         hipDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
@@ -515,19 +566,23 @@ Scalar4 ForceCompute::getTorque(unsigned int tag)
     {
     unsigned int i = m_pdata->getRTag(tag);
     bool found = (i < m_pdata->getN());
-    Scalar4 result = make_scalar4(0.0,0.0,0.0,0.0);
+    Scalar4 result = make_scalar4(0.0, 0.0, 0.0, 0.0);
     if (found)
         {
         ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::read);
         result = h_torque.data[i];
         }
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         unsigned int owner_rank = m_pdata->getOwnerRank(tag);
-        MPI_Bcast(&result, sizeof(Scalar4), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&result,
+                  sizeof(Scalar4),
+                  MPI_BYTE,
+                  owner_rank,
+                  m_exec_conf->getMPICommunicator());
         }
-    #endif
+#endif
     return result;
     }
 
@@ -538,19 +593,23 @@ Scalar3 ForceCompute::getForce(unsigned int tag)
     {
     unsigned int i = m_pdata->getRTag(tag);
     bool found = (i < m_pdata->getN());
-    Scalar3 result = make_scalar3(0.0,0.0,0.0);
+    Scalar3 result = make_scalar3(0.0, 0.0, 0.0);
     if (found)
         {
         ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
         result = make_scalar3(h_force.data[i].x, h_force.data[i].y, h_force.data[i].z);
         }
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         unsigned int owner_rank = m_pdata->getOwnerRank(tag);
-        MPI_Bcast(&result, sizeof(Scalar3), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&result,
+                  sizeof(Scalar3),
+                  MPI_BYTE,
+                  owner_rank,
+                  m_exec_conf->getMPICommunicator());
         }
-    #endif
+#endif
     return result;
     }
 
@@ -566,15 +625,15 @@ Scalar ForceCompute::getVirial(unsigned int tag, unsigned int component)
     if (found)
         {
         ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::read);
-        result = h_virial.data[m_virial_pitch*component+i];
+        result = h_virial.data[m_virial_pitch * component + i];
         }
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         unsigned int owner_rank = m_pdata->getOwnerRank(tag);
         MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
         }
-    #endif
+#endif
     return result;
     }
 
@@ -591,28 +650,27 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
         ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
         result = h_force.data[i].w;
         }
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         unsigned int owner_rank = m_pdata->getOwnerRank(tag);
         MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
         }
-    #endif
+#endif
     return result;
     }
 
 void export_ForceCompute(py::module& m)
     {
-    py::class_< ForceCompute, Compute, std::shared_ptr<ForceCompute> >(m,"ForceCompute")
-    .def(py::init< std::shared_ptr<SystemDefinition> >())
-    .def("getForce", &ForceCompute::getForce)
-    .def("getTorque", &ForceCompute::getTorque)
-    .def("getVirial", &ForceCompute::getVirial)
-    .def("getEnergy", &ForceCompute::getEnergy)
-    .def("calcEnergySum", &ForceCompute::calcEnergySum)
-    .def("getEnergies", &ForceCompute::getEnergiesPython)
-    .def("getForces", &ForceCompute::getForcesPython)
-    .def("getTorques", &ForceCompute::getTorquesPython)
-    .def("getVirials", &ForceCompute::getVirialsPython)
-    ;
+    py::class_<ForceCompute, Compute, std::shared_ptr<ForceCompute>>(m, "ForceCompute")
+        .def(py::init<std::shared_ptr<SystemDefinition>>())
+        .def("getForce", &ForceCompute::getForce)
+        .def("getTorque", &ForceCompute::getTorque)
+        .def("getVirial", &ForceCompute::getVirial)
+        .def("getEnergy", &ForceCompute::getEnergy)
+        .def("calcEnergySum", &ForceCompute::calcEnergySum)
+        .def("getEnergies", &ForceCompute::getEnergiesPython)
+        .def("getForces", &ForceCompute::getForcesPython)
+        .def("getTorques", &ForceCompute::getTorquesPython)
+        .def("getVirials", &ForceCompute::getVirialsPython);
     }

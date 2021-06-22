@@ -14,7 +14,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "3.0.0-beta.5")
+set(HOOMD_VERSION_RAW "3.0.0-beta.7")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -196,14 +196,6 @@ if (BUILD_TESTING OR BUILD_VALIDATION)
      # add test_all to the ALL target
      add_custom_target(test_all ALL)
 endif (BUILD_TESTING OR BUILD_VALIDATION)
-
-# In jenkins tests on multiple build configurations, it is wasteful to run CPU tests on CPU and all GPU test paths
-# this option turns off CPU only tests in builds with ENABLE_HIP=ON
-option(TEST_CPU_IN_GPU_BUILDS "Test CPU code path in GPU enabled builds" on)
-mark_as_advanced(TEST_CPU_IN_GPU_BUILDS)
-if (NOT TEST_CPU_IN_GPU_BUILDS AND ENABLE_HIP)
-    message(STATUS "Warning: Skipping CPU tests")
-endif()
 
 ################################
 ## Process subdirectories

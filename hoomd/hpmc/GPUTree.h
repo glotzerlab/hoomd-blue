@@ -7,8 +7,8 @@
 #include "OBBTree.h"
 #endif
 
-#include "hoomd/ManagedArray.h"
 #include "HPMCPrecisionSetup.h"
+#include "hoomd/ManagedArray.h"
 
 #ifndef __GPU_TREE_H__
 #define __GPU_TREE_H__
@@ -29,346 +29,343 @@
 #include "hoomd/ManagedArray.h"
 
 namespace hpmc
-{
-
+    {
 namespace detail
-{
-
+    {
 //! Adapter class to AABTree for query on the GPU
 class GPUTree
     {
     public:
-        //! Empty constructor
-        DEVICE GPUTree()
-            : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0)
-            { }
+    //! Empty constructor
+    DEVICE GPUTree() : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0) { }
 
-        #ifndef __HIPCC__
-        //! Constructor
-        /*! \param tree OBBTree to construct from
-         *  \param managed True if we use CUDA managed memory
-         */
-        GPUTree(const OBBTree &tree, bool managed=false)
+#ifndef __HIPCC__
+    //! Constructor
+    /*! \param tree OBBTree to construct from
+     *  \param managed True if we use CUDA managed memory
+     */
+    GPUTree(const OBBTree& tree, bool managed = false)
+        {
+        // allocate
+        m_num_nodes = tree.getNumNodes();
+
+        m_center = ManagedArray<vec3<OverlapReal>>(m_num_nodes, managed);
+        m_lengths = ManagedArray<vec3<OverlapReal>>(m_num_nodes, managed);
+        m_rotation = ManagedArray<quat<OverlapReal>>(m_num_nodes, managed);
+        m_mask = ManagedArray<unsigned int>(m_num_nodes, managed);
+        m_is_sphere = ManagedArray<unsigned int>(m_num_nodes, managed);
+        m_left = ManagedArray<unsigned int>(m_num_nodes, managed);
+        m_escape = ManagedArray<unsigned int>(m_num_nodes, managed);
+        m_ancestors = ManagedArray<unsigned int>(m_num_nodes, managed);
+        m_leaf_ptr = ManagedArray<unsigned int>(m_num_nodes + 1, managed);
+
+        unsigned int n = 0;
+        m_num_leaves = 0;
+
+        // load data from OBBTree
+        for (unsigned int i = 0; i < tree.getNumNodes(); ++i)
             {
-            // allocate
-            m_num_nodes = tree.getNumNodes();
+            m_left[i] = tree.getNodeLeft(i);
+            m_escape[i] = tree.getEscapeIndex(i);
 
-            m_center = ManagedArray<vec3<OverlapReal> >(m_num_nodes, managed);
-            m_lengths = ManagedArray<vec3<OverlapReal> >(m_num_nodes,managed);
-            m_rotation = ManagedArray<quat<OverlapReal> >(m_num_nodes,managed);
-            m_mask = ManagedArray<unsigned int>(m_num_nodes,managed);
-            m_is_sphere = ManagedArray<unsigned int>(m_num_nodes,managed);
-            m_left = ManagedArray<unsigned int>(m_num_nodes, managed);
-            m_escape = ManagedArray<unsigned int>(m_num_nodes, managed);
-            m_ancestors = ManagedArray<unsigned int>(m_num_nodes, managed);
-            m_leaf_ptr = ManagedArray<unsigned int>(m_num_nodes+1, managed);
+            m_center[i] = tree.getNodeOBB(i).getPosition();
+            m_rotation[i] = tree.getNodeOBB(i).rotation;
+            m_lengths[i] = tree.getNodeOBB(i).lengths;
+            m_mask[i] = tree.getNodeOBB(i).mask;
+            m_is_sphere[i] = tree.getNodeOBB(i).isSphere();
 
-            unsigned int n = 0;
-            m_num_leaves = 0;
+            m_leaf_ptr[i] = n;
+            n += tree.getNodeNumParticles(i);
 
-            // load data from OBBTree
-            for (unsigned int i = 0; i < tree.getNumNodes(); ++i)
+            if (m_left[i] == OBB_INVALID_NODE)
                 {
-                m_left[i] = tree.getNodeLeft(i);
-                m_escape[i] = tree.getEscapeIndex(i);
-
-                m_center[i] = tree.getNodeOBB(i).getPosition();
-                m_rotation[i] = tree.getNodeOBB(i).rotation;
-                m_lengths[i] = tree.getNodeOBB(i).lengths;
-                m_mask[i] = tree.getNodeOBB(i).mask;
-                m_is_sphere[i] = tree.getNodeOBB(i).isSphere();
-
-                m_leaf_ptr[i] = n;
-                n += tree.getNodeNumParticles(i);
-
-                if (m_left[i] == OBB_INVALID_NODE)
-                    {
-                    m_num_leaves++;
-                    }
+                m_num_leaves++;
                 }
-            m_leaf_ptr[tree.getNumNodes()] = n;
+            }
+        m_leaf_ptr[tree.getNumNodes()] = n;
 
-            m_leaf_obb_ptr = ManagedArray<unsigned int>(m_num_leaves, managed);
-            m_num_leaves = 0;
-            for (unsigned int i =0; i < tree.getNumNodes(); ++i)
+        m_leaf_obb_ptr = ManagedArray<unsigned int>(m_num_leaves, managed);
+        m_num_leaves = 0;
+        for (unsigned int i = 0; i < tree.getNumNodes(); ++i)
+            {
+            if (m_left[i] == OBB_INVALID_NODE)
                 {
-                if (m_left[i] == OBB_INVALID_NODE)
-                    {
-                    m_leaf_obb_ptr[m_num_leaves++] = i;
-                    }
+                m_leaf_obb_ptr[m_num_leaves++] = i;
                 }
+            }
 
-            m_particles = ManagedArray<unsigned int>(n, managed);
+        m_particles = ManagedArray<unsigned int>(n, managed);
 
-            for (unsigned int i = 0; i < tree.getNumNodes(); ++i)
+        for (unsigned int i = 0; i < tree.getNumNodes(); ++i)
+            {
+            for (unsigned int j = 0; j < tree.getNodeNumParticles(i); ++j)
                 {
-                for (unsigned int j = 0; j < tree.getNodeNumParticles(i); ++j)
-                    {
-                    m_particles[m_leaf_ptr[i]+j] = tree.getNodeParticle(i,j);
-                    }
+                m_particles[m_leaf_ptr[i] + j] = tree.getNodeParticle(i, j);
                 }
-
-            m_leaf_capacity = tree.getLeafNodeCapacity();
-
-            // recursively initialize ancestor indices
-            initializeAncestorCounts(0, tree, 0);
-            }
-        #endif
-
-        //! Returns number of nodes in tree
-        DEVICE unsigned int getNumNodes() const
-            {
-            return m_num_nodes;
             }
 
-        #ifndef __HIPCC__
-        //! Initialize the ancestor count index
-        void initializeAncestorCounts(unsigned int idx, const OBBTree& tree, unsigned int ancestors)
+        m_leaf_capacity = tree.getLeafNodeCapacity();
+
+        // recursively initialize ancestor indices
+        initializeAncestorCounts(0, tree, 0);
+        }
+#endif
+
+    //! Returns number of nodes in tree
+    DEVICE unsigned int getNumNodes() const
+        {
+        return m_num_nodes;
+        }
+
+#ifndef __HIPCC__
+    //! Initialize the ancestor count index
+    void initializeAncestorCounts(unsigned int idx, const OBBTree& tree, unsigned int ancestors)
+        {
+        if (!isLeaf(idx))
             {
-            if (!isLeaf(idx))
+            unsigned int left_idx = tree.getNodeLeft(idx);
+            ;
+            unsigned int right_idx = tree.getNode(idx).right;
+
+            initializeAncestorCounts(left_idx, tree, 0);
+            initializeAncestorCounts(right_idx, tree, ancestors + 1);
+            }
+
+        m_ancestors[idx] = ancestors;
+        }
+#endif
+
+    //! Fetch the next node in the tree and test against overlap
+    /*! The method maintains it internal state in a user-supplied variable cur_node
+     *
+     * \param obb Query bounding box
+     * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous
+     * call \returns true if the current node overlaps and is a leaf node
+     */
+    DEVICE inline bool queryNode(const OBB& obb, unsigned int& cur_node) const
+        {
+        OBB node_obb(getOBB(cur_node));
+
+        bool leaf = false;
+        if (overlap(node_obb, obb))
+            {
+            unsigned int left_child = getLeftChild(cur_node);
+
+            // is this node a leaf node?
+            if (left_child == 0xffffffff)
                 {
-                unsigned int left_idx = tree.getNodeLeft(idx);;
-                unsigned int right_idx = tree.getNode(idx).right;
-
-                initializeAncestorCounts(left_idx, tree, 0);
-                initializeAncestorCounts(right_idx, tree, ancestors+1);
+                leaf = true;
                 }
-
-            m_ancestors[idx] = ancestors;
-            }
-        #endif
-
-        //! Fetch the next node in the tree and test against overlap
-        /*! The method maintains it internal state in a user-supplied variable cur_node
-         *
-         * \param obb Query bounding box
-         * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous call
-         * \returns true if the current node overlaps and is a leaf node
-         */
-        DEVICE inline bool queryNode(const OBB& obb, unsigned int &cur_node) const
-            {
-            OBB node_obb(getOBB(cur_node));
-
-            bool leaf = false;
-            if (overlap(node_obb, obb))
+            else
                 {
-                unsigned int left_child = getLeftChild(cur_node);
-
-                // is this node a leaf node?
-                if (left_child == 0xffffffff)
-                    {
-                    leaf = true;
-                    }
-                else
-                    {
-                    cur_node = left_child;
-                    return false;
-                    }
+                cur_node = left_child;
+                return false;
                 }
-
-            // escape
-            cur_node = m_escape[cur_node];
-
-            return leaf;
             }
 
-        //! Fetch the next node in the tree and test against overlap with a ray
-        /*! The method maintains it internal state in a user-supplied variable cur_node
-         * The ray equation is R(t) = p + t*d (t>=0)
-         *
-         * \param p origin of ray
-         * \param d direction of ray
-         * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous call
-         * \param abs_tol an absolute tolerance
-         * \returns true if the current node overlaps and is a leaf node
-         */
-        DEVICE inline bool queryRay(const vec3<OverlapReal>& p, const vec3<OverlapReal>& d, unsigned int &cur_node, OverlapReal abs_tol) const
-            {
-            OBB node_obb(getOBB(cur_node));
+        // escape
+        cur_node = m_escape[cur_node];
 
-            OverlapReal t;
-            vec3<OverlapReal> q;
-            bool leaf = false;
-            if (IntersectRayOBB(p,d,node_obb,t,q, abs_tol))
+        return leaf;
+        }
+
+    //! Fetch the next node in the tree and test against overlap with a ray
+    /*! The method maintains it internal state in a user-supplied variable cur_node
+     * The ray equation is R(t) = p + t*d (t>=0)
+     *
+     * \param p origin of ray
+     * \param d direction of ray
+     * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous
+     * call \param abs_tol an absolute tolerance \returns true if the current node overlaps and is a
+     * leaf node
+     */
+    DEVICE inline bool queryRay(const vec3<OverlapReal>& p,
+                                const vec3<OverlapReal>& d,
+                                unsigned int& cur_node,
+                                OverlapReal abs_tol) const
+        {
+        OBB node_obb(getOBB(cur_node));
+
+        OverlapReal t;
+        vec3<OverlapReal> q;
+        bool leaf = false;
+        if (IntersectRayOBB(p, d, node_obb, t, q, abs_tol))
+            {
+            // is this node a leaf node?
+            unsigned int left_child = getLeftChild(cur_node);
+            if (left_child == 0xffffffff)
                 {
-                // is this node a leaf node?
-                unsigned int left_child = getLeftChild(cur_node);
-                if (left_child == 0xffffffff)
-                    {
-                    leaf = true;
-                    }
-                else
-                    {
-                    cur_node = left_child;
-                    return false;
-                    }
+                leaf = true;
                 }
-
-            // escape
-            cur_node = m_escape[cur_node];
-
-            return leaf;
+            else
+                {
+                cur_node = left_child;
+                return false;
+                }
             }
 
-        //! Test if a given index is a leaf node
-        DEVICE inline bool isLeaf(unsigned int idx) const
-            {
-            return (m_left[idx] == 0xffffffff);
-            }
+        // escape
+        cur_node = m_escape[cur_node];
 
-        //! Return the ith leaf node
-        DEVICE inline unsigned int getLeafNode(unsigned int i) const
-            {
-            return m_leaf_obb_ptr[i];
-            }
+        return leaf;
+        }
 
-        //! Return the number of leaf nodes
-        DEVICE inline unsigned int getNumLeaves() const
-            {
-            return m_num_leaves;
-            }
+    //! Test if a given index is a leaf node
+    DEVICE inline bool isLeaf(unsigned int idx) const
+        {
+        return (m_left[idx] == 0xffffffff);
+        }
 
-        DEVICE inline unsigned int getParticleByNode(unsigned int node, unsigned int i) const
-            {
-            return m_particles[m_leaf_ptr[node]+i];
-            }
+    //! Return the ith leaf node
+    DEVICE inline unsigned int getLeafNode(unsigned int i) const
+        {
+        return m_leaf_obb_ptr[i];
+        }
 
-        DEVICE inline unsigned int getLeafNodePtrByNode(unsigned int node) const
-            {
-            return m_leaf_ptr[node];
-            }
+    //! Return the number of leaf nodes
+    DEVICE inline unsigned int getNumLeaves() const
+        {
+        return m_num_leaves;
+        }
 
-        DEVICE inline unsigned int getParticleByIndex(unsigned int idx) const
-            {
-            return m_particles[idx];
-            }
+    DEVICE inline unsigned int getParticleByNode(unsigned int node, unsigned int i) const
+        {
+        return m_particles[m_leaf_ptr[node] + i];
+        }
 
+    DEVICE inline unsigned int getLeafNodePtrByNode(unsigned int node) const
+        {
+        return m_leaf_ptr[node];
+        }
 
-        DEVICE inline int getNumParticles(unsigned int node) const
-            {
-            return m_leaf_ptr[node+1] - m_leaf_ptr[node];
-            }
+    DEVICE inline unsigned int getParticleByIndex(unsigned int idx) const
+        {
+        return m_particles[idx];
+        }
 
+    DEVICE inline int getNumParticles(unsigned int node) const
+        {
+        return m_leaf_ptr[node + 1] - m_leaf_ptr[node];
+        }
 
-        DEVICE inline unsigned int getLeftChild(unsigned int node) const
-            {
-            return m_left[node];
-            }
+    DEVICE inline unsigned int getLeftChild(unsigned int node) const
+        {
+        return m_left[node];
+        }
 
-        DEVICE inline unsigned int getEscapeIndex(unsigned int node) const
-            {
-            return m_escape[node];
-            }
+    DEVICE inline unsigned int getEscapeIndex(unsigned int node) const
+        {
+        return m_escape[node];
+        }
 
-        DEVICE inline unsigned int getNumAncestors(unsigned int node) const
-            {
-            return m_ancestors[node];
-            }
+    DEVICE inline unsigned int getNumAncestors(unsigned int node) const
+        {
+        return m_ancestors[node];
+        }
 
-        DEVICE inline OBB getOBB(unsigned int idx) const
-            {
-            OBB obb;
-            obb.center = m_center[idx];
-            obb.lengths = m_lengths[idx];
-            obb.rotation = m_rotation[idx];
-            obb.mask = m_mask[idx];
-            obb.is_sphere = m_is_sphere[idx];
-            return obb;
-            }
+    DEVICE inline OBB getOBB(unsigned int idx) const
+        {
+        OBB obb;
+        obb.center = m_center[idx];
+        obb.lengths = m_lengths[idx];
+        obb.rotation = m_rotation[idx];
+        obb.mask = m_mask[idx];
+        obb.is_sphere = m_is_sphere[idx];
+        return obb;
+        }
 
-        #ifdef ENABLE_HIP
-        //! Set CUDA memory hints
-        void set_memory_hint() const
-            {
-            m_center.set_memory_hint();
-            m_lengths.set_memory_hint();
-            m_rotation.set_memory_hint();
-            m_mask.set_memory_hint();
-            m_is_sphere.set_memory_hint();
+#ifdef ENABLE_HIP
+    //! Set CUDA memory hints
+    void set_memory_hint() const
+        {
+        m_center.set_memory_hint();
+        m_lengths.set_memory_hint();
+        m_rotation.set_memory_hint();
+        m_mask.set_memory_hint();
+        m_is_sphere.set_memory_hint();
 
-            m_left.set_memory_hint();
-            m_escape.set_memory_hint();
-            m_ancestors.set_memory_hint();
+        m_left.set_memory_hint();
+        m_escape.set_memory_hint();
+        m_ancestors.set_memory_hint();
 
-            m_leaf_ptr.set_memory_hint();
-            m_leaf_obb_ptr.set_memory_hint();
-            m_particles.set_memory_hint();
-            }
-        #endif
+        m_leaf_ptr.set_memory_hint();
+        m_leaf_obb_ptr.set_memory_hint();
+        m_particles.set_memory_hint();
+        }
+#endif
 
-        //! Load dynamic data members into shared memory and increase pointer
-        /*! \param ptr Pointer to load data to (will be incremented)
-            \param available_bytes Size of remaining shared memory allocation
-         */
-        DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
-            {
-            m_center.load_shared(ptr, available_bytes);
-            m_lengths.load_shared(ptr, available_bytes);
-            m_rotation.load_shared(ptr, available_bytes);
-            m_mask.load_shared(ptr, available_bytes);
-            m_is_sphere.load_shared(ptr, available_bytes);
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
+        {
+        m_center.load_shared(ptr, available_bytes);
+        m_lengths.load_shared(ptr, available_bytes);
+        m_rotation.load_shared(ptr, available_bytes);
+        m_mask.load_shared(ptr, available_bytes);
+        m_is_sphere.load_shared(ptr, available_bytes);
 
-            m_left.load_shared(ptr, available_bytes);
-            m_escape.load_shared(ptr, available_bytes);
-            m_ancestors.load_shared(ptr, available_bytes);
+        m_left.load_shared(ptr, available_bytes);
+        m_escape.load_shared(ptr, available_bytes);
+        m_ancestors.load_shared(ptr, available_bytes);
 
-            m_leaf_ptr.load_shared(ptr, available_bytes);
-            m_leaf_obb_ptr.load_shared(ptr, available_bytes);
-            m_particles.load_shared(ptr, available_bytes);
-            }
+        m_leaf_ptr.load_shared(ptr, available_bytes);
+        m_leaf_obb_ptr.load_shared(ptr, available_bytes);
+        m_particles.load_shared(ptr, available_bytes);
+        }
 
-        //! Determine size of the shared memory allocation
-        /*! \param ptr Pointer to increment
-            \param available_bytes Size of remaining shared memory allocation
-         */
-        HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
-            {
-            m_center.allocate_shared(ptr, available_bytes);
-            m_lengths.allocate_shared(ptr, available_bytes);
-            m_rotation.allocate_shared(ptr, available_bytes);
-            m_mask.allocate_shared(ptr, available_bytes);
-            m_is_sphere.allocate_shared(ptr, available_bytes);
+    //! Determine size of the shared memory allocation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
+        {
+        m_center.allocate_shared(ptr, available_bytes);
+        m_lengths.allocate_shared(ptr, available_bytes);
+        m_rotation.allocate_shared(ptr, available_bytes);
+        m_mask.allocate_shared(ptr, available_bytes);
+        m_is_sphere.allocate_shared(ptr, available_bytes);
 
-            m_left.allocate_shared(ptr, available_bytes);
-            m_escape.allocate_shared(ptr, available_bytes);
-            m_ancestors.allocate_shared(ptr, available_bytes);
+        m_left.allocate_shared(ptr, available_bytes);
+        m_escape.allocate_shared(ptr, available_bytes);
+        m_ancestors.allocate_shared(ptr, available_bytes);
 
-            m_leaf_ptr.allocate_shared(ptr, available_bytes);
-            m_leaf_obb_ptr.allocate_shared(ptr, available_bytes);
-            m_particles.allocate_shared(ptr, available_bytes);
-            }
+        m_leaf_ptr.allocate_shared(ptr, available_bytes);
+        m_leaf_obb_ptr.allocate_shared(ptr, available_bytes);
+        m_particles.allocate_shared(ptr, available_bytes);
+        }
 
-        //! Get the capacity of leaf nodes
-        unsigned int getLeafNodeCapacity() const
-            {
-            return m_leaf_capacity;
-            }
+    //! Get the capacity of leaf nodes
+    unsigned int getLeafNodeCapacity() const
+        {
+        return m_leaf_capacity;
+        }
 
     private:
-        ManagedArray<vec3<OverlapReal> > m_center;
-        ManagedArray<vec3<OverlapReal> > m_lengths;
-        ManagedArray<quat<OverlapReal> > m_rotation;
-        ManagedArray<unsigned int> m_mask;
-        ManagedArray<unsigned int> m_is_sphere;
+    ManagedArray<vec3<OverlapReal>> m_center;
+    ManagedArray<vec3<OverlapReal>> m_lengths;
+    ManagedArray<quat<OverlapReal>> m_rotation;
+    ManagedArray<unsigned int> m_mask;
+    ManagedArray<unsigned int> m_is_sphere;
 
-        ManagedArray<unsigned int> m_leaf_ptr; //!< Pointer to leaf node contents
-        ManagedArray<unsigned int> m_leaf_obb_ptr; //!< Pointer to leaf node OBBs
-        ManagedArray<unsigned int> m_particles;        //!< Stores the leaf nodes' indices
+    ManagedArray<unsigned int> m_leaf_ptr;     //!< Pointer to leaf node contents
+    ManagedArray<unsigned int> m_leaf_obb_ptr; //!< Pointer to leaf node OBBs
+    ManagedArray<unsigned int> m_particles;    //!< Stores the leaf nodes' indices
 
-        ManagedArray<unsigned int> m_left;    //!< Left nodes
-        ManagedArray<unsigned int> m_escape;  //!< Escape indices
-        ManagedArray<unsigned int> m_ancestors;  //!< Number of right-most ancestors
+    ManagedArray<unsigned int> m_left;      //!< Left nodes
+    ManagedArray<unsigned int> m_escape;    //!< Escape indices
+    ManagedArray<unsigned int> m_ancestors; //!< Number of right-most ancestors
 
-        unsigned int m_num_nodes;             //!< Number of nodes in the tree
-        unsigned int m_num_leaves;            //!< Number of leaf nodes
-        unsigned int m_leaf_capacity;         //!< Capacity of OBB leaf nodes
+    unsigned int m_num_nodes;     //!< Number of nodes in the tree
+    unsigned int m_num_leaves;    //!< Number of leaf nodes
+    unsigned int m_leaf_capacity; //!< Capacity of OBB leaf nodes
     };
 
-
 // Tandem stack traversal routines
-// from: A Binary Stack Tandem Traversal and an Ancestor Counter Data Structure for GPU friendly Bounding Volume
-// Damkjær, Jesper and Erleben, Kenny
-// Proceedings Workshop in Virtual Reality Interactions and Physical Simulation "VRIPHYS" (2009)
+// from: A Binary Stack Tandem Traversal and an Ancestor Counter Data Structure for GPU friendly
+// Bounding Volume Damkjær, Jesper and Erleben, Kenny Proceedings Workshop in Virtual Reality
+// Interactions and Physical Simulation "VRIPHYS" (2009)
 // http://dx.doi.org/10.2312/PE/vriphys/vriphys09/115-124
 
 //! Compute how many ascents are necessary to reach a non right-most child
@@ -378,8 +375,11 @@ class GPUTree
     \param a_ascent Number of ascents in a (return variable)
     \param b_ascent Number of ascents in b (return variable)
  */
-DEVICE inline void findAscent(unsigned int a_count, unsigned int b_count, unsigned long int &stack,
-    unsigned int& a_ascent, unsigned int& b_ascent)
+DEVICE inline void findAscent(unsigned int a_count,
+                              unsigned int b_count,
+                              unsigned long int& stack,
+                              unsigned int& a_ascent,
+                              unsigned int& b_ascent)
     {
     a_ascent = 0;
     b_ascent = 0;
@@ -438,8 +438,15 @@ DEVICE inline void findAscent(unsigned int a_count, unsigned int b_count, unsign
  *            test_narrow_phase(a, b, query_node_a, query_node_b, ...)
  *     }
  */
-DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsigned int& cur_node_a, unsigned int& cur_node_b,
-    unsigned long int &stack, OBB& obb_a, OBB& obb_b, const quat<OverlapReal>& q, const vec3<OverlapReal>& dr)
+DEVICE inline bool traverseBinaryStack(const GPUTree& a,
+                                       const GPUTree& b,
+                                       unsigned int& cur_node_a,
+                                       unsigned int& cur_node_b,
+                                       unsigned long int& stack,
+                                       OBB& obb_a,
+                                       OBB& obb_b,
+                                       const quat<OverlapReal>& q,
+                                       const vec3<OverlapReal>& dr)
     {
     bool leaf = false;
     bool ascend = true;
@@ -456,7 +463,8 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
         else
             {
             // descend into subtree with larger volume first (unless there are no children)
-            bool descend_A = obb_a.getVolume() > obb_b.getVolume() ? !a.isLeaf(cur_node_a) : b.isLeaf(cur_node_b);
+            bool descend_A = obb_a.getVolume() > obb_b.getVolume() ? !a.isLeaf(cur_node_a)
+                                                                   : b.isLeaf(cur_node_b);
 
             if (descend_A)
                 {
@@ -466,7 +474,8 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
             else
                 {
                 cur_node_b = b.getLeftChild(cur_node_b);
-                stack <<= 1; stack |= 1; // push B
+                stack <<= 1;
+                stack |= 1; // push B
                 }
             ascend = false;
             }
@@ -547,8 +556,16 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
  *            test_narrow_phase(a, b, query_node_a, query_node_b, ...)
  *     }
  */
-DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a, const GPUTree &b, unsigned int& cur_node_a, unsigned int& cur_node_b,
-    unsigned long int &stack, OBB& obb_a, OBB& obb_b, const quat<OverlapReal>& q, const vec3<OverlapReal>& dr, const OBB& obb_c)
+DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a,
+                                                   const GPUTree& b,
+                                                   unsigned int& cur_node_a,
+                                                   unsigned int& cur_node_b,
+                                                   unsigned long int& stack,
+                                                   OBB& obb_a,
+                                                   OBB& obb_b,
+                                                   const quat<OverlapReal>& q,
+                                                   const vec3<OverlapReal>& dr,
+                                                   const OBB& obb_c)
     {
     bool leaf = false;
     bool ascend = true;
@@ -565,7 +582,8 @@ DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a, const GPUTr
         else
             {
             // descend into subtree with larger volume first (unless there are no children)
-            bool descend_A = obb_a.getVolume() > obb_b.getVolume() ? !a.isLeaf(cur_node_a) : b.isLeaf(cur_node_b);
+            bool descend_A = obb_a.getVolume() > obb_b.getVolume() ? !a.isLeaf(cur_node_a)
+                                                                   : b.isLeaf(cur_node_b);
 
             if (descend_A)
                 {
@@ -575,7 +593,8 @@ DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a, const GPUTr
             else
                 {
                 cur_node_b = b.getLeftChild(cur_node_b);
-                stack <<= 1; stack |= 1; // push B
+                stack <<= 1;
+                stack |= 1; // push B
                 }
             ascend = false;
             }
@@ -619,8 +638,8 @@ DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a, const GPUTr
     return leaf;
     }
 
-}; // end namespace detail
+    }; // end namespace detail
 
-}; // end namespace hpmc
+    }; // end namespace hpmc
 
 #endif // __GPU_TREE_H__

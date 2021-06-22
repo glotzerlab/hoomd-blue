@@ -6,12 +6,10 @@ set(_md_sources module-md.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
-                   ConstExternalFieldDipoleForceCompute.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
                    CosineSqAngleForceCompute.cc
                    OneDConstraint.cc
-                   Enforce2DUpdater.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
@@ -20,6 +18,13 @@ set(_md_sources module-md.cc
                    HarmonicImproperForceCompute.cc
                    IntegrationMethodTwoStep.cc
                    IntegratorTwoStep.cc
+                   ManifoldZCylinder.cc
+                   ManifoldDiamond.cc
+                   ManifoldEllipsoid.cc
+                   ManifoldGyroid.cc
+                   ManifoldXYPlane.cc
+                   ManifoldPrimitive.cc
+                   ManifoldSphere.cc
                    MolecularForceCompute.cc
                    NeighborListBinned.cc
                    NeighborList.cc
@@ -30,7 +35,6 @@ set(_md_sources module-md.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TablePotential.cc
-                   TempRescaleUpdater.cc
                    TwoStepBD.cc
                    TwoStepBerendsen.cc
                    TwoStepLangevinBase.cc
@@ -65,15 +69,12 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMA.h
                 ComputeThermoTypes.h
                 ComputeThermoHMATypes.h
-                ConstExternalFieldDipoleForceCompute.h
                 ConstraintEllipsoidGPU.h
                 ConstraintEllipsoid.h
                 ConstraintSphereGPU.h
                 ConstraintSphere.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
-                Enforce2DUpdaterGPU.h
-                Enforce2DUpdater.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
                 EvaluatorSpecialPairLJ.h
@@ -93,6 +94,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairGB.h
                 EvaluatorPairLJ.h
                 EvaluatorPairLJ1208.h
+                EvaluatorPairLJ0804.h
                 EvaluatorPairMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
@@ -119,6 +121,13 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
+                ManifoldZCylinder.h
+                ManifoldDiamond.h
+                ManifoldEllipsoid.h
+                ManifoldGyroid.h
+                ManifoldXYPlane.h
+                ManifoldPrimitive.h
+                ManifoldSphere.h
                 MolecularForceCompute.cuh
                 MolecularForceCompute.h
                 NeighborListBinned.h
@@ -156,16 +165,24 @@ set(_md_headers ActiveForceComputeGPU.h
                 TableDihedralForceCompute.h
                 TablePotentialGPU.h
                 TablePotential.h
-                TempRescaleUpdater.h
                 TwoStepBDGPU.h
+                TwoStepRATTLEBDGPU.h
+                TwoStepRATTLEBDGPU.cuh
                 TwoStepBD.h
+                TwoStepRATTLEBD.h
                 TwoStepBerendsenGPU.h
                 TwoStepBerendsen.h
                 TwoStepLangevinBase.h
                 TwoStepLangevinGPU.h
+                TwoStepRATTLELangevinGPU.h
+                TwoStepRATTLELangevinGPU.cuh
                 TwoStepLangevin.h
+                TwoStepRATTLELangevin.h
                 TwoStepNPTMTKGPU.h
                 TwoStepNPTMTK.h
+                TwoStepRATTLENVEGPU.h
+                TwoStepRATTLENVEGPU.cuh
+                TwoStepRATTLENVE.h
                 TwoStepNVEGPU.h
                 TwoStepNVE.h
                 TwoStepNVTMTKGPU.h
@@ -183,7 +200,6 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            ConstraintEllipsoidGPU.cc
                            ConstraintSphereGPU.cc
                            OneDConstraintGPU.cc
-                           Enforce2DUpdaterGPU.cc
                            FIREEnergyMinimizerGPU.cc
                            ForceCompositeGPU.cc
                            ForceDistanceConstraintGPU.cc
@@ -232,6 +248,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TWFDriverPotentialPairGPU.cu
                       FourierDriverPotentialPairGPU.cu
                       PairLJ1208DriverPotentialPairGPU.cu
+                      PairLJ0804DriverPotentialPairGPU.cu
                       ReactionFieldDriverPotentialPairGPU.cu
                       SLJDriverPotentialPairGPU.cu
                       YukawaDriverPotentialPairGPU.cu
@@ -242,7 +259,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       ConstraintSphereGPU.cu
                       OneDConstraintGPU.cu
                       DriverTersoffGPU.cu
-                      Enforce2DUpdaterGPU.cu
                       FIREEnergyMinimizerGPU.cu
                       ForceCompositeGPU.cu
                       ForceDistanceConstraintGPU.cu
@@ -263,11 +279,20 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepBDGPU.cu
                       TwoStepBerendsenGPU.cu
                       TwoStepLangevinGPU.cu
+		      TwoStepRATTLELangevinGPU.cu
                       TwoStepNPTMTKGPU.cu
                       TwoStepNVEGPU.cu
+		      TwoStepRATTLENVEGPU.cu
                       TwoStepNVTMTKGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
+		      all_kernels_diamond_manifold.cu
+		      all_kernels_ellipsoid_manifold.cu
+		      all_kernels_gyroid_manifold.cu
+		      all_kernels_primitive_manifold.cu
+		      all_kernels_sphere_manifold.cu
+		      all_kernels_xyplane_manifold.cu
+		      all_kernels_zcylinder_manifold.cu
                       )
 
 if (ENABLE_HIP)
@@ -311,10 +336,10 @@ set(files __init__.py
           compute.py
           constrain.py
           dihedral.py
-          external.py
           force.py
           improper.py
           integrate.py
+          manifold.py
           many_body.py
           methods.py
           nlist.py
@@ -335,6 +360,7 @@ install(FILES ${_md_headers}
        )
 
 add_subdirectory(pair)
+add_subdirectory(external)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

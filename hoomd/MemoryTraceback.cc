@@ -9,22 +9,25 @@
 
 #include "MemoryTraceback.h"
 
-#include <string>
-#include <sstream>
-#include <iomanip>
-#include <execinfo.h>
 #include <cxxabi.h>
 #include <dlfcn.h>
+#include <execinfo.h>
+#include <iomanip>
+#include <sstream>
+#include <string>
 
 //! Maximum number of symbols to trace back
 #define MAX_TRACEBACK 4
 
-void MemoryTraceback::registerAllocation(const void *ptr, size_t nbytes, const std::string& type_hint, const std::string& tag) const
+void MemoryTraceback::registerAllocation(const void* ptr,
+                                         size_t nbytes,
+                                         const std::string& type_hint,
+                                         const std::string& tag) const
     {
     // insert element into list of allocations
-    std::pair<const void *, size_t> idx = std::make_pair(ptr, nbytes);
+    std::pair<const void*, size_t> idx = std::make_pair(ptr, nbytes);
 
-    m_traces[idx] = std::vector<void *>(MAX_TRACEBACK, nullptr);
+    m_traces[idx] = std::vector<void*>(MAX_TRACEBACK, nullptr);
     m_type_hints[idx] = type_hint;
     m_tags[idx] = tag;
 
@@ -34,19 +37,19 @@ void MemoryTraceback::registerAllocation(const void *ptr, size_t nbytes, const s
     m_traces[idx].resize(num_symbols);
     }
 
-void MemoryTraceback::unregisterAllocation(const void *ptr, size_t nbytes) const
+void MemoryTraceback::unregisterAllocation(const void* ptr, size_t nbytes) const
     {
     // remove element from list of allocations
-    std::pair<const void *, size_t> idx = std::make_pair(ptr, nbytes);
+    std::pair<const void*, size_t> idx = std::make_pair(ptr, nbytes);
 
     m_traces.erase(idx);
     m_type_hints.erase(idx);
     m_tags.erase(idx);
     }
 
-void MemoryTraceback::updateTag(const void *ptr, size_t nbytes, const std::string& tag) const
+void MemoryTraceback::updateTag(const void* ptr, size_t nbytes, const std::string& tag) const
     {
-    std::pair<const void *, size_t> idx = std::make_pair(ptr, nbytes);
+    std::pair<const void*, size_t> idx = std::make_pair(ptr, nbytes);
 
     if (m_tags.find(idx) != m_tags.end())
         m_tags[idx] = tag;
@@ -87,34 +90,40 @@ void MemoryTraceback::outputTraces(std::shared_ptr<Messenger> msg) const
         nbytes_tot += it_trace->first.second;
         }
 
-    msg->notice(2) << "Total amount of managed memory allocated through Global[Array,Vector]: " << pretty_bytes(nbytes_tot) << std::endl;
-    msg->notice(2) << "Actual allocation sizes may be larger by up to the OS page size due to alignment." << std::endl;
-    msg->notice(2) << "List of memory allocations and last " << MAX_TRACEBACK-1 << " functions called at time of (re-)allocation" << std::endl;
+    msg->notice(2) << "Total amount of managed memory allocated through Global[Array,Vector]: "
+                   << pretty_bytes(nbytes_tot) << std::endl;
+    msg->notice(2)
+        << "Actual allocation sizes may be larger by up to the OS page size due to alignment."
+        << std::endl;
+    msg->notice(2) << "List of memory allocations and last " << MAX_TRACEBACK - 1
+                   << " functions called at time of (re-)allocation" << std::endl;
 
     for (auto it_trace = m_traces.begin(); it_trace != m_traces.end(); ++it_trace)
         {
         std::ostringstream oss;
 
-        oss << "** Address " << it_trace->first.first << ", " << pretty_bytes(it_trace->first.second);
+        oss << "** Address " << it_trace->first.first << ", "
+            << pretty_bytes(it_trace->first.second);
 
-        char *realname;
+        char* realname;
         int status;
         realname = abi::__cxa_demangle(m_type_hints[it_trace->first].c_str(), 0, 0, &status);
         if (status)
-            throw std::runtime_error("Status "+std::to_string(status)+" while trying to demangle data type.");
+            throw std::runtime_error("Status " + std::to_string(status)
+                                     + " while trying to demangle data type.");
 
         oss << ", data type " << realname;
         free(realname);
 
-        if (! m_tags[it_trace->first].empty())
+        if (!m_tags[it_trace->first].empty())
             oss << " [" << m_tags[it_trace->first] << "]";
         msg->notice(2) << oss.str() << std::endl;
 
         // translate symbol addresses into array of strings
         size_t size = it_trace->second.size();
-        char **symbols = backtrace_symbols(&it_trace->second.front(), (unsigned int)size);
+        char** symbols = backtrace_symbols(&it_trace->second.front(), (unsigned int)size);
 
-        if (! symbols)
+        if (!symbols)
             throw std::runtime_error("Out of memory while trying to obtain stacktrace.");
 
         // https://gist.github.com/fmela/591333
@@ -127,7 +136,7 @@ void MemoryTraceback::outputTraces(std::shared_ptr<Messenger> msg) const
             if (dladdr(it_trace->second[i], &info) && info.dli_sname)
                 {
                 status = -1;
-                char *demangled = NULL;
+                char* demangled = NULL;
                 demangled = abi::__cxa_demangle(info.dli_sname, NULL, 0, &status);
                 oss << ((status == 0) ? std::string(demangled) : std::string(info.dli_sname));
                 if (status == 0)

@@ -1,3 +1,4 @@
+from hoomd.conftest import pickling_check
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeconverter import RequiredArg
@@ -7,14 +8,17 @@ from copy import deepcopy
 from pytest import fixture
 
 
+def identity(x):
+    return x
+
+
 @fixture(scope='function')
 def typeparam():
     return TypeParameter(name='type_param',
                          type_kind='particle_types',
-                         param_dict=TypeParameterDict(
-                             foo=1, bar=lambda x: x,
-                             len_keys=1)
-                         )
+                         param_dict=TypeParameterDict(foo=1,
+                                                      bar=identity,
+                                                      len_keys=1))
 
 
 @fixture(scope='function')
@@ -37,9 +41,11 @@ def test_adding_params(base_op):
 
 
 def test_extending_typeparams(base_op):
-    type_params = [TypeParameter('1', 'fake1', dict(a=1)),
-                   TypeParameter('2', 'fake2', dict(a=2)),
-                   TypeParameter('3', 'fake3', dict(a=3))]
+    type_params = [
+        TypeParameter('1', 'fake1', dict(a=1)),
+        TypeParameter('2', 'fake2', dict(a=2)),
+        TypeParameter('3', 'fake3', dict(a=3))
+    ]
     base_op._extend_typeparam(type_params)
     keys = set(base_op._typeparam_dict.keys())
     expected_keys = set(['1', '2', '3'])
@@ -90,7 +96,7 @@ def test_adding(full_op):
 
 
 def test_apply_typeparam_dict(full_op):
-    '''Tests _apply_typeparam_dict and by necessity getattr.'''
+    """Tests _apply_typeparam_dict and by necessity getattr."""
     full_op.type_param['A'] = dict(bar='world')
     full_op.type_param['B'] = dict(bar='hello')
     cpp_obj = DummyCppObj()
@@ -102,7 +108,7 @@ def test_apply_typeparam_dict(full_op):
 
 
 def test_apply_param_dict(full_op):
-    '''Tests _apply_param_dict and by necessity getattr.'''
+    """Tests _apply_param_dict and by necessity getattr."""
     full_op = test_apply_typeparam_dict(full_op)
     full_op._apply_param_dict()
     assert full_op._cpp_obj.param1 == 1
@@ -136,3 +142,8 @@ def test_detach(attached):
     assert detached.type_param['B'] == dict(foo=1, bar='hello')
     assert detached.param1 == 1
     assert detached.param2 == 2
+
+
+def test_pickling(full_op, attached):
+    pickling_check(full_op)
+    pickling_check(attached)

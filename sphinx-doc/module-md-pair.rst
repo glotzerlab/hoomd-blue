@@ -20,12 +20,14 @@ md.pair
     Gauss
     LJ
     LJ1208
+    LJ0804
     Mie
     Morse
     Moliere
     OPP
     ReactionField
     SLJ
+    TWF
     Yukawa
     ZBL
 
@@ -45,12 +47,14 @@ md.pair
         Gauss,
         LJ,
         LJ1208,
+        LJ0804,
         Mie,
         Morse,
         Moliere,
         OPP,
         ReactionField,
         SLJ,
+        TWF,
         Yukawa,
         ZBL
 

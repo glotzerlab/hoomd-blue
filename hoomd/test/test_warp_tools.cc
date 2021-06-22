@@ -8,9 +8,9 @@
  * \brief Tests for warp-level primitives.
  */
 
+#include "test_warp_tools.cuh"
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/GPUArray.h"
-#include "test_warp_tools.cuh"
 
 #include "upp11_config.h"
 HOOMD_UP_MAIN();
@@ -26,7 +26,7 @@ void test_warp_reduce(const unsigned int tpp)
     // make a N x width array filled with data
     const unsigned int N = 2;
     const unsigned int width = 5;
-    GPUArray<int> vec(N*width, exec_conf);
+    GPUArray<int> vec(N * width, exec_conf);
         {
         ArrayHandle<int> h_vec(vec, access_location::host, access_mode::overwrite);
 
@@ -101,7 +101,7 @@ void test_warp_scan(const unsigned int tpp)
     // make a N x width array filled with data
     const unsigned int N = 2;
     const unsigned int width = 5;
-    GPUArray<int> vec(N*width, exec_conf);
+    GPUArray<int> vec(N * width, exec_conf);
         {
         ArrayHandle<int> h_vec(vec, access_location::host, access_mode::overwrite);
 
@@ -167,76 +167,76 @@ void test_warp_scan(const unsigned int tpp)
     }
 
 //! Warp reduce with 1 thread
-UP_TEST( test_warp_reduce_1 )
+UP_TEST(test_warp_reduce_1)
     {
     test_warp_reduce(1);
     }
 //! Warp reduce with 2 threads
-UP_TEST( test_warp_reduce_2 )
+UP_TEST(test_warp_reduce_2)
     {
     test_warp_reduce(2);
     }
 //! Warp reduce with 4 threads
-UP_TEST( test_warp_reduce_4 )
+UP_TEST(test_warp_reduce_4)
     {
     test_warp_reduce(4);
     }
 //! Warp reduce with 8 threads
-UP_TEST( test_warp_reduce_8 )
+UP_TEST(test_warp_reduce_8)
     {
     test_warp_reduce(8);
     }
 //! Warp reduce with 16 threads
-UP_TEST( test_warp_reduce_16 )
+UP_TEST(test_warp_reduce_16)
     {
     test_warp_reduce(16);
     }
 //! Warp reduce with 32 threads
-UP_TEST( test_warp_reduce_32 )
+UP_TEST(test_warp_reduce_32)
     {
     test_warp_reduce(32);
     }
 #ifdef __HIP_PLATFORM_HCC__
 //! Warp reduce with 1 thread
-UP_TEST( test_warp_reduce_64 )
+UP_TEST(test_warp_reduce_64)
     {
     test_warp_reduce(64);
     }
 #endif
 
 //! Warp scan with 1 thread
-UP_TEST( test_warp_scan_1 )
+UP_TEST(test_warp_scan_1)
     {
     test_warp_scan(1);
     }
 //! Warp scan with 2 threads
-UP_TEST( test_warp_scan_2 )
+UP_TEST(test_warp_scan_2)
     {
     test_warp_scan(2);
     }
 //! Warp scan with 4 threads
-UP_TEST( test_warp_scan_4 )
+UP_TEST(test_warp_scan_4)
     {
     test_warp_scan(4);
     }
 //! Warp scan with 8 threads
-UP_TEST( test_warp_scan_8 )
+UP_TEST(test_warp_scan_8)
     {
     test_warp_scan(8);
     }
 //! Warp scan with 16 threads
-UP_TEST( test_warp_scan_16 )
+UP_TEST(test_warp_scan_16)
     {
     test_warp_scan(16);
     }
 //! Warp scan with 32 threads
-UP_TEST( test_warp_scan_32 )
+UP_TEST(test_warp_scan_32)
     {
     test_warp_scan(32);
     }
 #ifdef __HIP_PLATFORM_HCC__
 //! Warp scan with 64 threads
-UP_TEST( test_warp_scan_64 )
+UP_TEST(test_warp_scan_64)
     {
     test_warp_scan(64);
     }

@@ -150,7 +150,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         // Finally update the normal vector for the next iteration.
         n = cross(v0, v2-v1);
         }
-    
+
     // Error-Handling: We exceeded XENOCOLLIDE_3D_MAX_ITERATIONS, thus return an error.
     if (count == XENOCOLLIDE_3D_MAX_ITERATIONS)
         {
@@ -210,7 +210,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
                 v1 = v4; // Outside v1 & outside v3 ==> eliminate v1
             }
         }
-        
+
         // If we end up here, we exceeded XENOCOLLIDE_3D_MAX_ITERATIONS
         // As best guess, take the current portal as approximant
         err_count++;

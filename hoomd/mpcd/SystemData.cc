@@ -19,28 +19,29 @@
  */
 mpcd::SystemData::SystemData(std::shared_ptr<::SystemDefinition> sysdef,
                              std::shared_ptr<mpcd::ParticleData> particles)
-    : m_sysdef(sysdef),
-      m_particles(particles),
+    : m_sysdef(sysdef), m_particles(particles),
       m_global_box(m_sysdef->getParticleData()->getGlobalBox())
     {
-    // Generate one companion cell list for the system
-    /*
-     * There is limited overhead to automatically creating a cell list (it is not sized
-     * until first compute), so we always make one.
-     */
-    #ifdef ENABLE_HIP
+// Generate one companion cell list for the system
+/*
+ * There is limited overhead to automatically creating a cell list (it is not sized
+ * until first compute), so we always make one.
+ */
+#ifdef ENABLE_HIP
     if (m_sysdef->getParticleData()->getExecConf()->isCUDAEnabled())
         {
         m_cl = std::make_shared<mpcd::CellListGPU>(m_sysdef, m_particles);
         }
     else
-    #endif // ENABLE_HIP
+#endif // ENABLE_HIP
         {
         m_cl = std::make_shared<mpcd::CellList>(m_sysdef, m_particles);
         }
 
     // connect to box change signal to enforce constant box dim in MPCD
-    m_sysdef->getParticleData()->getBoxChangeSignal().connect<mpcd::SystemData, &mpcd::SystemData::checkBox>(this);
+    m_sysdef->getParticleData()
+        ->getBoxChangeSignal()
+        .connect<mpcd::SystemData, &mpcd::SystemData::checkBox>(this);
 
     // check that the MPCD box matches the HOOMD box
     checkBox();
@@ -52,29 +53,32 @@ mpcd::SystemData::SystemData(std::shared_ptr<::SystemDefinition> sysdef,
 mpcd::SystemData::SystemData(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot)
     : m_sysdef(snapshot->getSystemDefinition()), m_global_box(snapshot->getGlobalBox())
     {
-    m_particles = std::shared_ptr<mpcd::ParticleData>(new mpcd::ParticleData(snapshot->particles,
-                                                                             m_global_box,
-                                                                             snapshot->getExecutionConfiguration(),
-                                                                             snapshot->getDomainDecomposition()));
+    m_particles = std::shared_ptr<mpcd::ParticleData>(
+        new mpcd::ParticleData(snapshot->particles,
+                               m_global_box,
+                               snapshot->getExecutionConfiguration(),
+                               snapshot->getDomainDecomposition()));
 
-    // Generate one companion cell list for the system
-    /*
-     * There is limited overhead to automatically creating a cell list (it is not sized
-     * until first compute), so we always make one.
-     */
-    #ifdef ENABLE_HIP
+// Generate one companion cell list for the system
+/*
+ * There is limited overhead to automatically creating a cell list (it is not sized
+ * until first compute), so we always make one.
+ */
+#ifdef ENABLE_HIP
     if (snapshot->getExecutionConfiguration()->isCUDAEnabled())
         {
         m_cl = std::make_shared<mpcd::CellListGPU>(m_sysdef, m_particles);
         }
     else
-    #endif // ENABLE_HIP
+#endif // ENABLE_HIP
         {
         m_cl = std::make_shared<mpcd::CellList>(m_sysdef, m_particles);
         }
 
     // connect to box change signal to enforce constant box dim in MPCD
-    m_sysdef->getParticleData()->getBoxChangeSignal().connect<mpcd::SystemData, &mpcd::SystemData::checkBox>(this);
+    m_sysdef->getParticleData()
+        ->getBoxChangeSignal()
+        .connect<mpcd::SystemData, &mpcd::SystemData::checkBox>(this);
 
     // check that the MPCD box matches the HOOMD box
     checkBox();
@@ -82,7 +86,9 @@ mpcd::SystemData::SystemData(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot)
 
 mpcd::SystemData::~SystemData()
     {
-    m_sysdef->getParticleData()->getBoxChangeSignal().disconnect<mpcd::SystemData, &mpcd::SystemData::checkBox>(this);
+    m_sysdef->getParticleData()
+        ->getBoxChangeSignal()
+        .disconnect<mpcd::SystemData, &mpcd::SystemData::checkBox>(this);
     }
 
 //! Take a snapshot of the system
@@ -113,11 +119,11 @@ void mpcd::detail::export_SystemData(pybind11::module& m)
     {
     namespace py = pybind11;
 
-    py::class_<mpcd::SystemData, std::shared_ptr<mpcd::SystemData> >(m,"SystemData")
-    .def(py::init<std::shared_ptr<::SystemDefinition>,std::shared_ptr<mpcd::ParticleData> >())
-    .def(py::init<std::shared_ptr<mpcd::SystemDataSnapshot> >())
-    .def("getParticleData", &mpcd::SystemData::getParticleData)
-    .def("getCellList", &mpcd::SystemData::getCellList)
-    .def("takeSnapshot", &mpcd::SystemData::takeSnapshot)
-    .def("initializeFromSnapshot", &mpcd::SystemData::initializeFromSnapshot);
+    py::class_<mpcd::SystemData, std::shared_ptr<mpcd::SystemData>>(m, "SystemData")
+        .def(py::init<std::shared_ptr<::SystemDefinition>, std::shared_ptr<mpcd::ParticleData>>())
+        .def(py::init<std::shared_ptr<mpcd::SystemDataSnapshot>>())
+        .def("getParticleData", &mpcd::SystemData::getParticleData)
+        .def("getCellList", &mpcd::SystemData::getCellList)
+        .def("takeSnapshot", &mpcd::SystemData::takeSnapshot)
+        .def("initializeFromSnapshot", &mpcd::SystemData::initializeFromSnapshot);
     }

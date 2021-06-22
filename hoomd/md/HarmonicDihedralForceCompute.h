@@ -1,11 +1,10 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: dnlebard
 
-#include "hoomd/ForceCompute.h"
 #include "hoomd/BondedGroupData.h"
+#include "hoomd/ForceCompute.h"
 
 #include <memory>
 
@@ -28,15 +27,17 @@ struct dihedral_harmonic_params
     {
     Scalar k;
     Scalar d;
-    Scalar n;
+    int n;
     Scalar phi_0;
 
-    #ifndef __HIPCC__
-    dihedral_harmonic_params(): k(0.), d(0.), n(0.), phi_0(0.){}
+#ifndef __HIPCC__
+    dihedral_harmonic_params() : k(0.), d(0.), n(0), phi_0(0.) { }
 
     dihedral_harmonic_params(pybind11::dict v)
-        : k(v["k"].cast<Scalar>()), d(v["d"].cast<Scalar>()),
-          n(v["n"].cast<Scalar>()), phi_0(v["phi0"].cast<Scalar>()){}
+        : k(v["k"].cast<Scalar>()), d(v["d"].cast<Scalar>()), n(v["n"].cast<int>()),
+          phi_0(v["phi0"].cast<Scalar>())
+        {
+        }
 
     pybind11::dict asDict()
         {
@@ -47,9 +48,8 @@ struct dihedral_harmonic_params
         v["phi0"] = phi_0;
         return v;
         }
-    #endif
-    }
-    __attribute__((aligned(32)));
+#endif
+    } __attribute__((aligned(32)));
 
 //! Computes harmonic dihedral forces on each particle
 /*! Harmonic dihedral forces are computed on every particle in the simulation.
@@ -60,49 +60,44 @@ struct dihedral_harmonic_params
 class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
     {
     public:
-        //! Constructs the compute
-        HarmonicDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef);
+    //! Constructs the compute
+    HarmonicDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
-        //! Destructor
-        virtual ~HarmonicDihedralForceCompute();
+    //! Destructor
+    virtual ~HarmonicDihedralForceCompute();
 
-        //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, Scalar sign, Scalar multiplicity, Scalar phi_0);
+    //! Set the parameters
+    virtual void
+    setParams(unsigned int type, Scalar K, Scalar sign, int multiplicity, Scalar phi_0);
 
-        virtual void setParamsPython(std::string type, pybind11::dict params);
+    virtual void setParamsPython(std::string type, pybind11::dict params);
 
-        /// Get the parameters for a particular type
-        pybind11::dict getParams(std::string type);
+    /// Get the parameters for a particular type
+    pybind11::dict getParams(std::string type);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
-        #ifdef ENABLE_MPI
-        //! Get ghost particle fields requested by this pair potential
-        /*! \param timestep Current time step
-        */
-        virtual CommFlags getRequestedCommFlags(uint64_t timestep)
-            {
-            CommFlags flags = CommFlags(0);
-            flags[comm_flag::tag] = 1;
-            flags |= ForceCompute::getRequestedCommFlags(timestep);
-            return flags;
-            }
-        #endif
+#ifdef ENABLE_MPI
+    //! Get ghost particle fields requested by this pair potential
+    /*! \param timestep Current time step
+     */
+    virtual CommFlags getRequestedCommFlags(uint64_t timestep)
+        {
+        CommFlags flags = CommFlags(0);
+        flags[comm_flag::tag] = 1;
+        flags |= ForceCompute::getRequestedCommFlags(timestep);
+        return flags;
+        }
+#endif
 
     protected:
-        Scalar *m_K;     //!< K parameter for multiple dihedral tyes
-        Scalar *m_sign;  //!< sign parameter for multiple dihedral types
-        Scalar *m_multi; //!< multiplicity parameter for multiple dihedral types
-        Scalar *m_phi_0; //!< phi_0 parameter for multiple dihedral types
+    Scalar* m_K;     //!< K parameter for multiple dihedral tyes
+    Scalar* m_sign;  //!< sign parameter for multiple dihedral types
+    int* m_multi;    //!< multiplicity parameter for multiple dihedral types
+    Scalar* m_phi_0; //!< phi_0 parameter for multiple dihedral types
 
-        std::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data to use in computing dihedrals
+    std::shared_ptr<DihedralData> m_dihedral_data; //!< Dihedral data to use in computing dihedrals
 
-        //! Actually compute the forces
-        virtual void computeForces(uint64_t timestep);
+    //! Actually compute the forces
+    virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the DihedralForceCompute class to python
