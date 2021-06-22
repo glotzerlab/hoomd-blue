@@ -128,7 +128,6 @@ def test_configuration(s):
 def test_wrap(s):
     if s.communicator.rank == 0:
         s.configuration.box = [1, 1, 1, 0, 0, 0]
-        # set up particles outside of the box
         s.particles.N = 4
         s.particles.position[:] = [
             [1.5, 2, 1.8],  # test all directions
@@ -137,67 +136,51 @@ def test_wrap(s):
             [2.5, 100.2, -100.2]
         ]  # test multiple wrap
         s.wrap()
-        # check the particles are where they should be
         numpy.testing.assert_allclose(s.particles.position,
                                       [[-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
                                        [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2]])
-    if s.communicator.rank == 0:
-        s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]  # triclinic box
-        # set up particles outside of the box
+        # triclinic box
+        s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
         s.particles.N = 4
         s.particles.position[:] = [[-4, 0, 0], [2, 3, 1], [2, -8, 9],
                                    [100, 200, -100]]
-        # wrap
         s.wrap()
-        # check the particles are where they should be
         numpy.testing.assert_allclose(
             s.particles.position,
             [[-3.9999998, 0, 0], [1.9999995, 3, 0.9999995],
              [0.3999995, 2.599999, 2], [-2.399997, 3.6000078, -1.999999]])
-    if s.communicator.rank == 0:
-        s.configuration.box = [5, 11, 0, 0, 0, 0]  # 2D box
-        # set up particles outside of the box
+        # 2D box
+        s.configuration.box = [5, 11, 0, 0, 0, 0]
         s.particles.N = 4
         s.particles.position[:] = [[-4, 0, 0], [2, 5, 0], [7, 3, 4],
                                    [100, -50, -300]]
-        # wrap
         s.wrap()
-        # check the particles are where they should be
         numpy.testing.assert_allclose(
             s.particles.position, [[1, 0, 0], [2, 5, 0], [2, 3, 0], [0, 5, 0]])
-    if s.communicator.rank == 0:
-        s.configuration.box = [7, 7, 4, 0, 0, 0]  # tetragonal box
-        # set up particles outside of the box
+        # tetragonal box
+        s.configuration.box = [7, 7, 4, 0, 0, 0]
         s.particles.N = 4
         s.particles.position[:] = [[-8, 0, 0], [-4, -8, -7], [0, 2, 1],
                                    [50, 100, -300]]
-        # wrap
         s.wrap()
-        # check the particles are where they should be
         numpy.testing.assert_allclose(
             s.particles.position,
             [[-1, 0, 0], [3, -1, 1], [0, 2, 1], [0.9999995, 1.999999, 0]])
-    if s.communicator.rank == 0:
-        s.configuration.box = [8, 6, 4, 0, 0, 0]  # orthorhombic box
-        # set up particles outside of the box
+        # orthorhombic box
+        s.configuration.box = [8, 6, 4, 0, 0, 0]
         s.particles.N = 4
         s.particles.position[:] = [[-4, 3, 2], [0, -6, 10], [2, 0, -1],
                                    [-200, -200, -100]]
-        # wrap
         s.wrap()
-        # check the particles are where they should be
         numpy.testing.assert_allclose(
             s.particles.position,
             [[-4, -3, -2], [0, 0, -2], [2, 0, -1], [0, -1.9999924, 0]])
-    if s.communicator.rank == 0:
-        s.configuration.box = [7, 4, 8, 0, 0.25, 0]  # monoclinic box
-        # set up particles outside of the box
+        # monoclinic box
+        s.configuration.box = [7, 4, 8, 0, 0.25, 0]
         s.particles.N = 4
         s.particles.position[:] = [[-4, 9, -9], [0, 4, 13], [2, 1, 1],
                                    [-200, -100, -100]]
-        # wrap
         s.wrap()
-        # check the particles are where they should be
         numpy.testing.assert_allclose(
             s.particles.position,
             [[-2, 1, -1], [-4, 0, -3], [2, 1, 1], [-1, 0, -4]])
