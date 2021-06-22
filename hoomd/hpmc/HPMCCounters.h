@@ -465,7 +465,7 @@ DEVICE inline hpmc_clusters_counters_t operator-(const hpmc_clusters_counters_t&
         result.overlap_err_count        = a.overlap_err_count        + b.overlap_err_count         ;
         return result;
         }
-    
+
     } // end namespace hpmc
 
 #endif // _HPMC_COUNTERS_H_

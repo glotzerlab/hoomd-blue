@@ -11,6 +11,7 @@ from hoomd.data.typeparam import TypeParameter
 
 from hoomd.logging import log
 
+
 class HPMCNECIntegrator(HPMCIntegrator):
     """ HPMC Chain Integrator Meta Class
 
@@ -29,10 +30,9 @@ class HPMCNECIntegrator(HPMCIntegrator):
         super().__init__(d, a, 0.5, nselect)
 
         # Set base parameter dict for hpmc chain integrators
-        param_dict = ParameterDict(
-            chain_probability=float(chain_probability),
-            chain_time=float(chain_time),
-            update_fraction=float(update_fraction))
+        param_dict = ParameterDict(chain_probability=float(chain_probability),
+                                   chain_time=float(chain_time),
+                                   update_fraction=float(update_fraction))
         self._param_dict.update(param_dict)
 
     def _attach(self):
@@ -96,7 +96,10 @@ class HPMCNECIntegrator(HPMCIntegrator):
         """
         if self._attached:
             necCounts = self._cpp_obj.getNECCounters(1)
-            return (necCounts.chain_no_collision_count - necCounts.chain_start_count) / ( necCounts.chain_at_collision_count + necCounts.chain_no_collision_count )
+            return (necCounts.chain_no_collision_count
+                    - necCounts.chain_start_count) / (
+                        necCounts.chain_at_collision_count
+                        + necCounts.chain_no_collision_count)
         else:
             return None
 
@@ -143,27 +146,22 @@ class Sphere(HPMCNECIntegrator):
 
     _cpp_cls = 'IntegratorHPMCMonoNECSphere'
 
-    def __init__(self,
-                 d=0.1,
-                 chain_time=0.5,
-                 update_fraction=0.5,
-                 nselect=1):
+    def __init__(self, d=0.1, chain_time=0.5, update_fraction=0.5, nselect=1):
         # initialize base class
-        super().__init__(
-                 d=d,
-                 a=0.1,
-                 chain_probability=1.0,
-                 chain_time=chain_time,
-                 update_fraction=update_fraction,
-                 nselect=nselect)
+        super().__init__(d=d,
+                         a=0.1,
+                         chain_probability=1.0,
+                         chain_time=chain_time,
+                         update_fraction=update_fraction,
+                         nselect=nselect)
 
         typeparam_shape = TypeParameter('shape',
-                                type_kind='particle_types',
-                                param_dict=TypeParameterDict(
-                                    diameter=float,
-                                    ignore_statistics=False,
-                                    orientable=False,
-                                    len_keys=1))
+                                        type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            diameter=float,
+                                            ignore_statistics=False,
+                                            orientable=False,
+                                            len_keys=1))
         self._add_typeparam(typeparam_shape)
 
     @log(category='object')
@@ -233,7 +231,6 @@ class ConvexPolyhedron(HPMCNECIntegrator):
     """
     _cpp_cls = 'IntegratorHPMCMonoNECConvexPolyhedron'
 
-
     def __init__(self,
                  d=0.1,
                  a=0.1,
@@ -242,13 +239,12 @@ class ConvexPolyhedron(HPMCNECIntegrator):
                  update_fraction=0.5,
                  nselect=1):
 
-        super().__init__(
-                 d=d,
-                 a=a,
-                 chain_probability=chain_probability,
-                 chain_time=chain_time,
-                 update_fraction=update_fraction,
-                 nselect=nselect)
+        super().__init__(d=d,
+                         a=a,
+                         chain_probability=chain_probability,
+                         chain_time=chain_time,
+                         update_fraction=update_fraction,
+                         nselect=nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -270,4 +266,3 @@ class ConvexPolyhedron(HPMCNECIntegrator):
                            [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
         """
         return super(ConvexPolyhedron, self)._return_type_shapes()
-
