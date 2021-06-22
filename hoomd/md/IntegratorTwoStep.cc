@@ -10,13 +10,12 @@ namespace py = pybind11;
 #endif
 
 #include <pybind11/stl_bind.h>
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<IntegrationMethodTwoStep> >);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<IntegrationMethodTwoStep>>);
 
 using namespace std;
 
 IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false),
-    m_aniso_mode(Automatic)
+    : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false), m_aniso_mode(Automatic)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
     }
@@ -25,12 +24,13 @@ IntegratorTwoStep::~IntegratorTwoStep()
     {
     m_exec_conf->msg->notice(5) << "Destroying IntegratorTwoStep" << endl;
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_comm)
         {
-        m_comm->getComputeCallbackSignal().disconnect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
+        m_comm->getComputeCallbackSignal()
+            .disconnect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
         }
-    #endif
+#endif
     }
 
 /*! \param prof The profiler to set
@@ -44,46 +44,10 @@ void IntegratorTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
         method->setProfiler(prof);
     }
 
-/*! Returns a list of log quantities this compute calculates
-*/
-std::vector< std::string > IntegratorTwoStep::getProvidedLogQuantities()
-    {
-    std::vector<std::string> combined_result;
-    std::vector<std::string> result;
-
-    // Get base class provided log quantities
-    result = Integrator::getProvidedLogQuantities();
-    combined_result.insert(combined_result.end(), result.begin(), result.end());
-
-    // add integrationmethod quantities
-    for (auto& method : m_methods)
-        {
-        result = method->getProvidedLogQuantities();
-        combined_result.insert(combined_result.end(), result.begin(), result.end());
-        }
-    return combined_result;
-    }
-
-/*! \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-*/
-Scalar IntegratorTwoStep::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    bool quantity_flag = false;
-    Scalar log_value;
-
-    for (auto& method : m_methods)
-        {
-        log_value = method->getLogValue(quantity,timestep,quantity_flag);
-        if (quantity_flag) return log_value;
-        }
-    return Integrator::getLogValue(quantity, timestep);
-    }
-
 /*! \param timestep Current time step of the simulation
-    \post All integration methods previously added with addIntegrationMethod() are applied in order to move the system
-          state variables forward to \a timestep+1.
-    \post Internally, all forces added via Integrator::addForceCompute are evaluated at \a timestep+1
+    \post All integration methods in m_methods are applied in order to move the system state
+    variables forward to \a timestep+1.
+    \post Internally, all forces present in the m_forces std::vector are evaluated at \a timestep+1
 */
 void IntegratorTwoStep::update(uint64_t timestep)
     {
@@ -91,7 +55,9 @@ void IntegratorTwoStep::update(uint64_t timestep)
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0)
         {
-        m_exec_conf->msg->warning() << "integrate.mode_standard: No integration methods are set, continuing anyways." << endl;
+        m_exec_conf->msg->warning()
+            << "integrate.mode_standard: No integration methods are set, continuing anyways."
+            << endl;
         m_gave_warning = true;
         }
 
@@ -118,29 +84,30 @@ void IntegratorTwoStep::update(uint64_t timestep)
         {
         // perform all necessary communication steps. This ensures
         // a) that particles have migrated to the correct domains
-        // b) that forces are calculated correctly, if ghost atom positions are updated every time step
+        // b) that forces are calculated correctly, if ghost atom positions are updated every time
+        // step
 
         // also updates rigid bodies after ghost updating
-        m_comm->communicate(timestep+1);
+        m_comm->communicate(timestep + 1);
         }
     else
 #endif
         {
-        updateRigidBodies(timestep+1);
+        updateRigidBodies(timestep + 1);
         }
 
     // compute the net force on all particles
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
-        computeNetForceGPU(timestep+1);
+        computeNetForceGPU(timestep + 1);
     else
 #endif
-        computeNetForce(timestep+1);
+        computeNetForce(timestep + 1);
 
     // Call HalfStep hook
     if (m_half_step_hook)
         {
-        m_half_step_hook->update(timestep+1);
+        m_half_step_hook->update(timestep + 1);
         }
 
     if (m_prof)
@@ -148,7 +115,10 @@ void IntegratorTwoStep::update(uint64_t timestep)
 
     // perform the second step of the integration on all groups
     for (auto& method : m_methods)
+        {
         method->integrateStepTwo(timestep);
+        method->includeRATTLEForce(timestep + 1);
+        }
 
     /* NOTE: For composite particles, it is assumed that positions and orientations are not updated
        in the second step.
@@ -172,71 +142,17 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
 
     // set deltaT on all methods already added
     for (auto& method : m_methods)
-        method->setDeltaT(deltaT);
-    }
-
-/*! \param new_method New integration method to add to the integrator
-    Before the method is added, it is checked to see if the group intersects with any of the groups integrated by
-    existing methods. If an intersection is found, an error is issued. If no intersection is found, setDeltaT
-    is called on the method and it is added to the list.
-*/
-void IntegratorTwoStep::addIntegrationMethod(std::shared_ptr<IntegrationMethodTwoStep> new_method)
-    {
-    // check for intersections with existing methods
-    std::shared_ptr<ParticleGroup> new_group = new_method->getGroup();
-
-    if (new_group->getNumMembersGlobal() == 0)
-        m_exec_conf->msg->warning() << "integrate.mode_standard: An integration method has been added that operates on zero particles." << endl;
-
-    for (auto& method : m_methods)
         {
-        std::shared_ptr<ParticleGroup> current_group = method->getGroup();
-        std::shared_ptr<ParticleGroup> intersection = ParticleGroup::groupIntersection(new_group, current_group);
-
-        if (intersection->getNumMembersGlobal() > 0)
-            {
-            m_exec_conf->msg->error() << "integrate.mode_standard: Multiple integration methods are applied to the same particle" << endl;
-            throw std::runtime_error("Error adding integration method");
-            }
+        method->setDeltaT(deltaT);
         }
-
-    // ensure that the method has a matching deltaT
-    new_method->setDeltaT(m_deltaT);
-
-    // add it to the list
-    m_methods.push_back(new_method);
+    if (m_rigid_bodies)
+        {
+        m_rigid_bodies->setDeltaT(deltaT);
+        }
     }
-
-/*! \post All integration methods are removed from this integrator
-*/
-void IntegratorTwoStep::removeAllIntegrationMethods()
-    {
-    m_methods.clear();
-    m_gave_warning = false;
-    }
-
-/*! \param fc ForceComposite to add
-*/
-void IntegratorTwoStep::addForceComposite(std::shared_ptr<ForceComposite> fc)
-    {
-    assert(fc);
-    m_composite_forces.push_back(fc);
-    }
-
-/*! Call removeForceComputes() to completely wipe out the list of force computes
-    that the integrator uses to sum forces.
-*/
-void IntegratorTwoStep::removeForceComputes()
-    {
-    Integrator::removeForceComputes();
-
-    // Remove ForceComposite objects
-    m_composite_forces.clear();
-    }
-
 
 /*! \returns true If all added integration methods have valid restart information
-*/
+ */
 bool IntegratorTwoStep::isValidRestart()
     {
     bool res = true;
@@ -251,7 +167,7 @@ bool IntegratorTwoStep::isValidRestart()
     }
 
 /*! \returns true If all added integration methods have valid restart information
-*/
+ */
 void IntegratorTwoStep::initializeIntegrationMethods()
     {
     // loop through all methods
@@ -278,13 +194,12 @@ Scalar IntegratorTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> gro
     // proportionately remove n_dimensions DOF when there is only one momentum conserving
     // integration method
     Scalar periodic_dof_removed = 0;
-    if (group->getNumMembersGlobal() == m_pdata->getNGlobal() &&
-        m_methods.size() == 1 &&
-        m_methods[0]->isMomentumConserving())
+    if (group->getNumMembersGlobal() == m_pdata->getNGlobal() && m_methods.size() == 1
+        && m_methods[0]->isMomentumConserving())
         {
-        periodic_dof_removed = Scalar(m_sysdef->getNDimensions()) *
-                               (Scalar(group->getNumMembersGlobal())
-                               / Scalar(m_pdata->getNGlobal()));
+        periodic_dof_removed
+            = Scalar(m_sysdef->getNDimensions())
+              * (Scalar(group->getNumMembersGlobal()) / Scalar(m_pdata->getNGlobal()));
         }
 
     // loop through all methods and add up the number of DOF They apply to the group
@@ -298,7 +213,8 @@ Scalar IntegratorTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> gro
     }
 
 /*! \param group Group over which to count degrees of freedom.
-    IntegratorTwoStep totals up the rotational degrees of freedom that each integration method provide to the group.
+    IntegratorTwoStep totals up the rotational degrees of freedom that each integration method
+   provide to the group.
 */
 Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
     {
@@ -306,21 +222,22 @@ Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
 
     bool aniso = false;
 
-    // This is called before prepRun, so we need to determine the anisotropic modes independently here.
-    // It cannot be done earlier, as the integration methods were not in place.
-    // set (an-)isotropic integration mode
+    // This is called before prepRun, so we need to determine the anisotropic modes independently
+    // here. It cannot be done earlier, as the integration methods were not in place. set
+    // (an-)isotropic integration mode
     switch (m_aniso_mode)
         {
-        case Anisotropic:
-            aniso = true;
-            break;
-        case Automatic:
-        default:
-            aniso = getAnisotropic();
-            break;
+    case Anisotropic:
+        aniso = true;
+        break;
+    case Automatic:
+    default:
+        aniso = getAnisotropic();
+        break;
         }
 
-    m_exec_conf->msg->notice(8) << "IntegratorTwoStep: Setting anisotropic mode = " << aniso << std::endl;
+    m_exec_conf->msg->notice(8) << "IntegratorTwoStep: Setting anisotropic mode = " << aniso
+                                << std::endl;
 
     if (aniso)
         {
@@ -379,8 +296,8 @@ const std::string IntegratorTwoStep::getAnisotropicMode()
     }
 
 /*! Compute accelerations if needed for the first step.
-    If acceleration is available in the restart file, then just call computeNetForce so that net_force and net_virial
-    are available for the logger. This solves ticket #393
+    If acceleration is available in the restart file, then just call computeNetForce so that
+    net_force and net_virial are available in Python. This solves ticket #393
 */
 void IntegratorTwoStep::prepRun(uint64_t timestep)
     {
@@ -389,21 +306,23 @@ void IntegratorTwoStep::prepRun(uint64_t timestep)
     // set (an-)isotropic integration mode
     switch (m_aniso_mode)
         {
-        case Anisotropic:
-            aniso = true;
-            if(!getAnisotropic())
-                m_exec_conf->msg->warning() << "Forcing anisotropic integration mode"
-                    " with no forces coupling to orientation" << endl;
-            break;
-        case Isotropic:
-            if(getAnisotropic())
-                m_exec_conf->msg->warning() << "Forcing isotropic integration mode"
-                    " with anisotropic forces defined" << endl;
-            break;
-        case Automatic:
-        default:
-            aniso = getAnisotropic();
-            break;
+    case Anisotropic:
+        aniso = true;
+        if (!getAnisotropic())
+            m_exec_conf->msg->warning() << "Forcing anisotropic integration mode"
+                                           " with no forces coupling to orientation"
+                                        << endl;
+        break;
+    case Isotropic:
+        if (getAnisotropic())
+            m_exec_conf->msg->warning() << "Forcing isotropic integration mode"
+                                           " with anisotropic forces defined"
+                                        << endl;
+        break;
+    case Automatic:
+    default:
+        aniso = getAnisotropic();
+        break;
         }
 
     for (auto& method : m_methods)
@@ -420,11 +339,13 @@ void IntegratorTwoStep::prepRun(uint64_t timestep)
         }
     else
 #endif
+        if (m_rigid_bodies)
         {
+        m_rigid_bodies->validateRigidBodies();
         updateRigidBodies(timestep);
         }
 
-        // compute the net force on all particles
+    // compute the net force on all particles
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         computeNetForceGPU(timestep);
@@ -439,11 +360,14 @@ void IntegratorTwoStep::prepRun(uint64_t timestep)
         m_pdata->notifyAccelSet();
         }
 
+    for (auto& method : m_methods)
+        method->includeRATTLEForce(timestep);
+
     m_prepared = true;
     }
 
 /*! Return the combined flags of all integration methods.
-*/
+ */
 PDataFlags IntegratorTwoStep::getRequestedPDataFlags()
     {
     PDataFlags flags;
@@ -464,12 +388,13 @@ void IntegratorTwoStep::setCommunicator(std::shared_ptr<Communicator> comm)
     {
     // set Communicator in all methods
     for (auto& method : m_methods)
-            method->setCommunicator(comm);
+        method->setCommunicator(comm);
 
     if (comm && !m_comm)
         {
         // on the first time setting the Communicator, connect our compute callback
-        comm->getComputeCallbackSignal().connect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
+        comm->getComputeCallbackSignal()
+            .connect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
         }
 
     Integrator::setCommunicator(comm);
@@ -479,9 +404,11 @@ void IntegratorTwoStep::setCommunicator(std::shared_ptr<Communicator> comm)
 //! Updates the rigid body constituent particles
 void IntegratorTwoStep::updateRigidBodies(uint64_t timestep)
     {
-    // slave any constituents of local composite particles
-    for (auto force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-        (*force_composite)->updateCompositeParticles(timestep);
+    // update the composite particle positions of any rigid bodies
+    if (m_rigid_bodies)
+        {
+        m_rigid_bodies->updateCompositeParticles(timestep);
+        }
     }
 
 /*! \param enable Enable/disable autotuning
@@ -492,20 +419,78 @@ void IntegratorTwoStep::setAutotunerParams(bool enable, unsigned int period)
     Integrator::setAutotunerParams(enable, period);
     // set params in all methods
     for (auto& method : m_methods)
-            method->setAutotunerParams(enable, period);
+        method->setAutotunerParams(enable, period);
+    }
+
+/// helper function to compute net force/virial
+void IntegratorTwoStep::computeNetForce(uint64_t timestep)
+    {
+    if (m_rigid_bodies)
+        {
+        m_rigid_bodies->validateRigidBodies();
+        m_constraint_forces.push_back(m_rigid_bodies);
+        }
+    Integrator::computeNetForce(timestep);
+    if (m_rigid_bodies)
+        {
+        m_constraint_forces.pop_back();
+        }
+    }
+
+#ifdef ENABLE_HIP
+/// helper function to compute net force/virial on the GPU
+void IntegratorTwoStep::computeNetForceGPU(uint64_t timestep)
+    {
+    if (m_rigid_bodies)
+        {
+        m_rigid_bodies->validateRigidBodies();
+        m_constraint_forces.push_back(m_rigid_bodies);
+        }
+    Integrator::computeNetForceGPU(timestep);
+    if (m_rigid_bodies)
+        {
+        m_constraint_forces.pop_back();
+        }
+    }
+#endif
+
+#ifdef ENABLE_MPI
+/// helper function to determine the ghost communication flags
+CommFlags IntegratorTwoStep::determineFlags(uint64_t timestep)
+    {
+    auto flags = Integrator::determineFlags(timestep);
+    if (m_rigid_bodies)
+        {
+        flags |= m_rigid_bodies->getRequestedCommFlags(timestep);
+        }
+    return flags;
+    }
+#endif
+
+/// Check if any forces introduce anisotropic degrees of freedom
+bool IntegratorTwoStep::getAnisotropic()
+    {
+    auto is_anisotropic = Integrator::getAnisotropic();
+    if (m_rigid_bodies)
+        {
+        is_anisotropic |= m_rigid_bodies->isAnisotropic();
+        }
+    return is_anisotropic;
     }
 
 void export_IntegratorTwoStep(py::module& m)
     {
-	py::bind_vector<std::vector< std::shared_ptr<IntegrationMethodTwoStep> > >(
-        m, "IntegrationMethodList");
+    py::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
+        m,
+        "IntegrationMethodList");
 
-    py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep> >(m, "IntegratorTwoStep")
-        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
+    py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
+        m,
+        "IntegratorTwoStep")
+        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
+        .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
         .def_property("aniso",
                       &IntegratorTwoStep::getAnisotropicMode,
-                      &IntegratorTwoStep::setAnisotropicMode)
-
-        ;
+                      &IntegratorTwoStep::setAnisotropicMode);
     }

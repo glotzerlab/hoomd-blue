@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: mphoward
 
 /*! \file NeighborListStencil.cc
@@ -25,11 +24,9 @@ namespace py = pybind11;
  *
  * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
  */
-NeighborListStencil::NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef,
-                                         Scalar r_buff)
-    : NeighborList(sysdef, r_buff),
-    m_cl(std::make_shared<CellList>(sysdef)),
-    m_cls(std::make_shared<CellListStencil>(sysdef, m_cl))
+NeighborListStencil::NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
+    : NeighborList(sysdef, r_buff), m_cl(std::make_shared<CellList>(sysdef)),
+      m_cls(std::make_shared<CellListStencil>(sysdef, m_cl))
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListStencil" << endl;
 
@@ -37,7 +34,6 @@ NeighborListStencil::NeighborListStencil(std::shared_ptr<SystemDefinition> sysde
     m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
     m_cl->setComputeAdjList(false);
-
     }
 
 NeighborListStencil::~NeighborListStencil()
@@ -49,7 +45,7 @@ void NeighborListStencil::updateRStencil()
     {
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
     std::vector<Scalar> rstencil(m_pdata->getNTypes(), -1.0);
-    for (unsigned int cur_type=0; cur_type < m_pdata->getNTypes(); ++cur_type)
+    for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
         {
         Scalar rcut = h_rcut_max.data[cur_type];
         if (rcut > Scalar(0.0))
@@ -98,8 +94,12 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
 
     // acquire the particle data and box dimension
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
@@ -113,15 +113,16 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
         {
         // add the maximum diameter of all composite particles
         Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
-        rmax += 0.5*max_d_comp;
+        rmax += 0.5 * max_d_comp;
         }
 
     // get periodic flags
     uchar3 periodic = box.getPeriodic();
 
-    if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
-        (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
-        (this->m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
+    if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0)
+        || (periodic.y && nearest_plane_distance.y <= rmax * 2.0)
+        || (this->m_sysdef->getNDimensions() == 3 && periodic.z
+            && nearest_plane_distance.z <= rmax * 2.0))
         {
         std::ostringstream oss;
         oss << "nlist: Simulation box is too small! Particles would be interacting with themselves."
@@ -140,17 +141,25 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
 
     // access the cell list data arrays
-    ArrayHandle<unsigned int> h_cell_size(m_cl->getCellSizeArray(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_cell_xyzf(m_cl->getXYZFArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_cell_size(m_cl->getCellSizeArray(),
+                                          access_location::host,
+                                          access_mode::read);
+    ArrayHandle<Scalar4> h_cell_xyzf(m_cl->getXYZFArray(),
+                                     access_location::host,
+                                     access_mode::read);
     ArrayHandle<Scalar4> h_cell_tdb(m_cl->getTDBArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_stencil(m_cls->getStencils(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_n_stencil(m_cls->getStencilSizes(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_n_stencil(m_cls->getStencilSizes(),
+                                          access_location::host,
+                                          access_mode::read);
     const Index2D& stencil_idx = m_cls->getStencilIndexer();
 
     // access the neighbor list data
     ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_conditions(m_conditions,
+                                           access_location::host,
+                                           access_mode::readwrite);
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
 
@@ -174,7 +183,7 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
         const unsigned int head_idx_i = h_head_list.data[i];
 
         // find the bin each particle belongs in
-        Scalar3 f = box.makeFraction(my_pos,ghost_width);
+        Scalar3 f = box.makeFraction(my_pos, ghost_width);
         int ib = (unsigned int)(f.x * dim.x);
         int jb = (unsigned int)(f.y * dim.y);
         int kb = (unsigned int)(f.z * dim.z);
@@ -200,8 +209,10 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
             // wrap through the boundary
             if (periodic.x)
                 {
-                if (sib >= (int)dim.x) sib -= dim.x;
-                else if (sib < 0) sib += dim.x;
+                if (sib >= (int)dim.x)
+                    sib -= dim.x;
+                else if (sib < 0)
+                    sib += dim.x;
 
                 // wrapping and the stencil construction should ensure this is in bounds
                 assert(sib >= 0 && sib < (int)dim.x);
@@ -214,8 +225,10 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
 
             if (periodic.y)
                 {
-                if (sjb >= (int)dim.y) sjb -= dim.y;
-                else if (sjb < 0) sjb += dim.y;
+                if (sjb >= (int)dim.y)
+                    sjb -= dim.y;
+                else if (sjb < 0)
+                    sjb += dim.y;
 
                 assert(sjb >= 0 && sjb < (int)dim.y);
                 }
@@ -226,8 +239,10 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
 
             if (periodic.z)
                 {
-                if (skb >= (int)dim.z) skb -= dim.z;
-                else if (skb < 0) skb += dim.z;
+                if (skb >= (int)dim.z)
+                    skb -= dim.z;
+                else if (skb < 0)
+                    skb += dim.z;
 
                 assert(skb >= 0 && skb < (int)dim.z);
                 }
@@ -242,18 +257,21 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
             unsigned int size = h_cell_size.data[neigh_cell];
             for (unsigned int cur_offset = 0; cur_offset < size; cur_offset++)
                 {
-                // read in the particle type (diameter and body as well while we've got the Scalar4 in)
+                // read in the particle type (diameter and body as well while we've got the Scalar4
+                // in)
                 const Scalar4& neigh_tdb = h_cell_tdb.data[cli(cur_offset, neigh_cell)];
                 const unsigned int type_j = __scalar_as_int(neigh_tdb.x);
                 const Scalar diam_j = neigh_tdb.y;
                 const unsigned int body_j = __scalar_as_int(neigh_tdb.z);
 
                 // skip any particles belonging to the same body if requested
-                if (m_filter_body && body_i != NO_BODY && body_i == body_j) continue;
+                if (m_filter_body && body_i != NO_BODY && body_i == body_j)
+                    continue;
 
                 // read cutoff and skip if pair is inactive
-                Scalar r_cut = h_r_cut.data[m_typpair_idx(type_i,type_j)];
-                if (r_cut <= Scalar(0.0)) continue;
+                Scalar r_cut = h_r_cut.data[m_typpair_idx(type_i, type_j)];
+                if (r_cut <= Scalar(0.0))
+                    continue;
 
                 // compute the rlist based on the particle type we're interacting with
                 Scalar r_list = r_cut + m_r_buff;
@@ -265,23 +283,26 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
                     // r^2 < r_listsq + delta^2 + 2*r_list*delta
                     sqshift = (delta + Scalar(2.0) * r_list) * delta;
                     }
-                Scalar r_listsq = r_list*r_list + sqshift;
+                Scalar r_listsq = r_list * r_list + sqshift;
 
-                // compare the check distance to the minimum cell distance, and pass without distance check if unnecessary
-                if (cell_dist2 > r_listsq) continue;
+                // compare the check distance to the minimum cell distance, and pass without
+                // distance check if unnecessary
+                if (cell_dist2 > r_listsq)
+                    continue;
 
                 // only load in the particle position and id if distance check is satisfied
                 const Scalar4& neigh_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
                 unsigned int cur_neigh = __scalar_as_int(neigh_xyzf.w);
 
                 // a particle cannot neighbor itself
-                if (i == (int)cur_neigh) continue;
+                if (i == (int)cur_neigh)
+                    continue;
 
                 Scalar3 neigh_pos = make_scalar3(neigh_xyzf.x, neigh_xyzf.y, neigh_xyzf.z);
                 Scalar3 dx = my_pos - neigh_pos;
                 dx = box.minImage(dx);
 
-                Scalar dr_sq = dot(dx,dx);
+                Scalar dr_sq = dot(dx, dx);
 
                 if (dr_sq <= r_listsq)
                     {
@@ -293,7 +314,8 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
                             h_nlist.data[head_idx_i + cur_n_neigh] = cur_neigh;
                             }
                         else
-                            h_conditions.data[type_i] = max(h_conditions.data[type_i], cur_n_neigh+1);
+                            h_conditions.data[type_i]
+                                = max(h_conditions.data[type_i], cur_n_neigh + 1);
 
                         ++cur_n_neigh;
                         }
@@ -310,10 +332,14 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
 
 void export_NeighborListStencil(py::module& m)
     {
-    py::class_<NeighborListStencil, NeighborList, std::shared_ptr<NeighborListStencil> >(m, "NeighborListStencil")
-        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar>())
-        .def_property("cell_width", &NeighborListStencil::getCellWidth,
+    py::class_<NeighborListStencil, NeighborList, std::shared_ptr<NeighborListStencil>>(
+        m,
+        "NeighborListStencil")
+        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def_property("cell_width",
+                      &NeighborListStencil::getCellWidth,
                       &NeighborListStencil::setCellWidth)
-        .def_property("deterministic", &NeighborListStencil::getDeterministic,
-                &NeighborListStencil::setDeterministic);
+        .def_property("deterministic",
+                      &NeighborListStencil::getDeterministic,
+                      &NeighborListStencil::setDeterministic);
     }

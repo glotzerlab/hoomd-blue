@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
@@ -9,17 +8,16 @@
 
 HOOMD_UP_MAIN();
 
-
 #include <iostream>
 
 #include <math.h>
 
-#include <pybind11/pybind11.h>
 #include <memory>
+#include <pybind11/pybind11.h>
 
 #include "hoomd/VectorMath.h"
 
-UP_TEST( construction )
+UP_TEST(construction)
     {
     // test each constructor separately
     vec3<Scalar> a;
@@ -81,10 +79,10 @@ UP_TEST( construction )
     MY_CHECK_CLOSE(h.z, 1, tol);
     }
 
-UP_TEST( component_wise )
+UP_TEST(component_wise)
     {
-    vec3<Scalar> a(1,2,3);
-    vec3<Scalar> b(4,6,8);
+    vec3<Scalar> a(1, 2, 3);
+    vec3<Scalar> b(4, 6, 8);
     vec3<Scalar> c;
 
     // test each component-wise operator separately
@@ -104,9 +102,9 @@ UP_TEST( component_wise )
     MY_CHECK_CLOSE(c.z, 24, tol);
 
     c = a / b;
-    MY_CHECK_CLOSE(c.x, 1.0/4.0, tol);
-    MY_CHECK_CLOSE(c.y, 2.0/6.0, tol);
-    MY_CHECK_CLOSE(c.z, 3.0/8.0, tol);
+    MY_CHECK_CLOSE(c.x, 1.0 / 4.0, tol);
+    MY_CHECK_CLOSE(c.y, 2.0 / 6.0, tol);
+    MY_CHECK_CLOSE(c.z, 3.0 / 8.0, tol);
 
     c = -a;
     MY_CHECK_CLOSE(c.x, -1, tol);
@@ -114,10 +112,10 @@ UP_TEST( component_wise )
     MY_CHECK_CLOSE(c.z, -3, tol);
     }
 
-UP_TEST( assignment_component_wise )
+UP_TEST(assignment_component_wise)
     {
-    vec3<Scalar> a(1,2,3);
-    vec3<Scalar> b(4,6,8);
+    vec3<Scalar> a(1, 2, 3);
+    vec3<Scalar> b(4, 6, 8);
     vec3<Scalar> c;
 
     // test each component-wise operator separately
@@ -129,7 +127,7 @@ UP_TEST( assignment_component_wise )
     MY_CHECK_CLOSE(a.y, 8, tol);
     MY_CHECK_CLOSE(a.z, 11, tol);
 
-    a = vec3<Scalar>(1,2,3);
+    a = vec3<Scalar>(1, 2, 3);
     c = a -= b;
     MY_CHECK_CLOSE(c.x, -3, tol);
     MY_CHECK_CLOSE(c.y, -4, tol);
@@ -138,7 +136,7 @@ UP_TEST( assignment_component_wise )
     MY_CHECK_CLOSE(a.y, -4, tol);
     MY_CHECK_CLOSE(a.z, -5, tol);
 
-    a = vec3<Scalar>(1,2,3);
+    a = vec3<Scalar>(1, 2, 3);
     c = a *= b;
     MY_CHECK_CLOSE(c.x, 4, tol);
     MY_CHECK_CLOSE(c.y, 12, tol);
@@ -147,19 +145,19 @@ UP_TEST( assignment_component_wise )
     MY_CHECK_CLOSE(a.y, 12, tol);
     MY_CHECK_CLOSE(a.z, 24, tol);
 
-    a = vec3<Scalar>(1,2,3);
+    a = vec3<Scalar>(1, 2, 3);
     c = a /= b;
-    MY_CHECK_CLOSE(c.x, 1.0/4.0, tol);
-    MY_CHECK_CLOSE(c.y, 2.0/6.0, tol);
-    MY_CHECK_CLOSE(c.z, 3.0/8.0, tol);
-    MY_CHECK_CLOSE(a.x, 1.0/4.0, tol);
-    MY_CHECK_CLOSE(a.y, 2.0/6.0, tol);
-    MY_CHECK_CLOSE(a.z, 3.0/8.0, tol);
+    MY_CHECK_CLOSE(c.x, 1.0 / 4.0, tol);
+    MY_CHECK_CLOSE(c.y, 2.0 / 6.0, tol);
+    MY_CHECK_CLOSE(c.z, 3.0 / 8.0, tol);
+    MY_CHECK_CLOSE(a.x, 1.0 / 4.0, tol);
+    MY_CHECK_CLOSE(a.y, 2.0 / 6.0, tol);
+    MY_CHECK_CLOSE(a.z, 3.0 / 8.0, tol);
     }
 
-UP_TEST( scalar )
+UP_TEST(scalar)
     {
-    vec3<Scalar> a(1,2,3);
+    vec3<Scalar> a(1, 2, 3);
     Scalar b(4);
     vec3<Scalar> c;
 
@@ -175,50 +173,50 @@ UP_TEST( scalar )
     MY_CHECK_CLOSE(c.z, 12, tol);
 
     c = a / b;
-    MY_CHECK_CLOSE(c.x, 1.0/4.0, tol);
-    MY_CHECK_CLOSE(c.y, 2.0/4.0, tol);
-    MY_CHECK_CLOSE(c.z, 3.0/4.0, tol);
+    MY_CHECK_CLOSE(c.x, 1.0 / 4.0, tol);
+    MY_CHECK_CLOSE(c.y, 2.0 / 4.0, tol);
+    MY_CHECK_CLOSE(c.z, 3.0 / 4.0, tol);
     }
 
-UP_TEST( assignment_scalar )
+UP_TEST(assignment_scalar)
     {
-    vec3<Scalar> a(1,2,3);
+    vec3<Scalar> a(1, 2, 3);
     Scalar b(4);
 
     // test each component-wise operator separately
-    a = vec3<Scalar>(1,2,3);
+    a = vec3<Scalar>(1, 2, 3);
     a *= b;
     MY_CHECK_CLOSE(a.x, 4, tol);
     MY_CHECK_CLOSE(a.y, 8, tol);
     MY_CHECK_CLOSE(a.z, 12, tol);
 
-    a = vec3<Scalar>(1,2,3);
+    a = vec3<Scalar>(1, 2, 3);
     a /= b;
-    MY_CHECK_CLOSE(a.x, 1.0/4.0, tol);
-    MY_CHECK_CLOSE(a.y, 2.0/4.0, tol);
-    MY_CHECK_CLOSE(a.z, 3.0/4.0, tol);
+    MY_CHECK_CLOSE(a.x, 1.0 / 4.0, tol);
+    MY_CHECK_CLOSE(a.y, 2.0 / 4.0, tol);
+    MY_CHECK_CLOSE(a.z, 3.0 / 4.0, tol);
     }
 
-UP_TEST( vector_ops )
+UP_TEST(vector_ops)
     {
-    vec3<Scalar> a(1,2,3);
-    vec3<Scalar> b(6,5,4);
+    vec3<Scalar> a(1, 2, 3);
+    vec3<Scalar> b(6, 5, 4);
     vec3<Scalar> c;
     Scalar d;
 
     // test each vector operation
-    d = dot(a,b);
+    d = dot(a, b);
     MY_CHECK_CLOSE(d, 28, tol);
 
-    c = cross(a,b);
+    c = cross(a, b);
     MY_CHECK_CLOSE(c.x, -7, tol);
     MY_CHECK_CLOSE(c.y, 14, tol);
     MY_CHECK_CLOSE(c.z, -7, tol);
     }
 
-UP_TEST( vec_to_scalar )
+UP_TEST(vec_to_scalar)
     {
-    vec3<Scalar> a(1,2,3);
+    vec3<Scalar> a(1, 2, 3);
     Scalar w(4);
     Scalar3 m;
     Scalar4 n;
@@ -249,22 +247,22 @@ UP_TEST( vec_to_scalar )
     MY_CHECK_CLOSE(a.z, 3.0, tol);
     }
 
-UP_TEST( comparison )
+UP_TEST(comparison)
     {
-    vec3<Scalar> a(1.1,2.1,.1);
+    vec3<Scalar> a(1.1, 2.1, .1);
     vec3<Scalar> b = a;
-    vec3<Scalar> c(.1,1.1,2.1);
+    vec3<Scalar> c(.1, 1.1, 2.1);
 
     // test equality
-    UP_ASSERT(a==b);
-    UP_ASSERT(!(a==c));
+    UP_ASSERT(a == b);
+    UP_ASSERT(!(a == c));
 
     // test inequality
-    UP_ASSERT(!(a!=b));
-    UP_ASSERT(a!=c);
+    UP_ASSERT(!(a != b));
+    UP_ASSERT(a != c);
     }
 
-UP_TEST( test_swap )
+UP_TEST(test_swap)
     {
     vec3<Scalar> a(1.1, 2.2, 0.0);
     vec3<Scalar> b(3.3, 4.4, 0.0);
@@ -273,6 +271,6 @@ UP_TEST( test_swap )
 
     // test swap
     a.swap(b);
-    UP_ASSERT(a==d);
-    UP_ASSERT(b==c);
+    UP_ASSERT(a == d);
+    UP_ASSERT(b == c);
     }

@@ -27,10 +27,11 @@ By themselves, wall groups do nothing. Only when you specify a wall force
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import external
-import hoomd;
-import math;
+import hoomd
+import math
 
 #           *** Helpers ***
+
 
 class group(object):
     R""" Defines a wall group.
@@ -130,14 +131,15 @@ class group(object):
         planes:0{}
 
     """
-    def __init__(self,*walls):
-        self.spheres=[];
-        self.cylinders=[];
-        self.planes=[];
-        for wall in walls:
-            self.add(wall);
 
-    def add(self,wall):
+    def __init__(self, *walls):
+        self.spheres = []
+        self.cylinders = []
+        self.planes = []
+        for wall in walls:
+            self.add(wall)
+
+    def add(self, wall):
         R""" Generic wall add for wall objects.
 
         Generic convenience function to add any wall object to the group.
@@ -145,23 +147,24 @@ class group(object):
         combination of these.
         """
         if (isinstance(wall, sphere)):
-            self.spheres.append(wall);
+            self.spheres.append(wall)
         elif (isinstance(wall, cylinder)):
-            self.cylinders.append(wall);
+            self.cylinders.append(wall)
         elif (isinstance(wall, plane)):
-            self.planes.append(wall);
-        elif (type(wall)==list):
+            self.planes.append(wall)
+        elif (type(wall) == list):
             for wall_el in wall:
                 if (isinstance(wall_el, sphere)):
-                    self.spheres.append(wall_el);
+                    self.spheres.append(wall_el)
                 elif (isinstance(wall_el, cylinder)):
-                    self.cylinders.append(wall_el);
+                    self.cylinders.append(wall_el)
                 elif (isinstance(wall_el, plane)):
-                    self.planes.append(wall_el);
+                    self.planes.append(wall_el)
                 else:
-                    print("Input of type "+str(type(wall_el))+" is not allowed. Skipping invalid list element...");
+                    print("Input of type " + str(type(wall_el))
+                          + " is not allowed. Skipping invalid list element...")
         else:
-            print("Input of type "+str(type(wall))+" is not allowed.");
+            print("Input of type " + str(type(wall)) + " is not allowed.")
 
     def add_sphere(self, r, origin, inside=True):
         R""" Adds a sphere to the wall group.
@@ -173,7 +176,7 @@ class group(object):
 
         Adds a sphere with the specified parameters to the group.
         """
-        self.spheres.append(sphere(r,origin,inside));
+        self.spheres.append(sphere(r, origin, inside))
 
     def add_cylinder(self, r, origin, axis, inside=True):
         R""" Adds a cylinder to the wall group.
@@ -186,7 +189,7 @@ class group(object):
 
         Adds a cylinder with the specified parameters to the group.
         """
-        self.cylinders.append(cylinder(r, origin, axis, inside));
+        self.cylinders.append(cylinder(r, origin, axis, inside))
 
     def add_plane(self, origin, normal, inside=True):
         R""" Adds a plane to the wall group.
@@ -198,7 +201,7 @@ class group(object):
 
         Adds a plane with the specified parameters to the wallgroup.planes list.
         """
-        self.planes.append(plane(origin, normal, inside));
+        self.planes.append(plane(origin, normal, inside))
 
     def del_sphere(self, *indexs):
         R""" Deletes the sphere or spheres in index.
@@ -209,15 +212,18 @@ class group(object):
         Removes the specified sphere or spheres from the wallgroup.spheres list.
         """
         for index in indexs:
-            if type(index) is int: index = [index];
-            elif type(index) is range: index = list(index);
-            index=list(set(index));
-            index.sort(reverse=True);
+            if type(index) is int:
+                index = [index]
+            elif type(index) is range:
+                index = list(index)
+            index = list(set(index))
+            index.sort(reverse=True)
             for i in index:
                 try:
-                    del(self.spheres[i]);
+                    del (self.spheres[i])
                 except IndexValueError:
-                    hoomd.context.current.device.cpp_msg.error("Specified index for deletion is not valid.\n");
+                    hoomd.context.current.device.cpp_msg.error(
+                        "Specified index for deletion is not valid.\n")
                     raise RuntimeError("del_sphere failed")
 
     def del_cylinder(self, *indexs):
@@ -229,15 +235,18 @@ class group(object):
         Removes the specified cylinder or cylinders from the wallgroup.cylinders list.
         """
         for index in indexs:
-            if type(index) is int: index = [index];
-            elif type(index) is range: index = list(index);
-            index=list(set(index));
-            index.sort(reverse=True);
+            if type(index) is int:
+                index = [index]
+            elif type(index) is range:
+                index = list(index)
+            index = list(set(index))
+            index.sort(reverse=True)
             for i in index:
                 try:
-                    del(self.cylinders[i]);
+                    del (self.cylinders[i])
                 except IndexValueError:
-                    hoomd.context.current.device.cpp_msg.error("Specified index for deletion is not valid.\n");
+                    hoomd.context.current.device.cpp_msg.error(
+                        "Specified index for deletion is not valid.\n")
                     raise RuntimeError("del_cylinder failed")
 
     def del_plane(self, *indexs):
@@ -249,34 +258,38 @@ class group(object):
         Removes the specified plane or planes from the wallgroup.planes list.
         """
         for index in indexs:
-            if type(index) is int: index = [index];
-            elif type(index) is range: index = list(index);
-            index=list(set(index));
-            index.sort(reverse=True);
+            if type(index) is int:
+                index = [index]
+            elif type(index) is range:
+                index = list(index)
+            index = list(set(index))
+            index.sort(reverse=True)
             for i in index:
                 try:
-                    del(self.planes[i]);
+                    del (self.planes[i])
                 except IndexValueError:
-                    hoomd.context.current.device.cpp_msg.error("Specified index for deletion is not valid.\n");
+                    hoomd.context.current.device.cpp_msg.error(
+                        "Specified index for deletion is not valid.\n")
                     raise RuntimeError("del_plane failed")
 
     ## \internal
     # \brief Returns output for print
     def __str__(self):
-        output="Wall_Data_Structure:\nspheres:%s{"%(len(self.spheres));
+        output = "Wall_Data_Structure:\nspheres:%s{" % (len(self.spheres))
         for index in range(len(self.spheres)):
-            output+="\n[%s:\t%s]"%(repr(index), str(self.spheres[index]));
+            output += "\n[%s:\t%s]" % (repr(index), str(self.spheres[index]))
 
-        output+="}\ncylinders:%s{"%(len(self.cylinders));
+        output += "}\ncylinders:%s{" % (len(self.cylinders))
         for index in range(len(self.cylinders)):
-            output+="\n[%s:\t%s]"%(repr(index), str(self.cylinders[index]));
+            output += "\n[%s:\t%s]" % (repr(index), str(self.cylinders[index]))
 
-        output+="}\nplanes:%s{"%(len(self.planes));
+        output += "}\nplanes:%s{" % (len(self.planes))
         for index in range(len(self.planes)):
-            output+="\n[%s:\t%s]"%(repr(index), str(self.planes[index]));
+            output += "\n[%s:\t%s]" % (repr(index), str(self.planes[index]))
 
-        output+="}";
-        return output;
+        output += "}"
+        return output
+
 
 class sphere(object):
     R""" Sphere wall.
@@ -335,23 +348,28 @@ class sphere(object):
         [0:   Origin=(-3.0, 0.0, 0.0) Normal=(1.0, 0.0, 0.0)]}
 
     """
+
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), inside=True):
-        self.r = r;
-        self._origin = _hoomd.make_scalar3(*origin);
-        self.inside = inside;
+        self.r = r
+        self._origin = _hoomd.make_scalar3(*origin)
+        self.inside = inside
 
     @property
     def origin(self):
-        return (self._origin.x, self._origin.y, self._origin.z);
+        return (self._origin.x, self._origin.y, self._origin.z)
+
     @origin.setter
     def origin(self, origin):
-        self._origin = _hoomd.make_scalar3(*origin);
+        self._origin = _hoomd.make_scalar3(*origin)
 
     def __str__(self):
-        return "Radius=%s\tOrigin=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.inside));
+        return "Radius=%s\tOrigin=%s\tInside=%s" % (str(self.r), str(
+            self.origin), str(self.inside))
 
     def __repr__(self):
-        return "{'r': %s, 'origin': %s, 'inside': %s}" % (str(self.r), str(self.origin), str(self.inside));
+        return "{'r': %s, 'origin': %s, 'inside': %s}" % (str(
+            self.r), str(self.origin), str(self.inside))
+
 
 class cylinder(object):
     R""" Cylinder wall.
@@ -371,31 +389,41 @@ class cylinder(object):
 
     For an example see :py:class:`sphere`.
     """
-    def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), axis=(0.0, 0.0, 1.0), inside=True):
-        self.r = r;
-        self._origin = _hoomd.make_scalar3(*origin);
-        self._axis = _hoomd.make_scalar3(*axis);
-        self.inside = inside;
+
+    def __init__(self,
+                 r=0.0,
+                 origin=(0.0, 0.0, 0.0),
+                 axis=(0.0, 0.0, 1.0),
+                 inside=True):
+        self.r = r
+        self._origin = _hoomd.make_scalar3(*origin)
+        self._axis = _hoomd.make_scalar3(*axis)
+        self.inside = inside
 
     @property
     def origin(self):
-        return (self._origin.x, self._origin.y, self._origin.z);
+        return (self._origin.x, self._origin.y, self._origin.z)
+
     @origin.setter
     def origin(self, origin):
-        self._origin = _hoomd.make_scalar3(*origin);
+        self._origin = _hoomd.make_scalar3(*origin)
 
     @property
     def axis(self):
-        return (self._axis.x, self._axis.y, self._axis.z);
+        return (self._axis.x, self._axis.y, self._axis.z)
+
     @axis.setter
     def axis(self, axis):
-        self._axis = _hoomd.make_scalar3(*axis);
+        self._axis = _hoomd.make_scalar3(*axis)
 
     def __str__(self):
-        return "Radius=%s\tOrigin=%s\tAxis=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
+        return "Radius=%s\tOrigin=%s\tAxis=%s\tInside=%s" % (str(
+            self.r), str(self.origin), str(self.axis), str(self.inside))
 
     def __repr__(self):
-        return "{'r': %s, 'origin': %s, 'axis': %s, 'inside': %s}" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
+        return "{'r': %s, 'origin': %s, 'axis': %s, 'inside': %s}" % (str(
+            self.r), str(self.origin), str(self.axis), str(self.inside))
+
 
 class plane(object):
     R""" Plane wall.
@@ -414,34 +442,44 @@ class plane(object):
 
     For an example see :py:class:`sphere`.
     """
-    def __init__(self, origin=(0.0, 0.0, 0.0), normal=(0.0, 0.0, 1.0), inside=True):
-        self._origin = _hoomd.make_scalar3(*origin);
-        self._normal = _hoomd.make_scalar3(*normal);
-        self.inside = inside;
+
+    def __init__(self,
+                 origin=(0.0, 0.0, 0.0),
+                 normal=(0.0, 0.0, 1.0),
+                 inside=True):
+        self._origin = _hoomd.make_scalar3(*origin)
+        self._normal = _hoomd.make_scalar3(*normal)
+        self.inside = inside
 
     @property
     def origin(self):
-        return (self._origin.x, self._origin.y, self._origin.z);
+        return (self._origin.x, self._origin.y, self._origin.z)
+
     @origin.setter
     def origin(self, origin):
-        self._origin = _hoomd.make_scalar3(*origin);
+        self._origin = _hoomd.make_scalar3(*origin)
 
     @property
     def normal(self):
-        return (self._normal.x, self._normal.y, self._normal.z);
+        return (self._normal.x, self._normal.y, self._normal.z)
+
     @normal.setter
     def normal(self, normal):
-        self._normal = _hoomd.make_scalar3(*normal);
+        self._normal = _hoomd.make_scalar3(*normal)
 
     def __str__(self):
-        return "Origin=%s\tNormal=%s\tInside=%s" % (str(self.origin), str(self.normal), str(self.inside));
+        return "Origin=%s\tNormal=%s\tInside=%s" % (str(
+            self.origin), str(self.normal), str(self.inside))
 
     def __repr__(self):
-        return "{'origin':%s, 'normal': %s, 'inside': %s}" % (str(self.origin), str(self.normal), str(self.inside));
+        return "{'origin':%s, 'normal': %s, 'inside': %s}" % (str(
+            self.origin), str(self.normal), str(self.inside))
+
 
 #           *** Potentials ***
 
-class wallpotential(external._external_force):
+
+class wallpotential(external.field.Field):
     R""" Generic wall potential.
 
     :py:class:`wallpotential` should not be used directly.
@@ -589,22 +627,24 @@ class wallpotential(external._external_force):
         as pair potentials, Features of pair potentials such as specified neighborlists,
         and alternative force shifting modes are not supported.
     """
+
     def __init__(self, walls, r_cut, name=""):
-        external._external_force.__init__(self, name);
-        self.field_coeff = walls;
-        self.required_coeffs = ["r_cut", "r_extrap"];
-        self.force_coeff.set_default_coeff('r_extrap', 0.0);
+        external._external_force.__init__(self, name)
+        self.field_coeff = walls
+        self.required_coeffs = ["r_cut", "r_extrap"]
+        self.force_coeff.set_default_coeff('r_extrap', 0.0)
 
         # convert r_cut False to a floating point type
-        if (r_cut==False):
+        if (r_cut == False):
             r_cut = 0.0
-        self.global_r_cut = r_cut;
-        self.force_coeff.set_default_coeff('r_cut', self.global_r_cut);
+        self.global_r_cut = r_cut
+        self.force_coeff.set_default_coeff('r_cut', self.global_r_cut)
 
     ## \internal
     # \brief passes the wall field
     def process_field_coeff(self, coeff):
-        return _md.make_wall_field_params(coeff, hoomd.context.current.device.cpp_exec_conf);
+        return _md.make_wall_field_params(
+            coeff, hoomd.context.current.device.cpp_exec_conf)
 
     ## \internal
     # \brief Fixes negative values to zero before squaring
@@ -612,12 +652,14 @@ class wallpotential(external._external_force):
         if not self.force_coeff.verify(self.required_coeffs):
             raise RuntimeError('Error updating force coefficients')
 
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        for i in range(0,ntypes):
-            type=hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            if self.force_coeff.values[str(type)]['r_cut']<=0:
-                self.force_coeff.values[str(type)]['r_cut']=0;
-        external._external_force.update_coeffs(self);
+        ntypes = hoomd.context.current.system_definition.getParticleData(
+        ).getNTypes()
+        for i in range(0, ntypes):
+            type = hoomd.context.current.system_definition.getParticleData(
+            ).getNameByType(i)
+            if self.force_coeff.values[str(type)]['r_cut'] <= 0:
+                self.force_coeff.values[str(type)]['r_cut'] = 0
+        external._external_force.update_coeffs(self)
 
 
 class lj(wallpotential):
@@ -652,36 +694,42 @@ class lj(wallpotential):
 
     .. image:: wall_extrap.png
     """
+
     def __init__(self, walls, r_cut=False, name=""):
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name);
+        wallpotential.__init__(self, walls, r_cut, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialLJ(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialLJ;
+            self.cpp_force = _md.WallsPotentialLJ(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialLJ
         else:
 
-            self.cpp_force = _md.WallsPotentialLJGPU(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialLJGPU;
+            self.cpp_force = _md.WallsPotentialLJGPU(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialLJGPU
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient options
-        self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
-        self.force_coeff.set_default_coeff('alpha', 1.0);
+        self.required_coeffs += ['epsilon', 'sigma', 'alpha']
+        self.force_coeff.set_default_coeff('alpha', 1.0)
 
     def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        sigma = coeff['sigma'];
-        alpha = coeff['alpha'];
+        epsilon = coeff['epsilon']
+        sigma = coeff['sigma']
+        alpha = coeff['alpha']
 
-        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return _md.make_wall_lj_params(_hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0)
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0)
+        return _md.make_wall_lj_params(_hoomd.make_scalar2(lj1, lj2),
+                                       coeff['r_cut'] * coeff['r_cut'],
+                                       coeff['r_extrap'])
+
 
 class gauss(wallpotential):
     R""" Gaussian wall potential.
@@ -705,30 +753,36 @@ class gauss(wallpotential):
         wall_force_gauss.force_coeff.set(['C', 'D'], epsilon=3.0, sigma=0.5)
 
     """
+
     def __init__(self, walls, r_cut=False, name=""):
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name);
+        wallpotential.__init__(self, walls, r_cut, name)
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialGauss(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialGauss;
+            self.cpp_force = _md.WallsPotentialGauss(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialGauss
         else:
 
-            self.cpp_force = _md.WallsPotentialGaussGPU(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialGaussGPU;
+            self.cpp_force = _md.WallsPotentialGaussGPU(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialGaussGPU
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient options
-        self.required_coeffs += ['epsilon', 'sigma'];
+        self.required_coeffs += ['epsilon', 'sigma']
 
     def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        sigma = coeff['sigma'];
-        return _md.make_wall_gauss_params(_hoomd.make_scalar2(epsilon, sigma), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        epsilon = coeff['epsilon']
+        sigma = coeff['sigma']
+        return _md.make_wall_gauss_params(_hoomd.make_scalar2(epsilon, sigma),
+                                          coeff['r_cut'] * coeff['r_cut'],
+                                          coeff['r_extrap'])
+
 
 class slj(wallpotential):
     R""" Shifted Lennard-Jones wall potential
@@ -756,42 +810,49 @@ class slj(wallpotential):
         wall_force_slj.force_coeff.set('B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0))
 
     """
+
     def __init__(self, walls, r_cut=False, d_max=None, name=""):
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name);
+        wallpotential.__init__(self, walls, r_cut, name)
 
         # update the neighbor list
-        if d_max is None :
-            sysdef = hoomd.context.current.system_definition;
+        if d_max is None:
+            sysdef = hoomd.context.current.system_definition
             d_max = sysdef.getParticleData().getMaxDiameter()
-            hoomd.context.current.device.cpp_msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
+            hoomd.context.current.device.cpp_msg.notice(
+                2, "Notice: slj set d_max=" + str(d_max) + "\n")
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialSLJ(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialSLJ;
+            self.cpp_force = _md.WallsPotentialSLJ(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialSLJ
         else:
 
-            self.cpp_force = _md.WallsPotentialSLJGPU(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialSLJGPU;
+            self.cpp_force = _md.WallsPotentialSLJGPU(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialSLJGPU
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient options
-        self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
-        self.force_coeff.set_default_coeff('alpha', 1.0);
+        self.required_coeffs += ['epsilon', 'sigma', 'alpha']
+        self.force_coeff.set_default_coeff('alpha', 1.0)
 
     def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        sigma = coeff['sigma'];
-        alpha = coeff['alpha'];
+        epsilon = coeff['epsilon']
+        sigma = coeff['sigma']
+        alpha = coeff['alpha']
 
-        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return _md.make_wall_slj_params(_hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0)
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0)
+        return _md.make_wall_slj_params(_hoomd.make_scalar2(lj1, lj2),
+                                        coeff['r_cut'] * coeff['r_cut'],
+                                        coeff['r_extrap'])
+
 
 class yukawa(wallpotential):
     R""" Yukawa wall potential.
@@ -815,30 +876,36 @@ class yukawa(wallpotential):
         wall_force_yukawa.force_coeff.set(['C', 'D'], epsilon=0.5, kappa=3.0)
 
     """
+
     def __init__(self, walls, r_cut=False, name=""):
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name);
+        wallpotential.__init__(self, walls, r_cut, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialYukawa(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialYukawa;
+            self.cpp_force = _md.WallsPotentialYukawa(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialYukawa
         else:
-            self.cpp_force = _md.WallsPotentialYukawaGPU(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialYukawaGPU;
+            self.cpp_force = _md.WallsPotentialYukawaGPU(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialYukawaGPU
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient options
-        self.required_coeffs += ['epsilon', 'kappa'];
+        self.required_coeffs += ['epsilon', 'kappa']
 
     def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        kappa = coeff['kappa'];
-        return _md.make_wall_yukawa_params(_hoomd.make_scalar2(epsilon, kappa), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        epsilon = coeff['epsilon']
+        kappa = coeff['kappa']
+        return _md.make_wall_yukawa_params(_hoomd.make_scalar2(epsilon, kappa),
+                                           coeff['r_cut'] * coeff['r_cut'],
+                                           coeff['r_extrap'])
+
 
 class morse(wallpotential):
     R""" Morse wall potential.
@@ -862,33 +929,39 @@ class morse(wallpotential):
         wall_force_morse.force_coeff.set(['C', 'D'], D0=1.0, alpha=3.0)
 
     """
+
     def __init__(self, walls, r_cut=False, name=""):
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name);
+        wallpotential.__init__(self, walls, r_cut, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialMorse(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialMorse;
+            self.cpp_force = _md.WallsPotentialMorse(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialMorse
         else:
 
-            self.cpp_force = _md.WallsPotentialMorseGPU(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialMorseGPU;
+            self.cpp_force = _md.WallsPotentialMorseGPU(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialMorseGPU
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient options
-        self.required_coeffs += ['D0', 'alpha', 'r0'];
+        self.required_coeffs += ['D0', 'alpha', 'r0']
 
     def process_coeff(self, coeff):
-        D0 = coeff['D0'];
-        alpha = coeff['alpha'];
+        D0 = coeff['D0']
+        alpha = coeff['alpha']
         r0 = coeff['r0']
 
-        return _md.make_wall_morse_params(_hoomd.make_scalar4(D0, alpha, r0, 0.0), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return _md.make_wall_morse_params(
+            _hoomd.make_scalar4(D0, alpha, r0, 0.0),
+            coeff['r_cut'] * coeff['r_cut'], coeff['r_extrap'])
+
 
 class force_shifted_lj(wallpotential):
     R""" Force-shifted Lennard-Jones wall potential.
@@ -912,36 +985,42 @@ class force_shifted_lj(wallpotential):
         wall_force_fslj.force_coeff.set(['C','D'], epsilon=1.0, sigma=1.0, alpha = 1.5)
 
     """
+
     def __init__(self, walls, r_cut=False, name=""):
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name);
+        wallpotential.__init__(self, walls, r_cut, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialForceShiftedLJ(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialForceShiftedLJ;
+            self.cpp_force = _md.WallsPotentialForceShiftedLJ(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialForceShiftedLJ
         else:
 
-            self.cpp_force = _md.WallsPotentialForceShiftedLJGPU(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialForceShiftedLJGPU;
+            self.cpp_force = _md.WallsPotentialForceShiftedLJGPU(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialForceShiftedLJGPU
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient options
-        self.required_coeffs += ['epsilon', 'sigma', 'alpha'];
-        self.force_coeff.set_default_coeff('alpha', 1.0);
+        self.required_coeffs += ['epsilon', 'sigma', 'alpha']
+        self.force_coeff.set_default_coeff('alpha', 1.0)
 
     def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        sigma = coeff['sigma'];
-        alpha = coeff['alpha'];
+        epsilon = coeff['epsilon']
+        sigma = coeff['sigma']
+        alpha = coeff['alpha']
 
-        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return _md.make_wall_force_shift_lj_params(_hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0)
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0)
+        return _md.make_wall_force_shift_lj_params(
+            _hoomd.make_scalar2(lj1, lj2), coeff['r_cut'] * coeff['r_cut'],
+            coeff['r_extrap'])
+
 
 class mie(wallpotential):
     R""" Mie potential wall potential.
@@ -965,35 +1044,42 @@ class mie(wallpotential):
         wall_force_mie.force_coeff.set('B', epsilon=1.0, sigma=1.0, n=15.1, m=6.5, r_cut=2**(1.0/6.0))
 
     """
+
     def __init__(self, walls, r_cut=False, name=""):
 
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name);
+        wallpotential.__init__(self, walls, r_cut, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialMie(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialMie;
+            self.cpp_force = _md.WallsPotentialMie(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialMie
         else:
 
-            self.cpp_force = _md.WallsPotentialMieGPU(hoomd.context.current.system_definition, self.name);
-            self.cpp_class = _md.WallsPotentialMieGPU;
+            self.cpp_force = _md.WallsPotentialMieGPU(
+                hoomd.context.current.system_definition, self.name)
+            self.cpp_class = _md.WallsPotentialMieGPU
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient options
-        self.required_coeffs += ['epsilon', 'sigma', 'n', 'm'];
+        self.required_coeffs += ['epsilon', 'sigma', 'n', 'm']
 
     def process_coeff(self, coeff):
-        epsilon = float(coeff['epsilon']);
-        sigma = float(coeff['sigma']);
-        n = float(coeff['n']);
-        m = float(coeff['m']);
+        epsilon = float(coeff['epsilon'])
+        sigma = float(coeff['sigma'])
+        n = float(coeff['n'])
+        m = float(coeff['m'])
 
-        mie1 = epsilon * math.pow(sigma, n) * (n/(n-m)) * math.pow(n/m,m/(n-m));
-        mie2 = epsilon * math.pow(sigma, m) * (n/(n-m)) * math.pow(n/m,m/(n-m));
+        mie1 = epsilon * math.pow(sigma, n) * (n / (n - m)) * math.pow(
+            n / m, m / (n - m))
+        mie2 = epsilon * math.pow(sigma, m) * (n / (n - m)) * math.pow(
+            n / m, m / (n - m))
         mie3 = n
         mie4 = m
-        return _md.make_wall_mie_params(_hoomd.make_scalar4(mie1, mie2, mie3, mie4), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return _md.make_wall_mie_params(
+            _hoomd.make_scalar4(mie1, mie2, mie3, mie4),
+            coeff['r_cut'] * coeff['r_cut'], coeff['r_extrap'])

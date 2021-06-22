@@ -2,16 +2,16 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
-#include "OneDConstraintGPU.cuh"
 #include "EvaluatorConstraint.h"
+#include "OneDConstraintGPU.cuh"
 
 #include <assert.h>
 
 /*! \file OneDConstraintGPU.cu
-    \brief Defines GPU kernel code for calculating one dimensional constraint forces. Used by OneDConstraintGPU.
+    \brief Defines GPU kernel code for calculating one dimensional constraint forces. Used by
+   OneDConstraintGPU.
 */
 
 //! Kernel for calculating one dimensional constraint forces on the GPU
@@ -26,18 +26,18 @@
     \param d_net_force Total unconstrained net force on the particles
     \param deltaT step size from the Integrator
 */
-extern "C" __global__
-void gpu_compute_one_d_constraint_forces_kernel(Scalar4* d_force,
-                                                Scalar* d_virial,
-                                                 const size_t virial_pitch,
-                                                 const unsigned int *d_group_members,
-                                                 unsigned int group_size,
-                                                 const unsigned int N,
-                                                 const Scalar4 *d_pos,
-                                                 const Scalar4 *d_vel,
-                                                 const Scalar4 *d_net_force,
-                                                 Scalar deltaT,
-                                                 Scalar3 m_vec)
+extern "C" __global__ void
+gpu_compute_one_d_constraint_forces_kernel(Scalar4* d_force,
+                                           Scalar* d_virial,
+                                           const size_t virial_pitch,
+                                           const unsigned int* d_group_members,
+                                           unsigned int group_size,
+                                           const unsigned int N,
+                                           const Scalar4* d_pos,
+                                           const Scalar4* d_vel,
+                                           const Scalar4* d_net_force,
+                                           Scalar deltaT,
+                                           Scalar3 m_vec)
     {
     // start by identifying which particle we are to handle
     // determine which particle this thread works on
@@ -67,17 +67,17 @@ void gpu_compute_one_d_constraint_forces_kernel(Scalar4* d_force,
     Scalar virial[6];
     Scalar3 U = constraint.evalU();
     Scalar3 D = make_scalar3((U.x - X.x), (U.y - X.y), (U.z - X.z));
-    Scalar n = (D.x*m_vec.x + D.y*m_vec.y + D.z*m_vec.z)/(m_vec.x*m_vec.x + m_vec.y*m_vec.y + m_vec.z*m_vec.z);
-    Scalar3 C = make_scalar3((n*m_vec.x + X.x), (n*m_vec.y + X.y), (n*m_vec.z + X.z));
+    Scalar n = (D.x * m_vec.x + D.y * m_vec.y + D.z * m_vec.z)
+               / (m_vec.x * m_vec.x + m_vec.y * m_vec.y + m_vec.z * m_vec.z);
+    Scalar3 C = make_scalar3((n * m_vec.x + X.x), (n * m_vec.y + X.y), (n * m_vec.z + X.z));
 
     constraint.evalConstraintForce(FC, virial, C);
 
     // now that the force calculation is complete, write out the results
     d_force[idx] = make_scalar4(FC.x, FC.y, FC.z, Scalar(0.0));
     for (unsigned int i = 0; i < 6; i++)
-        d_virial[i*virial_pitch+idx] = virial[i];
+        d_virial[i * virial_pitch + idx] = virial[i];
     }
-
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -95,39 +95,44 @@ void gpu_compute_one_d_constraint_forces_kernel(Scalar4* d_force,
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
 hipError_t gpu_compute_one_d_constraint_forces(Scalar4* d_force,
-                                                Scalar* d_virial,
-                                                const size_t virial_pitch,
-                                                const unsigned int *d_group_members,
-                                                unsigned int group_size,
-                                                const unsigned int N,
-                                                const Scalar4 *d_pos,
-                                                const Scalar4 *d_vel,
-                                                const Scalar4 *d_net_force,
-                                                Scalar deltaT,
-                                                unsigned int block_size,
-                                                Scalar3 m_vec)
+                                               Scalar* d_virial,
+                                               const size_t virial_pitch,
+                                               const unsigned int* d_group_members,
+                                               unsigned int group_size,
+                                               const unsigned int N,
+                                               const Scalar4* d_pos,
+                                               const Scalar4* d_vel,
+                                               const Scalar4* d_net_force,
+                                               Scalar deltaT,
+                                               unsigned int block_size,
+                                               Scalar3 m_vec)
     {
     assert(d_group_members);
     assert(d_net_force);
 
     // setup the grid to run the kernel
-    dim3 grid( group_size / block_size + 1, 1, 1);
+    dim3 grid(group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipMemset(d_force, 0, sizeof(Scalar4)*N);
-    hipMemset(d_virial, 0, 6*sizeof(Scalar)*virial_pitch);
-    hipLaunchKernelGGL((gpu_compute_one_d_constraint_forces_kernel), dim3(grid), dim3(threads), 0, 0, d_force,
-                                                                    d_virial,
-                                                                    virial_pitch,
-                                                                    d_group_members,
-                                                                    group_size,
-                                                                    N,
-                                                                    d_pos,
-                                                                    d_vel,
-                                                                    d_net_force,
-                                                                    deltaT,
-                                                                    m_vec);
+    hipMemset(d_force, 0, sizeof(Scalar4) * N);
+    hipMemset(d_virial, 0, 6 * sizeof(Scalar) * virial_pitch);
+    hipLaunchKernelGGL((gpu_compute_one_d_constraint_forces_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_force,
+                       d_virial,
+                       virial_pitch,
+                       d_group_members,
+                       group_size,
+                       N,
+                       d_pos,
+                       d_vel,
+                       d_net_force,
+                       deltaT,
+                       m_vec);
 
     return hipSuccess;
     }

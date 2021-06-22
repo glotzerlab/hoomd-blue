@@ -1,5 +1,9 @@
-"""Test that `hoomd.data.LocalSnapshot` and hoomd.data.LocalSnapshotGPU` work.
-"""
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Test that `LocalSnapshot` and `LocalSnapshotGPU` work."""
+
 from copy import deepcopy
 import hoomd
 from hoomd.data.array import HOOMDGPUArray
@@ -15,8 +19,8 @@ except ImportError:
 else:
     skip_mpi4py = False
 
-skip_mpi4py = pytest.mark.skipif(
-    skip_mpi4py, reason='mpi4py could not be imported.')
+skip_mpi4py = pytest.mark.skipif(skip_mpi4py,
+                                 reason='mpi4py could not be imported.')
 
 try:
     # We use the CUPY_IMPORTED variable to allow for local GPU testing without
@@ -27,8 +31,6 @@ try:
     CUPY_IMPORTED = True
 except ImportError:
     CUPY_IMPORTED = False
-
-
 """
 _N and _types are distinct in that the local snapshot does not know about them.
 We use the underscore to signify this. Those keys are skipped when testing the
@@ -38,153 +40,144 @@ local snapshots, though are still used to define the state.
 Np = 5
 _particle_data = dict(
     _N=Np,
-    position=dict(
-        np_type=np.floating,
-        value=[[-1, -1, -1], [-1, -1, 0], [-1, 0, 0], [1, 1, 1], [1, 0, 0]],
-        new_value=[[5, 5, 5]] * Np,
-        shape=(Np, 3)),
-    velocity=dict(
-        np_type=np.floating,
-        value=np.linspace(-4, 4, Np * 3).reshape((Np, 3)),
-        new_value=np.linspace(4, 8, Np * 3).reshape((Np, 3)),
-        shape=(Np, 3)),
-    acceleration=dict(
-        np_type=np.floating,
-        value=np.linspace(-4, 4, Np * 3).reshape((Np, 3)),
-        new_value=np.linspace(4, 8, Np * 3).reshape((Np, 3)),
-        shape=(Np, 3)),
-    typeid=dict(
-        np_type=np.integer,
-        value=[0, 0, 0, 1, 1],
-        new_value=[1, 1, 1, 0, 0],
-        shape=(Np,)),
-    mass=dict(np_type=np.floating, value=[5, 4, 3, 2, 1],
-              new_value=[1, 2, 3, 4, 5], shape=(Np,)),
-    charge=dict(np_type=np.floating, value=[1, 2, 3, 2, 1],
-                new_value=[-1, -1, -3, -2, -1], shape=(Np,)),
-    diameter=dict(np_type=np.floating, value=[5, 2, 3, 2, 5],
-                  new_value=[2, 1, 0.5, 1, 2], shape=(Np,)),
-    image=dict(
-        np_type=np.integer,
-        value=np.linspace(-10, 20, Np * 3, dtype=int).reshape(Np, 3),
-        new_value=np.linspace(-20, 10, Np * 3, dtype=int).reshape(Np, 3),
-        shape=(Np, 3)),
+    position=dict(np_type=np.floating,
+                  value=[[-1, -1, -1], [-1, -1, 0], [-1, 0, 0], [1, 1, 1],
+                         [1, 0, 0]],
+                  new_value=[[5, 5, 5]] * Np,
+                  shape=(Np, 3)),
+    velocity=dict(np_type=np.floating,
+                  value=np.linspace(-4, 4, Np * 3).reshape((Np, 3)),
+                  new_value=np.linspace(4, 8, Np * 3).reshape((Np, 3)),
+                  shape=(Np, 3)),
+    acceleration=dict(np_type=np.floating,
+                      value=np.linspace(-4, 4, Np * 3).reshape((Np, 3)),
+                      new_value=np.linspace(4, 8, Np * 3).reshape((Np, 3)),
+                      shape=(Np, 3)),
+    typeid=dict(np_type=np.integer,
+                value=[0, 0, 0, 1, 1],
+                new_value=[1, 1, 1, 0, 0],
+                shape=(Np,)),
+    mass=dict(np_type=np.floating,
+              value=[5, 4, 3, 2, 1],
+              new_value=[1, 2, 3, 4, 5],
+              shape=(Np,)),
+    charge=dict(np_type=np.floating,
+                value=[1, 2, 3, 2, 1],
+                new_value=[-1, -1, -3, -2, -1],
+                shape=(Np,)),
+    diameter=dict(np_type=np.floating,
+                  value=[5, 2, 3, 2, 5],
+                  new_value=[2, 1, 0.5, 1, 2],
+                  shape=(Np,)),
+    image=dict(np_type=np.integer,
+               value=np.linspace(-10, 20, Np * 3, dtype=int).reshape(Np, 3),
+               new_value=np.linspace(-20, 10, Np * 3, dtype=int).reshape(Np, 3),
+               shape=(Np, 3)),
     tag=dict(np_type=np.unsignedinteger, value=None, shape=(Np,)),
-    _types=['p1', 'p2']
-)
-
+    _types=['p1', 'p2'])
 
 _particle_local_data = dict(
-    net_force=dict(
-        np_type=np.floating,
-        value=np.linspace(0.5, 4.5, Np * 3).reshape((Np, 3)),
-        new_value=np.linspace(6, 12, Np * 3).reshape((Np, 3)),
-        shape=(Np, 3)),
-    net_torque=dict(
-        np_type=np.floating,
-        value=np.linspace(-0.5, 2.5, Np * 3).reshape((Np, 3)),
-        new_value=np.linspace(12.75, 25, Np * 3).reshape((Np, 3)),
-        shape=(Np, 3)),
-    net_virial=dict(
-        np_type=np.floating,
-        value=np.linspace(-1.5, 6.5, Np * 6).reshape((Np, 6)),
-        new_value=np.linspace(9.75, 13.12, Np * 6).reshape((Np, 6)),
-        shape=(Np, 6)),
-    net_energy=dict(
-        np_type=np.floating,
-        value=np.linspace(0.5, 3.5, Np),
-        new_value=np.linspace(0, 4.2, Np),
-        shape=(Np,)),
+    net_force=dict(np_type=np.floating,
+                   value=np.linspace(0.5, 4.5, Np * 3).reshape((Np, 3)),
+                   new_value=np.linspace(6, 12, Np * 3).reshape((Np, 3)),
+                   shape=(Np, 3)),
+    net_torque=dict(np_type=np.floating,
+                    value=np.linspace(-0.5, 2.5, Np * 3).reshape((Np, 3)),
+                    new_value=np.linspace(12.75, 25, Np * 3).reshape((Np, 3)),
+                    shape=(Np, 3)),
+    net_virial=dict(np_type=np.floating,
+                    value=np.linspace(-1.5, 6.5, Np * 6).reshape((Np, 6)),
+                    new_value=np.linspace(9.75, 13.12, Np * 6).reshape((Np, 6)),
+                    shape=(Np, 6)),
+    net_energy=dict(np_type=np.floating,
+                    value=np.linspace(0.5, 3.5, Np),
+                    new_value=np.linspace(0, 4.2, Np),
+                    shape=(Np,)),
 )
 
 Nb = 2
-_bond_data = dict(
-    _N=Nb,
-    typeid=dict(np_type=np.unsignedinteger,
-                value=[0, 1], new_value=[1, 0], shape=(Nb,)),
-    group=dict(
-        np_type=np.unsignedinteger,
-        value=[[0, 1], [2, 3]],
-        new_value=[[1, 0], [3, 2]],
-        shape=(Nb, 2)),
-    tag=dict(np_type=np.unsignedinteger, value=None, shape=(Nb,)),
-    _types=['b1', 'b2']
-)
-
+_bond_data = dict(_N=Nb,
+                  typeid=dict(np_type=np.unsignedinteger,
+                              value=[0, 1],
+                              new_value=[1, 0],
+                              shape=(Nb,)),
+                  group=dict(np_type=np.unsignedinteger,
+                             value=[[0, 1], [2, 3]],
+                             new_value=[[1, 0], [3, 2]],
+                             shape=(Nb, 2)),
+                  tag=dict(np_type=np.unsignedinteger, value=None, shape=(Nb,)),
+                  _types=['b1', 'b2'])
 
 Na = 2
-_angle_data = dict(
-    _N=Na,
-    typeid=dict(np_type=np.unsignedinteger,
-                value=[1, 0], new_value=[0, 1], shape=(Na,)),
-    group=dict(
-        np_type=np.unsignedinteger,
-        value=[[0, 1, 2], [2, 3, 4]],
-        new_value=[[1, 3, 4], [0, 2, 4]],
-        shape=(Na, 3)),
-    tag=dict(np_type=np.unsignedinteger, value=None, shape=(Na,)),
-    _types=['a1', 'a2']
-)
-
+_angle_data = dict(_N=Na,
+                   typeid=dict(np_type=np.unsignedinteger,
+                               value=[1, 0],
+                               new_value=[0, 1],
+                               shape=(Na,)),
+                   group=dict(np_type=np.unsignedinteger,
+                              value=[[0, 1, 2], [2, 3, 4]],
+                              new_value=[[1, 3, 4], [0, 2, 4]],
+                              shape=(Na, 3)),
+                   tag=dict(np_type=np.unsignedinteger, value=None,
+                            shape=(Na,)),
+                   _types=['a1', 'a2'])
 
 Nd = 2
-_dihedral_data = dict(
-    _N=Nd,
-    typeid=dict(np_type=np.unsignedinteger,
-                value=[1, 0], new_value=[0, 1], shape=(Nd,)),
-    group=dict(
-        np_type=np.unsignedinteger,
-        value=[[0, 1, 2, 3], [1, 2, 3, 4]],
-        new_value=[[4, 3, 2, 1], [2, 4, 0, 1]],
-        shape=(Nd, 4)),
-    tag=dict(np_type=np.unsignedinteger, value=None, shape=(Nd,)),
-    _types=['d1', 'd2']
-)
-
+_dihedral_data = dict(_N=Nd,
+                      typeid=dict(np_type=np.unsignedinteger,
+                                  value=[1, 0],
+                                  new_value=[0, 1],
+                                  shape=(Nd,)),
+                      group=dict(np_type=np.unsignedinteger,
+                                 value=[[0, 1, 2, 3], [1, 2, 3, 4]],
+                                 new_value=[[4, 3, 2, 1], [2, 4, 0, 1]],
+                                 shape=(Nd, 4)),
+                      tag=dict(np_type=np.unsignedinteger,
+                               value=None,
+                               shape=(Nd,)),
+                      _types=['d1', 'd2'])
 
 Ni = 2
-_improper_data = dict(
-    _N=Ni,
-    typeid=dict(
-        np_type=np.unsignedinteger, value=[0, 0], shape=(Ni,)),
-    group=dict(
-        np_type=np.unsignedinteger,
-        value=[[3, 2, 1, 0], [1, 2, 3, 4]],
-        new_value=[[1, 2, 3, 0], [4, 2, 3, 1]],
-        shape=(Ni, 4)),
-    tag=dict(
-        np_type=np.unsignedinteger, value=None, shape=(Ni,)),
-    _types=['i1']
-)
+_improper_data = dict(_N=Ni,
+                      typeid=dict(np_type=np.unsignedinteger,
+                                  value=[0, 0],
+                                  shape=(Ni,)),
+                      group=dict(np_type=np.unsignedinteger,
+                                 value=[[3, 2, 1, 0], [1, 2, 3, 4]],
+                                 new_value=[[1, 2, 3, 0], [4, 2, 3, 1]],
+                                 shape=(Ni, 4)),
+                      tag=dict(np_type=np.unsignedinteger,
+                               value=None,
+                               shape=(Ni,)),
+                      _types=['i1'])
 
 Nc = 3
 _constraint_data = dict(
     _N=Nc,
-    value=dict(np_type=np.floating, value=[2.5, 0.5, 2.],
-               new_value=[3., 1.5, 1.], shape=(Nc,)),
-    group=dict(
-        np_type=np.unsignedinteger,
-        value=[[0, 1], [2, 3], [1, 3]],
-        new_value=[[4, 1], [3, 1], [2, 4]],
-        shape=(Nc, 2)),
+    value=dict(np_type=np.floating,
+               value=[2.5, 0.5, 2.],
+               new_value=[3., 1.5, 1.],
+               shape=(Nc,)),
+    group=dict(np_type=np.unsignedinteger,
+               value=[[0, 1], [2, 3], [1, 3]],
+               new_value=[[4, 1], [3, 1], [2, 4]],
+               shape=(Nc, 2)),
     tag=dict(np_type=np.unsignedinteger, value=None, shape=(Nc,)),
 )
 
-
 Npa = 2
-_pair_data = dict(
-    _N=Npa,
-    typeid=dict(np_type=np.unsignedinteger,
-                value=[0, 1], new_value=[1, 0], shape=(Npa,)),
-    group=dict(
-        np_type=np.unsignedinteger,
-        value=[[0, 1], [2, 3]],
-        new_value=[[4, 1], [0, 3]],
-        shape=(Npa, 2)),
-    tag=dict(np_type=np.unsignedinteger, value=None, shape=(Npa,)),
-    _types=['p1', 'p2']
-)
-
+_pair_data = dict(_N=Npa,
+                  typeid=dict(np_type=np.unsignedinteger,
+                              value=[0, 1],
+                              new_value=[1, 0],
+                              shape=(Npa,)),
+                  group=dict(np_type=np.unsignedinteger,
+                             value=[[0, 1], [2, 3]],
+                             new_value=[[4, 1], [0, 3]],
+                             shape=(Npa, 2)),
+                  tag=dict(np_type=np.unsignedinteger, value=None,
+                           shape=(Npa,)),
+                  _types=['p1', 'p2'])
 
 _global_dict = dict(rtag=dict(
     particles=dict(np_type=np.unsignedinteger, value=None, shape=(Np,)),
@@ -200,6 +193,7 @@ _global_dict = dict(rtag=dict(
 @pytest.fixture(scope='session')
 def base_snapshot(device):
     """Defines a snapshot using the data given above."""
+
     def set_snapshot(snap, data, base):
         """Sets individual sections of snapshot (e.g. particles)."""
         snap_section = getattr(snap, base)
@@ -217,7 +211,7 @@ def base_snapshot(device):
 
     snapshot = hoomd.Snapshot(device.communicator)
 
-    if snapshot.exists:
+    if snapshot.communicator.rank == 0:
         snapshot.configuration.box = [2.1, 2.1, 2.1, 0, 0, 0]
         set_snapshot(snapshot, _particle_data, 'particles')
         set_snapshot(snapshot, _bond_data, 'bonds')
@@ -229,19 +223,20 @@ def base_snapshot(device):
     return snapshot
 
 
-@pytest.fixture(
-    params=['particles', 'bonds', 'angles',
-            'dihedrals', 'impropers', 'constraints', 'pairs'])
+@pytest.fixture(params=[
+    'particles', 'bonds', 'angles', 'dihedrals', 'impropers', 'constraints',
+    'pairs'
+])
 def snapshot_section(request):
     return request.param
 
 
-@pytest.fixture(
-    scope="function",
-    params=[(section_name, prop_name, prop_dict)
-            for prop_name, global_prop_dict in _global_dict.items()
-            for section_name, prop_dict in global_prop_dict.items()],
-    ids=lambda x: x[0] + '-' + x[1])
+@pytest.fixture(scope="function",
+                params=[(section_name, prop_name, prop_dict)
+                        for prop_name, global_prop_dict in _global_dict.items()
+                        for section_name, prop_dict in global_prop_dict.items()
+                        ],
+                ids=lambda x: x[0] + '-' + x[1])
 def global_property(request):
     return request.param
 
@@ -249,11 +244,17 @@ def global_property(request):
 @pytest.fixture(
     scope='function',
     params=[(name, prop_name, prop_dict)
-            for name, section_dict in [
-                ('particles', {**_particle_data, **_particle_local_data}),
-                ('bonds', _bond_data), ('angles', _angle_data),
-                ('dihedrals', _dihedral_data), ('impropers', _improper_data),
-                ('constraints', _constraint_data), ('pairs', _pair_data)]
+            for name, section_dict in [('particles', {
+                **_particle_data,
+                **_particle_local_data
+            }), ('bonds', _bond_data), (
+                'angles', _angle_data), (
+                    'dihedrals',
+                    _dihedral_data), (
+                        'impropers',
+                        _improper_data), (
+                            'constraints',
+                            _constraint_data), ('pairs', _pair_data)]
             for prop_name, prop_dict in section_dict.items()
             if not prop_name.startswith('_')],
     ids=lambda x: x[0] + '-' + x[1])
@@ -267,7 +268,8 @@ def section_name_dict(request):
     return deepcopy(request.param)
 
 
-@pytest.fixture(scope='function', params=['', 'ghost_', '_with_ghost'],
+@pytest.fixture(scope='function',
+                params=['', 'ghost_', '_with_ghost'],
                 ids=lambda x: x.strip('_'))
 def affix(request):
     """Parameterizes over the different variations of a local_snapshot property.
@@ -333,7 +335,8 @@ def check_getting(data, prop_dict, tags):
 def check_setting(data, prop_dict, tags):
     """Checks setting properties of the state through a local snapshot.
 
-    Also tests error raising for read only arrays."""
+    Also tests error raising for read only arrays.
+    """
     # Test if test should be skipped or just return
     if isinstance(data, HOOMDGPUArray) and not CUPY_IMPORTED:
         pytest.skip("Not available for HOOMDGPUArray without CuPy.")
@@ -353,9 +356,8 @@ def check_setting(data, prop_dict, tags):
         assert general_array_equality(data, new_values)
 
 
-@pytest.fixture(
-    scope='function',
-    params=[check_type, check_shape, check_getting, check_setting])
+@pytest.fixture(scope='function',
+                params=[check_type, check_shape, check_getting, check_setting])
 def property_check(request):
     """Parameterizes differnt types of checks on local_snapshot properties."""
     return request.param
@@ -363,6 +365,7 @@ def property_check(request):
 
 class TestLocalSnapshots:
     """Base class for CPU and GPU based localsnapshot tests."""
+
     @staticmethod
     def check_box(local_snapshot, global_box, ranks):
         """General check that ``box`` and ``local_box`` properties work."""
@@ -378,13 +381,14 @@ class TestLocalSnapshots:
         sim = base_simulation()
         for lcl_snapshot_attr in self.get_snapshot_attr(sim):
             with getattr(sim.state, lcl_snapshot_attr) as data:
-                self.check_box(data, sim.state.box, sim.device.communicator.num_ranks)
+                self.check_box(data, sim.state.box,
+                               sim.device.communicator.num_ranks)
 
     @staticmethod
     def check_tag_shape(base_snapshot, local_snapshot, group, ranks):
         mpi_comm = MPI.COMM_WORLD
 
-        if base_snapshot.exists:
+        if base_snapshot.communicator.rank == 0:
             N = getattr(base_snapshot, group).N
         else:
             N = None
@@ -392,8 +396,8 @@ class TestLocalSnapshots:
 
         # check particles tag size
         if group == 'particles':
-            total_len = mpi_comm.allreduce(
-                len(local_snapshot.particles.tag), op=MPI.SUM)
+            total_len = mpi_comm.allreduce(len(local_snapshot.particles.tag),
+                                           op=MPI.SUM)
             assert total_len == N
         else:
             local_snapshot_section = getattr(local_snapshot, group)
@@ -404,8 +408,7 @@ class TestLocalSnapshots:
 
     @skip_mpi4py
     @pytest.mark.cupy_optional
-    def test_tags_shape(self, base_simulation,
-                        base_snapshot, snapshot_section):
+    def test_tags_shape(self, base_simulation, base_snapshot, snapshot_section):
         """Checks that tags are the appropriate size from local snapshots.
 
         tags are used for checking other shapes so this is necessary to validate
@@ -414,8 +417,8 @@ class TestLocalSnapshots:
         sim = base_simulation()
         for lcl_snapshot_attr in self.get_snapshot_attr(sim):
             with getattr(sim.state, lcl_snapshot_attr) as data:
-                self.check_tag_shape(
-                    base_snapshot, data, snapshot_section, sim.device.communicator.num_ranks)
+                self.check_tag_shape(base_snapshot, data, snapshot_section,
+                                     sim.device.communicator.num_ranks)
 
     @staticmethod
     def check_global_properties(prop, global_property_dict, N):
@@ -431,15 +434,15 @@ class TestLocalSnapshots:
 
     @skip_mpi4py
     @pytest.mark.cupy_optional
-    def test_cpu_global_properties(self, base_simulation,
-                                   base_snapshot, global_property):
+    def test_cpu_global_properties(self, base_simulation, base_snapshot,
+                                   global_property):
         section_name, prop_name, prop_dict = global_property
         sim = base_simulation()
         snapshot = sim.state.snapshot
 
         mpi_comm = MPI.COMM_WORLD
 
-        if snapshot.exists:
+        if snapshot.communicator.rank == 0:
             N = getattr(snapshot, section_name).N
         else:
             N = None
@@ -449,8 +452,8 @@ class TestLocalSnapshots:
                 getattr(getattr(data, section_name), prop_name), prop_dict, N)
 
     @pytest.mark.cupy_optional
-    def test_arrays_properties(self, base_simulation,
-                               section_name_dict, affix, property_check):
+    def test_arrays_properties(self, base_simulation, section_name_dict, affix,
+                               property_check):
         """This test makes extensive use of parameterizing in pytest.
 
         This test tests the type, shape, getting, and setting of array values in
@@ -473,20 +476,21 @@ class TestLocalSnapshots:
     def test_run_failure(self, base_simulation):
         sim = base_simulation()
         for lcl_snapshot_attr in self.get_snapshot_attr(sim):
-            with getattr(sim.state, lcl_snapshot_attr) as data:
+            with getattr(sim.state, lcl_snapshot_attr):
                 with pytest.raises(RuntimeError):
                     sim.run(1)
 
     def test_setting_snapshot_failure(self, base_simulation, base_snapshot):
         sim = base_simulation()
         for lcl_snapshot_attr in self.get_snapshot_attr(sim):
-            with getattr(sim.state, lcl_snapshot_attr) as data:
+            with getattr(sim.state, lcl_snapshot_attr):
                 with pytest.raises(RuntimeError):
                     sim.state.snapshot = base_snapshot
 
     @pytest.fixture
     def base_simulation(self, simulation_factory, base_snapshot):
         """Creates the simulation from the base_snapshot."""
+
         def factory():
             sim = simulation_factory(base_snapshot)
             with sim.state.cpu_local_snapshot as snap:
@@ -496,6 +500,7 @@ class TestLocalSnapshots:
                     arr_values = np.array(inner_dict['value'])[tags]
                     getattr(particle_data, attr)[:] = arr_values
             return sim
+
         return factory
 
     def get_snapshot_attr(self, sim):

@@ -10,15 +10,15 @@
 #include "ExternalFieldJIT.h"
 //#include "ExternalFieldJIT.cc"
 
-#include "hoomd/hpmc/ShapeSphere.h"
 #include "hoomd/hpmc/ShapeConvexPolygon.h"
-#include "hoomd/hpmc/ShapePolyhedron.h"
 #include "hoomd/hpmc/ShapeConvexPolyhedron.h"
-#include "hoomd/hpmc/ShapeSpheropolyhedron.h"
-#include "hoomd/hpmc/ShapeSpheropolygon.h"
-#include "hoomd/hpmc/ShapeSimplePolygon.h"
 #include "hoomd/hpmc/ShapeEllipsoid.h"
 #include "hoomd/hpmc/ShapeFacetedEllipsoid.h"
+#include "hoomd/hpmc/ShapePolyhedron.h"
+#include "hoomd/hpmc/ShapeSimplePolygon.h"
+#include "hoomd/hpmc/ShapeSphere.h"
+#include "hoomd/hpmc/ShapeSpheropolygon.h"
+#include "hoomd/hpmc/ShapeSpheropolyhedron.h"
 #include "hoomd/hpmc/ShapeSphinx.h"
 
 #include <string>
@@ -54,12 +54,12 @@ PYBIND11_MODULE(_jit, m)
     export_ExternalFieldJIT<ShapeFacetedEllipsoid>(m, "ExternalFieldJITFacetedEllipsoid");
     export_ExternalFieldJIT<ShapeSphinx>(m, "ExternalFieldJITSphinx");
 
-    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     m.attr("__cuda_devrt_library_path__") = std::string(CUDA_DEVRT_LIBRARY_PATH);
     m.attr("__cuda_include_path__") = std::string(CUDA_INCLUDE_PATH);
     m.attr("__cuda_compute_archs__") = std::string(CUDA_COMPUTE_ARCHS);
 
     export_PatchEnergyJITGPU(m);
     export_PatchEnergyJITUnionGPU(m);
-    #endif
+#endif
     }

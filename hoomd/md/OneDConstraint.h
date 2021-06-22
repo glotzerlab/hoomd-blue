@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "hoomd/ForceConstraint.h"
@@ -24,31 +23,31 @@
 
 //! Applys a constraint force to prevent motion in x and y directions
 /*! \ingroup computes
-*/
+ */
 class PYBIND11_EXPORT OneDConstraint : public ForceConstraint
     {
     public:
-        //! Constructs the compute
-        OneDConstraint(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<ParticleGroup> group,
-                         Scalar3 constraint_vec );
+    //! Constructs the compute
+    OneDConstraint(std::shared_ptr<SystemDefinition> sysdef,
+                   std::shared_ptr<ParticleGroup> group,
+                   Scalar3 constraint_vec);
 
-        //! Destructor
-        virtual ~OneDConstraint();
+    //! Destructor
+    virtual ~OneDConstraint();
 
-        //! Set the force to a new value
-        void setVector(Scalar3 constraint_vec);
+    //! Set the force to a new value
+    void setVector(Scalar3 constraint_vec);
 
-        //! Return the number of DOF removed by this constraint
-        virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
+    //! Return the number of DOF removed by this constraint
+    virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
 
     protected:
-        std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
-        Scalar3 m_vec;  //!< The vector along which particles are constrained
+    std::shared_ptr<ParticleGroup>
+        m_group;   //!< Group of particles on which this constraint is applied
+    Scalar3 m_vec; //!< The vector along which particles are constrained
 
-        //! Actually compute the forces
-        virtual void computeForces(uint64_t timestep);
-
+    //! Actually compute the forces
+    virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the OneDConstraint class to python

@@ -11,11 +11,12 @@
 #include "SlitGeometryFillerGPU.h"
 #include "SlitGeometryFillerGPU.cuh"
 
-mpcd::SlitGeometryFillerGPU::SlitGeometryFillerGPU(std::shared_ptr<mpcd::SystemData> sysdata,
-                                                   Scalar density,
-                                                   unsigned int type,
-                                                   std::shared_ptr<::Variant> T,
-                                                   std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
+mpcd::SlitGeometryFillerGPU::SlitGeometryFillerGPU(
+    std::shared_ptr<mpcd::SystemData> sysdata,
+    Scalar density,
+    unsigned int type,
+    std::shared_ptr<::Variant> T,
+    std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
     : mpcd::SlitGeometryFiller(sysdata, density, type, T, geom)
     {
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_slit_filler", m_exec_conf));
@@ -26,9 +27,15 @@ mpcd::SlitGeometryFillerGPU::SlitGeometryFillerGPU(std::shared_ptr<mpcd::SystemD
  */
 void mpcd::SlitGeometryFillerGPU::drawParticles(uint64_t timestep)
     {
-    ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned int> d_tag(m_mpcd_pdata->getTags(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(),
+                               access_location::device,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(),
+                               access_location::device,
+                               access_mode::readwrite);
+    ArrayHandle<unsigned int> d_tag(m_mpcd_pdata->getTags(),
+                                    access_location::device,
+                                    access_mode::readwrite);
 
     const unsigned int first_idx = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual() - m_N_fill;
 
@@ -52,7 +59,8 @@ void mpcd::SlitGeometryFillerGPU::drawParticles(uint64_t timestep)
                                    timestep,
                                    seed,
                                    m_tuner->getParam());
-    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     m_tuner->end();
     }
 
@@ -62,12 +70,12 @@ void mpcd::SlitGeometryFillerGPU::drawParticles(uint64_t timestep)
 void mpcd::detail::export_SlitGeometryFillerGPU(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::SlitGeometryFillerGPU, mpcd::SlitGeometryFiller, std::shared_ptr<mpcd::SlitGeometryFillerGPU>>
-        (m, "SlitGeometryFillerGPU")
+    py::class_<mpcd::SlitGeometryFillerGPU,
+               mpcd::SlitGeometryFiller,
+               std::shared_ptr<mpcd::SlitGeometryFillerGPU>>(m, "SlitGeometryFillerGPU")
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       Scalar,
                       unsigned int,
                       std::shared_ptr<::Variant>,
-                      std::shared_ptr<const mpcd::detail::SlitGeometry>>())
-        ;
+                      std::shared_ptr<const mpcd::detail::SlitGeometry>>());
     }

@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: mphoward
 
 /*! \file NeighborListGPUStencil.cc
@@ -28,10 +27,8 @@ namespace py = pybind11;
  */
 NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef,
                                                Scalar r_buff)
-    : NeighborListGPU(sysdef, r_buff),
-    m_cl(std::make_shared<CellListGPU>(sysdef)),
-    m_cls(std::make_shared<CellListStencil>(sysdef, m_cl)),
-    m_needs_resort(true)
+    : NeighborListGPU(sysdef, r_buff), m_cl(std::make_shared<CellListGPU>(sysdef)),
+      m_cls(std::make_shared<CellListStencil>(sysdef, m_cl)), m_needs_resort(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUStencil" << std::endl;
 
@@ -52,11 +49,11 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
     unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
     for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
-        unsigned int s=1;
+        unsigned int s = 1;
 
         while (s <= max_tpp)
             {
-            valid_params.push_back(block_size*10000 + s);
+            valid_params.push_back(block_size * 10000 + s);
             s = s * 2;
             }
         }
@@ -64,16 +61,18 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
     m_tuner.reset(new Autotuner(valid_params, 5, 100000, "nlist_stencil", this->m_exec_conf));
     m_last_tuned_timestep = 0;
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     // synchronize over MPI
     m_tuner->setSync(bool(m_pdata->getDomainDecomposition()));
-    #endif
+#endif
 
     // cell sizes need update by default
     m_update_cell_size = true;
 
-    m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotMaxNumChanged>(this);
-    m_pdata->getParticleSortSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotParticleSort>(this);
+    m_pdata->getMaxParticleNumberChangeSignal()
+        .connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotMaxNumChanged>(this);
+    m_pdata->getParticleSortSignal()
+        .connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotParticleSort>(this);
 
     // needs realloc on size change...
     GPUArray<unsigned int> pid_map(m_pdata->getMaxN(), m_exec_conf);
@@ -83,15 +82,17 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
 NeighborListGPUStencil::~NeighborListGPUStencil()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUStencil" << std::endl;
-    m_pdata->getMaxParticleNumberChangeSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotMaxNumChanged>(this);
-    m_pdata->getParticleSortSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotParticleSort>(this);
+    m_pdata->getMaxParticleNumberChangeSignal()
+        .disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotMaxNumChanged>(this);
+    m_pdata->getParticleSortSignal()
+        .disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotParticleSort>(this);
     }
 
 void NeighborListGPUStencil::updateRStencil()
     {
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
     std::vector<Scalar> rstencil(m_pdata->getNTypes(), -1.0);
-    for (unsigned int cur_type=0; cur_type < m_pdata->getNTypes(); ++cur_type)
+    for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
         {
         Scalar rcut = h_rcut_max.data[cur_type];
         if (rcut > Scalar(0.0))
@@ -106,12 +107,14 @@ void NeighborListGPUStencil::updateRStencil()
     }
 
 /*!
- * Rearranges the particle indexes by type to reduce execution divergence during the neighbor list build.
- * Radix sort is (supposed to be) stable so that the spatial sorting from SFC is also preserved within a type.
+ * Rearranges the particle indexes by type to reduce execution divergence during the neighbor list
+ * build. Radix sort is (supposed to be) stable so that the spatial sorting from SFC is also
+ * preserved within a type.
  */
 void NeighborListGPUStencil::sortTypes()
     {
-    if (m_prof) m_prof->push(m_exec_conf, "sort");
+    if (m_prof)
+        m_prof->push(m_exec_conf, "sort");
 
     // always just fill in the particle indexes from 1 to N
     ArrayHandle<unsigned int> d_pids(m_pid_map, access_location::device, access_mode::overwrite);
@@ -126,32 +129,51 @@ void NeighborListGPUStencil::sortTypes()
     if (m_pdata->getNTypes() > 1)
         {
         // perform the sort
-        void *d_tmp_storage = NULL;
+        void* d_tmp_storage = NULL;
         size_t tmp_storage_bytes = 0;
         bool swap = false;
-        gpu_compute_nlist_stencil_sort_types(d_pids.data, d_pids_alt(), d_types(), d_types_alt(), d_tmp_storage, tmp_storage_bytes, swap, m_pdata->getN());
+        gpu_compute_nlist_stencil_sort_types(d_pids.data,
+                                             d_pids_alt(),
+                                             d_types(),
+                                             d_types_alt(),
+                                             d_tmp_storage,
+                                             tmp_storage_bytes,
+                                             swap,
+                                             m_pdata->getN());
 
         size_t alloc_size = (tmp_storage_bytes > 0) ? tmp_storage_bytes : 4;
         // unsigned char = 1 B
         ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), alloc_size);
-        d_tmp_storage = (void *)d_alloc();
+        d_tmp_storage = (void*)d_alloc();
 
-        gpu_compute_nlist_stencil_sort_types(d_pids.data, d_pids_alt(), d_types(), d_types_alt(), d_tmp_storage, tmp_storage_bytes, swap, m_pdata->getN());
+        gpu_compute_nlist_stencil_sort_types(d_pids.data,
+                                             d_pids_alt(),
+                                             d_types(),
+                                             d_types_alt(),
+                                             d_tmp_storage,
+                                             tmp_storage_bytes,
+                                             swap,
+                                             m_pdata->getN());
 
         if (swap)
             {
-            hipMemcpy(d_pids.data, d_pids_alt(), sizeof(unsigned int)*m_pdata->getN(), hipMemcpyDeviceToDevice);
+            hipMemcpy(d_pids.data,
+                      d_pids_alt(),
+                      sizeof(unsigned int) * m_pdata->getN(),
+                      hipMemcpyDeviceToDevice);
             }
         }
 
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
     }
 
 void NeighborListGPUStencil::buildNlist(uint64_t timestep)
     {
     if (m_storage_mode != full)
         {
-        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << std::endl;
+        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU"
+                                  << std::endl;
         throw std::runtime_error("Error computing neighbor list");
         }
 
@@ -191,23 +213,39 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
     // acquire the particle data
     ArrayHandle<unsigned int> d_pid_map(m_pid_map, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(),
+                                   access_location::device,
+                                   access_mode::read);
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(),
+                                     access_location::device,
+                                     access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
     // access the cell list data arrays
-    ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_cell_xyzf(m_cl->getXYZFArray(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_stencil(m_cls->getStencils(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_n_stencil(m_cls->getStencilSizes(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(),
+                                          access_location::device,
+                                          access_mode::read);
+    ArrayHandle<Scalar4> d_cell_xyzf(m_cl->getXYZFArray(),
+                                     access_location::device,
+                                     access_mode::read);
+    ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(),
+                                    access_location::device,
+                                    access_mode::read);
+    ArrayHandle<Scalar4> d_stencil(m_cls->getStencils(),
+                                   access_location::device,
+                                   access_mode::read);
+    ArrayHandle<unsigned int> d_n_stencil(m_cls->getStencilSizes(),
+                                          access_location::device,
+                                          access_mode::read);
     const Index2D& stencil_idx = m_cls->getStencilIndexer();
 
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_conditions(m_conditions,
+                                           access_location::device,
+                                           access_mode::readwrite);
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
@@ -221,15 +259,16 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
         {
         // add the maximum diameter of all composite particles
         Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
-        rmax += 0.5*max_d_comp;
+        rmax += 0.5 * max_d_comp;
         }
 
     ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_r_listsq(m_r_listsq, access_location::device, access_mode::read);
 
-    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
-        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
-        (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
+    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0)
+        || (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0)
+        || (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z
+            && nearest_plane_distance.z <= rmax * 2.0))
         {
         std::ostringstream oss;
         oss << "nlist: Simulation box is too small! Particles would be interacting with themselves."
@@ -249,7 +288,8 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
     // since those kernel launches may occur only on some, not all MPI ranks
     bool tune = m_last_tuned_timestep != timestep;
 
-    if (tune) m_tuner->begin();
+    if (tune)
+        m_tuner->begin();
     unsigned int param = m_tuner->getParam();
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
@@ -284,8 +324,10 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
                               threads_per_particle,
                               block_size);
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-    if (tune) this->m_tuner->end();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    if (tune)
+        this->m_tuner->end();
 
     m_last_tuned_timestep = timestep;
 
@@ -295,7 +337,9 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
 
 void export_NeighborListGPUStencil(py::module& m)
     {
-    py::class_<NeighborListGPUStencil, NeighborListGPU, std::shared_ptr<NeighborListGPUStencil> >(m, "NeighborListGPUStencil")
-        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
+    py::class_<NeighborListGPUStencil, NeighborListGPU, std::shared_ptr<NeighborListGPUStencil>>(
+        m,
+        "NeighborListGPUStencil")
+        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("setCellWidth", &NeighborListGPUStencil::setCellWidth);
     }

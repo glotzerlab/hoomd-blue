@@ -29,12 +29,8 @@ def _create_domain_decomposition(device, box):
         return None
 
     # create a default domain decomposition
-    result = _hoomd.DomainDecomposition(device._cpp_exec_conf,
-                                        box.getL(),
-                                        0,
-                                        0,
-                                        0,
-                                        False)
+    result = _hoomd.DomainDecomposition(device._cpp_exec_conf, box.getL(), 0, 0,
+                                        0, False)
 
     return result
 
@@ -63,8 +59,7 @@ class State:
         self._simulation = simulation
         snapshot._broadcast_box()
         domain_decomp = _create_domain_decomposition(
-            simulation.device,
-            snapshot._cpp_obj._global_box)
+            simulation.device, snapshot._cpp_obj._global_box)
 
         if domain_decomp is not None:
             self._cpp_sys_def = _hoomd.SystemDefinition(
@@ -80,8 +75,8 @@ class State:
 
         # self._groups provides a cache of C++ group objects of the form:
         # {type(filter): {filter: C++ group}}
-        # The first layer is to prevent user created filters with poorly implemented
-        # __hash__ and __eq__ from causing cache errors.
+        # The first layer is to prevent user created filters with poorly
+        # implemented __hash__ and __eq__ from causing cache errors.
         self._groups = defaultdict(dict)
 
     @property
@@ -92,8 +87,8 @@ class State:
         information is desired in a single object. When accessed, data across
         all MPI ranks and from GPUs is gathered on the root MPI rank's memory.
         When accessing data in MPI simulations, it is recommended to use a
-        ``if snapshot.exists:`` conditional to prevent attempting to access data
-        on a non-root rank.
+        ``if snapshot.communicator.rank == 0:`` conditional to prevent
+        attempting to access data on a non-root rank.
 
         This property can be set to replace the system state with the given
         `hoomd.Snapshot` object.  Example use cases in which a simulation's
@@ -127,8 +122,7 @@ class State:
             if len(snapshot.bonds.types) != len(self.bond_types):
                 raise RuntimeError("Number of bond types must remain the same")
             if len(snapshot.angles.types) != len(self.angle_types):
-                raise RuntimeError(
-                    "Number of angle types must remain the same")
+                raise RuntimeError("Number of angle types must remain the same")
             if len(snapshot.dihedrals.types) != len(self.dihedral_types):
                 raise RuntimeError(
                     "Number of dihedral types must remain the same")
@@ -184,36 +178,35 @@ class State:
                     angle_types=self.angle_types,
                     dihedral_types=self.dihedral_types,
                     improper_types=self.improper_types,
-                    special_pair_types=self.special_pair_types
-                    )
+                    special_pair_types=self.special_pair_types)
 
     @property
-    def N_particles(self):
+    def N_particles(self):  # noqa: N802 - allow N in name
         """int: The number of particles in the simulation."""
         return self._cpp_sys_def.getParticleData().getNGlobal()
 
     @property
-    def N_bonds(self):
+    def N_bonds(self):  # noqa: N802 - allow N in name
         """int: The number of bonds in the simulation."""
         return self._cpp_sys_def.getBondData().getNGlobal()
 
     @property
-    def N_angles(self):
+    def N_angles(self):  # noqa: N802 - allow N in name
         """int: The number of angles in the simulation."""
         return self._cpp_sys_def.getAngleData().getNGlobal()
 
     @property
-    def N_impropers(self):
+    def N_impropers(self):  # noqa: N802 - allow N in name
         """int: The number of impropers in the simulation."""
         return self._cpp_sys_def.getImproperData().getNGlobal()
 
     @property
-    def N_special_pairs(self):
+    def N_special_pairs(self):  # noqa: N802 - allow N in name
         """int: The number of special pairs in the simulation."""
         return self._cpp_sys_def.getPairData().getNGlobal()
 
     @property
-    def N_dihedrals(self):
+    def N_dihedrals(self):  # noqa: N802 - allow N in name
         """int: The number of dihedrals in the simulation."""
         return self._cpp_sys_def.getDihedralData().getNGlobal()
 
@@ -242,8 +235,7 @@ class State:
         if value.dimensions != self._cpp_sys_def.getNDimensions():
             self._simulation.device._cpp_msg.warning(
                 "Box changing dimensions from {} to {}."
-                "".format(self._cpp_sys_def.getNDimensions(),
-                          value.dimensions))
+                "".format(self._cpp_sys_def.getNDimensions(), value.dimensions))
             self._cpp_sys_def.setNDimensions(value.dimensions)
         self._cpp_sys_def.getParticleData().setGlobalBox(value._cpp_obj)
 
@@ -406,9 +398,9 @@ class State:
         Each particle can have 0, 1, 2, or 3 rotational degrees of freedom.
 
         .. seealso::
-            `md.methods.NVT.thermalize_extra_dof`
+            `md.methods.NVT.thermalize_thermostat_dof`
 
-            `md.methods.NPT.thermalize_extra_dof`
+            `md.methods.NPT.thermalize_thermostat_and_barostat_dof`
         """
         self._simulation._warn_if_seed_unset()
         group = self._get_group(filter)

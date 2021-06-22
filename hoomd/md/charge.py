@@ -14,17 +14,18 @@ Only one method of computing charged interactions should be used at a time. Othe
 produce incorrect results.
 """
 
-from hoomd.md import force;
+from hoomd.md import force
 from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.md import pair;
-from hoomd.md import nlist as nl # to avoid naming conflicts
-import hoomd;
+from hoomd.md import pair
+from hoomd.md import nlist as nl  # to avoid naming conflicts
+import hoomd
 
-import math;
-import sys;
+import math
+import sys
 
 from math import sqrt
+
 
 class pppm(force._force):
     R""" Long-range electrostatics computed with the PPPM method.
@@ -74,43 +75,48 @@ class pppm(force._force):
         pppm = charge.pppm(group=charged)
 
     """
+
     def __init__(self, group, nlist):
 
         # initialize the base class
-        force._force.__init__(self);
+        force._force.__init__(self)
 
         # create the c++ mirror class
 
         # PPPM itself doesn't really need a neighbor list, so subscribe call back as None
         self.nlist = nlist
-        self.nlist.subscribe(lambda : None)
+        self.nlist.subscribe(lambda: None)
         self.nlist.update_rcut()
 
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PPPMForceCompute(hoomd.context.current.system_definition, self.nlist.cpp_nlist, group.cpp_group);
+            self.cpp_force = _md.PPPMForceCompute(
+                hoomd.context.current.system_definition, self.nlist.cpp_nlist,
+                group.cpp_group)
         else:
-            self.cpp_force = _md.PPPMForceComputeGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, group.cpp_group);
+            self.cpp_force = _md.PPPMForceComputeGPU(
+                hoomd.context.current.system_definition, self.nlist.cpp_nlist,
+                group.cpp_group)
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # error check flag - must be set to true by set_params in order for the run() to commence
-        self.params_set = False;
+        self.params_set = False
 
         # initialize the short range part of electrostatics
-        self.ewald = pair.ewald(r_cut = False, nlist = self.nlist);
+        self.ewald = pair.ewald(r_cut=False, nlist=self.nlist)
 
     # override disable and enable to work with both of the forces
     def disable(self, log=False):
 
-        force._force.disable(self, log);
-        self.ewald.disable(log);
+        force._force.disable(self, log)
+        self.ewald.disable(log)
 
     def enable(self):
 
-        force._force.enable(self);
-        self.ewald.enable();
+        force._force.enable(self)
+        self.ewald.enable()
 
-    def set_params(self, Nx, Ny, Nz, order, rcut, alpha = 0.0):
+    def set_params(self, Nx, Ny, Nz, order, rcut, alpha=0.0):
         """ Sets PPPM parameters.
 
         Args:
@@ -130,41 +136,44 @@ class pppm(force._force):
         """
 
         if hoomd.context.current.system_definition.getNDimensions() != 3:
-            hoomd.context.current.device.cpp_msg.error("System must be 3 dimensional\n");
-            raise RuntimeError("Cannot compute PPPM");
+            hoomd.context.current.device.cpp_msg.error(
+                "System must be 3 dimensional\n")
+            raise RuntimeError("Cannot compute PPPM")
 
-        self.params_set = True;
+        self.params_set = True
 
         # get sum of charges and of squared charges
-        q = self.cpp_force.getQSum();
-        q2 = self.cpp_force.getQ2Sum();
-        N = hoomd.context.current.system_definition.getParticleData().getNGlobal()
-        box = hoomd.context.current.system_definition.getParticleData().getGlobalBox()
+        q = self.cpp_force.getQSum()
+        q2 = self.cpp_force.getQ2Sum()
+        N = hoomd.context.current.system_definition.getParticleData(
+        ).getNGlobal()
+        box = hoomd.context.current.system_definition.getParticleData(
+        ).getGlobalBox()
         Lx = box.getL().x
         Ly = box.getL().y
         Lz = box.getL().z
 
-        hx = Lx/Nx
-        hy = Ly/Ny
-        hz = Lz/Nz
+        hx = Lx / Nx
+        hy = Ly / Ny
+        hz = Lz / Nz
 
         gew1 = 0.0
         kappa = gew1
         f = diffpr(hx, hy, hz, Lx, Ly, Lz, N, order, kappa, q2, rcut)
         hmin = min(hx, hy, hz)
-        gew2 = 10.0/hmin
+        gew2 = 10.0 / hmin
         kappa = gew2
         fmid = diffpr(hx, hy, hz, Lx, Ly, Lz, N, order, kappa, q2, rcut)
 
-        if f*fmid >= 0.0:
-            hoomd.context.current.device.cpp_msg.error("f*fmid >= 0.0\n");
-            raise RuntimeError("Cannot compute PPPM");
+        if f * fmid >= 0.0:
+            hoomd.context.current.device.cpp_msg.error("f*fmid >= 0.0\n")
+            raise RuntimeError("Cannot compute PPPM")
 
         if f < 0.0:
-            dgew=gew2-gew1
+            dgew = gew2 - gew1
             rtb = gew1
         else:
-            dgew=gew1-gew2
+            dgew = gew1 - gew2
             rtb = gew2
 
         ncount = 0
@@ -177,37 +186,51 @@ class pppm(force._force):
                 rtb = kappa
             ncount += 1
             if ncount > 10000.0:
-                hoomd.context.current.device.cpp_msg.error("kappa not converging\n");
-                raise RuntimeError("Cannot compute PPPM");
+                hoomd.context.current.device.cpp_msg.error(
+                    "kappa not converging\n")
+                raise RuntimeError("Cannot compute PPPM")
 
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
+        ntypes = hoomd.context.current.system_definition.getParticleData(
+        ).getNTypes()
+        type_list = []
+        for i in range(0, ntypes):
+            type_list.append(hoomd.context.current.system_definition
+                             .getParticleData().getNameByType(i))
 
-        for i in range(0,ntypes):
-            for j in range(0,ntypes):
-                self.ewald.pair_coeff.set(type_list[i], type_list[j], kappa = kappa, alpha = alpha, r_cut=rcut)
+        for i in range(0, ntypes):
+            for j in range(0, ntypes):
+                self.ewald.pair_coeff.set(type_list[i],
+                                          type_list[j],
+                                          kappa=kappa,
+                                          alpha=alpha,
+                                          r_cut=rcut)
 
         # set the parameters for the appropriate type
-        self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha);
+        self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha)
 
     def update_coeffs(self):
         if not self.params_set:
-            hoomd.context.current.device.cpp_msg.error("Coefficients for PPPM are not set. Call set_coeff prior to run()\n");
-            raise RuntimeError("Error initializing run");
+            hoomd.context.current.device.cpp_msg.error(
+                "Coefficients for PPPM are not set. Call set_coeff prior to run()\n"
+            )
+            raise RuntimeError("Error initializing run")
 
         if self.nlist.cpp_nlist.getDiameterShift():
-            hoomd.context.current.device.cpp_msg.warning("Neighbor diameter shifting is enabled, PPPM may not correct for all excluded interactions\n");
+            hoomd.context.current.device.cpp_msg.warning(
+                "Neighbor diameter shifting is enabled, PPPM may not correct for all excluded interactions\n"
+            )
+
 
 def diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
     lprx = rms(hx, xprd, N, order, kappa, q2)
     lpry = rms(hy, yprd, N, order, kappa, q2)
     lprz = rms(hz, zprd, N, order, kappa, q2)
-    kspace_prec = math.sqrt(lprx*lprx + lpry*lpry + lprz*lprz) / sqrt(3.0)
-    real_prec = 2.0*q2 * math.exp(-kappa*kappa*rcut*rcut)/sqrt(N*rcut*xprd*yprd*zprd)
+    kspace_prec = math.sqrt(lprx * lprx + lpry * lpry + lprz * lprz) / sqrt(3.0)
+    real_prec = 2.0 * q2 * math.exp(-kappa * kappa * rcut * rcut) / sqrt(
+        N * rcut * xprd * yprd * zprd)
     value = kspace_prec - real_prec
     return value
+
 
 def rms(h, prd, N, order, kappa, q2):
     acons = [[0 for _ in range(8)] for _ in range(8)]
@@ -242,7 +265,8 @@ def rms(h, prd, N, order, kappa, q2):
     acons[7][6] = 4887769399.0 / 37838389248.0
 
     sum = 0.0
-    for m in range(0,order):
-        sum += acons[order][m]*pow(h*kappa, 2.0*m)
-    value = q2*pow(h*kappa,order)*sqrt(kappa*prd*sqrt(2.0*math.pi)*sum/N)/prd/prd
+    for m in range(0, order):
+        sum += acons[order][m] * pow(h * kappa, 2.0 * m)
+    value = q2 * pow(h * kappa, order) * sqrt(
+        kappa * prd * sqrt(2.0 * math.pi) * sum / N) / prd / prd
     return value

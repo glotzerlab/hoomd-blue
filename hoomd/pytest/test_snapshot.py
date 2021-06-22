@@ -3,13 +3,13 @@ import numpy
 import pytest
 from hoomd.pytest.test_simulation import make_gsd_snapshot
 try:
-    import gsd.hoomd
+    import gsd.hoomd  # noqa: F401 - need to know if the import fails
     skip_gsd = False
 except ImportError:
     skip_gsd = True
 
-skip_gsd = pytest.mark.skipif(
-    skip_gsd, reason="gsd Python package was not found.")
+skip_gsd = pytest.mark.skipif(skip_gsd,
+                              reason="gsd Python package was not found.")
 
 
 def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
@@ -20,10 +20,10 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
     differences in the way the two snapshots handle the dimensions of empty
     boxes. This function returns ``True`` when not on the root rank.
     """
-    if not hoomd_snap.exists:
+    if not hoomd_snap.communicator.rank == 0:
         return True
     for attr in dir(hoomd_snap):
-        if attr[0] == '_' or attr in ['exists', 'replicate']:
+        if attr[0] == '_' or attr in ['exists', 'replicate', 'communicator']:
             continue
         for prop in dir(getattr(hoomd_snap, attr)):
             if prop[0] == '_':
@@ -39,7 +39,6 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
                 x = getattr(getattr(gsd_snap, attr), prop)
                 y = getattr(getattr(hoomd_snap, attr), prop)
                 x_box = getattr(getattr(gsd_snap, attr), 'box')
-                y_box = getattr(getattr(hoomd_snap, attr), 'box')
                 if x_box is None or x_box.all() == 0:
                     # if the box is all zeros, the dimensions won't match
                     # hoomd dimensions will be 2 and gsd will be 3
@@ -65,8 +64,9 @@ def s():
 
 
 def test_empty_snapshot(s):
-    if s.exists:
-        numpy.testing.assert_allclose(s.configuration.box, [0, 0, 0, 0, 0, 0], atol=1e-7)
+    if s.communicator.rank == 0:
+        numpy.testing.assert_allclose(s.configuration.box, [0, 0, 0, 0, 0, 0],
+                                      atol=1e-7)
         assert s.configuration.dimensions == 3
 
         assert s.particles.N == 0
@@ -115,9 +115,10 @@ def test_empty_snapshot(s):
 
 
 def test_configuration(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
-        numpy.testing.assert_allclose(s.configuration.box, [10, 12, 7, 0.1, 0.4, 0.2])
+        numpy.testing.assert_allclose(s.configuration.box,
+                                      [10, 12, 7, 0.1, 0.4, 0.2])
 
         with pytest.raises(AttributeError):
             s.configuration.dimensions = 2
@@ -125,7 +126,7 @@ def test_configuration(s):
 
 
 def test_particles(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.N = 5
 
         assert s.particles.N == 5
@@ -160,7 +161,7 @@ def test_particles(s):
         assert s.particles.diameter.dtype == numpy.float64
         assert s.particles.diameter.shape == (5,)
         assert s.particles.image.dtype == numpy.int32
-        assert s.particles.image.shape == (5,  3)
+        assert s.particles.image.shape == (5, 3)
         assert s.particles.body.dtype == numpy.int32
         assert s.particles.body.shape == (5,)
         assert s.particles.orientation.dtype == numpy.float64
@@ -172,7 +173,7 @@ def test_particles(s):
 
 
 def test_bonds(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.bonds.N = 3
 
         assert s.bonds.N == 3
@@ -189,7 +190,7 @@ def test_bonds(s):
 
 
 def test_angles(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.angles.N = 3
 
         assert s.angles.N == 3
@@ -206,7 +207,7 @@ def test_angles(s):
 
 
 def test_dihedrals(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.dihedrals.N = 3
 
         assert s.dihedrals.N == 3
@@ -223,7 +224,7 @@ def test_dihedrals(s):
 
 
 def test_impropers(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.impropers.N = 3
 
         assert s.impropers.N == 3
@@ -240,7 +241,7 @@ def test_impropers(s):
 
 
 def test_pairs(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.pairs.N = 3
 
         assert s.pairs.N == 3
@@ -257,7 +258,7 @@ def test_pairs(s):
 
 
 def test_constraints(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.constraints.N = 3
 
         assert s.constraints.N == 3
@@ -279,10 +280,10 @@ def test_from_gsd_snapshot_empty(s, device):
 
 @skip_gsd
 def test_from_gsd_snapshot_populated(s, device):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
-        for section in ('particles', 'bonds', 'angles', 'dihedrals', 'impropers',
-                        'pairs'):
+        for section in ('particles', 'bonds', 'angles', 'dihedrals',
+                        'impropers', 'pairs'):
             setattr(getattr(s, section), 'N', 5)
             setattr(getattr(s, section), 'types', ['A', 'B'])
 
@@ -311,3 +312,69 @@ def test_from_gsd_snapshot_populated(s, device):
     gsd_snap = make_gsd_snapshot(s)
     hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
     assert_equivalent_snapshots(gsd_snap, hoomd_snap)
+
+
+def test_invalid_particle_typeids(simulation_factory, lattice_snapshot_factory):
+    """Test that using invalid particle typeids raises an error."""
+    snap = lattice_snapshot_factory(particle_types=['A', 'B'])
+
+    # assign invalid type ids
+    if snap.communicator.rank == 0:
+        snap.particles.typeid[:] = 2
+
+    with pytest.raises(RuntimeError):
+        simulation_factory(snap)
+
+
+def test_no_particle_types(simulation_factory, lattice_snapshot_factory):
+    """Test that initialization fails when there are no types."""
+    snap = lattice_snapshot_factory(particle_types=[])
+
+    with pytest.raises(RuntimeError):
+        simulation_factory(snap)
+
+
+def test_zero_particle_system(simulation_factory, lattice_snapshot_factory):
+    """Test that zero particle systems can be initialized with no types."""
+    snap = lattice_snapshot_factory(particle_types=[], n=0)
+
+    simulation_factory(snap)
+
+
+@pytest.mark.parametrize("group_name,group_size", [
+    ("bonds", 2),
+    ("angles", 3),
+    ("dihedrals", 4),
+    ("impropers", 4),
+    ("pairs", 2),
+])
+def test_invalid_bond_typeids(
+    group_name,
+    group_size,
+    simulation_factory,
+    lattice_snapshot_factory,
+):
+    """Test that using invalid bond typeids raises an error."""
+    snap = lattice_snapshot_factory()
+
+    # assign invalid type ids
+    if snap.communicator.rank == 0:
+        group = getattr(snap, group_name)
+        group.types = ['A']
+        group.N = 1
+        group.group[0] = range(group_size)
+        group.typeid[:] = 2
+
+    with pytest.raises(RuntimeError):
+        simulation_factory(snap)
+
+    # test that 0 types is allowed when there are 0 items in the group
+    snap = lattice_snapshot_factory()
+
+    # assign invalid type ids
+    if snap.communicator.rank == 0:
+        group = getattr(snap, group_name)
+        group.types = []
+        group.N = 0
+
+    simulation_factory(snap)

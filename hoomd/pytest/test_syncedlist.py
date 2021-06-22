@@ -1,7 +1,8 @@
 from pytest import fixture, raises
+from hoomd.conftest import pickling_check
 from hoomd.pytest.dummy import DummyOperation, DummySimulation
 from hoomd.operation import Operation
-from hoomd.data.syncedlist import SyncedList
+from hoomd.data.syncedlist import SyncedList, _PartialIsInstance
 
 
 @fixture
@@ -10,11 +11,12 @@ def op_list():
 
 
 def test_init(op_list):
+
     def validate(x):
         return isinstance(x, DummyOperation)
 
     # Test automatic to_synced_list function generation
-    slist = SyncedList(validation_func=validate)
+    slist = SyncedList(validation=validate)
     assert slist._validate == validate
     op = DummyOperation()
     assert slist._to_synced_list_conversion(op) is op
@@ -23,13 +25,14 @@ def test_init(op_list):
     def cpp_identity(x):
         return x._cpp_obj
 
-    slist = SyncedList(validation_func=validate, to_synced_list=cpp_identity)
+    slist = SyncedList(validation=validate, to_synced_list=cpp_identity)
     assert slist._to_synced_list_conversion == cpp_identity
     op._cpp_obj = 2
     assert slist._to_synced_list_conversion(op) == 2
 
     # Test full initialziation
-    slist = SyncedList(validation_func=validate, to_synced_list=cpp_identity,
+    slist = SyncedList(validation=validate,
+                       to_synced_list=cpp_identity,
                        iterable=op_list)
     assert len(slist._list) == 3
     assert all(op._added for op in slist)
@@ -37,7 +40,7 @@ def test_init(op_list):
 
 @fixture
 def slist_empty():
-    return SyncedList(lambda x: isinstance(x, Operation))
+    return SyncedList(_PartialIsInstance(Operation))
 
 
 @fixture
@@ -47,6 +50,7 @@ def slist(slist_empty, op_list):
 
 
 class OpInt(int):
+
     def _attach(self):
         self._cpp_obj = None
 
@@ -70,7 +74,7 @@ class OpInt(int):
 
 @fixture
 def islist(slist_empty):
-    return SyncedList(lambda x: isinstance(x, int),
+    return SyncedList(_PartialIsInstance(int),
                       iterable=[OpInt(i) for i in [1, 2, 3]])
 
 
@@ -280,3 +284,7 @@ def test_remove(islist):
     assert not oplist[0]._attached
     assert oplist[0] not in islist
     assert oplist[0] not in sync_list
+
+
+def test_pickling(slist):
+    pickling_check(slist)

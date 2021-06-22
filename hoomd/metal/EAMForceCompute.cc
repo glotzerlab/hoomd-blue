@@ -22,10 +22,11 @@ namespace py = pybind11;
  \param filename Name of EAM potential file to load
  \param type_of_file EAM/Alloy=0, EAM/FS=1
  */
-EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file) :
-        ForceCompute(sysdef)
+EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                 char* filename,
+                                 int type_of_file)
+    : ForceCompute(sysdef)
     {
-
     m_exec_conf->msg->notice(5) << "Constructing EAMForceCompute" << endl;
 
     assert(m_pdata);
@@ -36,17 +37,20 @@ EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char 
     m_ntypes = m_pdata->getNTypes();
     assert(m_ntypes > 0);
 
-    // connect to the ParticleData to receive notifications when the number of particle types changes
-    m_pdata->getNumTypesChangeSignal().connect<EAMForceCompute, &EAMForceCompute::slotNumTypesChange>(this);
+    // connect to the ParticleData to receive notifications when the number of particle types
+    // changes
+    m_pdata->getNumTypesChangeSignal()
+        .connect<EAMForceCompute, &EAMForceCompute::slotNumTypesChange>(this);
     }
 
 EAMForceCompute::~EAMForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying EAMForceCompute" << endl;
-    m_pdata->getNumTypesChangeSignal().disconnect<EAMForceCompute, &EAMForceCompute::slotNumTypesChange>(this);
+    m_pdata->getNumTypesChangeSignal()
+        .disconnect<EAMForceCompute, &EAMForceCompute::slotNumTypesChange>(this);
     }
 
-void EAMForceCompute::loadFile(char *filename, int type_of_file)
+void EAMForceCompute::loadFile(char* filename, int type_of_file)
     {
     unsigned int tmp_int, type, i, j, k;
     double tmp_mass, tmp;
@@ -56,7 +60,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     const int MAX_POINT_NUMBER = 1000000;
 
     // Open potential file
-    FILE *fp;
+    FILE* fp;
     fp = fopen(filename, "r");
     if (fp == NULL)
         {
@@ -73,14 +77,15 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 
     if (m_ntypes < 1 || m_ntypes > MAX_TYPE_NUMBER)
         {
-        m_exec_conf->msg->error() << "pair.eam: Invalid EAM file format: Type number is greater than "
-                << MAX_TYPE_NUMBER << endl;
+        m_exec_conf->msg->error()
+            << "pair.eam: Invalid EAM file format: Type number is greater than " << MAX_TYPE_NUMBER
+            << endl;
         throw runtime_error("Error loading file");
         }
 
     // temporary array to count used types
     std::vector<bool> types_set(m_pdata->getNTypes(), false);
-    //Load names of types.
+    // Load names of types.
     for (i = 0; i < m_ntypes; i++)
         {
         n = fscanf(fp, "%2s", tmp_str);
@@ -92,7 +97,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
         types_set[tid] = true;
         }
 
-    //Check that all types of atoms in xml file have description in potential file
+    // Check that all types of atoms in xml file have description in potential file
     unsigned int count_types_set = 0;
     for (i = 0; i < m_pdata->getNTypes(); i++)
         {
@@ -101,11 +106,12 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
         }
     if (m_pdata->getNTypes() != count_types_set)
         {
-        m_exec_conf->msg->error() << "pair.eam: not all atom types are defined in EAM potential file!!!" << endl;
+        m_exec_conf->msg->error()
+            << "pair.eam: not all atom types are defined in EAM potential file!!!" << endl;
         throw runtime_error("Error loading file");
         }
 
-    //Load parameters.
+    // Load parameters.
     n = fscanf(fp, "%d", &nrho);
     if (n != 1)
         throw runtime_error("Error parsing eam file");
@@ -113,8 +119,8 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     n = fscanf(fp, "%lg", &tmp);
     if (n != 1)
         throw runtime_error("Error parsing eam file");
-    drho = (Scalar) tmp;
-    rdrho = (Scalar) (1.0 / drho);
+    drho = (Scalar)tmp;
+    rdrho = (Scalar)(1.0 / drho);
 
     n = fscanf(fp, "%d", &nr);
     if (n != 1)
@@ -123,22 +129,23 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     n = fscanf(fp, "%lg", &tmp);
     if (n != 1)
         throw runtime_error("Error parsing eam file");
-    dr = (Scalar) tmp;
-    rdr = (Scalar) (1.0 / dr);
+    dr = (Scalar)tmp;
+    rdr = (Scalar)(1.0 / dr);
 
     n = fscanf(fp, "%lg", &tmp);
     if (n != 1)
         throw runtime_error("Error parsing eam file");
-    m_r_cut = (Scalar) tmp;
+    m_r_cut = (Scalar)tmp;
 
     if (nrho < 1 || nr < 1 || nrho > MAX_POINT_NUMBER || nr > MAX_POINT_NUMBER)
         {
-        m_exec_conf->msg->error() << "pair.eam: Invalid EAM file format: Point number is greater than "
-                << MAX_POINT_NUMBER << endl;
+        m_exec_conf->msg->error()
+            << "pair.eam: Invalid EAM file format: Point number is greater than "
+            << MAX_POINT_NUMBER << endl;
         throw runtime_error("Error loading file");
         }
 
-    //allocate potential data storage
+    // allocate potential data storage
     GPUArray<Scalar4> t_F(nrho * m_ntypes, m_exec_conf);
     m_F.swap(t_F);
     ArrayHandle<Scalar4> h_F(m_F, access_location::host, access_mode::readwrite);
@@ -147,7 +154,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     m_rho.swap(t_rho);
     ArrayHandle<Scalar4> h_rho(m_rho, access_location::host, access_mode::readwrite);
 
-    GPUArray<Scalar4> t_rphi((int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), m_exec_conf);
+    GPUArray<Scalar4> t_rphi((int)(0.5 * nr * (m_ntypes + 1) * m_ntypes), m_exec_conf);
     m_rphi.swap(t_rphi);
     ArrayHandle<Scalar4> h_rphi(m_rphi, access_location::host, access_mode::readwrite);
 
@@ -159,7 +166,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     m_drho.swap(t_drho);
     ArrayHandle<Scalar4> h_drho(m_drho, access_location::host, access_mode::readwrite);
 
-    GPUArray<Scalar4> t_drphi((int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), m_exec_conf);
+    GPUArray<Scalar4> t_drphi((int)(0.5 * nr * (m_ntypes + 1) * m_ntypes), m_exec_conf);
     m_drphi.swap(t_drphi);
     ArrayHandle<Scalar4> h_drphi(m_drphi, access_location::host, access_mode::readwrite);
 
@@ -175,16 +182,16 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
         lconst.push_back(tmp);
         atomcomment.push_back(tmp_str);
 
-        //Read F's array
+        // Read F's array
         for (i = 0; i < nrho; i++)
             {
             res = fscanf(fp, "%lg", &tmp);
-            h_F.data[types[type] * nrho + i].w = (Scalar) tmp;
+            h_F.data[types[type] * nrho + i].w = (Scalar)tmp;
             }
 
-        //Read rho's arrays
-        //If FS we need read N arrays
-        //If Alloy we need read 1 array, and then duplicate N-1 times.
+        // Read rho's arrays
+        // If FS we need read N arrays
+        // If Alloy we need read 1 array, and then duplicate N-1 times.
         if (type_of_file == 1)
             {
             for (j = 0; j < m_ntypes; j++)
@@ -192,7 +199,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
                 for (i = 0; i < nr; i++)
                     {
                     res = fscanf(fp, "%lg", &tmp);
-                    h_rho.data[types[type] * m_ntypes * nr + types[j] * nr + i].w = (Scalar) tmp;
+                    h_rho.data[types[type] * m_ntypes * nr + types[j] * nr + i].w = (Scalar)tmp;
                     }
                 }
             }
@@ -201,11 +208,11 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
             for (i = 0; i < nr; i++)
                 {
                 res = fscanf(fp, "%lg", &tmp);
-                h_rho.data[types[type] * m_ntypes * nr + i].w = (Scalar) tmp;
+                h_rho.data[types[type] * m_ntypes * nr + i].w = (Scalar)tmp;
                 for (j = 1; j < m_ntypes; j++)
                     {
-                    h_rho.data[types[type] * m_ntypes * nr + j * nr + i].w =
-                            h_rho.data[types[type] * m_ntypes * nr + i].w;
+                    h_rho.data[types[type] * m_ntypes * nr + j * nr + i].w
+                        = h_rho.data[types[type] * m_ntypes * nr + i].w;
                     }
                 }
             }
@@ -217,7 +224,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
         throw runtime_error("Error loading file");
         }
 
-    //Read r*phi(r)'s arrays
+    // Read r*phi(r)'s arrays
     for (k = 0; k < m_ntypes; k++)
         {
         for (j = 0; j <= k; j++)
@@ -225,7 +232,8 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
             for (i = 0; i < nr; i++)
                 {
                 res = fscanf(fp, "%lg", &tmp);
-                h_rphi.data[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i].w = (Scalar) tmp;
+                h_rphi.data[(int)(0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i].w
+                    = (Scalar)tmp;
                 }
             }
         }
@@ -235,8 +243,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     // Compute interpolation coefficients
     interpolation(nrho * m_ntypes, nrho, drho, &h_F, &h_dF);
     interpolation(nr * m_ntypes * m_ntypes, nr, dr, &h_rho, &h_drho);
-    interpolation((int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), nr, dr, &h_rphi, &h_drphi);
-
+    interpolation((int)(0.5 * nr * (m_ntypes + 1) * m_ntypes), nr, dr, &h_rphi, &h_drphi);
     }
 
 /*! compute cubic interpolation coefficients
@@ -246,8 +253,11 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
  \param f Data need to be interpolated
  \param df Derivative data to be recorded
  */
-void EAMForceCompute::interpolation(int num_all, int num_per, Scalar delta, ArrayHandle<Scalar4> *f,
-        ArrayHandle<Scalar4> *df)
+void EAMForceCompute::interpolation(int num_all,
+                                    int num_per,
+                                    Scalar delta,
+                                    ArrayHandle<Scalar4>* f,
+                                    ArrayHandle<Scalar4>* df)
     {
     int m, n;
     int num_block;
@@ -264,14 +274,15 @@ void EAMForceCompute::interpolation(int num_all, int num_per, Scalar delta, Arra
         for (int m = 2; m < num_per - 2; m++)
             {
             f->data[start + m].z = (f->data[start + m - 2].w - f->data[start + m + 2].w
-                    + 8.0 * (f->data[start + m + 1].w - f->data[start + m - 1].w)) / 12.0;
+                                    + 8.0 * (f->data[start + m + 1].w - f->data[start + m - 1].w))
+                                   / 12.0;
             }
         for (int m = 0; m < num_per - 1; m++)
             {
-            f->data[start + m].y = 3.0 * (f->data[start + m + 1].w - f->data[start + m].w) - 2.0 * f->data[start + m].z
-                    - f->data[start + m + 1].z;
+            f->data[start + m].y = 3.0 * (f->data[start + m + 1].w - f->data[start + m].w)
+                                   - 2.0 * f->data[start + m].z - f->data[start + m + 1].z;
             f->data[start + m].x = f->data[start + m].z + f->data[start + m + 1].z
-                    - 2.0 * (f->data[start + m + 1].w - f->data[start + m].w);
+                                   - 2.0 * (f->data[start + m + 1].w - f->data[start + m].w);
             }
         f->data[end].y = 0.0;
         f->data[end].x = 0.0;
@@ -282,27 +293,6 @@ void EAMForceCompute::interpolation(int num_all, int num_per, Scalar delta, Arra
         df->data[m].z = f->data[m].z / delta;
         df->data[m].y = 2.0 * f->data[m].y / delta;
         df->data[m].x = 3.0 * f->data[m].x / delta;
-        }
-    }
-
-std::vector<std::string> EAMForceCompute::getProvidedLogQuantities()
-    {
-    vector < string > list;
-    list.push_back("pair_eam_energy");
-    return list;
-    }
-
-Scalar EAMForceCompute::getLogValue(const std::string &quantity, uint64_t timestep)
-    {
-    if (quantity == string("pair_eam_energy"))
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "pair.eam: " << quantity << " is not a valid log quantity" << endl;
-        throw runtime_error("Error getting log value");
         }
     }
 
@@ -325,9 +315,15 @@ void EAMForceCompute::computeForces(uint64_t timestep)
 
     // access the neighbor list
     assert(m_nlist);
-    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
+                                        access_location::host,
+                                        access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
+                                      access_location::host,
+                                      access_mode::read);
+    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
+                                          access_location::host,
+                                          access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -344,11 +340,11 @@ void EAMForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> h_drphi(m_drphi, access_location::host, access_mode::read);
 
     // index and remainder
-    Scalar position;  // look up position, scalar
-    unsigned int int_position;  // look up index for position, integer
-    unsigned int idxs; // look up index in F, rho, rphi array, considering shift, integer
-    Scalar remainder;  // look up remainder in array, integer
-    Scalar4 v, dv;  // value, d(value)
+    Scalar position;           // look up position, scalar
+    unsigned int int_position; // look up index for position, integer
+    unsigned int idxs;         // look up index in F, rho, rphi array, considering shift, integer
+    Scalar remainder;          // look up remainder in array, integer
+    Scalar4 v, dv;             // value, d(value)
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -362,11 +358,11 @@ void EAMForceCompute::computeForces(uint64_t timestep)
     assert(h_drphi.data);
 
     // Zero data for force calculation.
-    memset((void *) h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
-    memset((void *) h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
     // get a local copy of the simulation box too
-    const BoxDim &box = m_pdata->getBox();
+    const BoxDim& box = m_pdata->getBox();
 
     // create a temporary copy of r_cut squared
     Scalar r_cut_sq = m_r_cut * m_r_cut;
@@ -394,7 +390,7 @@ void EAMForceCompute::computeForces(uint64_t timestep)
         assert(typei < m_pdata->getNTypes());
 
         // loop over all of the neighbors of this particle
-        const unsigned int size = (unsigned int) h_n_neigh.data[i];
+        const unsigned int size = (unsigned int)h_n_neigh.data[i];
 
         for (unsigned int j = 0; j < size; j++)
             {
@@ -427,21 +423,21 @@ void EAMForceCompute::computeForces(uint64_t timestep)
                 {
                 // calculate position r for rho(r)
                 position = sqrt(rsq) * rdr;
-                int_position = (unsigned int) position;
+                int_position = (unsigned int)position;
                 int_position = min(int_position, nr - 1);
                 remainder = position - int_position;
                 // calculate P = sum{rho}
                 idxs = int_position + nr * (typej * ntypes + typei);
                 v = h_rho.data[idxs];
                 atomElectronDensity[i] += v.w + v.z * remainder + v.y * remainder * remainder
-                        + v.x * remainder * remainder * remainder;
+                                          + v.x * remainder * remainder * remainder;
                 // if third_law, pair it
                 if (third_law)
                     {
                     idxs = int_position + nr * (typei * ntypes + typej);
                     v = h_rho.data[idxs];
                     atomElectronDensity[k] += v.w + v.z * remainder + v.y * remainder * remainder
-                            + v.x * remainder * remainder * remainder;
+                                              + v.x * remainder * remainder * remainder;
                     }
                 }
             }
@@ -452,7 +448,7 @@ void EAMForceCompute::computeForces(uint64_t timestep)
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         // calculate position rho for F(rho)
         position = atomElectronDensity[i] * rdrho;
-        int_position = (unsigned int) position;
+        int_position = (unsigned int)position;
         int_position = min(int_position, nrho - 1);
         remainder = position - int_position;
 
@@ -463,8 +459,7 @@ void EAMForceCompute::computeForces(uint64_t timestep)
         atomDerivativeEmbeddingFunction[i] = dv.z + dv.y * remainder + dv.x * remainder * remainder;
         // compute embedded energy F(P), sum up each particle
         h_force.data[i].w += v.w + v.z * remainder + v.y * remainder * remainder
-                + v.x * remainder * remainder * remainder;
-
+                             + v.x * remainder * remainder * remainder;
         }
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -486,7 +481,7 @@ void EAMForceCompute::computeForces(uint64_t timestep)
             viriali[k] = 0.0;
 
         // loop over all of the neighbors of this particle
-        const unsigned int size = (unsigned int) h_n_neigh.data[i];
+        const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int j = 0; j < size; j++)
             {
             // increment our calculation counter
@@ -519,23 +514,24 @@ void EAMForceCompute::computeForces(uint64_t timestep)
             Scalar r = sqrt(rsq);
             Scalar inverseR = 1.0 / r;
             position = r * rdr;
-            int_position = (unsigned int) position;
+            int_position = (unsigned int)position;
             int_position = min(int_position, nr - 1);
             remainder = position - int_position;
             // calculate the shift position for type ij
-            int shift =
-                    (typei >= typej) ?
-                            (int) (0.5 * (2 * ntypes - typej - 1) * typej + typei) * nr :
-                            (int) (0.5 * (2 * ntypes - typei - 1) * typei + typej) * nr;
+            int shift = (typei >= typej)
+                            ? (int)(0.5 * (2 * ntypes - typej - 1) * typej + typei) * nr
+                            : (int)(0.5 * (2 * ntypes - typei - 1) * typei + typej) * nr;
 
             idxs = int_position + shift;
             v = h_rphi.data[idxs];
             dv = h_drphi.data[idxs];
             // pair_eng = phi
             Scalar pair_eng = (v.w + v.z * remainder + v.y * remainder * remainder
-                    + v.x * remainder * remainder * remainder) * inverseR;
+                               + v.x * remainder * remainder * remainder)
+                              * inverseR;
             // derivativePhi = (phi + r * dphi/dr - phi) * 1/r = dphi / dr
-            Scalar derivativePhi = (dv.z + dv.y * remainder + dv.x * remainder * remainder - pair_eng) * inverseR;
+            Scalar derivativePhi
+                = (dv.z + dv.y * remainder + dv.x * remainder * remainder - pair_eng) * inverseR;
             // derivativeRhoI = drho / dr of i
             idxs = int_position + typei * ntypes * nr + typej * nr;
             dv = h_drho.data[idxs];
@@ -546,7 +542,8 @@ void EAMForceCompute::computeForces(uint64_t timestep)
             Scalar derivativeRhoJ = dv.z + dv.y * remainder + dv.x * remainder * remainder;
             // fullDerivativePhi = dF/dP * drho / dr for j + dF/dP * drho / dr for j + phi
             Scalar fullDerivativePhi = atomDerivativeEmbeddingFunction[i] * derivativeRhoJ
-                    + atomDerivativeEmbeddingFunction[k] * derivativeRhoI + derivativePhi;
+                                       + atomDerivativeEmbeddingFunction[k] * derivativeRhoI
+                                       + derivativePhi;
             // compute forces
             Scalar pairForce = -fullDerivativePhi * inverseR;
             viriali[0] += dx.x * dx.x * pairForce;
@@ -579,7 +576,8 @@ void EAMForceCompute::computeForces(uint64_t timestep)
     int64_t flops = m_pdata->getN() * 5 + n_calc * (3 + 5 + 9 + 1 + 9 + 6 + 8);
     if (third_law)
         flops += n_calc * 8;
-    int64_t mem_transfer = m_pdata->getN() * (5 + 4 + 10) * sizeof(Scalar) + n_calc * (1 + 3 + 1) * sizeof(Scalar);
+    int64_t mem_transfer
+        = m_pdata->getN() * (5 + 4 + 10) * sizeof(Scalar) + n_calc * (1 + 3 + 1) * sizeof(Scalar);
     if (third_law)
         mem_transfer += n_calc * 10 * sizeof(Scalar);
     if (m_prof)
@@ -597,9 +595,11 @@ Scalar EAMForceCompute::get_r_cut()
     return m_r_cut;
     }
 
-void export_EAMForceCompute(py::module &m)
+void export_EAMForceCompute(py::module& m)
     {
-    py::class_<EAMForceCompute, ForceCompute, std::shared_ptr<EAMForceCompute> >(m, "EAMForceCompute").def(
-            py::init<std::shared_ptr<SystemDefinition>, char *, int>()).def("set_neighbor_list",
-            &EAMForceCompute::set_neighbor_list).def("get_r_cut", &EAMForceCompute::get_r_cut);
+    py::class_<EAMForceCompute, ForceCompute, std::shared_ptr<EAMForceCompute>>(m,
+                                                                                "EAMForceCompute")
+        .def(py::init<std::shared_ptr<SystemDefinition>, char*, int>())
+        .def("set_neighbor_list", &EAMForceCompute::set_neighbor_list)
+        .def("get_r_cut", &EAMForceCompute::get_r_cut);
     }

@@ -20,9 +20,9 @@
 #include <pybind11/pybind11.h>
 
 namespace mpcd
-{
+    {
 namespace detail
-{
+    {
 //! Export boundary enum to python
 void export_boundary(pybind11::module& m);
 
@@ -35,8 +35,8 @@ void export_SlitGeometry(pybind11::module& m);
 //! Export SlitPoreGeometry to python
 void export_SlitPoreGeometry(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace mpcd
+    } // end namespace detail
+    } // end namespace mpcd
 
 #endif // __HIPCC__
 #endif // MPCD_STREAMING_GEOMETRY_H_
