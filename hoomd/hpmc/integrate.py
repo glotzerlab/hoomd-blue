@@ -119,7 +119,8 @@ class HPMCIntegrator(BaseIntegrator):
     _skip_for_equality = BaseIntegrator._skip_for_equality | {'_cpp_cell'}
     _cpp_cls = None
 
-    def __init__(self, d, a, translation_move_probability, nselect):
+    def __init__(self, default_d, default_a, translation_move_probability,
+                 nselect):
         super().__init__()
 
         # Set base parameter dict for hpmc integrators
@@ -131,12 +132,12 @@ class HPMCIntegrator(BaseIntegrator):
         # Set standard typeparameters for hpmc integrators
         typeparam_d = TypeParameter('d',
                                     type_kind='particle_types',
-                                    param_dict=TypeParameterDict(float(d),
-                                                                 len_keys=1))
+                                    param_dict=TypeParameterDict(
+                                        float(default_d), len_keys=1))
         typeparam_a = TypeParameter('a',
                                     type_kind='particle_types',
-                                    param_dict=TypeParameterDict(float(a),
-                                                                 len_keys=1))
+                                    param_dict=TypeParameterDict(
+                                        float(default_a), len_keys=1))
 
         typeparam_fugacity = TypeParameter('depletant_fugacity',
                                            type_kind='particle_types',
@@ -365,10 +366,10 @@ class Sphere(HPMCIntegrator):
     """Hard sphere Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -395,7 +396,7 @@ class Sphere(HPMCIntegrator):
 
     Examples::
 
-        mc = hoomd.hpmc.integrate.Sphere(d=0.3, a=0.4)
+        mc = hoomd.hpmc.integrate.Sphere(default_d=0.3, default_a=0.4)
         mc.shape["A"] = dict(diameter=1.0)
         mc.shape["B"] = dict(diameter=2.0)
         mc.shape["C"] = dict(diameter=1.0, orientable=True)
@@ -403,7 +404,8 @@ class Sphere(HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hoomd.hpmc.integrate.Sphere(d=0.3, a=0.4, nselect=8)
+        mc = hoomd.hpmc.integrate.Sphere(default_d=0.3, default_a=0.4,
+                                        nselect=8)
         mc.shape["A"] = dict(diameter=1.0)
         mc.shape["B"] = dict(diameter=1.0)
         mc.depletant_fugacity["B"] = 3.0
@@ -423,13 +425,14 @@ class Sphere(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoSphere'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -458,10 +461,10 @@ class ConvexPolygon(HPMCIntegrator):
     """Hard convex polygon Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -519,13 +522,14 @@ class ConvexPolygon(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoConvexPolygon'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -554,10 +558,10 @@ class ConvexSpheropolygon(HPMCIntegrator):
     """Hard convex spheropolygon Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -582,7 +586,8 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
     Examples::
 
-        mc = hoomd.hpmc.integrate.ConvexSpheropolygon(d=0.3, a=0.4)
+        mc = hoomd.hpmc.integrate.ConvexSpheropolygon(default_d=0.3,
+                                                     default_a=0.4)
         mc.shape["A"] = dict(vertices=[(-0.5, -0.5),
                                        (0.5, -0.5),
                                        (0.5, 0.5),
@@ -622,13 +627,14 @@ class ConvexSpheropolygon(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoSpheropolygon'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -656,10 +662,10 @@ class SimplePolygon(HPMCIntegrator):
     """Hard simple polygon Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -682,7 +688,7 @@ class SimplePolygon(HPMCIntegrator):
 
     Examples::
 
-        mc = hpmc.integrate.SimplePolygon(d=0.3, a=0.4)
+        mc = hpmc.integrate.SimplePolygon(default_d=0.3, default_a=0.4)
         mc.shape["A"] = dict(vertices=[(0, 0.5),
                                        (-0.5, -0.5),
                                        (0, 0),
@@ -719,13 +725,14 @@ class SimplePolygon(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoSimplePolygon'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -753,10 +760,10 @@ class Polyhedron(HPMCIntegrator):
     """Hard polyhedra Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -783,7 +790,7 @@ class Polyhedron(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.Polyhedron(d=0.3, a=0.4)
+        mc = hpmc.integrate.Polyhedron(default_d=0.3, default_a=0.4)
         mc.shape["A"] = dict(vertices=[(-0.5, -0.5, -0.5),
                                        (-0.5, -0.5, 0.5),
                                        (-0.5, 0.5, -0.5),
@@ -809,7 +816,7 @@ class Polyhedron(HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hpmc.integrate.Polyhedron(d=0.3, a=0.4, nselect=1)
+        mc = hpmc.integrate.Polyhedron(default_d=0.3, default_a=0.4, nselect=1)
         cube_verts = [(-0.5, -0.5, -0.5),
                       (-0.5, -0.5, 0.5),
                       (-0.5, 0.5, -0.5),
@@ -887,13 +894,14 @@ class Polyhedron(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoPolyhedron'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -930,10 +938,10 @@ class ConvexPolyhedron(HPMCIntegrator):
     """Hard convex polyhedron Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -953,7 +961,7 @@ class ConvexPolyhedron(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.ConvexPolyhedron(d=0.3, a=0.4)
+        mc = hpmc.integrate.ConvexPolyhedron(default_d=0.3, default_a=0.4)
         mc.shape["A"] = dict(vertices=[(0.5, 0.5, 0.5),
                                        (0.5, -0.5, -0.5),
                                        (-0.5, 0.5, -0.5),
@@ -962,8 +970,8 @@ class ConvexPolyhedron(HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hpmc.integrate.ConvexPolyhedron(d=0.3,
-                                             a=0.4,
+        mc = hpmc.integrate.ConvexPolyhedron(default_d=0.3,
+                                             default_a=0.4,
                                              nselect=1)
         mc.shape["A"] = dict(vertices=[(0.5, 0.5, 0.5),
                                        (0.5, -0.5, -0.5),
@@ -1001,13 +1009,14 @@ class ConvexPolyhedron(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedron'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1035,10 +1044,10 @@ class FacetedEllipsoid(HPMCIntegrator):
     r"""Hard faceted ellipsoid Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1061,7 +1070,7 @@ class FacetedEllipsoid(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.FacetedEllipsoid(d=0.3, a=0.4)
+        mc = hpmc.integrate.FacetedEllipsoid(default_d=0.3, default_a=0.4)
 
         # half-space intersection
         slab_normals = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)]
@@ -1088,7 +1097,7 @@ class FacetedEllipsoid(HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hpmc.integrate.FacetedEllipsoid(d=0.3, a=0.4)
+        mc = hpmc.integrate.FacetedEllipsoid(default_d=0.3, default_a=0.4)
         mc.shape["A"] = dict(normals=[(-1,0,0),
                                       (1,0,0),
                                       (0,-1,0),
@@ -1143,13 +1152,14 @@ class FacetedEllipsoid(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoid'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1174,10 +1184,10 @@ class Sphinx(HPMCIntegrator):
     """Hard sphinx particle Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1194,13 +1204,13 @@ class Sphinx(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.Sphinx(d=0.3, a=0.4)
+        mc = hpmc.integrate.Sphinx(default_d=0.3, default_a=0.4)
         mc.shape["A"] = dict(centers=[(0,0,0),(1,0,0)], diameters=[1,.25])
         print('diameters = ', mc.shape["A"]["diameters"])
 
     Depletants Example::
 
-        mc = hpmc.integrate.Sphinx(d=0.3, a=0.4, nselect=1)
+        mc = hpmc.integrate.Sphinx(default_d=0.3, default_a=0.4, nselect=1)
         mc.shape["A"] = dict(centers=[(0,0,0), (1,0,0)], diameters=[1, -.25])
         mc.shape["B"] = dict(centers=[(0,0,0)], diameters=[.15])
         mc.depletant_fugacity["B"] = 3.0
@@ -1223,13 +1233,14 @@ class Sphinx(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoSphinx'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1245,10 +1256,10 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
     """Hard convex spheropolyhedron Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1269,7 +1280,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.ConvexSpheropolyhedron(d=0.3, a=0.4)
+        mc = hpmc.integrate.ConvexSpheropolyhedron(default_d=0.3, default_a=0.4)
         mc.shape['tetrahedron'] = dict(vertices=[(0.5, 0.5, 0.5),
                                                  (0.5, -0.5, -0.5),
                                                  (-0.5, 0.5, -0.5),
@@ -1282,7 +1293,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
 
     Depletants example::
 
-        mc = hpmc.integrate.ConvexSpheropolyhedron(d=0.3, a=0.4)
+        mc = hpmc.integrate.ConvexSpheropolyhedron(default_d=0.3, default_a=0.4)
         mc.shape["tetrahedron"] = dict(vertices=[(0.5, 0.5, 0.5),
                                                  (0.5, -0.5, -0.5),
                                                  (-0.5, 0.5, -0.5),
@@ -1316,13 +1327,14 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoSpheropolyhedron'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1350,10 +1362,10 @@ class Ellipsoid(HPMCIntegrator):
     """Hard ellipsoid Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1370,7 +1382,7 @@ class Ellipsoid(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.Ellipsoid(d=0.3, a=0.4)
+        mc = hpmc.integrate.Ellipsoid(default_d=0.3, default_a=0.4)
         mc.shape["A"] = dict(a=0.5, b=0.25, c=0.125);
         print('ellipsoids parameters (a,b,c) = ',
               mc.shape["A"]["a"],
@@ -1379,7 +1391,7 @@ class Ellipsoid(HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hpmc.integrate.Ellipsoid(d=0.3, a=0.4, nselect=1)
+        mc = hpmc.integrate.Ellipsoid(default_d=0.3, default_a=0.4, nselect=1)
         mc.shape["A"] = dict(a=0.5, b=0.25, c=0.125);
         mc.shape["B"] = dict(a=0.05, b=0.05, c=0.05);
         mc.depletant_fugacity["B"] = 3.0
@@ -1402,13 +1414,14 @@ class Ellipsoid(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoEllipsoid'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1436,10 +1449,10 @@ class SphereUnion(HPMCIntegrator):
     """Hard sphere union Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1461,7 +1474,7 @@ class SphereUnion(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.SphereUnion(d=0.3, a=0.4)
+        mc = hpmc.integrate.SphereUnion(default_d=0.3, default_a=0.4)
         sphere1 = dict(diameter=1)
         sphere2 = dict(diameter=2)
         mc.shape["A"] = dict(shapes=[sphere1, sphere2],
@@ -1474,7 +1487,7 @@ class SphereUnion(HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hpmc.integrate.SphereUnion(d=0.3, a=0.4, nselect=1)
+        mc = hpmc.integrate.SphereUnion(default_d=0.3, default_a=0.4, nselect=1)
         mc.shape["A"] = dict(diameters=[1.0, 1.0],
                              centers=[(-0.25, 0.0, 0.0),
                                       (0.25, 0.0, 0.0)]);
@@ -1512,13 +1525,14 @@ class SphereUnion(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoSphereUnion'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -1565,10 +1579,10 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
     """Hard convex spheropolyhedron union Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1591,8 +1605,8 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
 
     Example::
 
-        mc = hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion(d=0.3,
-                                                              a=0.4)
+        mc = hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion(default_d=0.3,
+                                                              default_a=0.4)
         cube_verts = [[-1,-1,-1],
                       [-1,-1,1],
                       [-1,1,1],
@@ -1642,13 +1656,14 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedronUnion'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -1683,10 +1698,10 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
     """Hard convex spheropolyhedron union Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
+        default_d (float): Default maximum size of displacement trial moves
             (distance units).
 
-        a (float): Default maximum size of rotation trial moves.
+        default_a (float): Default maximum size of rotation trial moves.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1709,7 +1724,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.FacetedEllipsoidUnion(d=0.3, a=0.4)
+        mc = hpmc.integrate.FacetedEllipsoidUnion(default_d=0.3, default_a=0.4)
 
         # make a prolate Janus ellipsoid
         # cut away -x halfspace
@@ -1784,13 +1799,14 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoidUnion'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(d, a, translation_move_probability, nselect)
+        super().__init__(default_d, default_a, translation_move_probability,
+                         nselect)
 
         typeparam_shape = TypeParameter(
             'shape',

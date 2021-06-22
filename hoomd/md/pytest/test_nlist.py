@@ -84,7 +84,7 @@ def test_simple_simulation(nlist_params, simulation_factory,
                            lattice_snapshot_factory):
     nlist_cls, required_args = nlist_params
     nlist = nlist_cls(**required_args)
-    lj = hoomd.md.pair.LJ(nlist, r_cut=1.1)
+    lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
     lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
     lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
     lj.params[('B', 'B')] = dict(epsilon=1, sigma=1)
