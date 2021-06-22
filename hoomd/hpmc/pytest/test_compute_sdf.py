@@ -9,8 +9,10 @@ def test_before_attaching():
 
     assert sdf.xmax == 0.02
     assert sdf.dx == 1e-4
-    assert sdf.sdf is None
-    assert sdf.betaP is None
+    with pytest.raises(hoomd.error.DataAccessError):
+        sdf.sdf
+    with pytest.raises(hoomd.error.DataAccessError):
+        sdf.betaP
 
 
 def test_after_attaching(valid_args, simulation_factory,
