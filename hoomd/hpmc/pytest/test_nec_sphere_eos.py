@@ -47,9 +47,9 @@ def test_sphere_eos_nec(betap, phi, simulation_factory,
     sim.operations.tuners.append(tune_nec_d)
 
     tune_nec_ct = hoomd.hpmc.tune.ChainTime.scale_solver(triggerTune,
-                                                         target=20,
-                                                         tol=1,
-                                                         gamma=20)
+                                                         target=20.0,
+                                                         tol=1.0,
+                                                         gamma=20.0)
     sim.operations.tuners.append(tune_nec_ct)
 
     #equilibrate

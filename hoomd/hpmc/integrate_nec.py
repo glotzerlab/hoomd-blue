@@ -8,6 +8,7 @@ import sys
 from hoomd.hpmc.integrate import HPMCIntegrator
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
+from hoomd.data.typeconverter import OnlyTypes
 
 from hoomd.logging import log
 
@@ -30,10 +31,39 @@ class HPMCNECIntegrator(HPMCIntegrator):
         super().__init__(d, a, 0.5, nselect)
 
         # Set base parameter dict for hpmc chain integrators
-        param_dict = ParameterDict(chain_probability=float(chain_probability),
-                                   chain_time=float(chain_time),
-                                   update_fraction=float(update_fraction))
+        param_dict = ParameterDict(
+            chain_probability=OnlyTypes(
+                float, postprocess=self._process_chain_probability),
+            chain_time=OnlyTypes(float, postprocess=self._process_chain_time),
+            update_fraction=OnlyTypes(
+                float, postprocess=self._process_update_fraction))
         self._param_dict.update(param_dict)
+        self.chain_probability = chain_probability
+        self.chain_time = chain_time
+        self.update_fraction = update_fraction
+
+    def _process_chain_probability(self, value):
+        if 0.0 < value <= 1.0:
+            return value
+        else:
+            raise ValueError(
+                "chain_probability has to be between 0 and 1 (got {}).".format(
+                    value))
+
+    def _process_chain_time(self, value):
+        if 0.0 <= value:
+            return value
+        else:
+            raise ValueError(
+                "chain_time has to be positive (got {}).".format(value))
+
+    def _process_update_fraction(self, value):
+        if 0.0 < value <= 1.0:
+            return value
+        else:
+            raise ValueError(
+                "update_fraction has to be between 0 and 1. (got {})".format(
+                    value))
 
     def _attach(self):
         super()._attach()
@@ -108,7 +138,8 @@ class Sphere(HPMCNECIntegrator):
     R""" HPMC chain integration for spheres (2D/3D).
 
     Args:
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types,
+            or a dict containing {type:size} to set by type.
         chain_time (float): length of a chain in units of time.
         update_fraction (float): number of chains to be done as fraction of N.
         nselect (int): The number of repeated updates to perform in each cell.
@@ -186,8 +217,9 @@ class ConvexPolyhedron(HPMCNECIntegrator):
             or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a
             dict containing {type:size} to set by type.
-        chain_probability (float): Ratio of chains to rotation moves. As there
-            should be several particles in a chain it will be small. See example.
+        chain_probability (float): Ratio of chains to rotation moves. As
+            there should be several particles in a chain it will be small.
+            See example.
         chain_time (float):
         update_fraction (float):
         nselect (int): Number of repeated updates for the cell/system.
@@ -196,8 +228,8 @@ class ConvexPolyhedron(HPMCNECIntegrator):
         see ``ConvexPolyhedron``
 
     Warning:
-        HPMC does not check that all requirements are met. Undefined behavior will result if they are
-        violated.
+        HPMC does not check that all requirements are met. Undefined behavior
+        will result if they are violated.
 
     Example:
 
@@ -207,8 +239,10 @@ class ConvexPolyhedron(HPMCNECIntegrator):
 
         sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1)
 
-        mc = hoomd.hpmc.integrate_nec.Sphere(d=0.05, update_fraction=0.05)
-        mc.shape['A'] = dict(diameter=1)
+        mc = hoomd.hpmc.integrate_nec.ConvexPolyhedron(d=1.0, a=0.05,
+            chain_probability=0.1, nselect=10)
+        mc.shape['A'] = dict(vertices=[[1,1,1], [1,1,-1], [1,-1,1], [1,-1,-1],
+            [-1,1,1], [-1,1,-1], [-1,-1,1], [-1,-1,-1]])
         mc.chain_time = 0.05
         sim.operations.integrator = mc
 

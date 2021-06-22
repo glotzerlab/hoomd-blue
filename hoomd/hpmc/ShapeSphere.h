@@ -302,6 +302,53 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
         }
     }
 
+//! sphere sweep distance
+/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
+    \param a first shape
+    \param b second shape
+    \param err in/out variable incremented when error conditions occur in the overlap test
+    \returns true when *a* and *b* overlap, and false when they are disjoint
+
+    \ingroup shape
+*/
+DEVICE inline OverlapReal sweep_distance(const vec3<Scalar>& r_ab,
+                                 const ShapeSphere& a,
+                                 const ShapeSphere& b,
+                                 const vec3<Scalar>& direction,
+                                 unsigned int& err,
+                                 vec3<Scalar>& collisionPlaneVector
+)
+    {
+    double sumR   =   a.params.radius + b.params.radius;
+    double distSQ = dot(r_ab,r_ab);
+
+    double d_parallel =  dot(r_ab, direction);
+    if( d_parallel   <= 0 ) // Moving apart
+        {
+        return -1.0;
+        }; 
+
+    double discriminant = sumR*sumR - distSQ + d_parallel*d_parallel;
+    if( discriminant < 0 ) // orthogonal distance larger than sum of radii
+        {
+        return -2.0;
+        }; 
+
+    double newDist = d_parallel - fast::sqrt( discriminant );
+
+    if( newDist > 0)
+        {
+        collisionPlaneVector = r_ab - direction * newDist ;
+        return newDist;
+        }
+    else
+        {
+        // Two particles overlapping [with negative sweepable distance]
+        collisionPlaneVector = r_ab;
+        return -10.0;
+        }
+    }
+
 namespace detail
     {
 //! APIs for depletant sampling

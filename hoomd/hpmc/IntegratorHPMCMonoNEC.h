@@ -83,15 +83,21 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         */
         void setChainProbability(Scalar chain_probability)
             {
+            // For use with the random number generator we convert the
+            // translation move probability into a 16bit unsigned integer.
+            static auto INT_PROBABILITY_CEILING = 65536;
             this->m_exec_conf->msg->notice(10) << "IntegratorHPMCMonoNEC<Shape>::setChainProbability(" << chain_probability << ")" << std::endl;
-            m_chain_probability = static_cast<unsigned int>(chain_probability * 65536.0);
+            m_chain_probability = static_cast<unsigned int>(chain_probability * INT_PROBABILITY_CEILING );
             }
 
         //! Get move ratio
         //! \returns ratio of translation versus rotation move attempts
         inline Scalar getChainProbability()
             {
-            return m_chain_probability / 65536.0;
+            // For use with the random number generator we convert the
+            // translation move probability into a 16bit unsigned integer.
+            static auto INT_PROBABILITY_CEILING = 65536;
+            return Scalar(m_chain_probability) / INT_PROBABILITY_CEILING;
             }
 
         //! Change update_fraction
@@ -103,6 +109,10 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
                 {
                 this->m_exec_conf->msg->notice(10) << "IntegratorHPMCMonoNEC<Shape>::setUpdateFraction(" << update_fraction << ")" << std::endl;
                 m_update_fraction = update_fraction;
+                }
+            else
+                {
+                this->m_exec_conf->msg->error() << "IntegratorHPMCMonoNEC<Shape>::setUpdateFraction(); Value " << update_fraction << " is out of range (0,1]." << std::endl;
                 }
             }
 
@@ -179,49 +189,14 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
                              int typ_i,
                              vec3<Scalar>& pos_i,
                              Scalar4 postype_i,
-                             ShapeSphere& shape_i,
+                             Shape& shape_i,
                              ArrayHandle<unsigned int>& h_overlaps,
                              ArrayHandle<Scalar4>& h_postype,
                              ArrayHandle<Scalar4>& h_orientation,
                              hpmc_nec_counters_t& nec_counters,
                              vec3<Scalar>& collisionPlaneVector
                             );
-        /*!
-         This function measures the distance ConvexPolyhedron 'i' could move in
-         'direction' until it would hit another particle.
 
-         To enhance logic and speed the distance is limited to the parameter
-         maxSweep.
-
-         Much of the layout is based on the checkForOverlap function.
-         \param direction Where are we going?
-         \param maxSweep  How far will we go maximal
-         \param i
-         \param next
-         \param typ_i
-         \param pos_i
-         \param postype_i
-         \param shape_i
-         \param h_overlaps
-         \param h_postype
-         \param h_orientation
-         \param counters
-         \param collisionPlaneVector
-         */
-        double sweepDistance(vec3<Scalar>& direction,
-                             double maxSweep,
-                             unsigned int i,
-                             int& next,
-                             int typ_i,
-                             vec3<Scalar>& pos_i,
-                             Scalar4 postype_i,
-                             ShapeConvexPolyhedron& shape_i,
-                             ArrayHandle<unsigned int>& h_overlaps,
-                             ArrayHandle<Scalar4>& h_postype,
-                             ArrayHandle<Scalar4>& h_orientation,
-                             hpmc_nec_counters_t& nec_counters,
-                             vec3<Scalar>& collisionPlaneVector
-                            );
 
     public:
 
@@ -931,7 +906,8 @@ bool IntegratorHPMCMonoNEC< Shape >::checkForOverlap(unsigned int i,
     return overlap;
     }
 
-// sweepableDistance for spheres
+
+// sweepableDistance
 template< class Shape >
 double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
                                                     double maxSweep,
@@ -940,7 +916,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
                                                     int typ_i,
                                                     vec3<Scalar>& pos_i,
                                                     Scalar4 postype_i,
-                                                    ShapeSphere& shape_i,
+                                                    Shape& shape_i,
                                                     ArrayHandle<unsigned int>& h_overlaps,
                                                     ArrayHandle<Scalar4>& h_postype,
                                                     ArrayHandle<Scalar4>& h_orientation,
@@ -951,154 +927,6 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
     double sweepableDistance = maxSweep;
 
     direction *= fast::rsqrt(dot(direction,direction));
-
-    detail::AABB aabb_i_current = shape_i.getAABB(vec3<Scalar>(0,0,0));
-    detail::AABB aabb_i_future  = aabb_i_current;
-    aabb_i_future.translate(maxSweep * direction);
-
-    detail::AABB aabb_i_test    = detail::merge( aabb_i_current, aabb_i_future );
-
-
-    // All image boxes (including the primary)
-    const unsigned int n_images = static_cast<unsigned int>(this->m_image_list.size());
-    for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-        {
-        vec3<Scalar> pos_i_image = pos_i + this->m_image_list[cur_image];
-        detail::AABB aabb = aabb_i_test;
-        aabb.translate(pos_i_image);
-
-        // stackless search
-        for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
-            {
-            if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
-                {
-                if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
-                    {
-                    for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
-                        {
-                        // read in its position and orientation
-                        unsigned int j = this->m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                        Scalar4 postype_j;
-                        Scalar4 orientation_j;
-
-                        // handle j==i situations
-                        if ( j != i )
-                            {
-                            // load the position and orientation of the j particle
-                            postype_j = h_postype.data[j];
-                            orientation_j = h_orientation.data[j];
-                            }
-                        else
-                            {
-                            if (cur_image == 0)
-                                {
-                                // in the first image, skip i == j
-                                continue;
-                                }
-                            else
-                                {
-                                // If this is particle i and we are in an outside image, use the translated position and orientation
-                                postype_j = make_scalar4(pos_i.x, pos_i.y, pos_i.z, postype_i.w);
-                                orientation_j = quat_to_scalar4(shape_i.orientation);
-                                }
-                            }
-
-                        // put particles in coordinate system of particle i
-                        vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
-
-                        unsigned int typ_j = __scalar_as_int(postype_j.w);
-                        Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
-
-                        nec_counters.distance_queries++;
-
-
-                        if ( h_overlaps.data[this->m_overlap_idx(typ_i, typ_j)])
-                            {
-                            double sumR   =   shape_i.params.radius
-                                            + shape_j.params.radius;
-                            double maxR   = sumR + sweepableDistance;
-                            double distSQ = dot(r_ij,r_ij);
-
-                            if( distSQ < maxR*maxR )
-                                {
-                                double d_parallel =  dot(r_ij, direction);
-                                if( d_parallel   <= 0 ) continue; // Moving apart
-
-                                double discriminant = sumR*sumR - distSQ + d_parallel*d_parallel;
-                                if( discriminant < 0 )
-                                    {
-                                    // orthogonal distance larger than sum of radii
-                                    continue;
-                                    }
-
-                                double newDist = d_parallel - fast::sqrt( discriminant );
-
-                                if( newDist > 0)
-                                    {
-                                    if( newDist < sweepableDistance )
-                                        {
-                                        sweepableDistance = newDist;
-                                        next = j;
-                                        // calculate delta_pos on touch
-                                        collisionPlaneVector = r_ij - direction * newDist ;
-                                        }
-                                    else
-                                        {
-                                        if( newDist == sweepableDistance )
-                                            {
-                                            this->m_exec_conf->msg->error() << "Two particles with the same distance" << std::endl;
-                                            }
-                                        }
-                                    }
-                                else
-                                    {
-                                    this->m_exec_conf->msg->error() << "Two particles overlapping [with negative sweepable distance]." << i << " and " << j  << std::endl;
-                                    this->m_exec_conf->msg->error() << "Proceeding with the new particle without moving the initial one" << std::endl;
-
-                                    sweepableDistance = 0.0;
-                                    next = j;
-                                    collisionPlaneVector = r_ij;
-
-                                    return sweepableDistance;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            else
-                {
-                // skip ahead
-                cur_node_idx += this->m_aabb_tree.getNodeSkip(cur_node_idx);
-                }
-            }  // end loop over AABB nodes
-        } // end loop over images
-
-    return sweepableDistance;
-    }
-
-
-
-
-// sweepableDistance for convex polyhedron
-template< class Shape >
-double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
-                                                    double maxSweep,
-                                                    unsigned int i,
-                                                    int& next,
-                                                    int typ_i,
-                                                    vec3<Scalar>& pos_i,
-                                                    Scalar4 postype_i,
-                                                    ShapeConvexPolyhedron& shape_i,
-                                                    ArrayHandle<unsigned int>& h_overlaps,
-                                                    ArrayHandle<Scalar4>& h_postype,
-                                                    ArrayHandle<Scalar4>& h_orientation,
-                                                    hpmc_nec_counters_t& nec_counters,
-                                                    vec3<Scalar>& collisionPlaneVector
-                                                   )
-    {
-    double sweepableDistance = maxSweep;
 
     detail::AABB aabb_i_current = shape_i.getAABB(vec3<Scalar>(0,0,0));
     detail::AABB aabb_i_future  = aabb_i_current;
@@ -1168,13 +996,13 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
                             double maxR =   shape_i.getCircumsphereDiameter()
                                           + shape_j.getCircumsphereDiameter();
                             maxR /= 2;
-                            maxR += sweepableDistance;//maxSweep;
+                            maxR += sweepableDistance;
 
                             if( dot(r_ij,r_ij) < maxR*maxR )
                                 {
                                 double newDist = sweep_distance(r_ij, shape_i, shape_j, direction, nec_counters.overlap_err_count, newCollisionPlaneVector);
 
-                                if( newDist >= 0 and newDist < sweepableDistance )
+                                if( newDist >= 0.0 and newDist < sweepableDistance )
                                     {
                                     collisionPlaneVector = newCollisionPlaneVector;
                                     sweepableDistance = newDist;
@@ -1192,8 +1020,6 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
                                             sweepableDistance = 0.0;
                                             }
                                         }
-
-
 
                                     if( newDist == sweepableDistance )
                                         {

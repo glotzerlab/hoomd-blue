@@ -190,7 +190,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         if (d < tol)
             {
             collisionPlaneVector = n;
-            return dot(n,v1) / dot(n,v0);
+            return dot(n,v4) / dot(n,v0);
             }
 
         // As v4 is not in plane yet, update the portal for the next iteration.

@@ -89,18 +89,6 @@ class _InternalChainTime(_InternalAction):
 
     def __init__(self, target, solver, max_chain_time=None):
 
-        def target_postprocess(target):
-
-            def check_range(value):
-                if 0 <= value <= 1000:
-                    return value
-                raise ValueError(
-                    "Value {} should be between 0 and 1000.".format(value))
-
-            self._chain_time_def.target = check_range(target)
-            self._tuned = 0
-            return target
-
         # A flag for knowing when to update the maximum move sizes
         self._update_chain_time = False
 
@@ -114,29 +102,45 @@ class _InternalChainTime(_InternalAction):
         self._tuned = 0
         self._is_attached = False
 
-        # set up maximum trial move sizes
-        def flag_chain_time_update(value):
-            self._update_chain_time = True
-            return value
-
         self._chain_time_def = _ChainTimeTuneDefinition(
             target, (self._min_chain_time, max_chain_time))
 
-        # This is a bit complicated because we are having to ensure that we keep
-        # the list of tunables and the solver updated with the changes to
-        # attributes. However, these are simply forwarding a change along.
-        param_dict = ParameterDict(target=OnlyTypes(
-            float, postprocess=target_postprocess),
-                                   solver=SolverStep,
-                                   max_chain_time=OnlyTypes(float,
-                                                            allow_none=True),
-                                   min_chain_time=OnlyTypes(float))
+        param_dict = ParameterDict(
+            target=OnlyTypes(float,
+                             postprocess=self._process_chain_time_target),
+            solver=SolverStep,
+            max_chain_time=OnlyTypes(
+                float,
+                allow_none=True,
+                postprocess=self._process_chain_time_range),
+            min_chain_time=OnlyTypes(
+                float, postprocess=self._process_chain_time_range))
 
         self._param_dict.update(param_dict)
         self.target = target
         self.solver = solver
         self.max_chain_time = max_chain_time
         self.min_chain_time = self._min_chain_time
+
+    def _process_chain_time_range(self, target):
+        # check range
+        if 0 <= target:
+            pass
+        else:
+            raise ValueError("Chain time {} should be between 0 and 1000.".format(target))
+        self._tuned = 0
+        return target
+
+    def _process_chain_time_target(self, target):
+        # check range
+        if 0 <= target <= 1000:
+            pass
+        else:
+            raise ValueError("Value {} should be between 0 and 1000.".format(target))
+
+        self._chain_time_def.target = target
+        self._tuned = 0
+        return target
 
     def attach(self, simulation):
         if not isinstance(simulation.operations.integrator, HPMCNECIntegrator):
