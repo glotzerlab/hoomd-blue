@@ -1162,15 +1162,12 @@ class ExpandedMie(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        default_r_cut (float): Default cutoff radius
-        :math:`[\\mathrm{length}]`.
-        defult_r_on (float): Default turn-on radius
-        :math:`[\\mathrm{length}]`.
+        default_r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
+        defult_r_on (float): Default turn-on radius :math:`[\\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `ExpandedMie` specifies that a radially shifted Mie pair potential
-    should be applied between every non-excluded particle pair in the
-    simulation.
+    `ExpandedMie` specifies that a radially shifted Mie pair potential should be
+    applied between every non-excluded particle pair in the simulation.
 
     .. math::
         :nowrap:
@@ -1187,32 +1184,35 @@ class ExpandedMie(Pair):
     `Pair` for details on how forces are calculated and the available energy
     shifting and smoothing modes.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
+
+        The potential parameters. The dictionary has the following keys:
+
           * ``epsilon`` (`float`, **required**) - :math:`\\varepsilon`
-          :math:`[\\mathrm{energy}]`
+            :math:`[\\mathrm{energy}]`
           * ``sigma`` (`float`, **required**) - :math:`\\sigma`
-          :math:`[\\mathrm{length}]`.
+            :math:`[\\mathrm{length}]`.
           * ``n`` (`float`, **required**) -
-          :math:`n` :math:`[\\mathrm{dimensionless}]`.
+            :math:`n` :math:`[\\mathrm{dimensionless}]`.
           * ``m`` (`float`, **required**) -
-          :math:`m` :math:`[\\mathrm{dimensionless}]`.
+            :math:`m` :math:`[\\mathrm{dimensionless}]`.
           * ``delta`` (`float`, **required**) -
-          :math:`\\delta :math:`[\\mathrm{length}]`.
+            :math:`\\delta :math:`[\\mathrm{length}]`.
+
+        Type: `TypeParameter` [ `tuple` [``particle_type``, ``particle_type``],
+        `dict`]
 
     Example::
 
         nl = nlist.Cell()
         expanded_mie = pair.ExpandedMie(nlist=nl, default_r_cut=3.0)
-        mie.params[('A', 'B')] = \
-        dict(epsilon=1.0, sigma=1.0, n=12, m=6, delta=0.5)
-        expanded_mie.default_r_cut[('A', 'B')] = 2**(1.0/6.0)
-        expanded_mie.default_r_on[('A', 'B')] = 2.0
-        expanded_mie.params[(['A', 'B'], ['C', 'D'])] = \
-        dict(epsilon=1.5, sigma=2.0, n=12, m=6, delta=0.5))
+        mie.params[('A', 'B')] = {
+            "epsilon": 1.0, "sigma": 1.0, "n": 12, "m": 6,
+            "delta": 0.5}
+        expanded_mie.r_cut[('A', 'B')] = 2**(1.0 / 6.0)
+        expanded_mie.params[(['A', 'B'], ['C', 'D'])] = {
+            "epsilon": 1.5, "sigma": 2.0, "n": 12, "m": 6,
+            "delta": 0.5}
     """
     _cpp_class_name = "PotentialPairExpandedMie"
 
