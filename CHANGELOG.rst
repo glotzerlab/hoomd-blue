@@ -4,6 +4,9 @@ Change Log
 v3.x
 ----
 
+*Removed*
+- [developers] C++ and Python implementations of ``constraint_ellipsoid``, from ``hoomd.md.update`` and ``sphere`` and ``oneD`` from ``hoomd.md.constrain``.
+
 v3.0.0-beta.7 (2021-06-16)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

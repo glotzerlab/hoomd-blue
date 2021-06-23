@@ -50,7 +50,7 @@ def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 
 
 def test_rcut(simulation_factory, two_particle_snapshot_factory):
-    lj = md.pair.LJ(nlist=md.nlist.Cell(), r_cut=2.5)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(), default_r_cut=2.5)
     assert lj.r_cut.default == 2.5
 
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
@@ -76,13 +76,13 @@ def test_invalid_mode():
     cell = md.nlist.Cell()
     for invalid_mode in [1, 'str', [1, 2, 3]]:
         with pytest.raises(TypeConversionError):
-            md.pair.LJ(nlist=cell, r_cut=2.5, mode=invalid_mode)
+            md.pair.LJ(nlist=cell, default_r_cut=2.5, mode=invalid_mode)
 
 
 @pytest.mark.parametrize("mode", ['none', 'shift', 'xplor'])
 def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
     cell = md.nlist.Cell()
-    lj = md.pair.LJ(nlist=cell, r_cut=2.5, mode=mode)
+    lj = md.pair.LJ(nlist=cell, default_r_cut=2.5, mode=mode)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     snap = two_particle_snapshot_factory(dimensions=3, d=.5)
     sim = simulation_factory(snap)
@@ -95,7 +95,7 @@ def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
 
 
 def test_ron(simulation_factory, two_particle_snapshot_factory):
-    lj = md.pair.LJ(nlist=md.nlist.Cell(), mode='xplor', r_cut=2.5)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(), mode='xplor', default_r_cut=2.5)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     with pytest.raises(TypeConversionError):
         lj.r_on[('A', 'A')] = 'str'
@@ -603,7 +603,7 @@ def valid_params(request):
 def test_valid_params(valid_params):
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5)
+                                      default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     assert _equivalent_data_structures(valid_params.pair_potential_params,
@@ -636,7 +636,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5)
+                                      default_r_cut=2.5)
     pot.params = valid_params.pair_potential_params
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
@@ -663,7 +663,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5)
+                                      default_r_cut=2.5)
     pot.params = valid_params.pair_potential_params
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
@@ -710,7 +710,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     r_on = 0.5
     r = 1.0
 
-    lj = md.pair.LJ(nlist=md.nlist.Cell(), r_cut=r_cut)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(), default_r_cut=r_cut)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=r))
@@ -735,7 +735,9 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     if energies is not None:
         E_rcut = sum(energies)
 
-    lj_shift = md.pair.LJ(nlist=md.nlist.Cell(), mode='shift', r_cut=r_cut)
+    lj_shift = md.pair.LJ(nlist=md.nlist.Cell(),
+                          mode='shift',
+                          default_r_cut=r_cut)
     lj_shift.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(lj_shift)
@@ -754,7 +756,9 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     if energies is not None:
         assert sum(energies) == E_r - E_rcut
 
-    lj_xplor = md.pair.LJ(nlist=md.nlist.Cell(), mode='xplor', r_cut=r_cut)
+    lj_xplor = md.pair.LJ(nlist=md.nlist.Cell(),
+                          mode='xplor',
+                          default_r_cut=r_cut)
     lj_xplor.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     lj_xplor.r_on[('A', 'A')] = 0.5
     integrator = md.Integrator(dt=0.005)
@@ -824,7 +828,7 @@ def test_force_energy_relationship(simulation_factory,
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5)
+                                      default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
 
@@ -929,8 +933,7 @@ def test_force_energy_accuracy(simulation_factory,
 
     pot = forces_and_energies.pair_potential(**forces_and_energies.extra_args,
                                              nlist=md.nlist.Cell(),
-                                             r_cut=2.5,
-                                             mode='none')
+                                             default_r_cut=2.5)
     pot.params[('A', 'A')] = forces_and_energies.pair_potential_params
     snap = two_particle_snapshot_factory(particle_types=['A'], d=0.75)
     _update_snap(forces_and_energies.pair_potential, snap)
@@ -995,7 +998,7 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory,
     _skip_if_triplet_gpu_mpi(sim, valid_params.pair_potential)
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5)
+                                      default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     pickling_check(pot)
