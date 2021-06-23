@@ -212,6 +212,22 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
         .def("getTypeShapesPy", &AnisoPotentialPairDipole::getTypeShapesPy);
     }
 
+//! Export setParamsPython and getParams as a different name
+// Electric field only has one parameter, so we can get its parameter from
+// python with by a name other than getParams and setParams
+template<>
+void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& m,
+                                                              const std::string& name)
+    {
+    pybind11::class_<PotentialExternalElectricField,
+                     ForceCompute,
+                     std::shared_ptr<PotentialExternalElectricField>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+        .def("setE", &PotentialExternalElectricField::setParamsPython)
+        .def("getE", &PotentialExternalElectricField::getParams)
+        .def("setField", &PotentialExternalElectricField::setField);
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -279,13 +295,14 @@ PYBIND11_MODULE(_md, m)
     m.def("make_wall_field_params", &make_wall_field_params);
     export_PotentialExternal<PotentialExternalPeriodic>(m, "PotentialExternalPeriodic");
     export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
-    export_PotentialExternalWall<EvaluatorPairLJ>(m, "WallsPotentialLJ");
-    export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
-    export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
-    export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
-    export_PotentialExternalWall<EvaluatorPairMie>(m, "WallsPotentialMie");
-    export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
-    export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
+    // TODO: Port walls to HOOMD v3
+    // export_PotentialExternalWall<EvaluatorPairLJ>(m, "WallsPotentialLJ");
+    // export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
+    // export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
+    // export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
+    // export_PotentialExternalWall<EvaluatorPairMie>(m, "WallsPotentialMie");
+    // export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
+    // export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
 #ifdef ENABLE_HIP
     export_NeighborListGPU(m);
@@ -379,6 +396,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>(
         m,
         "PotentialExternalElectricFieldGPU");
+    /*
     export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>(m, "WallsPotentialLJGPU");
     export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
         m,
@@ -394,6 +412,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(
         m,
         "WallsPotentialMorseGPU");
+    */
 #endif
 
     // updaters

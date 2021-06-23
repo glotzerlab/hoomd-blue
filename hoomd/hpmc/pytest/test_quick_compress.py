@@ -121,7 +121,7 @@ def test_sphere_compression(phi, simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory(snap)
     sim.operations.updaters.append(qc)
 
-    mc = hoomd.hpmc.integrate.Sphere(d=0.05)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
@@ -155,7 +155,7 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory(snap)
     sim.operations.updaters.append(qc)
 
-    mc = hoomd.hpmc.integrate.Sphere(d=0.05)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
@@ -179,7 +179,7 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
                                          target_box=hoomd.Box.square(10.))
 
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc = hoomd.hpmc.integrate.Sphere(d=0.05)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
     operation_pickling_check(qc, sim)
