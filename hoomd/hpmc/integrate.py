@@ -487,7 +487,7 @@ class ConvexPolygon(HPMCIntegrator):
 
     Examples::
 
-        mc = hoomd.hpmc.integrate.ConvexPolygon(d=0.3, a=0.4)
+        mc = hoomd.hpmc.integrate.ConvexPolygon(default_d=0.3, default_a=0.4)
         mc.shape["A"] = dict(vertices=[(-0.5, -0.5),
                                        (0.5, -0.5),
                                        (0.5, 0.5),
