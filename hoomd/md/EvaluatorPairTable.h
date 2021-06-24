@@ -55,7 +55,7 @@ class EvaluatorPairTable
         //! Define the parameter type used by this pair potential evaluator
         struct param_type
             {
-            unsigned int width;   //!< the distance between table indices
+            size_t width;   //!< the distance between table indices
             Scalar rmin;    //!< the distance of the first index of the table potential
             ManagedArray<Scalar> V_table; //!< the tabulated energy
             ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
@@ -76,8 +76,10 @@ class EvaluatorPairTable
                 auto V_py = v["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
                 auto F_py = v["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
                 if (V_py.size() != F_py.size())
-                    {throw std::runtime_error("The length of V and F arrays must be equal");}
-                width = (unsigned int)V_py.size();
+                    {
+                    throw std::runtime_error("The length of V and F arrays must be equal");
+                    }
+                width = V_py.size();
                 rmin = v["r_min"].cast<Scalar>();
                 V_table = ManagedArray<Scalar>(width, false, 32);
                 F_table = ManagedArray<Scalar>(width, false, 32);
