@@ -528,47 +528,53 @@ class Ewald(Pair):
 
 
 class Table(Pair):
-    """ Tabulated pair potential.
+    """Tabulated pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
 
-    :py:class:`Table` specifies that a tabulated pair potential should be applied between every
-    non-excluded particle pair in the simulation.
+    :py:class:`Table` specifies that a tabulated pair potential should be
+    applied between every non-excluded particle pair in the simulation.
 
     Note:
-        For potentials that diverge near r=0, make sure to set *rmin* to a reasonable value. If a potential does
-        not diverge near r=0, then a setting of *rmin=0* is valid.
+        For potentials that diverge near r=0, make sure to set *rmin* to a
+        reasonable value. If a potential does not diverge near r=0, then a
+        setting of *rmin=0* is valid.
 
     The force :math:`\vec{F}` is (in force units):
 
     .. math::
         :nowrap:
 
-        \begin{eqnarray*}
-        \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
-                             = & F_{\mathrm{user}}(r)\hat{r} & r_{\mathrm{min}} \le r < r_{\mathrm{max}} \\
-                             = & 0                           & r \ge r_{\mathrm{max}} \\
-        \end{eqnarray*}
+        \\begin{eqnarray*}
+        \\vec{F}(\\vec{r}) = & 0 & r < r_{\\mathrm{min}} \\\\
+                           = & F_{\\mathrm{user}}(r)\\hat{r}
+                             & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
+                           = & 0 & r \\ge r_{\\mathrm{max}} \\\\
+        \\end{eqnarray*}
 
     and the potential :math:`V(r)` is (in energy units)
 
     .. math::
         :nowrap:
 
-        \begin{eqnarray*}
-        V(r)       = & 0                    & r < r_{\mathrm{min}} \\
-                   = & V_{\mathrm{user}}(r) & r_{\mathrm{min}} \le r < r_{\mathrm{max}} \\
-                   = & 0                    & r \ge r_{\mathrm{max}} \\
-        \end{eqnarray*}
+        \\begin{eqnarray*}
+        V(r) = & 0 & r < r_{\\mathrm{min}} \\\\
+             = & V_{\\mathrm{user}}(r)
+               & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
+             = & 0 & r \\ge r_{\\mathrm{max}} \\\\
+        \\end{eqnarray*}
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other in the pair.
+    where :math:`\vec{r}` is the vector pointing from one particle to the other
+    in the pair.
 
-    :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)` are evaluated on *width* grid points between
-    :math:`r_{\mathrm{min}}` and :math:`r_{\mathrm{max}}`. Values are interpolated linearly between grid points.
-    For correctness, you must specify the force defined by: :math:`F = -\frac{\partial V}{\partial r}`.
+    :math:`F_{\\mathrm{user}}(r)` and :math:`V_{\\mathrm{user}}(r)` are
+    evaluated on *width* grid points between :math:`r_{\\mathrm{min}}` and
+    :math:`r_{\\mathrm{max}}`. Values are interpolated linearly between grid
+    points.  For correctness, you must specify the force defined by:
+    :math:`F = -\\frac{\\partial V}{\\partial r}`.
 
     Attributes:
         params (`TypeParameter` [\
