@@ -73,8 +73,8 @@ class EvaluatorPairTable
 
             param_type(pybind11::dict v)
                 {
-                auto V_py = v["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
-                auto F_py = v["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+                const auto V_py = v["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+                const auto F_py = v["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
                 if (V_py.size() != F_py.size())
                     {
                     throw std::runtime_error("The length of V and F arrays must be equal");
@@ -87,14 +87,13 @@ class EvaluatorPairTable
                 std::copy(&F_py[0], &F_py[0] + width, &F_table[0]);
                 }
 
-            pybind11::dict asDict()
+            pybind11::dict asDict() const
                 {
-                auto V = pybind11::array_t<Scalar>(width, V_table.get());
-                auto F = pybind11::array_t<Scalar>(width, F_table.get());
-                pybind11::dict params = pybind11::dict();
+                const auto V = pybind11::array_t<Scalar>(width, V_table.get());
+                const auto F = pybind11::array_t<Scalar>(width, F_table.get());
+                auto params = pybind11::dict();
                 params["V"] = V;
                 params["F"] = F;
-
                 params["r_min"] = rmin;
                 return params;
                 }
@@ -118,7 +117,7 @@ class EvaluatorPairTable
             }
 
         //! Table doesn't use diameter
-        DEVICE static bool needsDiameter() { return false; }
+        DEVICE static bool needsDiameter() { return false; } const
         //! Accept the optional diameter values
         /*! \param di Diameter of particle i
             \param dj Diameter of particle j
@@ -126,7 +125,7 @@ class EvaluatorPairTable
         DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
         //! Table doesn't use charge
-        DEVICE static bool needsCharge() { return false; }
+        DEVICE static bool needsCharge() { return false; } const
         //! Accept the optional diameter values
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
@@ -144,45 +143,46 @@ class EvaluatorPairTable
             \return True if they are evaluated or false if they are not because
             we are beyond the cutoff
         */
-        DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
+        DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, const bool energy_shift) const
             {
-            Scalar rcut = fast::sqrt(rcutsq);
-            Scalar r = fast::sqrt(rsq);
+            const Scalar r = fast::sqrt(rsq);
             // compute the force divided by r in force_divr
-            if (r < rcut && r >= rmin)
+            if (rsq >= rcutsq || r < rmin)
                 {
-                Scalar delta_r = (rcut - rmin) / width;
-                // precomputed term
-                Scalar value_f = (r - rmin) / delta_r;
-
-                // compute index into the table and read in values
-                unsigned int value_i = (unsigned int)floor(value_f);
-                // unpack the data
-                Scalar V0 = V_table[value_i];
-                Scalar V1 = 0;
-                Scalar F0 = F_table[value_i];
-                Scalar F1 = 0;
-                if (value_i + 1 < width)
-                    {
-                    V1 = V_table[value_i + 1];
-                    F1 = F_table[value_i + 1];
-                    }
-
-                // compute the linear interpolation coefficient
-                Scalar f = value_f - Scalar(value_i);
-
-                // interpolate to get V and F;
-                Scalar V = V0 + f * (V1 - V0);
-                Scalar F = F0 + f * (F1 - F0);
-
-                // convert to standard variables used by the other pair computes in HOOMD-blue
-                if (rsq > Scalar(0.0))
-                    force_divr = F / r;
-                pair_eng = V;
-                return true;
-                }
-            else
                 return false;
+                }
+            const Scalar rcut = fast::sqrt(rcutsq);
+            const Scalar delta_r = (rcut - rmin) / static_cast<Scalar>(width);
+            // precomputed term
+            const Scalar value_f = (r - rmin) / delta_r;
+
+            // compute index into the table and read in values
+            unsigned int value_i = static_cast<unsigned int>(floor(value_f));
+            // unpack the data
+            const Scalar V0 = V_table[value_i];
+            const Scalar F0 = F_table[value_i];
+            Scalar V1 = 0;
+            Scalar F1 = 0;
+            if (value_i + 1 < width)
+                {
+                V1 = V_table[value_i + 1];
+                F1 = F_table[value_i + 1];
+                }
+
+            // compute the linear interpolation coefficient
+            const Scalar f = value_f - Scalar(value_i);
+
+            // interpolate to get V and F;
+            const Scalar V = V0 + f * (V1 - V0);
+            const Scalar F = F0 + f * (F1 - F0);
+
+            // convert to standard variables used by the other pair computes in HOOMD-blue
+            if (rsq > Scalar(0.0))
+                {
+                force_divr = F / r;
+                }
+            pair_eng = V;
+            return true;
             }
 
         #ifndef __HIPCC__
@@ -203,7 +203,7 @@ class EvaluatorPairTable
     protected:
         Scalar rsq;     //!< distance squared
         Scalar rcutsq;  //!< the potential cuttoff distance squared
-        Scalar width;   //!< the distance between table indices
+        size_t width;   //!< the distance between table indices
         Scalar rmin;    //!< the distance of the first index of the table potential
         ManagedArray<Scalar> V_table; //!< the tabulated energy
         ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
