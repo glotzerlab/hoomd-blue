@@ -4,6 +4,9 @@ Change Log
 v3.x
 ----
 
+*Added*
+- Consistent documentation of parameter dimensions and units reference documentation.
+
 *Changed*
 - [breaking] Constructor arguments that set a default value per type or pair of types now have default in their name (e.g. `r_cut` to `default_r_cut` for pair potentials and `a` to `default_a` for HPMC integrators).
 
