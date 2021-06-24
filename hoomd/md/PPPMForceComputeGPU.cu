@@ -360,7 +360,7 @@ void gpu_assign_particles(const uint3 mesh_dim,
 
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork / run_block_size + 1;
-        unsigned int shared_bytes = (unsigned int)(order * (2 * order + 1) * sizeof(Scalar));
+        const size_t shared_bytes = order * (2 * order + 1) * sizeof(Scalar);
 
         hipLaunchKernelGGL((gpu_assign_particles_kernel),
                            dim3(n_blocks),
@@ -736,7 +736,7 @@ void gpu_compute_forces(const unsigned int N,
 
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork / run_block_size + 1;
-        unsigned int shared_bytes = (unsigned int)(order * (2 * order + 1) * sizeof(Scalar));
+        const size_t shared_bytes = order * (2 * order + 1) * sizeof(Scalar);
 
         hipLaunchKernelGGL(
             (gpu_compute_forces_kernel),

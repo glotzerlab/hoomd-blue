@@ -412,10 +412,9 @@ void narrow_phase_launcher(const hpmc_args_t& args,
             = static_cast<unsigned int>(args.num_types * sizeof(typename Shape::param_type)
                                         + args.overlap_idx.getNumElements() * sizeof(unsigned int));
 
-        unsigned int shared_bytes
-            = (unsigned int)(n_groups
-                                 * (2 * sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
-                             + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes);
+        size_t shared_bytes
+            = n_groups * (2 * sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
+              + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes;
 
         if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of "
@@ -438,9 +437,8 @@ void narrow_phase_launcher(const hpmc_args_t& args,
             n_groups = run_block_size / (tpp * overlap_threads);
             max_queue_size = n_groups * tpp;
 
-            shared_bytes = static_cast<unsigned int>(
-                n_groups * (2 * sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
-                + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes);
+            shared_bytes = n_groups * (2 * sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
+                           + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes;
             }
 
         // determine dynamically allocated shared memory size
