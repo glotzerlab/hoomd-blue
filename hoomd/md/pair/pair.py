@@ -605,13 +605,13 @@ class Table(Pair):
     """
     _cpp_class_name = "PotentialPairTable"
 
-    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-        super().__init__(nlist, r_cut, r_on, mode)
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(r_min=float,
-                              V=numpy.ndarray,
-                              F=numpy.ndarray,
+                              V=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                              F=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
                               len_keys=2))
         self._add_typeparam(params)
 
