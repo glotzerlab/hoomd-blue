@@ -55,10 +55,10 @@ class EvaluatorPairTable
         //! Define the parameter type used by this pair potential evaluator
         struct param_type
             {
-            unsigned int width;
-            Scalar rmin;
-            ManagedArray<Scalar> V_table;
-            ManagedArray<Scalar> F_table;
+            Scalar width;   //!< the distance between table indices
+            Scalar rmin;    //!< the distance of the first index of the table potential
+            ManagedArray<Scalar> V_table; //!< the tabulated energy
+            ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
 
             #ifdef ENABLE_HIP
             //! Set CUDA memory hints
@@ -186,8 +186,7 @@ class EvaluatorPairTable
 
         #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {
@@ -201,12 +200,12 @@ class EvaluatorPairTable
         #endif
 
     protected:
-        Scalar rsq;     //!< Stored rsq from the constructor
-        Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        Scalar width;   //!< extracted from the params passed to the constructor
-        Scalar rmin;
-        ManagedArray<Scalar> V_table; //!< extracted from the params passed to the constructor
-        ManagedArray<Scalar> F_table; //!< extracted from the params passed to the constructor
+        Scalar rsq;     //!< distance squared
+        Scalar rcutsq;  //!< the potential cuttoff distance squared
+        Scalar width;   //!< the distance between table indices
+        Scalar rmin;    //!< the distance of the first index of the table potential
+        ManagedArray<Scalar> V_table; //!< the tabulated energy
+        ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
     };
 
 #endif
