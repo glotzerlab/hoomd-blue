@@ -26,14 +26,20 @@ should execute in less than 10 minutes.
 Running tests
 -------------
 
-Execute the following commands to run the tests:
+Change to the build directory and execute the following commands to run the tests:
 
 * ``ctest`` - Executes C++ tests
 * ``python3 -m pytest hoomd``
 
-CTest_ must be run in the build directory. When you run pytest_ outside of the build
-directory, it will the test ``hoomd`` package that Python imports (which may not be the version just
-built).
+pytest_ may be run outside the build directory by:
+* Passing a full path to the build: ``python3 -m pytest <build-directory>/hoomd``
+* After installing to an environment: ``python3 -m pytest --pyargs hoomd``
+
+.. note::
+
+    ``python3 -m pytest --pyargs hoomd`` tests the hoomd installation it finds by `import hoomd`,
+    which may not be the one you just built. You must also change to a directory outside the
+    source, otherwise ``import hoomd`` attempts to import the uncompiled source.
 
 .. seealso::
 
@@ -53,7 +59,7 @@ configured before running ``ctest``.
 pytest_ tests may also be executed with MPI with 2 ranks. pytest_ does not natively support
 MPI. Execute it with the provided wrapper script in the build directory::
 
-    mpirun -n 2 hoomd/pytest/pytest-openmpi.sh -v -x hoomd
+    mpirun -n 2 build/hoomd/hoomd/pytest/pytest-openmpi.sh -v -x build/hoomd
 
 The wrapper script displays the outout of rank 0 and redirects rank 1's output to a file. Inspect
 this file when a test fails on rank 1. This will result in an ``MPI_ABORT`` on rank 0 (assuming the
@@ -77,12 +83,19 @@ Running validation tests
 Longer running validation tests do not execute by default. Run these with the ``--validate`` command
 line option to pytest::
 
-    $ python3 -m pytest hoomd --validate -m validate
-    $ mpirun -n 2 hoomd/pytest/pytest-openmpi.sh hoomd -v -x -ra --validate -m validate
+    $ python3 -m pytest build/hoomd --validate -m validate
+    $ mpirun -n 2 hoomd/pytest/pytest-openmpi.sh build/hoomd -v -x -ra --validate -m validate
 
 .. note::
 
     The ``-m validate`` option selects *only* the validation tests.
+
+.. note::
+
+    To run validation tests on an installed ``hoomd`` package, you need to specify additional
+    options::
+
+        python3 -m pytest --pyargs hoomd -p hoomd.pytest_plugin_validate -m validate --validate
 
 Implementing tests
 ------------------

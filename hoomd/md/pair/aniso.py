@@ -31,17 +31,18 @@ class AnisotropicPair(Pair):
 
     Args:
         nlist (hoomd.md.nlist.NList) : The neighbor list.
-        r_cut (`float`, optional) : The default cutoff for the potential,
-            defaults to ``None`` which means no cutoff (units: [length]).
+        default_r_cut (`float`, optional) : The default cutoff for the
+            potential, defaults to ``None`` which means no cutoff
+            :math:`[\mathrm{length}]`.
         mode (`str`, optional) : the energy shifting mode, defaults to "none".
     """
 
-    def __init__(self, nlist, r_cut=None, mode="none"):
+    def __init__(self, nlist, default_r_cut=None, mode="none"):
         self._nlist = OnlyTypes(md.nlist.NList, strict=True)(nlist)
         tp_r_cut = TypeParameter('r_cut', 'particle_types',
                                  TypeParameterDict(positive_real, len_keys=2))
-        if r_cut is not None:
-            tp_r_cut.default = r_cut
+        if default_r_cut is not None:
+            tp_r_cut.default = default_r_cut
         self._param_dict.update(ParameterDict(mode=OnlyFrom(['none', 'shift'])))
         self.mode = mode
         self._add_typeparam(tp_r_cut)
@@ -65,8 +66,7 @@ class Dipole(AnisotropicPair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (units: [length]).
-        r_on (float): Default turn-on radius (units: [length]).
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode
 
     `Dipole` computes the (screened) interaction between pairs of
@@ -105,9 +105,11 @@ class Dipole(AnisotropicPair):
         keys:
 
         * ``A`` (`float`, **required**) - :math:`A` - electrostatic energy
-          scale (*default*: 1.0) (units: [energy] [length] [charge]^-2)
+          scale (*default*: 1.0)
+          :math:`[\mathrm{energy} \cdot \mathrm{length} \cdot
+          \mathrm{charge}^{-2}]`
         * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse
-          screening length (units: [length]^-1)
+          screening length :math:`[\mathrm{length}^{-1}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -115,8 +117,8 @@ class Dipole(AnisotropicPair):
     .. py:attribute:: mu
 
         :math:`\mu` - the magnetic magnitude of the particle local reference
-        frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`) (units:
-        [charge] [length]).
+        frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`)
+        :math:`[\mathrm{charge} \cdot \mathrm{length}]`.
 
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
         `float` ]]
@@ -124,14 +126,14 @@ class Dipole(AnisotropicPair):
     Example::
 
         nl = nlist.Cell()
-        dipole = md.pair.Dipole(nl, r_cut=3.0)
+        dipole = md.pair.Dipole(nl, default_r_cut=3.0)
         dipole.params[('A', 'B')] = dict(A=1.0, kappa=4.0)
         dipole.mu['A'] = (4.0, 1.0, 0.0)
     """
     _cpp_class_name = "AnisoPotentialPairDipole"
 
-    def __init__(self, nlist, r_cut=None, mode='none'):
-        super().__init__(nlist, r_cut, mode)
+    def __init__(self, nlist, default_r_cut=None, mode='none'):
+        super().__init__(nlist, default_r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(A=float, kappa=float, len_keys=2))
@@ -147,8 +149,7 @@ class GayBerne(AnisotropicPair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (units: [length]).
-        r_on (float): Default turn-on radius (units: [length]).
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode.
 
     `GayBerne` computes the Gay-Berne potential between anisotropic
@@ -203,12 +204,12 @@ class GayBerne(AnisotropicPair):
         The Gay-Berne potential parameters. The dictionary has the following
         keys:
 
-        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (units:
-          [energy])
-        * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (units:
-          [length])
-        * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (units:
-          [length])
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+          :math:`[\mathrm{energy}]`
+        * ``lperp`` (`float`, **required**) - :math:`\ell_\perp`
+          :math:`[\mathrm{length}]`
+        * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel`
+          :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -217,15 +218,15 @@ class GayBerne(AnisotropicPair):
     Example::
 
         nl = nlist.Cell()
-        gay_berne = md.pair.GayBerne(nlist=nl, r_cut=2.5)
+        gay_berne = md.pair.GayBerne(nlist=nl, default_r_cut=2.5)
         gay_berne.params[('A', 'A')] = dict(epsilon=1.0, lperp=0.45, lpar=0.5)
         gay_berne.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
 
     """
     _cpp_class_name = "AnisoPotentialPairGB"
 
-    def __init__(self, nlist, r_cut=None, mode='none'):
-        super().__init__(nlist, r_cut, mode)
+    def __init__(self, nlist, default_r_cut=None, mode='none'):
+        super().__init__(nlist, default_r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(epsilon=float,

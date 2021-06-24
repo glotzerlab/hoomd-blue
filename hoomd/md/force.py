@@ -46,35 +46,36 @@ class Force(_HOOMDBaseObject):
 
     @log(requires_run=True)
     def energy(self):
-        """float: Sum of the energy of the whole system."""
+        """float: Sum of the energy of the whole system \
+        :math:`[\\mathrm{energy}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.calcEnergySum()
 
     @log(category="particle", requires_run=True)
     def energies(self):
         """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The \
-        energies for all particles."""
+        energies for all particles :math:`[\\mathrm{energy}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getEnergies()
 
     @log(category="particle", requires_run=True)
     def forces(self):
         """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The \
-        forces for all particles."""
+        forces for all particles :math:`[\\mathrm{force}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getForces()
 
     @log(category="particle", requires_run=True)
     def torques(self):
         """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque \
-        for all particles."""
+        for all particles :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getTorques()
 
     @log(category="particle", requires_run=True)
     def virials(self):
         """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial \
-        for all particles."""
+        for all particles :math:`[\\mathrm{energy}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getVirials()
 
@@ -83,11 +84,14 @@ class constant(Force):  # noqa - this will be renamed when it is ported to v3
     R"""Constant force.
 
     Args:
-        fvec (tuple): force vector (in force units)
-        tvec (tuple): torque vector (in torque units)
+        fvec (tuple): force vector :math:`[force]`
+        tvec (tuple): torque vector :math:`[force \cdot length]`
         fx (float): x component of force, retained for backwards compatibility
+          :math:`[\mathrm{force}]`
         fy (float): y component of force, retained for backwards compatibility
+          :math:`[\mathrm{force}]`
         fz (float): z component of force, retained for backwards compatibility
+          :math:`[\mathrm{force}]`
         group (``hoomd.group``): Group for which the force will be set.
         callback (`callable`): A python callback invoked every time the forces
             are computed
@@ -179,9 +183,9 @@ class constant(Force):  # noqa - this will be renamed when it is ported to v3
     R""" Change the value of the constant force.
 
     Args:
-        fx (float) New x-component of the force (in force units)
-        fy (float) New y-component of the force (in force units)
-        fz (float) New z-component of the force (in force units)
+        fx (float) New x-component of the force :math:`[\mathrm{force}]`
+        fy (float) New y-component of the force :math:`[\mathrm{force}]`
+        fz (float) New z-component of the force :math:`[\mathrm{force}]`
         fvec (tuple) New force vector
         tvec (tuple) New torque vector
         group Group for which the force will be set
@@ -292,13 +296,18 @@ class Active(Force):
         filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
             active forces.
         rotation_diff (float): rotational diffusion constant, :math:`D_r`, for
-            all particles in the group.
+            all particles in the group
+            :math:`[\mathrm{radian}^{2} \cdot \mathrm{time}^{-1}]`.
         active_force (tuple): active force vector in reference to the
-            orientation of a particle. It is defined per particle type and stays
-            constant during the simulation.
+            orientation of a particle :math:`[\mathrm{force}]`.
+            It is defined per particle type and stays constant during
+            the simulation.
         active_torque (tuple): active torque vector in reference to the
-            orientation of a particle. It is defined per particle type and stays
-            constant during the simulation.
+            orientation of a particle
+            :math:`[\mathrm{force} \cdot \mathrm{length}]`.
+            It is defined per particle type and stays constant
+            during the simulation.
+
 
     :py:class:`Active` specifies that an active force should be added to all
     particles.  Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where
