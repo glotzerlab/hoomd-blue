@@ -32,8 +32,8 @@ class AnisotropicPair(Pair):
     Args:
         nlist (hoomd.md.nlist.NList) : The neighbor list.
         default_r_cut (`float`, optional) : The default cutoff for the
-            potential, defaults to ``None`` which means no cutoff (units:
-            [length]).
+            potential, defaults to ``None`` which means no cutoff
+            :math:`[\mathrm{length}]`.
         mode (`str`, optional) : the energy shifting mode, defaults to "none".
     """
 
@@ -66,7 +66,7 @@ class Dipole(AnisotropicPair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        default_r_cut (float): Default cutoff radius (units: [length]).
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode
 
     `Dipole` computes the (screened) interaction between pairs of
@@ -105,9 +105,11 @@ class Dipole(AnisotropicPair):
         keys:
 
         * ``A`` (`float`, **required**) - :math:`A` - electrostatic energy
-          scale (*default*: 1.0) (units: [energy] [length] [charge]^-2)
+          scale (*default*: 1.0)
+          :math:`[\mathrm{energy} \cdot \mathrm{length} \cdot
+          \mathrm{charge}^{-2}]`
         * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse
-          screening length (units: [length]^-1)
+          screening length :math:`[\mathrm{length}^{-1}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -115,8 +117,8 @@ class Dipole(AnisotropicPair):
     .. py:attribute:: mu
 
         :math:`\mu` - the magnetic magnitude of the particle local reference
-        frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`) (units:
-        [charge] [length]).
+        frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`)
+        :math:`[\mathrm{charge} \cdot \mathrm{length}]`.
 
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
         `float` ]]
@@ -147,7 +149,7 @@ class GayBerne(AnisotropicPair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        default_r_cut (float): Default cutoff radius (units: [length]).
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode.
 
     `GayBerne` computes the Gay-Berne potential between anisotropic
@@ -202,12 +204,12 @@ class GayBerne(AnisotropicPair):
         The Gay-Berne potential parameters. The dictionary has the following
         keys:
 
-        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (units:
-          [energy])
-        * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (units:
-          [length])
-        * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (units:
-          [length])
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+          :math:`[\mathrm{energy}]`
+        * ``lperp`` (`float`, **required**) - :math:`\ell_\perp`
+          :math:`[\mathrm{length}]`
+        * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel`
+          :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
