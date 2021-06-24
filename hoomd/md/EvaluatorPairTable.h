@@ -55,7 +55,7 @@ class EvaluatorPairTable
         //! Define the parameter type used by this pair potential evaluator
         struct param_type
             {
-            Scalar width;   //!< the distance between table indices
+            unsigned int width;   //!< the distance between table indices
             Scalar rmin;    //!< the distance of the first index of the table potential
             ManagedArray<Scalar> V_table; //!< the tabulated energy
             ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
@@ -87,15 +87,14 @@ class EvaluatorPairTable
 
             pybind11::dict asDict()
                 {
-                V = pybind11::array_t<Scalar>({width}, V_table.get());
-                F = pybind11::array_t<Scalar>({width}, F_table.get());
-                params = pybind11::dict();
+                auto V = pybind11::array_t<Scalar>({width}, V_table.get());
+                auto F = pybind11::array_t<Scalar>({width}, F_table.get());
+                pybind11::dict params = pybind11::dict();
                 params["V"] = V;
                 params["F"] = F;
 
-
-                v["r_min"] = rmin;
-                return v;
+                params["r_min"] = rmin;
+                return params;
                 }
             #endif
             }
