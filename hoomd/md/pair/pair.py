@@ -609,10 +609,11 @@ class Table(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(r_min=float,
-                              V=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
-                              F=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
-                              len_keys=2))
+            TypeParameterDict(
+                r_min=float,
+                V=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                F=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                len_keys=2))
         self._add_typeparam(params)
 
 
