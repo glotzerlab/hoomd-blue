@@ -87,8 +87,8 @@ class EvaluatorPairTable
 
             pybind11::dict asDict()
                 {
-                auto V = pybind11::array_t<Scalar>({width}, V_table.get());
-                auto F = pybind11::array_t<Scalar>({width}, F_table.get());
+                auto V = pybind11::array_t<Scalar>(width, V_table.get());
+                auto F = pybind11::array_t<Scalar>(width, F_table.get());
                 pybind11::dict params = pybind11::dict();
                 params["V"] = V;
                 params["F"] = F;
