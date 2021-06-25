@@ -110,12 +110,10 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timest
         quat<Scalar> quati(h_orientation.data[idx]);
 
 
-        vec3<Scalar> current_pos(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+        Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
 
-        Scalar3 norm_scalar3 = m_manifold.derivative(vec_to_scalar3(current_pos));
-        Scalar norm_normal = fast::rsqrt(dot(norm_scalar3, norm_scalar3));
-        norm_scalar3 *= norm_normal;
-        vec3<Scalar> norm(norm_scalar3);
+        vec3<Scalar> norm = vec3<Scalar>(m_manifold.derivative(current_pos));
+        norm.normalize();
 
         Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
 
@@ -153,12 +151,10 @@ template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstra
 
         if (h_f_actVec.data[type].w != 0)
             {
-            vec3<Scalar> current_pos(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+            Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
 
-            Scalar3 norm_scalar3 = m_manifold.derivative(vec_to_scalar3(current_pos));
-            Scalar norm_normal = fast::rsqrt(dot(norm_scalar3, norm_scalar3));
-            norm_scalar3 *= norm_normal;
-            vec3<Scalar> norm = vec3<Scalar>(norm_scalar3);
+            vec3<Scalar> norm = vec3<Scalar>(m_manifold.derivative(current_pos));
+            norm.normalize();
 
             vec3<Scalar> f(h_f_actVec.data[type].x,
                                      h_f_actVec.data[type].y,

@@ -86,6 +86,15 @@ template<class Real> struct vec3
         z = tz;
         }
 
+    //! Normalize the vector
+    DEVICE void normalize()
+        {
+	Real norm = fast::rsqrt(x*x + y*y + z*z);
+        x *= norm;
+        y *= norm;
+        z *= norm;
+        }
+
     Real x; //!< x-component of the vector
     Real y; //!< y-component of the vector
     Real z; //!< z-component of the vector
@@ -374,6 +383,14 @@ template<class Real> struct vec2
         v.y = y;
         x = tx;
         y = ty;
+        }
+
+    //! Normalize the vector
+    DEVICE void normalize()
+        {
+	Real norm = fast::rsqrt(x*x + y*y);
+        x *= norm;
+        y *= norm;
         }
 
     Real x; //!< x-component of the vector
