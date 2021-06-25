@@ -51,5 +51,6 @@
     "cSpell.enableFiletypes": [
         "cuda"
     ],
-    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "python.pythonPath": "/usr/bin/python3"
 }
