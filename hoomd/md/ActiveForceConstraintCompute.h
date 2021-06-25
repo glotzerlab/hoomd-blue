@@ -31,7 +31,8 @@ class PYBIND11_EXPORT ActiveForceConstraintCompute : public ActiveForceCompute
     ActiveForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<ParticleGroup> group,
                                  Scalar rotation_diff,
-                                 Manifold manifold);
+                                 Manifold manifold,
+				 Scalar deltaT);
     //
     //! Destructor
     ~ActiveForceConstraintCompute();
@@ -65,8 +66,9 @@ template<class Manifold>
 ActiveForceConstraintCompute<Manifold>::ActiveForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<ParticleGroup> group,
                                  Scalar rotation_diff,
-                                 Manifold manifold)
-        : ActiveForceCompute(sysdef, group, rotation_diff), m_manifold(manifold), m_box_changed(true)
+                                 Manifold manifold,
+				 Scalar deltaT)
+        : ActiveForceCompute(sysdef, group, rotation_diff, deltaT), m_manifold(manifold), m_box_changed(true)
         {
          m_pdata->getBoxChangeSignal().template connect<ActiveForceConstraintCompute<Manifold>, &ActiveForceConstraintCompute<Manifold>::setBoxChange>(this);
         }
@@ -107,18 +109,22 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timest
 
         quat<Scalar> quati(h_orientation.data[idx]);
 
+
         vec3<Scalar> current_pos(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+
         Scalar3 norm_scalar3 = m_manifold.derivative(vec_to_scalar3(current_pos));
         Scalar norm_normal = fast::rsqrt(dot(norm_scalar3, norm_scalar3));
         norm_scalar3 *= norm_normal;
         vec3<Scalar> norm(norm_scalar3);
 
         Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
+
         Scalar theta
             = delta_theta
               / 2.0; // half angle to calculate the quaternion which represents the rotation
         quat<Scalar> rot_quat(slow::cos(theta),
                               slow::sin(theta) * norm); // rotational diffusion quaternion
+
 
         quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
         h_orientation.data[idx] = quat_to_scalar4(quati);
@@ -239,7 +245,8 @@ void export_ActiveForceConstraintCompute(pybind11::module& m, const std::string&
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       Scalar,
-                      Manifold>());
+                      Manifold,
+		      Scalar>());
     }
 
 #endif

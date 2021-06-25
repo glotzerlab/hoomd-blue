@@ -395,6 +395,7 @@ class Active(Force):
 
         # initialize the reflected c++ class
         sim = self._simulation
+
         if self.manifold_constraint is None:
             if isinstance(sim.device, hoomd.device.CPU):
                 my_class = _md.ActiveForceCompute
@@ -403,7 +404,8 @@ class Active(Force):
 
             self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                      sim.state._get_group(self.filter),
-                                     self.rotation_diff)
+                                     self.rotation_diff,
+                                     sim.operations.integrator.dt)
         else:
 
             if not self.manifold_constraint._attached:
@@ -421,7 +423,8 @@ class Active(Force):
             self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                      sim.state._get_group(self.filter),
                                      self.rotation_diff,
-                                     self.manifold_constraint._cpp_obj)
+                                     self.manifold_constraint._cpp_obj,
+                                     sim.operations.integrator.dt)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
