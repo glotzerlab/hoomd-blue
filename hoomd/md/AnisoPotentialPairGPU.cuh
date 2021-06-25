@@ -296,7 +296,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                 unsigned int typpair
                     = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
                 Scalar rcutsq = s_rcutsq[typpair];
-                typename evaluator::param_type param = s_params[typpair];
+                const typename evaluator::param_type param = s_params[typpair];
 
                 // design specifies that energies are shifted if
                 // 1) shift mode is set to shift
@@ -417,8 +417,8 @@ struct AnisoPairForceComputeKernel
 
     static void launch(const a_pair_args_t& pair_args,
                        std::pair<unsigned int, unsigned int> range,
-                       const typename evaluator::param_type* params,
-                       const typename evaluator::shape_type* shape_params)
+                       typename evaluator::param_type* params,
+                       typename evaluator::shape_type* shape_params)
         {
         unsigned int N = range.second - range.first;
         unsigned int offset = range.first;
@@ -537,8 +537,8 @@ struct AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
 */
 template<class evaluator>
 hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
-                                         const typename evaluator::param_type* d_params,
-                                         const typename evaluator::shape_type* d_shape_params)
+                                         typename evaluator::param_type* d_params,
+                                         typename evaluator::shape_type* d_shape_params)
     {
     assert(d_params);
     assert(pair_args.d_rcutsq);

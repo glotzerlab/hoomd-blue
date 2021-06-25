@@ -670,7 +670,7 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
 
             // get parameters for this type pair
             unsigned int typpair_idx = m_typpair_idx(typei, typej);
-            param_type param = h_params.data[typpair_idx];
+            const param_type& param = h_params.data[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
             Scalar ronsq = Scalar(0.0);
             if (m_shift_mode == xplor)

@@ -8,6 +8,7 @@
 
 #include "AnisoPotentialPair.h"
 
+#include "EvaluatorPairALJ.h"
 #include "EvaluatorPairDipole.h"
 #include "EvaluatorPairGB.h"
 
@@ -25,6 +26,10 @@
 typedef AnisoPotentialPair<EvaluatorPairGB> AnisoPotentialPairGB;
 //! Pair potential force compute for dipole forces and torques
 typedef AnisoPotentialPair<EvaluatorPairDipole> AnisoPotentialPairDipole;
+//! Pair potential force compute for 2D anisotropic LJ forces and torques
+typedef AnisoPotentialPair<EvaluatorPairALJ<2>> AnisoPotentialPairALJ2D;
+//! Pair potential force compute for 3D anisotropic LJ forces and torques
+typedef AnisoPotentialPair<EvaluatorPairALJ<3>> AnisoPotentialPairALJ3D;
 
 #ifdef ENABLE_HIP
 //! Pair potential force compute for Gay-Berne forces and torques on the GPU
@@ -33,6 +38,12 @@ typedef AnisoPotentialPairGPU<EvaluatorPairGB, gpu_compute_pair_aniso_forces_gb>
 //! Pair potential force compute for dipole forces and torques on the GPU
 typedef AnisoPotentialPairGPU<EvaluatorPairDipole, gpu_compute_pair_aniso_forces_dipole>
     AnisoPotentialPairDipoleGPU;
+//! Pair potential force compute for 2D anisotropic LJ forces and torques on the GPU
+typedef AnisoPotentialPairGPU<EvaluatorPairALJ<2>, gpu_compute_pair_aniso_forces_ALJ_2D>
+    AnisoPotentialPairALJ2DGPU;
+//! Pair potential force compute for 3D anisotropicl LJ forces and torques on the GPU
+typedef AnisoPotentialPairGPU<EvaluatorPairALJ<3>, gpu_compute_pair_aniso_forces_ALJ_3D>
+    AnisoPotentialPairALJ3DGPU;
 #endif
 
 //
