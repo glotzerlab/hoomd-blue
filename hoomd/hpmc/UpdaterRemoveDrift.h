@@ -54,12 +54,12 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         {
         const size_t N = ref_pos.request().shape[0];
         const size_t dim = ref_pos.request().shape[1];
-        if (N != this->m_pdata->getN() || dim != 3)
+        if (N != this->m_pdata->getNGlobal() || dim != 3)
             {
             throw std::runtime_error("The array must be of shape (N_particles, 3).");
             }
         const double* rawdata = static_cast<double*>(ref_pos.request().ptr);
-        m_ref_positions.resize(m_pdata->getN());
+        m_ref_positions.resize(m_pdata->getNGlobal());
         for (size_t i = 0; i < N; i++)
             {
             const size_t array_index = i * 3;
