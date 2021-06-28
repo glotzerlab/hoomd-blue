@@ -9,6 +9,14 @@ from hoomd.conftest import operation_pickling_check
 import pytest
 import hoomd.hpmc.pytest.conftest
 import numpy as np
+try:
+    from mpi4py import MPI
+    skip_mpi = False
+except ImportError:
+    skip_mpi = True
+
+skip_mpi = pytest.mark.skipif(skip_mpi,
+                              reason="MPI4py is not importable.")
 
 # note: The parameterized tests validate parameters so we can't pass in values
 # here that require preprocessing
@@ -124,6 +132,47 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 
     setattr(remove_drift, attr, value)
     assert np.all(getattr(remove_drift, attr) == value)
+
+
+@skip_mpi
+@pytest.mark.cpu
+def test_remove_drift(simulation_factory,lattice_snapshot_factory):
+    """Test that RemoveDrift modifies positions correctly"""
+    sim = simulation_factory(
+        lattice_snapshot_factory(particle_types=['A'],
+                                 dimensions=3,
+                                 a=4,
+                                 n=10,
+                                 r=0))
+    sim.seed = 19233
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
+    mc.shape["A"] = dict(diameter=1.0)
+    sim.operations.integrator = mc
+
+    # use initial lattice configuration as reference
+    comm = MPI.COMM_WORLD
+    s = sim.state.snapshot
+    if s.communicator.rank == 0:
+        reference_positions = s.particles.position
+    else:
+        reference_positions = None
+    reference_positions = comm.bcast(reference_positions, root=0)
+
+    # randomize a bit
+    sim.run(100)
+
+    # remove the drift from the previous run
+    remove_drift = hoomd.hpmc.update.RemoveDrift(
+        trigger=hoomd.trigger.Periodic(1),
+        reference_positions=reference_positions)
+    sim.operations.updaters.append(remove_drift)
+    sim.run(1)
+
+    s = sim.state.snapshot
+    if s.communicator.rank == 0:
+        reference_com = np.mean(reference_positions,axis=0)
+        new_com = np.mean(s.particles.position, axis=0)
+        assert np.allclose(reference_com, new_com, atol=0.05)
 
 
 @pytest.mark.cpu
