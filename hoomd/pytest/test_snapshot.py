@@ -128,6 +128,7 @@ def test_configuration(s):
 def test_wrap(s):
 
     def generate_outside(box, inside, multipliers):
+        """Generate test cases from interior points by adding lattice vectors."""
         a = numpy.array([box[0], 0, 0])
         b = numpy.array([box[1] * box[3], box[1], 0])
         c = numpy.array([box[2] * box[4], box[2] * box[5], box[2]])
@@ -140,6 +141,7 @@ def test_wrap(s):
         return out.reshape((-1, 3)), ins.reshape((-1, 3))
 
     if s.communicator.rank == 0:
+        # multiples of lattice vectors to add to interior points to generate tests
         multiples = [
             [0, 0, 0],
             [1, 0, 0],
@@ -182,7 +184,6 @@ def test_wrap(s):
         inside = [[1, 0, 0], [2.4, 5, 0], [-2.5, 0, 0], [-2.5, -5.5, 0]]
         multiples2d = [[0, 0, 0], [1, 0, 0], [-1, 0, 0], [-10, 20, 0]]
         outs, ins = generateOutside(box, inside, multiples2d)
-
         s.configuration.box = box
         s.particles.N = len(ins)
         s.particles.position[:] = outs
