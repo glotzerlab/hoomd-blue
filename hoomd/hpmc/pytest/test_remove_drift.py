@@ -136,7 +136,7 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 @skip_mpi
 @pytest.mark.cpu
 def test_remove_drift(simulation_factory, lattice_snapshot_factory):
-    """Test that RemoveDrift modifies positions correctly"""
+    """Test that RemoveDrift modifies positions correctly."""
     sim = simulation_factory(
         lattice_snapshot_factory(particle_types=['A'],
                                  dimensions=3,
