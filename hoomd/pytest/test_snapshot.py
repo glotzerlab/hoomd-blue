@@ -162,7 +162,7 @@ def test_wrap(s):
         s.particles.N = len(ins)
         s.particles.position[:] = outs
         s.wrap()
-        numpy.testing.assert_allclose(s.particles.position, ins)
+        numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
 
         # triclinic box
         box = [10, 12, 7, 0.1, 0.4, 0.2]
@@ -175,7 +175,7 @@ def test_wrap(s):
         s.particles.N = len(ins)
         s.particles.position[:] = outs
         s.wrap()
-        numpy.testing.assert_allclose(s.particles.position, ins)
+        numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
 
         # 2D box
         box = [5, 11, 0, 0, 0, 0]
@@ -187,7 +187,7 @@ def test_wrap(s):
         s.particles.N = len(ins)
         s.particles.position[:] = outs
         s.wrap()
-        numpy.testing.assert_allclose(s.particles.position, ins)
+        numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
 
         # tetragonal box
         box = [7, 7, 4, 0, 0, 0]
@@ -198,7 +198,7 @@ def test_wrap(s):
         s.particles.N = len(ins)
         s.particles.position[:] = outs
         s.wrap()
-        numpy.testing.assert_allclose(s.particles.position, ins)
+        numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
 
         # orthorhombic box
         box = [8, 6, 4, 0, 0, 0]
@@ -209,7 +209,7 @@ def test_wrap(s):
         s.particles.N = len(ins)
         s.particles.position[:] = outs
         s.wrap()
-        numpy.testing.assert_allclose(s.particles.position, ins)
+        numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
 
         # monoclinic box
         box = [7, 4, 8, 0, 0.25, 0]
@@ -219,7 +219,7 @@ def test_wrap(s):
         s.particles.N = len(ins)
         s.particles.position[:] = outs
         s.wrap()
-        numpy.testing.assert_allclose(s.particles.position, ins)
+        numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
 
 
 def test_particles(s):
