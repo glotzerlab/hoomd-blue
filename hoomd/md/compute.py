@@ -30,8 +30,8 @@ class ThermodynamicQuantities(_Thermo):
     :py:class:`ThermodynamicQuantities` acts on a given group of particles and
     calculates thermodynamic properties of those particles when requested. All
     specified :py:class:`ThermodynamicQuantities` objects can be added to a
-    logger for logging during a simulation, see :py:class:`hoomd.logging.Logger`
-    for more details.
+    logger for logging during a simulation,
+    see :py:class:`hoomd.logging.Logger` for more details.
 
     Examples::
 
@@ -53,26 +53,28 @@ class ThermodynamicQuantities(_Thermo):
 
     @log(requires_run=True)
     def kinetic_temperature(self):
-        r""":math:`kT_k`, instantaneous thermal energy of the group [energy].
+        """:math:`kT_k`, instantaneous thermal energy of the group \
+        :math:`[\\mathrm{energy}]`.
 
         Calculated as:
 
           .. math::
 
-            kT_k = 2 \cdot \frac{K}{N_{\mathrm{dof}}}
+            kT_k = 2 \\cdot \\frac{K}{N_{\\mathrm{dof}}}
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.kinetic_temperature
 
     @log(requires_run=True)
     def pressure(self):
-        r""":math:`P`, instantaneous pressure of the group (in pressure units).
+        """:math:`P`, instantaneous pressure of the group \
+        :math:`[\\mathrm{pressure}]`.
 
         Calculated as:
 
         .. math::
 
-            P = \frac{ 2 \cdot K_{\mathrm{trans}} + W }{D \cdot V},
+            P = \\frac{ 2 \\cdot K_{\\mathrm{trans}} + W }{D \\cdot V},
 
         where :math:`D` is the dimensionality of the system, :math:`V` is the
         total volume of the simulation box (or area in 2D), and :math:`W` is
@@ -80,12 +82,12 @@ class ThermodynamicQuantities(_Thermo):
 
         .. math::
 
-            W = \frac{1}{2} \sum_{i \in \mathrm{filter}} \sum_{j}
-            \vec{F}_{ij} \cdot \vec{r_{ij}} + \sum_{k} \vec{F}_{k} \cdot
-            \vec{r_{k}},
+            W = \\frac{1}{2} \\sum_{i \\in \\mathrm{filter}} \\sum_{j}
+            \\vec{F}_{ij} \\cdot \\vec{r_{ij}} + \\sum_{k} \\vec{F}_{k} \\cdot
+            \\vec{r_{k}},
 
-        where :math:`i` and :math:`j` are particle tags, :math:`\vec{F}_{ij}`
-        are pairwise forces between particles and :math:`\vec{F}_k` are forces
+        where :math:`i` and :math:`j` are particle tags, :math:`\\vec{F}_{ij}`
+        are pairwise forces between particles and :math:`\\vec{F}_k` are forces
         due to explicit constraints, implicit rigid body constraints, external
         walls, and fields.
         """
@@ -94,17 +96,18 @@ class ThermodynamicQuantities(_Thermo):
 
     @log(category='sequence', requires_run=True)
     def pressure_tensor(self):
-        r"""Instantaneous pressure tensor of the group [pressure].
+        """Instantaneous pressure tensor of the group \
+        :math:`[\\mathrm{pressure}]`.
 
         (:math:`P_{xx}`, :math:`P_{xy}`, :math:`P_{xz}`, :math:`P_{yy}`,
         :math:`P_{yz}`, :math:`P_{zz}`). calculated as:
 
           .. math::
 
-              P_{ij} = \left[  \sum_{k \in \mathrm{filter}} m_k v_{k,i}
-              v_{k,j} + \sum_{k \in \mathrm{filter}} \sum_{l} \frac{1}{2}
-              \left(\vec{r}_{kl,i} \vec{F}_{kl,j} + \vec{r}_{kl,j}
-              \vec{F}_{kl, i} \right) \right]/V
+              P_{ij} = \\left[  \\sum_{k \\in \\mathrm{filter}} m_k v_{k,i}
+              v_{k,j} + \\sum_{k \\in \\mathrm{filter}} \\sum_{l} \\frac{1}{2}
+              \\left(\\vec{r}_{kl,i} \\vec{F}_{kl,j} + \\vec{r}_{kl,j}
+              \\vec{F}_{kl, i} \\right) \\right]/V
 
         where :math:`V` is the total simulation box volume (or area in 2D).
         """
@@ -113,11 +116,12 @@ class ThermodynamicQuantities(_Thermo):
 
     @log(requires_run=True)
     def kinetic_energy(self):
-        r""":math:`K`, total kinetic energy of particles in the group [energy].
+        """:math:`K`, total kinetic energy of particles in the group \
+        :math:`[\\mathrm{energy}]`.
 
         .. math::
 
-            K = K_{\mathrm{rot}} + K_{\mathrm{trans}}
+            K = K_{\\mathrm{rot}} + K_{\\mathrm{trans}}
 
         """
         self._cpp_obj.compute(self._simulation.timestep)
@@ -127,7 +131,8 @@ class ThermodynamicQuantities(_Thermo):
     def translational_kinetic_energy(self):
         r""":math:`K_{\mathrm{trans}}`.
 
-        Translational kinetic energy of all particles in the group [energy].
+        Translational kinetic energy of all particles in the group
+        :math:`[\mathrm{energy}]`.
 
         .. math::
 
@@ -142,7 +147,8 @@ class ThermodynamicQuantities(_Thermo):
     def rotational_kinetic_energy(self):
         r""":math:`K_{\mathrm{rot}}`.
 
-        Rotational kinetic energy of all particles in the group [energy].
+        Rotational kinetic energy of all particles in the group
+        :math:`[\mathrm{energy}]`.
 
         Calculated as:
 
@@ -163,7 +169,7 @@ class ThermodynamicQuantities(_Thermo):
         r""":math:`U`.
 
         Potential energy that the group contributes to the entire system
-        [energy].
+        :math:`[\mathrm{energy}]`.
 
         The potential energy is calculated as a sum of per-particle energy
         contributions:
@@ -261,7 +267,9 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def volume(self):
-        """:math:`V`, volume of the simulation box (area in 2D)."""
+        """:math:`V`, volume of the simulation box \
+        :math:`[\\mathrm{length}^{2}] in 2D and \
+        :math:`[\\mathrm{length}^{2}] in 3D`."""
         if self._attached:
             return self._cpp_obj.volume
         else:
@@ -274,10 +282,11 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
     Args:
         filter (``hoomd.filter``): Particle filter to compute thermodynamic
             properties for.
-        kT (float): Temperature of the system.
-        harmonic_pressure (float): Harmonic contribution to the pressure.
-            If ommitted, the HMA pressure can still be computed, but will be
-            similar in precision to the conventional pressure.
+        kT (float): Temperature of the system :math:`[\\mathrm{energy}]`.
+        harmonic_pressure (float): Harmonic contribution to the pressure
+            :math:`[\\mathrm{pressure}]`. If ommitted, the HMA pressure can
+            still be computed, but will be similar in precision to
+            the conventional pressure.
 
     :py:class:`HarmonicAveragedThermodynamicQuantities` acts on a given group
     of particles and calculates harmonically mapped average (HMA) properties
@@ -305,9 +314,11 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         filter (hoomd.filter.ParticleFilter): Subset of particles compute
             thermodynamic properties for.
 
-        kT (hoomd.variant.Variant): Temperature of the system.
+        kT (hoomd.variant.Variant): Temperature of the system
+            :math:`[\\mathrm{energy}]`.
 
-        harmonic_pressure (float): Harmonic contribution to the pressure.
+        harmonic_pressure (float): Harmonic contribution to the pressure
+            :math:`[\\mathrm{pressure}]`.
     """
 
     def __init__(self, filter, kT, harmonic_pressure=0):
@@ -334,12 +345,12 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
 
     @log(requires_run=True)
     def potential_energy(self):
-        """Average potential energy [energy]."""
+        """Average potential energy :math:`[\\mathrm{energy}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.potential_energy
 
     @log(requires_run=True)
     def pressure(self):
-        """Average pressure [pressure]."""
+        """Average pressure :math:`[\\mathrm{pressure}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.pressure

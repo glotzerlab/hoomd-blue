@@ -139,7 +139,7 @@ def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
                                  n=7,
                                  r=0.1))
 
-    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
     mc.shape['B'] = dict(diameter=1.3)
     sim.operations.integrator = mc
@@ -157,7 +157,7 @@ def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     """Test that Cluster objects are picklable."""
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
     mc.shape['B'] = dict(diameter=1.3)
     sim.operations.integrator = mc
