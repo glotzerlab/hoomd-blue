@@ -126,6 +126,18 @@ def test_configuration(s):
 
 
 def test_wrap(s):
+    def generateOutside(box, inside, multipliers):
+        a = numpy.array([box[0], 0, 0])
+        b = numpy.array([box[1]*box[3], box[1], 0])
+        c = numpy.array([box[2]*box[4], box[2]*box[5], box[2]])
+        out = numpy.zeros((len(inside),len(multipliers),3))
+        ins = numpy.zeros_like(out)
+        for i,point in enumerate(inside):
+            for j,f in enumerate(multipliers):
+                out[i,j,:] = point+ a*f[0] + b*f[1] + c*f[2]
+                ins[i,j,:] = point
+        return out.reshape((-1,3)), ins.reshape((-1,3))
+
     if s.communicator.rank == 0:
         s.configuration.box = [1, 1, 1, 0, 0, 0]
         s.particles.N = 4
@@ -149,14 +161,19 @@ def test_wrap(s):
             s.particles.position,
             [[-3.9999998, 0, 0], [1.9999995, 3, 0.9999995],
              [0.3999995, 2.599999, 2], [-2.399997, 3.6000078, -1.999999]])
+
         # 2D box
-        s.configuration.box = [5, 11, 0, 0, 0, 0]
-        s.particles.N = 4
-        s.particles.position[:] = [[-4, 0, 0], [2, 5, 0], [7, 3, 4],
-                                   [100, -50, -300]]
+        b = [5, 11, 0, 0, 0, 0]
+        inside = [[1, 0, 0], [2, 5, 0], [2, 3, 0], [0, 5, 0]]
+        multiples = [[1,0,0], [0,0,0], [-1,0,0]]
+        outs, ins = generateOutside(b, inside, multiples)
+
+        s.configuration.box = b
+        s.particles.N = len(ins)
+        s.particles.position[:] = outs
         s.wrap()
-        numpy.testing.assert_allclose(
-            s.particles.position, [[1, 0, 0], [2, 5, 0], [2, 3, 0], [0, 5, 0]])
+        numpy.testing.assert_allclose(s.particles.position, ins)
+
         # tetragonal box
         s.configuration.box = [7, 7, 4, 0, 0, 0]
         s.particles.N = 4
