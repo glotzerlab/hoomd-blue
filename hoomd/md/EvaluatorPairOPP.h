@@ -58,7 +58,7 @@ class EvaluatorPairOPP
 #ifndef __HIPCC__
         param_type() : C1(0), C2(0), eta1(0), eta2(0), k(0), phi(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed=false)
             {
             C1 = v["C1"].cast<Scalar>();
             C2 = v["C2"].cast<Scalar>();

@@ -72,7 +72,7 @@ class EvaluatorPairMie
 #ifndef __HIPCC__
         param_type() : m1(0), m2(0), m3(0), m4(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed=false)
             {
             m3 = v["n"].cast<Scalar>();
             m4 = v["m"].cast<Scalar>();

@@ -69,14 +69,14 @@ class EvaluatorPairYukawa
             kappa = 0;
             }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed=false)
             {
             epsilon = v["epsilon"].cast<Scalar>();
             kappa = v["kappa"].cast<Scalar>();
             }
 
         // this constructor facilitates unit testing
-        param_type(Scalar eps, Scalar kap)
+        param_type(Scalar eps, Scalar kap, bool managed=false)
             {
             epsilon = eps;
             kappa = kap;

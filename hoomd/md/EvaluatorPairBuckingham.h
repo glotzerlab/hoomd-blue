@@ -75,7 +75,7 @@ class EvaluatorPairBuckingham
 #ifndef __HIPCC__
         param_type() : A(0), rho(0), C(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed=false)
             {
             A = v["A"].cast<Scalar>();
             rho = v["rho"].cast<Scalar>();

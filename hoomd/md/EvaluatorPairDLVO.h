@@ -74,7 +74,7 @@ class EvaluatorPairDLVO
 #ifndef __HIPCC__
         param_type() : kappa(0), Z(0), A(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed=false)
             {
             kappa = v["kappa"].cast<Scalar>();
             Z = v["Z"].cast<Scalar>();

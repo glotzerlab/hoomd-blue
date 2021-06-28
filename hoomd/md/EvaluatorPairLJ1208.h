@@ -73,7 +73,7 @@ class EvaluatorPairLJ1208
 #ifndef __HIPCC__
         param_type() : lj1(0), lj2(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed=false)
             {
             auto sigma(v["sigma"].cast<Scalar>());
             auto epsilon(v["epsilon"].cast<Scalar>());

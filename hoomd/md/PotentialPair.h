@@ -435,7 +435,7 @@ void PotentialPair<evaluator>::setParamsPython(pybind11::tuple typ, pybind11::di
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
-    setParams(typ1, typ2, param_type(params));
+    setParams(typ1, typ2, param_type(params, m_exec_conf->isCUDAEnabled()));
     }
 
 template<class evaluator> pybind11::dict PotentialPair<evaluator>::getParams(pybind11::tuple typ)

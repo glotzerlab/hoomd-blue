@@ -78,7 +78,7 @@ class EvaluatorPairFourier
                 }
             }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed=false)
             {
             pybind11::list py_a(v["a"]);
             pybind11::list py_b(v["b"]);

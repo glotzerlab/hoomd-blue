@@ -54,7 +54,7 @@ class EvaluatorPairMoliere
 #ifndef __HIPCC__
         param_type() : qi(0), qj(0), aF(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed=false)
             {
             qi = v["qi"].cast<Scalar>();
             qj = v["qj"].cast<Scalar>();

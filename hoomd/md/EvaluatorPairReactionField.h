@@ -63,7 +63,7 @@ class EvaluatorPairReactionField
 #ifndef __HIPCC__
         param_type() : eps(0), eps_rf(0), use_charge(false) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed=false)
             {
             eps = v["epsilon"].cast<Scalar>();
             eps_rf = v["eps_rf"].cast<Scalar>();
