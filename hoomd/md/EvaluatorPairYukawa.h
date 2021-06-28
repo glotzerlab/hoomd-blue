@@ -52,6 +52,8 @@ class EvaluatorPairYukawa
         Scalar epsilon;
         Scalar kappa;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+
 #ifdef ENABLE_HIP
         // set CUDA memory hints
         void set_memory_hint() const

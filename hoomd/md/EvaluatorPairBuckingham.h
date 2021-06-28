@@ -65,6 +65,8 @@ class EvaluatorPairBuckingham
         Scalar rho;
         Scalar C;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+
 #ifdef ENABLE_HIP
         //! set CUDA memory hint
         void set_memory_hint() const { }

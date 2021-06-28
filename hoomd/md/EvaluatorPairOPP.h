@@ -45,6 +45,8 @@ class EvaluatorPairOPP
         Scalar k;
         Scalar phi;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
         void set_memory_hint() const

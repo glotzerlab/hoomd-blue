@@ -50,6 +50,13 @@ class EvaluatorPairForceShiftedLJ
     //! Define the parameter type used by this pair potential evaluator
     typedef EvaluatorPairLJ::param_type param_type;
 
+    DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+
+#ifdef ENABLE_HIP
+    //! Set CUDA memory hints
+    void set_memory_hints() const { }
+#endif
+
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
         \param _rcutsq Squared distance at which the potential and the force go to 0

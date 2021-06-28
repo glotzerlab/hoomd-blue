@@ -61,6 +61,8 @@ class EvaluatorPairFourier
         Scalar a[3]; //!< Fourier component coefficents
         Scalar b[3]; //!< Fourier component coefficents
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+
 #ifdef ENABLE_HIP
         //! set CUDA memory hint
         void set_memory_hint() const { }

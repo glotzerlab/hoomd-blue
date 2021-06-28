@@ -60,6 +60,7 @@ class EvaluatorPairTable
             ManagedArray<Scalar> V_table; //!< the tabulated energy
             ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
 
+            DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const { }
             #ifdef ENABLE_HIP
             //! Set CUDA memory hints
             void set_memory_hint() const
@@ -195,6 +196,25 @@ class EvaluatorPairTable
         std::string getShapeSpec() const
             {
             throw std::runtime_error("Shape definition not supported for this pair potential.");
+            }
+        #endif
+
+        //! Load dynamic data members into shared memory and increase pointer
+        /*! \param ptr Pointer to load data to (will be incremented)
+            \param available_bytes Size of remaining shared memory allocation
+         */
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
+            {
+            V_table.load_shared(ptr, available_bytes);
+            F_table.load_shared(ptr, available_bytes);
+            }
+
+        #ifdef ENABLE_HIP
+        //! Attach managed memory to CUDA stream
+        void set_memory_hint() const
+            {
+            V_table.set_memory_hint();
+            F_table.set_memory_hint();
             }
         #endif
 
