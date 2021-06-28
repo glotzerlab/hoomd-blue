@@ -15,8 +15,7 @@ try:
 except ImportError:
     skip_mpi = True
 
-skip_mpi = pytest.mark.skipif(skip_mpi,
-                              reason="MPI4py is not importable.")
+skip_mpi = pytest.mark.skipif(skip_mpi, reason="MPI4py is not importable.")
 
 # note: The parameterized tests validate parameters so we can't pass in values
 # here that require preprocessing
@@ -136,7 +135,7 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 
 @skip_mpi
 @pytest.mark.cpu
-def test_remove_drift(simulation_factory,lattice_snapshot_factory):
+def test_remove_drift(simulation_factory, lattice_snapshot_factory):
     """Test that RemoveDrift modifies positions correctly"""
     sim = simulation_factory(
         lattice_snapshot_factory(particle_types=['A'],
@@ -170,7 +169,7 @@ def test_remove_drift(simulation_factory,lattice_snapshot_factory):
 
     s = sim.state.snapshot
     if s.communicator.rank == 0:
-        reference_com = np.mean(reference_positions,axis=0)
+        reference_com = np.mean(reference_positions, axis=0)
         new_com = np.mean(s.particles.position, axis=0)
         assert np.allclose(reference_com, new_com, atol=0.05)
 
