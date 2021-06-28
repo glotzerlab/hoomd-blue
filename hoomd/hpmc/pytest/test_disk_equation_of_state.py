@@ -5,7 +5,7 @@ import numpy
 
 # mean_phi_p_ref, sigma_phi_p_ref, mean_betaP_ref, sigma_betaP_ref, n_particles
 statepoints = [
-    (0.698, 0.0001, 9.1709, 0.0002, 256),
+    (0.698, 0.0001, 9.1709, 0.0002),
 ]
 
 
