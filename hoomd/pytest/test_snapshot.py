@@ -139,18 +139,27 @@ def test_wrap(s):
         return out.reshape((-1,3)), ins.reshape((-1,3))
 
     if s.communicator.rank == 0:
-        s.configuration.box = [1, 1, 1, 0, 0, 0]
-        s.particles.N = 4
-        s.particles.position[:] = [
-            [1.5, 2, 1.8],  # test all directions
-            [-1.0, -0.7, -10.1],  # test negative directions
-            [0.3, 0.2, -0.1],  # test no wrap
-            [2.5, 100.2, -100.2]
-        ]  # test multiple wrap
+        box = [1, 1, 1, 0, 0, 0]
+        inside = [[-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
+                  [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2]]
+        multiples = [
+            [0,0,0],
+            [1,0,0],
+            [0,1,0],
+            [0,0,1],
+            [-1,0,0],
+            [0,-1,0],
+            [0,0,-1],
+            [100,100,100],
+            [-50,-50,50],
+        ]
+        outs, ins = generateOutside(box, inside, multiples)
+        s.configuration.box = box
+        s.particles.N = len(ins)
+        s.particles.position[:] = outs
         s.wrap()
-        numpy.testing.assert_allclose(s.particles.position,
-                                      [[-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
-                                       [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2]])
+        numpy.testing.assert_allclose(s.particles.position, ins)
+
         # triclinic box
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
         s.particles.N = 4
@@ -163,12 +172,12 @@ def test_wrap(s):
              [0.4, 2.6, 2], [-2.4, 3.6, -2]])
 
         # 2D box
-        b = [5, 11, 0, 0, 0, 0]
-        inside = [[1, 0, 0], [2, 5, 0], [2, 3, 0], [0, 5, 0]]
-        multiples = [[1,0,0], [0,0,0], [-1,0,0]]
-        outs, ins = generateOutside(b, inside, multiples)
+        box = [5, 11, 0, 0, 0, 0]
+        inside = [[1, 0, 0], [2.4, 5, 0], [-2.5, 0, 0], [-2.5, -5.5, 0]]
+        multiples2d = [[0,0,0], [1,0,0], [-1,0,0], [-10, 20, 0]]
+        outs, ins = generateOutside(box, inside, multiples2d)
 
-        s.configuration.box = b
+        s.configuration.box = box
         s.particles.N = len(ins)
         s.particles.position[:] = outs
         s.wrap()
