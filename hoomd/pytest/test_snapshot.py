@@ -159,8 +159,8 @@ def test_wrap(s):
         s.wrap()
         numpy.testing.assert_allclose(
             s.particles.position,
-            [[-3.9999998, 0, 0], [1.9999995, 3, 0.9999995],
-             [0.3999995, 2.599999, 2], [-2.399997, 3.6000078, -1.999999]])
+            [[-4, 0, 0], [2, 3, 1],
+             [0.4, 2.6, 2], [-2.4, 3.6, -2]])
 
         # 2D box
         b = [5, 11, 0, 0, 0, 0]
@@ -182,7 +182,7 @@ def test_wrap(s):
         s.wrap()
         numpy.testing.assert_allclose(
             s.particles.position,
-            [[-1, 0, 0], [3, -1, 1], [0, 2, 1], [0.9999995, 1.999999, 0]])
+            [[-1, 0, 0], [3, -1, 1], [0, 2, 1], [1, 2, 0]])
         # orthorhombic box
         s.configuration.box = [8, 6, 4, 0, 0, 0]
         s.particles.N = 4
@@ -191,7 +191,7 @@ def test_wrap(s):
         s.wrap()
         numpy.testing.assert_allclose(
             s.particles.position,
-            [[-4, -3, -2], [0, 0, -2], [2, 0, -1], [0, -1.9999924, 0]])
+            [[-4, -3, -2], [0, 0, -2], [2, 0, -1], [0, -2, 0]])
         # monoclinic box
         s.configuration.box = [7, 4, 8, 0, 0.25, 0]
         s.particles.N = 4
