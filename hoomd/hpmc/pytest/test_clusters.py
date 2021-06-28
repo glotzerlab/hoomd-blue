@@ -141,6 +141,7 @@ def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
 
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
+    mc.shape['B'] = dict(diameter=1.1)
     sim.operations.integrator = mc
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
