@@ -139,9 +139,6 @@ def test_wrap(s):
         return out.reshape((-1,3)), ins.reshape((-1,3))
 
     if s.communicator.rank == 0:
-        box = [1, 1, 1, 0, 0, 0]
-        inside = [[-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
-                  [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2]]
         multiples = [
             [0,0,0],
             [1,0,0],
@@ -150,9 +147,16 @@ def test_wrap(s):
             [-1,0,0],
             [0,-1,0],
             [0,0,-1],
-            [100,100,100],
+            [-5,24,13],
+            [3,-4,5],
+            [3,4,-5],
+            [100,101,102],
             [-50,-50,50],
         ]
+
+        box = [1, 1, 1, 0, 0, 0]
+        inside = [[0,0,0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
+                  [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2]]
         outs, ins = generateOutside(box, inside, multiples)
         s.configuration.box = box
         s.particles.N = len(ins)
@@ -161,15 +165,17 @@ def test_wrap(s):
         numpy.testing.assert_allclose(s.particles.position, ins)
 
         # triclinic box
-        s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
-        s.particles.N = 4
-        s.particles.position[:] = [[-4, 0, 0], [2, 3, 1], [2, -8, 9],
-                                   [100, 200, -100]]
+        box = [10, 12, 7, 0.1, 0.4, 0.2]
+        inside = [[0,0,0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
+                  [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2],
+                  [0,0,-3.5],
+                  [-7, -6.7, -3.5]]
+        outs, ins = generateOutside(box, inside, multiples)
+        s.configuration.box = box
+        s.particles.N = len(ins)
+        s.particles.position[:] = outs
         s.wrap()
-        numpy.testing.assert_allclose(
-            s.particles.position,
-            [[-4, 0, 0], [2, 3, 1],
-             [0.4, 2.6, 2], [-2.4, 3.6, -2]])
+        numpy.testing.assert_allclose(s.particles.position, ins)
 
         # 2D box
         box = [5, 11, 0, 0, 0, 0]
@@ -184,32 +190,36 @@ def test_wrap(s):
         numpy.testing.assert_allclose(s.particles.position, ins)
 
         # tetragonal box
-        s.configuration.box = [7, 7, 4, 0, 0, 0]
-        s.particles.N = 4
-        s.particles.position[:] = [[-8, 0, 0], [-4, -8, -7], [0, 2, 1],
-                                   [50, 100, -300]]
+        box = [7, 7, 4, 0, 0, 0]
+        inside = [[0,0,0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
+                  [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [-3.5,-3.5,-2]]
+        outs, ins = generateOutside(box, inside, multiples)
+        s.configuration.box = box
+        s.particles.N = len(ins)
+        s.particles.position[:] = outs
         s.wrap()
-        numpy.testing.assert_allclose(
-            s.particles.position,
-            [[-1, 0, 0], [3, -1, 1], [0, 2, 1], [1, 2, 0]])
+        numpy.testing.assert_allclose(s.particles.position, ins)
+
         # orthorhombic box
-        s.configuration.box = [8, 6, 4, 0, 0, 0]
-        s.particles.N = 4
-        s.particles.position[:] = [[-4, 3, 2], [0, -6, 10], [2, 0, -1],
-                                   [-200, -200, -100]]
+        box = [8, 6, 4, 0, 0, 0]
+        inside = [[0,0,0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
+                  [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [-4, -3, -2]]
+        outs, ins = generateOutside(box, inside, multiples)
+        s.configuration.box = box
+        s.particles.N = len(ins)
+        s.particles.position[:] = outs
         s.wrap()
-        numpy.testing.assert_allclose(
-            s.particles.position,
-            [[-4, -3, -2], [0, 0, -2], [2, 0, -1], [0, -2, 0]])
+        numpy.testing.assert_allclose(s.particles.position, ins)
+
         # monoclinic box
-        s.configuration.box = [7, 4, 8, 0, 0.25, 0]
-        s.particles.N = 4
-        s.particles.position[:] = [[-4, 9, -9], [0, 4, 13], [2, 1, 1],
-                                   [-200, -100, -100]]
+        box = [7, 4, 8, 0, 0.25, 0]
+        s.configuration.box = box
+        inside = [[-2, 1, -1], [-4, 0, -3], [2, 1, 1], [-1, 0, -4], [-4.5,-2,-4]]
+        outs, ins = generateOutside(box, inside, multiples)
+        s.particles.N = len(ins)
+        s.particles.position[:] = outs
         s.wrap()
-        numpy.testing.assert_allclose(
-            s.particles.position,
-            [[-2, 1, -1], [-4, 0, -3], [2, 1, 1], [-1, 0, -4]])
+        numpy.testing.assert_allclose(s.particles.position, ins)
 
 
 def test_particles(s):
