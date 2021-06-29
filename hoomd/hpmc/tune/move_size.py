@@ -281,7 +281,7 @@ class MoveSize(_InternalCustomTuner):
             size for, defaults to None which upon attaching will tune all types
             in the system currently.
         max_translation_move (float): The maximum value of a translational move
-            size to attempt.
+            size to attempt :math:`[\\mathrm{length}]`.
         max_rotation_move (float): The maximum value of a rotational move size
             to attempt.
 
@@ -298,7 +298,7 @@ class MoveSize(_InternalCustomTuner):
             types to tune the move size for, defaults to None which upon
             attaching will tune all types in the system currently.
         max_translation_move (float): The maximum value of a translational move
-            size to attempt.
+            size to attempt :math:`[\\mathrm{length}]`.
         max_rotation_move (float): The maximum value of a rotational move size
             to attempt.
 
@@ -337,7 +337,7 @@ class MoveSize(_InternalCustomTuner):
                 move size for, defaults to None which upon attaching will tune
                 all types in the system currently.
             max_translation_move (float): The maximum value of a translational
-                move size to attempt.
+                move size to attempt :math:`[\\mathrm{length}]`.
             max_rotation_move (float): The maximum value of a rotational move
                 size to attempt.
             max_scale (float): Maximum scale factor.
@@ -383,7 +383,7 @@ class MoveSize(_InternalCustomTuner):
                 upon attaching will tune all types in the system currently.
             max_translation_move (float): The maximum value of a translational
                 move size to attempt, defaults to ``None`` which represents no
-                maximum move size.
+                maximum move size :math:`[\\mathrm{length}]`.
             max_rotation_move (float): The maximum value of a rotational move
                 size to attempt, defaults to ``None`` which represents no
                 maximum move size.

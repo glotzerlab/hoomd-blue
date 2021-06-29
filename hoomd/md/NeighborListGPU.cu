@@ -104,7 +104,7 @@ hipError_t gpu_nlist_needs_update_check_new(unsigned int* d_result,
                                             const unsigned int checkn,
                                             const GPUPartition& gpu_partition)
     {
-    const unsigned int shared_bytes = (unsigned int)sizeof(Scalar) * ntypes;
+    const size_t shared_bytes = sizeof(Scalar) * ntypes;
 
     unsigned int block_size = 128;
 
@@ -454,7 +454,7 @@ hipError_t gpu_nlist_build_head_list(unsigned int* d_head_list,
         }
 
     unsigned int run_block_size = min(block_size, max_block_size);
-    unsigned int shared_bytes = (unsigned int)(ntypes * sizeof(unsigned int));
+    const size_t shared_bytes = ntypes * sizeof(unsigned int);
 
     // initialize each particle with its number of neighbors
     hipLaunchKernelGGL((gpu_nlist_init_head_list_kernel),

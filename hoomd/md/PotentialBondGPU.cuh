@@ -265,8 +265,7 @@ hipError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     dim3 grid(bond_args.N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-    unsigned int shared_bytes
-        = (unsigned int)(sizeof(typename evaluator::param_type) * bond_args.n_bond_types);
+    const size_t shared_bytes = sizeof(typename evaluator::param_type) * bond_args.n_bond_types;
 
     // run the kernel
     hipLaunchKernelGGL(gpu_compute_bond_forces_kernel<evaluator>,
