@@ -44,7 +44,6 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
     vec3<double> frac;
     vec3<double> wrapped;
     vec3<double> pos;
-    vec3<double> fin;
     int3 img;
 
     for (unsigned int i = 0; i < particle_data.size; i++)
@@ -63,13 +62,6 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
         img.z = static_cast<int>(frac.z);
         particle_data.image[i] = img;
         // TODO: test image update
-
-        std::cout << "Particle " << '[' << pos.x << ", " << pos.y << ", " << pos.z << "] --> ";
-        std::cout << "[" << fin.x << ", " << fin.y << ", " << fin.z << "]\n";
-        std::cout << "Fraction [" << frac.x << ", " << frac.y << ", " << frac.z << "]\n";
-        std::cout << "Image [" << img.x << ", " << img.y << ", " << img.z << "]\n";
-        std::cout << "Fraction wrapped is [" << wrapped.x << ", " << wrapped.y << ", " << wrapped.z << "]\n\n";
-
         }
     }
 
