@@ -96,7 +96,6 @@
 #include "PotentialTersoffGPU.h"
 #include "TableAngleForceComputeGPU.h"
 #include "TableDihedralForceComputeGPU.h"
-#include "TablePotentialGPU.h"
 #include "TwoStepBDGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepLangevinGPU.h"
