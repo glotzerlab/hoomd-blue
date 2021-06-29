@@ -147,7 +147,8 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                                       const Scalar* d_rcutsq,
                                       const Scalar* d_ronsq,
                                       const unsigned int ntypes,
-                                      const unsigned int offset)
+                                      const unsigned int offset,
+                                      unsigned int max_extra_bytes)
     {
     Index2D typpair_idx(ntypes);
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
@@ -437,6 +438,30 @@ struct PairForceComputeKernel
                                                                                compute_virial,
                                                                                tpp>);
 
+            static unsigned int base_shared_bytes = UINT_MAX;
+            bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
+            base_shared_bytes = (unsigned int)(shared_bytes + attr.sharedSizeBytes);
+
+            unsigned int max_extra_bytes
+                = (unsigned int)(pair_args.devprop.sharedMemPerBlock - base_shared_bytes);
+            static unsigned int extra_bytes = UINT_MAX;
+            if (extra_bytes == UINT_MAX || shared_bytes_changed)
+                {
+                // required for memory coherency
+                hipDeviceSynchronize();
+
+                // determine dynamically requested shared memory
+                char* ptr = (char*)nullptr;
+                unsigned int available_bytes = max_extra_bytes;
+                for (unsigned int i = 0; i < typpair_idx.getNumElements(); ++i)
+                    {
+                    params[i].load_shared(ptr, available_bytes);
+                    }
+                extra_bytes = max_extra_bytes - available_bytes;
+                }
+
+            shared_bytes += extra_bytes;
+
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size / tpp) + 1, 1, 1);
 
@@ -461,7 +486,8 @@ struct PairForceComputeKernel
                 pair_args.d_rcutsq,
                 pair_args.d_ronsq,
                 pair_args.ntypes,
-                offset);
+                offset,
+                max_extra_bytes);
             }
         else
             {
