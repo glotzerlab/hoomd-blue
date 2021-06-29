@@ -82,8 +82,8 @@ class EvaluatorPairTable
                     }
                 width = V_py.size();
                 rmin = v["r_min"].cast<Scalar>();
-                V_table = ManagedArray<Scalar>(width, managed, 32);
-                F_table = ManagedArray<Scalar>(width, managed, 32);
+                V_table = ManagedArray<Scalar>((unsigned int)width, managed, 32);
+                F_table = ManagedArray<Scalar>((unsigned int)width, managed, 32);
                 std::copy(&V_py[0], &V_py[0] + width, &V_table[0]);
                 std::copy(&F_py[0], &F_py[0] + width, &F_table[0]);
                 }
