@@ -185,7 +185,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
     __syncthreads();
 
     // initialize extra shared mem
-    char* s_extra = (char*)(s_params + typpair_idx.getNumElements());
+    auto s_extra = reinterpret_cast<char*>(s_params + typpair_idx.getNumElements());
 
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_pair = 0; cur_pair < typpair_idx.getNumElements(); ++cur_pair)
