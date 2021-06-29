@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#include "hoomd/HOOMDMath.h"
 #include "HPMCPrecisionSetup.h"
-#include "hoomd/VectorMath.h"
 #include "MinkowskiMath.h"
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 #include <cstdio>
 
 #include "XenoCollide3D.h"
@@ -25,10 +25,9 @@
 #endif
 
 namespace hpmc
-{
-
+    {
 namespace detail
-{
+    {
 //! XenoSweep in 3D
 /*! \tparam SupportFuncA Support function class type for shape A
     \tparam SupportFuncB Support function class type for shape B
@@ -40,13 +39,15 @@ namespace detail
     \param R Approximate radius of Minkowski difference for scaling tolerance value
     \param err_count Error counter to increment whenever an infinite loop is encountered
     \param newCollisionPlaneVector Gives a normal on the final portal
-    \returns positive for two particles that collide in a given distance, negative for error values. -1: resultNoCollision, -2: resultNoForwardCollisionOrOverlapping, -3: resultOverlapping
+    \returns positive for two particles that collide in a given distance, negative for error values.
+   -1: resultNoCollision, -2: resultNoForwardCollisionOrOverlapping, -3: resultOverlapping
 
     XenoSweep is an extension of the XenoCollide algorithm. Described in
     arxiv:2104.06829 https://arxiv.org/abs/2104.06829
 
     We try to find the surface element of the minkowski difference, that will be hit by the origin.
-    It works well for polyhedra. As spherical/round shapes do not have a defined surface element that we can find, convergence is slow and way less efficient.
+    It works well for polyhedra. As spherical/round shapes do not have a defined surface element
+   that we can find, convergence is slow and way less efficient.
 
     \ingroup minkowski
 */
@@ -58,33 +59,30 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
                                        const vec3<OverlapReal>& direction,
                                        const OverlapReal R,
                                        unsigned int& err_count,
-                                       vec3<OverlapReal>& collisionPlaneVector
-)
+                                       vec3<OverlapReal>& collisionPlaneVector)
     {
-
     vec3<OverlapReal> v0, v1, v2, v3, v4, n, x;
     CompositeSupportFunc3D<SupportFuncA, SupportFuncB> S(sa, sb, ab_t, q);
     OverlapReal d;
 
-    #if defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION)
-        // precision tolerance for single-precision floats near 1.0
-        const OverlapReal precision_tol = OverlapReal(5e-7);
+#if defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION)
+    // precision tolerance for single-precision floats near 1.0
+    const OverlapReal precision_tol = OverlapReal(5e-7);
 
-        // square root of precision tolerance
-        const OverlapReal root_tol = OverlapReal(3e-4);
-    #else
-        // precision tolerance for double-precision floats near 1.0
-        const OverlapReal precision_tol = OverlapReal(1e-14); // 4e-14 for overlap check
+    // square root of precision tolerance
+    const OverlapReal root_tol = OverlapReal(3e-4);
+#else
+    // precision tolerance for double-precision floats near 1.0
+    const OverlapReal precision_tol = OverlapReal(1e-14); // 4e-14 for overlap check
 
-        // square root of precision tolerance
-        const OverlapReal root_tol = OverlapReal(2e-7); // 1e-7 for overlap check
-    #endif
-
+    // square root of precision tolerance
+    const OverlapReal root_tol = OverlapReal(2e-7); // 1e-7 for overlap check
+#endif
 
     const OverlapReal resultNoCollision = -1.0;
     const OverlapReal resultNoForwardCollisionOrOverlapping = -2.0;
-    // If there is a known overlap we will return a value <= -3 (which is related to how early the overlap was detected).
-    // const OverlapReal resultOverlapping = -3.0;
+    // If there is a known overlap we will return a value <= -3 (which is related to how early the
+    // overlap was detected). const OverlapReal resultOverlapping = -3.0;
 
     if (fabs(ab_t.x) < root_tol && fabs(ab_t.y) < root_tol && fabs(ab_t.z) < root_tol)
         {
@@ -104,14 +102,14 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
     // find a candidate portal of three support points
     //
     // find support v1 in the direction reverse to the sweeping direction
-    v1 = ab_t;//S(-v0);
+    v1 = ab_t; // S(-v0);
 
     // find support v2 in reversed v0 direction minus the part covered by v1
-    n = dot(v0,v0)*v1 - dot(v1,v0)*v0;
+    n = dot(v0, v0) * v1 - dot(v1, v0) * v0;
     v2 = S(-n);
 
     n = cross(v0, v2 - v1);
-    if( dot(n,v1) < OverlapReal(0.0))
+    if (dot(n, v1) < OverlapReal(0.0))
         {
         v1.swap(v2);
         n = -n;
@@ -125,7 +123,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         // Get the next support point
         v3 = S(-n);
 
-        if( dot(n,v3) >= OverlapReal(0.0) )
+        if (dot(n, v3) >= OverlapReal(0.0))
             {
             // The origin is not within the projected minkowski sum on the plane
             // perpendicular to the sweeping direction. No forward collision possible.
@@ -136,19 +134,20 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         // consider the portals v1-v3 and v2-v3. The new portal should contain the
         // origin on the far side of v0. If neither portal does, the origin is inside;
         // then we have a portal for phase 2.
-        x  = cross( v3, v0 );
-        if( dot(x,v1) < OverlapReal(0.0) )
+        x = cross(v3, v0);
+        if (dot(x, v1) < OverlapReal(0.0))
             {
             v2 = v3;
             }
-        else if( dot(x,v2) > OverlapReal(0.0) )
+        else if (dot(x, v2) > OverlapReal(0.0))
             {
             v1 = v3;
             }
-        else break;
+        else
+            break;
 
         // Finally update the normal vector for the next iteration.
-        n = cross(v0, v2-v1);
+        n = cross(v0, v2 - v1);
         }
 
     // Error-Handling: We exceeded XENOCOLLIDE_3D_MAX_ITERATIONS, thus return an error.
@@ -187,14 +186,14 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         // are we within an epsilon of the surface of the shape? If yes, done, one way
         // or another
         const OverlapReal tol_multiplier = 10000;
-        d = dot((v1 - v4) * tol_multiplier , n);
-        OverlapReal tol = precision_tol * tol_multiplier * R * fast::sqrt(dot(n,n));
+        d = dot((v1 - v4) * tol_multiplier, n);
+        OverlapReal tol = precision_tol * tol_multiplier * R * fast::sqrt(dot(n, n));
 
         // First, check if v4 is on plane (v2,v1,v3)
         if (-tol < d and d < tol)
             {
             collisionPlaneVector = n;
-            return dot(n,v4) / dot(n,v0);
+            return dot(n, v4) / dot(n, v0);
             }
 
         // As v4 is not in plane yet, update the portal for the next iteration.
@@ -215,14 +214,14 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
             }
         }
 
-        // If we end up here, we exceeded XENOCOLLIDE_3D_MAX_ITERATIONS
-        // As best guess, take the current portal as approximant
-        err_count++;
-        collisionPlaneVector = n;
-        return dot(n,v1) / dot(n,v0);
+    // If we end up here, we exceeded XENOCOLLIDE_3D_MAX_ITERATIONS
+    // As best guess, take the current portal as approximant
+    err_count++;
+    collisionPlaneVector = n;
+    return dot(n, v1) / dot(n, v0);
     }
-} // end namespace hpmc::detail
+    } // namespace detail
 
-}; // end namespace hpmc
+    }; // end namespace hpmc
 
 #endif // __XENOCOLLIDE_3D_H__

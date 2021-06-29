@@ -312,33 +312,32 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
     \ingroup shape
 */
 DEVICE inline OverlapReal sweep_distance(const vec3<Scalar>& r_ab,
-                                 const ShapeSphere& a,
-                                 const ShapeSphere& b,
-                                 const vec3<Scalar>& direction,
-                                 unsigned int& err,
-                                 vec3<Scalar>& collisionPlaneVector
-)
+                                         const ShapeSphere& a,
+                                         const ShapeSphere& b,
+                                         const vec3<Scalar>& direction,
+                                         unsigned int& err,
+                                         vec3<Scalar>& collisionPlaneVector)
     {
-    OverlapReal sumR   =   a.params.radius + b.params.radius;
-    OverlapReal distSQ =  OverlapReal(dot(r_ab,r_ab));
+    OverlapReal sumR = a.params.radius + b.params.radius;
+    OverlapReal distSQ = OverlapReal(dot(r_ab, r_ab));
 
-    OverlapReal d_parallel =  OverlapReal(dot(r_ab, direction));
-    if( d_parallel   <= 0 ) // Moving apart
+    OverlapReal d_parallel = OverlapReal(dot(r_ab, direction));
+    if (d_parallel <= 0) // Moving apart
         {
         return -1.0;
         };
 
-    OverlapReal discriminant = sumR*sumR - distSQ + d_parallel*d_parallel;
-    if( discriminant < 0 ) // orthogonal distance larger than sum of radii
+    OverlapReal discriminant = sumR * sumR - distSQ + d_parallel * d_parallel;
+    if (discriminant < 0) // orthogonal distance larger than sum of radii
         {
         return -2.0;
         };
 
-    OverlapReal newDist = d_parallel - fast::sqrt( discriminant );
+    OverlapReal newDist = d_parallel - fast::sqrt(discriminant);
 
-    if( newDist > 0)
+    if (newDist > 0)
         {
-        collisionPlaneVector = r_ab - direction * Scalar(newDist) ;
+        collisionPlaneVector = r_ab - direction * Scalar(newDist);
         return newDist;
         }
     else
