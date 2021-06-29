@@ -41,22 +41,18 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
 
 template<class Real> void SnapshotSystemData<Real>::wrap()
     {
-    vec3<double> frac;
-    vec3<double> wrapped;
-    vec3<double> pos;
-    int3 img;
-
     for (unsigned int i = 0; i < particle_data.size; i++)
         {
-        pos = particle_data.pos[i];
-        frac = global_box.makeFraction(particle_data.pos[i]);
+        auto const pos = particle_data.pos[i];
+        auto const frac = global_box.makeFraction(particle_data.pos[i]);
         auto modulus_positive = [](auto x){ return std::fmod(std::fmod(x, Real(1.0)) + Real(1.0), Real(1.0)); };
-        wrapped = vec3<Real>(
+        auto const wrapped = vec3<Real>(
             modulus_positive(frac.x),
             modulus_positive(frac.y),
             modulus_positive(frac.z)
             );
         particle_data.pos[i] = global_box.makeCoordinates(wrapped);
+        int3 img;
         img.x = static_cast<int>(frac.x);
         img.y = static_cast<int>(frac.y);
         img.z = static_cast<int>(frac.z);

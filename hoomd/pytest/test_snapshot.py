@@ -160,7 +160,7 @@ def test_wrap(s):
         box = [1, 1, 1, 0, 0, 0]
         inside = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
                   [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2]]
-        outs, ins = generateOutside(box, inside, multiples)
+        outs, ins = generate_outside(box, inside, multiples)
         s.configuration.box = box
         s.particles.N = len(ins)
         s.particles.position[:] = outs
@@ -172,7 +172,7 @@ def test_wrap(s):
         inside = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
                   [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [0, 0, -3.5],
                   [-7, -6.7, -3.5]]
-        outs, ins = generateOutside(box, inside, multiples)
+        outs, ins = generate_outside(box, inside, multiples)
         s.configuration.box = box
         s.particles.N = len(ins)
         s.particles.position[:] = outs
@@ -183,7 +183,7 @@ def test_wrap(s):
         box = [5, 11, 0, 0, 0, 0]
         inside = [[1, 0, 0], [2.4, 5, 0], [-2.5, 0, 0], [-2.5, -5.5, 0]]
         multiples2d = [[0, 0, 0], [1, 0, 0], [-1, 0, 0], [-10, 20, 0]]
-        outs, ins = generateOutside(box, inside, multiples2d)
+        outs, ins = generate_outside(box, inside, multiples2d)
         s.configuration.box = box
         s.particles.N = len(ins)
         s.particles.position[:] = outs
@@ -194,7 +194,7 @@ def test_wrap(s):
         box = [7, 7, 4, 0, 0, 0]
         inside = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
                   [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [-3.5, -3.5, -2]]
-        outs, ins = generateOutside(box, inside, multiples)
+        outs, ins = generate_outside(box, inside, multiples)
         s.configuration.box = box
         s.particles.N = len(ins)
         s.particles.position[:] = outs
@@ -205,7 +205,7 @@ def test_wrap(s):
         box = [8, 6, 4, 0, 0, 0]
         inside = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
                   [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [-4, -3, -2]]
-        outs, ins = generateOutside(box, inside, multiples)
+        outs, ins = generate_outside(box, inside, multiples)
         s.configuration.box = box
         s.particles.N = len(ins)
         s.particles.position[:] = outs
@@ -217,7 +217,7 @@ def test_wrap(s):
         s.configuration.box = box
         inside = [[-2, 1, -1], [-4, 0, -3], [2, 1, 1], [-1, 0, -4],
                   [-4.5, -2, -4]]
-        outs, ins = generateOutside(box, inside, multiples)
+        outs, ins = generate_outside(box, inside, multiples)
         s.particles.N = len(ins)
         s.particles.position[:] = outs
         s.wrap()
