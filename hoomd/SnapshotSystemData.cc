@@ -51,13 +51,13 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
         {
         pos = particle_data.pos[i];
         frac = global_box.makeFraction(particle_data.pos[i]);
-        wrapped = vec3<double>(
-            fmod(fmod(frac.x, 1.0) + 1.0, 1.0),
-            fmod(fmod(frac.y, 1.0) + 1.0, 1.0),
-            fmod(fmod(frac.z, 1.0) + 1.0, 1.0)
+        auto modulus_positive = [](auto x){ return std::fmod(std::fmod(x, Real(1.0)) + Real(1.0), Real(1.0)); };
+        wrapped = vec3<Real>(
+            modulus_positive(frac.x),
+            modulus_positive(frac.y),
+            modulus_positive(frac.z)
             );
-        fin = global_box.makeCoordinates(wrapped);
-        particle_data.pos[i] = fin;
+        particle_data.pos[i] = global_box.makeCoordinates(wrapped);
         img.x = static_cast<int>(frac.x);
         img.y = static_cast<int>(frac.y);
         img.z = static_cast<int>(frac.z);

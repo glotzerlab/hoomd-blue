@@ -127,7 +127,7 @@ def test_configuration(s):
 
 def test_wrap(s):
 
-    def generateOutside(box, inside, multipliers):
+    def generate_outside(box, inside, multipliers):
         a = numpy.array([box[0], 0, 0])
         b = numpy.array([box[1] * box[3], box[1], 0])
         c = numpy.array([box[2] * box[4], box[2] * box[5], box[2]])
