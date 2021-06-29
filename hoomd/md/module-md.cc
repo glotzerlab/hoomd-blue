@@ -52,7 +52,6 @@
 #include "QuaternionMath.h"
 #include "TableAngleForceCompute.h"
 #include "TableDihedralForceCompute.h"
-#include "TablePotential.h"
 #include "TwoStepBD.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepLangevin.h"
@@ -375,7 +374,6 @@ PYBIND11_MODULE(_md, m)
         m,
         "PotentialSpecialPairCoulombGPU");
     export_BondTablePotentialGPU(m);
-    export_TablePotentialGPU(m);
     export_HarmonicAngleForceComputeGPU(m);
     export_CosineSqAngleForceComputeGPU(m);
     export_TableAngleForceComputeGPU(m);
