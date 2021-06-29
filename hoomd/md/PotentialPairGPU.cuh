@@ -440,10 +440,10 @@ struct PairForceComputeKernel
 
             static unsigned int base_shared_bytes = UINT_MAX;
             bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-            base_shared_bytes = (unsigned int)(shared_bytes + attr.sharedSizeBytes);
+            base_shared_bytes = static_cast<unsigned int>(shared_bytes + attr.sharedSizeBytes);
 
             unsigned int max_extra_bytes
-                = (unsigned int)(pair_args.devprop.sharedMemPerBlock - base_shared_bytes);
+                = static_cast<unsigned int>(pair_args.devprop.sharedMemPerBlock - base_shared_bytes);
             static unsigned int extra_bytes = UINT_MAX;
             if (extra_bytes == UINT_MAX || shared_bytes_changed)
                 {
@@ -451,7 +451,7 @@ struct PairForceComputeKernel
                 hipDeviceSynchronize();
 
                 // determine dynamically requested shared memory
-                char* ptr = (char*)nullptr;
+                char* ptr = static_cast<char*>(nullptr);
                 unsigned int available_bytes = max_extra_bytes;
                 for (unsigned int i = 0; i < typpair_idx.getNumElements(); ++i)
                     {
