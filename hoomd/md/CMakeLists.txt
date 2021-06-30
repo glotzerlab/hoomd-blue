@@ -361,6 +361,7 @@ install(FILES ${_md_headers}
 
 add_subdirectory(pair)
 add_subdirectory(external)
+add_subdirectory(minimize)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)
