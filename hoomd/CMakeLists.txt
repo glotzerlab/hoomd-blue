@@ -7,6 +7,43 @@ install(FILES ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include
         )
 
+# translate cmake true/false to Python
+if (BUILD_MD)
+    set(_md_built "True")
+else()
+    set(_md_built "False")
+endif()
+
+if (BUILD_MD)
+    set(_md_built "True")
+else()
+    set(_md_built "False")
+endif()
+
+if (BUILD_HPMC)
+    set(_hpmc_built "True")
+else()
+    set(_hpmc_built "False")
+endif()
+
+if (BUILD_DEM)
+    set(_dem_built "True")
+else()
+    set(_dem_built "False")
+endif()
+
+if (BUILD_METAL)
+    set(_metal_built "True")
+else()
+    set(_metal_built "False")
+endif()
+
+if (BUILD_MPCD)
+    set(_mpcd_built "True")
+else()
+    set(_mpcd_built "False")
+endif()
+
 configure_file (version_config.py.in ${HOOMD_BINARY_DIR}/hoomd/version_config.py)
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}
@@ -316,6 +353,7 @@ set(files box.py
           conftest.py
           device.py
           __init__.py
+          error.py
           integrate.py
           operation.py
           operations.py

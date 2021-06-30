@@ -35,7 +35,7 @@ import math
 #           *** Potentials ***
 
 
-class wallpotential(external._external_force):
+class wallpotential(external.field.Field):
     R""" Generic wall potential.
 
     :py:class:`wallpotential` should not be used directly.

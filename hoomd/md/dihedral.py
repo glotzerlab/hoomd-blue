@@ -77,10 +77,12 @@ class Harmonic(Dihedral):
             The parameter of the harmonic bonds for each dihedral type. The
             dictionary has the following keys:
 
-            * ``k`` (`float`, **required**) - potential constant [energy]
+            * ``k`` (`float`, **required**) - potential constant
+              :math:`[\mathrm{energy}]`
             * ``d`` (`float`, **required**) - sign factor
-            * ``n`` (`float`, **required**) - angle scaling factor
-            * ``phi0`` (`float`, **required**) - phase shift [radians]
+            * ``n`` (`int`, **required**) - angle multiplicity factor
+            * ``phi0`` (`float`, **required**) - phase shift
+              :math:`[\mathrm{radians}]`
 
     Examples::
 
@@ -93,8 +95,7 @@ class Harmonic(Dihedral):
     def __init__(self):
         params = TypeParameter(
             'params', 'dihedral_types',
-            TypeParameterDict(k=float, d=float, n=float, phi0=float,
-                              len_keys=1))
+            TypeParameterDict(k=float, d=float, n=int, phi0=float, len_keys=1))
         self._add_typeparam(params)
 
 
@@ -335,17 +336,17 @@ class OPLS(Dihedral):
             The parameter of the OPLS bonds for each particle type.
             The dictionary has the following keys:
 
-            * ``k1`` (`float`, **required**) -  force constant of the first term
-              (in units of energy)
+            * ``k1`` (`float`, **required**) -  force constant of the
+              first term :math:`[\mathrm{energy}]`
 
-            * ``k2`` (`float`, **required**) -  force constant of the second
-              term (in units of energy)
+            * ``k2`` (`float`, **required**) -  force constant of the
+              second term :math:`[\mathrm{energy}]`
 
-            * ``k3`` (`float`, **required**) -  force constant of the third
-              term (in units of energy)
+            * ``k3`` (`float`, **required**) -  force constant of the
+              third term :math:`[\mathrm{energy}]`
 
-            * ``k4`` (`float`, **required**) -  force constant of the fourth
-              term (in units of energy)
+            * ``k4`` (`float`, **required**) -  force constant of the
+              fourth term :math:`[\mathrm{energy}]`
 
     Examples::
 

@@ -12,7 +12,7 @@ import pytest
 import hoomd
 from hoomd.conftest import pickling_check
 from hoomd import md
-from hoomd.data.typeconverter import TypeConversionError
+from hoomd.error import TypeConversionError
 
 
 def _equivalent_data_structures(struct_1, struct_2):
@@ -56,7 +56,7 @@ def make_two_particle_simulation(two_particle_snapshot_factory,
         snap = two_particle_snapshot_factory(dimensions=dimensions,
                                              d=d,
                                              particle_types=types)
-        if snap.exists:
+        if snap.communicator.rank == 0:
             snap.particles.charge[:] = 1.
             snap.particles.moment_inertia[0] = [1., 1., 1.]
             snap.particles.moment_inertia[1] = [1., 2., 1.]
@@ -72,7 +72,9 @@ def test_mode(make_two_particle_simulation, mode):
     """Test that all modes are correctly set on construction."""
     cell = md.nlist.Cell()
     # Test setting on construction
-    gay_berne = md.pair.aniso.GayBerne(nlist=cell, r_cut=2.5, mode=mode[0])
+    gay_berne = md.pair.aniso.GayBerne(nlist=cell,
+                                       default_r_cut=2.5,
+                                       mode=mode[0])
     assert gay_berne.mode == mode[0]
 
     # Test setting
@@ -92,9 +94,9 @@ def test_mode_invalid(mode):
     # Test errors on construction
     with pytest.raises(TypeConversionError):
         gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(),
-                                           r_cut=2.5,
+                                           default_r_cut=2.5,
                                            mode=mode)
-    gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(), r_cut=2.5)
+    gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(), default_r_cut=2.5)
     gay_berne.params[('A', 'A')] = {'epsilon': 1, 'lpar': 0.5, 'lperp': 1.0}
     # Test errors on setting
     with pytest.raises(TypeConversionError):
@@ -106,7 +108,7 @@ def test_rcut(make_two_particle_simulation, r_cut):
     """Test that r_cut is correctly set and settable."""
     cell = md.nlist.Cell()
     # Test construction
-    gay_berne = md.pair.aniso.GayBerne(nlist=cell, r_cut=r_cut)
+    gay_berne = md.pair.aniso.GayBerne(nlist=cell, default_r_cut=r_cut)
     assert gay_berne.r_cut.default == r_cut
 
     # Test setting
@@ -134,9 +136,9 @@ def test_rcut_invalid(r_cut):
     # Test construction error
     if r_cut is not None:
         with pytest.raises(TypeConversionError):
-            gay_berne = md.pair.aniso.GayBerne(nlist=cell, r_cut=r_cut)
+            gay_berne = md.pair.aniso.GayBerne(nlist=cell, default_r_cut=r_cut)
     # Test setting error
-    gay_berne = md.pair.aniso.GayBerne(nlist=cell, r_cut=2.5)
+    gay_berne = md.pair.aniso.GayBerne(nlist=cell, default_r_cut=2.5)
     with pytest.raises(ValueError):
         gay_berne.r_cut[('A', 'B')] = r_cut
 
@@ -245,7 +247,8 @@ def _valid_params(particle_types=['A', 'B']):
 @pytest.mark.parametrize('pair_potential_spec', _valid_params())
 def test_setting_params_and_shape(make_two_particle_simulation,
                                   pair_potential_spec):
-    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(), r_cut=2.5)
+    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(),
+                                             default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
         assert _equivalent_data_structures(value, getattr(pair_potential, key))
@@ -296,7 +299,7 @@ def _aniso_forces_and_energies():
 @pytest.fixture(scope="function", params=_valid_params())
 def pair_potential(request):
     spec = request.param
-    pair_potential = spec.cls(nlist=md.nlist.Cell(), r_cut=2.5)
+    pair_potential = spec.cls(nlist=md.nlist.Cell(), default_r_cut=2.5)
     for key, value in spec.type_parameters.items():
         setattr(pair_potential, key, value)
     return pair_potential
@@ -307,7 +310,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
                                     n=7,
                                     a=1.7,
                                     r=0.01)
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
                                                      snap.particles.N)
@@ -320,7 +323,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
         old_snap = sim.state.snapshot
         sim.run(nsteps)
         new_snap = sim.state.snapshot
-        if new_snap.exists:
+        if new_snap.communicator.rank == 0:
             assert not np.allclose(new_snap.particles.position,
                                    old_snap.particles.position)
 
@@ -345,7 +348,7 @@ def test_aniso_force_computes(make_two_particle_simulation,
 
     """
     pot = aniso_forces_and_energies.pair_potential(nlist=md.nlist.Cell(),
-                                                   r_cut=2.5,
+                                                   default_r_cut=2.5,
                                                    mode='none')
     for param, value in aniso_forces_and_energies.pair_potential_params.items():
         getattr(pot, param)[('A', 'A')] = value
@@ -358,7 +361,7 @@ def test_aniso_force_computes(make_two_particle_simulation,
             orientation) in enumerate(zip(particle_distances, orientations)):
         snap = sim.state.snapshot
         # Set up proper distances and orientations
-        if snap.exists:
+        if snap.communicator.rank == 0:
             snap.particles.position[0] = [0, 0, .1]
             snap.particles.position[1] = [0, 0, distance + .1]
             snap.particles.orientation[1] = orientation
@@ -379,7 +382,8 @@ def test_aniso_force_computes(make_two_particle_simulation,
 
 @pytest.mark.parametrize('pair_potential_spec', _valid_params())
 def test_pickling(make_two_particle_simulation, pair_potential_spec):
-    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(), r_cut=2.5)
+    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(),
+                                             default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
         assert _equivalent_data_structures(value, getattr(pair_potential, key))

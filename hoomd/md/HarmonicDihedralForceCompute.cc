@@ -42,7 +42,7 @@ HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(std::shared_ptr<Syste
     // allocate the parameters
     m_K = new Scalar[m_dihedral_data->getNTypes()];
     m_sign = new Scalar[m_dihedral_data->getNTypes()];
-    m_multi = new Scalar[m_dihedral_data->getNTypes()];
+    m_multi = new int[m_dihedral_data->getNTypes()];
     m_phi_0 = new Scalar[m_dihedral_data->getNTypes()];
     }
 
@@ -70,7 +70,7 @@ HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
 void HarmonicDihedralForceCompute::setParams(unsigned int type,
                                              Scalar K,
                                              Scalar sign,
-                                             Scalar multiplicity,
+                                             int multiplicity,
                                              Scalar phi_0)
     {
     // make sure the type is valid
@@ -239,7 +239,7 @@ void HarmonicDihedralForceCompute::computeForces(uint64_t timestep)
             c_abcd = -1.0;
 
         unsigned int dihedral_type = m_dihedral_data->getTypeByIndex(i);
-        int multi = (int)m_multi[dihedral_type];
+        int multi = m_multi[dihedral_type];
         Scalar p = Scalar(1.0);
         Scalar dfab = Scalar(0.0);
         Scalar ddfab = Scalar(0.0);

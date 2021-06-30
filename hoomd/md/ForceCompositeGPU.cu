@@ -493,18 +493,16 @@ hipError_t gpu_rigid_force(Scalar4* d_force,
         unsigned int window_size = run_block_size / n_bodies_per_block;
         unsigned int thread_mask = window_size - 1;
 
-        unsigned int shared_bytes
-            = (unsigned int)(run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
-                             + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int)));
+        size_t shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
+                              + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
 
         while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
             {
             // block size is power of two
             run_block_size /= 2;
 
-            shared_bytes = (unsigned int)(run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
-                                          + n_bodies_per_block
-                                                * (sizeof(Scalar4) + 3 * sizeof(unsigned int)));
+            shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
+                           + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
 
             window_size = run_block_size / n_bodies_per_block;
             thread_mask = window_size - 1;
@@ -598,18 +596,16 @@ hipError_t gpu_rigid_virial(Scalar* d_virial,
         unsigned int window_size = run_block_size / n_bodies_per_block;
         unsigned int thread_mask = window_size - 1;
 
-        unsigned int shared_bytes
-            = (unsigned int)(6 * run_block_size * sizeof(Scalar)
-                             + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int)));
+        size_t shared_bytes = 6 * run_block_size * sizeof(Scalar)
+                              + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
 
         while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
             {
             // block size is power of two
             run_block_size /= 2;
 
-            shared_bytes = (unsigned int)(6 * run_block_size * sizeof(Scalar)
-                                          + n_bodies_per_block
-                                                * (sizeof(Scalar4) + 3 * sizeof(unsigned int)));
+            shared_bytes = 6 * run_block_size * sizeof(Scalar)
+                           + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
 
             window_size = run_block_size / n_bodies_per_block;
             thread_mask = window_size - 1;

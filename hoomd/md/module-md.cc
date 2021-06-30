@@ -17,7 +17,6 @@
 #include "ConstraintEllipsoid.h"
 #include "ConstraintSphere.h"
 #include "CosineSqAngleForceCompute.h"
-#include "Enforce2DUpdater.h"
 #include "EvaluatorRevCross.h"
 #include "EvaluatorSquareDensity.h"
 #include "EvaluatorTersoff.h"
@@ -54,7 +53,6 @@
 #include "TableAngleForceCompute.h"
 #include "TableDihedralForceCompute.h"
 #include "TablePotential.h"
-#include "TempRescaleUpdater.h"
 #include "TwoStepBD.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepLangevin.h"
@@ -78,7 +76,6 @@
 #include "ConstraintEllipsoidGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "CosineSqAngleForceComputeGPU.h"
-#include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
 #include "ForceCompositeGPU.h"
 #include "ForceDistanceConstraintGPU.h"
@@ -215,6 +212,22 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
         .def("getTypeShapesPy", &AnisoPotentialPairDipole::getTypeShapesPy);
     }
 
+//! Export setParamsPython and getParams as a different name
+// Electric field only has one parameter, so we can get its parameter from
+// python with by a name other than getParams and setParams
+template<>
+void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& m,
+                                                              const std::string& name)
+    {
+    pybind11::class_<PotentialExternalElectricField,
+                     ForceCompute,
+                     std::shared_ptr<PotentialExternalElectricField>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+        .def("setE", &PotentialExternalElectricField::setParamsPython)
+        .def("getE", &PotentialExternalElectricField::getParams)
+        .def("setField", &PotentialExternalElectricField::setField);
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -282,13 +295,14 @@ PYBIND11_MODULE(_md, m)
     m.def("make_wall_field_params", &make_wall_field_params);
     export_PotentialExternal<PotentialExternalPeriodic>(m, "PotentialExternalPeriodic");
     export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
-    export_PotentialExternalWall<EvaluatorPairLJ>(m, "WallsPotentialLJ");
-    export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
-    export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
-    export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
-    export_PotentialExternalWall<EvaluatorPairMie>(m, "WallsPotentialMie");
-    export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
-    export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
+    // TODO: Port walls to HOOMD v3
+    // export_PotentialExternalWall<EvaluatorPairLJ>(m, "WallsPotentialLJ");
+    // export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
+    // export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
+    // export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
+    // export_PotentialExternalWall<EvaluatorPairMie>(m, "WallsPotentialMie");
+    // export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
+    // export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
 #ifdef ENABLE_HIP
     export_NeighborListGPU(m);
@@ -382,6 +396,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>(
         m,
         "PotentialExternalElectricFieldGPU");
+    /*
     export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>(m, "WallsPotentialLJGPU");
     export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
         m,
@@ -397,12 +412,12 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(
         m,
         "WallsPotentialMorseGPU");
+    */
 #endif
 
     // updaters
     export_IntegratorTwoStep(m);
     export_IntegrationMethodTwoStep(m);
-    export_TempRescaleUpdater(m);
     export_ZeroMomentumUpdater(m);
     export_TwoStepNVE(m);
     export_TwoStepNVTMTK(m);
@@ -411,7 +426,6 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepBD(m);
     export_TwoStepNPTMTK(m);
     export_Berendsen(m);
-    export_Enforce2DUpdater(m);
     export_ConstraintEllipsoid(m);
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
@@ -448,7 +462,6 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepBDGPU(m);
     export_TwoStepNPTMTKGPU(m);
     export_BerendsenGPU(m);
-    export_Enforce2DUpdaterGPU(m);
     export_FIREEnergyMinimizerGPU(m);
     export_ConstraintEllipsoidGPU(m);
     export_MuellerPlatheFlowGPU(m);
