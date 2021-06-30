@@ -7,9 +7,10 @@
 # Maintainer: joaander / All Developers are free to add commands for new
 # features
 
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyFrom
 from hoomd.md import _md
-import hoomd
-from hoomd.integrate import _integrator
+from hoomd.md.integrate import _DynamicIntegrator, _preprocess_aniso
 
 
 class FIRE(_DynamicIntegrator):
