@@ -140,7 +140,8 @@ def test_wrap(s):
                 out[i, j, :] = point + a * f[0] + b * f[1] + c * f[2]
                 ins[i, j, :] = point
                 mults[i, j, :] = f
-        return out.reshape((-1, 3)), ins.reshape((-1, 3)), mults.reshape((-1,3))
+        return out.reshape((-1, 3)), ins.reshape((-1, 3)), mults.reshape(
+            (-1, 3))
 
     if s.communicator.rank == 0:
         # multiples of lattice vectors to add to interior points to generate tests
