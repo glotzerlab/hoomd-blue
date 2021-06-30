@@ -7,6 +7,8 @@
 # Maintainer: joaander / All Developers are free to add commands for new
 # features
 
+import hoomd
+
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom
 from hoomd.md import _md
@@ -160,7 +162,7 @@ class FIRE(_DynamicIntegrator):
         else:
             cls = getattr(_md, self._cpp_class_name + "GPU")
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def, self.dt)
-        super._attach()
+        super()._attach()
 
     def get_energy(self):
         """Returns the energy after the last iteration of the minimizer."""
