@@ -130,15 +130,15 @@ class FIRE(_DynamicIntegrator):
                 dt=float(dt),
                 aniso=OnlyFrom(['true', 'false', 'auto'],
                                preprocess=_preprocess_aniso),
-                min_steps_adapt=int,
+                min_steps_adapt=int,  # TODO find a way force positive integers
                 finc_dt=float,
                 fdec_dt=float,
-                alpha_start=float,
+                alpha_start=float,  # TODO find a way to prevent user from resetting this value
                 fdec_alpha=float,
                 force_tol=float,
                 angmom_tol=float,
                 energy_tol=float,
-                min_steps_conv=int,
+                min_steps_conv=int,  # TODO find a way to force positive integers
                 _defaults={"aniso": "auto",
                            "min_steps_adapt": 5,
                            "finc_dt": 1.1,
@@ -162,22 +162,17 @@ class FIRE(_DynamicIntegrator):
         super._attach()
 
     def get_energy(self):
-        R""" Returns the energy after the last iteration of the minimizer
-        """
-        self.check_initialization()
-        return self.cpp_integrator.getEnergy()
+        """Returns the energy after the last iteration of the minimizer."""
+        return self._cpp_obj.getEnergy()
 
     def has_converged(self):
-        R""" Test if the energy minimizer has converged.
+        """Test if the energy minimizer has converged.
 
         Returns:
             True when the minimizer has converged. Otherwise, return False.
         """
-        self.check_initialization()
-        return self.cpp_integrator.hasConverged()
+        return self._cpp_obj.hasConverged()
 
     def reset(self):
-        R""" Reset the minimizer to its initial state.
-        """
-        self.check_initialization()
-        return self.cpp_integrator.reset()
+        """Reset the minimizer to its initial state."""
+        return self._cpp_obj.reset()
