@@ -47,8 +47,8 @@ set(_md_sources module-md.cc
 
 set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceCompute.h
-		ActiveForceConstraintCompute.h
-		ActiveForceConstraintComputeGPU.h
+                ActiveForceConstraintCompute.h
+                ActiveForceConstraintComputeGPU.h
                 AllAnisoPairPotentials.h
                 AllBondPotentials.h
                 AllExternalPotentials.h
@@ -272,27 +272,27 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepBDGPU.cu
                       TwoStepBerendsenGPU.cu
                       TwoStepLangevinGPU.cu
-		      TwoStepRATTLELangevinGPU.cu
+                      TwoStepRATTLELangevinGPU.cu
                       TwoStepNPTMTKGPU.cu
                       TwoStepNVEGPU.cu
-		      TwoStepRATTLENVEGPU.cu
+                      TwoStepRATTLENVEGPU.cu
                       TwoStepNVTMTKGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
-		      all_kernels_diamond_manifold.cu
-		      all_kernels_ellipsoid_manifold.cu
-		      all_kernels_gyroid_manifold.cu
-		      all_kernels_primitive_manifold.cu
-		      all_kernels_sphere_manifold.cu
-		      all_kernels_xyplane_manifold.cu
-		      all_kernels_zcylinder_manifold.cu
-		      all_kernels_active_diamond_manifold.cu
-		      all_kernels_active_ellipsoid_manifold.cu
-		      all_kernels_active_gyroid_manifold.cu
-		      all_kernels_active_primitive_manifold.cu
-		      all_kernels_active_sphere_manifold.cu
-		      all_kernels_active_xyplane_manifold.cu
-		      all_kernels_active_zcylinder_manifold.cu
+                      all_kernels_diamond_manifold.cu
+                      all_kernels_ellipsoid_manifold.cu
+                      all_kernels_gyroid_manifold.cu
+                      all_kernels_primitive_manifold.cu
+                      all_kernels_sphere_manifold.cu
+                      all_kernels_xyplane_manifold.cu
+                      all_kernels_zcylinder_manifold.cu
+                      all_kernels_active_diamond_manifold.cu
+                      all_kernels_active_ellipsoid_manifold.cu
+                      all_kernels_active_gyroid_manifold.cu
+                      all_kernels_active_primitive_manifold.cu
+                      all_kernels_active_sphere_manifold.cu
+                      all_kernels_active_xyplane_manifold.cu
+                      all_kernels_active_zcylinder_manifold.cu
                       )
 
 if (ENABLE_HIP)
