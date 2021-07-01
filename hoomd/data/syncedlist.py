@@ -72,7 +72,9 @@ class SyncedList(MutableSequence):
             this is `True` (defaults to ``False``), then the class will be
             treated as a callable and not used for type checking.
         attach_members (bool, optional): Whether list members have a concept of
-            attaching (defaults to ``True``)
+            attaching (defaults to ``True``). If ``True`` then the `SyncedList`
+            object handles adding, attaching, detaching, and removing. If not,
+            these steps are skipped regardless of synced status.
     """
 
     # Also guarantees that lists remain in same order when using the public API.
