@@ -104,10 +104,7 @@ class SyncedList(MutableSequence):
 
         Detaches removed value and syncs cpp_list if necessary.
         """
-        if len(self) <= index or -len(self) > index:
-            raise IndexError(
-                f"Cannot assign index {index} to list of length {len(self)}.")
-        # Convert negative to positive indices
+        # Convert negative to positive indices and validate index
         index = self._handle_int(index)
         value = self._validate_or_error(value)
         # If synced need to change cpp_list and detach operation before
@@ -124,10 +121,6 @@ class SyncedList(MutableSequence):
         index = self._handle_index(index)
         if inspect.isgenerator(index):
             return [self._list[i] for i in index]
-
-        if len(self) <= index or -len(self) > index:
-            raise IndexError(
-                f"Cannot get index {index} of a list of length {len(self)}.")
         return self._list[index]
 
     def __delitem__(self, index):
@@ -139,9 +132,6 @@ class SyncedList(MutableSequence):
             for i in sorted(index, reverse=True):
                 del self[i]
             return
-        if len(self) <= index or -len(self) > index:
-            raise IndexError(
-                f"Cannot delete index {index} to list of length {len(self)}.")
         # Since delitem may not del the underlying object, we need to
         # manually call detach here.
         if self._synced:
@@ -153,13 +143,10 @@ class SyncedList(MutableSequence):
     def insert(self, index, value):
         """Insert value to list at index, handling list syncing."""
         value = self._validate_or_error(value)
-        if abs(index) > len(self):
-            raise IndexError(
-                f"Cannot insert {value} to index {index} for a list of length "
-                f"{len(self)}")
         # Wrap index like normal but allow for inserting a new element to the
         # end of the list.
-        index = self._handle_int(index)
+        if index != len(self):
+            index = self._handle_int(index)
         if self._synced:
             self._synced_list.insert(index,
                                      self._to_synced_list_conversion(value))
@@ -171,13 +158,17 @@ class SyncedList(MutableSequence):
         return hasattr(self, "_synced_list")
 
     def _handle_int(self, integer):
-        """Converts negative indices to positive."""
+        """Converts negative indices to positive and validates index."""
         if integer < 0:
             if -integer > len(self):
                 raise IndexError(
                     f"Negative index {integer} is too small for list of length "
                     f"{len(self)}")
             return integer % max(1, len(self))
+        if integer >= len(self):
+            raise IndexError(
+                f"Index {integer} is outside bounds of a length {len(self)}"
+                f"list.")
         return integer
 
     def _handle_index(self, index):
