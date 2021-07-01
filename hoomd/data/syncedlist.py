@@ -69,8 +69,10 @@ class SyncedList(MutableSequence):
             members of the SyncedList instance. Defaults to None which causes
             SyncedList to start with an empty list.
         callable_class (bool, optional): If a class is passed as validation and
-        this is `True` (defaults to `False`), then the class will be treated as
-        a callable and not used for type checking.
+            this is `True` (defaults to ``False``), then the class will be
+            treated as a callable and not used for type checking.
+        attach_members (bool, optional): Whether list members have a concept of
+            attaching (defaults to ``True``)
     """
 
     # Also guarantees that lists remain in same order when using the public API.
@@ -79,7 +81,9 @@ class SyncedList(MutableSequence):
                  validation,
                  to_synced_list=None,
                  iterable=None,
-                 callable_class=False):
+                 callable_class=False,
+                 attach_members=True):
+        self._attach_members = attach_members
         if to_synced_list is None:
             to_synced_list = identity
 
@@ -112,8 +116,7 @@ class SyncedList(MutableSequence):
         if self._synced:
             self._synced_list[index] = \
                 self._to_synced_list_conversion(value)
-            self._list[index]._detach()
-        self._list[index]._remove()
+        self._detach_value(self._list[index])
         self._list[index] = value
 
     def __getitem__(self, index):
@@ -136,9 +139,8 @@ class SyncedList(MutableSequence):
         # manually call detach here.
         if self._synced:
             del self._synced_list[index]
-            self._list[index]._detach()
-        self._list[index]._remove()
-        del self._list[index]
+        old_value = self._list.pop(index)
+        self._detach_value(old_value)
 
     def insert(self, index, value):
         """Insert value to list at index, handling list syncing."""
@@ -184,48 +186,59 @@ class SyncedList(MutableSequence):
         if self._synced:
             yield from self._synced_list
 
-    def _value_add_and_attach(self, value):
-        """Attaches value if unattached.
+    def _attach_value(self, value):
+        """Attaches and/or adds value to simulation if unattached.
 
-        Raises an error if value is already in the list.
+        Raises an error if value is already in this or another list.
         """
+        if not self._attach_members:
+            return
         if value._added:
             raise RuntimeError(f"Object {value} cannot be added to two lists.")
         else:
             value._add(self._simulation)
         if self._synced:
             value._attach()
-        return value
+
+    def _detach_value(self, value):
+        """Detaches and/or removes value to simulation if attached."""
+        if not self._attach_members:
+            return
+        if self._synced:
+            value._detach()
+        if value._added:
+            value._remove()
 
     def _validate_or_error(self, value):
         """Complete error checking and processing of value."""
         try:
             if self._validate(value):
-                return self._value_add_and_attach(value)
+                return value
             else:
-                raise ValueError("Value {} could not be validated."
-                                 "".format(value))
+                raise ValueError(f"Value {value} could not be validated.")
         except ValueError as verr:
-            raise ValueError("Validation failed: {}".format(verr.args[0]))
+            raise ValueError(f"Validation failed: {verr.args[0]}")
 
     def _sync(self, simulation, synced_list):
         """Attach all list items and update for automatic attachment."""
         self._simulation = simulation
         self._synced_list = synced_list
         for item in self:
-            item._add(simulation)
-            item._attach()
+            self._attach_value(item)
             self._synced_list.append(self._to_synced_list_conversion(item))
 
     def _unsync(self):
         """Detach all items, clear _synced_list, and remove cpp references."""
-        if self._synced:
-            for index in range(len(self)):
-                del self._synced_list[0]
+        if not self._synced:
+            return
+        self._synced_list.clear()
+        # while not strictly necessary we check for self._attach_members
+        # here to avoid looping if necessary.
+        if self._attach_members:
             for item in self:
-                item._detach()
-            del self._simulation
-            del self._synced_list
+                self._detach_value(item)
+        del self._simulation
+        del self._synced_list
 
     def __getstate__(self):
         """Get state for pickling."""
