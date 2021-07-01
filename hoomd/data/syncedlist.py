@@ -93,23 +93,9 @@ class SyncedList(MutableSequence):
             for it in iterable:
                 self.append(it)
 
-    def __contains__(self, value):
-        """bool: True when the value is in the list.
-
-        Based on memory location.
-        """
-        for item in self._list:
-            if item is value:
-                return True
-        return False
-
     def __len__(self):
         """int: Length of the list."""
         return len(self._list)
-
-    def __iter__(self):
-        """Iterate through python list."""
-        yield from self._list
 
     def __setitem__(self, index, value):
         """Change self[index] to value.
