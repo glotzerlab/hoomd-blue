@@ -111,6 +111,7 @@ class SyncedList(MutableSequence):
         # Convert negative to positive indices and validate index
         index = self._handle_int(index)
         value = self._validate_or_error(value)
+        self._attach_value(value)
         # If synced need to change cpp_list and detach operation before
         # changing python list
         if self._synced:
@@ -145,6 +146,7 @@ class SyncedList(MutableSequence):
     def insert(self, index, value):
         """Insert value to list at index, handling list syncing."""
         value = self._validate_or_error(value)
+        self._attach_value(value)
         # Wrap index like normal but allow for inserting a new element to the
         # end of the list.
         if index != len(self):
