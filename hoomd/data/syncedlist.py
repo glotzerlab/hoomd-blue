@@ -190,7 +190,7 @@ class SyncedList(MutableSequence):
         Raises an error if value is already in the list.
         """
         if value._added:
-            raise RuntimeError("Object cannot be added to two lists.")
+            raise RuntimeError(f"Object {value} cannot be added to two lists.")
         else:
             value._add(self._simulation)
         if self._synced:
