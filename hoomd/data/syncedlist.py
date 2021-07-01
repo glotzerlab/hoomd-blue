@@ -188,17 +188,16 @@ class SyncedList(MutableSequence):
         if self._synced:
             yield from self._synced_list
 
-    def _attach_value(self, value):
+    def _attach_value(self, value, raise_if_added=True):
         """Attaches and/or adds value to simulation if unattached.
 
         Raises an error if value is already in this or another list.
         """
         if not self._attach_members:
             return
-        if value._added:
+        if raise_if_added and value._added:
             raise RuntimeError(f"Object {value} cannot be added to two lists.")
-        else:
-            value._add(self._simulation)
+        value._add(self._simulation)
         if self._synced:
             value._attach()
 
@@ -226,7 +225,7 @@ class SyncedList(MutableSequence):
         self._simulation = simulation
         self._synced_list = synced_list
         for item in self:
-            self._attach_value(item)
+            self._attach_value(item, False)
             self._synced_list.append(self._to_synced_list_conversion(item))
 
     def _unsync(self):
