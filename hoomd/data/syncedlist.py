@@ -8,6 +8,8 @@ from collections.abc import MutableSequence
 import inspect
 from copy import copy
 
+from ..util import _islice_index
+
 
 class _PartialIsInstance:
     """Allows partial function application of isinstance over classes.
@@ -169,12 +171,7 @@ class SyncedList(MutableSequence):
         return self._handle_slice(index)
 
     def _handle_slice(self, index):
-        start = index.start if index.start is not None else 0
-        start = self._handle_int(start)
-        stop = index.stop if index.stop is not None else len(self)
-        stop = self._handle_int(stop)
-        step = index.step if index.step is not None else 1
-        return list(range(start, stop, step))
+        return [self._handle_int(i) for i in _islice_index(self, index)]
 
     def synced_iter(self):
         """Iterate over values in the list. Does nothing when not synced."""
