@@ -150,6 +150,21 @@ class SyncedList(MutableSequence):
         self._list[index]._remove()
         del self._list[index]
 
+    def insert(self, index, value):
+        """Insert value to list at index, handling list syncing."""
+        value = self._validate_or_error(value)
+        if abs(index) > len(self):
+            raise IndexError(
+                f"Cannot insert {value} to index {index} for a list of length "
+                f"{len(self)}")
+        # Wrap index like normal but allow for inserting a new element to the
+        # end of the list.
+        index = self._handle_int(index)
+        if self._synced:
+            self._synced_list.insert(index,
+                                     self._to_synced_list_conversion(value))
+        self._list.insert(index, value)
+
     @property
     def _synced(self):
         """Has a cpp_list object means that we are currently syncing."""
@@ -220,21 +235,6 @@ class SyncedList(MutableSequence):
                 item._detach()
             del self._simulation
             del self._synced_list
-
-    def insert(self, index, value):
-        """Insert value to list at index, handling list syncing."""
-        value = self._validate_or_error(value)
-        if abs(index) > len(self):
-            raise IndexError(
-                f"Cannot insert {value} to index {index} for a list of length "
-                f"{len(self)}")
-        # Wrap index like normal but allow for inserting a new element to the
-        # end of the list.
-        index = self._handle_int(index)
-        if self._synced:
-            self._synced_list.insert(index,
-                                     self._to_synced_list_conversion(value))
-        self._list.insert(index, value)
 
     def __getstate__(self):
         """Get state for pickling."""
