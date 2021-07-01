@@ -111,21 +111,25 @@ def test_synced(slist):
     assert slist._synced
 
 
-def test_value_add_and_attach(slist):
+def test_attach_value(slist):
     op = DummyOperation()
-    assert not slist._value_add_and_attach(op)._attached
+    slist._attach_value(op)
+    assert not op._attached
     assert op._added
     slist._synced_list = []
     slist._simulation = DummySimulation()
     op = DummyOperation()
-    assert slist._value_add_and_attach(op)._attached
+    slist._attach_value(op)
+    assert op._attached
     assert op._added
 
 
 def test_validate_or_error(slist):
     with raises(ValueError):
         slist._validate_or_error(3)
+    with raises(ValueError):
         slist._validate_or_error(None)
+    with raises(ValueError):
         slist._validate_or_error("hello")
     assert slist._validate_or_error(DummyOperation())
 
