@@ -122,7 +122,7 @@ class SyncedList(MutableSequence):
     def __getitem__(self, index):
         """Grabs the python list item."""
         index = self._handle_index(index)
-        if hasattr(index, '__iter__'):
+        if inspect.isgenerator(index):
             return [self._list[i] for i in index]
 
         if len(self) <= index or -len(self) > index:
@@ -133,7 +133,7 @@ class SyncedList(MutableSequence):
     def __delitem__(self, index):
         """Deletes an item from list. Handles detaching if necessary."""
         index = self._handle_index(index)
-        if hasattr(index, '__iter__'):
+        if inspect.isgenerator(index):
             # We must iterate from highest value to lowest to ensure we don't
             # accidentally try to delete an index that doesn't exist any more.
             for i in sorted(index, reverse=True):
@@ -171,7 +171,7 @@ class SyncedList(MutableSequence):
         return self._handle_slice(index)
 
     def _handle_slice(self, index):
-        return [self._handle_int(i) for i in _islice_index(self, index)]
+        yield from (self._handle_int(i) for i in _islice_index(self, index))
 
     def synced_iter(self):
         """Iterate over values in the list. Does nothing when not synced."""
