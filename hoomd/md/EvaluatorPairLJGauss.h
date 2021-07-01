@@ -185,7 +185,7 @@ class EvaluatorPairLJGauss
             Scalar rdiff = r - alphas[2] * r0;
             Scalar rdiffsq = rdiff * rdiff;
             Scalar exp_term = fast::exp(-Scalar(0.5) * rdiffsq * invsiga1sq);
-            Scalar c = alphas[0] * epsilon * exp_term * invsiga1sq;
+            Scalar c = - alphas[0] * epsilon * exp_term * invsiga1sq;
             alchemical_derivatives[0] = -epsilon * exp_term;
             alchemical_derivatives[1] = c * rdiffsq * inva1;
             alchemical_derivatives[2] = c * r0 * rdiff;

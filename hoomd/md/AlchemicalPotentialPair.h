@@ -301,11 +301,10 @@ inline void AlchemicalPotentialPair<evaluator>::pkgPerNeighbor(const unsigned in
     mask_type& mask {pkg.h_alchemy_mask.data[alchemy_index]};
     alpha_array_t& alphas {pkg.alphas[alchemy_index]};
 
-    // TODO: make sure that when we disable an alchemical particle, we rewrite it's parameter
+    // TODO: make sure that when we disable an alchemical particle, we rewritit's parameter
     // TODO: add support of aniso
 
     // update parameter values with current alphas
-    eval.alchemParams(alphas.data());
     if (pkg.calculate_derivatives && in_rcut)
         {
         Scalar alchemical_derivatives[evaluator::num_alchemical_parameters] = {0.0};
@@ -317,11 +316,12 @@ inline void AlchemicalPotentialPair<evaluator>::pkgPerNeighbor(const unsigned in
                 // TODO: this is likely to be inefficient, design better array handle access
                 ArrayHandle<Scalar> h_alchemical_forces(
                     pkg.h_alchemical_particles.data[alchemy_index]->m_alchemical_derivatives);
-                h_alchemical_forces.data[i] += alchemical_derivatives[k] * Scalar(0.5);
+                h_alchemical_forces.data[i] = alchemical_derivatives[k] * Scalar(-0.5);
                 }
             alchemy_index += m_alchemy_index.getNumElements();
             }
         }
+    eval.alchemParams(alphas.data());
     }
 
 template<class evaluator>

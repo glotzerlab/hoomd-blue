@@ -75,7 +75,7 @@ class AlchemicalMDParticle : public AlchemicalParticle
         netForce /= Scalar(m_alchemical_derivatives.getNumElements());
         m_timestepNetForce.second = netForce;
         }
-        
+
     void setNetForce(unsigned int N, Scalar norm_value)
         {
         Scalar netForce(0.0);
@@ -88,7 +88,7 @@ class AlchemicalMDParticle : public AlchemicalParticle
         netForce /= N;
         m_timestepNetForce.second = netForce;
         }
-    
+
     void setNetForce(Scalar norm_value)
         {
         setNetForce();
@@ -99,6 +99,11 @@ class AlchemicalMDParticle : public AlchemicalParticle
         {
         // TODO: remove this sanity check after we're done making sure timing works
         assert(m_timestepNetForce.first == timestep);
+        return m_timestepNetForce.second;
+        }
+
+    Scalar getNetForce()
+        {
         return m_timestepNetForce.second;
         }
 
@@ -116,6 +121,14 @@ class AlchemicalMDParticle : public AlchemicalParticle
     Scalar getValue()
         {
         return value;
+        }
+
+    pybind11::array_t<Scalar> getDAlphas()
+        {
+        ArrayHandle<Scalar> h_forces(m_alchemical_derivatives,
+                                     access_location::host,
+                                     access_mode::read);
+        return pybind11::array(m_alchemical_derivatives.getNumElements(), h_forces.data);
         }
 
     Scalar momentum = 0.; // the momentum of the particle
@@ -142,19 +155,19 @@ inline void export_AlchemicalMDParticle(pybind11::module& m)
         m,
         "AlchemicalMDParticle")
         .def("setMass", &AlchemicalMDParticle::setMass)
-        .def_property_readonly("getMass", &AlchemicalMDParticle::getMass)
-        .def_property_readonly("alpha", &AlchemicalMDParticle::getValue);
+        .def_readonly("mass", &AlchemicalMDParticle::mass)
+        .def_readwrite("mu", &AlchemicalMDParticle::mu)
+        .def_readwrite("alpha", &AlchemicalMDParticle::value)
+        .def_readwrite("momentum", &AlchemicalMDParticle::momentum)
+        .def_property_readonly("forces", &AlchemicalMDParticle::getDAlphas)
+        .def("net_force", pybind11::overload_cast<>(&AlchemicalMDParticle::getNetForce));
     }
 
 inline void export_AlchemicalPairParticle(pybind11::module& m)
     {
     pybind11::class_<AlchemicalPairParticle,
                      AlchemicalMDParticle,
-                     std::shared_ptr<AlchemicalPairParticle>>(m, "AlchemicalPairParticle")
-        // .def("setMass", &AlchemicalPairParticle::setMass)
-        // .def_property_readonly("getMass", &AlchemicalPairParticle::getMass)
-        // .def_property_readonly("alpha", &AlchemicalPairParticle::getValue)
-        ;
+                     std::shared_ptr<AlchemicalPairParticle>>(m, "AlchemicalPairParticle");
     }
 
 #endif
