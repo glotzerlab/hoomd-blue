@@ -146,7 +146,6 @@ def test_unsync(slist, op_list):
     sync_list = []
     slist._sync(None, sync_list)
     slist._unsync()
-    assert len(sync_list) == 0
     assert all([not op._attached for op in slist])
     assert not hasattr(slist, "_synced_list")
 
