@@ -3,8 +3,11 @@
 from abc import ABC, abstractmethod
 from collections.abc import MutableSequence
 
+from hoomd.operation import _HOOMDGetSetAttrBase
+from hoomd.data.parameterdicts import ParameterDict
 
-class WallGeometry(ABC):
+
+class WallGeometry(ABC, _HOOMDGetSetAttrBase):
     """Abstract base class for a HOOMD wall geometry.
 
     Walls are used in both HPMC and MD subpackages. Subclass of `WallGeometry`
@@ -20,13 +23,21 @@ class WallGeometry(ABC):
         """
         pass
 
+    def _setattr_param(self, attr, value):
+        """Make WallGeometry objects effectively immutable."""
+        raise ValueError(f"Cannot set {attr} after construction as "
+                         f"{self.__class__} objects are immutable")
+
 
 class Sphere(WallGeometry):
     """Define a circle/sphere in 2D/3D Euclidean space.
 
     Whether the wall is interpreted as a sphere or circle is dependent on the
     dimension of the system the wall is applied to. For 2D systems the
-    z-component of th origin should be zero.
+    z-component of the origin should be zero.
+
+    Note:
+        `Sphere` objects are immutable.
 
     Args:
         radius (`float`, optional):
@@ -48,9 +59,13 @@ class Sphere(WallGeometry):
     """
 
     def __init__(self, radius=0.0, origin=(0.0, 0.0, 0.0), inside=True):
-        self.radius = radius
-        self.origin = origin
-        self.inside = inside
+        param_dict = ParameterDict(radius=float,
+                                   origin=(float, float, float),
+                                   inside=bool)
+        param_dict["radius"] = radius
+        param_dict["origin"] = origin
+        param_dict["inside"] = inside
+        self._param_dict = param_dict
 
     def __str__(self):
         """A string representation of the Sphere."""
@@ -72,6 +87,9 @@ class Sphere(WallGeometry):
 
 class Cylinder(WallGeometry):
     """Define a cylinder in 3D Euclidean space.
+
+    Note:
+        `Cylinder` objects are immutable.
 
     Args:
         radius (`float`, optional):
@@ -103,10 +121,15 @@ class Cylinder(WallGeometry):
                  origin=(0.0, 0.0, 0.0),
                  axis=(0.0, 0.0, 1.0),
                  inside=True):
-        self.radius = radius
-        self.origin = origin
-        self.axis = axis
-        self.inside = inside
+        param_dict = ParameterDict(radius=float,
+                                   origin=(float, float, float),
+                                   axis=(float, float, float),
+                                   inside=bool)
+        param_dict["radius"] = radius
+        param_dict["origin"] = origin
+        param_dict["axis"] = axis
+        param_dict["inside"] = inside
+        self._param_dict = param_dict
 
     def __str__(self):
         """A string representation of the Cylinder."""
@@ -119,12 +142,19 @@ class Cylinder(WallGeometry):
 
     def to_dict(self):
         """Return a dictionary specifying the cylinder."""
-        return {"radius": self.radius, "origin": self.origin, "axis": self.axis,
-                "inside": self.inside}
+        return {
+            "radius": self.radius,
+            "origin": self.origin,
+            "axis": self.axis,
+            "inside": self.inside
+        }
 
 
 class Plane(WallGeometry):
     """Define a Plane in 3D Euclidean space.
+
+    Note:
+        `Plane` objects are immutable.
 
     Args:
         origin (`tuple` [`float`,`float`,`float`], optional):
@@ -153,9 +183,13 @@ class Plane(WallGeometry):
                  origin=(0.0, 0.0, 0.0),
                  normal=(0.0, 0.0, 1.0),
                  inside=True):
-        self.origin = origin
-        self.normal = normal
-        self.inside = inside
+        param_dict = ParameterDict(origin=(float, float, float),
+                                   normal=(float, float, float),
+                                   inside=bool)
+        param_dict["origin"] = origin
+        param_dict["normal"] = normal
+        param_dict["inside"] = inside
+        self._param_dict = param_dict
 
     def __str__(self):
         """A string representation of the Plane."""
@@ -168,8 +202,12 @@ class Plane(WallGeometry):
 
     def to_dict(self):
         """Return a dictionary specifying the plane."""
-        return {"origin": self.origin, "normal": self.axis,
-                "inside": self.inside}
+        return {
+            "origin": self.origin,
+            "normal": self.axis,
+            "inside": self.inside
+        }
+
 
 class _WallsMetaList(MutableSequence):
 
