@@ -1,3 +1,5 @@
+"""Implement data classes for support HOOMD wall geometries."""
+
 from collections.abc import MutableSequence as _MutableSequence
 from hoomd.data.syncedlist import SyncedList as _SyncedList
 
