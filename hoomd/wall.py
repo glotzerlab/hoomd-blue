@@ -61,6 +61,14 @@ class Sphere(WallGeometry):
         return f"Sphere(radius={self.radius}, origin={self.origin}, "
         f"inside={self.inside})"
 
+    def to_dict(self):
+        """Return a dictionary specifying the sphere."""
+        return {
+            "radius": self.radius,
+            "origin": self.origin,
+            "inside": self.inside
+        }
+
 
 class Cylinder(WallGeometry):
     """Define a cylinder in 3D Euclidean space.
@@ -109,6 +117,11 @@ class Cylinder(WallGeometry):
         return f"Cylinder(radius={self.radius}, origin=self.origin, "
         f"axis={self.axis}, inside={self.inside})"
 
+    def to_dict(self):
+        """Return a dictionary specifying the cylinder."""
+        return {"radius": self.radius, "origin": self.origin, "axis": self.axis,
+                "inside": self.inside}
+
 
 class Plane(WallGeometry):
     """Define a Plane in 3D Euclidean space.
@@ -153,6 +166,10 @@ class Plane(WallGeometry):
         return f"Plane(origin={self.origin}, normal={self.normal}, "
         f"inside={self.inside})"
 
+    def to_dict(self):
+        """Return a dictionary specifying the plane."""
+        return {"origin": self.origin, "normal": self.axis,
+                "inside": self.inside}
 
 class _WallsMetaList(MutableSequence):
 
