@@ -4,7 +4,7 @@ set(files __init__.py
     )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/external
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md/external
        )
 
 copy_files_to_build("${files}" "md-external" "*.py")
