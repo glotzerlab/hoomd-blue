@@ -1,18 +1,27 @@
 """Implement data classes for support HOOMD wall geometries."""
 
-from collections.abc import MutableSequence as _MutableSequence
-from hoomd.data.syncedlist import SyncedList as _SyncedList
+from abc import ABC, abstractmethod
+from collections.abc import MutableSequence
 
 
-class _Base_Wall(object):
+class WallGeometry(object):
+    """Abstract base class for a HOOMD wall geometry.
 
-    def __init__(self):
-        self._attached = False
-        self._cpp_obj = None
-        self._added = False
+    Walls are used in both HPMC and MD subpackages. Subclass of `WallGeometry`
+    abstract over the wall geometries for both use cases.
+    """
+
+    @abstractmethod
+    def to_dict(self):
+        """Convert the wall geometry to a dictionary defining the geometry.
+
+        Returns:
+            dict: The geometry in a Python dictionary.
+        """
+        pass
 
 
-class Sphere(_Base_Wall):
+class Sphere(WallGeometry):
 
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), inside=True):
         self.r = r
@@ -29,7 +38,7 @@ class Sphere(_Base_Wall):
             self.r), str(self.origin), str(self.inside))
 
 
-class Cylinder(_Base_Wall):
+class Cylinder(WallGeometry):
 
     def __init__(self,
                  r=0.0,
@@ -51,7 +60,7 @@ class Cylinder(_Base_Wall):
             self.r), str(self.origin), str(self.axis), str(self.inside))
 
 
-class Plane(_Base_Wall):
+class Plane(WallGeometry):
 
     def __init__(self,
                  origin=(0.0, 0.0, 0.0),
@@ -71,7 +80,7 @@ class Plane(_Base_Wall):
             self.origin), str(self.normal), str(self.inside))
 
 
-class _WallsMetaList(_MutableSequence):
+class _WallsMetaList(MutableSequence):
 
     def __init__(self, attach_method, walls):
         self.walls = []
