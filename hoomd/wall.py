@@ -55,13 +55,12 @@ class Sphere(WallGeometry):
 
     def __str__(self):
         """A string representation of the Sphere."""
-        return "Radius=%s\tOrigin=%s\tInside=%s" % (str(self.r), str(
-            self.origin), str(self.inside))
+        return self.__repr__()
 
     def __repr__(self):
         """A string representation of the Sphere."""
-        return "{'r': %s, 'origin': %s, 'inside': %s}" % (str(
-            self.r), str(self.origin), str(self.inside))
+        return f"Sphere(radius={self.radius}, origin={self.origin}, "
+        f"inside={self.inside})"
 
 
 class Cylinder(WallGeometry):
@@ -93,25 +92,23 @@ class Cylinder(WallGeometry):
     """
 
     def __init__(self,
-                 r=0.0,
+                 radius=0.0,
                  origin=(0.0, 0.0, 0.0),
                  axis=(0.0, 0.0, 1.0),
                  inside=True):
-        self.r = r
+        self.radius = radius
         self.origin = origin
         self.axis = axis
         self.inside = inside
-        super().__init__()
 
     def __str__(self):
         """A string representation of the Cylinder."""
-        return "Radius=%s\tOrigin=%s\tAxis=%s\tInside=%s" % (str(
-            self.r), str(self.origin), str(self.axis), str(self.inside))
+        return self.__repr__()
 
     def __repr__(self):
         """A string representation of the Cylinder."""
-        return "{'r': %s, 'origin': %s, 'axis': %s, 'inside': %s}" % (str(
-            self.r), str(self.origin), str(self.axis), str(self.inside))
+        return f"Cylinder(radius={self.radius}, origin=self.origin, "
+        f"axis={self.axis}, inside={self.inside})"
 
 
 class Plane(WallGeometry):
@@ -151,13 +148,12 @@ class Plane(WallGeometry):
 
     def __str__(self):
         """A string representation of the Plane."""
-        return "Origin=%s\tNormal=%s\tInside=%s" % (str(
-            self.origin), str(self.normal), str(self.inside))
+        return self.__repr__()
 
     def __repr__(self):
         """A string representation of the Plane."""
-        return "{'origin':%s, 'normal': %s, 'inside': %s}" % (str(
-            self.origin), str(self.normal), str(self.inside))
+        return f"Plane(origin={self.origin}, normal={self.normal}, "
+        f"inside={self.inside})"
 
 
 class _WallsMetaList(MutableSequence):
