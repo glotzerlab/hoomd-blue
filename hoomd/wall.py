@@ -22,6 +22,30 @@ class WallGeometry(object):
 
 
 class Sphere(WallGeometry):
+    """Define a circle/sphere in 2D/3D Euclidean space.
+
+    Whether the wall is interpreted as a sphere or circle is dependent on the
+    dimension of the system the wall is applied to. For 2D systems the
+    z-component of th origin should be zero.
+
+    Args:
+        r (`float`, optional):
+            The radius of the sphere.
+        origin (`tuple` [`float`,`float`,`float`], optional):
+            The origin of the sphere.
+        inside (`bool`, optional):
+            Whether particles are restricted to the space inside or outside the
+            sphere.
+
+    Attributes:
+        r (float):
+            The radius of the sphere.
+        origin (`tuple` [`float`,`float`,`float`]):
+            The origin of the sphere.
+        inside (bool):
+            Whether particles are restricted to the space inside or outside the
+            sphere.
+    """
 
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), inside=True):
         self.r = r
@@ -30,15 +54,43 @@ class Sphere(WallGeometry):
         super().__init__()
 
     def __str__(self):
+        """A string representation of the Sphere."""
         return "Radius=%s\tOrigin=%s\tInside=%s" % (str(self.r), str(
             self.origin), str(self.inside))
 
     def __repr__(self):
+        """A string representation of the Sphere."""
         return "{'r': %s, 'origin': %s, 'inside': %s}" % (str(
             self.r), str(self.origin), str(self.inside))
 
 
 class Cylinder(WallGeometry):
+    """Define a cylinder in 3D Euclidean space.
+
+    Args:
+        r (`float`, optional):
+            The radius of the circle faces of the cylinder.
+        origin (`tuple` [`float`,`float`,`float`], optional):
+            The origin of the cylinder defined as the center of the bisecting
+            circle along the cylinder's axis.
+        axis (`tuple` [`float`,`float`,`float`], optional):
+            A vector perpendicular to the circular faces.
+        inside (`bool`, optional):
+            Whether particles are restricted to the space inside or outside the
+            cylinder.
+
+    Attributes:
+        r (float):
+            The radius of the circle faces of the cylinder.
+        origin (`tuple` [`float`,`float`,`float`]):
+            The origin of the cylinder defined as the center of the bisecting
+            circle along the cylinder's axis.
+        axis (`tuple` [`float`,`float`,`float`]):
+            A vector perpendicular to the circular faces.
+        inside (bool):
+            Whether particles are restricted to the space inside or outside the
+            cylinder.
+    """
 
     def __init__(self,
                  r=0.0,
@@ -52,15 +104,41 @@ class Cylinder(WallGeometry):
         super().__init__()
 
     def __str__(self):
+        """A string representation of the Cylinder."""
         return "Radius=%s\tOrigin=%s\tAxis=%s\tInside=%s" % (str(
             self.r), str(self.origin), str(self.axis), str(self.inside))
 
     def __repr__(self):
+        """A string representation of the Cylinder."""
         return "{'r': %s, 'origin': %s, 'axis': %s, 'inside': %s}" % (str(
             self.r), str(self.origin), str(self.axis), str(self.inside))
 
 
 class Plane(WallGeometry):
+    """Define a Plane in 3D Euclidean space.
+
+    Args:
+        origin (`tuple` [`float`,`float`,`float`], optional):
+            A point that lies on the plane used with ``normal`` to fully specify
+            the plane.
+        normal (`tuple` [`float`,`float`,`float`], optional):
+            The normal vector to the plane.
+        inside (`bool`, optional):
+            Whether particles are restricted to the space inside or outside the
+            cylinder. Inside is the side of the plane the normal points to, and
+            outside constitutes the other side.
+
+    Attributes:
+        origin (`tuple` [`float`,`float`,`float`]):
+            A point that lies on the plane used with ``normal`` to fully specify
+            the plane.
+        normal (`tuple` [`float`,`float`,`float`]):
+            The normal vector to the plane.
+        inside (bool):
+            Whether particles are restricted to the space inside or outside the
+            cylinder. Inside is the side of the plane the normal points to, and
+            outside constitutes the other side.
+    """
 
     def __init__(self,
                  origin=(0.0, 0.0, 0.0),
@@ -72,10 +150,12 @@ class Plane(WallGeometry):
         super().__init__()
 
     def __str__(self):
+        """A string representation of the Plane."""
         return "Origin=%s\tNormal=%s\tInside=%s" % (str(
             self.origin), str(self.normal), str(self.inside))
 
     def __repr__(self):
+        """A string representation of the Plane."""
         return "{'origin':%s, 'normal': %s, 'inside': %s}" % (str(
             self.origin), str(self.normal), str(self.inside))
 
