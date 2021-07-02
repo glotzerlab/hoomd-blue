@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import MutableSequence
 
 
-class WallGeometry(object):
+class WallGeometry(ABC):
     """Abstract base class for a HOOMD wall geometry.
 
     Walls are used in both HPMC and MD subpackages. Subclass of `WallGeometry`
