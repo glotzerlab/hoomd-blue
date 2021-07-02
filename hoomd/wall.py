@@ -29,7 +29,7 @@ class Sphere(WallGeometry):
     z-component of th origin should be zero.
 
     Args:
-        r (`float`, optional):
+        radius (`float`, optional):
             The radius of the sphere.
         origin (`tuple` [`float`,`float`,`float`], optional):
             The origin of the sphere.
@@ -38,7 +38,7 @@ class Sphere(WallGeometry):
             sphere.
 
     Attributes:
-        r (float):
+        radius (float):
             The radius of the sphere.
         origin (`tuple` [`float`,`float`,`float`]):
             The origin of the sphere.
@@ -47,11 +47,10 @@ class Sphere(WallGeometry):
             sphere.
     """
 
-    def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), inside=True):
-        self.r = r
+    def __init__(self, radius=0.0, origin=(0.0, 0.0, 0.0), inside=True):
+        self.radius = radius
         self.origin = origin
         self.inside = inside
-        super().__init__()
 
     def __str__(self):
         """A string representation of the Sphere."""
@@ -67,7 +66,7 @@ class Cylinder(WallGeometry):
     """Define a cylinder in 3D Euclidean space.
 
     Args:
-        r (`float`, optional):
+        radius (`float`, optional):
             The radius of the circle faces of the cylinder.
         origin (`tuple` [`float`,`float`,`float`], optional):
             The origin of the cylinder defined as the center of the bisecting
@@ -79,7 +78,7 @@ class Cylinder(WallGeometry):
             cylinder.
 
     Attributes:
-        r (float):
+        radius (float):
             The radius of the circle faces of the cylinder.
         origin (`tuple` [`float`,`float`,`float`]):
             The origin of the cylinder defined as the center of the bisecting
@@ -144,7 +143,6 @@ class Plane(WallGeometry):
         self.origin = origin
         self.normal = normal
         self.inside = inside
-        super().__init__()
 
     def __str__(self):
         """A string representation of the Plane."""
