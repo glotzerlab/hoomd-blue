@@ -1,7 +1,9 @@
 """Implement data classes for support HOOMD wall geometries."""
 
 from abc import ABC, abstractmethod
+from copy import copy
 from collections.abc import MutableSequence
+from hoomd.data.syncedlist import SyncedList
 
 from hoomd.operation import _HOOMDGetSetAttrBase
 from hoomd.data.parameterdicts import ParameterDict
@@ -209,55 +211,205 @@ class Plane(WallGeometry):
         }
 
 
+class _MetaListIndex:
+    """Index and type information between frontend and backend lists.
+
+    This faciliates mantaining order between the user exposed list in
+    `_WallsMetaList` and the backend lists used in C++. This is essentially a
+    dataclass (we cannot use a dataclass since it requires Python 3.7 and we
+    support prior versions.
+    """
+
+    def __init__(self, type, index=0):
+        self.index = index
+        self.type = type
+
+    def __repr__(self):
+        return f"_MetaListIndex(type={self.type}, index={self.index})"
+
+
+# TODO: remove before merging (implemented in another PR)
+def _islice_index(sequence, start=None, stop=None, step=None):
+    if step is None:
+        step = 1
+    if start is None:
+        start = 0 if step > 0 else len(sequence)
+    if stop is None:
+        stop = 0 if step < 0 else len(sequence)
+    yield from range(start, stop, step)
+
+
+# TODO: remove before merging (implemented in another PR)
+def _islice(sequence, start=None, stop=None, step=None):
+    for i in _islice_index(sequence, start, stop, step):
+        yield sequence[i]
+
+
+def _to_cpp_wall(wall):
+    """Converts a Python `WallGeometry` object to a C++ wall object."""
+    pass
+
+
 class _WallsMetaList(MutableSequence):
+    """Creates a lists that sieves its items into multiple backend lists.
 
-    def __init__(self, attach_method, walls):
-        self.walls = []
-        # self._walls = {
-        #     Sphere:_SyncedList(Sphere,attach_method),
-        #     Cylinder:_SyncedList(Cylinder,attach_method),
-        #     Plane:_SyncedList(Plane,attach_method)}
-        self._walls = {Sphere: [], Cylinder: [], Plane: []}
-        self.index = {Sphere: [], Cylinder: [], Plane: []}
+    The class redirects and manages each contained object into one of a number
+    of 'backend' lists based on some condition (here object type). This is to
+    proivde the interface of a single list while allowing for the necessity of
+    separate lists for a given set of items (e.g. for C++ type checking). This
+    is managed by mantaining the frontend list, mutliple backend lists, and an
+    index list of `_MetaListIndex` which links items in the frontend list to
+    their equivalent in the backend list. Most mutative operations on the list
+    require the careful manipulation of the backend indices.
 
-        for wall in walls:
-            self.append(wall)
+    The time-complexity of most operations given the requirements is
+    :math:`O(n)`. However, the amortized complexity of ``append`` and ``extend``
+    is :math:`O(1)` and :math:`O(k)` respectively (where :math:`k` is the number
+    of items to extend the list by). This means that common usage should not be
+    unreasonably slow, and should be asymptotically comparable to a standard
+    Python list.
+
+    `_WallsMetaList` maintains ordering of the constitutent objects between
+    lists (e.g. for two backend list chosen on whether a character is a vowel,
+    the order of the backend lists for the sequence "abdefg" would be "bdfg" and
+    "ae"). If this is not necessary, the class could be sped up and simplified
+    by using `dict` objects to maintain references to frontend elements and
+    always appending to backend lists despite the behavior on the front end.
+
+    Attributes:
+        _walls (`list` [`WallGeometry`]): The list of walls exposed to the user.
+        _backend_list_index (`list` [`_MetaListIndex`]): The list of type, index
+            pairs that connects ``_walls`` to the lists in ``_backend_lists``.
+        _backend_lists (`dict` [`type`, `hoomd.data.SyncedList` \
+                [`WallGeometry`]): A dictionary mapping wall type with the
+                `hoomd.data.SyncedList` instance used to sync the Python with
+                C++ wall lists.
+    """
+
+    def __init__(self, walls=None):
+        self._walls = []
+        self._backend_list_index = []
+        self._backend_lists = {
+            Sphere:
+                SyncedList(Sphere,
+                           to_synced_list=_to_cpp_wall,
+                           attach_members=False),
+            Cylinder:
+                SyncedList(Cylinder,
+                           to_synced_list=_to_cpp_wall,
+                           attach_members=False),
+            Plane:
+                SyncedList(Plane,
+                           to_synced_list=_to_cpp_wall,
+                           attach_members=False)
+        }
+
+        if walls is None:
+            return
+        self.extend(walls)
 
     def __getitem__(self, index):
-        return self.walls[index]
+        return self._walls[index]
 
     def __setitem__(self, index, wall):
-        old = self.walls[index]
-        self.index[type(old)].remove(index)
-        self._walls[type(old)].remove(old)
-        self.index[type(wall)].append(wall)
-        self._walls[type(wall)].append(index)
-        self.walls[index] = wall
+        self._walls[index] = wall
+
+        # handle backend list indices
+        old_backend_index = self._backend_list_index[index]
+        new_type = type(wall)
+        old_type = old_backend_index.type
+        # If the old type at index matches the new wall type then we just swap
+        # on the backend. Also this is a necessary short-circuit as
+        # _get_obj_backend_index would incorrectly increment all later indices
+        # of the same type as new_type.
+        if old_type == new_type:
+            self._backend_lists[new_type][old_backend_index.index] = wall
+            return
+
+        new_backend_index = self._get_obj_backend_index(index, new_type,
+                                                        old_type)
+
+        # Add/remove the new/old walls from their respective backend lists
+        self._backend_lists[new_type].insert(new_backend_index.index, wall)
+        del self._backend_lists[old_type][old_backend_index.index]
 
     def __delitem__(self, index):
         if isinstance(index, slice):
-            for i in reversed(
-                    sorted(
-                        list(
-                            range(index.start or 0, index.stop or len(self),
-                                  index.step or 1)))):
+            for i in _islice_index(self, slice.start, slice.stop, slice.step):
                 self.__delitem__(i)
-        else:
-            self._walls[type(self.walls[index])].remove(self.walls[index])
-            self.index[type(self.walls[index])].remove(index)
-            for k in self.index.keys():
-                self.index[k] = list(
-                    map(lambda i: i if i < index else i - 1, self.index[k]))
-            del self.walls[index]
+            return
+        del self._walls[index]
+        backend_index = self._backend_list_index.pop(index)
+        wall_type = backend_index.type
+        del self._backend_lists[wall_type][backend_index.index]
+        # Decrement backend index for all indices of the deleted type
+        for bi in self._backend_list_index[index:]:
+            if wall_type == bi.type:
+                bi.index -= 1
 
     def __len__(self):
-        return len(self.walls)
+        return len(self._walls)
 
     def insert(self, index, wall):
-        if not wall in self.walls:
-            for k in self.index.keys():
-                self.index[k] = list(
-                    map(lambda i: i if i < index else i + 1, self.index[k]))
-            self._walls[type(wall)].append(wall)
-            self.index[type(wall)].append(index)
-            self.walls.insert(index, wall)
+        self._walls.insert(index, wall)
+        new_type = type(wall)
+        new_index = self._get_obj_backend_index(index, new_type)
+        self._backend_lists[new_type].insert(new_index.index, wall)
+        self._backend_list_index.insert(index, new_index)
+
+    def append(self, wall):
+        # While not required we overwrite the default append to increase the
+        # efficiency of appending and extending as those are common operations.
+        # In CPython extend calls append.
+        self._walls.append(wall)
+
+        wall_type = type(wall)
+        index = len(self._backend_lists[wall_type])
+        self._backend_lists[wall_type].append(wall)
+        self._backend_list_index.append(_MetaListIndex(wall_type, index))
+
+    def _sync(self, cpp_obj):
+        for wall_type, wall_list in self._backend_lists.items():
+            wall_list._sync(
+                None, getattr(cpp_obj, self._type_to_list_name[wall_type]))
+
+    def _unsync(self):
+        for wall_list in self._backend_lists.values():
+            wall_list._unsync()
+
+    def _get_obj_backend_index(self, frontend_index, new_type, old_type=None):
+        """Find the correct backend index while adjusting other indices.
+
+        The method increments all backend indices of the same type that come
+        after ``frontend_index``, and decrements all indices of the same type as
+        ``old_type`` if provided.
+        """
+        backend_index = None
+        # Check for next index that is of the same type as the new wall,
+        # while incrementing or decrementing the indices of the appropriate
+        # type. Don't use _islice here since we have to iterate over the
+        # entire slice and would only increase run-time by adding a layer of
+        # abstraction.
+        for bi in self._backend_list_index[frontend_index:]:
+            if bi.type == new_type:
+                if backend_index is None:
+                    backend_index = copy(bi)
+                bi.index += 1
+            elif old_type is not None and bi.type == old_type:
+                bi.index -= 1
+        # If we did not find a _MetaListIndex of the appropriate type check
+        # before the index in the list for a _MetaListIndex of the correct type.
+        if backend_index is not None:
+            return backend_index
+
+        for bi in _islice(self._backend_list_index,
+                          start=frontend_index - 1,
+                          step=-1):
+            if bi.type == new_type:
+                backend_index = copy(bi)
+                backend_index.index += 1
+                return backend_index
+        # No other object of this wall type currently exists create a new
+        # index object to use.
+        else:
+            return _MetaListIndex(new_type)
