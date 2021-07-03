@@ -53,11 +53,10 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
             );
         particle_data.pos[i] = global_box.makeCoordinates(wrapped);
         int3 img;
-        img.x = static_cast<int>(frac.x);
-        img.y = static_cast<int>(frac.y);
-        img.z = static_cast<int>(frac.z);
+        img.x = (int) std::floor(frac.x);
+        img.y = (int) std::floor(frac.y);
+        img.z = (int) std::floor(frac.z);
         particle_data.image[i] = img;
-        // TODO: test image update
         }
     }
 
