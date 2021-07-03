@@ -51,10 +51,11 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
             modulus_positive(frac.z)
             );
         particle_data.pos[i] = global_box.makeCoordinates(wrapped);
-        int3 img;
-        img.x = (int) std::floor(frac.x);
-        img.y = (int) std::floor(frac.y);
-        img.z = (int) std::floor(frac.z);
+        auto const img = make_int3(
+            std::floor(frac.x),
+            std::floor(frac.y),
+            std::floor(frac.z)
+            );
         particle_data.image[i] = img;
         }
     }
