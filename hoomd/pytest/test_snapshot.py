@@ -188,7 +188,8 @@ def test_wrap(s):
         # 2D box
         box = [5, 11, 0, 0, 0, 0]
         inside = [[1, 0, 0], [2.4, 5, 0], [-2.5, 0, 0], [-2.5, -5.5, 0]]
-        multiples2d = [[0, 0, 0], [1, 0, 0], [-1, 0, 0], [-10, 20, 0]]
+        multiples2d = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0],
+                       [-1, -1, 0], [1, 1, 0], [-10, 20, 0]]
         outs, ins, mults = generate_outside(box, inside, multiples2d)
         s.configuration.box = box
         s.particles.N = len(ins)
