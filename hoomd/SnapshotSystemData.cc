@@ -43,7 +43,6 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
     {
     for (unsigned int i = 0; i < particle_data.size; i++)
         {
-        auto const pos = particle_data.pos[i];
         auto const frac = global_box.makeFraction(particle_data.pos[i]);
         auto modulus_positive = [](auto x){ return std::fmod(std::fmod(x, Real(1.0)) + Real(1.0), Real(1.0)); };
         auto const wrapped = vec3<Real>(
