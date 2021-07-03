@@ -234,6 +234,7 @@ def test_wrap(s):
         numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
         numpy.testing.assert_allclose(s.particles.image, mults)
 
+
 def test_particles(s):
     if s.communicator.rank == 0:
         s.particles.N = 5
