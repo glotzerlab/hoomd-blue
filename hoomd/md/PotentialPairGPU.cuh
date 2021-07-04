@@ -426,7 +426,7 @@ struct PairForceComputeKernel
             unsigned int block_size = pair_args.block_size;
 
             Index2D typpair_idx(pair_args.ntypes);
-            const size_t shared_bytes
+            size_t shared_bytes
                 = (2 * sizeof(Scalar) + sizeof(typename evaluator::param_type))
                   * typpair_idx.getNumElements();
 
