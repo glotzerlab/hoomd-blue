@@ -9,7 +9,7 @@
 #include "EvaluatorPairLJ0804.h"
 
 hipError_t gpu_compute_lj0804_forces(const pair_args_t& pair_args,
-                                     const EvaluatorPairLJ0804::param_type* d_params)
+                                     EvaluatorPairLJ0804::param_type* d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairLJ0804>(pair_args, d_params);
     }

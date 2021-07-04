@@ -8,7 +8,7 @@
 #include "AllDriverPotentialPairGPU.cuh"
 #include "EvaluatorPairYukawa.h"
 hipError_t gpu_compute_yukawa_forces(const pair_args_t& pair_args,
-                                     const EvaluatorPairYukawa::param_type* d_params)
+                                     EvaluatorPairYukawa::param_type* d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairYukawa>(pair_args, d_params);
     }

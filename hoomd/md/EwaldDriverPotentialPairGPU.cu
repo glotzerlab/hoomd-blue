@@ -8,7 +8,7 @@
 #include "AllDriverPotentialPairGPU.cuh"
 #include "EvaluatorPairEwald.h"
 hipError_t gpu_compute_ewald_forces(const pair_args_t& pair_args,
-                                    const EvaluatorPairEwald::param_type* d_params)
+                                    EvaluatorPairEwald::param_type* d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairEwald>(pair_args, d_params);
     }
