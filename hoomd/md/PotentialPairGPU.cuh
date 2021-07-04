@@ -57,13 +57,14 @@ struct pair_args_t
                 const unsigned int _shift_mode,
                 const unsigned int _compute_virial,
                 const unsigned int _threads_per_particle,
-                const GPUPartition& _gpu_partition)
+                const GPUPartition& _gpu_partition,
+		const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_diameter(_d_diameter), d_charge(_d_charge), box(_box),
           d_n_neigh(_d_n_neigh), d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq),
           d_ronsq(_d_ronsq), size_neigh_list(_size_neigh_list), ntypes(_ntypes),
           block_size(_block_size), shift_mode(_shift_mode), compute_virial(_compute_virial),
-          threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition) {};
+          threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition), devprop(_devprop) {};
 
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out
@@ -87,6 +88,7 @@ struct pair_args_t
     const unsigned int compute_virial;       //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 1 warp)
     const GPUPartition& gpu_partition; //!< The load balancing partition of particles between GPUs
+    const hipDeviceProp_t& devprop;    //!< CUDA device properties
     };
 
 #ifdef __HIPCC__
