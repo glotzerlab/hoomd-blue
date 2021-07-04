@@ -438,6 +438,8 @@ struct PairForceComputeKernel
                                                                                compute_virial,
                                                                                tpp>);
 
+	    hipFuncAttributes attr;
+	    hipFuncGetAttributes(&attr, (const void*)func);
             static unsigned int base_shared_bytes = UINT_MAX;
             bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
             base_shared_bytes = static_cast<unsigned int>(shared_bytes + attr.sharedSizeBytes);
