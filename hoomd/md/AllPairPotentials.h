@@ -142,7 +142,8 @@ typedef PotentialPairGPU<EvaluatorPairDLVO, gpu_compute_dlvo_forces> PotentialPa
 typedef PotentialPairGPU<EvaluatorPairFourier, gpu_compute_fourier_forces> PotentialPairFourierGPU;
 //! Pair potential force compute for oscillating pair potential
 typedef PotentialPairGPU<EvaluatorPairOPP, gpu_compute_opp_forces> PotentialPairOPPGPU;
-
+//! Pair potential force compute for Table pair potential on the GPU
+typedef PotentialPairGPU<EvaluatorPairTable, gpu_compute_table_forces> PotentialPairTableGPU;
 /// Pair potential force compute for Ten wolde and Frenkels globular protein
 /// model
 typedef PotentialPairGPU<EvaluatorPairTWF, gpu_compute_twf_forces> PotentialPairTWFGPU;
