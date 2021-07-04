@@ -2,18 +2,9 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-
-#include "hoomd/ForceCompute.h"
-#include "NeighborList.h"
-#include "hoomd/Index1D.h"
-#include "hoomd/GlobalArray.h"
 #include "hoomd/ManagedArray.h"
 #include <memory>
 
-
-#ifdef __HIPCC__
-#error This header cannot be compiled by nvcc
-#endif
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 #ifdef __HIPCC__
