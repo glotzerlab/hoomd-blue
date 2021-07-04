@@ -179,7 +179,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
         {
         if (cur_offset + threadIdx.x < param_size)
             {
-            reinterpret_cast<int*>(s_params)[cur_offset + threadIdx.x] = reinterpret_cast<int*>(d_params)[cur_offset + threadIdx.x];
+            reinterpret_cast<int*>(s_params)[cur_offset + threadIdx.x] = const_cast<int*>(reinterpret_cast<const int*>(d_params)[cur_offset + threadIdx.x]);
             }
         }
     __syncthreads();
@@ -439,7 +439,7 @@ struct PairForceComputeKernel
                                                                                tpp>);
 
 	    hipFuncAttributes attr;
-	    hipFuncGetAttributes(&attr, (const void*)func);
+	    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp>));
             static unsigned int base_shared_bytes = UINT_MAX;
             bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
             base_shared_bytes = static_cast<unsigned int>(shared_bytes + attr.sharedSizeBytes);
