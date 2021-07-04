@@ -27,6 +27,7 @@
 #include "EvaluatorPairOPP.h"
 #include "EvaluatorPairReactionField.h"
 #include "EvaluatorPairSLJ.h"
+#include "EvaluatorPairTable.h"
 #include "EvaluatorPairTWF.h"
 #include "EvaluatorPairYukawa.h"
 #include "EvaluatorPairZBL.h"
