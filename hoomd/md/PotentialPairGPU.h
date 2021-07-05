@@ -45,7 +45,7 @@
 */
 template<class evaluator,
          hipError_t gpu_cgpf(const pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
+                             typename evaluator::param_type* d_params)>
 class PotentialPairGPU : public PotentialPair<evaluator>
     {
     public:
@@ -86,7 +86,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
 
 template<class evaluator,
          hipError_t gpu_cgpf(const pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
+                             typename evaluator::param_type* d_params)>
 PotentialPairGPU<evaluator, gpu_cgpf>::PotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                         std::shared_ptr<NeighborList> nlist)
     : PotentialPair<evaluator>(sysdef, nlist), m_param(0)
@@ -123,7 +123,7 @@ PotentialPairGPU<evaluator, gpu_cgpf>::PotentialPairGPU(std::shared_ptr<SystemDe
 
 template<class evaluator,
          hipError_t gpu_cgpf(const pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
+                             typename evaluator::param_type* d_params)>
 void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     {
     this->m_nlist->compute(timestep);
