@@ -27,12 +27,13 @@ import hoomd
 import math
 
 
-class WallPotential(external.field.Field):
+class WallPotential(hoomd.operation._HOOMDBaseObject):
     r"""Generic wall potential.
 
-    :py:class:`WallPotential` should not be used directly.
-    It is a base class that provides features and documentation common to all
-    standard wall potentials.
+    Warning:
+        `WallPotential` should not be used directly.  It is a base class that
+        provides features and documentation common to all standard wall
+        potentials.
 
     All wall potential commands specify that a given potential energy and
     potential be computed on all particles in the system within a cutoff
