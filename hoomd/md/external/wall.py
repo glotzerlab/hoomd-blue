@@ -20,11 +20,8 @@ and half-spaces.
     The current wall force implementation does not support NPT integrators.
 """
 
-from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.md import external
 import hoomd
-import math
 
 
 class WallPotential(hoomd.operation._HOOMDBaseObject):
@@ -170,34 +167,36 @@ class WallPotential(hoomd.operation._HOOMDBaseObject):
         Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
-    def __init__(self, walls, r_cut, name=""):
-        external._external_force.__init__(self, name)
-        self.field_coeff = walls
-        self.required_coeffs = ["r_cut", "r_extrap"]
-        self.force_coeff.set_default_coeff('r_extrap', 0.0)
+    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
+        self.walls = self.wall._MetaWallList(walls)
+        r_cut = hoomd.data.typeparam.TypeParameter(
+            "r_cut", "particle_type",
+            hoomd.data.parameterdicts.TypeParameter(float, len_keys=1))
+        r_extrap = hoomd.data.typeparam.TypeParameter(
+            "r_r_extrap", "particle_type",
+            hoomd.data.parameterdicts.TypeParameter(float, len_keys=1))
+        self._extend_typeparam((r_cut, r_extrap))
+        if r_cut_default is not None:
+            self.r_cut.default = r_cut_default
+        self.r_extrap.default = r_extrap_default
 
-        # convert r_cut False to a floating point type
-        if (r_cut == False):
-            r_cut = 0.0
-        self.global_r_cut = r_cut
-        self.force_coeff.set_default_coeff('r_cut', self.global_r_cut)
+    def _attach(self):
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cls = getattr(_md, self._cpp_class_name)
+        else:
+            cls = getattr(_md, self._cpp_class_name + "GPU")
+        self._cpp_obj = cls(self._simulation.state._cpp_sys_def)
+        super()._attach()
 
-    def process_field_coeff(self, coeff):
-        return _md.make_wall_field_params(
-            coeff, hoomd.context.current.device.cpp_exec_conf)
+    @property
+    def walls(self):
+        """`list`[ `hoomd.wall.WallGeometry`]: \
+            The walls associated with this wall potential."""
+        return self._walls
 
-    def update_coeffs(self):
-        if not self.force_coeff.verify(self.required_coeffs):
-            raise RuntimeError('Error updating force coefficients')
-
-        ntypes = hoomd.context.current.system_definition.getParticleData(
-        ).getNTypes()
-        for i in range(0, ntypes):
-            type = hoomd.context.current.system_definition.getParticleData(
-            ).getNameByType(i)
-            if self.force_coeff.values[str(type)]['r_cut'] <= 0:
-                self.force_coeff.values[str(type)]['r_cut'] = 0
-        external._external_force.update_coeffs(self)
+    @walls.setter
+    def walls(self, wall_list):
+        self._walls = self.wall._MetaWallList(wall_list)
 
 
 class LJ(WallPotential):
@@ -257,40 +256,19 @@ class LJ(WallPotential):
         Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
-    def __init__(self, walls, r_cut=False, name=""):
+    _cpp_class_name = "WallsPotentialLJ"
 
-        # tell the base class how we operate
+    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
 
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialLJ(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialLJ
-        else:
-
-            self.cpp_force = _md.WallsPotentialLJGPU(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialLJGPU
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # setup the coefficient options
-        self.required_coeffs += ['epsilon', 'sigma', 'alpha']
-        self.force_coeff.set_default_coeff('alpha', 1.0)
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon']
-        sigma = coeff['sigma']
-        alpha = coeff['alpha']
-
-        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0)
-        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0)
-        return _md.make_wall_lj_params(_hoomd.make_scalar2(lj1, lj2),
-                                       coeff['r_cut'] * coeff['r_cut'],
-                                       coeff['r_extrap'])
+        params = hoomd.data.typeparam.TypeParameter(
+            "params", "particle_type",
+            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
+                                                        sigma=float,
+                                                        len_keys=1))
+        self._add_typeparam(params)
 
 
 class Gauss(WallPotential):
@@ -350,34 +328,19 @@ class Gauss(WallPotential):
         Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
-    def __init__(self, walls, r_cut=False, name=""):
+    _cpp_class_name = "WallsPotentialGauss"
 
-        # tell the base class how we operate
+    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut, name)
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialGauss(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialGauss
-        else:
+        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
 
-            self.cpp_force = _md.WallsPotentialGaussGPU(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialGaussGPU
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # setup the coefficient options
-        self.required_coeffs += ['epsilon', 'sigma']
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon']
-        sigma = coeff['sigma']
-        return _md.make_wall_gauss_params(_hoomd.make_scalar2(epsilon, sigma),
-                                          coeff['r_cut'] * coeff['r_cut'],
-                                          coeff['r_extrap'])
+        params = hoomd.data.typeparam.TypeParameter(
+            "params", "particle_type",
+            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
+                                                        sigma=float,
+                                                        len_keys=1))
+        self._add_typeparam(params)
 
 
 class SLJ(WallPotential):
@@ -442,47 +405,19 @@ class SLJ(WallPotential):
         Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
-    def __init__(self, walls, r_cut=False, d_max=None, name=""):
+    _cpp_class_name = "WallsPotentialSLJ"
 
-        # tell the base class how we operate
+    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
 
-        # update the neighbor list
-        if d_max is None:
-            sysdef = hoomd.context.current.system_definition
-            d_max = sysdef.getParticleData().getMaxDiameter()
-            hoomd.context.current.device.cpp_msg.notice(
-                2, "Notice: slj set d_max=" + str(d_max) + "\n")
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialSLJ(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialSLJ
-        else:
-
-            self.cpp_force = _md.WallsPotentialSLJGPU(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialSLJGPU
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # setup the coefficient options
-        self.required_coeffs += ['epsilon', 'sigma', 'alpha']
-        self.force_coeff.set_default_coeff('alpha', 1.0)
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon']
-        sigma = coeff['sigma']
-        alpha = coeff['alpha']
-
-        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0)
-        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0)
-        return _md.make_wall_slj_params(_hoomd.make_scalar2(lj1, lj2),
-                                        coeff['r_cut'] * coeff['r_cut'],
-                                        coeff['r_extrap'])
+        params = hoomd.data.typeparam.TypeParameter(
+            "params", "particle_type",
+            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
+                                                        sigma=float,
+                                                        len_keys=1))
+        self._add_typeparam(params)
 
 
 class Yukawa(WallPotential):
@@ -542,34 +477,19 @@ class Yukawa(WallPotential):
         Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
-    def __init__(self, walls, r_cut=False, name=""):
+    _cpp_class_name = "WallsPotentialYukawa"
 
-        # tell the base class how we operate
+    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
 
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialYukawa(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialYukawa
-        else:
-            self.cpp_force = _md.WallsPotentialYukawaGPU(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialYukawaGPU
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # setup the coefficient options
-        self.required_coeffs += ['epsilon', 'kappa']
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon']
-        kappa = coeff['kappa']
-        return _md.make_wall_yukawa_params(_hoomd.make_scalar2(epsilon, kappa),
-                                           coeff['r_cut'] * coeff['r_cut'],
-                                           coeff['r_extrap'])
+        params = hoomd.data.typeparam.TypeParameter(
+            "params", "particle_type",
+            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
+                                                        kappa=float,
+                                                        len_keys=1))
+        self._add_typeparam(params)
 
 
 class Morse(WallPotential):
@@ -629,37 +549,19 @@ class Morse(WallPotential):
         Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
-    def __init__(self, walls, r_cut=False, name=""):
+    _cpp_class_name = "WallsPotentialMorse"
 
-        # tell the base class how we operate
+    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
 
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialMorse(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialMorse
-        else:
-
-            self.cpp_force = _md.WallsPotentialMorseGPU(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialMorseGPU
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # setup the coefficient options
-        self.required_coeffs += ['D0', 'alpha', 'r0']
-
-    def process_coeff(self, coeff):
-        D0 = coeff['D0']
-        alpha = coeff['alpha']
-        r0 = coeff['r0']
-
-        return _md.make_wall_morse_params(
-            _hoomd.make_scalar4(D0, alpha, r0, 0.0),
-            coeff['r_cut'] * coeff['r_cut'], coeff['r_extrap'])
+        params = hoomd.data.typeparam.TypeParameter(
+            "params", "particle_type",
+            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
+                                                        sigma=float,
+                                                        len_keys=1))
+        self._add_typeparam(params)
 
 
 class ForceShiftedLJ(WallPotential):
@@ -720,40 +622,19 @@ class ForceShiftedLJ(WallPotential):
         Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
-    def __init__(self, walls, r_cut=False, name=""):
+    _cpp_class_name = "WallsPotentialForceShiftedLJ"
 
-        # tell the base class how we operate
+    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
 
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialForceShiftedLJ(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialForceShiftedLJ
-        else:
-
-            self.cpp_force = _md.WallsPotentialForceShiftedLJGPU(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialForceShiftedLJGPU
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # setup the coefficient options
-        self.required_coeffs += ['epsilon', 'sigma', 'alpha']
-        self.force_coeff.set_default_coeff('alpha', 1.0)
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon']
-        sigma = coeff['sigma']
-        alpha = coeff['alpha']
-
-        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0)
-        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0)
-        return _md.make_wall_force_shift_lj_params(
-            _hoomd.make_scalar2(lj1, lj2), coeff['r_cut'] * coeff['r_cut'],
-            coeff['r_extrap'])
+        params = hoomd.data.typeparam.TypeParameter(
+            "params", "particle_type",
+            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
+                                                        sigma=float,
+                                                        len_keys=1))
+        self._add_typeparam(params)
 
 
 class Mie(WallPotential):
@@ -813,41 +694,18 @@ class Mie(WallPotential):
         Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
-    def __init__(self, walls, r_cut=False, name=""):
+    _cpp_class_name = "WallsPotentialMie"
 
-        # tell the base class how we operate
+    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
 
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.WallsPotentialMie(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialMie
-        else:
-
-            self.cpp_force = _md.WallsPotentialMieGPU(
-                hoomd.context.current.system_definition, self.name)
-            self.cpp_class = _md.WallsPotentialMieGPU
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # setup the coefficient options
-        self.required_coeffs += ['epsilon', 'sigma', 'n', 'm']
-
-    def process_coeff(self, coeff):
-        epsilon = float(coeff['epsilon'])
-        sigma = float(coeff['sigma'])
-        n = float(coeff['n'])
-        m = float(coeff['m'])
-
-        mie1 = epsilon * math.pow(sigma, n) * (n / (n - m)) * math.pow(
-            n / m, m / (n - m))
-        mie2 = epsilon * math.pow(sigma, m) * (n / (n - m)) * math.pow(
-            n / m, m / (n - m))
-        mie3 = n
-        mie4 = m
-        return _md.make_wall_mie_params(
-            _hoomd.make_scalar4(mie1, mie2, mie3, mie4),
-            coeff['r_cut'] * coeff['r_cut'], coeff['r_extrap'])
+        params = hoomd.data.typeparam.TypeParameter(
+            "params", "particle_type",
+            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
+                                                        sigma=float,
+                                                        m=float,
+                                                        n=float,
+                                                        len_keys=1))
+        self._add_typeparam(params)
