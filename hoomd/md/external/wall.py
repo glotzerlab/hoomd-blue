@@ -1,27 +1,23 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: jproc
-
-R""" Wall potentials.
+r"""Wall potentials.
 
 Wall potentials add forces to any particles within a certain distance,
-:math:`r_{\mathrm{cut}}`, of each wall. In the extrapolated
-mode, all particles deemed outside of the wall boundary are included as well.
+:math:`r_{\mathrm{cut}}`, of each wall. In the extrapolated mode, all particles
+deemed outside of the wall boundary are included as well.
 
-Wall geometries are used to specify half-spaces. There are two half spaces for
-each of the possible geometries included and each can be selected using the
-inside parameter. In order to fully specify space, it is necessary that one half
-space be closed and one open. Setting *inside=True* for closed half-spaces
-and *inside=False* for open ones. See :py:class:`wallpotential` for more
-information on how the concept of half-spaces are used in implementing wall forces.
+Wall geometries (`hoomd.wall`) are used to specify half-spaces. There are two
+half spaces for each of the possible geometries included and each can be
+selected using the inside parameter. In order to fully specify space, it is
+necessary that one half space be closed and one open. Setting *inside=True* for
+closed half-spaces and *inside=False* for open ones. See `hoomd.wall` for more
+information on wall geometries and `WallPotential` for information about forces
+and half-spaces.
 
 .. attention::
     The current wall force implementation does not support NPT integrators.
-
-Wall groups (:py:class:`group`) are used to pass wall geometries to wall forces.
-By themselves, wall groups do nothing. Only when you specify a wall force
-(i.e. :py:class:`hoomd.md.wall.lj`),  are forces actually applied between the wall and the
 """
 
 from hoomd import _hoomd
@@ -30,41 +26,37 @@ from hoomd.md import external
 import hoomd
 import math
 
-#           *** Helpers ***
 
-#           *** Potentials ***
+class WallPotential(external.field.Field):
+    r"""Generic wall potential.
 
+    :py:class:`WallPotential` should not be used directly.
+    It is a base class that provides features and documentation common to all
+    standard wall potentials.
 
-class wallpotential(external.field.Field):
-    R""" Generic wall potential.
-
-    :py:class:`wallpotential` should not be used directly.
-    It is a base class that provides common features to all standard wall
-    potentials. Rather than repeating all of that documentation in many different
-    places, it is collected here.
-
-    All wall potential commands specify that a given potential energy and potential be
-    computed on all particles in the system within a cutoff distance,
-    :math:`r_{\mathrm{cut}}`, from each wall in the given wall group.
+    All wall potential commands specify that a given potential energy and
+    potential be computed on all particles in the system within a cutoff
+    distance, :math:`r_{\mathrm{cut}}`, from each wall in the given wall group.
     The force :math:`\vec{F}` is in the direction of :math:`\vec{r}`, the vector
     pointing from the particle to the wall or half-space boundary and
-    :math:`V_{\mathrm{pair}}(r)` is the specific pair potential chosen by the
-    respective command. Wall forces are implemented with the concept of half-spaces
-    in mind. There are two modes which are allowed currently in wall potentials:
-    standard and extrapolated.
+    :math:`V_{\mathrm{pair}}(r)` is the pair potential specified by subclasses
+    of `WallPotential`.  Wall forces are implemented with the concept of
+    half-spaces in mind. There are two modes which are allowed currently in wall
+    potentials: standard and extrapolated.
 
     .. rubric:: Standard Mode.
 
     In the standard mode, when :math:`r_{\mathrm{extrap}} \le 0`, the potential
-    energy is only applied to the half-space specified in the wall group. :math:`V(r)`
-    is evaluated in the same manner as when the mode is shift for the analogous :py:mod:`pair <hoomd.md.pair>`
-    potentials within the boundaries of the half-space.
+    energy is only applied to the half-space specified in the wall group.
+    :math:`V(r)` is evaluated in the same manner as when the mode is shift for
+    the analogous :py:mod:`pair <hoomd.md.pair>` potentials within the
+    boundaries of the half-space.
 
     .. math::
 
         V(r)  = V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}})
 
-    For inside=True (closed) half-spaces:
+    For ``inside=True`` (closed) half-spaces:
 
     .. math::
         :nowrap:
@@ -75,7 +67,7 @@ class wallpotential(external.field.Field):
                  = & 0 & r < 0
         \end{eqnarray*}
 
-    For inside=False (open) half-spaces:
+    For ``inside=False`` (open) half-spaces:
 
     .. math::
         :nowrap:
@@ -88,12 +80,15 @@ class wallpotential(external.field.Field):
 
     .. rubric: Extrapolated Mode:
 
-    The wall potential can be linearly extrapolated beyond a minimum separation from the wall
-    :math:`r_{\mathrm{extrap}}` in the active half-space. This can be useful for bringing particles outside the
-    half-space into the active half-space. It can also be useful for typical wall force usages by
-    effectively limiting the maximum force experienced by the particle due to the wall. The potential is extrapolated into **both**
-    half-spaces and the cutoff :math:`r_{\mathrm{cut}}` only applies in the active half-space. The user should
-    then be careful using this mode with multiple nested walls. It is intended to be used primarily for initialization.
+    The wall potential can be linearly extrapolated beyond a minimum separation
+    from the wall :math:`r_{\mathrm{extrap}}` in the active half-space. This can
+    be useful for bringing particles outside the half-space into the active
+    half-space. It can also be useful for typical wall force usages by
+    effectively limiting the maximum force experienced by the particle due to
+    the wall. The potential is extrapolated into **both** half-spaces and the
+    cutoff :math:`r_{\mathrm{cut}}` only applies in the active half-space. The
+    user should then be careful using this mode with multiple nested walls. It
+    is intended to be used primarily for initialization.
 
     The extrapolated potential has the following form:
 
@@ -102,7 +97,9 @@ class wallpotential(external.field.Field):
 
         \begin{eqnarray*}
         V_{\mathrm{extrap}}(r) =& V(r) &, r > r_{\rm extrap} \\
-             =& V(r_{\rm extrap}) + (r_{\rm extrap}-r)\vec{F}(r_{\rm extrap}) \cdot \vec{n}&, r \le r_{\rm extrap}
+             =& V(r_{\rm extrap})
+                + (r_{\rm extrap}-r)\vec{F}(r_{\rm extrap})
+                \cdot \vec{n}&, r \le r_{\rm extrap}
         \end{eqnarray*}
 
     where :math:`\vec{n}` is the normal into the active half-space.
@@ -126,62 +123,50 @@ class wallpotential(external.field.Field):
                            =& 0 &, r \ge r_{\mathrm{cut}}
         \end{eqnarray*}
 
-    In other words, if :math:`r_{\rm extrap}` is chosen so that the pair force would point into the active half-space,
-    the extrapolated potential will push all particles into the active half-space. See :py:class:`lj` for a
-    pictorial example.
+    In other words, if :math:`r_{\rm extrap}` is chosen so that the pair force
+    would point into the active half-space, the extrapolated potential will push
+    all particles into the active half-space. See `LJ` for a pictorial example.
 
-    To use extrapolated mode, the following coefficients must be set per unique particle types:
-
-    - All parameters required by the pair potential base for the wall potential
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units) - *Optional: Defaults to global r_cut for the force if given or 0.0 if not*
-    - :math:`r_{\mathrm{extrap}}` - *r_extrap* (in distance units) - *Optional: Defaults to 0.0*
-
-
-    .. rubric:: Generic Example
-
-    Note that the walls object below must be created before it is given as an
-    argument to the force object. However, walls can be modified at any time before
-    ```hoomd.run``` is called and it will update itself appropriately. See
-    :py:class:`group` for more details about specifying the walls to be used::
-
-        walls=wall.group()
-        # Edit walls
-        my_force=wall.pairpotential(walls)
-        my_force.force_coeff.set('A', all required arguments)
-        my_force.force_coeff.set(['B','C'],r_cut=0.3, all required arguments)
-        my_force.force_coeff.set(['B','C'],r_extrap=0.3, all required arguments)
-
-    A specific example can be found in :py:class:`lj`
+    To use extrapolated mode ``r_extrap`` must be set per particle type.
 
     .. attention::
         The current wall force implementation does not support NPT integrators.
 
     Note:
-        The virial due to walls is computed, but the pressure and reported by ``hoomd.analyze.log``
-        is not well defined. The volume (area) of the box enters into the pressure computation, which is
-        not correct in a confined system. It may not even be possible to define an appropriate volume with
-        soft walls.
+        - The virial due to walls is computed, but the pressure and reported by
+          ``hoomd.md.compute.ThermodynamicQuantities`` is not well defined. The
+          volume (area) of the box enters into the pressure computation, which
+          is not correct in a confined system. It may not even be possible to
+          define an appropriate volume with soft walls.
+        - An effective use of wall forces **requires** considering the geometry
+          of the system. Each wall is only evaluated in one simulation box and
+          thus is not periodic. Forces will be evaluated and added to all
+          particles from all walls in the wall group. Additionally there are no
+          safeguards requiring a wall to exist inside the box to have
+          interactions. This means that an attractive force existing outside the
+          simulation box would pull particles across the periodic boundary where
+          they would immediately cease to have any interaction with that wall.
+          It is therefore up to the user to use walls in a physically meaningful
+          manner. This includes the geometry of the walls, their interactions,
+          and as noted here their location.
+        - When :math:`r_{\mathrm{cut}} \le 0` or is set to False the particle
+          type wall interaction is excluded.
+        - While wall potentials are based on the same potential energy
+          calculations as pair potentials, Features of pair potentials such as
+          specified neighborlists, and alternative force shifting modes are not
+          supported.
 
-    Note:
-        An effective use of wall forces **requires** considering the geometry of the
-        system. Each wall is only evaluated in one simulation box and thus is not
-        periodic. Forces will be evaluated and added to all particles from all walls in
-        the wall group. Additionally there are no safeguards
-        requiring a wall to exist inside the box to have interactions. This means that
-        an attractive force existing outside the simulation box would pull particles
-        across the periodic boundary where they would immediately cease to have any
-        interaction with that wall. It is therefore up to the user to use walls in a
-        physically meaningful manner. This includes the geometry of the walls, their
-        interactions, and as noted here their location.
+    .. py:attribute:: r_cut
 
-    Note:
-        When :math:`r_{\mathrm{cut}} \le 0` or is set to False the particle type
-        wall interaction is excluded.
+        The cut off distance for the wall potential per particle type.
 
-    Note:
-        While wall potentials are based on the same potential energy calculations
-        as pair potentials, Features of pair potentials such as specified neighborlists,
-        and alternative force shifting modes are not supported.
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+
+    .. py:attribute:: r_extrap
+
+        The distance to extrapolate the potential per type.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
     def __init__(self, walls, r_cut, name=""):
@@ -196,14 +181,10 @@ class wallpotential(external.field.Field):
         self.global_r_cut = r_cut
         self.force_coeff.set_default_coeff('r_cut', self.global_r_cut)
 
-    ## \internal
-    # \brief passes the wall field
     def process_field_coeff(self, coeff):
         return _md.make_wall_field_params(
             coeff, hoomd.context.current.device.cpp_exec_conf)
 
-    ## \internal
-    # \brief Fixes negative values to zero before squaring
     def update_coeffs(self):
         if not self.force_coeff.verify(self.required_coeffs):
             raise RuntimeError('Error updating force coefficients')
@@ -218,37 +199,61 @@ class wallpotential(external.field.Field):
         external._external_force.update_coeffs(self)
 
 
-class lj(wallpotential):
-    R""" Lennard-Jones wall potential.
+class LJ(WallPotential):
+    r"""Lennard-Jones wall potential.
 
     Args:
-        walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
-        r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the log files.
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+        default_r_cut (float): The default cut off radius for the potential
+            :math:`[\mathrm{length}]`.
+        default_r_extrap (float): The default ``r_extrap`` value to use.
+            Defaults to 0. This only has an effect in the extrapolated mode
+            :math:`[\mathrm{length}]`.
 
-    Wall force evaluated using the Lennard-Jones potential.
-    See :py:class:`hoomd.md.pair.LJ` for force details and base parameters and
-    :py:class:`wallpotential` for generalized wall potential implementation
+    Wall force evaluated using the Lennard-Jones potential.  See
+    `hoomd.md.pair.LJ` for force details and base parameters and `WallPotential`
+    for generalized wall potential implementation.
 
-    Standard mode::
+    Example::
 
-        walls=wall.group()
-        #add walls
-        lj=wall.lj(walls, r_cut=3.0)
-        lj.force_coeff.set('A', sigma=1.0,epsilon=1.0)  #plotted below in red
-        lj.force_coeff.set('B', sigma=1.0,epsilon=1.0, r_cut=2.0**(1.0/2.0))
-        lj.force_coeff.set(['A','B'], epsilon=2.0, sigma=1.0, alpha=1.0, r_cut=3.0)
-
-    Extrapolated mode::
-
-        walls=wall.group()
-        #add walls
-        lj_extrap=wall.lj(walls, r_cut=3.0)
-        lj_extrap.force_coeff.set('A', sigma=1.0,epsilon=1.0, r_extrap=1.1) #plotted in blue below
+        walls = [hoomd.wall.Sphere(radius=4.0)]
+        lj = hoomd.md.wall.LJ(walls, default_r_cut=3.0)
+        # potential plotted below in red
+        lj.params['A'] = {"sigma": 1.0, "epsilon": 1.0}
+        lj.r_cut['B'] = 2.0**(1.0 / 2.0)
+        # set for both types "A" and "B"
+        lj.params['A','B'] = {"epsilon": 2.0, "sigma": 1.0}
+        # set to extrapolated mode
+        lj.r_extrap.default = 1.1
 
     V(r) plot:
 
     .. image:: wall_extrap.png
+
+    .. py:attribute:: params
+
+        The potential parameters per type. The dictionary has the following
+        keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [``particle_type``, `dict`]
+
+    .. py:attribute:: r_cut
+
+        The cut off distance for the wall potential per particle type.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+
+    .. py:attribute:: r_extrap
+
+        The distance to extrapolate the potential per type.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
     def __init__(self, walls, r_cut=False, name=""):
@@ -256,7 +261,7 @@ class lj(wallpotential):
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -287,27 +292,61 @@ class lj(wallpotential):
                                        coeff['r_extrap'])
 
 
-class gauss(wallpotential):
-    R""" Gaussian wall potential.
+class Gauss(WallPotential):
+    r"""Gaussian wall potential.
 
     Args:
-        walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
-        r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the log files.
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+        default_r_cut (float): The default cut off radius for the potential
+            :math:`[\mathrm{length}]`.
+        default_r_extrap (float): The default ``r_extrap`` value to use.
+            Defaults to 0. This only has an effect in the extrapolated mode
+            :math:`[\mathrm{length}]`.
 
-    Wall force evaluated using the Gaussian potential.
-    See :py:class:`hoomd.md.pair.Gauss` for force details and base parameters and :py:class:`wallpotential` for
-    generalized wall potential implementation
+    Wall force evaluated using the Gaussian potential.  See
+    `hoomd.md.pair.Gauss` for force details and base parameters and
+    `WallPotential` for generalized wall potential implementation
 
     Example::
 
-        walls=wall.group()
+        walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        wall_force_gauss=wall.gauss(walls, r_cut=3.0)
-        wall_force_gauss.force_coeff.set('A', epsilon=1.0, sigma=1.0)
-        wall_force_gauss.force_coeff.set('A', epsilon=2.0, sigma=1.0, r_cut=3.0)
-        wall_force_gauss.force_coeff.set(['C', 'D'], epsilon=3.0, sigma=0.5)
+        gaussian_wall=hoomd.md.wall.Gauss(walls, default_r_cut=3.0)
+        gaussian_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0}
+        gaussian_wall.r_cut['A'] = 3.0
+        gaussian_wall.params['A','B'] = {
+            "epsilon": 2.0, "sigma": 1.0, "alpha": 1.0}
 
+    Attributes:
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+
+    .. py:attribute:: params
+
+        The potential parameters per type. The dictionary has the following
+        keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [``particle_type``, `dict`]
+
+    .. py:attribute:: r_cut
+
+        The cut off distance for the wall potential per particle type
+        :math:`[\mathrm{length}]`.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+
+    .. py:attribute:: r_extrap
+
+        The distance to extrapolate the potential per type
+        :math:`[\mathrm{length}]`.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
     def __init__(self, walls, r_cut=False, name=""):
@@ -315,7 +354,7 @@ class gauss(wallpotential):
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut, name)
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.WallsPotentialGauss(
@@ -340,31 +379,66 @@ class gauss(wallpotential):
                                           coeff['r_extrap'])
 
 
-class slj(wallpotential):
-    R""" Shifted Lennard-Jones wall potential
+class SLJ(WallPotential):
+    r"""Shifted Lennard-Jones wall potential.
 
     Args:
-        walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
-        r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the log files.
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+        default_r_cut (float): The default cut off radius for the potential
+            :math:`[\mathrm{length}]`.
+        default_r_extrap (float): The default ``r_extrap`` value to use.
+            Defaults to 0. This only has an effect in the extrapolated mode
+            :math:`[\mathrm{length}]`.
 
-    Wall force evaluated using the Shifted Lennard-Jones potential.
-    Note that because slj is dependent upon particle diameters the following
-    correction is necessary to the force details in the :py:class:`hoomd.md.pair.SLJ` description.
+    Wall force evaluated using the Shifted Lennard-Jones potential.  Note that
+    because `SLJ` is dependent upon particle diameters the following correction
+    is necessary to the force details in the :py:class:`hoomd.md.pair.SLJ`
+    description.
 
-    :math:`\Delta = d_i/2 - 1` where :math:`d_i` is the diameter of particle :math:`i`.
-    See :py:class:`hoomd.md.pair.SLJ` for force details and base parameters and :py:class:`wallpotential` for
-    generalized wall potential implementation
+    :math:`\Delta = d_i/2 - 1` where :math:`d_i` is the diameter of particle
+    :math:`i`.  See :py:class:`hoomd.md.pair.SLJ` for force details and base
+    parameters and :py:class:`WallPotential` for generalized wall potential
+    implementation
 
     Example::
 
-        walls=wall.group()
+        walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        wall_force_slj=wall.slj(walls, r_cut=3.0)
-        wall_force_slj.force_coeff.set('A', epsilon=1.0, sigma=1.0)
-        wall_force_slj.force_coeff.set('A', epsilon=2.0, sigma=1.0, r_cut=3.0)
-        wall_force_slj.force_coeff.set('B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0))
+        slj_wall=hoomd.md.wall.SLJ(walls, default_r_cut=3.0)
+        slj_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0}
+        slj_wall.r_cut['A'] = 3.0
+        slj_wall.params['A','B'] = {"epsilon": 2.0, "sigma": 1.0}
 
+    Attributes:
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+
+    .. py:attribute:: params
+
+        The potential parameters per type. The dictionary has the following
+        keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [``particle_type``, `dict`]
+
+    .. py:attribute:: r_cut
+
+        The cut off distance for the wall potential per particle type
+        :math:`[\mathrm{length}]`.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+
+    .. py:attribute:: r_extrap
+
+        The distance to extrapolate the potential per type
+        :math:`[\mathrm{length}]`.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
     def __init__(self, walls, r_cut=False, d_max=None, name=""):
@@ -372,7 +446,7 @@ class slj(wallpotential):
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut, name)
 
         # update the neighbor list
         if d_max is None:
@@ -410,27 +484,61 @@ class slj(wallpotential):
                                         coeff['r_extrap'])
 
 
-class yukawa(wallpotential):
-    R""" Yukawa wall potential.
+class Yukawa(WallPotential):
+    r"""Yukawa wall potential.
 
     Args:
-        walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
-        r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the log files.
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+        default_r_cut (float): The default cut off radius for the potential
+            :math:`[\mathrm{length}]`.
+        default_r_extrap (float): The default ``r_extrap`` value to use.
+            Defaults to 0. This only has an effect in the extrapolated mode
+            :math:`[\mathrm{length}]`.
 
-    Wall force evaluated using the Yukawa potential.
-    See :py:class:`hoomd.md.pair.Yukawa` for force details and base parameters and :py:class:`wallpotential` for
-    generalized wall potential implementation
+    Wall force evaluated using the Yukawa potential.  See
+    :py:class:`hoomd.md.pair.Yukawa` for force details and base parameters and
+    :py:class:`WallPotential` for generalized wall potential implementation
 
     Example::
 
-        walls=wall.group()
+        walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        wall_force_yukawa=wall.yukawa(walls, r_cut=3.0)
-        wall_force_yukawa.force_coeff.set('A', epsilon=1.0, kappa=1.0)
-        wall_force_yukawa.force_coeff.set('A', epsilon=2.0, kappa=0.5, r_cut=3.0)
-        wall_force_yukawa.force_coeff.set(['C', 'D'], epsilon=0.5, kappa=3.0)
+        yukawa_wall=hoomd.md.wall.Yukawa(walls, default_r_cut=3.0)
+        yukawa_wall.params['A'] = {"epsilon": 1.0, "kappa": 1.0}
+        yukawa_wall.r_cut['A'] = 3.0
+        yukawa_wall.params['A','B'] = {"epsilon": 0.5, "kappa": 3.0}
+        walls=wall.group()
 
+    Attributes:
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+
+    .. py:attribute:: params
+
+        The potential parameters per type. The dictionary has the following
+        keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [``particle_type``, `dict`]
+
+    .. py:attribute:: r_cut
+
+        The cut off distance for the wall potential per particle type
+        :math:`[\mathrm{length}]`.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+
+    .. py:attribute:: r_extrap
+
+        The distance to extrapolate the potential per type
+        :math:`[\mathrm{length}]`.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
     def __init__(self, walls, r_cut=False, name=""):
@@ -438,7 +546,7 @@ class yukawa(wallpotential):
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -463,27 +571,61 @@ class yukawa(wallpotential):
                                            coeff['r_extrap'])
 
 
-class morse(wallpotential):
-    R""" Morse wall potential.
+class Morse(WallPotential):
+    r"""Morse wall potential.
 
     Args:
-        walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
-        r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the log files.
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+        default_r_cut (float): The default cut off radius for the potential
+            :math:`[\mathrm{length}]`.
+        default_r_extrap (float): The default ``r_extrap`` value to use.
+            Defaults to 0. This only has an effect in the extrapolated mode
+            :math:`[\mathrm{length}]`.
 
-    Wall force evaluated using the Morse potential.
-    See :py:class:`hoomd.md.pair.Morse` for force details and base parameters and :py:class:`wallpotential` for
-    generalized wall potential implementation
+    Wall force evaluated using the Morse potential.  See
+    :py:class:`hoomd.md.pair.Morse` for force details and base parameters and
+    :py:class:`WallPotential` for generalized wall potential implementation
 
     Example::
 
-        walls=wall.group()
-        # add walls to interact with
-        wall_force_morse=wall.morse(walls, r_cut=3.0)
-        wall_force_morse.force_coeff.set('A', D0=1.0, alpha=3.0, r0=1.0)
-        wall_force_morse.force_coeff.set('A', D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0)
-        wall_force_morse.force_coeff.set(['C', 'D'], D0=1.0, alpha=3.0)
 
+        walls = [hoomd.wall.Sphere(radius=4.0)]
+        # add walls to interact with
+        morse_wall=hoomd.md.wall.Morse(walls, default_r_cut=3.0)
+        morse_wall.params['A'] = {"D0": 1.0, "alpha": 1.0, "r0": 1.0}
+        morse_wall.r_cut['A'] = 3.0
+        morse_wall.params['A','B'] = {"D0": 0.5, "alpha": 3.0, "r0": 1.0}
+
+    Attributes:
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+
+    .. py:attribute:: params
+
+        The potential parameters per type. The dictionary has the following
+        keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [``particle_type``, `dict`]
+
+    .. py:attribute:: r_cut
+
+        The cut off distance for the wall potential per particle type
+        :math:`[\mathrm{length}]`.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+
+    .. py:attribute:: r_extrap
+
+        The distance to extrapolate the potential per type
+        :math:`[\mathrm{length}]`.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
     def __init__(self, walls, r_cut=False, name=""):
@@ -491,7 +633,7 @@ class morse(wallpotential):
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -519,27 +661,62 @@ class morse(wallpotential):
             coeff['r_cut'] * coeff['r_cut'], coeff['r_extrap'])
 
 
-class force_shifted_lj(wallpotential):
-    R""" Force-shifted Lennard-Jones wall potential.
+class ForceShiftedLJ(WallPotential):
+    r"""Force-shifted Lennard-Jones wall potential.
 
     Args:
-        walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
-        r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the log files.
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+        default_r_cut (float): The default cut off radius for the potential
+            :math:`[\mathrm{length}]`.
+        default_r_extrap (float): The default ``r_extrap`` value to use.
+            Defaults to 0. This only has an effect in the extrapolated mode
+            :math:`[\mathrm{length}]`.
 
-    Wall force evaluated using the Force-shifted Lennard-Jones potential.
-    See :py:class:`hoomd.md.pair.ForceShiftedLJ` for force details and base parameters and :py:class:`wallpotential`
-    for generalized wall potential implementation.
+    Wall force evaluated using the Force-shifted Lennard-Jones potential.  See
+    :py:class:`hoomd.md.pair.ForceShiftedLJ` for force details and base
+    parameters and :py:class:`WallPotential` for generalized wall potential
+    implementation.
 
     Example::
 
-        walls=wall.group()
+        walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        wall_force_fslj=wall.force_shifted_lj(walls, r_cut=3.0)
-        wall_force_fslj.force_coeff.set('A', epsilon=1.0, sigma=1.0)
-        wall_force_fslj.force_coeff.set('B', epsilon=1.5, sigma=3.0, r_cut = 8.0)
-        wall_force_fslj.force_coeff.set(['C','D'], epsilon=1.0, sigma=1.0, alpha = 1.5)
+        force_shifted_lj_wall=hoomd.md.wall.ForceShiftedLJ(
+            walls, default_r_cut=3.0)
+        force_shifted_lj_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0}
+        force_shifted_lj_wall.r_cut['A'] = 3.0
+        force_shifted_lj_wall.params['A','B'] = {"epsilon": 0.5, "sigma": 3.0}
 
+    Attributes:
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+
+    .. py:attribute:: params
+
+        The potential parameters per type. The dictionary has the following
+        keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [``particle_type``, `dict`]
+
+    .. py:attribute:: r_cut
+
+        The cut off distance for the wall potential per particle type
+        :math:`[\mathrm{length}]`.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+
+    .. py:attribute:: r_extrap
+
+        The distance to extrapolate the potential per type
+        :math:`[\mathrm{length}]`.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
     def __init__(self, walls, r_cut=False, name=""):
@@ -547,7 +724,7 @@ class force_shifted_lj(wallpotential):
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -578,27 +755,61 @@ class force_shifted_lj(wallpotential):
             coeff['r_extrap'])
 
 
-class mie(wallpotential):
-    R""" Mie potential wall potential.
+class Mie(WallPotential):
+    r"""Mie potential wall potential.
 
     Args:
-        walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
-        r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the log files.
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+        default_r_cut (float): The default cut off radius for the potential
+            :math:`[\mathrm{length}]`.
+        default_r_extrap (float): The default ``r_extrap`` value to use.
+            Defaults to 0. This only has an effect in the extrapolated mode
+            :math:`[\mathrm{length}]`.
 
-    Wall force evaluated using the Mie potential.
-    See :py:class:`hoomd.md.pair.Mie` for force details and base parameters and :py:class:`wallpotential` for
-    generalized wall potential implementation
+    Wall force evaluated using the Mie potential.  See
+    :py:class:`hoomd.md.pair.Mie` for force details and base parameters and
+    :py:class:`WallPotential` for generalized wall potential implementation
 
     Example::
 
-        walls=wall.group()
+        walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        wall_force_mie=wall.mie(walls, r_cut=3.0)
-        wall_force_mie.force_coeff.set('A', epsilon=1.0, sigma=1.0, n=12, m=6)
-        wall_force_mie.force_coeff.set('A', epsilon=2.0, sigma=1.0, n=14, m=7, r_cut=3.0)
-        wall_force_mie.force_coeff.set('B', epsilon=1.0, sigma=1.0, n=15.1, m=6.5, r_cut=2**(1.0/6.0))
+        mie_wall=hoomd.md.wall.Mie(walls, default_r_cut=3.0)
+        mie_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0, "n": 12, "m": 6}
+        mie_wall.r_cut['A'] = 3.0
+        mie_wall.params['A','B'] = {
+            "epsilon": 0.5, "sigma": 3.0, "n": 49, "m": 50}
 
+    Attributes:
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use for the potential.
+
+    .. py:attribute:: params
+
+        The potential parameters per type. The dictionary has the following
+        keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [``particle_type``, `dict`]
+
+    .. py:attribute:: r_cut
+
+        The cut off distance for the wall potential per particle type
+        :math:`[\mathrm{length}]`.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+
+    .. py:attribute:: r_extrap
+
+        The distance to extrapolate the potential per type
+        :math:`[\mathrm{length}]`.
+
+        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
     """
 
     def __init__(self, walls, r_cut=False, name=""):
@@ -606,7 +817,7 @@ class mie(wallpotential):
         # tell the base class how we operate
 
         # initialize the base class
-        wallpotential.__init__(self, walls, r_cut, name)
+        WallPotential.__init__(self, walls, r_cut, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
