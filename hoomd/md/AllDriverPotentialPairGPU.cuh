@@ -61,7 +61,7 @@ gpu_compute_morse_forces(const pair_args_t& pair_args,
 //! Compute dpd thermostat on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))
 gpu_compute_dpdthermodpd_forces(const dpd_pair_args_t& args,
-                                EvaluatorPairDPDThermo::param_type* d_params);
+                                const EvaluatorPairDPDThermo::param_type* d_params);
 
 //! Compute dpd conservative force on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))
@@ -85,7 +85,7 @@ gpu_compute_zbl_forces(const pair_args_t& pair_args, EvaluatorPairZBL::param_typ
 //! Compute dpdlj thermostat on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))
 gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,
-                                  EvaluatorPairDPDLJThermo::param_type* d_params);
+                                  const EvaluatorPairDPDLJThermo::param_type* d_params);
 
 //! Compute dpdlj conservative force on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))

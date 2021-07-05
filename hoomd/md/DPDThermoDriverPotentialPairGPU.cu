@@ -10,7 +10,7 @@
 #include "PotentialPairDPDThermoGPU.cuh"
 
 hipError_t gpu_compute_dpdthermodpd_forces(const dpd_pair_args_t& args,
-                                           EvaluatorPairDPDThermo::param_type* d_params)
+                                           const EvaluatorPairDPDThermo::param_type* d_params)
     {
     return gpu_compute_dpd_forces<EvaluatorPairDPDThermo>(args, d_params);
     }
