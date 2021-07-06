@@ -119,7 +119,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      options: ${{ matrix.docker_options }}
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
@@ -162,7 +162,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      options: ${{ matrix.docker_options }}
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
@@ -198,7 +198,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      options: ${{ matrix.docker_options }}
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
@@ -305,7 +305,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      options: ${{ matrix.docker_options }}
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
@@ -355,7 +355,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      options: ${{ matrix.docker_options }}
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
