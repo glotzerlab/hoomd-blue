@@ -241,6 +241,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       MoliereDriverPotentialPairGPU.cu
                       MorseDriverPotentialPairGPU.cu
                       OPPDriverPotentialPairGPU.cu
+                      TableDriverPotentialPairGPU.cu
                       TWFDriverPotentialPairGPU.cu
                       FourierDriverPotentialPairGPU.cu
                       PairLJ1208DriverPotentialPairGPU.cu
