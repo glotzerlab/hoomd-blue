@@ -181,7 +181,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
         {
         if (cur_offset + threadIdx.x < param_size)
             {
-            reinterpret_cast<int*>(s_params)[cur_offset + threadIdx.x] = const_cast<int*>(reinterpret_cast<const int*>(d_params)[cur_offset + threadIdx.x]);
+	    ((int*)s_params)[cur_offset + threadIdx.x] = ((int*)d_params)[cur_offset + threadIdx.x];
             }
         }
     __syncthreads();
