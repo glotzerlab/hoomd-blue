@@ -24,6 +24,7 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 #include "UpdaterChangeSite.h"
+#include "UpdaterSwitchSite.h"
 #include "UpdaterClusters.h"
 #include "UpdaterClustersImplicit.h"
 
@@ -54,6 +55,8 @@ void export_sphere(py::module& m)
     export_UpdaterClusters< ShapeSphere >(m, "UpdaterClustersSphere");
     export_UpdaterChangeSite< ShapeSphere >(m, "UpdaterChangeSiteSphere");
     export_UpdaterChangeSiteHypersphere< ShapeSphere >(m, "UpdaterChangeSiteSphereHypersphere");
+    export_UpdaterSwitchSite< ShapeSphere >(m, "UpdaterSwitchSiteSphere");
+    export_UpdaterSwitchSiteHypersphere< ShapeSphere >(m, "UpdaterSwitchSiteSphereHypersphere");
     export_UpdaterClustersImplicit< ShapeSphere,IntegratorHPMCMonoImplicit<ShapeSphere> >(m, "UpdaterClustersImplicitSphere");
     export_UpdaterMuVTImplicit< ShapeSphere, IntegratorHPMCMonoImplicit<ShapeSphere> >(m, "UpdaterMuVTImplicitSphere");
 

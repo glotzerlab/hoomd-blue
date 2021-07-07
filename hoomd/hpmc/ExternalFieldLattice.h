@@ -232,10 +232,12 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                 quat<Scalar> qi(rots[i]);
                 identityFound = !identityFound ? norm2(qi-identity) < tol : identityFound;
                 m_symmetry.push_back(qi);
+                m_symmetryConj.push_back(conj(qi));
                 }
             if(!identityFound) // ensure that the identity rotation is provided.
                 {
                 m_symmetry.push_back(identity);
+                m_symmetryConj.push_back(identity);
                 }
             reset(0); // initializes all of the energy logging parameters.
             }
@@ -727,6 +729,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
         Scalar calcE_rot(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r)
             {
             assert(m_symmetry.size());
+            assert(m_symmetryConj.size());
             ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
 
             unsigned int k = m_latticeIndex.getReference(h_tags.data[index]);
@@ -734,24 +737,31 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             quat<Scalar> ql(m_latticeQuat_l.getReference(k));
             quat<Scalar> qr(m_latticeQuat_r.getReference(k));
 
-            quat<Scalar> equiv_orientation1 = quat_l*quat<Scalar>(0,vec3<Scalar>(1,0,0))*quat_r;
-            quat<Scalar> equiv_orientation2 = quat_l*quat<Scalar>(0,vec3<Scalar>(0,1,0))*quat_r;
+            quat<Scalar> orientation1 = quat<Scalar>(0,vec3<Scalar>(1,0,0));
+            quat<Scalar> orientation2 = quat<Scalar>(0,vec3<Scalar>(0,1,0));
+
+            quat<Scalar> equiv_orientation1 = quat_l*orientation1*quat_r;
+            quat<Scalar> equiv_orientation2 = quat_l*orientation2*quat_r;
 
             quat<Scalar> ref_pos = ql*qr;
             quat<Scalar> equiv_pos = quat_l*quat_r;
 
-            Scalar dpos = 1/(1+dot(equiv_pos,ref_pos));
+            Scalar dpos = 1.0/(1.0+dot(equiv_pos,ref_pos));
             Scalar dqmin = 0.0;
+
+            Scalar eo1rp = dot(equiv_orientation1,ref_pos);
+            Scalar eo2rp = dot(equiv_orientation2,ref_pos);
+
             for(size_t i = 0; i < m_symmetry.size(); i++)
                 {
                 quat<Scalar> ref_quat_l = ql*m_symmetry[i];
-                quat<Scalar> ref_quat_r = conj(m_symmetry[i])*qr;
-                quat<Scalar> ref_orientation1 = ref_quat_l*quat<Scalar>(0,vec3<Scalar>(1,0,0))*ref_quat_r;
-                quat<Scalar> ref_orientation2 = ref_quat_l*quat<Scalar>(0,vec3<Scalar>(0,1,0))*ref_quat_r;
+                quat<Scalar> ref_quat_r = m_symmetryConj[i]*qr;
+                quat<Scalar> ref_orientation1 = ref_quat_l*orientation1*ref_quat_r;
+                quat<Scalar> ref_orientation2 = ref_quat_l*orientation2*ref_quat_r;
 
-                Scalar dq1 = dot(equiv_orientation1,ref_orientation1) - dot(equiv_pos,ref_orientation1)*dot(equiv_orientation1,ref_pos)*dpos;
-                Scalar dq2 = dot(equiv_orientation2,ref_orientation2) - dot(equiv_pos,ref_orientation2)*dot(equiv_orientation2,ref_pos)*dpos;
-                Scalar dq = 2 - dq1*dq1 - dq2*dq2;
+                Scalar dq1 = dot(equiv_orientation1,ref_orientation1) - dot(equiv_pos,ref_orientation1)*eo1rp*dpos;
+                Scalar dq2 = dot(equiv_orientation2,ref_orientation2) - dot(equiv_pos,ref_orientation2)*eo2rp*dpos;
+                Scalar dq = 2.0 - dq1*dq1 - dq2*dq2;
 
                 dqmin = (i == 0) ? dq : fmin(dqmin, dq);
                 }
@@ -793,6 +803,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
         Scalar                          m_refdist;
 
         std::vector< quat<Scalar> >     m_symmetry;       // quaternions in the symmetry group of the shape.
+        std::vector< quat<Scalar> >     m_symmetryConj;       // quaternions in the symmetry group of the shape.
 
         Scalar                          m_Energy;                   // Store the total energy of the last computed timestep
         Scalar                          m_Energy_trans;             // Store the total energy of the last computed timestep

@@ -8,8 +8,8 @@
 // replaced with a ForceCompute, Integrator, or any other C++ code at all.
 
 // inclusion guard
-#ifndef _CHANGE_SITE_UPDATER_H_
-#define _CHANGE_SITE_UPDATER_H_
+#ifndef _SWITCH_SITE_UPDATER_H_
+#define _SWITCH_SITE_UPDATER_H_
 
 /*! \file ExampleUpdater.h
     \brief Declaration of ExampleUpdater
@@ -18,7 +18,6 @@
 // First, hoomd.h should be included
 
 #include "hoomd/Updater.h"
-#include "ExternalFieldLattice.h"
 #include "IntegratorHPMCMono.h"
 #include "hoomd/AABBTree.h"
 #include "hoomd/RNGIdentifiers.h"
@@ -42,18 +41,18 @@ namespace hpmc {
 */
 
 template< class ScalarType >
-class ChangeSiteList
+class SwitchSiteList
     {
     public:
-        ChangeSiteList() : m_N(0) {}
+        SwitchSiteList() : m_N(0) {}
 
         template<class InputIterator >
-        ChangeSiteList(InputIterator first, InputIterator last, const std::shared_ptr<ParticleData> pdata, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+        SwitchSiteList(InputIterator first, InputIterator last, const std::shared_ptr<ParticleData> pdata, std::shared_ptr<const ExecutionConfiguration> exec_conf)
             {
             initialize(first, last, pdata, exec_conf);
             }
 
-        ~ChangeSiteList() {}
+        ~SwitchSiteList() {}
 
         template <class InputIterator>
         void initialize(InputIterator first, InputIterator last, const std::shared_ptr<ParticleData> pdata, std::shared_ptr<const ExecutionConfiguration> exec_conf)
@@ -84,7 +83,7 @@ class ChangeSiteList
             if(!exec_conf || !pdata )
                 {
                 if(exec_conf) exec_conf->msg->error() << "Check pointers and initialization list" << std::endl;
-                throw std::runtime_error("Error setting ChangeSiteList");
+                throw std::runtime_error("Error setting SwitchSiteList");
                 }
             m_N = numPoints;
             GPUArray<ScalarType> temp(numPoints, exec_conf);
@@ -113,17 +112,16 @@ class ChangeSiteList
 
 
 template<class Shape>
-class ChangeSiteUpdater : public Updater
+class SwitchSiteUpdater : public Updater
     {
     public:
         //! Constructor
-        ChangeSiteUpdater( std::shared_ptr<SystemDefinition> sysdef,
-                            std::shared_ptr<ExternalFieldLattice<Shape> > externalLattice,
+        SwitchSiteUpdater( std::shared_ptr<SystemDefinition> sysdef,
                             pybind11::list lattice_vectors,
                             std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                             unsigned int cycles,
                             unsigned int seed
-                          ) : Updater(sysdef), m_externalLattice(externalLattice), m_mc(mc),
+                          ) : Updater(sysdef), m_mc(mc),
                               m_update_order(seed+m_exec_conf->getRank(), m_pdata->getN()), m_cycles(cycles), m_seed(seed)
             {
                 setReferences(lattice_vectors);
@@ -185,8 +183,7 @@ class ChangeSiteUpdater : public Updater
             }
 
     protected:
-                std::shared_ptr<ExternalFieldLattice<Shape> > m_externalLattice;
-                ChangeSiteList<Scalar3> m_latticeVector;
+                SwitchSiteList<Scalar3> m_latticeVector;
                 std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;
                 detail::UpdateOrder m_update_order;         //!< Update order
                 unsigned int m_cycles;
@@ -194,7 +191,7 @@ class ChangeSiteUpdater : public Updater
     };
 
 template <class Shape>
-void ChangeSiteUpdater<Shape>::update(unsigned int timestep)
+void SwitchSiteUpdater<Shape>::update(unsigned int timestep)
     {
     
 
@@ -215,10 +212,7 @@ void ChangeSiteUpdater<Shape>::update(unsigned int timestep)
     std::vector<vec3<Scalar> > image_list = m_mc->updateImageList();
 
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_r0(m_externalLattice->getReferenceLatticePositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_i0(m_externalLattice->getReferenceLatticeIndex(), access_location::host, access_mode::readwrite);
-    ArrayHandle<bool> h_B0(m_externalLattice->getReferenceLatticeBool(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
     Index2D overlap_idx =  m_mc->getOverlapIndexer();
@@ -252,151 +246,130 @@ void ChangeSiteUpdater<Shape>::update(unsigned int timestep)
     	        }
     	    #endif
 
-	    std::vector<unsigned int> neighbour;
- 
-            unsigned int k = 0;
-            for( unsigned int nn = 0; nn < m_latticeVector.getSize(); nn++){
-    	         vec3<Scalar> dr =  vec3<Scalar>( m_latticeVector.getSite(nn) );
-	         vec3<Scalar> new_pos = dr + pos_i;
-                 box.wrap(new_pos, dummy);
-                 k = m_externalLattice->testIndex(i, new_pos);
-                 if(h_B0.data[k] == false) neighbour.push_back(nn);
-            }
+            change_attempt++;
 
-            if( neighbour.size() != 0){
+    	    // make a trial move for i
+    	    hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterChangeSite, m_seed, i, m_exec_conf->getRank()*m_cycles + cur_cycle, timestep);
 
-                change_attempt++;
+            unsigned int indx = hoomd::UniformIntDistribution(m_latticeVector.getSize()-1)(rng_i); 
 
-    	        // make a trial move for i
-    	        hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterChangeSite, m_seed, i, m_exec_conf->getRank()*m_cycles + cur_cycle, timestep);
+    	    vec3<Scalar> dr =  vec3<Scalar>( m_latticeVector.getSite(indx));
 
-                unsigned int indx = 0;
-                if(neighbour.size() > 1 ) indx = hoomd::UniformIntDistribution(neighbour.size()-1)(rng_i); 
+    	    pos_i += dr;
 
-    	        vec3<Scalar> dr =  vec3<Scalar>( m_latticeVector.getSite(neighbour[indx]) );
+            box.wrap(pos_i, dummy);
 
-    	        pos_i += dr;
+    	    #ifdef ENABLE_MPI
+    	    if (m_comm)
+    	        {
+    	        // check if particle has moved into the ghost layer, and skip if it is
+    	        if (!isActive(vec_to_scalar3(pos_i), box, ghost_fraction))
+    	            continue;
+    	        }
+    	    #endif
 
-                box.wrap(pos_i, dummy);
+    	    bool overlap=false;
+    	    OverlapReal r_cut_patch = 0;
 
-                k = m_externalLattice->testIndex(i, pos_i);
+    	    // subtract minimum AABB extent from search radius
+    	    OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0),
+    	        r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
+    	    detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
-    	        #ifdef ENABLE_MPI
-    	        if (m_comm)
-    	            {
-    	            // check if particle has moved into the ghost layer, and skip if it is
-    	            if (!isActive(vec_to_scalar3(pos_i), box, ghost_fraction))
-    	                continue;
-    	            }
-    	        #endif
-
-    	        bool overlap=false;
-    	        OverlapReal r_cut_patch = 0;
-
-    	        // subtract minimum AABB extent from search radius
-    	        OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0),
-    	            r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
-    	        detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
-
-    	        // check for overlaps with neighboring particle's positions (also calculate the new energy)
-    	        // All image boxes (including the primary)
-    	        const unsigned int n_images = image_list.size();
+    	    // check for overlaps with neighboring particle's positions (also calculate the new energy)
+    	    // All image boxes (including the primary)
+    	    const unsigned int n_images = image_list.size();
     	  
-    	        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+    	    for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+    	        {
+    	        vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
+    	        detail::AABB aabb = aabb_i_local;
+    	        aabb.translate(pos_i_image);
+
+    	        // stackless search
+    	        for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
     	            {
-    	            vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
-    	            detail::AABB aabb = aabb_i_local;
-    	            aabb.translate(pos_i_image);
-
-    	            // stackless search
-    	            for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
+    	            if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
     	                {
-    	                if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+    	                if (aabb_tree.isNodeLeaf(cur_node_idx))
     	                    {
-    	                    if (aabb_tree.isNodeLeaf(cur_node_idx))
+    	                    for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
     	                        {
-    	                        for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+    	                        // read in its position and orientation
+    	                        unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+    	                        Scalar4 postype_j;
+    	                        Scalar4 orientation_j;
+
+    	                        // handle j==i situations
+    	                        if ( j != i )
     	                            {
-    	                            // read in its position and orientation
-    	                            unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-    	                            Scalar4 postype_j;
-    	                            Scalar4 orientation_j;
-
-    	                            // handle j==i situations
-    	                            if ( j != i )
+    	                            // load the position and orientation of the j particle
+    	                            postype_j = h_postype.data[j];
+    	                            orientation_j = h_orientation.data[j];
+    	                            }
+    	                        else
+    	                            {
+    	                            if (cur_image == 0)
     	                                {
-    	                                // load the position and orientation of the j particle
-    	                                postype_j = h_postype.data[j];
-    	                                orientation_j = h_orientation.data[j];
+    	                                // in the first image, skip i == j
+    	                                continue;
     	                                }
     	                            else
     	                                {
-    	                                if (cur_image == 0)
-    	                                    {
-    	                                    // in the first image, skip i == j
-    	                                    continue;
-    	                                    }
-    	                                else
-    	                                    {
-    	                                    // If this is particle i and we are in an outside image, use the translated position and orientation
-    	                                    postype_j = make_scalar4(pos_i.x, pos_i.y, pos_i.z, postype_i.w);
-    	                                    orientation_j = quat_to_scalar4(shape_i.orientation);
-    	                                    }
+    	                                // If this is particle i and we are in an outside image, use the translated position and orientation
+    	                                postype_j = make_scalar4(pos_i.x, pos_i.y, pos_i.z, postype_i.w);
+    	                                orientation_j = quat_to_scalar4(shape_i.orientation);
     	                                }
+    	                            }
 
-    	                            // put particles in coordinate system of particle i
-    	                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+    	                        // put particles in coordinate system of particle i
+    	                        vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
-    	                            unsigned int typ_j = __scalar_as_int(postype_j.w);
-    	                            Shape shape_j(quat<Scalar>(orientation_j), m_mc->getParams()[typ_j]);
-    	                            unsigned int err_count = 0;
+    	                        unsigned int typ_j = __scalar_as_int(postype_j.w);
+    	                        Shape shape_j(quat<Scalar>(orientation_j), m_mc->getParams()[typ_j]);
+    	                        unsigned int err_count = 0;
 
-    	                            if ( h_overlaps.data[overlap_idx(typ_i, typ_j)]
-    	                                && check_circumsphere_overlap(r_ij, shape_i, shape_j)
-    	                                && test_overlap(r_ij, shape_i, shape_j, err_count))
-    	                                {
-    	                                overlap = true;
-    	                                break;
-    	                                }
+    	                        if ( h_overlaps.data[overlap_idx(typ_i, typ_j)]
+    	                            && check_circumsphere_overlap(r_ij, shape_i, shape_j)
+    	                            && test_overlap(r_ij, shape_i, shape_j, err_count))
+    	                            {
+    	                            overlap = true;
+    	                            break;
     	                            }
     	                        }
     	                    }
-    	                else
-    	                    {
-    	                    // skip ahead
-    	                    cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-    	                    }
-
-    	                if (overlap)
-    	                    break;
-    	                }  // end loop over AABB nodes
+    	                }
+    	            else
+    	                {
+    	                // skip ahead
+    	                cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
+    	                }
 
     	            if (overlap)
     	                break;
-    	            } // end loop over images
+    	            }  // end loop over AABB nodes
 
-    	            // If no overlaps and Metropolis criterion is met, accept
-    	            // trial move and update positions  and/or orientations.
-    	            if (!overlap)
-  	                {
-    	                // update the position of the particle in the tree for future updates
-    	                detail::AABB aabb = aabb_i_local;
-    	                aabb.translate(pos_i);
-    	                aabb_tree.update(i, aabb);
+    	        if (overlap)
+    	            break;
+    	        } // end loop over images
 
-                        change_success++;
+    	        // If no overlaps and Metropolis criterion is met, accept
+    	        // trial move and update positions  and/or orientations.
+    	        if (!overlap)
+  	            {
+    	            // update the position of the particle in the tree for future updates
+    	            detail::AABB aabb = aabb_i_local;
+    	            aabb.translate(pos_i);
+    	            aabb_tree.update(i, aabb);
 
-    	                h_postype.data[i] = make_scalar4(pos_i.x,pos_i.y,pos_i.z,postype_i.w);
-                        h_B0.data[h_i0.data[i]] = false;
-                        h_B0.data[k] = true;
-                        h_i0.data[i] = k;
-    	                }
-                    
-    	        }
+                    change_success++;
+
+    	            h_postype.data[i] = make_scalar4(pos_i.x,pos_i.y,pos_i.z,postype_i.w);
+    	            }
+                
     	    }
 	}
-	//if(change_attempt > 0) std::cout << "Site change acceptance: " <<  float(change_success)/float(change_attempt) << " " << change_success << " " << change_attempt << std::endl;
 
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
         // wrap particles back into box
@@ -410,18 +383,17 @@ void ChangeSiteUpdater<Shape>::update(unsigned int timestep)
 
 
 template<class Shape>
-class ChangeSiteUpdaterHypersphere : public Updater
+class SwitchSiteUpdaterHypersphere : public Updater
     {
     public:
         //! Constructor
-        ChangeSiteUpdaterHypersphere( std::shared_ptr<SystemDefinition> sysdef,
-                            std::shared_ptr<ExternalFieldLatticeHypersphere<Shape> > externalLattice,
+        SwitchSiteUpdaterHypersphere( std::shared_ptr<SystemDefinition> sysdef,
                             pybind11::list lattice_quatl,
                             pybind11::list lattice_quatr,
                             std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                             unsigned int cycles,
                             unsigned int seed
-                          ) : Updater(sysdef), m_externalLattice(externalLattice), m_mc(mc),
+                          ) : Updater(sysdef), m_mc(mc),
                               m_update_order(seed+m_exec_conf->getRank(), m_pdata->getN()), m_cycles(cycles), m_seed(seed)
             {
                 setReferences(lattice_quatl, lattice_quatr);
@@ -522,9 +494,8 @@ class ChangeSiteUpdaterHypersphere : public Updater
             }
 
     protected:
-                std::shared_ptr<ExternalFieldLatticeHypersphere<Shape> > m_externalLattice;
-                ChangeSiteList<Scalar4> m_latticeQuat_l;
-                ChangeSiteList<Scalar4> m_latticeQuat_r;
+                SwitchSiteList<Scalar4> m_latticeQuat_l;
+                SwitchSiteList<Scalar4> m_latticeQuat_r;
                 std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;
                 detail::UpdateOrder m_update_order;         //!< Update order
                 unsigned int m_cycles;
@@ -532,7 +503,7 @@ class ChangeSiteUpdaterHypersphere : public Updater
     };
 
 template <class Shape>
-void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
+void SwitchSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
     {
 
 
@@ -548,18 +519,12 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_quat_l(m_pdata->getLeftQuaternionArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_quat_r(m_pdata->getRightQuaternionArray(), access_location::host, access_mode::readwrite);
-
-    ArrayHandle<Scalar4> h_ql0(m_externalLattice->getReferenceLatticeQuat_l(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_qr0(m_externalLattice->getReferenceLatticeQuat_r(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_i0(m_externalLattice->getReferenceLatticeIndex(), access_location::host, access_mode::readwrite);
-    ArrayHandle<bool> h_B0(m_externalLattice->getReferenceLatticeBool(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
     Index2D overlap_idx =  m_mc->getOverlapIndexer();
 
     unsigned int change_success = 0;
     unsigned int change_attempt = 0;
-
 
 
     for (unsigned int cur_cycle = 0; cur_cycle < m_cycles; cur_cycle++)
@@ -573,159 +538,108 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
             Scalar4 postype_i = h_postype.data[i];
             quat<Scalar> quat_l_i(h_quat_l.data[i]);
             quat<Scalar> quat_r_i(h_quat_r.data[i]);
-            unsigned int refindx = h_i0.data[i];
-            quat<Scalar> refql_i = quat<Scalar>(h_ql0.data[refindx]);
-            quat<Scalar> refqr_i = quat<Scalar>(h_qr0.data[refindx]);
 
-            quat<Scalar> quat_l_i_old = quat_l_i;
-            quat<Scalar> quat_r_i_old = quat_r_i;
+            change_attempt++;
+            // make a trial move for i
+            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterChangeSite, m_seed, i, m_exec_conf->getRank()*m_cycles + cur_cycle, timestep);
 
+            unsigned int indx = hoomd::UniformIntDistribution(m_latticeQuat_l.getSize()-1)(rng_i); 
 
-	    std::vector<unsigned int> neighbour;
- 
-            unsigned int k = 0;
-            for( unsigned int nn = 0; nn < m_latticeQuat_l.getSize(); nn++){
-                 quat<Scalar> dql = quat<Scalar>( m_latticeQuat_l.getSite(nn) );
-                 quat<Scalar> dqr = quat<Scalar>( m_latticeQuat_r.getSite(nn) );
+            quat<Scalar> dql = quat<Scalar>( m_latticeQuat_l.getSite(indx) );
+            quat<Scalar> dqr = quat<Scalar>( m_latticeQuat_r.getSite(indx) );
 
-                 dql = refql_i*dql;
-                 dqr = dqr*refqr_i;
+            quat_l_i = quat_l_i*dql;
+            Scalar norm_l_inv = fast::rsqrt(norm2(quat_l_i));
+            quat_l_i *= norm_l_inv;
 
-                 k = m_externalLattice->testIndex(i, dql, dqr);
-                 if(h_B0.data[k] == false) neighbour.push_back(k);
-            }
+            quat_r_i = dqr*quat_r_i;
+            Scalar norm_r_inv = fast::rsqrt(norm2(quat_r_i));
+            quat_r_i *= norm_r_inv;
 
-            if( neighbour.size() != 0){
+            int typ_i = __scalar_as_int(postype_i.w);
+            Shape shape_i(quat_l_i, quat_r_i, m_mc->getParams()[typ_i]);
 
-                change_attempt++;
+            bool overlap=false;
+            detail::AABB aabb_i = shape_i.getAABBHypersphere(hypersphere);
 
-                // make a trial move for i
-                hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterChangeSite, m_seed, i, m_exec_conf->getRank()*m_cycles + cur_cycle, timestep);
-
-                if(neighbour.size() > 1 ){ 
-			k = hoomd::UniformIntDistribution(neighbour.size()-1)(rng_i); 
-                        k = neighbour[k];
-		}else k = neighbour[0];
-
-                quat<Scalar> refql_i_new = quat<Scalar>(h_ql0.data[k]);
-                quat<Scalar> refqr_i_new = quat<Scalar>(h_qr0.data[k]);
-
-                quat<Scalar> dql = refql_i_new*conj(refql_i);
-                Scalar norm_l_inv = fast::rsqrt(norm2(dql));
-                dql *= norm_l_inv;
-                
-                quat<Scalar> dqr = conj(refqr_i)*refqr_i_new;
-                Scalar norm_r_inv = fast::rsqrt(norm2(dqr));
-                dqr *= norm_r_inv;
-
-                quat_l_i = dql*quat_l_i;
-                norm_l_inv = fast::rsqrt(norm2(quat_l_i));
-                quat_l_i *= norm_l_inv;
-
-                quat_r_i = quat_r_i*dqr;
-                norm_r_inv = fast::rsqrt(norm2(quat_r_i));
-                quat_r_i *= norm_r_inv;
-
-                int typ_i = __scalar_as_int(postype_i.w);
-                Shape shape_i(quat_l_i, quat_r_i, m_mc->getParams()[typ_i]);
-                Shape shape_old(quat_l_i_old, quat_r_i_old, m_mc->getParams()[typ_i]);
-
-
-                bool overlap=false;
-                detail::AABB aabb_i = shape_i.getAABBHypersphere(hypersphere);
-
-                // stackless search
-                for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
+            // stackless search
+            for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
+                {
+                if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb_i))
                     {
-                    if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb_i))
+                    if (aabb_tree.isNodeLeaf(cur_node_idx))
                         {
-                        if (aabb_tree.isNodeLeaf(cur_node_idx))
+                        for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
                             {
-                            for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                            // read in its position and orientation
+                            unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+
+                            // handle j==i situations
+                            if ( j == i )
                                 {
-                                // read in its position and orientation
-                                unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-
-                                // handle j==i situations
-                                if ( j == i )
-                                    {
-                                    if (test_self_overlap_hypersphere(shape_i, hypersphere))
-                                        {
-                                        overlap = true;
-                                        break;
-                                        }
-                                    else
-                                        continue;
-                                    }
-
-                                Scalar4 postype_j = h_postype.data[j];
-                                quat<Scalar> quat_l_j(h_quat_l.data[j]);
-                                quat<Scalar> quat_r_j(h_quat_r.data[j]);
-
-                                unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat_l_j, quat_r_j, m_mc->getParams()[typ_j]);
-
-                                unsigned int err_count = 0;
-
-                                if ( h_overlaps.data[overlap_idx(typ_i, typ_j)]
-                                    && check_circumsphere_overlap_hypersphere(shape_i, shape_j, hypersphere)
-                                    && test_overlap_hypersphere(shape_i, shape_j, hypersphere, err_count))
+                                if (test_self_overlap_hypersphere(shape_i, hypersphere))
                                     {
                                     overlap = true;
                                     break;
                                     }
+                                else
+                                    continue;
+                                }
+
+                            Scalar4 postype_j = h_postype.data[j];
+                            quat<Scalar> quat_l_j(h_quat_l.data[j]);
+                            quat<Scalar> quat_r_j(h_quat_r.data[j]);
+
+                            unsigned int typ_j = __scalar_as_int(postype_j.w);
+                            Shape shape_j(quat_l_j, quat_r_j, m_mc->getParams()[typ_j]);
+
+                            unsigned int err_count = 0;
+                            
+                            if ( h_overlaps.data[overlap_idx(typ_i, typ_j)]
+                                && check_circumsphere_overlap_hypersphere(shape_i, shape_j, hypersphere)
+                                && test_overlap_hypersphere(shape_i, shape_j, hypersphere, err_count))
+                                {
+                                overlap = true;
+                                break;
                                 }
                             }
                         }
-                    else
-                        {
-                        // skip ahead
-                        cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-                        }
-
-                    if (overlap)
-                        break;
-                    }  // end loop over AABB nodes
-
-                double patch_field_energy_diff = 0;
-
-                if (!overlap)
-                {
-                    patch_field_energy_diff -= m_externalLattice->energydiffHypersphere(i, quat_l_i_old, quat_r_i_old, shape_old, shape_i.quat_l, shape_i.quat_r, shape_i);
-                }
-
-                // If no overlaps and Metropolis criterion is met, accept
-                // trial move and update positions  and/or orientations.
-                if (!overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff))
-                    {
-                    // update the position of the particle in the tree for future updates
-                    aabb_tree.update(i, aabb_i);
-
-                    change_success++;
-
-                    h_quat_l.data[i] = quat_to_scalar4(shape_i.quat_l);
-                    h_quat_r.data[i] = quat_to_scalar4(shape_i.quat_r);
-
-                    h_B0.data[h_i0.data[i]] = false;
-                    h_B0.data[k] = true;
-                    h_i0.data[i] = k;
-
                     }
+                else
+                    {
+                    // skip ahead
+                    cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
+                    }
+
+                if (overlap)
+                    break;
+                }  // end loop over AABB nodes
+
+            // If no overlaps and Metropolis criterion is met, accept
+            // trial move and update positions  and/or orientations.
+            if (!overlap)
+                {
+                // update the position of the particle in the tree for future updates
+                aabb_tree.update(i, aabb_i);
+
+                change_success++;
+                
+                h_quat_l.data[i] = quat_to_scalar4(shape_i.quat_l);
+                h_quat_r.data[i] = quat_to_scalar4(shape_i.quat_r);
                 }
+
             }
         }
-	//if(change_attempt > 0) std::cout << "Site change acceptance: " <<  float(change_success)/float(change_attempt) << " " << change_success << " " << change_attempt << std::endl;
     }
 
 //! Export the ExampleUpdater class to python
 template <class Shape>
-void export_UpdaterChangeSite(pybind11::module& m, std::string name)
+void export_UpdaterSwitchSite(pybind11::module& m, std::string name)
     {
     using pybind11::class_;
-   pybind11::class_<ChangeSiteUpdater<Shape>, std::shared_ptr<ChangeSiteUpdater<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+   pybind11::class_<SwitchSiteUpdater<Shape>, std::shared_ptr<SwitchSiteUpdater<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
    .def(pybind11::init<     std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<ExternalFieldLattice<Shape> >, 
                             pybind11::list,
                             std::shared_ptr<IntegratorHPMCMono<Shape> >, 
                             unsigned int,
@@ -735,12 +649,11 @@ void export_UpdaterChangeSite(pybind11::module& m, std::string name)
 
 //! Export the ExampleUpdater class to python
 template <class Shape>
-void export_UpdaterChangeSiteHypersphere(pybind11::module& m, std::string name)
+void export_UpdaterSwitchSiteHypersphere(pybind11::module& m, std::string name)
     {
     using pybind11::class_;
-   pybind11::class_<ChangeSiteUpdaterHypersphere<Shape>, std::shared_ptr<ChangeSiteUpdaterHypersphere<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+   pybind11::class_<SwitchSiteUpdaterHypersphere<Shape>, std::shared_ptr<SwitchSiteUpdaterHypersphere<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
    .def(pybind11::init<     std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<ExternalFieldLatticeHypersphere<Shape> >, 
                             pybind11::list,
                             pybind11::list,
                             std::shared_ptr<IntegratorHPMCMono<Shape> >, 
@@ -751,4 +664,4 @@ void export_UpdaterChangeSiteHypersphere(pybind11::module& m, std::string name)
 }
 
 
-#endif // _CHANGE_SITE_UPDATER_H_
+#endif // _SWITCH_SITE_UPDATER_H_

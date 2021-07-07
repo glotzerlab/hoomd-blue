@@ -562,25 +562,25 @@ DEVICE inline bool test_overlap_hypersphere(const ShapeConvexPolyhedron& a,
     quat<OverlapReal> ql = conj(a.quat_l)*b.quat_l;
     quat<OverlapReal> qr = b.quat_r*conj(a.quat_r);;
 
-    //bool aaa =  detail::xenocollide_hypersphere(a.verts,
-    //                              b.verts,
-    //                              ql,
-    //                              qr,
-    //                              hypersphere,
-    //                              DaDb/2.0,
-    //                              err);
-
-
-    //ql = conj(a.quat_l)*b.quat_l;
-    //qr = b.quat_r*conj(a.quat_r);;
-
-    bool aaa =  detail::xenocollide_hypersphereTetra(a.verts,
+    bool aaa =  detail::xenocollide_hypersphere(a.verts,
                                   b.verts,
                                   ql,
                                   qr,
                                   hypersphere,
                                   DaDb/2.0,
                                   err);
+
+
+    //ql = conj(a.quat_l)*b.quat_l;
+    //qr = b.quat_r*conj(a.quat_r);;
+
+    //bool aaa =  detail::xenocollide_hypersphereTetra(a.verts,
+    //                              b.verts,
+    //                              ql,
+    //                              qr,
+    //                              hypersphere,
+    //                              DaDb/2.0,
+    //                              err);
 
     //if ( aaa != bbb ){ 
 

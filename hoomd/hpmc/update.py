@@ -1030,6 +1030,45 @@ class change_site_hypersphere(_updater):
         self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, enlist(lattice_quatl), enlist(lattice_quatr), mc.cpp_integrator, int(cycles), int(seed));
         self.setupUpdater(period);
 
+class switch_site_hypersphere(_updater):
+    R""" moves particle to neighbouring site iof lattice field (if possible) to study vacancies.
+
+    Args:
+        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
+        period (int): the period to call the updater
+
+    The command hpmc.update.switch_site sets up an updater that removes the center of mass
+    drift of a system every period timesteps,
+
+    Example::
+
+        mc = hpmc.integrate.convex_polyhedron(seed=seed);
+        mc.shape_param.set("A", vertices=verts)
+        mc.set_params(d=0.005, a=0.005)
+        lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+        remove_drift = update.switch_site(mc=mc, external_lattice=lattice, period=1000);
+
+    """
+    def __init__(self, mc, seed, lattice_quatl=[], lattice_quatr = [], period=1, cycles=1):
+        hoomd.util.print_status_line();
+        #initialize base class
+        _updater.__init__(self);
+        cls = None;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            if isinstance(mc, integrate.sphere):
+                cls = _hpmc.UpdaterSwitchSiteSphereHypersphere;
+            elif isinstance(mc, integrate.convex_polyhedron):
+                cls = _hpmc.UpdaterSwitchSiteConvexPolyhedronHypersphere;
+            else:
+                hoomd.context.msg.error("update.switch_site (hypersphere): Unsupported integrator.\n");
+                raise RuntimeError("Error initializing update.switch_site (hypersphere)");
+        else:
+            raise RuntimeError("update.switch_site: Error! GPU not implemented.");
+
+        enlist = hoomd.hpmc.data._param.ensure_list;
+        self.cpp_updater = cls(hoomd.context.current.system_definition, enlist(lattice_quatl), enlist(lattice_quatr), mc.cpp_integrator, int(cycles), int(seed));
+        self.setupUpdater(period);
+
 class clusters(_updater):
     R""" Equilibrate the system according to the geometric cluster algorithm (GCA).
 
