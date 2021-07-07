@@ -20,6 +20,7 @@ set(files __init__.py
     test_rigid.py
     test_zero_momentum.py
     test_gsd.py
+    test_wall_data.py
     )
 
 install(FILES ${files}
