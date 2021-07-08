@@ -73,7 +73,6 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
         for (auto& alpha : m_alchemicalParticles)
             {
             alpha->m_nextTimestep = m_nextAlchemTimeStep;
-            alpha->setNetForce(m_nextAlchemTimeStep);
             }
         }
 
@@ -82,7 +81,6 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
         for (auto& alpha : m_alchemicalParticles)
             {
             alpha->m_nextTimestep = timestep;
-            alpha->setNetForce(timestep);
             }
         }
 

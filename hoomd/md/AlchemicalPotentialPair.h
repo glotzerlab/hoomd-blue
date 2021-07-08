@@ -8,8 +8,10 @@
 
 #include <bitset>
 #include <cstddef>
+#include <numeric>
 
 #include "hoomd/AlchemyData.h"
+#include "hoomd/GlobalArray.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/extern/nano-signal-slot/nano_observer.hpp"
 #include "hoomd/md/PotentialPair.h"
@@ -32,20 +34,13 @@
 
 template<class evaluator> struct AlchemyPackage
     {
-    bool calculate_derivatives;
-    ArrayHandle<std::shared_ptr<AlchemicalPairParticle>> h_alchemical_particles;
-    ArrayHandle<std::bitset<evaluator::num_alchemical_parameters>> h_alchemy_mask;
-
+    bool calculate_derivatives = false;
     std::vector<std::array<Scalar, evaluator::num_alchemical_parameters>> alphas = {};
+    std::vector<ArrayHandle<Scalar>> force_handles = {};
+    std::vector<std::bitset<evaluator::num_alchemical_parameters>> compute_mask = {};
 
-    AlchemyPackage(bool a,
-                   ArrayHandle<std::shared_ptr<AlchemicalPairParticle>> b,
-                   ArrayHandle<std::bitset<evaluator::num_alchemical_parameters>> c)
-        : calculate_derivatives(a), h_alchemical_particles(b), h_alchemy_mask(c) {};
-
-    AlchemyPackage(std::nullptr_t)
-        : h_alchemical_particles(GPUArray<std::shared_ptr<AlchemicalPairParticle>>()),
-          h_alchemy_mask(GPUArray<std::bitset<evaluator::num_alchemical_parameters>>()) {};
+    AlchemyPackage(std::nullptr_t) {};
+    AlchemyPackage() {};
     };
 
 //! Template class for computing alchemical pair potentials
@@ -69,32 +64,32 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, AlchemyPackage<e
 
     std::shared_ptr<AlchemicalPairParticle> getAlchemicalPairParticle(int i, int j, int k)
         {
-        ArrayHandle<std::shared_ptr<AlchemicalPairParticle>> h_alpha_p(m_alchemical_particles,
-                                                                       access_location::host,
-                                                                       access_mode::readwrite);
         std::shared_ptr<AlchemicalPairParticle>& alpha_p
-            = h_alpha_p.data[k * m_alchemy_index.getNumElements() + m_alchemy_index(i, j)];
+            = m_alchemical_particles[k * m_alchemy_index.getNumElements() + m_alchemy_index(i, j)];
         if (alpha_p == nullptr)
             {
             alpha_p
                 = std::make_shared<AlchemicalPairParticle>(this->m_exec_conf, make_int3(i, j, k));
-            m_needs_alch_force_resize = true;
             }
         return alpha_p;
         }
 
     void enableAlchemicalPairParticle(std::shared_ptr<AlchemicalPairParticle> alpha_p)
         {
-        // ArrayHandle<std::shared_ptr<AlchemicalPairParticle>> h_alpha_p(m_alchemical_particles);
-        // h_alpha_p.data[]
-        ArrayHandle<mask_type> h_mask(m_alchemy_mask);
-        mask_type& mask = h_mask.data[m_alchemy_index(alpha_p->m_type_pair_param.x,
-                                                      alpha_p->m_type_pair_param.y)];
         // TODO: make sure only adding a particle to an alchemostat can enable it
-        assert(mask[alpha_p->m_type_pair_param.z] == false);
         // TODO: is this where the momentum etc should be initilized?
-        mask[alpha_p->m_type_pair_param.z] = true;
-        m_needs_alch_force_resize = true;
+        m_alchemy_mask[m_alchemy_index(alpha_p->m_type_pair_param.x, alpha_p->m_type_pair_param.y)]
+                      [alpha_p->m_type_pair_param.z]
+            = true;
+        alpha_p->resizeForces(this->m_pdata->getN());
+        }
+
+    void disableAlchemicalPairParticle(std::shared_ptr<AlchemicalPairParticle> alpha_p)
+        {
+        // TODO: handle resetting param value and alpha
+        m_alchemy_mask[m_alchemy_index(alpha_p->m_type_pair_param.x, alpha_p->m_type_pair_param.y)]
+                      [alpha_p->m_type_pair_param.z]
+            = false;
         }
 
     // TODO: keep as general python object, or change to an updater? problem with updater is lack of
@@ -112,11 +107,9 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, AlchemyPackage<e
     typedef std::array<Scalar, evaluator::num_alchemical_parameters> alpha_array_t;
 
     Index2DUpperTriangular m_alchemy_index; //!< upper triangular typepair index
-    GlobalArray<mask_type> m_alchemy_mask;  //!< Type pair mask for if alchemical forces are used
-    GlobalArray<std::shared_ptr<AlchemicalPairParticle>>
-        m_alchemical_particles;                 //!< 2D array (alchemy_index,alchemical param)
-    std::set<uint64_t> m_alchemical_time_steps; //!< Next alchemical time step
-    bool m_needs_alch_force_resize = true;
+    std::vector<mask_type> m_alchemy_mask;  //!< Type pair mask for if alchemical forces are used
+    std::vector<std::shared_ptr<AlchemicalPairParticle>>
+        m_alchemical_particles; //!< 2D array (alchemy_index,alchemical param)
     bool m_normalized = false;     //!< The potential should be normalizeds
     pybind11::object m_normalizer; //!< python normalization TODO: allow for cpp normalization as
                                    //!< well, probably via pybind11::vectorize
@@ -125,7 +118,10 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, AlchemyPackage<e
     void slotNumTypesChange() override;
     void slotNumParticlesChange()
         {
-        m_needs_alch_force_resize = true;
+        unsigned int N = this->m_pdata->getN();
+        for (auto& particle : m_alchemical_particles)
+            if (particle)
+                particle->resizeForces(N);
         };
 
     // Extra steps to insert
@@ -134,7 +130,7 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, AlchemyPackage<e
                                const unsigned int& j,
                                const unsigned int& typei,
                                const unsigned int& typej,
-                               const bool in_rcut,
+                               const bool& in_rcut,
                                evaluator& eval,
                                AlchemyPackage<evaluator>&) override;
     inline void pkgFinalize(AlchemyPackage<evaluator>&) override;
@@ -147,13 +143,10 @@ AlchemicalPotentialPair<evaluator>::AlchemicalPotentialPair(
     : PotentialPair<evaluator, AlchemyPackage<evaluator>>(sysdef, nlist)
     {
     m_alchemy_index = Index2DUpperTriangular(this->m_pdata->getNTypes());
-    m_alchemical_particles
-        = GlobalArray<std::shared_ptr<AlchemicalPairParticle>>(m_alchemy_index.getNumElements(),
-                                                               evaluator::num_alchemical_parameters,
-                                                               this->m_exec_conf);
-    m_alchemy_mask = GlobalArray<mask_type>(this->m_pdata->getNTypes(), this->m_exec_conf);
+    m_alchemical_particles.resize(m_alchemy_index.getNumElements()
+                                  * evaluator::num_alchemical_parameters);
+    m_alchemy_mask.resize(this->m_pdata->getNTypes());
 
-    // TODO: proper logging variables
     this->m_exec_conf->msg->notice(5)
         << "Constructing AlchemicalPotentialPair<" << evaluator::getName() << ">" << std::endl;
 
@@ -185,48 +178,28 @@ template<class evaluator> AlchemicalPotentialPair<evaluator>::~AlchemicalPotenti
 template<class evaluator> void AlchemicalPotentialPair<evaluator>::slotNumTypesChange()
     {
     Index2DUpperTriangular new_alchemy_index = Index2DUpperTriangular(this->m_pdata->getNTypes());
-    GlobalArray<mask_type> new_mask(new_alchemy_index.getNumElements(), this->m_exec_conf);
-    GlobalArray<std::shared_ptr<AlchemicalPairParticle>> new_particles_array(
-        new_alchemy_index.getNumElements(),
-        evaluator::num_alchemical_parameters,
-        this->m_exec_conf);
-
-    ArrayHandle<mask_type> h_new_mask(new_mask, access_location::host, access_mode::overwrite);
-    ArrayHandle<std::shared_ptr<AlchemicalPairParticle>> h_new_particles(new_particles_array,
-                                                                         access_location::host,
-                                                                         access_mode::overwrite);
-    for (unsigned int i = 0; i < new_alchemy_index.getNumElements(); i++)
-        {
-        h_new_mask.data[i].reset(); // set bitsets to all false by default, enable manually
-        for (unsigned int j = 0; j < evaluator::num_alchemical_parameters; j++)
-            {
-            // TODO: determine if this does anything, is default shared_ptr guaranteed to be nullptr
-            h_new_particles.data[j * new_alchemy_index.getNumElements() + i] = nullptr;
-            }
-        }
-
-    ArrayHandle<std::shared_ptr<AlchemicalPairParticle>> h_particles(m_alchemical_particles,
-                                                                     access_location::host,
-                                                                     access_mode::read);
-    ArrayHandle<mask_type> h_mask(m_alchemy_mask, access_location::host, access_mode::read);
+    std::vector<mask_type> new_mask(new_alchemy_index.getNumElements());
+    std::vector<std::shared_ptr<AlchemicalPairParticle>> new_particles(
+        new_alchemy_index.getNumElements() * evaluator::num_alchemical_parameters);
 
     // copy over entries that are valid in both the new and old matrices
     unsigned int copy_w = std::min(new_alchemy_index.getW(), m_alchemy_index.getW());
     for (unsigned int i = 0; i < copy_w; i++)
         for (unsigned int j = 0; j < i; j++)
             {
-            h_new_mask.data[new_alchemy_index(i, j)] = h_mask.data[m_alchemy_index(i, j)];
+            new_mask[new_alchemy_index(i, j)] = m_alchemy_mask[m_alchemy_index(i, j)];
             for (unsigned int k = 0; k < evaluator::num_alchemical_parameters; k++)
                 {
-                h_new_particles
-                    .data[k * new_alchemy_index.getNumElements() + new_alchemy_index(i, j)]
-                    = h_particles
-                          .data[k * m_alchemy_index.getNumElements() + m_alchemy_index(i, j)];
+                new_particles[k * new_alchemy_index.getNumElements() + new_alchemy_index(i, j)]
+                    = m_alchemical_particles[k * m_alchemy_index.getNumElements()
+                                             + m_alchemy_index(i, j)];
                 }
             }
     m_alchemy_index = new_alchemy_index;
-    m_alchemical_particles.swap(new_particles_array);
+    m_alchemical_particles.swap(new_particles);
     m_alchemy_mask.swap(new_mask);
+
+    PotentialPair<evaluator, AlchemyPackage<evaluator>>::slotNumTypesChange();
     }
 
 template<class evaluator>
@@ -234,56 +207,57 @@ inline AlchemyPackage<evaluator>
 AlchemicalPotentialPair<evaluator>::pkgInitialize(const uint64_t& timestep)
     {
     // Create pkg for passing additional variables between specialized code
-    AlchemyPackage<evaluator> pkg
-        = {false,
-           ArrayHandle<std::shared_ptr<AlchemicalPairParticle>>(m_alchemical_particles,
-                                                                access_location::host,
-                                                                access_mode::read),
-           ArrayHandle<mask_type>(m_alchemy_mask,
-                                  access_location::host,
-                                  access_mode::read)}; // zero force
+    AlchemyPackage<evaluator> pkg;
 
+    std::vector<mask_type> compute_mask(m_alchemy_mask);
     // Allocate and read alphas into type pair accessible format
     pkg.alphas.assign(m_alchemy_index.getNumElements(), {});
     for (unsigned int i = 0; i < m_alchemy_index.getNumElements(); i++)
         for (unsigned int j = 0; j < evaluator::num_alchemical_parameters; j++)
-            if (pkg.h_alchemy_mask.data[i][j])
+            {
+            unsigned int idx = j * m_alchemy_index.getNumElements() + i;
+            if (m_alchemy_mask[i][j])
                 {
-                unsigned int idx = j * m_alchemy_index.getNumElements() + i;
-                pkg.alphas[i][j] = pkg.h_alchemical_particles.data[idx]->value;
-                // TODO: if we copy the mask array and modify the copy we can skip some unneeded
-                // calculations
-                m_alchemical_time_steps.insert(
-                    pkg.h_alchemical_particles.data[idx]->m_nextTimestep);
-                // m_alchemical_time_steps.insert(
-                // pkg.h_alchemical_particles.data[idx]->m_nextTimestep-1);
+                pkg.alphas[i][j] = m_alchemical_particles[idx]->value;
+                if (m_alchemical_particles[idx]->m_nextTimestep == timestep)
+                    {
+                    pkg.calculate_derivatives = true;
+                    }
+                else
+                    {
+                    compute_mask[i][j] = false;
+                    }
                 }
             else
                 {
                 pkg.alphas[i][j] = Scalar(1.0);
                 }
+            }
+    pkg.compute_mask.swap(compute_mask);
 
     // Check if alchemical forces need to be computed
-    if (m_alchemical_time_steps.count(timestep))
+    if (pkg.calculate_derivatives)
         {
-        pkg.calculate_derivatives = true;
         this->m_exec_conf->msg->notice(10)
             << "AlchemPotentialPair: Calculating alchemical forces" << std::endl;
-        // Only resize when preforming a new calculation so previous results remain accessible
-        if (m_needs_alch_force_resize)
-            {
-            unsigned int N = this->m_pdata->getN();
-            for (unsigned int i = 0; i < m_alchemical_particles.getNumElements(); i++)
-                if (pkg.h_alchemical_particles.data[i] != nullptr)
-                    pkg.h_alchemical_particles.data[i]->resizeForces(N);
-            m_needs_alch_force_resize = false;
-            }
-        // zero the forces of all particles and set timing checks
-        for (unsigned int i = 0; i < m_alchemy_index.getNumElements(); i++)
-            for (unsigned int j = 0; j < evaluator::num_alchemical_parameters; j++)
-                if (pkg.h_alchemy_mask.data[i][j])
-                    pkg.h_alchemical_particles.data[m_alchemy_index.getNumElements() * j + i]
-                        ->setNetForce(timestep);
+
+        pkg.force_handles.clear();
+
+        for (auto& particle : m_alchemical_particles)
+            if (particle
+                && pkg.compute_mask[m_alchemy_index(particle->m_type_pair_param.x,
+                                                    particle->m_type_pair_param.y)]
+                                   [particle->m_type_pair_param.z])
+                {
+                particle->setNetForce(timestep);
+                pkg.force_handles.push_back(
+                    ArrayHandle<Scalar>(particle->m_alchemical_derivatives));
+                }
+
+            else
+                {
+                pkg.force_handles.push_back(ArrayHandle<Scalar>(GlobalArray<Scalar>()));
+                }
         }
     return pkg;
     }
@@ -293,19 +267,18 @@ inline void AlchemicalPotentialPair<evaluator>::pkgPerNeighbor(const unsigned in
                                                                const unsigned int& j,
                                                                const unsigned int& typei,
                                                                const unsigned int& typej,
-                                                               const bool in_rcut,
+                                                               const bool& in_rcut,
                                                                evaluator& eval,
                                                                AlchemyPackage<evaluator>& pkg)
     {
     unsigned int alchemy_index = m_alchemy_index(typei, typej);
-    mask_type& mask {pkg.h_alchemy_mask.data[alchemy_index]};
+    mask_type& mask {pkg.compute_mask[alchemy_index]};
     alpha_array_t& alphas {pkg.alphas[alchemy_index]};
 
-    // TODO: make sure that when we disable an alchemical particle, we rewritit's parameter
-    // TODO: add support of aniso
+    // TODO: make sure that when we disable an alchemical particle, we rewrite its parameter
 
-    // update parameter values with current alphas
-    if (pkg.calculate_derivatives && in_rcut)
+    // calculate alchemical derivatives if needed
+    if (pkg.calculate_derivatives && in_rcut && mask.any())
         {
         Scalar alchemical_derivatives[evaluator::num_alchemical_parameters] = {0.0};
         eval.evalAlchDerivatives(alchemical_derivatives, alphas.data());
@@ -313,14 +286,16 @@ inline void AlchemicalPotentialPair<evaluator>::pkgPerNeighbor(const unsigned in
             {
             if (mask[k])
                 {
-                // TODO: this is likely to be inefficient, design better array handle access
-                ArrayHandle<Scalar> h_alchemical_forces(
-                    pkg.h_alchemical_particles.data[alchemy_index]->m_alchemical_derivatives);
-                h_alchemical_forces.data[i] = alchemical_derivatives[k] * Scalar(-0.5);
+                pkg.force_handles[alchemy_index].data[i]
+                    += alchemical_derivatives[k] * Scalar(-0.5);
+                pkg.force_handles[alchemy_index].data[j]
+                    += alchemical_derivatives[k] * Scalar(-0.5);
                 }
             alchemy_index += m_alchemy_index.getNumElements();
             }
         }
+
+    // update parameter values with current alphas (MUST! be performed after dAlpha calculations)
     eval.alchemParams(alphas.data());
     }
 
@@ -352,9 +327,10 @@ inline void AlchemicalPotentialPair<evaluator>::pkgFinalize(AlchemyPackage<evalu
         //     {evaluator::num_alchemical_parameters, this->m_pdata->getNTypes()},
         //     {sizeof(Scalar) * evaluator::num_alchemical_parameters, sizeof(Scalar)},
         //     true);
-        auto norm_input = pybind11::array({evaluator::num_alchemical_parameters, this->m_pdata->getNTypes()},
-                        {sizeof(Scalar) * evaluator::num_alchemical_parameters, sizeof(Scalar)},
-                        current_params.data());
+        auto norm_input = pybind11::array(
+            {evaluator::num_alchemical_parameters, this->m_pdata->getNTypes()},
+            {sizeof(Scalar) * evaluator::num_alchemical_parameters, sizeof(Scalar)},
+            current_params.data());
         Scalar norm_value = m_normalizer(norm_input).template cast<Scalar>();
         // TODO: major changes to support multiple types, needs to modify force with per type pair
         // norm
@@ -378,10 +354,11 @@ inline void AlchemicalPotentialPair<evaluator>::pkgFinalize(AlchemyPackage<evalu
         }
 
     // for all used variables, store the net force
-    for (unsigned int i = 0; i < pkg.alphas.size(); i++)
+    for (unsigned int i = 0; i < m_alchemy_index.getNumElements(); i++)
         for (unsigned int j = 0; j < evaluator::num_alchemical_parameters; j++)
-            if (pkg.h_alchemy_mask.data[i][j])
-                pkg.h_alchemical_particles.data[pkg.alphas.size() * j + i]->setNetForce(norm_value);
+            if (pkg.compute_mask[i][j])
+                m_alchemical_particles[j * m_alchemy_index.getNumElements() + i]->setNetForce(
+                    norm_value);
     }
 
 //! Export this pair potential to python

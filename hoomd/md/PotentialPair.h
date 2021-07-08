@@ -235,7 +235,7 @@ class PotentialPair : public ForceCompute
                                        const unsigned int& j,
                                        const unsigned int& typei,
                                        const unsigned int& typej,
-                                       const bool in_rcut,
+                                       const bool& in_rcut,
                                        evaluator& eval,
                                        extra_pkg&) {};
 
