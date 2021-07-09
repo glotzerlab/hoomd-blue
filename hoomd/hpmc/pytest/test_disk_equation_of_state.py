@@ -11,7 +11,8 @@ statepoints = [
 
 @pytest.mark.validate
 @pytest.mark.parametrize(
-    'mean_phi_p_ref, sigma_phi_p_ref, mean_betaP_ref, sigma_betaP_ref', statepoints)
+    'mean_phi_p_ref, sigma_phi_p_ref, mean_betaP_ref, sigma_betaP_ref',
+    statepoints)
 def test_disk_equation_of_state(
     mean_phi_p_ref,
     sigma_phi_p_ref,
@@ -39,7 +40,9 @@ def test_disk_equation_of_state(
     sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
     sim.operations.add(sdf)
     betaP_log = hoomd.conftest.ListWriter(sdf, 'betaP')
-    sim.operations.writers.append(hoomd.write.CustomWriter(action=betaP_log, trigger=hoomd.trigger.Periodic(100)))
+    sim.operations.writers.append(
+        hoomd.write.CustomWriter(action=betaP_log,
+                                 trigger=hoomd.trigger.Periodic(100)))
 
     sim.run(1e4)
 
