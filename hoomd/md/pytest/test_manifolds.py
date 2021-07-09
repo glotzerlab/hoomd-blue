@@ -111,7 +111,7 @@ def test_attributes_attached(simulation_factory, two_particle_snapshot_factory,
 
     all_ = hoomd.filter.All()
     surface = manifold_base_params.surface(**manifold_base_params.setup_params)
-    method = hoomd.md.methods.NVE(filter=all_)
+    method = hoomd.md.methods.NVE(filter=all_, manifold_constraint=surface)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
