@@ -231,16 +231,15 @@ PYBIND11_MODULE(_md, m)
     export_PPPMForceCompute(m);
     export_PotentialExternal<PotentialExternalPeriodic>(m, "PotentialExternalPeriodic");
     export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
-    // TODO: Port walls to HOOMD v3
     export_wall_data(m);
     export_wall_field(m);
     export_WallPotential<EvaluatorPairLJ>(m, "WallsPotentialLJ");
-    // export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
-    // export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
-    // export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
-    // export_PotentialExternalWall<EvaluatorPairMie>(m, "WallsPotentialMie");
-    // export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
-    // export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
+    export_WallPotential<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
+    export_WallPotential<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
+    export_WallPotential<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
+    export_WallPotential<EvaluatorPairMie>(m, "WallsPotentialMie");
+    export_WallPotential<EvaluatorPairGauss>(m, "WallsPotentialGauss");
+    export_WallPotential<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
 #ifdef ENABLE_HIP
     export_NeighborListGPU(m);
@@ -334,7 +333,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>(
         m,
         "PotentialExternalElectricFieldGPU");
-    /*
+
     export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>(m, "WallsPotentialLJGPU");
     export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
         m,
@@ -350,7 +349,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(
         m,
         "WallsPotentialMorseGPU");
-    */
 #endif
 
     // updaters
