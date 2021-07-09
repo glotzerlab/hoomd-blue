@@ -51,6 +51,9 @@ template<class evaluator> class PotentialExternal : public ForceCompute
     //! set the field type of the evaluator
     void setField(field_type field);
 
+    //! get a reference to the field parameters. Used to expose the field attributes to Python.
+    field_type& getField();
+
     protected:
     GPUArray<param_type> m_params; //!< Array of per-type parameters
     GPUArray<field_type> m_field;
@@ -231,6 +234,13 @@ template<class evaluator> void PotentialExternal<evaluator>::setField(field_type
     *(h_field.data) = field;
     }
 
+template<class evaluator>
+typename PotentialExternal<evaluator>::field_type& PotentialExternal<evaluator>::getField()
+    {
+    ArrayHandle<field_type> h_field(m_field, access_location::host, access_mode::readwrite);
+    return *(h_field.data);
+    }
+
 //! Export this external potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialExternal class template.
@@ -241,7 +251,8 @@ template<class T> void export_PotentialExternal(pybind11::module& m, const std::
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams)
-        .def("setField", &T::setField);
+        .def("setField", &T::setField)
+        .def("getField", &T::getField);
     }
 
 #endif
