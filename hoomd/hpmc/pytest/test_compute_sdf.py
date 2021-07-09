@@ -48,4 +48,4 @@ def test_after_attaching(valid_args, simulation_factory,
     assert isinstance(sdf.sdf, np.ndarray)
     assert len(sdf.sdf) > 0
     assert isinstance(sdf.betaP, float)
-    assert sdf.betaP > 0
+    assert not np.isclose(sdf.betaP, 0)
