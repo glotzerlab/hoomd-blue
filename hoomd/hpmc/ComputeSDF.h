@@ -154,7 +154,7 @@ class ComputeSDF : public Compute
         virtual void compute(uint64_t timestep);
 
         //! Return an sdf
-        virtual pybind11::list getSDF();
+        virtual pybind11::array_t<Scalar> getSDF();
 
     protected:
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< The parent integrator
@@ -234,8 +234,6 @@ void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
 
     countHistogram(timestep);
 
-    std::vector<unsigned int> hist_total(m_hist);
-
         // in MPI, we need to total up all of the histogram bins from all nodes to the root node
     #ifdef ENABLE_MPI
         if (m_comm)
@@ -249,14 +247,22 @@ void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
 
 // \return the sdf histogram
 template<class Shape>
-pybind11::list ComputeSDF<Shape>::getSDF()
+pybind11::array_t<Scalar> ComputeSDF<Shape>::getSDF()
     {
     #ifdef ENABLE_MPI
     if (!m_exec_conf->isRoot())
         return pybind11::none();
     #endif
+    
+    std::vector<unsigned int> hist_total(m_hist);
+    unsigned int hist_size = static_cast<unsigned int>(hist_total.size());
+    Scalar sdf [hist_size];
+    for (unsigned int i = 0; i < hist_size; i++)
+        {
+        sdf[i] = Scalar(hist_total[i]) / Scalar(m_pdata->getNGlobal()*m_dx);
+        }
 
-    return pybind11::cast(m_hist);
+    return pybind11::array_t<Scalar>(hist_size, sdf);
     }
 
 template < class Shape >
