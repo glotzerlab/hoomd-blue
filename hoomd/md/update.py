@@ -146,16 +146,17 @@ class ReversePerturbationFlow(Updater):
     component. Afterward, both velocity components are swapped.
 
     This introduces a momentum flow, which drives the flow. The strength of this
-    flow, can be controlled by the flow_target variant, which defines the
-    integrated target momentum flow. The searching and swapping is repeated
-    until the target is reached. Depending on the target sign, the "max" and
-    "min" slab might be swapped.
+    flow is set through the `flow_target` argument, which defines a target value
+    for the time-integrated momentum flux. The searching and swapping is
+    repeated until the target is reached. Depending on the target sign, the
+    "max" and "min" slab might be swapped.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
             apply this updater.
 
-        flow_target (`hoomd.variant.Variant`): Integrated target flow.
+        flow_target (`hoomd.variant.Variant`): Target value of the
+            time-integrated momentum flux.
             :math:`[\\delta t \\cdot \\mathrm{mass} \\cdot \\mathrm{length}
             \\cdot \\mathrm{time}^{-1}]` - where :math:`\\delta t` is the
             integrator step size.
@@ -203,8 +204,8 @@ class ReversePerturbationFlow(Updater):
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this updater.
 
-        flow_target (hoomd.variant.Variant): Integrated target flow in the
-            natural units of the simulation.
+        flow_target (hoomd.variant.Variant): Target value of the
+            time-integrated momentum flux.
 
         slab_direction (str): Direction perpendicular to the
             slabs.
