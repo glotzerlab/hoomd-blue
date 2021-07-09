@@ -253,7 +253,7 @@ pybind11::array_t<Scalar> ComputeSDF<Shape>::getSDF()
     if (!m_exec_conf->isRoot())
         return pybind11::none();
     #endif
-    
+
     std::vector<unsigned int> hist_total(m_hist);
     unsigned int hist_size = static_cast<unsigned int>(hist_total.size());
     Scalar sdf [hist_size];
