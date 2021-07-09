@@ -159,6 +159,13 @@ void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& 
         .def("setField", &PotentialExternalElectricField::setField);
     }
 
+// Simplify the exporting of wall potential subclasses
+template<class EvaluatorPairType>
+void export_WallPotential(pybind11::module& m, const std::string& name)
+    {
+    export_PotentialExternal<PotentialExternal<EvaluatorWalls<EvaluatorPairType>>>(m, name);
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -226,7 +233,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
     // TODO: Port walls to HOOMD v3
     export_wall_data(m);
-    // export_PotentialExternalWall<EvaluatorPairLJ>(m, "WallsPotentialLJ");
+    export_wall_field(m);
+    export_WallPotential<EvaluatorPairLJ>(m, "WallsPotentialLJ");
     // export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
     // export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
     // export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");

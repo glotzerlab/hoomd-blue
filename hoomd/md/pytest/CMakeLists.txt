@@ -21,6 +21,7 @@ set(files __init__.py
     test_zero_momentum.py
     test_gsd.py
     test_wall_data.py
+    test_wall_lists.py
     )
 
 install(FILES ${files}
