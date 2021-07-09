@@ -194,7 +194,7 @@ class SDF(Compute):
         """
         # get the values to fit
         n_fit = int(numpy.ceil(self.xmax / self.dx))
-        sdf_fit = numpy.asarray(self.sdf[0:n_fit]) / sum(self.sdf[0:n_fit])
+        sdf_fit = self.sdf[0:n_fit]
         # construct the x coordinates
         x_fit = numpy.arange(0, self.xmax, self.dx)
         x_fit += self.dx / 2
