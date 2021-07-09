@@ -208,6 +208,15 @@ void ComputeSDF<Shape>::compute(uint64_t timestep)
     if (!shouldCompute(timestep))
         return;
 
+    // kludge to update the max diameter dynamically if it changes
+    Scalar max_diam = m_mc->getMaxCoreDiameter();
+    if (max_diam != m_last_max_diam)
+        {
+        m_last_max_diam = max_diam;
+        Scalar extra = m_xmax * max_diam;
+        m_mc->setExtraGhostWidth(extra);
+        }
+
     // update ghost layers
     m_mc->communicate(false);
 
@@ -220,18 +229,6 @@ template<class Shape>
 void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
     {
     zeroHistogram();
-
-    // kludge to update the max diameter dynamically if it changes
-    Scalar max_diam = m_mc->getMaxCoreDiameter();
-    if (max_diam != m_last_max_diam)
-        {
-        m_last_max_diam = max_diam;
-        Scalar extra = m_xmax * max_diam;
-        m_mc->setExtraGhostWidth(extra);
-
-        // this forces an extra communication of ghosts, but only when the maximum diameter changes
-        m_mc->communicate(false);
-        }
 
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "SDF");
 
