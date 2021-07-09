@@ -101,11 +101,8 @@ class FreeVolume(Compute):
         """Free volume available to the test particle \
         :math:`[\\mathrm{length}^{2}]` in 2D and \
         :math:`[\\mathrm{length}^{3}]` in 3D."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.free_volume
-        else:
-            return None
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.free_volume
 
 
 class SDF(Compute):
