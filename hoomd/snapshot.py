@@ -115,7 +115,7 @@ class Snapshot:
                 Names of the particle types.
 
             particles.position ((*N*, 3) `numpy.ndarray` of ``numpy.float32``):
-                Particle position.
+                Particle position :math:`[\\mathrm{length}]`.
 
             particles.orientation ((*N*, 4) `numpy.ndarray` of \
                 ``numpy.float32``):
@@ -125,26 +125,28 @@ class Snapshot:
                 Particle type id.
 
             particles.mass ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
-                Particle mass.
+                Particle mass :math:`[\\mathrm{mass}]`.
 
             particles.charge ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
-                Particle charge.
+                Particle charge :math:`[\\mathrm{charge}]`.
 
             particles.diameter ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
-                Particle diameter.
+                Particle diameter :math:`[\\mathrm{length}]`.
 
             particles.body ((*N*, ) `numpy.ndarray` of ``numpy.int32``):
                 Particle body.
 
             particles.moment_inertia ((*N*, 3) `numpy.ndarray` of \
                 ``numpy.float32``):
-                Particle moment of inertia.
+                Particle moment of inertia :math:`[\\mathrm{mass} \\cdot
+                \\mathrm{length}^2]`.
 
             particles.velocity ((*N*, 3) `numpy.ndarray` of ``numpy.float32``):
-                Particle velocity.
+                Particle velocity :math:`[\\mathrm{velocity}]`.
 
             particles.angmom ((*N*, 4) `numpy.ndarray` of ``numpy.float32``):
-                Particle angular momentum.
+                Particle angular momentum :math:`[\\mathrm{mass} \\cdot
+                \\mathrm{velocity} \\cdot \\mathrm{length}]`.
 
             particles.image ((*N*, 3) `numpy.ndarray` of ``numpy.int32``):
                 Particle image.

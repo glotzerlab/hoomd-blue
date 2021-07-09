@@ -144,7 +144,7 @@ class Integrator(_DynamicIntegrator):
     """Enables a variety of standard integration methods.
 
     Args:
-        dt (float): Integrator time step size (in time units).
+        dt (float): Integrator time step size :math:`[\\mathrm{time}]`.
 
         methods (Sequence[hoomd.md.methods.Method]): Sequence of integration
             methods. Each integration method can be applied to only a specific
@@ -206,7 +206,7 @@ class Integrator(_DynamicIntegrator):
 
 
     Attributes:
-        dt (float): Integrator time step size (in time units).
+        dt (float): Integrator time step size :math:`[\\mathrm{time}]`.
 
         methods (List[hoomd.md.methods.Method]): List of integration methods.
             Each integration method can be applied to only a specific subset of
