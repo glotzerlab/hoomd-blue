@@ -9,6 +9,7 @@ hpmc.compute
     :nosignatures:
 
     FreeVolume
+    SDF
 
 .. rubric:: Details
 

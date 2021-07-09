@@ -110,8 +110,8 @@ class SDF(Compute):
 
     Args:
         xmax (float): Maximum *x* value at the right hand side of the rightmost
-          bin (distance units).
-        dx (float): Bin width (distance units).
+            bin :math:`[\mathrm{length}]`.
+        dx (float): Bin width :math:`[\mathrm{length}]`.
 
     `SDF` computes a distribution function of scale parameters
     :math:`x`. For each particle, it finds the smallest scale factor :math:`1+x`
@@ -120,45 +120,35 @@ class SDF(Compute):
     s[i]` where :math:`x_i = i \cdot dx + dx/2`.
 
     In an NVT simulation, the extrapolation of :math:`s(x)` to :math:`x = 0`,
-    :math:`s(0+)` is related to the pressure.
+    :math:`s(0+)` is related to the pressure
 
     .. math::
-        \frac{P}{kT} = \rho \left(1 + \frac{s(0+)}{2d} \right)
+        \beta P = \rho \left(1 + \frac{s(0+)}{2d} \right)
 
-    where :math:`d` is the dimensionality of the system and :math:`\rho` is the
-    number density.
+    where :math:`d` is the dimensionality of the system, :math:`\rho` is the
+    number density, and :math:`\beta = \frac{1}{kT}`.
 
-    Suggested parameters for most systems (assuming particle diameters are ~1):
+    Assuming particle diameters are ~1, these paramater values typically
+    achieve good results:
 
-      * *xmax* = 0.02
-      * *dx* = 1e-4
+      * ``xmax = 0.02``
+      * ``dx = 1e-4``
 
     In systems near densest packings, ``dx=1e-5`` may be needed along with
-    either a smaller xmax or a smaller region to fit. A good rule of is to fit
-    a region where ``numpy.sum(s[0:n]*dx)`` ~ 0.5.
-
-    `betaP` performs the curve fit and computes :math:`\frac{P}{kT}` using a
-    polynomial curve fit of degree 5.
+    smaller ``xmax``. Check that :math:`\sum_i s(x_i) \cdot dx \approx 0.5`.
 
     Warning:
         `SDF` does not compute correct pressures for simulations with
         concave particles or enthalpic interactions.
 
     Note:
-
         `SDF` runs on the CPU even in GPU simulations.
-
-    Examples::
-
-        sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
-
 
     Attributes:
         xmax (float): Maximum *x* value at the right hand side of the rightmost
-          bin.
+            bin :math:`[\mathrm{length}]`.
 
-        dx (float): Bin width.
-
+        dx (float): Bin width :math:`[\mathrm{length}]`.
     """
 
     def __init__(self, xmax, dx):
@@ -181,20 +171,26 @@ class SDF(Compute):
 
         super()._attach()
 
-    @log(requires_run=True)
+    @log(category='sequence', requires_run=True)
     def sdf(self):
-        """Scale distribution function."""
+        """Scale distribution function \
+        :math:`[\\mathrm{probability\\ density}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.sdf
 
     @log(requires_run=True)
-    def betaP(self):
-        r"""Pressure in NVT simulations.
+    def betaP(self):  # noqa: N802 - allow function name
+        """Beta times pressure in NVT simulations \
+        :math:`\\left[ \\mathrm{length}^{-d} \\right]`.
 
-        Use a polynomial curve fit to estimate :math:`\frac{s(0+)}{2d}` and
-        compute the pressure via:
+        Use a polynomial curve fit of degree 5 to estimate
+        :math:`s(0+)` and compute the pressure via:
+
         .. math::
-            \frac{P}{kT} = \rho \left(1 + \frac{s(0+)}{2d} \right)
+            \\beta P = \\rho \\left(1 + \\frac{s(0+)}{2d} \\right)
+
+        where :math:`d` is the dimensionality of the system, :math:`\\rho` is
+        the number density, and :math:`\\beta = \\frac{1}{kT}`.
         """
         # get the values to fit
         n_fit = int(numpy.ceil(self.xmax / self.dx))
