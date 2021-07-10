@@ -152,6 +152,28 @@ class Simulation(metaclass=Loggable):
             self.device._cpp_msg.warning(
                 "Simulation.seed is not set, using default seed=0\n")
 
+    def create_state_from_getar(self, filename):
+        """Create the simulation state from a getar file.
+
+        Args:
+            filename (str): name of getar file to read
+
+            frame (int): Index of the frame to read from the file. Negative
+                values index back from the last frame in the file.
+        """
+        if self.state is not None:
+            raise RuntimeError("Cannot initialize more than once\n")
+        filename = _hoomd.mpi_bcast_str(filename, self.device._cpp_exec_conf)
+        # Grab snapshot and timestep
+        reader = _hoomd.GetarInitializer(self.device._cpp_exec_conf, filename)
+        snapshot = Snapshot._from_cpp_snapshot(
+            reader.initialize({('any',): 'any'}), self.device.communicator)
+
+        step = reader.getTimestep() if self.timestep is None else self.timestep
+        self._state = State(self, snapshot)
+
+        self._init_system(step)
+
     def create_state_from_gsd(self, filename, frame=-1):
         """Create the simulation state from a GSD file.
 

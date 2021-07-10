@@ -2,6 +2,7 @@ set(files __init__.py
           custom_writer.py
           table.py
           gsd.py
+          gtar.py
           dcd.py
           )
 

@@ -291,11 +291,12 @@ const bool& NeedSnapshots::operator[](NeedSnapshotIdx index) const
 
 GetarDumpWriter::GetarDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                                  const std::string& filename,
+                                 std::shared_ptr<ParticleGroup> group,
                                  GetarDumpMode operationMode,
                                  unsigned int offset)
     : Analyzer(sysdef), m_archive(), m_periods(), m_offset(offset), m_staticRecords(),
-      m_operationMode(operationMode), m_filename(filename), m_tempName(), m_systemSnap(),
-      m_neededSnapshots()
+      m_operationMode(operationMode), m_filename(filename), m_group(group), m_tempName(),
+      m_systemSnap(), m_neededSnapshots()
     {
     if (m_operationMode == getardump::OneShot)
         {
@@ -871,6 +872,11 @@ void GetarDumpWriter::writeText(GTAR::BulkWriter& writer,
         m_exec_conf->msg->error() << msg << endl;
         throw runtime_error(msg);
         }
+    }
+
+std::shared_ptr<ParticleGroup> getGroup()
+    {
+    return m_group;
     }
 
 unsigned int GetarDumpWriter::getPeriod() const
