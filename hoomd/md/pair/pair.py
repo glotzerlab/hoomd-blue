@@ -1176,7 +1176,7 @@ class ExpandedMie(Pair):
         V_{\\mathrm{mie}}(r)
           = & \\left( \\frac{n}{n-m} \\right) {\\left( \\frac{n}{m}
           \\right)}^{\\frac{m}{n-m}} \\varepsilon \\left[ \\left(
-          \\frac{\\sigma}{r-\Delta} \\right)^{n} - 
+          \\frac{\\sigma}{r-\Delta} \\right)^{n} -
           \\left( \\frac{\\sigma}{r-\Delta}
           \\right)^{m} \\right] & r < r_{\\mathrm{cut}} \\\\
           = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
