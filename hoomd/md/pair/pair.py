@@ -1197,7 +1197,7 @@ class ExpandedMie(Pair):
           * ``m`` (`float`, **required**) -
             :math:`m` :math:`[\\mathrm{dimensionless}]`.
           * ``delta`` (`float`, **required**) -
-            :math:`\\delta :math:`[\\mathrm{length}]`.
+            :math:`\\Delta :math:`[\\mathrm{length}]`.
 
         Type: `TypeParameter` [ `tuple` [``particle_type``, ``particle_type``],
         `dict`]
