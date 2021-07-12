@@ -9,8 +9,10 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 #include <pybind11/pybind11.h>

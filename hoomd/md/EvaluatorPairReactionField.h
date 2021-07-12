@@ -21,8 +21,10 @@
 // compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 //! Class for evaluating the Onsager reaction field pair potential
