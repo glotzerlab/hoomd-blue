@@ -459,7 +459,7 @@ struct PairForceComputeKernel
                 unsigned int available_bytes = max_extra_bytes;
                 for (unsigned int i = 0; i < typpair_idx.getNumElements(); ++i)
                     {
-                    d_params[i].load_shared(ptr, available_bytes);
+                    d_params[i].allocate_shared(ptr, available_bytes);
                     }
                 extra_bytes = max_extra_bytes - available_bytes;
                 }
