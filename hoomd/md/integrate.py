@@ -172,8 +172,11 @@ class Integrator(_DynamicIntegrator):
     The following classes can be used as elements in `methods`
 
     - `hoomd.md.methods.Brownian`
+    - `hoomd.md.methods.BrownianRattle`
     - `hoomd.md.methods.Langevin`
+    - `hoomd.md.methods.LangevinRattle`
     - `hoomd.md.methods.NVE`
+    - `hoomd.md.methods.NVERattle`
     - `hoomd.md.methods.NVT`
     - `hoomd.md.methods.NPT`
 
@@ -193,6 +196,7 @@ class Integrator(_DynamicIntegrator):
     The classes of the following module can be used as elements in `constraints`
 
     - `hoomd.md.constrain`
+
 
     Examples::
 
