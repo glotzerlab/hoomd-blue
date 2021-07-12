@@ -51,7 +51,6 @@ class EvaluatorPairTable
             ManagedArray<Scalar> V_table; //!< the tabulated energy
             ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
 
-            DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const { }
             #ifdef ENABLE_HIP
             //! Set CUDA memory hints
             void set_memory_hint() const
@@ -200,6 +199,12 @@ class EvaluatorPairTable
             {
             V_table.load_shared(ptr, available_bytes);
             F_table.load_shared(ptr, available_bytes);
+            }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
+            {
+            V_table.allocate_shared(ptr, available_bytes);
+            F_table.allocate_shared(ptr, available_bytes);
             }
 
         #ifdef ENABLE_HIP

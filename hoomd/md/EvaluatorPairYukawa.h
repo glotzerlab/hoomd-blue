@@ -54,6 +54,8 @@ class EvaluatorPairYukawa
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
 
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {}
+
 #ifdef ENABLE_HIP
         // set CUDA memory hints
         void set_memory_hint() const
