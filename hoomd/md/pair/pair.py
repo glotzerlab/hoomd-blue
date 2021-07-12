@@ -1189,16 +1189,16 @@ class ExpandedMie(Pair):
 
         The potential parameters. The dictionary has the following keys:
 
-          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+          * ``epsilon`` (`float`, **required**) - :math:`\\varepsilon`
             :math:`[\\mathrm{energy}]`
-          * ``sigma`` (`float`, **required**) - :math:`\sigma`
+          * ``sigma`` (`float`, **required**) - :math:`\\sigma`
             :math:`[\\mathrm{length}]`.
           * ``n`` (`float`, **required**) -
             :math:`n` :math:`[\\mathrm{dimensionless}]`.
           * ``m`` (`float`, **required**) -
             :math:`m` :math:`[\\mathrm{dimensionless}]`.
           * ``delta`` (`float`, **required**) -
-            :math:`\Delta` :math:`[\\mathrm{length}]`.
+            :math:`\\Delta` :math:`[\\mathrm{length}]`.
 
         Type: `TypeParameter` [ `tuple` [``particle_type``, ``particle_type``],
         `dict`]
