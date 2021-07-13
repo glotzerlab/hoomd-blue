@@ -1056,50 +1056,16 @@ class LangevinRattle(MethodRATTLE):
 
     .. rubric:: Translational degrees of freedom
 
-    `LangevinRattle` integrates particles forward in time according to the
-    Langevin equations of motion:
+    `LangevinRattle` uses the same integrator as `Langevin`, which follows the
+    Langevin equations of motion with the additional force term
+    :math:`- \lambda \vec{F}_\mathrm{M}`. The force :math:`\vec{F}_\mathrm{M}`
+    keeps the particles on the manifold constraint, where the Lagrange
+    multiplier :math:`\lambda` is calculated via the RATTLE algorithm. For
+    more details about Langevin dynamics see `Langevin`.
 
-    .. math::
-
-        m \frac{d\vec{v}}{dt} = \vec{F}_\mathrm{C} - \gamma \cdot \vec{v} +
-        \vec{F}_\mathrm{R} + \lambda\vec{F}_\mathrm{M}
-
-        \langle \vec{F}_\mathrm{R} \rangle = 0
-
-        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d kT \gamma / \delta t
-
-    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
-    potentials and constraint forces, :math:`\gamma` is the drag coefficient,
-    :math:`\vec{v}` is the particle's velocity, :math:`\vec{F}_\mathrm{R}` is a
-    uniform random force, :math:`\vec{F}_\mathrm{M}` is the manifold constraint
-    calculated via the RATTLE algorithm, and :math:`d` is the dimensionality of
-    the system (2 or 3).  The magnitude of the random force is chosen via the
-    fluctuation-dissipation theorem to be consistent with the specified drag and
-    temperature, :math:`T`.  When :math:`kT=0`, the random force
-    :math:`\vec{F}_\mathrm{R}=0`.
-
-    Langevin dynamics includes the acceleration term in the Langevin equation
-    and is useful for gently thermalizing systems using a small gamma. This
-    assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
     Use `BrownianRattle` if your system is not underdamped.
 
-    `LangevinRattle` uses the same integrator as `LangevinRattle` with the
-    additional force term :math:`+ \lambda \vec{F}_\mathrm{M}` that keeps the
-    particles on the manifold constraint.
-
-    You can specify :math:`\gamma` in two ways:
-
-    1. Specify :math:`\alpha` which scales the particle diameter to
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are
-       mass / distance / time.
-    2. After the method object is created, specify the
-       attribute ``gamma`` and ``gamma_r`` for rotational damping or random
-       torque to assign them directly, with independent values for each
-       particle type in the system.
-
-    Warning:
-        When restarting a simulation, the energy of the reservoir will be reset
-        to zero.
+    Examples::
 
         sphere = hoomd.md.manifold.Sphere(r=10)
         langevin_rattle = hoomd.md.methods.LangevinRattle(
@@ -1395,62 +1361,12 @@ class BrownianRattle(MethodRATTLE):
             to deviate from the manifold in terms of the implicit function.
             This is only used if RATTLE algorithm is triggered. Defaults to 1e-6
 
-    `BrownianRattle` integrates particles forward in time according to the
-    overdamped Langevin equations of motion, sometimes called Brownian dynamics,
-    or the diffusive limit.
-
-    .. math::
-
-        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} +
-        \vec{F}_\mathrm{R} + \lambda\vec{F}_\mathrm{M}}{\gamma}
-
-        \langle \vec{F}_\mathrm{R} \rangle = 0
-
-        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d k T \gamma / \delta t
-
-        \langle \vec{v}(t) \rangle = 0
-
-        \langle |\vec{v}(t)|^2 \rangle = d k T / m
-
-
-    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
-    potentials and constraint forces, :math:`\gamma` is the drag coefficient,
-    :math:`\vec{F}_\mathrm{R}` is a uniform random force,
-    :math:`\vec{F}_\mathrm{M}` is the manifold constraint calculated via the
-    RATTLE algorithm, :math:`\vec{v}` is the particle's velocity, and
-    :math:`d` is the dimensionality of the system. The magnitude of the random
-    force is chosen via the fluctuation-dissipation theorem to be consistent
-    with the specified drag and temperature, :math:`T`. When :math:`kT=0`,
-    the random force :math:`\vec{F}_\mathrm{R}=0`.
-
-    `BrownianRattle` uses the integrator from I. Snook, The Langevin and
-    Generalised Langevin Approach to the Dynamics of Atomic, Polymeric and
-    Colloidal Systems, 2007, section 6.2.5 `link`_, with the exception that
-    :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
-    distribution.
-
-    .. _link: http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6
-
-    In Brownian dynamics, particle velocities are completely decoupled from
-    positions. At each time step, `BrownianRattle` draws a new velocity
-    distribution consistent with the current set temperature so that
-    `hoomd.compute.thermo` will report appropriate temperatures and
-    pressures if logged or needed by other commands.
-
-    Brownian dynamics neglects the acceleration term in the Langevin equation.
-    This assumption is valid when overdamped:
-    :math:`\frac{m}{\gamma} \ll \delta t`. Use `Langevin` if your
-    system is not overdamped.
-
-    You can specify :math:`\gamma` in two ways:
-
-    1. Specify :math:`\alpha` which scales the particle diameter to
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are mass /
-       distance / time.
-    2. After the method object is created, specify the attribute ``gamma``
-       and ``gamma_r`` for rotational damping or random torque to assign them
-       directly, with independent values for each particle type in the
-       system.
+    `BrownianRattle` uses the same integrator as `Brownian`, which follows the
+    overdamped Langevin equations of motion with the additional force term
+    :math:`- \lambda \vec{F}_\mathrm{M}`. The force :math:`\vec{F}_\mathrm{M}`
+    keeps the particles on the manifold constraint, where the Lagrange
+    multiplier :math:`\lambda` is calculated via the RATTLE algorithm. For
+    more details about Brownian dynamics see `Brownian`.
 
     Examples of using ``manifold_constraint``::
 
