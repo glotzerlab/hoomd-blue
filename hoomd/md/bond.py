@@ -424,10 +424,10 @@ class Tether(Bond):
             * ``l_min`` (`float`, **required**) - minimum bond length
               :math:`[\mathrm{length}]`
 
-            * ``l_c0`` (`float`, **required**) - lower cutoff distance
+            * ``l_c0`` (`float`, **required**) - cutoff distance of attractive part
               :math:`[\mathrm{length}]`
 
-            * ``l_c1`` (`float`, **required**) - higher cutoff distance
+            * ``l_c1`` (`float`, **required**) - cutoff distance of repulsive part
               :math:`[\mathrm{length}]`
 
             * ``l_max`` (`float`, **required**) - maximum bond length
