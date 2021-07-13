@@ -12,6 +12,7 @@
 
 #include "EvaluatorBondFENE.h"
 #include "EvaluatorBondHarmonic.h"
+#include "EvaluatorBondTether.h"
 #include "PotentialBondGPU.cuh"
 
 //! Compute harmonic bond forces on the GPU with BondEvaluatorHarmonic

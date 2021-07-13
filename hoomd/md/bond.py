@@ -381,3 +381,73 @@ class table(force._force):  # noqa - Will be renamed when updated for v3
                             rmin=rmin_table,
                             rmax=rmax_table,
                             coeff=dict(V=V_table, F=F_table, width=self.width))
+
+
+class Tether(Bond):
+    r"""Tethering bond potential.
+
+    :py:class:`Tether` specifies a Tethering potential energy between the two particles
+    in each defined bond.
+
+    .. math::
+        V(r) = V_{\mathrm{att}}(r) + V_{\mathrm{rep}}(r)
+
+        V_{\mathrm{att}}(r) = - \frac{1}{2} k r_0^2 \ln \left( 1 - \left( \frac{r -
+               \Delta}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)
+
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{att}}(r)  = & k_b \frac{exp(1/(l_{c0}-r)}{l_max}-r}
+                               & r > l_{c0}\\
+                             = & 0
+                               & r-\Delta \leq l_{c0}
+        \end{eqnarray*}
+
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{rep}}(r)  = & k_b \frac{exp(1/(r-l_{c1})}{r-l_min}}
+                               & r < l_{c1}\\
+                             = & 0
+                               & r \ge l_{c1}
+        \end{eqnarray*}
+
+    Attributes:
+        params (TypeParameter[``bond type``, dict]):
+            The parameter of the Tethering potential bonds.
+            The dictionary has the following keys:
+
+            * ``k_b`` (`float`, **required**) - bond stiffness
+              :math:`[\mathrm{energy}]`
+
+            * ``l_min`` (`float`, **required**) - minimum bond length
+              :math:`[\mathrm{length}]`
+
+            * ``l_c0`` (`float`, **required**) - lower cutoff distance
+              :math:`[\mathrm{length}]`
+
+            * ``l_c1`` (`float`, **required**) - higher cutoff distance
+              :math:`[\mathrm{length}]`
+
+            * ``l_max`` (`float`, **required**) - maximum bond length
+              :math:`[\mathrm{length}]`
+
+    Examples::
+
+        bond_potential = bond.Tether()
+        bond_potential.params['tether'] = dict(k_b=10.0, l_min=0.9, l_c0=1.2,
+                                               l_c1=1.8, l_max=2.1)
+    """
+    _cpp_class_name = "PotentialBondTether"
+
+    def __init__(self):
+        params = TypeParameter(
+            "params", "bond_types",
+            TypeParameterDict(k_b=float,
+                              l_min=float,
+                              l_c0=float,
+                              l_c1=float,
+                              l_max=float,
+                              len_keys=1))
+        self._add_typeparam(params)
