@@ -41,7 +41,7 @@ struct tether_params
         l_c1 = 1.8;
         l_max= 2.1;
         }
-    
+
     tether_params(Scalar k_b, Scalar l_min, Scalar l_c0, Scalar l_c1, Scalar l_max) : k_b(k_b), l_min(l_min), l_c0(l_c0), l_c1(l_c1), l_max(l_max)
         {
         }
@@ -99,7 +99,7 @@ class EvaluatorBondTether
 
     //! Accept the optional diameter values
     /*! \param da Diameter of particle a
-        \param db Diameter of particle 
+        \param db Diameter of particle
     */
     DEVICE void setDiameter(Scalar da, Scalar db) { }
 
@@ -144,20 +144,20 @@ class EvaluatorBondTether
         if (r < l_c1)
             {
             U_rep = k_b *  (exp(Scalar(1.0) / (r - l_c1)) / (r - l_min));
-            F_rep = k_b * (((l_min - r) * exp(Scalar(1.0) / (r - l_c1)) / (r - l_c1) / (r - l_c1) - exp(Scalar(1.0) / (r - l_c1))) / (r - l_min) / (r - l_min)); 
+            F_rep = k_b * (((l_min - r) * exp(Scalar(1.0) / (r - l_c1)) / (r - l_c1) / (r - l_c1) - exp(Scalar(1.0) / (r - l_c1))) / (r - l_min) / (r - l_min));
             }
         else
             {
             U_rep = 0.0;
             F_rep = 0.0;
             }
-        
+
         if (k_b != Scalar(0.0))
             {
             force_divr = (F_att + F_rep)/r;
             bond_eng = U_att + U_rep;
             }
-        
+
         return true;
         }
 

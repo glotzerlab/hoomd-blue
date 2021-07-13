@@ -370,7 +370,7 @@ PYBIND11_MODULE(_md, m)
         "PotentialBondHarmonicGPU");
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>(m, "PotentialBondFENEGPU");
     export_PotentialBondGPU<PotentialBondTetherGPU, PotentialBondTether>(
-        m, 
+        m,
         "PotentialBondTetherGPU");
     export_PotentialSpecialPairGPU<PotentialSpecialPairLJGPU, PotentialSpecialPairLJ>(
         m,
