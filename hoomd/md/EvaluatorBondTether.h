@@ -39,10 +39,11 @@ struct tether_params
         l_min = 0.9;
         l_c0 = 1.2;
         l_c1 = 1.8;
-        l_max= 2.1;
+        l_max = 2.1;
         }
 
-    tether_params(Scalar k_b, Scalar l_min, Scalar l_c0, Scalar l_c1, Scalar l_max) : k_b(k_b), l_min(l_min), l_c0(l_c0), l_c1(l_c1), l_max(l_max)
+    tether_params(Scalar k_b, Scalar l_min, Scalar l_c0, Scalar l_c1, Scalar l_max)
+        : k_b(k_b), l_min(l_min), l_c0(l_c0), l_c1(l_c1), l_max(l_max)
         {
         }
 
@@ -87,7 +88,8 @@ class EvaluatorBondTether
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorBondTether(Scalar _rsq, const param_type& _params)
-        : rsq(_rsq), k_b(_params.k_b), l_min(_params.l_min), l_c0(_params.l_c0), l_c1(_params.l_c1), l_max(_params.l_max)
+        : rsq(_rsq), k_b(_params.k_b), l_min(_params.l_min), l_c0(_params.l_c0), l_c1(_params.l_c1),
+          l_max(_params.l_max)
         {
         }
 
@@ -133,7 +135,10 @@ class EvaluatorBondTether
         if (r > l_c0)
             {
             U_att = k_b * (exp(Scalar(1.0) / (l_c0 - r)) / (l_max - r));
-            F_att = k_b * (((l_max - r) * exp(Scalar(1.0) / (l_c0 - r)) / (l_c0 - r) / (l_c0 - r) + exp(Scalar(1.0) / (l_c0 - r))) / (l_max - r) / (l_max - r));
+            F_att = k_b 
+                    * (((l_max - r) * exp(Scalar(1.0) / (l_c0 - r)) / (l_c0 - r) / (l_c0 - r) 
+                        + exp(Scalar(1.0) / (l_c0 - r))) 
+                        / (l_max - r) / (l_max - r));
             }
         else
             {
@@ -143,8 +148,11 @@ class EvaluatorBondTether
 
         if (r < l_c1)
             {
-            U_rep = k_b *  (exp(Scalar(1.0) / (r - l_c1)) / (r - l_min));
-            F_rep = k_b * (((l_min - r) * exp(Scalar(1.0) / (r - l_c1)) / (r - l_c1) / (r - l_c1) - exp(Scalar(1.0) / (r - l_c1))) / (r - l_min) / (r - l_min));
+            U_rep = k_b * (exp(Scalar(1.0) / (r - l_c1)) / (r - l_min));
+            F_rep = k_b 
+                    * (((l_min - r) * exp(Scalar(1.0) / (r - l_c1)) / (r - l_c1) / (r - l_c1) 
+                        - exp(Scalar(1.0) / (r - l_c1))) 
+                        / (r - l_min) / (r - l_min));
             }
         else
             {
@@ -154,7 +162,7 @@ class EvaluatorBondTether
 
         if (k_b != Scalar(0.0))
             {
-            force_divr = (F_att + F_rep)/r;
+            force_divr = (F_att + F_rep) / r;
             bond_eng = U_att + U_rep;
             }
 
