@@ -95,11 +95,10 @@ class FreeVolume(Compute):
 
         super()._attach()
 
-    @log
+    @log(requires_run=True)
     def free_volume(self):
-        """Free volume available to the test particle."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.free_volume
-        else:
-            return None
+        """Free volume available to the test particle \
+        :math:`[\\mathrm{length}^{2}]` in 2D and \
+        :math:`[\\mathrm{length}^{3}]` in 3D."""
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.free_volume

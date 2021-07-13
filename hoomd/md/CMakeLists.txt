@@ -7,7 +7,6 @@ set(_md_sources module-md.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
                    CosineSqAngleForceCompute.cc
-                   Enforce2DUpdater.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
@@ -33,7 +32,6 @@ set(_md_sources module-md.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TablePotential.cc
-                   TempRescaleUpdater.cc
                    TwoStepBD.cc
                    TwoStepBerendsen.cc
                    TwoStepLangevinBase.cc
@@ -72,8 +70,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMATypes.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
-                Enforce2DUpdaterGPU.h
-                Enforce2DUpdater.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
                 EvaluatorSpecialPairLJ.h
@@ -161,7 +157,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 TableDihedralForceCompute.h
                 TablePotentialGPU.h
                 TablePotential.h
-                TempRescaleUpdater.h
                 TwoStepBDGPU.h
                 TwoStepRATTLEBDGPU.h
                 TwoStepRATTLEBDGPU.cuh
@@ -194,7 +189,6 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            CommunicatorGridGPU.cc
                            ComputeThermoGPU.cc
                            ComputeThermoHMAGPU.cc
-                           Enforce2DUpdaterGPU.cc
                            FIREEnergyMinimizerGPU.cc
                            ForceCompositeGPU.cc
                            ForceDistanceConstraintGPU.cc
@@ -251,7 +245,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       BondTablePotentialGPU.cu
                       CommunicatorGridGPU.cu
                       DriverTersoffGPU.cu
-                      Enforce2DUpdaterGPU.cu
                       FIREEnergyMinimizerGPU.cu
                       ForceCompositeGPU.cu
                       ForceDistanceConstraintGPU.cu
@@ -336,7 +329,6 @@ set(files __init__.py
           compute.py
           constrain.py
           dihedral.py
-          external.py
           force.py
           improper.py
           integrate.py
@@ -361,6 +353,7 @@ install(FILES ${_md_headers}
        )
 
 add_subdirectory(pair)
+add_subdirectory(external)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

@@ -7,8 +7,9 @@
 from copy import deepcopy
 from enum import Flag, auto
 from itertools import count
-from functools import reduce
+from functools import reduce, wraps
 from hoomd.util import dict_map, _SafeNamespaceDict
+from hoomd.error import DataAccessError
 from collections.abc import Sequence
 
 
@@ -355,7 +356,12 @@ class Loggable(type):
             getattr(new_cls, attr).__doc__ += str_msg.format(' ' * indent)
 
 
-def log(func=None, *, is_property=True, category='scalar', default=True):
+def log(func=None,
+        *,
+        is_property=True,
+        category='scalar',
+        default=True,
+        requires_run=False):
     """Creates loggable quantities for classes of type Loggable.
 
     For users this should be used with `hoomd.custom.Action` for exposing
@@ -377,6 +383,8 @@ def log(func=None, *, is_property=True, category='scalar', default=True):
             quantities even when logging other quantities of that type. The
             default category allows for these to be pass over by
             `hoomd.logging.Logger` objects by default. Argument keyword only.
+        requires_run (`bool`, optional): Whether this property requires
+            the simulation to run before being accessible.
 
     Note:
         The namespace (where the loggable object is stored in the
@@ -396,6 +404,19 @@ def log(func=None, *, is_property=True, category='scalar', default=True):
                 "Multiple loggable quantities named {}.".format(name))
         Loggable._meta_export_dict[name] = _LoggableEntry(
             LoggerCategories[category], default)
+        if requires_run:
+
+            def wrap_with_exception(func):
+
+                @wraps(func)
+                def wrapped_func(self, *args, **kwargs):
+                    if not self._attached:
+                        raise DataAccessError(name)
+                    return func(self, *args, **kwargs)
+
+                return wrapped_func
+
+            func = wrap_with_exception(func)
         if is_property:
             return property(func)
         else:
@@ -464,7 +485,11 @@ class _LoggerEntry:
         return cls(entry[0], method, category)
 
     def __call__(self):
-        attr = getattr(self.obj, self.attr)
+        try:
+            attr = getattr(self.obj, self.attr)
+        except DataAccessError:
+            attr = None
+
         if self.category is LoggerCategories.state:
             return attr
         if callable(attr):

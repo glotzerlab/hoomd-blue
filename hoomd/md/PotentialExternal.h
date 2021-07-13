@@ -7,6 +7,7 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/GlobalArray.h"
 #include <memory>
+#include <stdexcept>
 
 /*! \file PotentialExternal.h
     \brief Declares a class for computing an external force field
@@ -36,7 +37,18 @@ template<class evaluator> class PotentialExternal : public ForceCompute
     typedef typename evaluator::field_type field_type;
 
     //! Sets parameters of the evaluator
-    void setParams(unsigned int type, param_type params);
+    pybind11::object getParams(std::string type);
+
+    //! set the potential parameters via cpp arguments
+    void setParams(unsigned int type, const param_type& params);
+
+    //! set the potential parameters via python arguments
+    void setParamsPython(std::string typ, pybind11::object params);
+
+    //! make sure the type index is within range
+    void validateType(unsigned int type, std::string action);
+
+    //! set the field type of the evaluator
     void setField(field_type field);
 
     protected:
@@ -176,23 +188,41 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
         m_prof->pop();
     }
 
+template<class evaluator>
+void PotentialExternal<evaluator>::validateType(unsigned int type, std::string action)
+    {
+    if (type >= m_pdata->getNTypes())
+        {
+        throw std::runtime_error("Invalid type encountered when " + action);
+        }
+    }
+
 //! Set the parameters for this potential
 /*! \param type type for which to set parameters
     \param params value of parameters
 */
 template<class evaluator>
-void PotentialExternal<evaluator>::setParams(unsigned int type, param_type params)
+void PotentialExternal<evaluator>::setParams(unsigned int type, const param_type& params)
     {
-    if (type >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "external.periodic: Trying to set external potential "
-                                           "params for a non existent type! "
-                                        << type << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialExternal");
-        }
-
+    validateType(type, std::string("setting parameters in PotentialExternal"));
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[type] = params;
+    }
+
+template<class evaluator> pybind11::object PotentialExternal<evaluator>::getParams(std::string type)
+    {
+    auto typ = m_pdata->getTypeByName(type);
+    validateType(typ, std::string("getting parameters in PotentialExternal"));
+
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+    return h_params.data[typ].toPython();
+    }
+
+template<class evaluator>
+void PotentialExternal<evaluator>::setParamsPython(std::string typ, pybind11::object params)
+    {
+    unsigned int type_idx = m_pdata->getTypeByName(typ);
+    setParams(type_idx, param_type(params));
     }
 
 template<class evaluator> void PotentialExternal<evaluator>::setField(field_type field)
@@ -209,7 +239,8 @@ template<class T> void export_PotentialExternal(pybind11::module& m, const std::
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParams", &T::setParams)
+        .def("setParams", &T::setParamsPython)
+        .def("getParams", &T::getParams)
         .def("setField", &T::setField);
     }
 

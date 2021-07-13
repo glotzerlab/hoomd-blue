@@ -60,7 +60,7 @@ class LJ(SpecialPair):
         \begin{eqnarray*}
         V_{\mathrm{LJ}}(r)  = & 4 \varepsilon
             \left[ \left( \frac{\sigma}{r} \right)^{12} -
-            \alpha \left( \frac{\sigma}{r} \right)^{6} \right]
+                   \left( \frac{\sigma}{r} \right)^{6} \right]
                               & r < r_{\mathrm{cut}} \\
                             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
@@ -74,13 +74,14 @@ class LJ(SpecialPair):
             The dictionary has the following keys:
 
             * ``epsilon`` (`float`, **required**) - energy parameter
-              (in energy unit)
+              :math:`[\mathrm{energy}]`
 
             * ``sigma`` (`float`, **required**) - particle size
-              (in distance unit)
+              :math:`[\mathrm{length}]`
 
         r_cut (TypeParameter[``special pair type``, float]):
-            The cut-off distance for special pair potential (in distance unit)
+            The cut-off distance for special pair potential
+            :math:`[\mathrm{length}]`
 
     Examples::
 
@@ -135,10 +136,11 @@ class Coulomb(SpecialPair):
             The dictionary has the following keys:
 
             * ``alpha`` (`float`, **required**) - Coulomb scaling factor
-              (in energy unit)
+              :math:`[\mathrm{energy}]`
 
         r_cut (TypeParameter[``special pair type``, float]):
-            The cut-off distance for special pair potential (in distance unit)
+            The cut-off distance for special pair potential
+            :math:`[\mathrm{length}]`
 
 
     Examples::
