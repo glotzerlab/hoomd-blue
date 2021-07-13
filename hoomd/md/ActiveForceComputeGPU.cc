@@ -26,7 +26,7 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
                                              std::shared_ptr<ParticleGroup> group,
                                              Scalar rotation_diff,
 					     Scalar deltaT)
-    : ActiveForceCompute(sysdef, group, rotation_diff, deltaT)(256)
+    : ActiveForceCompute(sysdef, group, rotation_diff, deltaT), m_block_size(256)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
