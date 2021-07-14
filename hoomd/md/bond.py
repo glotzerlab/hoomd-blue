@@ -390,24 +390,29 @@ class Tether(Bond):
     particles in each defined bond.
 
     .. math::
+
         V(r) = V_{\mathrm{att}}(r) + V_{\mathrm{rep}}(r)
 
+    where :math:`\vec{r}` is the vector pointing from one particle to the other
+    in the bond.
+
+    .. math::
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{att}}(r)  = & k_b \frac{exp(1/(l_{c0}-r)}{l_max}-r}
-                               & r > l_{c0}\\
-                             = & 0
-                               & r-\Delta \leq l_{c0}
+        V_{\mathrm{att}}(r)  = & k_b \frac{exp(1/(l_{c0}-r)}{l_{max}-r}
+                                & r > l_{c0}\\
+                                = & 0
+                                & r \leq l_{c0}
         \end{eqnarray*}
 
-        :nowrap:
+    .. math::
 
         \begin{eqnarray*}
-        V_{\mathrm{rep}}(r)  = & k_b \frac{exp(1/(r-l_{c1})}{r-l_min}}
-                               & r < l_{c1}\\
-                             = & 0
-                               & r \ge l_{c1}
+        V_{\mathrm{rep}}(r)  = & k_b \frac{exp(1/(r-l_{c1})}{r-l_{min}}
+                                & r < l_{c1}\\
+                                = & 0
+                                & r \ge l_{c1}
         \end{eqnarray*}
 
     Attributes:
