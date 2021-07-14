@@ -52,7 +52,7 @@ class SyncedList(MutableSequence):
         is mostly for developers of HOOMD-blue. The class is documentated to
         highlight the object's API which is that of a `MutableSequence`.
 
-    This class ensures that standard list operations affect both
+    This class ensures that standard list methods affect both
     Python and C++.
 
     Args:
