@@ -138,7 +138,7 @@ class EvaluatorBondTether
             F_att = k_b
                     * (((l_max - r) * exp(Scalar(1.0) / (l_c0 - r)) / (l_c0 - r) / (l_c0 - r)
                         + exp(Scalar(1.0) / (l_c0 - r)))
-                        / (l_max - r) / (l_max - r));
+                       / (l_max - r) / (l_max - r));
             }
         else
             {
@@ -152,7 +152,7 @@ class EvaluatorBondTether
             F_rep = k_b
                     * (((l_min - r) * exp(Scalar(1.0) / (r - l_c1)) / (r - l_c1) / (r - l_c1)
                         - exp(Scalar(1.0) / (r - l_c1)))
-                        / (r - l_min) / (r - l_min));
+                       / (r - l_min) / (r - l_min));
             }
         else
             {
