@@ -386,7 +386,7 @@ class table(force._force):  # noqa - Will be renamed when updated for v3
 class Tether(Bond):
     r"""Tethering bond potential.
 
-    :py:class:`Tether` specifies a Tethering potential energy between two 
+    :py:class:`Tether` specifies a Tethering potential energy between two
     particles in each defined bond.
 
     .. math::
@@ -421,10 +421,10 @@ class Tether(Bond):
             * ``l_min`` (`float`, **required**) - minimum bond length
               :math:`[\mathrm{length}]`
 
-            * ``l_c0`` (`float`, **required**) - cutoff distance of attractive 
+            * ``l_c0`` (`float`, **required**) - cutoff distance of attractive
               part :math:`[\mathrm{length}]`
 
-            * ``l_c1`` (`float`, **required**) - cutoff distance of repulsive 
+            * ``l_c1`` (`float`, **required**) - cutoff distance of repulsive
               part :math:`[\mathrm{length}]`
 
             * ``l_max`` (`float`, **required**) - maximum bond length
