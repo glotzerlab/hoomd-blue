@@ -16,13 +16,13 @@ _FENE_arg_list = [(hoomd.md.bond.FENE, dict(zip(_FENE_args, val)))
                   for val in zip(*_FENE_args.values())]
 
 _Tether_args = {
-    'k_b':[5.0, 6.0, 7.0],
-    'l_min':[0.7, 0.8, 0.9],
-    'l_c0':[0.9, 1.0, 1.1],
-    'l_c1':[1.1, 1.2, 1.3], 
-    'l_max':[1.2, 1.3, 1.4]
+    'k_b': [5.0, 6.0, 7.0],
+    'l_min': [0.7, 0.8, 0.9],
+    'l_c0': [0.9, 1.0, 1.1],
+    'l_c1': [1.1, 1.2, 1.3],
+    'l_max': [1.2, 1.3, 1.4]
 }
-_Tether_arg_list = [(hoomd.md.bond.Tether, dict(zip(_Tether_args, val))) 
+_Tether_arg_list = [(hoomd.md.bond.Tether, dict(zip(_Tether_args, val)))
                     for val in zip(*_Tether_args.values())]
 
 
@@ -47,8 +47,9 @@ def get_bond_args_forces_and_energies():
              harmonic_forces[i], harmonic_energies[i]))
         FENE_args_and_vals.append((_FENE_arg_list[i][0], _FENE_arg_list[i][1],
                                    FENE_forces[i], FENE_energies[i]))
-        Tether_args_and_vals.append((_Tether_arg_list[i][0], _Tether_arg_list[i][1],
-                                     Tether_forces[i], Tether_energies[i]))
+        Tether_args_and_vals.append(
+            (_Tether_arg_list[i][0], _Tether_arg_list[i][1], Tether_forces[i],
+             Tether_energies[i]))
     return harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
 
 
