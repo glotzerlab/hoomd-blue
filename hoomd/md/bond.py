@@ -386,14 +386,11 @@ class table(force._force):  # noqa - Will be renamed when updated for v3
 class Tether(Bond):
     r"""Tethering bond potential.
 
-    :py:class:`Tether` specifies a Tethering potential energy between the two particles
-    in each defined bond.
+    :py:class:`Tether` specifies a Tethering potential energy between two 
+    particles in each defined bond.
 
     .. math::
         V(r) = V_{\mathrm{att}}(r) + V_{\mathrm{rep}}(r)
-
-        V_{\mathrm{att}}(r) = - \frac{1}{2} k r_0^2 \ln \left( 1 - \left( \frac{r -
-               \Delta}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)
 
         :nowrap:
 
@@ -424,11 +421,11 @@ class Tether(Bond):
             * ``l_min`` (`float`, **required**) - minimum bond length
               :math:`[\mathrm{length}]`
 
-            * ``l_c0`` (`float`, **required**) - cutoff distance of attractive part
-              :math:`[\mathrm{length}]`
+            * ``l_c0`` (`float`, **required**) - cutoff distance of attractive 
+              part :math:`[\mathrm{length}]`
 
-            * ``l_c1`` (`float`, **required**) - cutoff distance of repulsive part
-              :math:`[\mathrm{length}]`
+            * ``l_c1`` (`float`, **required**) - cutoff distance of repulsive 
+              part :math:`[\mathrm{length}]`
 
             * ``l_max`` (`float`, **required**) - maximum bond length
               :math:`[\mathrm{length}]`
