@@ -11,3 +11,4 @@ md.external
    :maxdepth: 3
 
    module-md-external-field
+   module-md-external-wall

@@ -21,7 +21,6 @@ from hoomd.md import manifold
 from hoomd.md import nlist
 from hoomd.md import pair
 from hoomd.md import update
-from hoomd.md import wall
 from hoomd.md import special_pair
 from hoomd.md import methods
 from hoomd.md import many_body

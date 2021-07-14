@@ -116,75 +116,6 @@ namespace py = pybind11;
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
-//! Helper function for converting python wall group structure to wall_type
-wall_type make_wall_field_params(py::object walls,
-                                 std::shared_ptr<const ExecutionConfiguration> m_exec_conf)
-    {
-    wall_type w;
-    py::list walls_spheres = walls.attr("spheres").cast<py::list>();
-    py::list walls_cylinders = walls.attr("cylinders").cast<py::list>();
-    py::list walls_planes = walls.attr("planes").cast<py::list>();
-    w.numSpheres = (unsigned int)py::len(walls_spheres);
-    w.numCylinders = (unsigned int)py::len(walls_cylinders);
-    w.numPlanes = (unsigned int)py::len(walls_planes);
-
-    if (w.numSpheres > MAX_N_SWALLS || w.numCylinders > MAX_N_CWALLS || w.numPlanes > MAX_N_PWALLS)
-        {
-        m_exec_conf->msg->error() << "A number of walls greater than the maximum number allowed "
-                                     "was specified in a wall force."
-                                  << std::endl;
-        throw std::runtime_error("Error loading wall group.");
-        }
-    else
-        {
-        for (unsigned int i = 0; i < w.numSpheres; i++)
-            {
-            Scalar r = py::cast<Scalar>(py::object(walls_spheres[i]).attr("r"));
-            Scalar3 origin = py::cast<Scalar3>(py::object(walls_spheres[i]).attr("_origin"));
-            bool inside = py::cast<bool>(py::object(walls_spheres[i]).attr("inside"));
-            w.Spheres[i] = SphereWall(r, origin, inside);
-            }
-        for (unsigned int i = 0; i < w.numCylinders; i++)
-            {
-            Scalar r = py::cast<Scalar>(py::object(walls_cylinders[i]).attr("r"));
-            Scalar3 origin = py::cast<Scalar3>(py::object(walls_cylinders[i]).attr("_origin"));
-            Scalar3 axis = py::cast<Scalar3>(py::object(walls_cylinders[i]).attr("_axis"));
-            bool inside = py::cast<bool>(py::object(walls_cylinders[i]).attr("inside"));
-            w.Cylinders[i] = CylinderWall(r, origin, axis, inside);
-            }
-        for (unsigned int i = 0; i < w.numPlanes; i++)
-            {
-            Scalar3 origin = py::cast<Scalar3>(py::object(walls_planes[i]).attr("_origin"));
-            Scalar3 normal = py::cast<Scalar3>(py::object(walls_planes[i]).attr("_normal"));
-            bool inside = py::cast<bool>(py::object(walls_planes[i]).attr("inside"));
-            w.Planes[i] = PlaneWall(origin, normal, inside);
-            }
-        return w;
-        }
-    }
-
-//! Exports helper function for parameters based on standard evaluators
-template<class evaluator> void export_wall_params_helpers(py::module& m)
-    {
-    py::class_<typename EvaluatorWalls<evaluator>::param_type,
-               std::shared_ptr<typename EvaluatorWalls<evaluator>::param_type>>(
-        m,
-        (EvaluatorWalls<evaluator>::getName() + "_params").c_str())
-        .def(py::init<>())
-        .def_readwrite("params", &EvaluatorWalls<evaluator>::param_type::params)
-        .def_readwrite("rextrap", &EvaluatorWalls<evaluator>::param_type::rextrap)
-        .def_readwrite("rcutsq", &EvaluatorWalls<evaluator>::param_type::rcutsq);
-    m.def(std::string("make_" + EvaluatorWalls<evaluator>::getName() + "_params").c_str(),
-          &make_wall_params<evaluator>);
-    }
-
-//! Combines exports of evaluators and parameter helper functions
-template<class evaluator> void export_PotentialExternalWall(py::module& m, const std::string& name)
-    {
-    export_PotentialExternal<PotentialExternal<EvaluatorWalls<evaluator>>>(m, name);
-    export_wall_params_helpers<evaluator>(m);
-    }
-
 // Template specification for Dipole anisotropic pair potential. A specific
 // template instance is needed since we expose the shape as just mu in Python
 // when the default behavior exposes setting and getting the shape through
@@ -226,6 +157,13 @@ void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& 
         .def("setE", &PotentialExternalElectricField::setParamsPython)
         .def("getE", &PotentialExternalElectricField::getParams)
         .def("setField", &PotentialExternalElectricField::setField);
+    }
+
+// Simplify the exporting of wall potential subclasses
+template<class EvaluatorPairType>
+void export_WallPotential(pybind11::module& m, const std::string& name)
+    {
+    export_PotentialExternal<PotentialExternal<EvaluatorWalls<EvaluatorPairType>>>(m, name);
     }
 
 //! Create the python module
@@ -291,18 +229,17 @@ PYBIND11_MODULE(_md, m)
     export_ForceDistanceConstraint(m);
     export_ForceComposite(m);
     export_PPPMForceCompute(m);
-    py::class_<wall_type, std::shared_ptr<wall_type>>(m, "wall_type").def(py::init<>());
-    m.def("make_wall_field_params", &make_wall_field_params);
     export_PotentialExternal<PotentialExternalPeriodic>(m, "PotentialExternalPeriodic");
     export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
-    // TODO: Port walls to HOOMD v3
-    // export_PotentialExternalWall<EvaluatorPairLJ>(m, "WallsPotentialLJ");
-    // export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
-    // export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
-    // export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
-    // export_PotentialExternalWall<EvaluatorPairMie>(m, "WallsPotentialMie");
-    // export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
-    // export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
+    export_wall_data(m);
+    export_wall_field(m);
+    export_WallPotential<EvaluatorPairLJ>(m, "WallsPotentialLJ");
+    export_WallPotential<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
+    export_WallPotential<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
+    export_WallPotential<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
+    export_WallPotential<EvaluatorPairMie>(m, "WallsPotentialMie");
+    export_WallPotential<EvaluatorPairGauss>(m, "WallsPotentialGauss");
+    export_WallPotential<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
 #ifdef ENABLE_HIP
     export_NeighborListGPU(m);
@@ -396,7 +333,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>(
         m,
         "PotentialExternalElectricFieldGPU");
-    /*
+
     export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>(m, "WallsPotentialLJGPU");
     export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
         m,
@@ -412,7 +349,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(
         m,
         "WallsPotentialMorseGPU");
-    */
 #endif
 
     // updaters

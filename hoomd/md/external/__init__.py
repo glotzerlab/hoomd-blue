@@ -5,3 +5,4 @@
 """External potentials for molecular dynamics."""
 
 from . import field
+from . import wall

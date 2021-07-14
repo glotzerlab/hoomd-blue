@@ -12,6 +12,9 @@
 #define __EVALUATOR_WALLS_H__
 
 #ifndef __HIPCC__
+#include "hoomd/ArrayView.h"
+#include <functional>
+#include <pybind11/pybind11.h>
 #include <string>
 #endif
 
@@ -32,7 +35,7 @@ const unsigned int MAX_N_SWALLS = 20;
 const unsigned int MAX_N_CWALLS = 20;
 const unsigned int MAX_N_PWALLS = 60;
 
-struct wall_type
+struct PYBIND11_EXPORT wall_type
     {
     unsigned int numSpheres; // these data types come first, since the structs are aligned already
     unsigned int numCylinders;
@@ -40,6 +43,36 @@ struct wall_type
     SphereWall Spheres[MAX_N_SWALLS];
     CylinderWall Cylinders[MAX_N_CWALLS];
     PlaneWall Planes[MAX_N_PWALLS];
+
+    unsigned int getNumSpheres()
+        {
+        return numSpheres;
+        }
+
+    SphereWall& getSphere(size_t index)
+        {
+        return Spheres[index];
+        }
+
+    unsigned int getNumCylinders()
+        {
+        return numCylinders;
+        }
+
+    CylinderWall& getCylinder(size_t index)
+        {
+        return Cylinders[index];
+        }
+
+    unsigned int& getNumPlanes()
+        {
+        return numPlanes;
+        }
+
+    PlaneWall& getPlane(size_t index)
+        {
+        return Planes[index];
+        }
     };
 
 //! Applys a wall force from all walls in the field parameter
@@ -48,12 +81,26 @@ struct wall_type
 template<class evaluator> class EvaluatorWalls
     {
     public:
-    typedef struct
+    struct param_type
         {
         typename evaluator::param_type params;
         Scalar rcutsq;
         Scalar rextrap;
-        } param_type;
+
+        param_type(pybind11::object param_dict)
+            : params(param_dict), rcutsq(pow(param_dict["r_cut"].cast<Scalar>(), 2)),
+              rextrap(param_dict["r_extrap"].cast<Scalar>())
+            {
+            }
+
+        pybind11::object toPython()
+            {
+            auto py_params = params.asDict();
+            py_params["r_cut"] = sqrt(rcutsq);
+            py_params["r_extrap"] = rextrap;
+            return py_params;
+            }
+        };
 
     typedef wall_type field_type;
 
@@ -332,15 +379,58 @@ template<class evaluator> class EvaluatorWalls
     Scalar qi;
     };
 
-template<class evaluator>
-typename EvaluatorWalls<evaluator>::param_type
-make_wall_params(typename evaluator::param_type p, Scalar rcutsq, Scalar rextrap)
+void export_wall_field(pybind11::module m)
     {
-    typename EvaluatorWalls<evaluator>::param_type params;
-    params.params = p;
-    params.rcutsq = rcutsq;
-    params.rextrap = rextrap;
-    return params;
-    }
+    // Export the necessary array_view types to enable access in Python
+    export_array_view<SphereWall>(m, "SphereArray");
+    export_array_view<CylinderWall>(m, "CylinderArray");
+    export_array_view<PlaneWall>(m, "PlaneArray");
 
-#endif //__EVALUATOR__WALLS_H__
+    pybind11::class_<wall_type>(m, "WallCollection")
+        .def(pybind11::init())
+        // The different get_*_list methods use array_view's (see hoomd/ArrayView.h for more info)
+        // callback to ensure that the way_type object's sizes remain correct even during
+        // modification.
+        .def("get_sphere_list",
+             [](wall_type& wall_list)
+             {
+                 return make_array_view(
+                     &wall_list.Spheres[0],
+                     MAX_N_SWALLS,
+                     wall_list.numSpheres,
+                     std::function<void(const array_view<SphereWall>*)>(
+                         [&wall_list](const array_view<SphereWall>* view) -> void
+                         { wall_list.numSpheres = static_cast<unsigned int>(view->size); }));
+             })
+        .def("get_cylinder_list",
+             [](wall_type& wall_list)
+             {
+                 return make_array_view(
+                     &wall_list.Cylinders[0],
+                     MAX_N_CWALLS,
+                     wall_list.numCylinders,
+                     std::function<void(const array_view<CylinderWall>*)>(
+                         [&wall_list](const array_view<CylinderWall>* view) -> void
+                         { wall_list.numCylinders = static_cast<unsigned int>(view->size); }));
+             })
+        .def("get_plane_list",
+             [](wall_type& wall_list)
+             {
+                 return make_array_view(
+                     &wall_list.Planes[0],
+                     MAX_N_PWALLS,
+                     wall_list.numPlanes,
+                     std::function<void(const array_view<PlaneWall>*)>(
+                         [&wall_list](const array_view<PlaneWall>* view) -> void
+                         { wall_list.numPlanes = static_cast<unsigned int>(view->size); }));
+             })
+        // These functions are not necessary for the Python interface but allow for more ready
+        // testing of the array_view class and this exporting.
+        .def("get_sphere", &wall_type::getSphere)
+        .def("get_cylinder", &wall_type::getCylinder)
+        .def("get_plane", &wall_type::getPlane)
+        .def_property_readonly("num_spheres", &wall_type::getNumSpheres)
+        .def_property_readonly("num_cylinders", &wall_type::getNumCylinders)
+        .def_property_readonly("num_planes", &wall_type::getNumPlanes);
+    }
+#endif

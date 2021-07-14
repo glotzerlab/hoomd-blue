@@ -118,6 +118,7 @@ set(_hoomd_headers
     AABB.h
     AABBTree.h
     Analyzer.h
+    ArrayView.h
     Autotuner.h
     BondedGroupData.cuh
     BondedGroupData.h
@@ -366,6 +367,7 @@ set(files box.py
           snapshot.py
           logging.py
           version.py
+          wall.py
     )
 
 install(FILES ${files}

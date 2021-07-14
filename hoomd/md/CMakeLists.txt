@@ -344,7 +344,6 @@ set(files __init__.py
           methods.py
           nlist.py
           update.py
-          wall.py
           special_pair.py
     )
 
