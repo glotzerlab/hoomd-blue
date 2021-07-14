@@ -20,6 +20,7 @@ and half-spaces.
     The current wall force implementation does not support NPT integrators.
 """
 
+from hoomd.data.array_view import _ArrayViewWrapper
 from hoomd.md import _md
 import hoomd
 
@@ -186,6 +187,17 @@ class WallPotential(hoomd.operation._HOOMDBaseObject):
         else:
             cls = getattr(_md, self._cpp_class_name + "GPU")
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def)
+        self._walls._sync({
+            hoomd.wall.Sphere:
+                _ArrayViewWrapper(
+                    _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Sphere)),
+            hoomd.wall.Cylinder:
+                _ArrayViewWrapper(
+                    _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Cylinder)),
+            hoomd.wall.Plane:
+                _ArrayViewWrapper(
+                    _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Plane)),
+        })
         super()._attach()
 
     @property
@@ -196,7 +208,25 @@ class WallPotential(hoomd.operation._HOOMDBaseObject):
 
     @walls.setter
     def walls(self, wall_list):
-        self._walls = self.wall._MetaWallList(wall_list)
+        # handle if passed an existing wall list by copying wall object. We
+        # don't have to copy individual walls since they are immutable.
+        if isinstance(wall_list, hoomd.wall._MetaWallList):
+            self._walls = hoomd.wall._MetaListIndex(wall_list)
+        self._walls = hoomd.wall._MetaWallList(wall_list)
+
+
+class _WallArrayViewFactory:
+
+    def __init__(self, cpp_wall_potential, wall_type):
+        self.cpp_obj = cpp_wall_potential
+        self.func_name = {
+            hoomd.wall.Sphere: "get_sphere_list",
+            hoomd.wall.Cylinder: "get_cylinder_list",
+            hoomd.wall.Plane: "get_plane_list"
+        }[wall_type]
+
+    def __call__(self):
+        return getattr(self.cpp_obj, self.func_name)()
 
 
 class LJ(WallPotential):
