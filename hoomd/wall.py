@@ -373,10 +373,19 @@ class _WallsMetaList(MutableSequence):
         self._backend_lists[wall_type].append(wall)
         self._backend_list_index.append(_MetaListIndex(wall_type, index))
 
-    def _sync(self, cpp_obj):
-        for wall_type, wall_list in self._backend_lists.items():
-            wall_list._sync(
-                None, getattr(cpp_obj, self._type_to_list_name[wall_type]))
+    def _sync(self, sync_lists):
+        """Sync backend list with associated C++ wall lists.
+
+        Args:
+            sync_lists (dict[type, list[WallData]]): A dictionary of Python wall
+                types to C++ lists (something like an
+                `hoomd.data.array_view._ArrayView` or pybind11 exported
+                std::vector).
+        """
+        for wall_type, wall_list in sync_lists:
+            # simulation is unnecessary here since the SyncedList instance is
+            # not user facing.
+            self._backend_lists[wall_type]._sync(None, wall_list)
 
     def _unsync(self):
         for wall_list in self._backend_lists.values():
