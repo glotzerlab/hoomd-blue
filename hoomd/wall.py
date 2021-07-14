@@ -229,7 +229,12 @@ class _MetaListIndex:
 
 
 # TODO: remove before merging (implemented in another PR)
-def _islice_index(sequence, start=None, stop=None, step=None):
+def _islice_index(sequence, *args):
+    if len(args) == 1:
+        start, stop, step = args[0].start, args[0].stop, args[0].step
+    elif len(args) < 3:
+        args.extend((None,) * 3 - len(args))
+        start, stop, step = args
     if step is None:
         step = 1
     if start is None:
@@ -240,8 +245,8 @@ def _islice_index(sequence, start=None, stop=None, step=None):
 
 
 # TODO: remove before merging (implemented in another PR)
-def _islice(sequence, start=None, stop=None, step=None):
-    for i in _islice_index(sequence, start, stop, step):
+def _islice(sequence, *args):
+    for i in _islice_index(sequence, *args):
         yield sequence[i]
 
 
