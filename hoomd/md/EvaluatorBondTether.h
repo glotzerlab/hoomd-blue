@@ -136,8 +136,8 @@ class EvaluatorBondTether
             {
             U_att = k_b * (exp(Scalar(1.0) / (l_c0 - r)) / (l_max - r));
             F_att = k_b
-                    * (((l_max - r) * exp(Scalar(1.0) / (l_c0 - r)) / (l_c0 - r) / (l_c0 - r)
-                        + exp(Scalar(1.0) / (l_c0 - r)))
+                    * (((r - l_max) * exp(Scalar(1.0) / (l_c0 - r)) / (l_c0 - r) / (l_c0 - r)
+                        - exp(Scalar(1.0) / (l_c0 - r)))
                        / (l_max - r) / (l_max - r));
             }
         else
@@ -150,8 +150,8 @@ class EvaluatorBondTether
             {
             U_rep = k_b * (exp(Scalar(1.0) / (r - l_c1)) / (r - l_min));
             F_rep = k_b
-                    * (((l_min - r) * exp(Scalar(1.0) / (r - l_c1)) / (r - l_c1) / (r - l_c1)
-                        - exp(Scalar(1.0) / (r - l_c1)))
+                    * (((r - l_min) * exp(Scalar(1.0) / (r - l_c1)) / (r - l_c1) / (r - l_c1)
+                        + exp(Scalar(1.0) / (r - l_c1)))
                        / (r - l_min) / (r - l_min));
             }
         else
