@@ -30,6 +30,6 @@ gpu_compute_fene_forces(const bond_args_t& bond_args,
 //! Compute Tether bond forces on the GPU with BondEvaluatorTether
 hipError_t __attribute__((visibility("default")))
 gpu_compute_tether_forces(const bond_args_t& bond_args,
-                        const tether_params* d_params,
-                        unsigned int* d_flags);
+                          const tether_params* d_params,
+                          unsigned int* d_flags);
 #endif
