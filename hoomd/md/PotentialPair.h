@@ -158,13 +158,13 @@ class PotentialPair : public ForceCompute
         {
         switch (m_shift_mode)
             {
-            case no_shift:
+        case no_shift:
             return "none";
-            case shift:
+        case shift:
             return "shift";
-            case xplor:
+        case xplor:
             return "xplor";
-            default:
+        default:
             throw std::runtime_error("Error setting shift mode.");
             }
         }
@@ -232,12 +232,12 @@ class PotentialPair : public ForceCompute
         };
 
     virtual inline void pkgPerNeighbor(const unsigned int& i,
-                                       const unsigned int& j,
-                                       const unsigned int& typei,
-                                       const unsigned int& typej,
-                                       const bool& in_rcut,
-                                       evaluator& eval,
-                                       extra_pkg&) {};
+                                          const unsigned int& j,
+                                          const unsigned int& typei,
+                                          const unsigned int& typej,
+                                          const bool& in_rcut,
+                                          evaluator& eval,
+                                          extra_pkg&) {};
 
     virtual inline void pkgFinalize(extra_pkg&) {};
 

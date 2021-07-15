@@ -48,13 +48,13 @@ class EvaluatorPairLJGauss
             {
             switch (i)
                 {
-                case 0:
+            case 0:
                 return epsilon;
-                case 1:
+            case 1:
                 return sigma2;
-                case 2:
+            case 2:
                 return r0;
-                default:
+            default:
                 return 0;
                 }
             };
@@ -142,7 +142,6 @@ class EvaluatorPairLJGauss
         // compute the force divided by r in force_divr
         if (rsq < rcutsq)
             {
-            // const Scalar sqrt_2pi= Scalar(2.0) * M_SQRT2 / M_2_SQRTPI;
             Scalar r = fast::sqrt(rsq);
             Scalar rdiff = r - r0;
             Scalar rdiff_sigma2 = rdiff / sigma2;
@@ -168,14 +167,27 @@ class EvaluatorPairLJGauss
             return false;
         }
 
-    DEVICE void alchemParams(const Scalar* alphas)
+    DEVICE void alchemParams(const std::array<Scalar, num_alchemical_parameters>& alphas)
         {
         epsilon *= alphas[0];
         sigma2 *= alphas[1] * alphas[1];
         r0 *= alphas[2];
         }
 
-    DEVICE void evalAlchDerivatives(Scalar* alchemical_derivatives, const Scalar* alphas)
+    DEVICE static std::array<Scalar, num_alchemical_parameters>
+    updatedParams(const param_type& initial_params,
+                  std::array<Scalar, num_alchemical_parameters>& alphas)
+        {
+        std::array<Scalar, num_alchemical_parameters> params;
+        params[0] = initial_params.epsilon * alphas[0];
+        params[1] = initial_params.sigma2 * alphas[1] * alphas[1];
+        params[2] = initial_params.r0 * alphas[2];
+        return params;
+        }
+
+    DEVICE void
+    evalAlchDerivatives(std::array<Scalar, num_alchemical_parameters>& alchemical_derivatives,
+                        const std::array<Scalar, num_alchemical_parameters>& alphas)
         {
             {
             Scalar r = fast::sqrt(rsq);
@@ -185,7 +197,7 @@ class EvaluatorPairLJGauss
             Scalar rdiff = r - alphas[2] * r0;
             Scalar rdiffsq = rdiff * rdiff;
             Scalar exp_term = fast::exp(-Scalar(0.5) * rdiffsq * invsiga1sq);
-            Scalar c = - alphas[0] * epsilon * exp_term * invsiga1sq;
+            Scalar c = -alphas[0] * epsilon * exp_term * invsiga1sq;
             alchemical_derivatives[0] = -epsilon * exp_term;
             alchemical_derivatives[1] = c * rdiffsq * inva1;
             alchemical_derivatives[2] = c * r0 * rdiff;

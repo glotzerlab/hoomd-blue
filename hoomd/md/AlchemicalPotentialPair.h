@@ -16,6 +16,9 @@
 #include "hoomd/extern/nano-signal-slot/nano_observer.hpp"
 #include "hoomd/md/PotentialPair.h"
 
+#include "pybind11/functional.h"
+#include "pybind11/stl.h"
+
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
@@ -38,9 +41,32 @@ template<class evaluator> struct AlchemyPackage
     std::vector<std::array<Scalar, evaluator::num_alchemical_parameters>> alphas = {};
     std::vector<ArrayHandle<Scalar>> force_handles = {};
     std::vector<std::bitset<evaluator::num_alchemical_parameters>> compute_mask = {};
+    std::vector<Scalar> normalizationValues = {};
 
     AlchemyPackage(std::nullptr_t) {};
     AlchemyPackage() {};
+    };
+
+template<class evaluator> struct Normalized : public evaluator
+    {
+    // Normalized<evaluator>(typename evaluator::param_type param) : evaluator(param) { }
+    // Normalized<evaluator>() : evaluator() { }
+    using evaluator::evaluator;
+
+    Scalar m_normValue = 1.;
+
+    void setNormalizationValue(Scalar value)
+        {
+        m_normValue = value;
+        }
+
+    bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
+        {
+        bool evaluated = evaluator::evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+        force_divr *= m_normValue;
+        pair_eng *= m_normValue;
+        return evaluated;
+        }
     };
 
 //! Template class for computing alchemical pair potentials
@@ -94,10 +120,10 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, AlchemyPackage<e
 
     // TODO: keep as general python object, or change to an updater? problem with updater is lack of
     // input, but could make a normalizer based on it
-    void setNormalizer(pybind11::object callback)
+    void setNormalizer(pybind11::function callback)
         {
-        m_normalizer = callback;
         m_normalized = true;
+        m_normalizer = callback;
         }
 
     // TODO: disable alchemical particle by resetting params, mask, should remain shared_ptr?
@@ -110,9 +136,12 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, AlchemyPackage<e
     std::vector<mask_type> m_alchemy_mask;  //!< Type pair mask for if alchemical forces are used
     std::vector<std::shared_ptr<AlchemicalPairParticle>>
         m_alchemical_particles; //!< 2D array (alchemy_index,alchemical param)
-    bool m_normalized = false;     //!< The potential should be normalizeds
-    pybind11::object m_normalizer; //!< python normalization TODO: allow for cpp normalization as
-                                   //!< well, probably via pybind11::vectorize
+    // static constexpr bool m_normalized =
+    // std::is_member_function_pointer<decltype(evaluator::setNormalizationValue)>::value;    //!<
+    // The potential should be normalizeds
+
+    pybind11::function m_normalizer;
+    bool m_normalized = false;
 
     //! Method to be called when number of types changes
     void slotNumTypesChange() override;
@@ -158,8 +187,6 @@ AlchemicalPotentialPair<evaluator>::AlchemicalPotentialPair(
         .template connect<AlchemicalPotentialPair<evaluator>,
                           &AlchemicalPotentialPair<evaluator>::slotNumParticlesChange>(this);
     }
-
-// TODO: constructor from base class and similar demote for easy switching
 
 template<class evaluator> AlchemicalPotentialPair<evaluator>::~AlchemicalPotentialPair()
     {
@@ -209,6 +236,7 @@ AlchemicalPotentialPair<evaluator>::pkgInitialize(const uint64_t& timestep)
     // Create pkg for passing additional variables between specialized code
     AlchemyPackage<evaluator> pkg;
 
+    // make an updated mask that is accurate for this timestep per alchemical particle
     std::vector<mask_type> compute_mask(m_alchemy_mask);
     // Allocate and read alphas into type pair accessible format
     pkg.alphas.assign(m_alchemy_index.getNumElements(), {});
@@ -235,25 +263,42 @@ AlchemicalPotentialPair<evaluator>::pkgInitialize(const uint64_t& timestep)
             }
     pkg.compute_mask.swap(compute_mask);
 
-    // Check if alchemical forces need to be computed
+    // Precompute normalization
+    if (m_normalized)
+        {
+        ArrayHandle<typename evaluator::param_type> h_params(this->m_params,
+                                                             access_location::host,
+                                                             access_mode::read);
+        pkg.normalizationValues.assign(m_alchemy_index.getNumElements(), 0.);
+        for (unsigned int i = 0; i < m_alchemy_index.getW(); i++)
+            for (unsigned int j = 0; j <= i; j++)
+                {
+                unsigned int idx = m_alchemy_index(i, j);
+                pkg.normalizationValues[idx]
+                    = pybind11::cast<Scalar>(m_normalizer(*pybind11::make_tuple(
+                        evaluator::updatedParams(h_params.data[this->m_typpair_idx(i, j)],
+                                                 pkg.alphas[idx]))));
+                }
+        }
+
     if (pkg.calculate_derivatives)
         {
         this->m_exec_conf->msg->notice(10)
             << "AlchemPotentialPair: Calculating alchemical forces" << std::endl;
 
+        // Setup alchemical force array handlers
         pkg.force_handles.clear();
-
         for (auto& particle : m_alchemical_particles)
             if (particle
                 && pkg.compute_mask[m_alchemy_index(particle->m_type_pair_param.x,
                                                     particle->m_type_pair_param.y)]
                                    [particle->m_type_pair_param.z])
                 {
+                // zero force array and set current timestep for tracking
                 particle->setNetForce(timestep);
                 pkg.force_handles.push_back(
                     ArrayHandle<Scalar>(particle->m_alchemical_derivatives));
                 }
-
             else
                 {
                 pkg.force_handles.push_back(ArrayHandle<Scalar>(GlobalArray<Scalar>()));
@@ -280,8 +325,8 @@ inline void AlchemicalPotentialPair<evaluator>::pkgPerNeighbor(const unsigned in
     // calculate alchemical derivatives if needed
     if (pkg.calculate_derivatives && in_rcut && mask.any())
         {
-        Scalar alchemical_derivatives[evaluator::num_alchemical_parameters] = {0.0};
-        eval.evalAlchDerivatives(alchemical_derivatives, alphas.data());
+        std::array<Scalar, evaluator::num_alchemical_parameters> alchemical_derivatives = {};
+        eval.evalAlchDerivatives(alchemical_derivatives, alphas);
         for (unsigned int k = 0; k < evaluator::num_alchemical_parameters; k++)
             {
             if (mask[k])
@@ -296,78 +341,36 @@ inline void AlchemicalPotentialPair<evaluator>::pkgPerNeighbor(const unsigned in
         }
 
     // update parameter values with current alphas (MUST! be performed after dAlpha calculations)
-    eval.alchemParams(alphas.data());
+    eval.alchemParams(alphas);
+    // set normalization value
+    if (m_normalized)
+        eval.setNormalizationValue(pkg.normalizationValues[alchemy_index]);
     }
 
 template<class evaluator>
 inline void AlchemicalPotentialPair<evaluator>::pkgFinalize(AlchemyPackage<evaluator>& pkg)
     {
-    Scalar norm_value(1.0);
-    if (m_normalized)
-        {
-        std::vector<Scalar> current_params;
-            {
-            ArrayHandle<typename evaluator::param_type> h_params(this->m_params,
-                                                                 access_location::host,
-                                                                 access_mode::read);
-
-            current_params.reserve(m_alchemy_index.getNumElements()
-                                   * evaluator::num_alchemical_parameters);
-            for (unsigned int i = 0; i < this->m_pdata->getNTypes(); i++)
-                for (unsigned int j = 0; j < i; j++)
-                    for (unsigned int k = 0; k < evaluator::num_alchemical_parameters; k++)
-                        current_params.push_back(pkg.alphas[m_alchemy_index(i, j)][k]
-                                                 * h_params.data[this->m_typpair_idx(i, j)][k]);
-            }
-
-        // auto norm_input = pybind11::memoryview::from_buffer(
-        //     current_params.data(),
-        //     sizeof(Scalar),
-        //     NULL,
-        //     {evaluator::num_alchemical_parameters, this->m_pdata->getNTypes()},
-        //     {sizeof(Scalar) * evaluator::num_alchemical_parameters, sizeof(Scalar)},
-        //     true);
-        auto norm_input = pybind11::array(
-            {evaluator::num_alchemical_parameters, this->m_pdata->getNTypes()},
-            {sizeof(Scalar) * evaluator::num_alchemical_parameters, sizeof(Scalar)},
-            current_params.data());
-        Scalar norm_value = m_normalizer(norm_input).template cast<Scalar>();
-        // TODO: major changes to support multiple types, needs to modify force with per type pair
-        // norm
-        // norm_value = m_normalizer(current_params.data()).cast<Scalar>();
-
-        bool compute_virial = this->m_pdata->getFlags()[pdata_flag::pressure_tensor];
-
-        ArrayHandle<Scalar4> h_force(this->m_force, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> h_virial(this->m_virial, access_location::host, access_mode::readwrite);
-
-        for (unsigned int i = 0; i < this->m_pdata->getN(); i++)
-            {
-            h_force.data[i].x *= norm_value;
-            h_force.data[i].y *= norm_value;
-            h_force.data[i].z *= norm_value;
-            h_force.data[i].w *= norm_value;
-            if (compute_virial)
-                for (unsigned int j = 0; j < 6; j++)
-                    h_virial.data[j * this->m_virial_pitch + i] *= norm_value;
-            }
-        }
-
     // for all used variables, store the net force
     for (unsigned int i = 0; i < m_alchemy_index.getNumElements(); i++)
         for (unsigned int j = 0; j < evaluator::num_alchemical_parameters; j++)
             if (pkg.compute_mask[i][j])
-                m_alchemical_particles[j * m_alchemy_index.getNumElements() + i]->setNetForce(
-                    norm_value);
+                {
+                if (m_normalized)
+                    m_alchemical_particles[j * m_alchemy_index.getNumElements() + i]->setNetForce(
+                        pkg.normalizationValues[i]);
+                else
+                    m_alchemical_particles[j * m_alchemy_index.getNumElements() + i]->setNetForce();
+                }
     }
 
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
 */
-template<class evaluator>
+template<class evaluator_base>
 void export_AlchemicalPotentialPair(pybind11::module& m, const std::string& name)
     {
+    typedef Normalized<evaluator_base> evaluator;
     typedef PotentialPair<evaluator, AlchemyPackage<evaluator>> base;
     export_PotentialPair<base>(m, name + std::string("Base").c_str());
     typedef AlchemicalPotentialPair<evaluator> T;
