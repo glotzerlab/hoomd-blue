@@ -17,7 +17,6 @@
 #include "hoomd/md/PotentialPair.h"
 
 #include "pybind11/functional.h"
-#include "pybind11/stl.h"
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
@@ -49,11 +48,8 @@ template<class evaluator> struct AlchemyPackage
 
 template<class evaluator> struct Normalized : public evaluator
     {
-    // Normalized<evaluator>(typename evaluator::param_type param) : evaluator(param) { }
-    // Normalized<evaluator>() : evaluator() { }
     using evaluator::evaluator;
-
-    Scalar m_normValue = 1.;
+    Scalar m_normValue {1.};
 
     void setNormalizationValue(Scalar value)
         {
@@ -120,7 +116,7 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, AlchemyPackage<e
 
     // TODO: keep as general python object, or change to an updater? problem with updater is lack of
     // input, but could make a normalizer based on it
-    void setNormalizer(pybind11::function callback)
+    void setNormalizer(std::function<Scalar(pybind11::kwargs)>& callback)
         {
         m_normalized = true;
         m_normalizer = callback;
@@ -140,7 +136,9 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, AlchemyPackage<e
     // std::is_member_function_pointer<decltype(evaluator::setNormalizationValue)>::value;    //!<
     // The potential should be normalizeds
 
-    pybind11::function m_normalizer;
+    // pybind11::function m_normalizer;
+    // template<typename ...Args> std::function<Scalar(Args...)> m_normalizer;
+    std::function<Scalar(pybind11::kwargs)> m_normalizer;
     bool m_normalized = false;
 
     //! Method to be called when number of types changes
@@ -269,15 +267,16 @@ AlchemicalPotentialPair<evaluator>::pkgInitialize(const uint64_t& timestep)
         ArrayHandle<typename evaluator::param_type> h_params(this->m_params,
                                                              access_location::host,
                                                              access_mode::read);
-        pkg.normalizationValues.assign(m_alchemy_index.getNumElements(), 0.);
+        pkg.normalizationValues.assign(m_alchemy_index.getNumElements(), 1.0);
         for (unsigned int i = 0; i < m_alchemy_index.getW(); i++)
             for (unsigned int j = 0; j <= i; j++)
                 {
                 unsigned int idx = m_alchemy_index(i, j);
                 pkg.normalizationValues[idx]
-                    = pybind11::cast<Scalar>(m_normalizer(*pybind11::make_tuple(
-                        evaluator::updatedParams(h_params.data[this->m_typpair_idx(i, j)],
-                                                 pkg.alphas[idx]))));
+                    = m_normalizer(evaluator::alchemParams(h_params.data[this->m_typpair_idx(i, j)],
+                                                           pkg.alphas[idx])
+                                       .asDict());
+                ;
                 }
         }
 
@@ -319,6 +318,8 @@ inline void AlchemicalPotentialPair<evaluator>::pkgPerNeighbor(const unsigned in
     unsigned int alchemy_index = m_alchemy_index(typei, typej);
     mask_type& mask {pkg.compute_mask[alchemy_index]};
     alpha_array_t& alphas {pkg.alphas[alchemy_index]};
+    if (m_normalized)
+        eval.setNormalizationValue(pkg.normalizationValues[alchemy_index]);
 
     // TODO: make sure that when we disable an alchemical particle, we rewrite its parameter
 
@@ -342,9 +343,6 @@ inline void AlchemicalPotentialPair<evaluator>::pkgPerNeighbor(const unsigned in
 
     // update parameter values with current alphas (MUST! be performed after dAlpha calculations)
     eval.alchemParams(alphas);
-    // set normalization value
-    if (m_normalized)
-        eval.setNormalizationValue(pkg.normalizationValues[alchemy_index]);
     }
 
 template<class evaluator>

@@ -174,14 +174,13 @@ class EvaluatorPairLJGauss
         r0 *= alphas[2];
         }
 
-    DEVICE static std::array<Scalar, num_alchemical_parameters>
-    updatedParams(const param_type& initial_params,
-                  std::array<Scalar, num_alchemical_parameters>& alphas)
+    DEVICE static param_type alchemParams(const param_type& initial_params,
+                                          std::array<Scalar, num_alchemical_parameters>& alphas)
         {
-        std::array<Scalar, num_alchemical_parameters> params;
-        params[0] = initial_params.epsilon * alphas[0];
-        params[1] = initial_params.sigma2 * alphas[1] * alphas[1];
-        params[2] = initial_params.r0 * alphas[2];
+        param_type params(initial_params);
+        params.epsilon *= alphas[0];
+        params.sigma2 *= alphas[1] * alphas[1];
+        params.r0 *= alphas[2];
         return params;
         }
 
@@ -228,7 +227,7 @@ class EvaluatorPairLJGauss
     Scalar r0;      //!< r0 prarameter extracted from the params passed to the constructor
     };
 
-// const std::map<unsigned int, std::string> EvaluatorPairLJGauss::param_order
-//     = {{0, "epsilon"}, {1, "sigma2"}, {2, "r0"}};
+    // const std::map<unsigned int, std::string> EvaluatorPairLJGauss::param_order
+    //     = {{0, "epsilon"}, {1, "sigma2"}, {2, "r0"}};
 
 #endif // __PAIR_EVALUATOR_LJGAUSS_H__
