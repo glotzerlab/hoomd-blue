@@ -154,7 +154,7 @@ class ComputeSDF : public Compute
         virtual void compute(uint64_t timestep);
 
         //! Return an sdf
-        virtual pybind11::array_t<Scalar> getSDF();
+        virtual pybind11::array_t<double> getSDF();
 
     protected:
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< The parent integrator
@@ -162,6 +162,7 @@ class ComputeSDF : public Compute
         double m_dx;                            //!< Histogram step size
 
         std::vector<unsigned int> m_hist;       //!< Raw histogram data
+        std::vector<double> m_sdf;              //!< Computed SDF
 
         Scalar m_last_max_diam;                 //!< Last recorded maximum diameter
 
@@ -236,35 +237,34 @@ void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
 
     std::vector<unsigned int> hist_total(m_hist);
 
-        // in MPI, we need to total up all of the histogram bins from all nodes to the root node
+    // in MPI, total up all of the histogram bins from all nodes to the root node
     #ifdef ENABLE_MPI
-        if (m_comm)
-            {
-            MPI_Reduce(&hist_total[0], &m_hist[0], (unsigned int)m_hist.size(), MPI_UNSIGNED, MPI_SUM, 0, m_exec_conf->getMPICommunicator());
-            }
+    if (m_comm)
+        {
+        MPI_Reduce(&hist_total[0], &m_hist[0], (unsigned int)m_hist.size(), MPI_UNSIGNED, MPI_SUM, 0, m_exec_conf->getMPICommunicator());
+        }
     #endif
+
+    // compute the probability density
+    m_sdf.resize(m_hist.size());
+    for (size_t i = 0; i < m_hist.size(); i++)
+        {
+        m_sdf[i] = hist_total[i] / (m_pdata->getNGlobal() * m_dx);
+        }
 
     if (this->m_prof) this->m_prof->pop();
     }
 
 // \return the sdf histogram
 template<class Shape>
-pybind11::array_t<Scalar> ComputeSDF<Shape>::getSDF()
+pybind11::array_t<double> ComputeSDF<Shape>::getSDF()
     {
     #ifdef ENABLE_MPI
     if (!m_exec_conf->isRoot())
         return pybind11::none();
     #endif
 
-    std::vector<unsigned int> hist_total(m_hist);
-    unsigned int hist_size = static_cast<unsigned int>(hist_total.size());
-    Scalar sdf [hist_size];
-    for (unsigned int i = 0; i < hist_size; i++)
-        {
-        sdf[i] = Scalar(hist_total[i]) / Scalar(m_pdata->getNGlobal()*m_dx);
-        }
-
-    return pybind11::array_t<Scalar>(hist_size, sdf);
+    return pybind11::array_t<double>(m_sdf.size(), m_sdf.data());
     }
 
 template < class Shape >
@@ -273,7 +273,7 @@ void ComputeSDF<Shape>::zeroHistogram()
     // resize the histogram
     m_hist.resize((size_t)(m_xmax / m_dx));
     // Zero the histogram
-    for (unsigned int i = 0; i < m_hist.size(); i++)
+    for (size_t i = 0; i < m_hist.size(); i++)
         {
         m_hist[i] = 0;
         }
