@@ -234,6 +234,8 @@ void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
 
     countHistogram(timestep);
 
+    std::vector<unsigned int> hist_total(m_hist);
+
         // in MPI, we need to total up all of the histogram bins from all nodes to the root node
     #ifdef ENABLE_MPI
         if (m_comm)
