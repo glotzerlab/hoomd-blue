@@ -28,8 +28,8 @@ struct tether_params
     {
     Scalar k_b;
     Scalar l_min;
-    Scalar l_c0;
     Scalar l_c1;
+    Scalar l_c0;
     Scalar l_max;
 
 #ifndef __HIPCC__
@@ -37,13 +37,13 @@ struct tether_params
         {
         k_b = 10;
         l_min = 0.9;
-        l_c0 = 1.2;
-        l_c1 = 1.8;
+        l_c1 = 1.2;
+        l_c0 = 1.8;
         l_max = 2.1;
         }
 
-    tether_params(Scalar k_b, Scalar l_min, Scalar l_c0, Scalar l_c1, Scalar l_max)
-        : k_b(k_b), l_min(l_min), l_c0(l_c0), l_c1(l_c1), l_max(l_max)
+    tether_params(Scalar k_b, Scalar l_min, Scalar l_c1, Scalar l_c0, Scalar l_max)
+        : k_b(k_b), l_min(l_min), l_c1(l_c1), l_c0(l_c0), l_max(l_max)
         {
         }
 
@@ -51,8 +51,8 @@ struct tether_params
         {
         k_b = v["k_b"].cast<Scalar>();
         l_min = v["l_min"].cast<Scalar>();
-        l_c0 = v["l_c0"].cast<Scalar>();
         l_c1 = v["l_c1"].cast<Scalar>();
+        l_c0 = v["l_c0"].cast<Scalar>();
         l_max = v["l_max"].cast<Scalar>();
         }
 
@@ -61,8 +61,8 @@ struct tether_params
         pybind11::dict v;
         v["k_b"] = k_b;
         v["l_min"] = l_min;
-        v["l_c0"] = l_c0;
         v["l_c1"] = l_c1;
+        v["l_c0"] = l_c0;
         v["l_max"] = l_max;
         return v;
         }
@@ -73,8 +73,8 @@ struct tether_params
 /*! The parameters are:
     - \a k_b (param.x) Bond stiffness
     - \a l_min (param.y) minimum bond length
-    - \a l_c0 (param.z) cutoff length of attractive part
     - \a l_c1 (param.w) cutoff length of repulsive part
+    - \a l_c0 (param.z) cutoff length of attractive part
     - \a l_max (param.a) maximum bond length
 */
 class EvaluatorBondTether
@@ -88,7 +88,7 @@ class EvaluatorBondTether
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorBondTether(Scalar _rsq, const param_type& _params)
-        : rsq(_rsq), k_b(_params.k_b), l_min(_params.l_min), l_c0(_params.l_c0), l_c1(_params.l_c1),
+        : rsq(_rsq), k_b(_params.k_b), l_min(_params.l_min), l_c1(_params.l_c1), l_c0(_params.l_c0),
           l_max(_params.l_max)
         {
         }
@@ -140,11 +140,6 @@ class EvaluatorBondTether
                         - exp(Scalar(1.0) / (l_c0 - r)))
                        / (l_max - r) / (l_max - r));
             }
-        else
-            {
-            U_att = 0.0;
-            F_att = 0.0;
-            }
 
         if (r < l_c1)
             {
@@ -154,15 +149,10 @@ class EvaluatorBondTether
                         + exp(Scalar(1.0) / (r - l_c1)))
                        / (r - l_min) / (r - l_min));
             }
-        else
-            {
-            U_rep = 0.0;
-            F_rep = 0.0;
-            }
-
         if (k_b != Scalar(0.0))
             {
             force_divr = (F_att + F_rep) / r;
+
             bond_eng = U_att + U_rep;
             }
 
@@ -183,8 +173,8 @@ class EvaluatorBondTether
     Scalar rsq;   //!< Stored rsq from the constructor
     Scalar k_b;   //!< k_b parameter
     Scalar l_min; //!< l_min parameter
-    Scalar l_c0;  //!< l_c0 parameter
     Scalar l_c1;  //!< l_c1 parameter
+    Scalar l_c0;  //!< l_c0 parameter
     Scalar l_max; //!< l_max parameter
     };
 

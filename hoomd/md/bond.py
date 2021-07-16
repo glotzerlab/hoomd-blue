@@ -415,6 +415,10 @@ class Tether(Bond):
                                 & r \ge l_{c1}
         \end{eqnarray*}
 
+    .. math::
+        l_{min} < l_{c1} < l_{c0} < l_{max}
+
+
     Attributes:
         params (TypeParameter[``bond type``, dict]):
             The parameter of the Tethering potential bonds.
@@ -426,10 +430,10 @@ class Tether(Bond):
             * ``l_min`` (`float`, **required**) - minimum bond length
               :math:`[\mathrm{length}]`
 
-            * ``l_c0`` (`float`, **required**) - cutoff distance of attractive
+            * ``l_c1`` (`float`, **required**) - cutoff distance of repulsive
               part :math:`[\mathrm{length}]`
 
-            * ``l_c1`` (`float`, **required**) - cutoff distance of repulsive
+            * ``l_c0`` (`float`, **required**) - cutoff distance of attractive
               part :math:`[\mathrm{length}]`
 
             * ``l_max`` (`float`, **required**) - maximum bond length
@@ -438,8 +442,8 @@ class Tether(Bond):
     Examples::
 
         bond_potential = bond.Tether()
-        bond_potential.params['tether'] = dict(k_b=10.0, l_min=0.9, l_c0=1.2,
-                                               l_c1=1.8, l_max=2.1)
+        bond_potential.params['tether'] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
+                                               l_c0=1.8, l_max=2.1)
     """
     _cpp_class_name = "PotentialBondTether"
 
@@ -448,8 +452,8 @@ class Tether(Bond):
             "params", "bond_types",
             TypeParameterDict(k_b=float,
                               l_min=float,
-                              l_c0=float,
                               l_c1=float,
+                              l_c0=float,
                               l_max=float,
                               len_keys=1))
         self._add_typeparam(params)
