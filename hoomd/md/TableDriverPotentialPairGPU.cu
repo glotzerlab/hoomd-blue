@@ -9,7 +9,7 @@
 #include "EvaluatorPairTable.h"
 
 hipError_t gpu_compute_table_forces(const pair_args_t& pair_args,
-                                    EvaluatorPairTable::param_type* d_params)
+                                    const EvaluatorPairTable::param_type* d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairTable>(pair_args, d_params);
     }

@@ -8,7 +8,7 @@
 #include "AllDriverPotentialPairGPU.cuh"
 #include "EvaluatorPairZBL.h"
 hipError_t gpu_compute_zbl_forces(const pair_args_t& pair_args,
-                                  EvaluatorPairZBL::param_type* d_params)
+                                  const EvaluatorPairZBL::param_type* d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairZBL>(pair_args, d_params);
     }

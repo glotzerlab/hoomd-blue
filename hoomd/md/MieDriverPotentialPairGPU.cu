@@ -9,7 +9,7 @@
 #include "EvaluatorPairMie.h"
 
 hipError_t gpu_compute_mie_forces(const pair_args_t& args,
-                                  EvaluatorPairMie::param_type* d_params)
+                                  const EvaluatorPairMie::param_type* d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairMie>(args, d_params);
     }

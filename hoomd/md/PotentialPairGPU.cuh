@@ -418,7 +418,7 @@ struct PairForceComputeKernel
 
     static void launch(const pair_args_t& pair_args,
                        std::pair<unsigned int, unsigned int> range,
-                       typename evaluator::param_type* d_params)
+                       const typename evaluator::param_type* d_params)
         {
         unsigned int N = range.second - range.first;
         unsigned int offset = range.first;
@@ -523,7 +523,7 @@ struct PairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
 */
 template<class evaluator>
 hipError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
-                                   typename evaluator::param_type* d_params)
+                                   const typename evaluator::param_type* d_params)
     {
     assert(d_params);
     assert(pair_args.d_rcutsq);

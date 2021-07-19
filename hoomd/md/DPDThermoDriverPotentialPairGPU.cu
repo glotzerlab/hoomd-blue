@@ -16,7 +16,7 @@ hipError_t gpu_compute_dpdthermodpd_forces(const dpd_pair_args_t& args,
     }
 
 hipError_t gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
-                                        EvaluatorPairDPDThermo::param_type* d_params)
+                                        const EvaluatorPairDPDThermo::param_type* d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairDPDThermo>(pair_args, d_params);
     }
