@@ -265,15 +265,14 @@ class ThermodynamicQuantities(_Thermo):
         """:math:`N`, number of particles in the group."""
         return self._cpp_obj.num_particles
 
-    @log
+    @log(requires_run=True)
     def volume(self):
-        """:math:`V`, volume of the simulation box \
-        :math:`[\\mathrm{length}^{2}] in 2D and \
-        :math:`[\\mathrm{length}^{2}] in 3D`."""
-        if self._attached:
-            return self._cpp_obj.volume
-        else:
-            return None
+        """:math:`V`, volume of the simulation box (area in 2D) \
+        :math:`[\\mathrm{length}^{d}]`.
+
+        Where :math:`d` is the dimensionality of the system.
+        """
+        return self._cpp_obj.volume
 
 
 class HarmonicAveragedThermodynamicQuantities(Compute):
