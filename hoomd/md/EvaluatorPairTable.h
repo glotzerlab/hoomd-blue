@@ -90,10 +90,11 @@ class EvaluatorPairTable
                     {
                     throw std::runtime_error("The length of V and F arrays must be equal");
                     }
+
                 width = V_py.size();
                 rmin = v["r_min"].cast<Scalar>();
-                V_table = ManagedArray<Scalar>(static_cast<unsigned int>(width), managed, 32);
-                F_table = ManagedArray<Scalar>(static_cast<unsigned int>(width), managed, 32);
+                V_table = ManagedArray<Scalar>(static_cast<unsigned int>(width), managed);
+                F_table = ManagedArray<Scalar>(static_cast<unsigned int>(width), managed);
                 std::copy(V_py.data(0), V_py.data(0) + width, V_table.get());
                 std::copy(F_py.data(0), F_py.data(0) + width, F_table.get());
                 }
