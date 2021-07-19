@@ -785,10 +785,13 @@ def _calculate_force(sim):
 
     Finds the negative derivative of energy divided by inter-particle distance
     """
+    dr = 1e-6
+
     snap = sim.state.snapshot
     if snap.communicator.rank == 0:
-        initial_pos = snap.particles.position
-        snap.particles.position[1] = initial_pos[1] * 0.99999999
+        initial_pos = np.array(snap.particles.position)
+        snap.particles.position[1, 0] = initial_pos[1, 0] - dr
+
     sim.state.snapshot = snap
     E0 = sim.operations.integrator.forces[0].energies
     snap = sim.state.snapshot
@@ -798,16 +801,18 @@ def _calculate_force(sim):
         mag_r0 = np.linalg.norm(r0)
         direction = r0 / mag_r0
 
-        snap.particles.position[1] = initial_pos[1] * 1.00000001
+        snap.particles.position[1, 0] = initial_pos[1, 0] + dr
+
     sim.state.snapshot = snap
     E1 = sim.operations.integrator.forces[0].energies
+
     snap = sim.state.snapshot
     if snap.communicator.rank == 0:
         pos = snap.particles.position
         mag_r1 = np.linalg.norm(pos[0] - pos[1])
+        Fa = -1 * ((sum(E1) - sum(E0)) / (mag_r1 - mag_r0)) * direction
+        Fb = -Fa
 
-        Fa = -1 * ((E1[0] - E0[0]) / (mag_r1 - mag_r0)) * 2 * direction
-        Fb = -1 * ((E1[1] - E0[1]) / (mag_r1 - mag_r0)) * 2 * direction * -1
     snap = sim.state.snapshot
     if snap.communicator.rank == 0:
         snap.particles.position[1] = initial_pos[1]
