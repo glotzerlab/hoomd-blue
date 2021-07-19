@@ -184,14 +184,15 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
 	    ((int*)s_params)[cur_offset + threadIdx.x] = ((int*)d_params)[cur_offset + threadIdx.x];
             }
         }
-    __syncthreads();
 
     // initialize extra shared mem
-    auto s_extra = reinterpret_cast<char*>(s_params + typpair_idx.getNumElements());
+    auto s_extra = reinterpret_cast<char*>(s_ronsq + num_typ_parameters);
 
     unsigned int available_bytes = max_extra_bytes;
-    for (unsigned int cur_pair = 0; cur_pair < typpair_idx.getNumElements(); ++cur_pair)
+    for (unsigned int cur_pair = 0; cur_pair < num_typ_parameters; ++cur_pair)
         s_params[cur_pair].load_shared(s_extra, available_bytes);
+
+    __syncthreads();
 
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * (blockDim.x / tpp) + threadIdx.x / tpp;
@@ -428,7 +429,7 @@ struct PairForceComputeKernel
             unsigned int block_size = pair_args.block_size;
 
             Index2D typpair_idx(pair_args.ntypes);
-            size_t shared_bytes
+            size_t param_shared_bytes
                 = (2 * sizeof(Scalar) + sizeof(typename evaluator::param_type))
                   * typpair_idx.getNumElements();
 
@@ -442,29 +443,19 @@ struct PairForceComputeKernel
 
 	    hipFuncAttributes attr;
 	    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp>));
-            static unsigned int base_shared_bytes = UINT_MAX;
-            bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-            base_shared_bytes = static_cast<unsigned int>(shared_bytes + attr.sharedSizeBytes);
 
             unsigned int max_extra_bytes
-                = static_cast<unsigned int>(pair_args.devprop.sharedMemPerBlock - base_shared_bytes);
-            static unsigned int extra_bytes = UINT_MAX;
-            if (extra_bytes == UINT_MAX || shared_bytes_changed)
-                {
-                // required for memory coherency
-                hipDeviceSynchronize();
+                = static_cast<unsigned int>(pair_args.devprop.sharedMemPerBlock - param_shared_bytes - attr.sharedSizeBytes);
 
-                // determine dynamically requested shared memory
-                char* ptr = static_cast<char*>(nullptr);
-                unsigned int available_bytes = max_extra_bytes;
-                for (unsigned int i = 0; i < typpair_idx.getNumElements(); ++i)
-                    {
-                    d_params[i].allocate_shared(ptr, available_bytes);
-                    }
-                extra_bytes = max_extra_bytes - available_bytes;
+            // determine dynamically requested shared memory in nested managed arrays
+            char* ptr = nullptr;
+            unsigned int available_bytes = max_extra_bytes;
+            for (unsigned int i = 0; i < typpair_idx.getNumElements(); ++i)
+                {
+                d_params[i].allocate_shared(ptr, available_bytes);
                 }
 
-            shared_bytes += extra_bytes;
+            unsigned int extra_shared_bytes = max_extra_bytes - available_bytes;
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size / tpp) + 1, 1, 1);
@@ -473,7 +464,7 @@ struct PairForceComputeKernel
                 (gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp>),
                 dim3(grid),
                 dim3(block_size),
-                shared_bytes,
+                param_shared_bytes + extra_shared_bytes,
                 0,
                 pair_args.d_force,
                 pair_args.d_virial,
