@@ -127,7 +127,7 @@ class EvaluatorPairTable
             }
 
         //! Table doesn't use diameter
-        DEVICE static bool needsDiameter() { return false; } const
+        DEVICE static bool needsDiameter() { return false; }
         //! Accept the optional diameter values
         /*! \param di Diameter of particle i
             \param dj Diameter of particle j
@@ -135,7 +135,7 @@ class EvaluatorPairTable
         DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
         //! Table doesn't use charge
-        DEVICE static bool needsCharge() { return false; } const
+        DEVICE static bool needsCharge() { return false; }
         //! Accept the optional diameter values
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
