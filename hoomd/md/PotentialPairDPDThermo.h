@@ -138,7 +138,6 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
     const BoxDim& box = this->m_pdata->getBox();
     ArrayHandle<Scalar> h_ronsq(this->m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::read);
-    ArrayHandle<param_type> h_params(this->m_params, access_location::host, access_mode::read);
 
     // need to start from a zero force, energy and virial
     memset((void*)h_force.data, 0, sizeof(Scalar4) * this->m_force.getNumElements());
@@ -197,7 +196,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
 
             // get parameters for this type pair
             unsigned int typpair_idx = this->m_typpair_idx(typei, typej);
-            param_type param = h_params.data[typpair_idx];
+            param_type param = this->m_params[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
 
             // design specifies that energies are shifted if

@@ -79,12 +79,13 @@ class EvaluatorPairTable
         #endif
 
             #ifndef __HIPCC__
-            param_type() : width(0), rmin(0.0), V_table({}), F_table({}) {}
+            param_type() : width(0), rmin(0.0) { }
 
             param_type(pybind11::dict v, bool managed=false)
                 {
                 const auto V_py = v["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
                 const auto F_py = v["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+
                 if (V_py.size() != F_py.size())
                     {
                     throw std::runtime_error("The length of V and F arrays must be equal");
@@ -93,8 +94,8 @@ class EvaluatorPairTable
                 rmin = v["r_min"].cast<Scalar>();
                 V_table = ManagedArray<Scalar>(static_cast<unsigned int>(width), managed, 32);
                 F_table = ManagedArray<Scalar>(static_cast<unsigned int>(width), managed, 32);
-                std::copy(&V_py[0], &V_py[0] + width, &V_table[0]);
-                std::copy(&F_py[0], &F_py[0] + width, &F_table[0]);
+                std::copy(V_py.data(0), V_py.data(0) + width, V_table.get());
+                std::copy(F_py.data(0), F_py.data(0) + width, F_table.get());
                 }
 
             pybind11::dict asDict() const

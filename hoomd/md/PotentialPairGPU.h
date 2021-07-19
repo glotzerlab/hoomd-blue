@@ -168,10 +168,6 @@ void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     // access parameters
     ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
-    ArrayHandle<typename evaluator::param_type> d_params(this->m_params,
-                                                         access_location::device,
-                                                         access_mode::read);
-
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
 
@@ -208,7 +204,7 @@ void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
                          threads_per_particle,
                          this->m_pdata->getGPUPartition(),
 			 this->m_exec_conf->dev_prop),
-             d_params.data);
+             this->m_params.data());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
