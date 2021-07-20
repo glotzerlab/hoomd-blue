@@ -64,9 +64,9 @@ class EvaluatorPairMie
         Scalar m3;
         Scalar m4;
 
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {}
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
         // set CUDA memory hints
@@ -76,7 +76,7 @@ class EvaluatorPairMie
 #ifndef __HIPCC__
         param_type() : m1(0), m2(0), m3(0), m4(0) { }
 
-        param_type(pybind11::dict v, bool managed=false)
+        param_type(pybind11::dict v, bool managed = false)
             {
             m3 = v["n"].cast<Scalar>();
             m4 = v["m"].cast<Scalar>();

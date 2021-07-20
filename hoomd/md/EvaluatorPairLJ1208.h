@@ -65,9 +65,9 @@ class EvaluatorPairLJ1208
         Scalar lj1;
         Scalar lj2;
 
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {}
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifndef ENABLE_HIP
         //! set CUDA memory hints
@@ -77,7 +77,7 @@ class EvaluatorPairLJ1208
 #ifndef __HIPCC__
         param_type() : lj1(0), lj2(0) { }
 
-        param_type(pybind11::dict v, bool managed=false)
+        param_type(pybind11::dict v, bool managed = false)
             {
             auto sigma(v["sigma"].cast<Scalar>());
             auto epsilon(v["epsilon"].cast<Scalar>());

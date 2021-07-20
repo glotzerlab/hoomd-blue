@@ -213,7 +213,7 @@ template<class T> class ManagedArray
         size_t padding = ((unsigned long)s_ptr % max_align_bytes);
         if (padding != 0)
             padding = max_align_bytes - padding;
-        char *ptr_align = s_ptr + padding;
+        char* ptr_align = s_ptr + padding;
 
         // this should compute the size of the allocated memory as
         // size_int * sizeof(int) + padding, but that leads to memory errors in HPMC

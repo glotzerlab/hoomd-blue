@@ -67,9 +67,9 @@ class EvaluatorPairBuckingham
         Scalar rho;
         Scalar C;
 
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {}
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
         //! set CUDA memory hint
@@ -79,7 +79,7 @@ class EvaluatorPairBuckingham
 #ifndef __HIPCC__
         param_type() : A(0), rho(0), C(0) { }
 
-        param_type(pybind11::dict v, bool managed=false)
+        param_type(pybind11::dict v, bool managed = false)
             {
             A = v["A"].cast<Scalar>();
             rho = v["rho"].cast<Scalar>();

@@ -55,9 +55,9 @@ class EvaluatorPairGauss
         Scalar epsilon;
         Scalar sigma;
 
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {}
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
         // set CUDA memory hints
@@ -70,14 +70,14 @@ class EvaluatorPairGauss
 #ifndef __HIPCC__
         param_type() : epsilon(0), sigma(0) { }
 
-        param_type(pybind11::dict v, bool managed=false)
+        param_type(pybind11::dict v, bool managed = false)
             {
             sigma = v["sigma"].cast<Scalar>();
             epsilon = v["epsilon"].cast<Scalar>();
             }
 
         // used to facilitate unit testing
-        param_type(Scalar eps, Scalar sig, bool managed=false)
+        param_type(Scalar eps, Scalar sig, bool managed = false)
             {
             sigma = sig;
             epsilon = eps;

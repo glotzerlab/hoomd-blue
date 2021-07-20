@@ -110,9 +110,9 @@ class EvaluatorPairLJ
         Scalar lj1;
         Scalar lj2;
 
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {}
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
@@ -125,7 +125,7 @@ class EvaluatorPairLJ
 #ifndef __HIPCC__
         param_type() : lj1(0), lj2(0) { }
 
-        param_type(pybind11::dict v, bool managed=false)
+        param_type(pybind11::dict v, bool managed = false)
             {
             auto sigma(v["sigma"].cast<Scalar>());
             auto epsilon(v["epsilon"].cast<Scalar>());
@@ -134,7 +134,7 @@ class EvaluatorPairLJ
             }
 
         // this constructor facilitates unit testing
-        param_type(Scalar sigma, Scalar epsilon, bool managed=false)
+        param_type(Scalar sigma, Scalar epsilon, bool managed = false)
             {
             lj1 = 4.0 * epsilon * pow(sigma, 12.0);
             lj2 = 4.0 * epsilon * pow(sigma, 6.0);

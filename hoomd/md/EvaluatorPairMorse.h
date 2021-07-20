@@ -54,9 +54,9 @@ class EvaluatorPairMorse
         Scalar alpha;
         Scalar r0;
 
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {}
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
         // CUDA memory hints
@@ -66,14 +66,14 @@ class EvaluatorPairMorse
 #ifndef __HIPCC__
         param_type() : D0(0), alpha(0), r0(0) { }
 
-        param_type(pybind11::dict v, bool managed=false)
+        param_type(pybind11::dict v, bool managed = false)
             {
             D0 = v["D0"].cast<Scalar>();
             alpha = v["alpha"].cast<Scalar>();
             r0 = v["r0"].cast<Scalar>();
             }
 
-        param_type(Scalar d, Scalar a, Scalar r, bool managed=false)
+        param_type(Scalar d, Scalar a, Scalar r, bool managed = false)
             {
             D0 = d;
             alpha = a;

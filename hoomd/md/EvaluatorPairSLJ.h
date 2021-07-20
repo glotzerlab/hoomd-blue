@@ -60,13 +60,13 @@ class EvaluatorPairSLJ
     //! Define the parameter type used by this pair potential evaluator
     typedef EvaluatorPairLJ::param_type param_type;
 
-    DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+    DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-    HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {}
+    HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
-        // set CUDA memory hints
-        void set_memory_hint() const { }
+    // set CUDA memory hints
+    void set_memory_hint() const { }
 #endif
 
     //! Constructs the pair potential evaluator

@@ -203,7 +203,7 @@ void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
                          flags[pdata_flag::pressure_tensor],
                          threads_per_particle,
                          this->m_pdata->getGPUPartition(),
-			 this->m_exec_conf->dev_prop),
+                         this->m_exec_conf->dev_prop),
              this->m_params.data());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())

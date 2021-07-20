@@ -46,9 +46,9 @@ class EvaluatorPairMoliere
         Scalar qj;
         Scalar aF;
 
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) {}
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const {}
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
         // set CUDA memory hints
@@ -58,7 +58,7 @@ class EvaluatorPairMoliere
 #ifndef __HIPCC__
         param_type() : qi(0), qj(0), aF(0) { }
 
-        param_type(pybind11::dict v, bool managed=false)
+        param_type(pybind11::dict v, bool managed = false)
             {
             qi = v["qi"].cast<Scalar>();
             qj = v["qj"].cast<Scalar>();

@@ -213,8 +213,8 @@ template<class evaluator> class PotentialPair : public ForceCompute
     GlobalArray<Scalar> m_ronsq;  //!< ron squared per type pair
 
     /// Per type pair potential parameters
-    std::vector<param_type, managed_allocator<param_type> > m_params;
-    std::string m_prof_name;          //!< Cached profiler name
+    std::vector<param_type, managed_allocator<param_type>> m_params;
+    std::string m_prof_name; //!< Cached profiler name
 
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
@@ -229,9 +229,10 @@ template<class evaluator> class PotentialPair : public ForceCompute
     virtual void slotNumTypesChange()
         {
         Index2D new_type_pair_idx = Index2D(m_pdata->getNTypes());
-        std::vector<param_type, managed_allocator<param_type> > new_params(new_type_pair_idx.getNumElements(),
-                                                                           param_type(),
-                                                                           managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
+        std::vector<param_type, managed_allocator<param_type>> new_params(
+            new_type_pair_idx.getNumElements(),
+            param_type(),
+            managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
         // allocate new parameter arrays
         GlobalArray<Scalar> new_rcutsq(new_type_pair_idx.getNumElements(), m_exec_conf);
@@ -344,9 +345,10 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
     m_rcutsq.swap(rcutsq);
     GlobalArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_ronsq.swap(ronsq);
-    m_params = std::vector<param_type, managed_allocator<param_type> >(m_typpair_idx.getNumElements(),
-                                                                       param_type(),
-                                                                       managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
+    m_params = std::vector<param_type, managed_allocator<param_type>>(
+        m_typpair_idx.getNumElements(),
+        param_type(),
+        managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
     m_r_cut_nlist
         = std::make_shared<GlobalArray<Scalar>>(m_typpair_idx.getNumElements(), m_exec_conf);
