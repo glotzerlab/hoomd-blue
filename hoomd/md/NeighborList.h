@@ -343,48 +343,8 @@ class PYBIND11_EXPORT NeighborList : public Compute
     //! Gives an estimate of the number of nearest neighbors per particle
     virtual Scalar estimateNNeigh();
 
-    // @}
-    //! \name Handle exclusions
-    // @{
-
     //! Exclude a pair of particles from being added to the neighbor list
     void addExclusion(unsigned int tag1, unsigned int tag2);
-
-    //! Clear all existing exclusions
-    void clearExclusions();
-
-    //! Collect some statistics on exclusions.
-    void countExclusions();
-
-    //! Get number of exclusions involving n particles
-    /*! \param n Size of the exclusion
-     * \returns Number of excluded particles
-     */
-    unsigned int getNumExclusions(unsigned int size);
-
-    //! Add an exclusion for every bond in the ParticleData
-    void addExclusionsFromBonds();
-
-    //! Add exclusions from angles
-    void addExclusionsFromAngles();
-
-    //! Add exclusions from dihedrals
-    void addExclusionsFromDihedrals();
-
-    //! Add an exclusion for every bond in the ConstraintData
-    void addExclusionsFromConstraints();
-
-    //! Add an exclusion for every pair in the ParticleData
-    void addExclusionsFromPairs();
-
-    //! Test if an exclusion has been made
-    bool isExcluded(unsigned int tag1, unsigned int tag2);
-
-    //! Add an exclusion for every 1,3 pair
-    void addOneThreeExclusionsFromTopology();
-
-    //! Add an exclusion for every 1,4 pair
-    void addOneFourExclusionsFromTopology();
 
     //! Enable/disable body filtering
     virtual void setFilterBody(bool filter_body)
@@ -399,6 +359,16 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
         forceUpdate();
         }
+
+
+    //! Collect some statistics on exclusions.
+    void countExclusions();
+
+    //! Get number of exclusions involving n particles
+    /*! \param n Size of the exclusion
+     * \returns Number of excluded particles
+     */
+    unsigned int getNumExclusions(unsigned int size);
 
     //! Test if body filtering is set
     virtual bool getFilterBody()
@@ -665,6 +635,33 @@ class PYBIND11_EXPORT NeighborList : public Compute
         {
         m_need_reallocate_exlist = true;
         }
+
+    //! Clear all existing exclusions
+    void clearExclusions();
+
+    //! Add an exclusion for every bond in the ParticleData
+    void addExclusionsFromBonds();
+
+    //! Add exclusions from angles
+    void addExclusionsFromAngles();
+
+    //! Add exclusions from dihedrals
+    void addExclusionsFromDihedrals();
+
+    //! Add an exclusion for every bond in the ConstraintData
+    void addExclusionsFromConstraints();
+
+    //! Add an exclusion for every pair in the ParticleData
+    void addExclusionsFromPairs();
+
+    //! Test if an exclusion has been made
+    bool isExcluded(unsigned int tag1, unsigned int tag2);
+
+    //! Add an exclusion for every 1,3 pair
+    void addOneThreeExclusionsFromTopology();
+
+    //! Add an exclusion for every 1,4 pair
+    void addOneFourExclusionsFromTopology();
 
 #ifdef ENABLE_HIP
     GPUPartition m_last_gpu_partition; //!< The partition at the time of the last memory hints
