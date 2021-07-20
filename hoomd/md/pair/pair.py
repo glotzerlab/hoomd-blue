@@ -532,49 +532,50 @@ class Table(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        default_r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\\mathrm{length}]`.
 
-    :py:class:`Table` specifies that a tabulated pair potential should be
-    applied between every non-excluded particle pair in the simulation.
+    `Table` specifies that a tabulated pair potential should be applied between
+    every non-excluded particle pair in the simulation in the range
+    :math:`[r_{\\mathrm{min}}, r_{\\mathrm{cut}})`
 
     Note:
-        For potentials that diverge near r=0, make sure to set *rmin* to a
-        reasonable value. If a potential does not diverge near r=0, then a
-        setting of *rmin=0* is valid.
+        For potentials that diverge near r=0, to set *r_min* to a non-zero
+        value.
 
-    The force :math:`\vec{F}` is (in force units):
+    The force :math:`\\vec{F}` is:
 
     .. math::
         :nowrap:
 
         \\begin{eqnarray*}
         \\vec{F}(\\vec{r}) = & 0 & r < r_{\\mathrm{min}} \\\\
-                           = & F_{\\mathrm{user}}(r)\\hat{r}
+                           = & F(r)\\hat{r}
                              & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
                            = & 0 & r \\ge r_{\\mathrm{max}} \\\\
         \\end{eqnarray*}
 
-    and the potential :math:`V(r)` is (in energy units)
+    and the potential :math:`V(r)` is:
 
     .. math::
         :nowrap:
 
         \\begin{eqnarray*}
         V(r) = & 0 & r < r_{\\mathrm{min}} \\\\
-             = & V_{\\mathrm{user}}(r)
+             = & V(r)
                & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
              = & 0 & r \\ge r_{\\mathrm{max}} \\\\
         \\end{eqnarray*}
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other
+    where :math:`\\vec{r}` is the vector pointing from one particle to the other
     in the pair.
 
-    :math:`F_{\\mathrm{user}}(r)` and :math:`V_{\\mathrm{user}}(r)` are
-    evaluated on *width* grid points between :math:`r_{\\mathrm{min}}` and
-    :math:`r_{\\mathrm{max}}`. Values are interpolated linearly between grid
-    points.  For correctness, you must specify the force defined by:
-    :math:`F = -\\frac{\\partial V}{\\partial r}`.
+    Provide :math:`F(r)` and :math:`V(r)` on an evenly space set of grid points
+    points between :math:`r_{\\mathrm{min}}` and :math:`r_{\\mathrm{cut}}`.
+    `Table` linearly interpolates values when :math:`r` lies between grid points
+    and between the last grid point and :math:`r=r_{\\mathrm{cut}}`.  The force
+    must be specificed commensurate with the potential: :math:`F =
+    -\\frac{\\partial V}{\\partial r}`.
 
     Attributes:
         params (`TypeParameter` [\
@@ -584,26 +585,22 @@ class Table(Pair):
 
           * ``r_min`` (`float`, **required**) - the minimum distance to apply
             the tabulated potential, corresponding to the first element of the
-            energy and force arrays
+            energy and force arrays :math:`[\\mathrm{length}]`.
 
-          * ``V`` (`numpy.ndarray`, **required**) - the tabulated energy values
-            (in energy units).
+          * ``V`` ((*N*,) `numpy.ndarray` of ``numpy.float64``, **required**) -
+            the tabulated energy values :math:`[\\mathrm{energy}]`.
 
-          * ``F`` (`numpy.ndarray`, **required**) - the tabulated force values
-            (in force units).
+          * ``F`` ((*N*,) `numpy.ndarray` of ``numpy.float64``, **required**) -
+            the tabulated force values :math:`[\\mathrm{force}]`. Must have the
+            same length as ``V``.
 
-    Example::
+    Note:
 
-        nl = nlist.Cell()
-        r_cut = 3.0
-        r_min = 0.0
-        width = 20
-        V = numpy.linspace(r_min, r_cut, width)[::-1] * 5
-        F = numpy.asarray([-1 * max(V) / (r_cut - r_min)] * width)
-        table = pair.Table(r_cut=r_cut, nlist=nl)
-        table.params[('A', 'A')] = dict(V=V, F=F, r_min=r_min)
+        The implicitly defined :math:`r` values are those that would be returned
+        by ``numpy.linspace(r_min, r_cut, len(V), endpoint=False)``.
     """
     _cpp_class_name = "PotentialPairTable"
+    _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
         super().__init__(nlist, default_r_cut, default_r_on, mode)

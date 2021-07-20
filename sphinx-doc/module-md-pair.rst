@@ -55,7 +55,7 @@ md.pair
         OPP,
         ReactionField,
         SLJ,
-        Table
+        Table,
         TWF,
         Yukawa,
         ZBL
