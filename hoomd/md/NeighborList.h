@@ -530,7 +530,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
     Index2D m_ex_list_indexer;               //!< Indexer for accessing the exclusion list
     Index2D m_ex_list_indexer_tag;           //!< Indexer for accessing the by-tag exclusion list
     bool m_exclusions_set;                   //!< True if any exclusions have been set
-    bool m_need_reallocate_exlist; //!< True if global exclusion list needs to be reallocated
+    bool m_n_particles_changed; //!< True if global exclusion list needs to be reallocated
 
     //! Return true if we are supposed to do a distance check in this time step
     bool shouldCheckDistance(uint64_t timestep);
@@ -633,11 +633,11 @@ class PYBIND11_EXPORT NeighborList : public Compute
     //! Method to be called when the global particle number changes
     void slotGlobalParticleNumberChange()
         {
-        m_need_reallocate_exlist = true;
+        m_n_particles_changed = true;
         }
 
     //! Clear all existing exclusions
-    void clearExclusions();
+    void resizeAndClearExclusions();
 
     //! Add an exclusion for every bond in the ParticleData
     void addExclusionsFromBonds();

@@ -52,7 +52,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_rebuild_check_delay = 0;
     m_exclusions_set = false;
 
-    m_need_reallocate_exlist = false;
+    m_n_particles_changed = false;
 
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
@@ -198,7 +198,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     TAG_ALLOCATION(m_ex_list_idx);
 
     // reset exclusions
-    clearExclusions();
+    resizeAndClearExclusions();
 
     m_ex_list_indexer = Index2D((unsigned int)m_ex_list_idx.getPitch(), 1);
     m_ex_list_indexer_tag = Index2D((unsigned int)m_ex_list_tag.getPitch(), 1);
@@ -367,16 +367,15 @@ void NeighborList::compute(uint64_t timestep)
         m_prof->push("Neighbor");
 
     // when the number of particles in the system changes, rebuild the exclusion list
-    if (m_need_reallocate_exlist)
+    if (m_n_particles_changed)
         {
-        clearExclusions();
-        std::set<std::string> exclusions_copy(m_exclusions);
-        for (const std::string& exclusion : exclusions_copy)
+        resizeAndClearExclusions();
+        for (const std::string& exclusion : m_exclusions)
             {
             setSingleExclusion(exclusion);
             }
 
-        m_need_reallocate_exlist = false;
+        m_n_particles_changed = false;
         }
 
     // take care of some updates if things have changed since construction
@@ -628,7 +627,7 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     assert(tag1 <= m_pdata->getMaximumTag());
     assert(tag2 <= m_pdata->getMaximumTag());
 
-    assert(!m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     m_exclusions_set = true;
 
@@ -685,10 +684,10 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 
 /*! \post No particles are excluded from the neighbor list
  */
-void NeighborList::clearExclusions()
+void NeighborList::resizeAndClearExclusions()
     {
     // reallocate list of exclusions per tag if necessary
-    if (m_need_reallocate_exlist)
+    if (m_n_particles_changed)
         {
         m_n_ex_tag.resize(m_pdata->getRTags().size());
 
@@ -700,8 +699,6 @@ void NeighborList::clearExclusions()
             m_ex_list_indexer_tag = Index2D((unsigned int)m_ex_list_tag.getPitch(),
                                             (unsigned int)m_ex_list_tag.getHeight());
             }
-
-        m_need_reallocate_exlist = false;
         }
 
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
@@ -737,7 +734,7 @@ unsigned int NeighborList::getNumExclusions(unsigned int size)
 
 void NeighborList::setExclusions(pybind11::list exclusions)
     {
-    clearExclusions();
+    resizeAndClearExclusions();
     setFilterBody(false);
     m_exclusions = set<std::string>();
     for (auto exclusion : exclusions)
@@ -808,7 +805,7 @@ void NeighborList::countExclusions()
     unsigned int excluded_count[MAX_COUNT_EXCLUDED + 2];
     unsigned int num_excluded, max_num_excluded;
 
-    assert(!m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
 
@@ -1044,7 +1041,7 @@ void NeighborList::addExclusionsFromPairs()
 */
 bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     {
-    assert(!m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     assert(tag1 <= m_pdata->getMaximumTag());
     assert(tag2 <= m_pdata->getMaximumTag());
@@ -1499,7 +1496,7 @@ void NeighborList::buildNlist(uint64_t timestep)
  */
 void NeighborList::updateExListIdx()
     {
-    assert(!m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     if (m_prof)
         m_prof->push("update-ex");
