@@ -8,6 +8,7 @@
 
 #include "EvaluatorBondFENE.h"
 #include "EvaluatorBondHarmonic.h"
+#include "EvaluatorBondTether.h"
 #include "PotentialBond.h"
 
 #ifdef ENABLE_HIP
@@ -27,6 +28,8 @@
 typedef PotentialBond<EvaluatorBondHarmonic> PotentialBondHarmonic;
 //! Bond potential force compute for FENE forces
 typedef PotentialBond<EvaluatorBondFENE> PotentialBondFENE;
+//! Bond potential force compute for Tethering forces
+typedef PotentialBond<EvaluatorBondTether> PotentialBondTether;
 
 #ifdef ENABLE_HIP
 //! Bond potential force compute for harmonic forces on the GPU
@@ -34,6 +37,8 @@ typedef PotentialBondGPU<EvaluatorBondHarmonic, gpu_compute_harmonic_forces>
     PotentialBondHarmonicGPU;
 //! Bond potential force compute for FENE forces on the GPU
 typedef PotentialBondGPU<EvaluatorBondFENE, gpu_compute_fene_forces> PotentialBondFENEGPU;
+//! Bond potential force compute for Tethering forces on the GPU
+typedef PotentialBondGPU<EvaluatorBondTether, gpu_compute_tether_forces> PotentialBondTetherGPU;
 #endif
 
 #endif // __BOND_POTENTIALS_H__

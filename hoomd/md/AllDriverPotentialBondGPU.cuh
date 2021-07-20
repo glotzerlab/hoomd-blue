@@ -12,6 +12,7 @@
 
 #include "EvaluatorBondFENE.h"
 #include "EvaluatorBondHarmonic.h"
+#include "EvaluatorBondTether.h"
 #include "PotentialBondGPU.cuh"
 
 //! Compute harmonic bond forces on the GPU with BondEvaluatorHarmonic
@@ -25,4 +26,10 @@ hipError_t __attribute__((visibility("default")))
 gpu_compute_fene_forces(const bond_args_t& bond_args,
                         const fene_params* d_params,
                         unsigned int* d_flags);
+
+//! Compute Tether bond forces on the GPU with BondEvaluatorTether
+hipError_t __attribute__((visibility("default")))
+gpu_compute_tether_forces(const bond_args_t& bond_args,
+                          const tether_params* d_params,
+                          unsigned int* d_flags);
 #endif
