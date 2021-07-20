@@ -8,6 +8,7 @@ import hoomd
 from hoomd import md
 from hoomd.logging import LoggerCategories
 from hoomd.conftest import logging_check, pickling_check
+from hoomd.error import TypeConversionError
 import pytest
 import itertools
 from copy import deepcopy
@@ -49,13 +50,13 @@ def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 
 
 def test_rcut(simulation_factory, two_particle_snapshot_factory):
-    lj = md.pair.LJ(nlist=md.nlist.Cell(), r_cut=2.5)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(), default_r_cut=2.5)
     assert lj.r_cut.default == 2.5
 
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
-    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
+    with pytest.raises(TypeConversionError):
         lj.r_cut[('A', 'A')] = 'str'
-    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
+    with pytest.raises(TypeConversionError):
         lj.r_cut[('A', 'A')] = [1, 2, 3]
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
@@ -74,14 +75,14 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
 def test_invalid_mode():
     cell = md.nlist.Cell()
     for invalid_mode in [1, 'str', [1, 2, 3]]:
-        with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
-            md.pair.LJ(nlist=cell, r_cut=2.5, mode=invalid_mode)
+        with pytest.raises(TypeConversionError):
+            md.pair.LJ(nlist=cell, default_r_cut=2.5, mode=invalid_mode)
 
 
 @pytest.mark.parametrize("mode", ['none', 'shift', 'xplor'])
 def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
     cell = md.nlist.Cell()
-    lj = md.pair.LJ(nlist=cell, r_cut=2.5, mode=mode)
+    lj = md.pair.LJ(nlist=cell, default_r_cut=2.5, mode=mode)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     snap = two_particle_snapshot_factory(dimensions=3, d=.5)
     sim = simulation_factory(snap)
@@ -94,11 +95,11 @@ def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
 
 
 def test_ron(simulation_factory, two_particle_snapshot_factory):
-    lj = md.pair.LJ(nlist=md.nlist.Cell(), mode='xplor', r_cut=2.5)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(), mode='xplor', default_r_cut=2.5)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
-    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
+    with pytest.raises(TypeConversionError):
         lj.r_on[('A', 'A')] = 'str'
-    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
+    with pytest.raises(TypeConversionError):
         lj.r_on[('A', 'A')] = [1, 2, 3]
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
@@ -341,7 +342,7 @@ def test_invalid_params(invalid_params):
                                         nlist=md.nlist.Cell())
     for pair in invalid_params.pair_potential_params:
         if isinstance(pair, tuple):
-            with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
+            with pytest.raises(TypeConversionError):
                 pot.params[pair] = invalid_params.pair_potential_params[pair]
 
 
@@ -566,6 +567,20 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(
         paramtuple(hoomd.md.pair.OPP, dict(zip(combos, opp_valid_param_dicts)),
                    {}))
+
+    expanded_mie_arg_dict = {
+        'epsilon': [.05, .025, .010],
+        'sigma': [.5, 1, 1.5],
+        'n': [12, 14, 16],
+        'm': [6, 8, 10],
+        'delta': [.1, .2, .3]
+    }
+    expanded_mie_valid_param_dicts = _make_valid_param_dicts(
+        expanded_mie_arg_dict)
+    valid_params_list.append(
+        paramtuple(hoomd.md.pair.ExpandedMie,
+                   dict(zip(combos, expanded_mie_valid_param_dicts)), {}))
+
     twf_arg_dict = {
         'sigma': [0.1, 0.2, 0.5],
         'epsilon': [0.1, 0.5, 2.0],
@@ -588,7 +603,7 @@ def valid_params(request):
 def test_valid_params(valid_params):
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5)
+                                      default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     assert _equivalent_data_structures(valid_params.pair_potential_params,
@@ -596,11 +611,12 @@ def test_valid_params(valid_params):
 
 
 def _update_snap(pair_potential, snap):
-    if (any(name in str(pair_potential) for name in ['Ewald']) and snap.exists):
+    if (any(name in str(pair_potential) for name in ['Ewald'])
+            and snap.communicator.rank == 0):
         snap.particles.charge[:] = 1.
-    if 'SLJ' in str(pair_potential) and snap.exists:
+    if 'SLJ' in str(pair_potential) and snap.communicator.rank == 0:
         snap.particles.diameter[:] = 2
-    if 'DLVO' in str(pair_potential) and snap.exists:
+    if 'DLVO' in str(pair_potential) and snap.communicator.rank == 0:
         snap.particles.diameter[0] = 0.2
         snap.particles.diameter[1] = 0.5
 
@@ -620,7 +636,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5)
+                                      default_r_cut=2.5)
     pot.params = valid_params.pair_potential_params
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
@@ -629,7 +645,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
                                     r=0.01)
 
     _update_snap(valid_params.pair_potential, snap)
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
                                                      snap.particles.N)
@@ -647,14 +663,14 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5)
+                                      default_r_cut=2.5)
     pot.params = valid_params.pair_potential_params
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=7,
                                     a=1.7,
                                     r=0.01)
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
                                                      snap.particles.N)
@@ -670,7 +686,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     old_snap = sim.state.snapshot
     sim.run(2)
     new_snap = sim.state.snapshot
-    if new_snap.exists:
+    if new_snap.communicator.rank == 0:
         assert not np.allclose(new_snap.particles.position,
                                old_snap.particles.position)
 
@@ -694,7 +710,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     r_on = 0.5
     r = 1.0
 
-    lj = md.pair.LJ(nlist=md.nlist.Cell(), r_cut=r_cut)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(), default_r_cut=r_cut)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=r))
@@ -711,7 +727,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
         E_r = sum(energies)
 
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.position[0] = [0, 0, .1]
         snap.particles.position[1] = [0, 0, r_cut + .1]
     sim.state.snapshot = snap
@@ -719,7 +735,9 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     if energies is not None:
         E_rcut = sum(energies)
 
-    lj_shift = md.pair.LJ(nlist=md.nlist.Cell(), mode='shift', r_cut=r_cut)
+    lj_shift = md.pair.LJ(nlist=md.nlist.Cell(),
+                          mode='shift',
+                          default_r_cut=r_cut)
     lj_shift.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(lj_shift)
@@ -729,7 +747,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     sim.run(0)
 
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.position[0] = [0, 0, .1]
         snap.particles.position[1] = [0, 0, r + .1]
     sim.state.snapshot = snap
@@ -738,7 +756,9 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     if energies is not None:
         assert sum(energies) == E_r - E_rcut
 
-    lj_xplor = md.pair.LJ(nlist=md.nlist.Cell(), mode='xplor', r_cut=r_cut)
+    lj_xplor = md.pair.LJ(nlist=md.nlist.Cell(),
+                          mode='xplor',
+                          default_r_cut=r_cut)
     lj_xplor.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     lj_xplor.r_on[('A', 'A')] = 0.5
     integrator = md.Integrator(dt=0.005)
@@ -764,13 +784,13 @@ def _calculate_force(sim):
     Finds the negative derivative of energy divided by inter-particle distance
     """
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         initial_pos = snap.particles.position
         snap.particles.position[1] = initial_pos[1] * 0.99999999
     sim.state.snapshot = snap
     E0 = sim.operations.integrator.forces[0].energies
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         pos = snap.particles.position
         r0 = pos[0] - pos[1]
         mag_r0 = np.linalg.norm(r0)
@@ -780,17 +800,17 @@ def _calculate_force(sim):
     sim.state.snapshot = snap
     E1 = sim.operations.integrator.forces[0].energies
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         pos = snap.particles.position
         mag_r1 = np.linalg.norm(pos[0] - pos[1])
 
         Fa = -1 * ((E1[0] - E0[0]) / (mag_r1 - mag_r0)) * 2 * direction
         Fb = -1 * ((E1[1] - E0[1]) / (mag_r1 - mag_r0)) * 2 * direction * -1
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.position[1] = initial_pos[1]
     sim.state.snapshot = snap
-    if sim.state.snapshot.exists:
+    if sim.state.snapshot.communicator.rank == 0:
         return Fa, Fb
     else:
         return 0, 0  # return dummy values if not on rank 1
@@ -808,7 +828,7 @@ def test_force_energy_relationship(simulation_factory,
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5)
+                                      default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
 
@@ -824,7 +844,7 @@ def test_force_energy_relationship(simulation_factory,
     sim.run(0)
     for pair in valid_params.pair_potential_params:
         snap = sim.state.snapshot
-        if snap.exists:
+        if snap.communicator.rank == 0:
             snap.particles.typeid[0] = particle_types.index(pair[0])
             snap.particles.typeid[1] = particle_types.index(pair[1])
         sim.state.snapshot = snap
@@ -913,8 +933,7 @@ def test_force_energy_accuracy(simulation_factory,
 
     pot = forces_and_energies.pair_potential(**forces_and_energies.extra_args,
                                              nlist=md.nlist.Cell(),
-                                             r_cut=2.5,
-                                             mode='none')
+                                             default_r_cut=2.5)
     pot.params[('A', 'A')] = forces_and_energies.pair_potential_params
     snap = two_particle_snapshot_factory(particle_types=['A'], d=0.75)
     _update_snap(forces_and_energies.pair_potential, snap)
@@ -930,7 +949,7 @@ def test_force_energy_accuracy(simulation_factory,
         d = particle_distances[i]
         r = np.array([0, 0, d]) / d
         snap = sim.state.snapshot
-        if snap.exists:
+        if snap.communicator.rank == 0:
             snap.particles.position[0] = [0, 0, .1]
             snap.particles.position[1] = [0, 0, d + .1]
         sim.state.snapshot = snap
@@ -979,7 +998,7 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory,
     _skip_if_triplet_gpu_mpi(sim, valid_params.pair_potential)
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5)
+                                      default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     pickling_check(pot)

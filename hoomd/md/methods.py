@@ -9,9 +9,9 @@ import hoomd
 from hoomd.md.manifold import Manifold
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.filter import ParticleFilter
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
+from hoomd.filter import ParticleFilter
 from hoomd.variant import Variant
 from collections.abc import Sequence
 
@@ -214,13 +214,10 @@ class NVT(Method):
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatDOF(self._simulation.timestep)
 
-    @hoomd.logging.log
+    @hoomd.logging.log(requires_run=True)
     def thermostat_energy(self):
         """Energy the thermostat contributes to the Hamiltonian [energy]."""
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
+        return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
 
 
 class NPT(Method):
@@ -507,21 +504,15 @@ class NPT(Method):
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             self._simulation.timestep)
 
-    @hoomd.logging.log
+    @hoomd.logging.log(requires_run=True)
     def thermostat_energy(self):
         """Energy the thermostat contributes to the Hamiltonian [energy]."""
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
+        return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
 
-    @hoomd.logging.log
+    @hoomd.logging.log(requires_run=True)
     def barostat_energy(self):
         """Energy the barostat contributes to the Hamiltonian [energy]."""
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
+        return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
 
 
 class NPH(Method):
@@ -701,13 +692,10 @@ class NPH(Method):
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             self._simulation.timestep)
 
-    @hoomd.logging.log
+    @hoomd.logging.log(requires_run=True)
     def barostat_energy(self):
         """Energy the barostat contributes to the Hamiltonian [energy]."""
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
+        return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
 
 
 class NVE(MethodRATTLE):

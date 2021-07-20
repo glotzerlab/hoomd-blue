@@ -55,7 +55,7 @@ HarmonicDihedralForceComputeGPU::~HarmonicDihedralForceComputeGPU() { }
 void HarmonicDihedralForceComputeGPU::setParams(unsigned int type,
                                                 Scalar K,
                                                 Scalar sign,
-                                                Scalar multiplicity,
+                                                int multiplicity,
                                                 Scalar phi_0)
     {
     HarmonicDihedralForceCompute::setParams(type, K, sign, multiplicity, phi_0);

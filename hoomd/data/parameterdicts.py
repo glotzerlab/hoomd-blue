@@ -9,10 +9,11 @@ from itertools import product, combinations_with_replacement
 from copy import copy
 
 from hoomd.util import _to_camel_case, _is_iterable
-from hoomd.data.typeconverter import (to_type_converter, TypeConversionError,
-                                      RequiredArg)
+from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
+                                      TypeConverterMapping, OnlyIf, Either)
 from hoomd.data.smart_default import (_to_base_defaults, _to_default,
                                       _SmartDefault, _NoDefault)
+from hoomd.error import TypeConversionError
 
 
 def has_str_elems(obj):
@@ -58,7 +59,17 @@ class _ValidatedDefaultDict:
     def _validate_values(self, val):
         val = self._type_converter(val)
         if isinstance(val, dict):
-            dft_keys = set(self.default.keys())
+            if isinstance(self._type_converter, TypeConverterMapping):
+                dft_keys = set(self._type_converter.keys())
+            elif isinstance(self._type_converter.converter, OnlyIf):
+                dft_keys = set(self._type_converter.converter.cond.keys())
+            elif isinstance(self._type_converter.converter, Either):
+                mapping = next(
+                    filter(lambda x: isinstance(x, TypeConverterMapping),
+                           self._type_converter.converter.specs))
+                dft_keys = set(mapping.keys())
+            else:
+                raise ValueError
             bad_keys = set(val.keys()) - dft_keys
             if len(bad_keys) != 0:
                 raise ValueError("Keys must be a subset of available keys. "

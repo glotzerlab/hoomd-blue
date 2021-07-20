@@ -25,7 +25,7 @@ def test_write(simulation_factory, two_particle_snapshot_factory, tmp_path):
     positions = []
 
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         position1 = np.asarray(snap.particles.position[0])
         position2 = np.asarray(snap.particles.position[1])
         positions.append([list(position1), list(position2)])
