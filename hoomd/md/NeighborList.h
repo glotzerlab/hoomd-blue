@@ -360,7 +360,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
         forceUpdate();
         }
 
-
     //! Collect some statistics on exclusions.
     void countExclusions();
 
