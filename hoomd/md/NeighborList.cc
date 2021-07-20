@@ -366,6 +366,19 @@ void NeighborList::compute(uint64_t timestep)
     if (m_prof)
         m_prof->push("Neighbor");
 
+    // when the number of particles in the system changes, rebuild the exclusion list
+    if (m_need_reallocate_exlist)
+        {
+        clearExclusions();
+        std::set<std::string> exclusions_copy(m_exclusions);
+        for (const std::string& exclusion : exclusions_copy)
+            {
+            setSingleExclusion(exclusion);
+            }
+
+        m_need_reallocate_exlist = false;
+        }
+
     // take care of some updates if things have changed since construction
     if (m_force_update)
         {
@@ -1838,7 +1851,6 @@ void export_NeighborList(py::module& m)
         .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
         .def("getNumExclusions", &NeighborList::getNumExclusions)
-        .def("wantExclusions", &NeighborList::wantExclusions)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &NeighborList::setCommunicator)
 #endif

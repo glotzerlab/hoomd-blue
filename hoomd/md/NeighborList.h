@@ -340,11 +340,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
         return m_exclusions_set;
         }
 
-    bool wantExclusions()
-        {
-        return m_need_reallocate_exlist;
-        }
-
     //! Gives an estimate of the number of nearest neighbors per particle
     virtual Scalar estimateNNeigh();
 
