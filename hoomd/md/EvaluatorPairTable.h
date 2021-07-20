@@ -19,27 +19,18 @@
 #ifndef __TABLEPOTENTIAL_H__
 #define __TABLEPOTENTIAL_H__
 
-//! Computes the potential and force on each particle based on values given in a table
-/*! \b Overview
-    Pair potentials and forces are evaluated for all particle pairs in the system within the given
-   cutoff distances. Both the potentials and forces** are provided the tables V(r) and F(r) at
-   discreet \a r values between \a rmin and \a rcut. Evaluations are performed by simple linear
-   interpolation, thus why F(r) must be explicitly specified to avoid large errors resulting from
-   the numerical derivative. Note that F(r) should store - dV/dr.
+//! Computes the result of a tabulated pair potential
+/*! The potential and force values are provided the tables V(r) and F(r) at N_table discreet \a r
+    values between \a rmin and \a rcut. Evaluations are performed by simple linear interpolation.
+    F(r) must be explicitly specified as -dV/dr to avoid errors resulting from the numerical
+    derivative.
 
-    \b Table memory layout
+    V(r) and F(r) are specified for each unique particle type pair. dr is the linear bin
+    spacing and equal to (rcut - rmin)/N_table. V(0) is the value of V at r=rmin. V(i) is the value
+    of V at r=rmin + dr*i where i is chosen such that r >= rmin and r < rcut. V(r) and F(r) for
+    r < rmin and r >= rcut is 0.
 
-    V(r) and F(r) are specified for each unique particle type pair. Three parameters need to be
-   stored for each potential: rmin, rcut, and dr, the minimum r, maximum r, and spacing between r
-   values in the table respectively. V(0) is the value of V at r=rmin. V(i) is the value of V at
-   r=rmin + dr*i where i is chosen such that r >= rmin and r < rcut. V(r) for r < rmin and >= rcut
-   is 0. The same goes for F. Thus V and F are defined between the region [rmin, rcut).
-
-    \b Interpolation
-    Values are interpolated linearly between two points straddling the given r. For a given r, the
-   first point needed, i can be calculated via i = floorf((r - rmin) / dr). The fraction between ri
-   and ri+1 can be calculated via f = (r - rmin) / dr - Scalar(i). And the linear interpolation can
-   then be performed via V(r) ~= Vi + f * (Vi+1 - Vi) \ingroup computes
+    V and F Values are interpolated linearly between two points on either side of the given r.
 */
 class EvaluatorPairTable
     {
@@ -47,7 +38,6 @@ class EvaluatorPairTable
     //! Define the parameter type used by this pair potential evaluator
     struct param_type
         {
-        size_t width;                 //!< the distance between table indices
         Scalar rmin;                  //!< the distance of the first index of the table potential
         ManagedArray<Scalar> V_table; //!< the tabulated energy
         ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
@@ -78,7 +68,7 @@ class EvaluatorPairTable
 #endif
 
 #ifndef __HIPCC__
-        param_type() : width(0), rmin(0.0) { }
+        param_type() : rmin(0.0) { }
 
         param_type(pybind11::dict v, bool managed = false)
             {
@@ -90,7 +80,7 @@ class EvaluatorPairTable
                 throw std::runtime_error("The length of V and F arrays must be equal");
                 }
 
-            width = V_py.size();
+            size_t width = V_py.size();
             rmin = v["r_min"].cast<Scalar>();
             V_table = ManagedArray<Scalar>(static_cast<unsigned int>(width), managed);
             F_table = ManagedArray<Scalar>(static_cast<unsigned int>(width), managed);
@@ -100,8 +90,8 @@ class EvaluatorPairTable
 
         pybind11::dict asDict() const
             {
-            const auto V = pybind11::array_t<Scalar>(width, V_table.get());
-            const auto F = pybind11::array_t<Scalar>(width, F_table.get());
+            const auto V = pybind11::array_t<Scalar>(V_table.size(), V_table.get());
+            const auto F = pybind11::array_t<Scalar>(F_table.size(), F_table.get());
             auto params = pybind11::dict();
             params["V"] = V;
             params["F"] = F;
@@ -122,7 +112,7 @@ class EvaluatorPairTable
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairTable(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), width(_params.width), rmin(_params.rmin),
+        : rsq(_rsq), rcutsq(_rcutsq), rmin(_params.rmin),
           V_table(_params.V_table), F_table(_params.F_table)
         {
         }
@@ -132,6 +122,7 @@ class EvaluatorPairTable
         {
         return false;
         }
+
     //! Accept the optional diameter values
     /*! \param di Diameter of particle i
         \param dj Diameter of particle j
@@ -143,6 +134,7 @@ class EvaluatorPairTable
         {
         return false;
         }
+
     //! Accept the optional diameter values
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
@@ -151,18 +143,17 @@ class EvaluatorPairTable
 
     //! Evaluate the force and energy
     /*! \param force_divr Output parameter to write the computed force divided by r.
-        \param pair_eng Output parameter to write the computed pair energy
-        \param energy_shift If true, the potential must be shifted so that
-        V(r) is continuous at the cutoff
-        \note There is no need to check if rsq < rcutsq in this method.
-        Cutoff tests are performed in PotentialPair.
+        \param pair_eng Output parameter to write the computed pair energy.
+        \param energy_shift Table potentials do not support energy shifting.
 
-        \return True if they are evaluated or false if they are not because
-        we are beyond the cutoff
+        \return True if the force and energy are evaluated or false if r is outside the valid
+        range.
     */
     DEVICE bool
     evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, const bool energy_shift) const
         {
+        unsigned int width = V_table.size();
+
         const Scalar r = fast::sqrt(rsq);
         // compute the force divided by r in force_divr
         if (rsq >= rcutsq || r < rmin)
@@ -175,7 +166,7 @@ class EvaluatorPairTable
         const Scalar value_f = (r - rmin) / delta_r;
 
         // compute index into the table and read in values
-        unsigned int value_i = static_cast<unsigned int>(floor(value_f));
+        unsigned int value_i = static_cast<unsigned int>(slow::floor(value_f));
         // unpack the data
         const Scalar V0 = V_table[value_i];
         const Scalar F0 = F_table[value_i];
@@ -194,7 +185,7 @@ class EvaluatorPairTable
         const Scalar V = V0 + f * (V1 - V0);
         const Scalar F = F0 + f * (F1 - F0);
 
-        // convert to standard variables used by the other pair computes in HOOMD-blue
+        // return the force divided by r
         if (rsq > Scalar(0.0))
             {
             force_divr = F / r;
