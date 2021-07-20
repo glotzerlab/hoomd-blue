@@ -58,13 +58,14 @@ struct pair_args_t
                 const unsigned int _compute_virial,
                 const unsigned int _threads_per_particle,
                 const GPUPartition& _gpu_partition,
-		const hipDeviceProp_t& _devprop)
+                const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_diameter(_d_diameter), d_charge(_d_charge), box(_box),
           d_n_neigh(_d_n_neigh), d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq),
           d_ronsq(_d_ronsq), size_neigh_list(_size_neigh_list), ntypes(_ntypes),
           block_size(_block_size), shift_mode(_shift_mode), compute_virial(_compute_virial),
-          threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition), devprop(_devprop) {};
+          threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition),
+          devprop(_devprop) {};
 
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out
@@ -181,7 +182,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
         {
         if (cur_offset + threadIdx.x < param_size)
             {
-	    ((int*)s_params)[cur_offset + threadIdx.x] = ((int*)d_params)[cur_offset + threadIdx.x];
+            ((int*)s_params)[cur_offset + threadIdx.x] = ((int*)d_params)[cur_offset + threadIdx.x];
             }
         }
 
@@ -441,11 +442,16 @@ struct PairForceComputeKernel
                                                                                compute_virial,
                                                                                tpp>);
 
-	    hipFuncAttributes attr;
-	    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp>));
+            hipFuncAttributes attr;
+            hipFuncGetAttributes(
+                &attr,
+                reinterpret_cast<const void*>(&gpu_compute_pair_forces_shared_kernel<evaluator,
+                                                                                     shift_mode,
+                                                                                     compute_virial,
+                                                                                     tpp>));
 
-            unsigned int max_extra_bytes
-                = static_cast<unsigned int>(pair_args.devprop.sharedMemPerBlock - param_shared_bytes - attr.sharedSizeBytes);
+            unsigned int max_extra_bytes = static_cast<unsigned int>(
+                pair_args.devprop.sharedMemPerBlock - param_shared_bytes - attr.sharedSizeBytes);
 
             // determine dynamically requested shared memory in nested managed arrays
             char* ptr = nullptr;
