@@ -112,8 +112,8 @@ class EvaluatorPairTable
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairTable(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), rmin(_params.rmin),
-          V_table(_params.V_table), F_table(_params.F_table)
+        : rsq(_rsq), rcutsq(_rcutsq), rmin(_params.rmin), V_table(_params.V_table),
+          F_table(_params.F_table)
         {
         }
 
