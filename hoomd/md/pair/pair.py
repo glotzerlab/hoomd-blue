@@ -1159,7 +1159,7 @@ class Mie(Pair):
 
 class ExpandedMie(Pair):
     """Expanded Mie pair potential.
-    
+
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list.
         default_r_cut (float): Default cutoff radius (in distance units).
