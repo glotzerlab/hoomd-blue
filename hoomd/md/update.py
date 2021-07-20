@@ -230,21 +230,6 @@ class ReversePerturbationFlow(Updater):
                  max_slab=-1,
                  min_slab=-1):
 
-        if n_slabs < 0:
-            raise ValueError(f"The number of slabs is negative, \
-                              n_slabs = {n_slabs}")
-        if min_slab < 0:
-            min_slab = 0
-        if max_slab < 0:
-            max_slab = n_slabs / 2
-        if max_slab <= -1 or max_slab > n_slabs:
-            raise ValueError(f"Invalid max_slab of {max_slab}")
-        if min_slab <= -1 or min_slab > n_slabs:
-            raise ValueError(f"Invalid min_slab of {min_slab}")
-        if min_slab == max_slab:
-            raise ValueError(f"Min and max slab are equal. \
-                              min_slab = max_slab = {min_slab}")
-
         params = ParameterDict(
             filter=hoomd.filter.ParticleFilter,
             flow_target=hoomd.variant.Variant,
@@ -254,22 +239,51 @@ class ReversePerturbationFlow(Updater):
             flow_direction=OnlyTypes(str,
                                      strict=True,
                                      postprocess=self._to_lowercase),
-            n_slabs=int(n_slabs),
-            max_slab=int(max_slab),
-            min_slab=int(min_slab),
+            n_slabs=OnlyTypes(int,
+                              preprocess=self._preprocess_n_slabs),
+            max_slab=OnlyTypes(int,
+                               preprocess=self._preprocess_max_slab),
+            min_slab=OnlyTypes(int,
+                               preprocess=self._preprocess_min_slab),
             flow_epsilon=float(1e-2))
         params.update(
             dict(filter=filter,
                  flow_target=flow_target,
                  slab_direction=slab_direction,
-                 flow_direction=flow_direction))
+                 flow_direction=flow_direction,
+                 n_slabs=n_slabs))
         self._param_dict.update(params)
+        self._param_dict.update(dict(max_slab=max_slab))
+        self._param_dict.update(dict(min_slab=min_slab))
 
         # This updater has to be applied every timestep
         super().__init__(hoomd.trigger.Periodic(1))
 
     def _to_lowercase(self, letter):
         return letter.lower()
+
+    def _preprocess_n_slabs(self, n_slabs):
+        if n_slabs < 0:
+            raise ValueError(f"The number of slabs is negative, \
+                              n_slabs = {n_slabs}")
+        return n_slabs
+
+    def _preprocess_max_slab(self, max_slab):
+        if max_slab < 0:
+            max_slab = self.n_slabs / 2
+        if max_slab <= -1 or max_slab > self.n_slabs:
+            raise ValueError(f"Invalid max_slab of {max_slab}")
+        return max_slab
+
+    def _preprocess_min_slab(self, min_slab):
+        if min_slab < 0:
+            min_slab = 0
+        if min_slab <= -1 or min_slab > self.n_slabs:
+            raise ValueError(f"Invalid min_slab of {min_slab}")
+        if min_slab == self.max_slab:
+            raise ValueError(f"Min and max slab are equal. \
+                              min_slab = max_slab = {min_slab}")
+        return min_slab
 
     def _attach(self):
         group = self._simulation.state._get_group(self.filter)
