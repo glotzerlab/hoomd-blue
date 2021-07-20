@@ -298,6 +298,7 @@ class TypeConverter(ABC):
 
 class NDArrayValidator(_HelpValidate):
     """Validates array and array-like structures.
+
     Args:
         dtype (numpy.dtype): The type of individual items in the array.
         shape (`tuple` [`int`, ...], optional): The shape of the array. The
