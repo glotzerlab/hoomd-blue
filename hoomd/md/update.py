@@ -239,12 +239,9 @@ class ReversePerturbationFlow(Updater):
             flow_direction=OnlyTypes(str,
                                      strict=True,
                                      postprocess=self._to_lowercase),
-            n_slabs=OnlyTypes(int,
-                              preprocess=self._preprocess_n_slabs),
-            max_slab=OnlyTypes(int,
-                               preprocess=self._preprocess_max_slab),
-            min_slab=OnlyTypes(int,
-                               preprocess=self._preprocess_min_slab),
+            n_slabs=OnlyTypes(int, preprocess=self._preprocess_n_slabs),
+            max_slab=OnlyTypes(int, preprocess=self._preprocess_max_slab),
+            min_slab=OnlyTypes(int, preprocess=self._preprocess_min_slab),
             flow_epsilon=float(1e-2))
         params.update(
             dict(filter=filter,
