@@ -73,12 +73,12 @@ hipError_t __attribute__((visibility("default")))
 gpu_compute_ewald_forces(const pair_args_t& pair_args,
                          const EvaluatorPairEwald::param_type* d_params);
 
-//! Compute moliere pair forces on the GPU with const EvaluatorPairMoliere
+//! Compute moliere pair forces on the GPU with EvaluatorPairMoliere
 hipError_t __attribute__((visibility("default")))
 gpu_compute_moliere_forces(const pair_args_t& pair_args,
                            const EvaluatorPairMoliere::param_type* d_params);
 
-//! Compute zbl pair forces on the GPU with const EvaluatorPairZBL
+//! Compute zbl pair forces on the GPU with EvaluatorPairZBL
 hipError_t __attribute__((visibility("default")))
 gpu_compute_zbl_forces(const pair_args_t& pair_args, const EvaluatorPairZBL::param_type* d_params);
 
@@ -121,7 +121,7 @@ hipError_t __attribute__((visibility("default")))
 gpu_compute_lj0804_forces(const pair_args_t& pair_args,
                           const EvaluatorPairLJ0804::param_type* d_params);
 
-//! Compute DLVO potential pair forces on the GPU with const EvaluatorPairDLVO
+//! Compute DLVO potential pair forces on the GPU with EvaluatorPairDLVO
 hipError_t __attribute__((visibility("default")))
 gpu_compute_dlvo_forces(const pair_args_t& args, const EvaluatorPairDLVO::param_type* d_params);
 
@@ -130,16 +130,16 @@ hipError_t __attribute__((visibility("default")))
 gpu_compute_fourier_forces(const pair_args_t& pair_args,
                            const EvaluatorPairFourier::param_type* d_params);
 
-//! Compute oscillating pair potential forces on the GPU with const EvaluatorPairOPP
+//! Compute oscillating pair potential forces on the GPU with EvaluatorPairOPP
 hipError_t __attribute__((visibility("default")))
 gpu_compute_opp_forces(const pair_args_t& pair_args, const EvaluatorPairOPP::param_type* d_params);
 
-//! Compute tabulated pair potential forces on the GPU with const EvaluatorPairTable
+//! Compute tabulated pair potential forces on the GPU with EvaluatorPairTable
 hipError_t __attribute__((visibility("default")))
 gpu_compute_table_forces(const pair_args_t& pair_args,
                          const EvaluatorPairTable::param_type* d_params);
 
-//! Compute oscillating pair potential forces on the GPU with const EvaluatorPairOPP
+//! Compute oscillating pair potential forces on the GPU with EvaluatorPairOPP
 hipError_t __attribute__((visibility("default")))
 gpu_compute_twf_forces(const pair_args_t& pair_args, const EvaluatorPairTWF::param_type* d_params);
 #endif
