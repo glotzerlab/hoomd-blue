@@ -135,8 +135,8 @@ _err = np.array([
     0.57591598, 0.66462928
 ])
 
-
-def test_values(device):
+@pytest.mark.validate
+def test_values(simulation_factory, lattice_snapshot_factory):
     n_particles_per_side = 32
     phi = 0.8  # packing fraction
 
@@ -146,54 +146,33 @@ def test_values(device):
     L = np.sqrt(area)
     a = L / n_particles_per_side
 
-    s = hoomd.Snapshot(device.communicator)
+    snap = lattice_snapshot_factory(dimensions=2, n=n_particles_per_side, a=a)
 
-    if s.communicator.num_ranks > 1:
-        pytest.skip('Test does not support MPI execution')
-    else:
-        s.configuration.box = [L, L, 0, 0, 0, 0]
+    sim = simulation_factory(snap)
+    sim.seed = 10
 
-        s.particles.N = N
-        s.particles.types = ['A']
+    mc = hoomd.hpmc.integrate.ConvexPolygon(default_d=0.1)
+    mc.shape["A"] = {
+        'vertices': [(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]
+    }
+    sim.operations.add(mc)
 
-        pos = np.zeros((N, 3))
-        lox = -L / 2.0
-        loy = -L / 2.0
-        for particle in range(N):
-            i = particle % n_particles_per_side
-            j = particle // n_particles_per_side % n_particles_per_side
-            pos[particle, 0] = lox + i * a + a / 2
-            pos[particle, 1] = loy + j * a + a / 2
+    sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
+    sim.operations.add(sdf)
 
-            s.particles.position[:] = pos
+    sdf_log = hoomd.conftest.ListWriter(sdf, 'sdf')
+    sim.operations.writers.append(
+        hoomd.write.CustomWriter(action=sdf_log,
+                                    trigger=hoomd.trigger.Periodic(10)))
 
-        sim = hoomd.Simulation(device)
+    sim.run(6000)
 
-        sim.create_state_from_snapshot(s)
+    sdf_data = np.asarray(sdf_log.data)
 
-        sim.seed = 10
-
-        mc = hoomd.hpmc.integrate.ConvexPolygon(default_d=0.1)
-        mc.shape["A"] = {
-            'vertices': [(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]
-        }
-        sim.operations.add(mc)
-
-        sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
-        sim.operations.add(sdf)
-
-        sdf_log = hoomd.conftest.ListWriter(sdf, 'sdf')
-        sim.operations.writers.append(
-            hoomd.write.CustomWriter(action=sdf_log,
-                                     trigger=hoomd.trigger.Periodic(10)))
-
-        sim.run(6000)
-
-        sdf_data = np.asarray(sdf_log.data)
-
-        # skip the first frame in averaging, then check that all values are within 3
-        # error bars of the reference avg. This seems sufficient to get good test
-        # results even with different seeds or GPU runs
+    if sim.device.communicator.rank == 0:
+        # skip the first frame in averaging, then check that all values are
+        # within 3 error bars of the reference avg. This seems sufficient to get
+        # good test results even with different seeds or GPU runs
         v = np.mean(sdf_data[1:, :], axis=0)
         invalid = np.abs(_avg - v) > (8 * _err)
         assert np.sum(invalid) == 0
