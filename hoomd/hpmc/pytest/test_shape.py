@@ -78,6 +78,7 @@ def test_shape_attached(simulation_factory, two_particle_snapshot_factory,
                         valid_args):
     integrator = valid_args[0]
     args = valid_args[1]
+    n_dimensions = valid_args[2]
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
         integrator = integrator[1]
@@ -88,7 +89,7 @@ def test_shape_attached(simulation_factory, two_particle_snapshot_factory,
             args["shapes"][i] = inner_mc.shape["A"]
     mc = integrator()
     mc.shape["A"] = args
-    sim = simulation_factory(two_particle_snapshot_factory())
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=n_dimensions))
     assert sim.operations.integrator is None
     sim.operations.add(mc)
     sim.operations._schedule()
@@ -99,14 +100,11 @@ def test_moves(device, simulation_factory, lattice_snapshot_factory,
                test_moves_args):
     integrator = test_moves_args[0]
     args = test_moves_args[1]
-    if 'polygon' in str(integrator).lower():
-        dims = 2
-    else:
-        dims = 3
+    n_dimensions = test_moves_args[2]
     mc = integrator()
     mc.shape['A'] = args
 
-    sim = simulation_factory(lattice_snapshot_factory(dimensions=dims))
+    sim = simulation_factory(lattice_snapshot_factory(dimensions=n_dimensions))
     sim.operations.add(mc)
 
     with pytest.raises(DataAccessError):
@@ -640,6 +638,7 @@ def test_pickling(valid_args, simulation_factory,
                   two_particle_snapshot_factory):
     integrator = valid_args[0]
     args = valid_args[1]
+    n_dimensions = valid_args[2]
     # Need to unpack union integrators
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
@@ -654,5 +653,5 @@ def test_pickling(valid_args, simulation_factory,
     # L needs to be ridiculously large as to not be too small for the domain
     # decomposition of some of the shapes definitions in valid_args which have
     # shapes with large extent in at least one dimension.
-    sim = simulation_factory(two_particle_snapshot_factory(L=1000))
+    sim = simulation_factory(two_particle_snapshot_factory(L=1000, dimensions=n_dimensions))
     operation_pickling_check(mc, sim)

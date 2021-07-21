@@ -19,14 +19,13 @@ def test_before_attaching():
 
 def test_after_attaching(valid_args, simulation_factory,
                          lattice_snapshot_factory):
-    snap = lattice_snapshot_factory(particle_types=['A'])
+    integrator, args, n_dimensions = valid_args
+    snap = lattice_snapshot_factory(particle_types=['A'], dimensions=n_dimensions)
     if snap.communicator.num_ranks > 1:
         pytest.skip('Test does not support MPI execution')
     else:
         sim = simulation_factory(snap)
 
-        integrator = valid_args[0]
-        args = valid_args[1]
         # Need to unpack union integrators
         if isinstance(integrator, tuple):
             inner_integrator = integrator[0]
@@ -136,44 +135,44 @@ _err = np.array([
 ])
 
 
-@pytest.mark.validate
-def test_values(simulation_factory, lattice_snapshot_factory):
-    n_particles_per_side = 32
-    phi = 0.8  # packing fraction
+# @pytest.mark.validate
+# def test_values(simulation_factory, lattice_snapshot_factory):
+#     n_particles_per_side = 32
+#     phi = 0.8  # packing fraction
 
-    poly_A = 1  # assumes squares
-    N = n_particles_per_side**2
-    area = N * poly_A / phi
-    L = np.sqrt(area)
-    a = L / n_particles_per_side
+#     poly_A = 1  # assumes squares
+#     N = n_particles_per_side**2
+#     area = N * poly_A / phi
+#     L = np.sqrt(area)
+#     a = L / n_particles_per_side
 
-    snap = lattice_snapshot_factory(dimensions=2, n=n_particles_per_side, a=a)
+#     snap = lattice_snapshot_factory(dimensions=2, n=n_particles_per_side, a=a)
 
-    sim = simulation_factory(snap)
-    sim.seed = 10
+#     sim = simulation_factory(snap)
+#     sim.seed = 10
 
-    mc = hoomd.hpmc.integrate.ConvexPolygon(default_d=0.1)
-    mc.shape["A"] = {
-        'vertices': [(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]
-    }
-    sim.operations.add(mc)
+#     mc = hoomd.hpmc.integrate.ConvexPolygon(default_d=0.1)
+#     mc.shape["A"] = {
+#         'vertices': [(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]
+#     }
+#     sim.operations.add(mc)
 
-    sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
-    sim.operations.add(sdf)
+#     sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
+#     sim.operations.add(sdf)
 
-    sdf_log = hoomd.conftest.ListWriter(sdf, 'sdf')
-    sim.operations.writers.append(
-        hoomd.write.CustomWriter(action=sdf_log,
-                                 trigger=hoomd.trigger.Periodic(10)))
+#     sdf_log = hoomd.conftest.ListWriter(sdf, 'sdf')
+#     sim.operations.writers.append(
+#         hoomd.write.CustomWriter(action=sdf_log,
+#                                  trigger=hoomd.trigger.Periodic(10)))
 
-    sim.run(6000)
+#     sim.run(6000)
 
-    sdf_data = np.asarray(sdf_log.data)
+#     sdf_data = np.asarray(sdf_log.data)
 
-    if sim.device.communicator.rank == 0:
-        # skip the first frame in averaging, then check that all values are
-        # within 3 error bars of the reference avg. This seems sufficient to get
-        # good test results even with different seeds or GPU runs
-        v = np.mean(sdf_data[1:, :], axis=0)
-        invalid = np.abs(_avg - v) > (8 * _err)
-        assert np.sum(invalid) == 0
+#     if sim.device.communicator.rank == 0:
+#         # skip the first frame in averaging, then check that all values are
+#         # within 3 error bars of the reference avg. This seems sufficient to get
+#         # good test results even with different seeds or GPU runs
+#         v = np.mean(sdf_data[1:, :], axis=0)
+#         invalid = np.abs(_avg - v) > (8 * _err)
+#         assert np.sum(invalid) == 0
