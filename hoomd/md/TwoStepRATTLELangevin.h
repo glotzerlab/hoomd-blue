@@ -44,10 +44,7 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLELangevin : public Tw
                           Manifold manifold,
                           std::shared_ptr<Variant> T,
                           Scalar tolerance = 0.000001);
-    virtual ~TwoStepRATTLELangevin()
-        {
-        m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLELangevin" << endl;
-        }
+    virtual ~TwoStepRATTLELangevin();
 
     void setTallyReservoirEnergy(bool tally)
         {
@@ -98,6 +95,12 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLELangevin : public Tw
         };
 
     protected:
+    //! Helper function to be called when box changes
+    void setBoxChange()
+        {
+        m_box_changed = true;
+        }
+
     Manifold m_manifold;       //!< The manifold used for the RATTLE constraint
     Scalar m_reservoir_energy; //!< The energy of the reservoir the system is coupled to.
     Scalar
@@ -107,6 +110,7 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLELangevin : public Tw
     bool m_noiseless_r; //!< If set true, there will be no rotational noise (random torque)
     Scalar m_tolerance; //!< The tolerance value of the RATTLE algorithm, setting the tolerance to
                         //!< the manifold
+    bool m_box_changed;
     };
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
@@ -128,15 +132,24 @@ TwoStepRATTLELangevin<Manifold>::TwoStepRATTLELangevin(std::shared_ptr<SystemDef
                                                        Scalar tolerance)
     : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold), m_reservoir_energy(0),
       m_extra_energy_overdeltaT(0), m_tally(false), m_noiseless_t(false), m_noiseless_r(false),
-      m_tolerance(tolerance)
+      m_tolerance(tolerance), m_box_changed(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLELangevin" << endl;
+
+    m_pdata->getBoxChangeSignal().template connect<TwoStepRATTLELangevin<Manifold>, &TwoStepRATTLELangevin<Manifold>::setBoxChange>(this);
 
     if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
         {
         throw std::runtime_error("Parts of the manifold are outside the box");
         }
     }
+
+template<class Manifold>
+TwoStepRATTLELangevin<Manifold>::~TwoStepRATTLELangevin()
+        {
+ 	m_pdata->getBoxChangeSignal().template disconnect<TwoStepRATTLELangevin<Manifold>, &TwoStepRATTLELangevin<Manifold>::setBoxChange>(this);
+        m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLELangevin" << endl;
+        }
 
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
@@ -165,10 +178,14 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepOne(
 
     const BoxDim& box = m_pdata->getBox();
 
-    if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
-        {
-        throw std::runtime_error("Parts of the manifold are outside the box");
-        }
+    if(m_box_changed)
+    	{
+    	if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+    	    {
+    	    throw std::runtime_error("Parts of the manifold are outside the box");
+    	    }
+    	m_box_changed = false;
+    	}
 
     // perform the first half step of the RATTLE algorithm applied on velocity verlet
     // v(t+deltaT/2) = v(t) + (1/2)*deltaT*(a-alpha*n_manifold(x(t))/m)

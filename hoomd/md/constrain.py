@@ -43,8 +43,6 @@ class Constraint(_HOOMDBaseObject):
 
         super()._attach()
 
-
-class distance(Constraint):
     R"""Constrain pairwise particle distances.
 
     :py:class:`distance` specifies that forces will be applied to all particles
