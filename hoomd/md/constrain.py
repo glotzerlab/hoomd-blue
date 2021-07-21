@@ -10,8 +10,8 @@ Constraint forces can constrain particles to be a set distance from each other,
 to have some relative orientation, or impose other types of constraint.
 
 The `Rigid` class is special in that only one is allowed in a system and is set
-to an `hoomd.md.Integator` object separately in the
-`rigid <hoomd.md.Integator.rigid>` attribute.
+to an `hoomd.md.Integrator` object separately in the
+`rigid <hoomd.md.Integrator.rigid>` attribute.
 
 Warning:
     Constraints will be invalidated if two separate constraints apply to the
@@ -55,18 +55,18 @@ class Distance(Constraint):
     in:
 
     1. M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative
-       Matrix Method for Constraint Molecular Dynamics Simulations," Mol.
-       Simul., vol. 13, no. 6, pp. 395--405, 1994.
+       Matrix Method for Constraint Molecular Dynamics Simulations," Molecular
+       Simulation, vol. 13, no. 6, pp. 395--405, 1994.
     2. M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint
-       Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp.
-       188--197, Sep. 2001.
+       Molecular Dynamics Simulations," Journal of Computational Physics,
+       vol. 172, no. 1, pp. 188--197, Sep. 2001.
 
     In brief, the second derivative of the Lagrange multipliers with respect to
     time is set to zero, such that both the distance constraints and their time
     derivatives are conserved within the accuracy of the Velocity Verlet scheme,
-    i.e. within :math:`\Delta t^2`. The corresponding linear system of equations
-    is solved. Because constraints are satisfied at :math:`t + 2 \Delta t`, the
-    scheme is self-correcting and drifts are avoided.
+    i.e. within :math:`\\Delta t^2`. The corresponding linear system of
+    equations is solved. Because constraints are satisfied at :math:`t + 2
+    \\Delta t`, the scheme is self-correcting and drifts are avoided.
 
     .. hint::
 
@@ -134,8 +134,8 @@ class Rigid(Constraint):
     Warning:
         Automatic creation of constituent particles changes particle tags. When
         there are bonds between particles in the initial configuration, or bonds
-        connect to constituent particles, include the constituent particles in the
-        initial configuration manually.
+        connect to constituent particles, include the constituent particles in
+        the initial configuration manually.
 
     When you create the constituent particles manually (i.e. in an input file
     or with snapshots), the central particle of a rigid body must have a lower

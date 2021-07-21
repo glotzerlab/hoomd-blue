@@ -64,7 +64,7 @@ def polymer_snapshot_factory(device):
 
 
 def test_attach_detach(simulation_factory, polymer_snapshot_factory):
-    """Ensure that md.constrain.Distance can be attached
+    """Ensure that md.constrain.Distance can be attached.
 
     Also test that parameters can be set.
     """
