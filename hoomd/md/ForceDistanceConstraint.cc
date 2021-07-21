@@ -414,9 +414,7 @@ void ForceDistanceConstraint::solveConstraints(uint64_t timestep)
 
     if (m_sparse_solver.info())
         {
-        m_exec_conf->msg->error() << "Could not solve linear system of constraint equations."
-                                  << std::endl;
-        throw std::runtime_error("Error evaluating constraint forces.\n");
+        throw std::runtime_error("Could not solve linear system of constraint equations.");
         }
 
     // access RHS and solution vector
