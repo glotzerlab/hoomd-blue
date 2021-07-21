@@ -353,6 +353,13 @@ template<unsigned int ndim> class EvaluatorPairALJ
             face_offsets.load_shared(ptr, available_bytes);
             }
 
+        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
+            {
+            verts.allocate_shared(ptr, available_bytes);
+            faces.allocate_shared(ptr, available_bytes);
+            face_offsets.allocate_shared(ptr, available_bytes);
+            }
+
 #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const

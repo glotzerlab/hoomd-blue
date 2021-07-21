@@ -53,7 +53,9 @@ class EvaluatorPairGB
             \param available_bytes Size of remaining shared memory
             allocation
         */
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const { }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints

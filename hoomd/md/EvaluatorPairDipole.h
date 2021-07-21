@@ -54,7 +54,9 @@ class EvaluatorPairDipole
             \param available_bytes Size of remaining shared memory
             allocation
         */
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const { }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
         HOSTDEVICE param_type() : A(0), kappa(0) { }
 
