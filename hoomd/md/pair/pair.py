@@ -577,6 +577,8 @@ class Table(Pair):
     must be specificed commensurate with the potential: :math:`F =
     -\\frac{\\partial V}{\\partial r}`.
 
+    `Table` does not support energy shifting or smoothing modes.
+
     Attributes:
         params (`TypeParameter` [\
           `tuple` [``particle_type``, ``particle_type``],\
@@ -602,8 +604,8 @@ class Table(Pair):
     _cpp_class_name = "PotentialPairTable"
     _accepted_modes = ("none",)
 
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
-        super().__init__(nlist, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
+        super().__init__(nlist, default_r_cut, default_r_on, 'none')
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(
