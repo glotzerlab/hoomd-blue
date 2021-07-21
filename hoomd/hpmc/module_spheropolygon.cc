@@ -6,8 +6,8 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
-#include "ShapeSpheropolygon.h"
 #include "ComputeSDF.h"
+#include "ShapeSpheropolygon.h"
 #include "ShapeUnion.h"
 
 #include "ExternalCallback.h"
@@ -37,11 +37,11 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_spheropolygon(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeSpheropolygon >(m, "IntegratorHPMCMonoSpheropolygon");
-    export_ComputeFreeVolume< ShapeSpheropolygon >(m, "ComputeFreeVolumeSpheropolygon");
-    export_ComputeSDF< ShapeSpheropolygon >(m, "ComputeSDFConvexSpheropolygon");
-    export_UpdaterMuVT< ShapeSpheropolygon >(m, "UpdaterMuVTConvexSpheropolygon");
-    export_UpdaterClusters< ShapeSpheropolygon >(m, "UpdaterClustersConvexSpheropolygon");
+    export_IntegratorHPMCMono<ShapeSpheropolygon>(m, "IntegratorHPMCMonoSpheropolygon");
+    export_ComputeFreeVolume<ShapeSpheropolygon>(m, "ComputeFreeVolumeSpheropolygon");
+    export_ComputeSDF<ShapeSpheropolygon>(m, "ComputeSDFConvexSpheropolygon");
+    export_UpdaterMuVT<ShapeSpheropolygon>(m, "UpdaterMuVTConvexSpheropolygon");
+    export_UpdaterClusters<ShapeSpheropolygon>(m, "UpdaterClustersConvexSpheropolygon");
 
     export_ExternalFieldInterface<ShapeSpheropolygon>(m, "ExternalFieldSpheropolygon");
     export_LatticeField<ShapeSpheropolygon>(m, "ExternalFieldLatticeSpheropolygon");

@@ -6,8 +6,8 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
-#include "ShapeSimplePolygon.h"
 #include "ComputeSDF.h"
+#include "ShapeSimplePolygon.h"
 #include "ShapeUnion.h"
 
 #include "ExternalCallback.h"
@@ -37,11 +37,11 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_simple_polygon(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeSimplePolygon >(m, "IntegratorHPMCMonoSimplePolygon");
-    export_ComputeFreeVolume< ShapeSimplePolygon >(m, "ComputeFreeVolumeSimplePolygon");
-    export_ComputeSDF< ShapeSimplePolygon >(m, "ComputeSDFSimplePolygon");
-    export_UpdaterMuVT< ShapeSimplePolygon >(m, "UpdaterMuVTSimplePolygon");
-    export_UpdaterClusters< ShapeSimplePolygon >(m, "UpdaterClustersSimplePolygon");
+    export_IntegratorHPMCMono<ShapeSimplePolygon>(m, "IntegratorHPMCMonoSimplePolygon");
+    export_ComputeFreeVolume<ShapeSimplePolygon>(m, "ComputeFreeVolumeSimplePolygon");
+    export_ComputeSDF<ShapeSimplePolygon>(m, "ComputeSDFSimplePolygon");
+    export_UpdaterMuVT<ShapeSimplePolygon>(m, "UpdaterMuVTSimplePolygon");
+    export_UpdaterClusters<ShapeSimplePolygon>(m, "UpdaterClustersSimplePolygon");
 
     export_ExternalFieldInterface<ShapeSimplePolygon>(m, "ExternalFieldSimplePolygon");
     export_LatticeField<ShapeSimplePolygon>(m, "ExternalFieldLatticeSimplePolygon");

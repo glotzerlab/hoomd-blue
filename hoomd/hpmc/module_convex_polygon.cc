@@ -6,8 +6,8 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
-#include "ShapeConvexPolygon.h"
 #include "ComputeSDF.h"
+#include "ShapeConvexPolygon.h"
 #include "ShapeUnion.h"
 
 #include "ExternalCallback.h"
@@ -37,11 +37,11 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_convex_polygon(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeConvexPolygon >(m, "IntegratorHPMCMonoConvexPolygon");
-    export_ComputeFreeVolume< ShapeConvexPolygon >(m, "ComputeFreeVolumeConvexPolygon");
-    export_ComputeSDF< ShapeConvexPolygon >(m, "ComputeSDFConvexPolygon");
-    export_UpdaterMuVT< ShapeConvexPolygon >(m, "UpdaterMuVTConvexPolygon");
-    export_UpdaterClusters< ShapeConvexPolygon >(m, "UpdaterClustersConvexPolygon");
+    export_IntegratorHPMCMono<ShapeConvexPolygon>(m, "IntegratorHPMCMonoConvexPolygon");
+    export_ComputeFreeVolume<ShapeConvexPolygon>(m, "ComputeFreeVolumeConvexPolygon");
+    export_ComputeSDF<ShapeConvexPolygon>(m, "ComputeSDFConvexPolygon");
+    export_UpdaterMuVT<ShapeConvexPolygon>(m, "UpdaterMuVTConvexPolygon");
+    export_UpdaterClusters<ShapeConvexPolygon>(m, "UpdaterClustersConvexPolygon");
 
     export_ExternalFieldInterface<ShapeConvexPolygon>(m, "ExternalFieldConvexPolygon");
     export_LatticeField<ShapeConvexPolygon>(m, "ExternalFieldLatticeConvexPolygon");

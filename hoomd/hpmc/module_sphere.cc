@@ -6,8 +6,8 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
-#include "ShapeSphere.h"
 #include "ComputeSDF.h"
+#include "ShapeSphere.h"
 #include "ShapeUnion.h"
 
 #include "ExternalCallback.h"
@@ -37,11 +37,11 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_sphere(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeSphere >(m, "IntegratorHPMCMonoSphere");
-    export_ComputeFreeVolume< ShapeSphere >(m, "ComputeFreeVolumeSphere");
-    export_ComputeSDF< ShapeSphere >(m, "ComputeSDFSphere");
-    export_UpdaterMuVT< ShapeSphere >(m, "UpdaterMuVTSphere");
-    export_UpdaterClusters< ShapeSphere >(m, "UpdaterClustersSphere");
+    export_IntegratorHPMCMono<ShapeSphere>(m, "IntegratorHPMCMonoSphere");
+    export_ComputeFreeVolume<ShapeSphere>(m, "ComputeFreeVolumeSphere");
+    export_ComputeSDF<ShapeSphere>(m, "ComputeSDFSphere");
+    export_UpdaterMuVT<ShapeSphere>(m, "UpdaterMuVTSphere");
+    export_UpdaterClusters<ShapeSphere>(m, "UpdaterClustersSphere");
 
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
     export_LatticeField<ShapeSphere>(m, "ExternalFieldLatticeSphere");

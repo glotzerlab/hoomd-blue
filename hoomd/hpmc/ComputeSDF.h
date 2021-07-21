@@ -4,15 +4,13 @@
 #ifndef __COMPUTE_SDF__H__
 #define __COMPUTE_SDF__H__
 
-
-#include "hoomd/Compute.h"
-#include "hoomd/CellList.h"
 #include "hoomd/Autotuner.h"
+#include "hoomd/CellList.h"
+#include "hoomd/Compute.h"
 
 #include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMCMono.h"
 #include "hoomd/RNGIdentifiers.h"
-
 
 /*! \file ComputeSDF.h
     \brief Defines the template class for an sdf compute
@@ -25,15 +23,12 @@
 
 #include <pybind11/pybind11.h>
 
-
 namespace hpmc
-{
-
+    {
 namespace detail
-{
-
+    {
 //! Local helper function to test overlap of two particles with scale
-template < class Shape >
+template<class Shape>
 bool test_scaled_overlap(const vec3<Scalar>& r_ij,
                          const quat<Scalar>& orientation_i,
                          const quat<Scalar>& orientation_j,
@@ -49,10 +44,11 @@ bool test_scaled_overlap(const vec3<Scalar>& r_ij,
     Shape shape_j(orientation_j, params_j);
 
     vec3<Scalar> r_ij_scaled = r_ij * (Scalar(1.0) - lambda);
-    return check_circumsphere_overlap(r_ij_scaled, shape_i, shape_j) && test_overlap(r_ij_scaled, shape_i, shape_j, dummy);
+    return check_circumsphere_overlap(r_ij_scaled, shape_i, shape_j)
+           && test_overlap(r_ij_scaled, shape_i, shape_j, dummy);
     }
 
-}
+    } // namespace detail
 
 //! SDF analysis
 /*! **Overview** <br>
@@ -101,95 +97,92 @@ bool test_scaled_overlap(const vec3<Scalar>& r_ij,
 
     \ingroup hpmc_computes
 */
-template< class Shape >
-class ComputeSDF : public Compute
+template<class Shape> class ComputeSDF : public Compute
     {
     public:
-        //! Shape parameter time (shorthand)
-        typedef typename Shape::param_type param_type;
+    //! Shape parameter time (shorthand)
+    typedef typename Shape::param_type param_type;
 
-        //! Construct the integrator
-        ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
-                   std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                   double xmax,
-                   double dx);
-        //! Destructor
-        virtual ~ComputeSDF() { };
+    //! Construct the integrator
+    ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
+               std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
+               double xmax,
+               double dx);
+    //! Destructor
+    virtual ~ComputeSDF() {};
 
-        //! Get the maximum value in the rightmost histogram bin
-        double getXMax()
-            {
-            return m_xmax;
-            }
+    //! Get the maximum value in the rightmost histogram bin
+    double getXMax()
+        {
+        return m_xmax;
+        }
 
-        //! Set the maximum value in the rightmost histogram bin
-        //! \param xmax maximum value in the rightmost histogram bin
-        void setXMax(double xmax)
-            {
-            m_xmax = xmax;
-            }
+    //! Set the maximum value in the rightmost histogram bin
+    //! \param xmax maximum value in the rightmost histogram bin
+    void setXMax(double xmax)
+        {
+        m_xmax = xmax;
+        }
 
-        //! Get the histogram bin width
-        double getDx()
-            {
-            return m_dx;
-            }
+    //! Get the histogram bin width
+    double getDx()
+        {
+        return m_dx;
+        }
 
-        //! Set the histogram bin width
-        //! \param dx histogram bin width
-        void setDx(double dx)
-            {
-            m_dx = dx;
-            }
+    //! Set the histogram bin width
+    //! \param dx histogram bin width
+    void setDx(double dx)
+        {
+        m_dx = dx;
+        }
 
 #ifdef ENABLE_MPI
-        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-            {
-            // call base class method
-            Compute::setCommunicator(comm);
-            }
+    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+        {
+        // call base class method
+        Compute::setCommunicator(comm);
+        }
 #endif
 
-        //! Analyze the current configuration
-        virtual void compute(uint64_t timestep);
+    //! Analyze the current configuration
+    virtual void compute(uint64_t timestep);
 
-        //! Return an sdf
-        virtual pybind11::array_t<double> getSDF();
+    //! Return an sdf
+    virtual pybind11::array_t<double> getSDF();
 
     protected:
-        std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< The parent integrator
-        double m_xmax;                          //!< Maximum lambda value
-        double m_dx;                            //!< Histogram step size
+    std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< The parent integrator
+    double m_xmax;                                   //!< Maximum lambda value
+    double m_dx;                                     //!< Histogram step size
 
-        std::vector<unsigned int> m_hist;       //!< Raw histogram data
-        std::vector<double> m_sdf;              //!< Computed SDF
+    std::vector<unsigned int> m_hist; //!< Raw histogram data
+    std::vector<double> m_sdf;        //!< Computed SDF
 
-        Scalar m_last_max_diam;                 //!< Last recorded maximum diameter
+    Scalar m_last_max_diam; //!< Last recorded maximum diameter
 
+    //! Zero the histogram counts
+    void zeroHistogram();
 
-        //! Zero the histogram counts
-        void zeroHistogram();
+    //! Add to histogram counts
+    void countHistogram(uint64_t timestep);
 
-        //! Add to histogram counts
-        void countHistogram(uint64_t timestep);
+    //! Determine the s bin of a given particle pair
+    size_t computeBin(const vec3<Scalar>& r_ij,
+                      const quat<Scalar>& orientation_i,
+                      const quat<Scalar>& orientation_j,
+                      const typename Shape::param_type& params_i,
+                      const typename Shape::param_type& params_j);
 
-        //! Determine the s bin of a given particle pair
-        size_t computeBin(const vec3<Scalar>& r_ij,
-                          const quat<Scalar>& orientation_i,
-                          const quat<Scalar>& orientation_j,
-                          const typename Shape::param_type& params_i,
-                          const typename Shape::param_type& params_j);
-
-        //! Return the sdf
-        virtual void computeSDF(uint64_t timestep);
+    //! Return the sdf
+    virtual void computeSDF(uint64_t timestep);
     };
 
-
-template< class Shape >
-ComputeSDF< Shape >::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
-                               std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                               double xmax,
-                               double dx)
+template<class Shape>
+ComputeSDF<Shape>::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
+                              std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
+                              double xmax,
+                              double dx)
     : Compute(sysdef), m_mc(mc), m_xmax(xmax), m_dx(dx)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeSDF: " << xmax << " " << dx << std::endl;
@@ -202,8 +195,7 @@ ComputeSDF< Shape >::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
     m_mc->setExtraGhostWidth(extra);
     }
 
-template<class Shape>
-void ComputeSDF<Shape>::compute(uint64_t timestep)
+template<class Shape> void ComputeSDF<Shape>::compute(uint64_t timestep)
     {
     Compute::compute(timestep);
     if (!shouldCompute(timestep))
@@ -225,25 +217,31 @@ void ComputeSDF<Shape>::compute(uint64_t timestep)
     }
 
 /*! \return the current sdf histogram
-*/
-template<class Shape>
-void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
+ */
+template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
     {
     zeroHistogram();
 
-    if (this->m_prof) this->m_prof->push(this->m_exec_conf, "SDF");
+    if (this->m_prof)
+        this->m_prof->push(this->m_exec_conf, "SDF");
 
     countHistogram(timestep);
 
     std::vector<unsigned int> hist_total(m_hist);
 
-    // in MPI, total up all of the histogram bins from all nodes to the root node
-    #ifdef ENABLE_MPI
+// in MPI, total up all of the histogram bins from all nodes to the root node
+#ifdef ENABLE_MPI
     if (m_comm)
         {
-        MPI_Reduce(m_hist.data(), hist_total.data(), (unsigned int)m_hist.size(), MPI_UNSIGNED, MPI_SUM, 0, m_exec_conf->getMPICommunicator());
+        MPI_Reduce(m_hist.data(),
+                   hist_total.data(),
+                   (unsigned int)m_hist.size(),
+                   MPI_UNSIGNED,
+                   MPI_SUM,
+                   0,
+                   m_exec_conf->getMPICommunicator());
         }
-    #endif
+#endif
 
     // compute the probability density
     m_sdf.resize(m_hist.size());
@@ -252,23 +250,22 @@ void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
         m_sdf[i] = hist_total[i] / (m_pdata->getNGlobal() * m_dx);
         }
 
-    if (this->m_prof) this->m_prof->pop();
+    if (this->m_prof)
+        this->m_prof->pop();
     }
 
 // \return the sdf histogram
-template<class Shape>
-pybind11::array_t<double> ComputeSDF<Shape>::getSDF()
+template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDF()
     {
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (!m_exec_conf->isRoot())
         return pybind11::none();
-    #endif
+#endif
 
     return pybind11::array_t<double>(m_sdf.size(), m_sdf.data());
     }
 
-template < class Shape >
-void ComputeSDF<Shape>::zeroHistogram()
+template<class Shape> void ComputeSDF<Shape>::zeroHistogram()
     {
     // resize the histogram
     m_hist.resize((size_t)(m_xmax / m_dx));
@@ -288,21 +285,24 @@ void ComputeSDF<Shape>::zeroHistogram()
       - The integrator performs the ghost exchange (with the ghost width extra that we add)
       - Only on writeOutput() do we need to sum the per-rank histograms into a global histogram
 */
-template < class Shape >
-void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
+template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     {
     // update the aabb tree
     const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
     // update the image list
-    const std::vector<vec3<Scalar> >&image_list = m_mc->updateImageList();
+    const std::vector<vec3<Scalar>>& image_list = m_mc->updateImageList();
 
     Scalar extra_width = m_xmax / (1 - m_xmax) * m_mc->getMaxCoreDiameter();
 
     // access particle data and system box
-    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::read);
 
-    const std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+    const std::vector<param_type, managed_allocator<param_type>>& params = m_mc->getParams();
 
     // loop through N particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -317,7 +317,8 @@ void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
-        detail::AABB aabb_i_local(vec3<Scalar>(0,0,0), shape_i.getCircumsphereDiameter()/Scalar(2) + extra_width);
+        detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0),
+                                  shape_i.getCircumsphereDiameter() / Scalar(2) + extra_width);
 
         size_t n_images = image_list.size();
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -327,13 +328,16 @@ void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
             aabb.translate(pos_i_image);
 
             // stackless search
-            for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
+            for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
+                 cur_node_idx++)
                 {
                 if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
                     {
                     if (aabb_tree.isNodeLeaf(cur_node_idx))
                         {
-                        for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                        for (unsigned int cur_p = 0;
+                             cur_p < aabb_tree.getNodeNumParticles(cur_node_idx);
+                             cur_p++)
                             {
                             // read in its position and orientation
                             unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
@@ -348,12 +352,11 @@ void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                             // put particles in coordinate system of particle i
                             vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
-
                             size_t bin = computeBin(r_ij,
-                                                 quat<Scalar>(orientation_i),
-                                                 quat<Scalar>(orientation_j),
-                                                 params[__scalar_as_int(postype_i.w)],
-                                                 params[__scalar_as_int(postype_j.w)]);
+                                                    quat<Scalar>(orientation_i),
+                                                    quat<Scalar>(orientation_j),
+                                                    params[__scalar_as_int(postype_i.w)],
+                                                    params[__scalar_as_int(postype_j.w)]);
 
                             if (bin >= 0)
                                 min_bin = std::min(min_bin, bin);
@@ -366,7 +369,7 @@ void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                     cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
                     }
                 } // end loop over AABB nodes
-            } // end loop over images
+            }     // end loop over images
 
         // record the minimum bin
         if ((unsigned int)min_bin < m_hist.size())
@@ -390,34 +393,49 @@ void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     the left and right, ensuring that the same assumption holds. Once right=left+1, the
     correct bin has been found.
 */
-template < class Shape >
-size_t ComputeSDF<Shape>:: computeBin(const vec3<Scalar>& r_ij,
-                             const quat<Scalar>& orientation_i,
-                             const quat<Scalar>& orientation_j,
-                             const typename Shape::param_type& params_i,
-                             const typename Shape::param_type& params_j)
+template<class Shape>
+size_t ComputeSDF<Shape>::computeBin(const vec3<Scalar>& r_ij,
+                                     const quat<Scalar>& orientation_i,
+                                     const quat<Scalar>& orientation_j,
+                                     const typename Shape::param_type& params_i,
+                                     const typename Shape::param_type& params_j)
     {
-    size_t L=0;
-    size_t R=m_hist.size();
+    size_t L = 0;
+    size_t R = m_hist.size();
 
     // if the particles already overlap a the left boundary, return an out of range value
-    if (detail::test_scaled_overlap<Shape>(r_ij, orientation_i, orientation_j, params_i, params_j, double(L)*m_dx))
+    if (detail::test_scaled_overlap<Shape>(r_ij,
+                                           orientation_i,
+                                           orientation_j,
+                                           params_i,
+                                           params_j,
+                                           double(L) * m_dx))
         return -1;
 
     // if the particles do not overlap a the right boundary, return an out of range value
-    if (!detail::test_scaled_overlap<Shape>(r_ij, orientation_i, orientation_j, params_i, params_j, double(R)*m_dx))
+    if (!detail::test_scaled_overlap<Shape>(r_ij,
+                                            orientation_i,
+                                            orientation_j,
+                                            params_i,
+                                            params_j,
+                                            double(R) * m_dx))
         return m_hist.size();
 
     // progressively narrow the search window by halves
     do
         {
-        size_t m = (L+R)/2;
+        size_t m = (L + R) / 2;
 
-        if (detail::test_scaled_overlap<Shape>(r_ij, orientation_i, orientation_j, params_i, params_j, double(m)*m_dx))
+        if (detail::test_scaled_overlap<Shape>(r_ij,
+                                               orientation_i,
+                                               orientation_j,
+                                               params_i,
+                                               params_j,
+                                               double(m) * m_dx))
             R = m;
         else
             L = m;
-        } while ((R-L) > 1);
+        } while ((R - L) > 1);
 
     return L;
     }
@@ -426,19 +444,19 @@ size_t ComputeSDF<Shape>:: computeBin(const vec3<Scalar>& r_ij,
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of ComputeSDFe<Shape> will be exported
 */
-template < class Shape > void export_ComputeSDF(pybind11::module& m, const std::string& name)
+template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<ComputeSDF<Shape>, Compute, std::shared_ptr< ComputeSDF<Shape> > >(m, name.c_str())
-              .def(pybind11::init< std::shared_ptr<SystemDefinition>,
-                   std::shared_ptr<IntegratorHPMCMono<Shape> >,
-                   double,
-                   double >())
+    pybind11::class_<ComputeSDF<Shape>, Compute, std::shared_ptr<ComputeSDF<Shape>>>(m,
+                                                                                     name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<IntegratorHPMCMono<Shape>>,
+                            double,
+                            double>())
         .def_property("xmax", &ComputeSDF<Shape>::getXMax, &ComputeSDF<Shape>::setXMax)
         .def_property("dx", &ComputeSDF<Shape>::getDx, &ComputeSDF<Shape>::setDx)
-        .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF)
-        ;
+        .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF);
     }
 
-} // end namespace hpmc
+    } // end namespace hpmc
 
 #endif // __COMPUTE_SDF__H__

@@ -2,10 +2,10 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
-#include "IntegratorHPMC.h"
-#include "IntegratorHPMCMono.h"
 #include "ComputeFreeVolume.h"
 #include "ComputeSDF.h"
+#include "IntegratorHPMC.h"
+#include "IntegratorHPMCMono.h"
 
 #include "ShapeUnion.h"
 
@@ -37,11 +37,11 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_union_sphere(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoSphereUnion");
-    export_ComputeFreeVolume< ShapeUnion<ShapeSphere> >(m, "ComputeFreeVolumeSphereUnion");
-    export_ComputeSDF< ShapeUnion<ShapeSphere> >(m, "ComputeSDFSphereUnion");
-    export_UpdaterMuVT< ShapeUnion<ShapeSphere> >(m, "UpdaterMuVTSphereUnion");
-    export_UpdaterClusters< ShapeUnion<ShapeSphere> >(m, "UpdaterClustersSphereUnion");
+    export_IntegratorHPMCMono<ShapeUnion<ShapeSphere>>(m, "IntegratorHPMCMonoSphereUnion");
+    export_ComputeFreeVolume<ShapeUnion<ShapeSphere>>(m, "ComputeFreeVolumeSphereUnion");
+    export_ComputeSDF<ShapeUnion<ShapeSphere>>(m, "ComputeSDFSphereUnion");
+    export_UpdaterMuVT<ShapeUnion<ShapeSphere>>(m, "UpdaterMuVTSphereUnion");
+    export_UpdaterClusters<ShapeUnion<ShapeSphere>>(m, "UpdaterClustersSphereUnion");
 
     export_ExternalFieldInterface<ShapeUnion<ShapeSphere>>(m, "ExternalFieldSphereUnion");
     export_LatticeField<ShapeUnion<ShapeSphere>>(m, "ExternalFieldLatticeSphereUnion");

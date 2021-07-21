@@ -6,9 +6,9 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
+#include "ComputeSDF.h"
 #include "ShapePolyhedron.h"
 #include "ShapeUnion.h"
-#include "ComputeSDF.h"
 
 #include "ExternalCallback.h"
 #include "ExternalField.h"
@@ -37,11 +37,11 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_polyhedron(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapePolyhedron >(m, "IntegratorHPMCMonoPolyhedron");
-    export_ComputeFreeVolume< ShapePolyhedron >(m, "ComputeFreeVolumePolyhedron");
-    export_ComputeSDF< ShapePolyhedron >(m, "ComputeSDFPolyhedron");
-    export_UpdaterMuVT< ShapePolyhedron >(m, "UpdaterMuVTPolyhedron");
-    export_UpdaterClusters< ShapePolyhedron >(m, "UpdaterClustersPolyhedron");
+    export_IntegratorHPMCMono<ShapePolyhedron>(m, "IntegratorHPMCMonoPolyhedron");
+    export_ComputeFreeVolume<ShapePolyhedron>(m, "ComputeFreeVolumePolyhedron");
+    export_ComputeSDF<ShapePolyhedron>(m, "ComputeSDFPolyhedron");
+    export_UpdaterMuVT<ShapePolyhedron>(m, "UpdaterMuVTPolyhedron");
+    export_UpdaterClusters<ShapePolyhedron>(m, "UpdaterClustersPolyhedron");
 
     export_ExternalFieldInterface<ShapePolyhedron>(m, "ExternalFieldPolyhedron");
     export_LatticeField<ShapePolyhedron>(m, "ExternalFieldLatticePolyhedron");

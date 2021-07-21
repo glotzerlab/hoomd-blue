@@ -6,9 +6,9 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
+#include "ComputeSDF.h"
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
-#include "ComputeSDF.h"
 
 #include "ExternalCallback.h"
 #include "ExternalField.h"
@@ -37,11 +37,11 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_sphinx(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeSphinx >(m, "IntegratorHPMCMonoSphinx");
-    export_ComputeFreeVolume< ShapeSphinx >(m, "ComputeFreeVolumeSphinx");
-    export_ComputeSDF< ShapeSphinx >(m, "ComputeSDFSphinx");
-    export_UpdaterMuVT< ShapeSphinx >(m, "UpdaterMuVTSphinx");
-    export_UpdaterClusters< ShapeSphinx >(m, "UpdaterClustersSphinx");
+    export_IntegratorHPMCMono<ShapeSphinx>(m, "IntegratorHPMCMonoSphinx");
+    export_ComputeFreeVolume<ShapeSphinx>(m, "ComputeFreeVolumeSphinx");
+    export_ComputeSDF<ShapeSphinx>(m, "ComputeSDFSphinx");
+    export_UpdaterMuVT<ShapeSphinx>(m, "UpdaterMuVTSphinx");
+    export_UpdaterClusters<ShapeSphinx>(m, "UpdaterClustersSphinx");
 
     export_ExternalFieldInterface<ShapeSphinx>(m, "ExternalFieldSphinx");
     export_LatticeField<ShapeSphinx>(m, "ExternalFieldLatticeSphinx");

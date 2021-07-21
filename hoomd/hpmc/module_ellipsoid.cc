@@ -6,8 +6,8 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
-#include "ShapeEllipsoid.h"
 #include "ComputeSDF.h"
+#include "ShapeEllipsoid.h"
 #include "ShapeUnion.h"
 
 #include "ExternalCallback.h"
@@ -37,11 +37,11 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_ellipsoid(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeEllipsoid >(m, "IntegratorHPMCMonoEllipsoid");
-    export_ComputeFreeVolume< ShapeEllipsoid >(m, "ComputeFreeVolumeEllipsoid");
-    export_ComputeSDF< ShapeEllipsoid >(m, "ComputeSDFEllipsoid");
-    export_UpdaterMuVT< ShapeEllipsoid >(m, "UpdaterMuVTEllipsoid");
-    export_UpdaterClusters< ShapeEllipsoid >(m, "UpdaterClustersEllipsoid");
+    export_IntegratorHPMCMono<ShapeEllipsoid>(m, "IntegratorHPMCMonoEllipsoid");
+    export_ComputeFreeVolume<ShapeEllipsoid>(m, "ComputeFreeVolumeEllipsoid");
+    export_ComputeSDF<ShapeEllipsoid>(m, "ComputeSDFEllipsoid");
+    export_UpdaterMuVT<ShapeEllipsoid>(m, "UpdaterMuVTEllipsoid");
+    export_UpdaterClusters<ShapeEllipsoid>(m, "UpdaterClustersEllipsoid");
 
     export_ExternalFieldInterface<ShapeEllipsoid>(m, "ExternalFieldEllipsoid");
     export_LatticeField<ShapeEllipsoid>(m, "ExternalFieldLatticeEllipsoid");

@@ -5,6 +5,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
+#include "ComputeSDF.h"
 #include "ShapeConvexPolygon.h"
 #include "ShapeConvexPolyhedron.h"
 #include "ShapeEllipsoid.h"
@@ -16,7 +17,6 @@
 #include "ShapeSpheropolyhedron.h"
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
-#include "ComputeSDF.h"
 #include "UpdaterBoxMC.h"
 #include "UpdaterClusters.h"
 #include "UpdaterMuVT.h"
