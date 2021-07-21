@@ -111,21 +111,25 @@ def test_synced(slist):
     assert slist._synced
 
 
-def test_value_add_and_attach(slist):
+def test_attach_value(slist):
     op = DummyOperation()
-    assert not slist._value_add_and_attach(op)._attached
+    slist._attach_value(op)
+    assert not op._attached
     assert op._added
     slist._synced_list = []
     slist._simulation = DummySimulation()
     op = DummyOperation()
-    assert slist._value_add_and_attach(op)._attached
+    slist._attach_value(op)
+    assert op._attached
     assert op._added
 
 
 def test_validate_or_error(slist):
     with raises(ValueError):
         slist._validate_or_error(3)
+    with raises(ValueError):
         slist._validate_or_error(None)
+    with raises(ValueError):
         slist._validate_or_error("hello")
     assert slist._validate_or_error(DummyOperation())
 
@@ -142,7 +146,6 @@ def test_unsync(slist, op_list):
     sync_list = []
     slist._sync(None, sync_list)
     slist._unsync()
-    assert len(sync_list) == 0
     assert all([not op._attached for op in slist])
     assert not hasattr(slist, "_synced_list")
 
@@ -284,6 +287,25 @@ def test_remove(islist):
     assert not oplist[0]._attached
     assert oplist[0] not in islist
     assert oplist[0] not in sync_list
+
+
+def test_without_attaching():
+    synced_list = SyncedList(_PartialIsInstance(int),
+                             iterable=[OpInt(i) for i in [1, 2, 3]],
+                             attach_members=False)
+    synced_list.append(OpInt(4))
+    assert len(synced_list) == 4
+    assert synced_list[-1] == 4
+
+    # Test attached
+    sync_list = []
+    synced_list._sync(None, sync_list)
+    synced_list.append(OpInt(5))
+    assert len(synced_list) == 5
+    assert len(sync_list) == 5
+    assert synced_list[-1] == 5
+    assert all(not op._added for op in synced_list)
+    assert all(not op._attached for op in synced_list)
 
 
 def test_pickling(slist):
