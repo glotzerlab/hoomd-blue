@@ -5,6 +5,7 @@
 #include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
+#include "IntegratorHPMCMonoNEC.h"
 
 #include "AnalyzerSDF.h"
 #include "ShapeSphere.h"
@@ -38,6 +39,7 @@ namespace hpmc
 void export_sphere(py::module& m)
     {
     export_IntegratorHPMCMono<ShapeSphere>(m, "IntegratorHPMCMonoSphere");
+    export_IntegratorHPMCMonoNEC<ShapeSphere>(m, "IntegratorHPMCMonoNECSphere");
     export_ComputeFreeVolume<ShapeSphere>(m, "ComputeFreeVolumeSphere");
     export_AnalyzerSDF<ShapeSphere>(m, "AnalyzerSDFSphere");
     export_UpdaterMuVT<ShapeSphere>(m, "UpdaterMuVTSphere");

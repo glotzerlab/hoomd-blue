@@ -1,5 +1,6 @@
 set(files __init__.py
           move_size.py
+          nec_chain_time.py
           )
 
 install(FILES ${files}

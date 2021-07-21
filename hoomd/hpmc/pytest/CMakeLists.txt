@@ -11,6 +11,7 @@ set(files __init__.py
           test_small_box_3d.py
           conftest.py
           test_write_debug_data_hpmc.py
+          test_nec_sphere_eos.py
           depletants_sphere.py
     )
 

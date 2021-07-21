@@ -171,6 +171,7 @@ set(files   analyze.py
             compute.py
             __init__.py
             integrate.py
+            integrate_nec.py
             update.py
             field.py
     )
