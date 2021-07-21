@@ -241,7 +241,7 @@ void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
     #ifdef ENABLE_MPI
     if (m_comm)
         {
-        MPI_Reduce(&hist_total[0], &m_hist[0], (unsigned int)m_hist.size(), MPI_UNSIGNED, MPI_SUM, 0, m_exec_conf->getMPICommunicator());
+        MPI_Reduce(m_hist.data(), hist_total.data(), (unsigned int)m_hist.size(), MPI_UNSIGNED, MPI_SUM, 0, m_exec_conf->getMPICommunicator());
         }
     #endif
 
