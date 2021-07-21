@@ -22,7 +22,7 @@ accounted for in `hoomd.md.ThermodynamicQuantities`.
 """
 
 from hoomd.md import _md
-from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 import hoomd
@@ -44,20 +44,22 @@ class Constraint(_HOOMDBaseObject):
         super()._attach()
 
 
-class distance(Constraint):
-    R"""Constrain pairwise particle distances.
+class Distance(Constraint):
+    """Constrain pairwise particle distances.
 
-    :py:class:`distance` specifies that forces will be applied to all particles
-    pairs for which constraints have been defined.
+    Args:
+        tolerance (float): Relative tolerance for constraint violation warnings.
 
-    The constraint algorithm implemented is described in:
+    `Distance` applies constraint forces between particles to satisfy
+    user-specified distance constraints. The algorithm implemented is described
+    in:
 
-     * [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative
-     Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul.,
-     vol. 13, no. 6, pp. 395--405, 1994.
-     * [2] M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint
-     Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp.
-     188--197, Sep. 2001.
+    1. M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative
+       Matrix Method for Constraint Molecular Dynamics Simulations," Mol.
+       Simul., vol. 13, no. 6, pp. 395--405, 1994.
+    2. M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint
+       Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp.
+       188--197, Sep. 2001.
 
     In brief, the second derivative of the Lagrange multipliers with respect to
     time is set to zero, such that both the distance constraints and their time
@@ -66,51 +68,31 @@ class distance(Constraint):
     is solved. Because constraints are satisfied at :math:`t + 2 \Delta t`, the
     scheme is self-correcting and drifts are avoided.
 
+    .. hint::
+
+        Define the particles and distances for each pairwise distance constraint
+        in a GSD file with `gsd.hoomd.Snapshot.constraints` or in a
+        `hoomd.Snapshot` with `hoomd.Snapshot.constraints`.
+
     Warning:
         In MPI simulations, all particles connected through constraints will be
-        communicated between processors as ghost particles. Therefore, it is an
+        communicated between ranks as ghost particles. Therefore, it is an
         error when molecules defined by constraints extend over more than half
         the local domain size.
 
-    .. caution::
-        constrain.distance() does not currently interoperate with
-        integrate.brownian() or integrate.langevin()
+    Note:
+        `tolerance` sets the tolerance to detect constraint violations and
+        issue warning message. It does not influence the computation of the
+        constraint force.
 
-    Example::
-
-        constrain.distance()
-
+    Attributes:
+        tolerance (float): Relative tolerance for constraint violation warnings.
     """
 
-    def __init__(self):
+    _cpp_class_name = "ForceDistanceConstraint"
 
-        # initialize the base class
-        Constraint.__init__(self)
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.ForceDistanceConstraint(
-                hoomd.context.current.system_definition)
-        else:
-            self.cpp_force = _md.ForceDistanceConstraintGPU(
-                hoomd.context.current.system_definition)
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-    def set_params(self, rel_tol=None):
-        R"""Set parameters for constraint computation.
-
-        Args:
-            rel_tol (float): The relative tolerance with which constraint
-                violations are detected (**optional**).
-
-        Example::
-
-            dist = constrain.distance()
-            dist.set_params(rel_tol=0.0001)
-        """
-        if rel_tol is not None:
-            self.cpp_force.setRelativeTolerance(float(rel_tol))
+    def __init__(self, tolerance=1e-3):
+        self._param_dict.update(ParameterDict(tolerance=float(tolerance)))
 
 
 class Rigid(Constraint):
@@ -245,7 +227,7 @@ class Rigid(Constraint):
         rigid.body["A"] = None
 
     Warning:
-        `Rigid` will signifcantly slow down a simulation when
+        `Rigid` will significantly slow down a simulation when
         frequently changing rigid body definitions or adding/removing particles
         from the simulation.
     """

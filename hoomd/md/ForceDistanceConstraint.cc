@@ -666,5 +666,7 @@ void export_ForceDistanceConstraint(py::module& m)
                MolecularForceCompute,
                std::shared_ptr<ForceDistanceConstraint>>(m, "ForceDistanceConstraint")
         .def(py::init<std::shared_ptr<SystemDefinition>>())
-        .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance);
+        .def_property("tolerance",
+                      &ForceDistanceConstraint::getRelativeTolerance,
+                      &ForceDistanceConstraint::setRelativeTolerance);
     }
