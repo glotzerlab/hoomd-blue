@@ -312,6 +312,10 @@ class Snapshot:
         """
         self._cpp_obj.replicate(nx, ny, nz)
 
+    def wrap(self):
+        """Wrap particles into the simulation box."""
+        self._cpp_obj.wrap()
+
     def _broadcast_box(self):
         self._cpp_obj._broadcast_box(self.communicator.cpp_mpi_conf)
 
