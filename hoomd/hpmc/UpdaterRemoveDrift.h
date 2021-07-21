@@ -80,7 +80,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         // original reference positions.
         const auto reference_array = pybind11::array_t<double>(
             dims,
-            reinterpret_cast<const double*>(&(this->m_ref_positions[0])));
+            reinterpret_cast<const double*>(this->m_ref_positions.data()));
         // This is necessary to expose the array in a read only fashion through C++
         reinterpret_cast<pybind11::detail::PyArray_Proxy*>(reference_array.ptr())->flags
             &= ~pybind11::detail::npy_api::NPY_ARRAY_WRITEABLE_;
