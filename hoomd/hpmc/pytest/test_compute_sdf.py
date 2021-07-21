@@ -135,6 +135,7 @@ _err = np.array([
     0.57591598, 0.66462928
 ])
 
+
 @pytest.mark.validate
 def test_values(simulation_factory, lattice_snapshot_factory):
     n_particles_per_side = 32
@@ -163,7 +164,7 @@ def test_values(simulation_factory, lattice_snapshot_factory):
     sdf_log = hoomd.conftest.ListWriter(sdf, 'sdf')
     sim.operations.writers.append(
         hoomd.write.CustomWriter(action=sdf_log,
-                                    trigger=hoomd.trigger.Periodic(10)))
+                                 trigger=hoomd.trigger.Periodic(10)))
 
     sim.run(6000)
 
