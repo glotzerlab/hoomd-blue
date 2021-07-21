@@ -4,9 +4,9 @@ import pytest
 from copy import deepcopy
 from collections import namedtuple
 
-paramtuple = namedtuple(
-    'paramtuple',
-    ['setup_params', 'extra_params', 'changed_params', 'has_rattle', 'method'])
+paramtuple = namedtuple('paramtuple', [
+    'setup_params', 'extra_params', 'changed_params', 'rattle_method', 'method'
+])
 
 
 def _method_base_params():
@@ -20,11 +20,10 @@ def _method_base_params():
         'alpha': None,
         'tally_reservoir_energy': True
     }
-    langevin_has_rattle = True
 
     method_base_params_list.extend([
         paramtuple(langevin_setup_params, langevin_extra_params,
-                   langevin_changed_params, langevin_has_rattle,
+                   langevin_changed_params, hoomd.md.methods.LangevinRattle,
                    hoomd.md.methods.Langevin)
     ])
 
@@ -34,11 +33,10 @@ def _method_base_params():
         'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
         'alpha': 0.125
     }
-    brownian_has_rattle = True
 
     method_base_params_list.extend([
         paramtuple(brownian_setup_params, brownian_extra_params,
-                   brownian_changed_params, brownian_has_rattle,
+                   brownian_changed_params, hoomd.md.methods.BrownianRattle,
                    hoomd.md.methods.Brownian)
     ])
 
@@ -88,11 +86,10 @@ def _method_base_params():
         'rotational_thermostat_dof': (0.5, 0.25),
         'barostat_dof': (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
     }
-    npt_has_rattle = False
 
     method_base_params_list.extend([
-        paramtuple(npt_setup_params, npt_extra_params, npt_changed_params,
-                   npt_has_rattle, hoomd.md.methods.NPT)
+        paramtuple(npt_setup_params, npt_extra_params, npt_changed_params, None,
+                   hoomd.md.methods.NPT)
     ])
 
     nvt_setup_params = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0}
@@ -103,21 +100,19 @@ def _method_base_params():
         'translational_thermostat_dof': (0.125, 0.5),
         'rotational_thermostat_dof': (0.5, 0.25)
     }
-    nvt_has_rattle = False
 
     method_base_params_list.extend([
-        paramtuple(nvt_setup_params, nvt_extra_params, nvt_changed_params,
-                   nvt_has_rattle, hoomd.md.methods.NVT)
+        paramtuple(nvt_setup_params, nvt_extra_params, nvt_changed_params, None,
+                   hoomd.md.methods.NVT)
     ])
 
     nve_setup_params = {}
     nve_extra_params = {}
     nve_changed_params = {}
-    nve_has_rattle = True
 
     method_base_params_list.extend([
         paramtuple(nve_setup_params, nve_extra_params, nve_changed_params,
-                   nve_has_rattle, hoomd.md.methods.NVE)
+                   hoomd.md.methods.NVERattle, hoomd.md.methods.NVE)
     ])
 
     return method_base_params_list
@@ -183,14 +178,14 @@ def test_attributes_attached(simulation_factory, two_particle_snapshot_factory,
 
 
 def test_rattle_attributes(method_base_params):
-    if not method_base_params.has_rattle:
+    if method_base_params.rattle_method is None:
         pytest.skip("RATTLE method is not implemented for this method")
 
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    method = method_base_params.method(**method_base_params.setup_params,
-                                       filter=all_,
-                                       manifold_constraint=gyroid)
+    method = method_base_params.rattle_method(**method_base_params.setup_params,
+                                              filter=all_,
+                                              manifold_constraint=gyroid)
     assert method.manifold_constraint == gyroid
     assert method.tolerance == 1e-6
 
@@ -207,14 +202,14 @@ def test_rattle_attributes_attached(simulation_factory,
                                     two_particle_snapshot_factory,
                                     method_base_params):
 
-    if not method_base_params.has_rattle:
+    if method_base_params.rattle_method is None:
         pytest.skip("RATTLE integrator is not implemented for this method")
 
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    method = method_base_params.method(**method_base_params.setup_params,
-                                       filter=all_,
-                                       manifold_constraint=gyroid)
+    method = method_base_params.rattle_method(**method_base_params.setup_params,
+                                              filter=all_,
+                                              manifold_constraint=gyroid)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
@@ -242,17 +237,6 @@ def test_rattle_attributes_attached(simulation_factory,
     assert method.tolerance == 1e-5
 
     check_instance_attrs(method, method_base_params.changed_params, True)
-
-
-def test_rattle_missing_manifold(method_base_params):
-    if not method_base_params.has_rattle:
-        pytest.skip("RATTLE method is not implemented for this method")
-
-    all_ = hoomd.filter.All()
-    with pytest.raises(TypeError):
-        method_base_params.method(**method_base_params.setup_params,
-                                  filter=all_,
-                                  tolerance=1e-5)
 
 
 def test_nph_attributes_attached_3d(simulation_factory,

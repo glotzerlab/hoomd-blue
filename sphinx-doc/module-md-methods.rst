@@ -9,10 +9,13 @@ md.methods
     :nosignatures:
 
     Brownian
+    BrownianRattle
     Langevin
+    LangevinRattle
     NPH
     NPT
     NVE
+    NVERattle
     NVT
 
 
@@ -23,8 +26,11 @@ md.methods
     :members: Method,
               MethodRATTLE,
               Brownian,
+              BrownianRattle,
               Langevin,
+              LangevinRattle,
               NPH,
               NPT,
               NVE,
+              NVERattle,
               NVT
