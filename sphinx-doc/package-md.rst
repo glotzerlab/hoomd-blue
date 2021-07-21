@@ -25,3 +25,4 @@ md
     module-md-nlist
     module-md-pair
     module-md-special_pair
+    module-md-update

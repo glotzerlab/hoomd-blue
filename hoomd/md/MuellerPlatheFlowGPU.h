@@ -41,11 +41,12 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<ParticleGroup> group,
                          std::shared_ptr<Variant> flow_target,
-                         const flow_enum::Direction slab_direction,
-                         const flow_enum::Direction flow_direction,
+                         std::string slab_direction_str,
+                         std::string flow_direction_str,
                          const unsigned int N_slabs,
                          const unsigned int min_slab,
-                         const unsigned int max_slab);
+                         const unsigned int max_slab,
+                         Scalar flow_epsilon);
 
     //! Destructor
     virtual ~MuellerPlatheFlowGPU(void);
@@ -64,8 +65,8 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     protected:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
-    virtual void search_min_max_velocity(void);
-    virtual void update_min_max_velocity(void);
+    virtual void searchMinMaxVelocity(void);
+    virtual void updateMinMaxVelocity(void);
     };
 
 //! Exports the MuellerPlatheFlow class to python
