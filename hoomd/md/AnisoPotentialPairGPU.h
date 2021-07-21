@@ -180,9 +180,6 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
 
     // access parameters
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
-    ArrayHandle<typename evaluator::param_type> d_params(this->m_params,
-                                                         access_location::device,
-                                                         access_mode::read);
     ArrayHandle<typename evaluator::shape_type> d_shape_params(this->m_shape_params,
                                                                access_location::device,
                                                                access_mode::read);
@@ -230,8 +227,9 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
                            this->m_pdata->getGPUPartition(),
                            this->m_exec_conf->dev_prop,
                            first),
-             d_params.data,
+             this->m_params.data(),
              d_shape_params.data);
+
     if (!m_param)
         this->m_tuner->end();
 
@@ -254,10 +252,7 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::setParams(
     const typename evaluator::param_type& param)
     {
     AnisoPotentialPair<evaluator>::setParams(typ1, typ2, param);
-    ArrayHandle<typename evaluator::param_type> h_params(this->m_params,
-                                                         access_location::host,
-                                                         access_mode::readwrite);
-    h_params.data[this->m_typpair_idx(typ1, typ2)].set_memory_hint();
+    this->m_params[this->m_typpair_idx(typ1, typ2)].set_memory_hint();
     }
 
 template<class evaluator,
