@@ -89,7 +89,8 @@ def test_shape_attached(simulation_factory, two_particle_snapshot_factory,
             args["shapes"][i] = inner_mc.shape["A"]
     mc = integrator()
     mc.shape["A"] = args
-    sim = simulation_factory(two_particle_snapshot_factory(dimensions=n_dimensions))
+    sim = simulation_factory(
+        two_particle_snapshot_factory(dimensions=n_dimensions))
     assert sim.operations.integrator is None
     sim.operations.add(mc)
     sim.operations._schedule()
@@ -653,5 +654,6 @@ def test_pickling(valid_args, simulation_factory,
     # L needs to be ridiculously large as to not be too small for the domain
     # decomposition of some of the shapes definitions in valid_args which have
     # shapes with large extent in at least one dimension.
-    sim = simulation_factory(two_particle_snapshot_factory(L=1000, dimensions=n_dimensions))
+    sim = simulation_factory(
+        two_particle_snapshot_factory(L=1000, dimensions=n_dimensions))
     operation_pickling_check(mc, sim)

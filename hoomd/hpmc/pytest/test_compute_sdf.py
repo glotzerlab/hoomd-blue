@@ -20,7 +20,8 @@ def test_before_attaching():
 def test_after_attaching(valid_args, simulation_factory,
                          lattice_snapshot_factory):
     integrator, args, n_dimensions = valid_args
-    snap = lattice_snapshot_factory(particle_types=['A'], dimensions=n_dimensions)
+    snap = lattice_snapshot_factory(particle_types=['A'],
+                                    dimensions=n_dimensions)
     if snap.communicator.num_ranks > 1:
         pytest.skip('Test does not support MPI execution')
     else:
