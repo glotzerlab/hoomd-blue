@@ -9,9 +9,10 @@ hpmc.compute
     :nosignatures:
 
     FreeVolume
+    SDF
 
 .. rubric:: Details
 
 .. automodule:: hoomd.hpmc.compute
     :synopsis: Compute system properties.
-    :members: FreeVolume
+    :members: FreeVolume, SDF

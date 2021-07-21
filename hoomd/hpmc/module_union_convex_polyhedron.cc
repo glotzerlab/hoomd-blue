@@ -2,8 +2,8 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
-#include "AnalyzerSDF.h"
 #include "ComputeFreeVolume.h"
+#include "ComputeSDF.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
@@ -43,8 +43,8 @@ void export_union_convex_polyhedron(py::module& m)
     export_ComputeFreeVolume<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
         "ComputeFreeVolumeConvexPolyhedronUnion");
-    // export_AnalyzerSDF< ShapeUnion<ShapeSpheropolyhedron> >(m,
-    // "AnalyzerSDFConvexPolyhedronUnion");
+    export_ComputeSDF<ShapeUnion<ShapeSpheropolyhedron>>(m,
+                                                         "ComputeSDFConvexSpheropolyhedronUnion");
     export_UpdaterMuVT<ShapeUnion<ShapeSpheropolyhedron>>(m,
                                                           "UpdaterMuVTConvexSpheropolyhedronUnion");
     export_UpdaterClusters<ShapeUnion<ShapeSpheropolyhedron>>(

@@ -872,11 +872,20 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
             || (this->m_sysdef->getNDimensions() == 3 && global_box.getPeriodic().z
                 && nearest_plane_distance.z <= this->m_nominal_width * 2))
             {
-            this->m_exec_conf->msg->error()
-                << "Simulation box too small for GPU accelerated HPMC execution - increase it so "
-                   "the minimum image convention works"
+            std::ostringstream oss;
+
+            oss << "Simulation box too small for GPU accelerated HPMC execution - increase it so "
+                   "the minimum image convention may be applied."
                 << std::endl;
-            throw std::runtime_error("Error performing HPMC update");
+
+            oss << "nominal_width = " << this->m_nominal_width << std::endl;
+            if (global_box.getPeriodic().x)
+                oss << "nearest_plane_distance.x=" << nearest_plane_distance.x << std::endl;
+            if (global_box.getPeriodic().y)
+                oss << "nearest_plane_distance.y=" << nearest_plane_distance.y << std::endl;
+            if (this->m_sysdef->getNDimensions() == 3 && global_box.getPeriodic().z)
+                oss << "nearest_plane_distance.z=" << nearest_plane_distance.z << std::endl;
+            throw std::runtime_error(oss.str());
             }
 
         // update the cell list

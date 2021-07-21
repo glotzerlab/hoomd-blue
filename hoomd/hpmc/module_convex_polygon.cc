@@ -6,7 +6,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
-#include "AnalyzerSDF.h"
+#include "ComputeSDF.h"
 #include "ShapeConvexPolygon.h"
 #include "ShapeUnion.h"
 
@@ -39,7 +39,7 @@ void export_convex_polygon(py::module& m)
     {
     export_IntegratorHPMCMono<ShapeConvexPolygon>(m, "IntegratorHPMCMonoConvexPolygon");
     export_ComputeFreeVolume<ShapeConvexPolygon>(m, "ComputeFreeVolumeConvexPolygon");
-    export_AnalyzerSDF<ShapeConvexPolygon>(m, "AnalyzerSDFConvexPolygon");
+    export_ComputeSDF<ShapeConvexPolygon>(m, "ComputeSDFConvexPolygon");
     export_UpdaterMuVT<ShapeConvexPolygon>(m, "UpdaterMuVTConvexPolygon");
     export_UpdaterClusters<ShapeConvexPolygon>(m, "UpdaterClustersConvexPolygon");
 
