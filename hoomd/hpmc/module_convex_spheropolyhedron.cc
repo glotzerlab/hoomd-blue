@@ -47,7 +47,7 @@ void export_convex_spheropolyhedron(py::module& m)
     export_LatticeField<ShapeSpheropolyhedron>(m, "ExternalFieldLatticeSpheropolyhedron");
     export_ExternalFieldComposite<ShapeSpheropolyhedron>(m,
                                                          "ExternalFieldCompositeSpheropolyhedron");
-    export_RemoveDriftUpdater<ShapeSpheropolyhedron>(m, "RemoveDriftUpdaterSpheropolyhedron");
+    export_RemoveDriftUpdater<ShapeSpheropolyhedron>(m, "RemoveDriftUpdaterConvexSpheropolyhedron");
     export_ExternalFieldWall<ShapeSpheropolyhedron>(m, "WallSpheropolyhedron");
     export_UpdaterExternalFieldWall<ShapeSpheropolyhedron>(
         m,
