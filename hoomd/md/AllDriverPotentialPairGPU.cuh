@@ -15,6 +15,7 @@
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairDPDThermo.h"
 #include "EvaluatorPairEwald.h"
+#include "EvaluatorPairExpandedMie.h"
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairGauss.h"
@@ -100,7 +101,12 @@ gpu_compute_force_shifted_lj_forces(const pair_args_t& args,
 hipError_t __attribute__((visibility("default")))
 gpu_compute_mie_forces(const pair_args_t& args, const EvaluatorPairMie::param_type* d_params);
 
-//! Compute mie potential pair forces on the GPU with PairEvaluatorReactionField
+//! Compute expanded mie potential pair forces on the GPU with PairEvaluatorExpandedMie
+hipError_t __attribute__((visibility("default")))
+gpu_compute_expanded_mie_forces(const pair_args_t& args,
+                                const EvaluatorPairExpandedMie::param_type* d_params);
+
+//! Compute reaction field potential pair forces on the GPU with PairEvaluatorReactionField
 hipError_t __attribute__((visibility("default")))
 gpu_compute_reaction_field_forces(const pair_args_t& args,
                                   const EvaluatorPairReactionField::param_type* d_params);
