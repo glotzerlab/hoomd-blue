@@ -21,8 +21,10 @@
 // compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 //! Class for evaluating the Onsager reaction field pair potential
@@ -53,6 +55,10 @@ class EvaluatorPairReactionField
         Scalar eps, eps_rf;
         bool use_charge;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         // set CUDA memory hints
         void set_memory_hint() const { }
@@ -61,7 +67,7 @@ class EvaluatorPairReactionField
 #ifndef __HIPCC__
         param_type() : eps(0), eps_rf(0), use_charge(false) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             eps = v["epsilon"].cast<Scalar>();
             eps_rf = v["eps_rf"].cast<Scalar>();

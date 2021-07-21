@@ -16,8 +16,10 @@
 // included into the host compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 //! Class for evaluating the oscillating pair potential
@@ -45,6 +47,10 @@ class EvaluatorPairOPP
         Scalar k;
         Scalar phi;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
         void set_memory_hint() const
@@ -56,7 +62,7 @@ class EvaluatorPairOPP
 #ifndef __HIPCC__
         param_type() : C1(0), C2(0), eta1(0), eta2(0), k(0), phi(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             C1 = v["C1"].cast<Scalar>();
             C2 = v["C2"].cast<Scalar>();

@@ -18,8 +18,10 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 //! Class for evaluating the ZBL pair potential.
@@ -44,6 +46,18 @@ class EvaluatorPairZBL
     public:
     //! Define the parameter type used by this pair potential evaluator
     typedef EvaluatorPairMoliere::param_type param_type;
+
+    DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+    HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
+#ifdef ENABLE_HIP
+    // set CUDA memory hints
+    void set_memory_hint() const
+        {
+        // default implementation does nothing
+        }
+#endif
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles.

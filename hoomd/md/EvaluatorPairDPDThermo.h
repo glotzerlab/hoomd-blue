@@ -24,8 +24,10 @@
 // compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 //! Class for evaluating the DPD Thermostat pair potential
@@ -79,6 +81,10 @@ class EvaluatorPairDPDThermo
         Scalar A;
         Scalar gamma;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         // CUDA memory hints
         void set_memory_hints() const { }
@@ -86,7 +92,7 @@ class EvaluatorPairDPDThermo
 #ifndef __HIPCC__
         param_type() : A(0), gamma(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             A = v["A"].cast<Scalar>();
             // protect against a user setting gamma to 0 in dpd

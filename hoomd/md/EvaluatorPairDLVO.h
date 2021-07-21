@@ -21,8 +21,10 @@
 //! compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 //! Class for evaluating the DLVO pair potential
@@ -61,6 +63,10 @@ class EvaluatorPairDLVO
         Scalar Z;
         Scalar A;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
         void set_memory_hint() const
@@ -72,7 +78,7 @@ class EvaluatorPairDLVO
 #ifndef __HIPCC__
         param_type() : kappa(0), Z(0), A(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             kappa = v["kappa"].cast<Scalar>();
             Z = v["Z"].cast<Scalar>();

@@ -21,8 +21,10 @@
 // into the host compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 //! Class for evaluating the TWF pair potential
@@ -99,6 +101,10 @@ class EvaluatorPairTWF
         Scalar alpha;
         Scalar prefactor;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
         void set_memory_hint() const
@@ -110,14 +116,14 @@ class EvaluatorPairTWF
 #ifndef __HIPCC__
         param_type() : sigma(1), alpha(1), prefactor(1) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             sigma = v["sigma"].cast<Scalar>();
             alpha = v["alpha"].cast<Scalar>();
             prefactor = 4.0 * v["epsilon"].cast<Scalar>() / (alpha * alpha);
             }
 
-        param_type(Scalar sigma, Scalar epsilon, Scalar alpha)
+        param_type(Scalar sigma, Scalar epsilon, Scalar alpha, bool managed = false)
             : sigma(sigma), alpha(alpha), prefactor(4 * epsilon / (alpha * alpha))
             {
             }

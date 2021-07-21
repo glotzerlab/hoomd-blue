@@ -70,7 +70,7 @@ class EvaluatorPairGB
 
 #ifndef __HIPCC__
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             epsilon = v["epsilon"].cast<Scalar>();
             lperp = v["lperp"].cast<Scalar>();

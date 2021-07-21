@@ -23,8 +23,10 @@
 // compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 //! Class for evaluating the Buckingham pair potential
@@ -65,6 +67,10 @@ class EvaluatorPairBuckingham
         Scalar rho;
         Scalar C;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         //! set CUDA memory hint
         void set_memory_hint() const { }
@@ -73,7 +79,7 @@ class EvaluatorPairBuckingham
 #ifndef __HIPCC__
         param_type() : A(0), rho(0), C(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             A = v["A"].cast<Scalar>();
             rho = v["rho"].cast<Scalar>();
