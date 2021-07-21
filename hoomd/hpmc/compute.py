@@ -113,20 +113,22 @@ class SDF(Compute):
             bin :math:`[\mathrm{length}]`.
         dx (float): Bin width :math:`[\mathrm{length}]`.
 
-    `SDF` computes a distribution function of scale parameters
-    :math:`x`. For each particle, it finds the smallest scale factor :math:`1+x`
-    that would cause the particle to touch one of its neighbors and records that
-    in the histogram :math:`s(x)`. The histogram is discrete and :math:`s(x_i) =
+    `SDF` computes a distribution function of parameter :math:`x`. For each pair
+    of particles, it scales the particle separation vector by :math:`1+x` and
+    records the smallest :math:`x` that would cause the particles to touch in
+    the histogram :math:`s(x)`. The histogram is discrete and :math:`s(x_i) =
     s[i]` where :math:`x_i = i \cdot dx + dx/2`.
 
-    In an NVT simulation, the extrapolation of :math:`s(x)` to :math:`x = 0`,
-    :math:`s(0+)` is related to the pressure
+    The extrapolation of :math:`s(x)` to :math:`x = 0`, :math:`s(0+)` is related
+    to the pressure
 
     .. math::
         \beta P = \rho \left(1 + \frac{s(0+)}{2d} \right)
 
     where :math:`d` is the dimensionality of the system, :math:`\rho` is the
-    number density, and :math:`\beta = \frac{1}{kT}`.
+    number density, and :math:`\beta = \frac{1}{kT}`. This measurement of the
+    pressure is inherently noisy due to the nature of the sampling. Average
+    `betaP` over many timesteps to obtain accurate results.
 
     Assuming particle diameters are ~1, these paramater values typically
     achieve good results:
@@ -173,7 +175,7 @@ class SDF(Compute):
 
     @log(category='sequence', requires_run=True)
     def sdf(self):
-        """Scale distribution function \
+        """:math:`s[i]` - The scale distribution function \
         :math:`[\\mathrm{probability\\ density}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.sdf
