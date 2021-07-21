@@ -13,93 +13,93 @@ _valid_args = [
     (ConvexPolygon, {
         'vertices': [(0, (0.75**0.5) / 2), (-0.5, -(0.75**0.5) / 2),
                      (0.5, -(0.75**0.5) / 2)]
-    }),
+    }, 2),
     (ConvexPolygon, {
         'vertices': [(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]
-    }),
+    }, 2),
     (ConvexPolygon, {
         'vertices': [(-0.5, -0.5), (4.5, 0.5), (0.5, 2.5), (-0.5, 0.5)],
         'sweep_radius': 0.3
-    }),
+    }, 2),
     (ConvexPolygon, {
         'vertices': [(0, 0), (1, 0), (2, 1), (1, 3), (0, 1)],
         'ignore_statistics': 1
-    }),
+    }, 2),
     (ConvexPolyhedron, {
         'vertices': [(0, (0.75**0.5) / 2, -0.5), (-0.5, -(0.75**0.5) / 2, -0.5),
                      (0.5, -(0.75**0.5) / 2, -0.5), (0, 0, 0.5)]
-    }),
+    }, 3),
     (ConvexPolyhedron, {
         'vertices': [(0, 0.25, 0), (0.375, 0.375, 0.375), (0.375, 0, 0.375),
                      (0, 0.375, 0.375), (0.375, 0.375, 0), (0, 0, 0.375)],
         'ignore_statistics': 1,
         'sweep_radius': 0.125
-    }),
+    }, 3),
     (ConvexPolyhedron, {
         'vertices': [(1, 0, 0), (1, 1, 0), (1, 2, 1), (0, 1, 1), (1, 1, 2),
                      (0, 0, 1)],
         'sweep_radius': 1.0
-    }),
+    }, 3),
     (ConvexPolyhedron, {
         'vertices': [(0, 0, 0), (1, 1, 1), (1, 0, 2), (2, 1, 1)],
         'ignore_statistics': 1
-    }),
+    }, 3),
     (ConvexSpheropolygon, {
         'vertices': [(0, (0.75**0.5) / 2), (-0.5, -(0.75**0.5) / 2),
                      (0.5, -(0.75**0.5) / 2)]
-    }),
+    }, 2),
     (ConvexSpheropolygon, {
         'vertices': [(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]
-    }),
+    }, 2),
     (ConvexSpheropolygon, {
         'vertices': [(-0.5, -0.5), (4.5, 0.5), (0.5, 2.5), (-0.5, 0.5)],
         'sweep_radius': 0.3
-    }),
+    }, 2),
     (ConvexSpheropolygon, {
         'vertices': [(0, 0), (1, 0), (2, 1), (1, 3), (0, 1)],
         'ignore_statistics': 1
-    }),
+    }, 2),
     (ConvexSpheropolyhedron, {
         'vertices': [(0, (0.75**0.5) / 2, -0.5), (-0.5, -(0.75**0.5) / 2, -0.5),
                      (0.5, -(0.75**0.5) / 2, -0.5), (0, 0, 0.5)]
-    }),
+    }, 3),
     (ConvexSpheropolyhedron, {
         'vertices': [(0, 0.25, 0), (0.375, 0.375, 0.375), (0.375, 0, 0.375),
                      (0, 0.375, 0.375), (0.375, 0.375, 0), (0, 0, 0.375)],
         'ignore_statistics': 1,
         'sweep_radius': 0.125
-    }),
+    }, 3),
     (ConvexSpheropolyhedron, {
         'vertices': [(1, 0, 0), (1, 1, 0), (1, 2, 1), (0, 1, 1), (1, 1, 2),
                      (0, 0, 1)],
         'sweep_radius': 1.0
-    }),
+    }, 3),
     (ConvexSpheropolyhedron, {
         'vertices': [(0, 0, 0), (1, 1, 1), (1, 0, 2), (2, 1, 1)],
         'ignore_statistics': 1
-    }),
+    }, 3),
     (Ellipsoid, {
         'a': 0.125,
         'b': 0.375,
         'c': 0.5
-    }),
+    }, 3),
     (Ellipsoid, {
         'a': 1,
         'b': 2,
         'c': 3
-    }),
+    }, 3),
     (Ellipsoid, {
         'a': 4,
         'b': 1,
         'c': 3,
         'ignore_statistics': 1
-    }),
+    }, 3),
     (Ellipsoid, {
         'a': 1,
         'b': 5,
         'c': 6,
         'ignore_statistics': 0
-    }),
+    }, 3),
     (FacetedEllipsoid, {
         "normals": [(0, 0, 1)],
         "a": 0.5,
@@ -108,7 +108,7 @@ _valid_args = [
         "vertices": [],
         "origin": (0, 0, 0),
         "offsets": [0.125]
-    }),
+    }, 3),
     (FacetedEllipsoid, {
         "normals": [(0, 0, 1), (0, 1, 0), (1, 0, 0)],
         "offsets": [0.1, 0.25, 0.25],
@@ -117,7 +117,7 @@ _valid_args = [
         "c": 0.125,
         "vertices": [],
         "origin": (0, 0, 0)
-    }),
+    }, 3),
     (FacetedEllipsoid, {
         "normals": [(1, 0, 0)],
         "offsets": [0.25],
@@ -127,7 +127,7 @@ _valid_args = [
         "vertices": [],
         "origin": (0, 0, 0.125),
         "ignore_statistics": 1
-    }),
+    }, 3),
     (FacetedEllipsoid, {
         "normals": [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1),
                     (0, 0, 1)],
@@ -139,7 +139,7 @@ _valid_args = [
                      [-.125, .5, -.5], [1, -.5, -.5], [1, -.5, .5], [1, .5, .5],
                      [1, .5, -.5]],
         "origin": (0, 0.125, 0)
-    }),
+    }, 3),
     ((FacetedEllipsoid, FacetedEllipsoidUnion), {
         'shapes': [{
             "normals": [(0, 0, 1)],
@@ -161,7 +161,7 @@ _valid_args = [
         'positions': [(0, 0, 0), (0, 0, 0.1)],
         'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
         'overlap': [1, 1]
-    }),
+    }, 3),
     ((FacetedEllipsoid, FacetedEllipsoidUnion), {
         'shapes': [{
             "normals": [(0, 0, 1)],
@@ -185,7 +185,7 @@ _valid_args = [
         'overlap': [1, 0],
         'capacity': 3,
         'ignore_statistics': False
-    }),
+    }, 3),
     ((FacetedEllipsoid, FacetedEllipsoidUnion), {
         'shapes': [{
             "normals": [(0, 0, 1)],
@@ -207,7 +207,7 @@ _valid_args = [
         'positions': [(1, 0, 1), (0, 0, 0)],
         'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
         'overlap': [0, 1]
-    }),
+    }, 3),
     ((FacetedEllipsoid, FacetedEllipsoidUnion), {
         'shapes': [{
             "normals": [(0, 0, 1)],
@@ -240,12 +240,12 @@ _valid_args = [
         'overlap': [1, 1, 1],
         'capacity': 4,
         'ignore_statistics': 1
-    }),
+    }, 3),
     (Polyhedron, {
         "vertices": [(0.5, 0.5, 0.5), (-0.5, -0.5, 0.5), (0.5, -0.5, -0.5),
                      (-0.5, 0.5, -0.5)],
         "faces": [[1, 3, 2], [3, 0, 2], [1, 0, 3], [1, 2, 0]]
-    }),
+    }, 3),
     (Polyhedron, {
         'vertices': [(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5),
                      (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5),
@@ -255,7 +255,7 @@ _valid_args = [
                   [3, 1, 5], [3, 5, 7]],
         'overlap': [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
         'sweep_radius': 0.1
-    }),
+    }, 3),
     (Polyhedron, {
         'vertices': [(0, 3, 0), (2, 1, 0), (1, 3, 1), (1, 1, 1), (1, 2, 5),
                      (3, 0, 1), (0, 3, 3)],
@@ -263,44 +263,44 @@ _valid_args = [
                   (4, 5, 1), (6, 2, 5)],
         'ignore_statistics': 1,
         'capacity': 4
-    }),
+    }, 3),
     (Polyhedron, {
         'vertices': [(0, 3, 0), (2, 1, 0), (3, 0, 1), (0, 3, 3)],
         'faces': [(0, 1, 2), (3, 2, 1), (1, 2, 0), (3, 2, 1)],
         'capacity': 5,
         'hull_only': True
-    }),
+    }, 3),
     (SimplePolygon, {
         "vertices": [(0, (0.75**0.5) / 2), (0, 0), (-0.5, -(0.75**0.5) / 2),
                      (0.5, -(0.75**0.5) / 2)]
-    }),
+    }, 2),
     (SimplePolygon, {
         "vertices": [(-1, 1), (1, -1), (1, 1), (-1, -1)]
-    }),
+    }, 2),
     (SimplePolygon, {
         "vertices": [(-1, 1), (1, -1), (1, 1)],
         "ignore_statistics": 1
-    }),
+    }, 2),
     (SimplePolygon, {
         "vertices": [(-1, 1), (1, -1), (1, 1)],
         "sweep_radius": 2
-    }),
+    }, 2),
     (Sphere, {
         "diameter": 1
-    }),
+    }, 3),
     (Sphere, {
         'diameter': 1.25,
         'ignore_statistics': 1
-    }),
+    }, 3),
     (Sphere, {
         'diameter': 0.5,
         'orientable': 1
-    }),
+    }, 3),
     (Sphere, {
         'diameter': 0.8,
         'orientable': 1,
         'ignore_statistics': 1
-    }),
+    }, 3),
     ((Sphere, SphereUnion), {
         'shapes': [{
             "diameter": 1
@@ -310,7 +310,7 @@ _valid_args = [
         'positions': [(0, 0, 0), (0, 0, 0.1)],
         'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
         'overlap': [1, 1]
-    }),
+    }, 3),
     ((Sphere, SphereUnion), {
         'shapes': [{
             "diameter": 1
@@ -320,7 +320,7 @@ _valid_args = [
         'positions': [(1, 0, 0), (0, 0, 1)],
         'orientations': [(2**0.5, 2**0.5, 0, 0), (1, 0, 0, 0)],
         'overlap': [1, 1]
-    }),
+    }, 3),
     ((Sphere, SphereUnion), {
         'shapes': [{
             "diameter": 1
@@ -330,7 +330,7 @@ _valid_args = [
         'positions': [(1, 1, 0), (1, 0, 1)],
         'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
         'overlap': [1, 0]
-    }),
+    }, 3),
     ((Sphere, SphereUnion), {
         'shapes': [{
             "diameter": 1
@@ -344,7 +344,7 @@ _valid_args = [
         'overlap': [1, 1, 1],
         'capacity': 5,
         'ignore_statistics': 1
-    }),
+    }, 3),
     ((ConvexSpheropolyhedron, ConvexSpheropolyhedronUnion), {
         'shapes': [{
             'vertices': [(0.25, 0, 0), (0.25, 0.25, 0), (0.25, 0.5, 0.25),
@@ -356,7 +356,7 @@ _valid_args = [
         'positions': [(0, 0, 0), (0, 0, 0.1)],
         'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
         'overlap': [1, 1]
-    }),
+    }, 3),
     ((ConvexSpheropolyhedron, ConvexSpheropolyhedronUnion), {
         'shapes': [{
             'vertices': [(1, 0, 0), (1, 1, 0), (1, 2, 1), (0, 1, 1), (1, 1, 2),
@@ -367,7 +367,7 @@ _valid_args = [
         'positions': [(1, 0, 0), (0, 0, 1)],
         'orientations': [(2**0.5, 2**0.5, 0, 0), (1, 0, 0, 0)],
         'overlap': [1, 1]
-    }),
+    }, 3),
     ((ConvexSpheropolyhedron, ConvexSpheropolyhedronUnion), {
         'shapes': [{
             'vertices': [(0, 0, 0), (1, 1, 1), (1, 0, 2), (2, 1, 1)]
@@ -377,7 +377,7 @@ _valid_args = [
         'positions': [(1, 1, 0), (1, 0, 1)],
         'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
         'overlap': [1, 0]
-    }),
+    }, 3),
     ((ConvexSpheropolyhedron, ConvexSpheropolyhedronUnion), {
         'shapes': [{
             'vertices': [(0, 0, 0), (1, 1, 1), (1, 0, 2), (2, 1, 1)]
@@ -392,24 +392,24 @@ _valid_args = [
         'overlap': [1, 1, 1],
         'capacity': 5,
         'ignore_statistics': 1
-    }),
+    }, 3),
     (Sphinx, {
         'diameters': [1.6, -.001],
         'centers': [(0, 0, 0), (0.8, 0, 0)]
-    }),
+    }, 3),
     (Sphinx, {
         'diameters': [1, -1],
         'centers': [(0, 0, 0), (0.75, 0, 0)]
-    }),
+    }, 3),
     (Sphinx, {
         'diameters': [1, -0.5],
         'centers': [(0, 0, 0), (0, 0, .6)]
-    }),
+    }, 3),
     (Sphinx, {
         'diameters': [0.5, -0.25],
         'centers': [(0, 0, 0), (0.3, 0, 0)],
         'ignore_statistics': 1
-    }),
+    }, 3),
 ]
 
 _invalid_args = [
@@ -965,12 +965,12 @@ def _test_moves_id(args):
 def _test_moves_args(_valid_args):
     integrator_str = []
     args_list = []
-    for integrator, args in _valid_args:
+    for integrator, args, n_dimensions in _valid_args:
         if isinstance(integrator, tuple):
             integrator = integrator[1]
         if str(integrator) not in integrator_str:
             integrator_str.append(str(integrator))
-            args_list.append((integrator, args))
+            args_list.append((integrator, args, n_dimensions))
     return args_list
 
 
@@ -983,7 +983,7 @@ def test_moves_args(request):
 
 def _cpp_args(_valid_args):
     args_list = []
-    for integrator, args in _valid_args:
+    for integrator, args, n_dimensions in _valid_args:
         cpp_shape = None
         if 'SphereUnion' in str(integrator):
             cpp_shape = hoomd.hpmc._hpmc.SphereUnionParams
