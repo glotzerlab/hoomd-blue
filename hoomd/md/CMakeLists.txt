@@ -130,6 +130,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 ManifoldSphere.h
                 MolecularForceCompute.cuh
                 MolecularForceCompute.h
+                MuellerPlatheFlowEnum.h
+                MuellerPlatheFlow.h
+                MuellerPlatheFlowGPU.h
                 NeighborListBinned.h
                 NeighborListGPUBinned.h
                 NeighborListGPU.h
