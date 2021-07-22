@@ -28,6 +28,7 @@ md.pair
     OPP
     ReactionField
     SLJ
+    TWF
     Yukawa
     ZBL
 
@@ -55,6 +56,7 @@ md.pair
         OPP,
         ReactionField,
         SLJ,
+        TWF,
         Yukawa,
         ZBL
 

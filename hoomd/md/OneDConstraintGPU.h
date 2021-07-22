@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "OneDConstraint.h"
@@ -22,33 +21,33 @@
 
 //! Applys a constraint force to keep a group of particles on a sphere on the GPU
 /*! \ingroup computes
-*/
+ */
 class PYBIND11_EXPORT OneDConstraintGPU : public OneDConstraint
     {
     public:
-        //! Constructs the compute
-        OneDConstraintGPU(std::shared_ptr<SystemDefinition> sysdef,
-                          std::shared_ptr<ParticleGroup> group,
-                          Scalar3 constraint_vec);
+    //! Constructs the compute
+    OneDConstraintGPU(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<ParticleGroup> group,
+                      Scalar3 constraint_vec);
 
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
-        */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            OneDConstraint::setAutotunerParams(enable, period);
-            m_tuner->setPeriod(period);
-            m_tuner->setEnabled(enable);
-            }
+    //! Set autotuner parameters
+    /*! \param enable Enable/disable autotuning
+        \param period period (approximate) in time steps when returning occurs
+    */
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        OneDConstraint::setAutotunerParams(enable, period);
+        m_tuner->setPeriod(period);
+        m_tuner->setEnabled(enable);
+        }
 
     protected:
-        unsigned int m_block_size;  //!< block size to execute on the GPU
+    unsigned int m_block_size; //!< block size to execute on the GPU
 
-        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
-        //! Actually compute the forces
-        virtual void computeForces(uint64_t timestep);
+    //! Actually compute the forces
+    virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the OneDConstraintGPU class to python

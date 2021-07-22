@@ -13,13 +13,12 @@
 #define MPCD_COMMUNICATOR_UTILITIES_H_
 
 namespace mpcd
-{
+    {
 namespace detail
-{
-
+    {
 enum struct face : unsigned char
     {
-    east=0,
+    east = 0,
     west,
     north,
     south,
@@ -37,8 +36,8 @@ enum struct send_mask : unsigned int
     down = 32
     };
 
-} // end namespace detail
-} // end namespace mpcd
+    } // end namespace detail
+    } // end namespace mpcd
 
 #endif // MPCD_COMMUNICATOR_UTILITIES_H_
 #endif // ENABLE_MPI

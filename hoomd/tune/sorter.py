@@ -26,7 +26,7 @@ class ParticleSorter(Tuner):
     cache hits when computing pair potentials.
 
     Note:
-        New `Operations` instances include a `ParticleSorter`
+        New `hoomd.Operations` instances include a `ParticleSorter`
         constructed with default parameters.
 
     Attributes:
@@ -42,11 +42,10 @@ class ParticleSorter(Tuner):
     def __init__(self, trigger=200, grid=None):
         self._param_dict = ParameterDict(
             trigger=Trigger,
-            grid=OnlyTypes(
-                int,
-                postprocess=lambda x: int(ParticleSorter._to_power_of_two(x)),
-                preprocess=ParticleSorter._natural_number,
-                allow_none=True))
+            grid=OnlyTypes(int,
+                           postprocess=ParticleSorter._to_power_of_two,
+                           preprocess=ParticleSorter._natural_number,
+                           allow_none=True))
         self.trigger = trigger
         self.grid = grid
 

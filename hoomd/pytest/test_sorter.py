@@ -1,5 +1,6 @@
 """Test ParticleSorter."""
 
+from hoomd.conftest import operation_pickling_check
 import hoomd
 
 
@@ -31,3 +32,12 @@ def test_default_sorter(simulation_factory, two_particle_snapshot_factory):
 
     assert len(sim.operations.tuners) == 1
     assert isinstance(sim.operations.tuners[0], hoomd.tune.ParticleSorter)
+
+
+def test_pickling(simulation_factory, two_particle_snapshot_factory):
+    """Test pickling `hoomd.tune.ParticleSorter`."""
+    sim = simulation_factory(two_particle_snapshot_factory())
+    # need to remove tuner since operation_pickling_check adds operation to
+    # simulation
+    sorter = sim.operations.tuners.pop()
+    operation_pickling_check(sorter, sim)

@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: phillicl
 
 #include "BondTablePotential.h"
@@ -19,12 +18,10 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
-                               unsigned int table_width,
-                               const std::string& log_suffix)
-        : ForceCompute(sysdef), m_table_width(table_width)
+                                       unsigned int table_width)
+    : ForceCompute(sysdef), m_table_width(table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondTablePotential" << endl;
 
@@ -39,9 +36,6 @@ BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
         throw runtime_error("Error initializing BondTablePotential");
         }
 
-
-
-
     // allocate storage for the tables and parameters
     GPUArray<Scalar2> tables(m_table_width, m_bond_data->getNTypes(), m_exec_conf);
     m_tables.swap(tables);
@@ -52,18 +46,12 @@ BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
     // helper to compute indices
     Index2D table_value((unsigned int)m_tables.getPitch(), m_bond_data->getNTypes());
     m_table_value = table_value;
-
-
-
-
-
-    m_log_name = std::string("bond_table_energy") + log_suffix;
     }
 
 BondTablePotential::~BondTablePotential()
-        {
-        m_exec_conf->msg->notice(5) << "Destroying BondTablePotential" << endl;
-        }
+    {
+    m_exec_conf->msg->notice(5) << "Destroying BondTablePotential" << endl;
+    }
 
 /*! \param type Type of the bond to set parameters for
     \param V Table for the potential V
@@ -74,19 +62,17 @@ BondTablePotential::~BondTablePotential()
     \note See BondTablePotential for a detailed definition of rmin and rmax
 */
 void BondTablePotential::setTable(unsigned int type,
-                              const std::vector<Scalar> &V,
-                              const std::vector<Scalar> &F,
-                              Scalar rmin,
-                              Scalar rmax)
+                                  const std::vector<Scalar>& V,
+                                  const std::vector<Scalar>& F,
+                                  Scalar rmin,
+                                  Scalar rmax)
     {
-
     // make sure the type is valid
     if (type >= m_bond_data->getNTypes())
         {
         m_exec_conf->msg->error() << "Invalid bond type specified" << endl;
         throw runtime_error("Error setting parameters in PotentialBond");
         }
-
 
     // access the arrays
     ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::readwrite);
@@ -95,14 +81,15 @@ void BondTablePotential::setTable(unsigned int type,
     // range check on the parameters
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
-        m_exec_conf->msg->error()<< "bond.table: rmin, rmax (" << rmin << "," << rmax
-             << ") is invalid."  << endl;
+        m_exec_conf->msg->error() << "bond.table: rmin, rmax (" << rmin << "," << rmax
+                                  << ") is invalid." << endl;
         throw runtime_error("Error initializing BondTablePotential");
         }
 
     if (V.size() != m_table_width || F.size() != m_table_width)
         {
-        m_exec_conf->msg->error() << "bond.table: table provided to setTable is not of the correct size" << endl;
+        m_exec_conf->msg->error()
+            << "bond.table: table provided to setTable is not of the correct size" << endl;
         throw runtime_error("Error initializing BondTablePotential");
         }
 
@@ -119,46 +106,20 @@ void BondTablePotential::setTable(unsigned int type,
         }
     }
 
-/*! BondTablePotential provides
-    - \c bond_table_energy
-*/
-std::vector< std::string > BondTablePotential::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-Scalar BondTablePotential::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "bond.table: " << quantity << " is not a valid log quantity for BondTablePotential" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! \post The table based forces are computed for the given timestep.
 \param timestep specifies the current time step of the simulation
 */
 void BondTablePotential::computeForces(uint64_t timestep)
     {
-
     // start the profile for this compute
-    if (m_prof) m_prof->push("Bond Table pair");
-
+    if (m_prof)
+        m_prof->push("Bond Table pair");
 
     // access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -166,8 +127,8 @@ void BondTablePotential::computeForces(uint64_t timestep)
     assert(h_pos.data);
 
     // Zero data for force calculation.
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
@@ -195,8 +156,9 @@ void BondTablePotential::computeForces(uint64_t timestep)
         // throw an error if this bond is incomplete
         if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
             {
-            this->m_exec_conf->msg->error() << "bond.table: bond " <<
-                bond.tag[0] << " " << bond.tag[1] << " incomplete." << endl << endl;
+            this->m_exec_conf->msg->error() << "bond.table: bond " << bond.tag[0] << " "
+                                            << bond.tag[1] << " incomplete." << endl
+                                            << endl;
             throw std::runtime_error("Error in bond calculation");
             }
         assert(idx_a <= m_pdata->getN() + m_pdata->getNGhosts());
@@ -204,8 +166,7 @@ void BondTablePotential::computeForces(uint64_t timestep)
 
         Scalar3 pa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
         Scalar3 pb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
-        Scalar3 dx = pb-pa;
-
+        Scalar3 dx = pb - pa;
 
         // apply periodic boundary conditions
         dx = box.minImage(dx);
@@ -218,7 +179,7 @@ void BondTablePotential::computeForces(uint64_t timestep)
         Scalar delta_r = params.z;
 
         // start computing the force
-        Scalar rsq = dot(dx,dx);
+        Scalar rsq = dot(dx, dx);
         Scalar r = sqrt(rsq);
 
         // only compute the force if the particles are within the region defined by V
@@ -233,7 +194,7 @@ void BondTablePotential::computeForces(uint64_t timestep)
             /// Here we use the table!!
             unsigned int value_i = (unsigned int)floor(value_f);
             Scalar2 VF0 = h_tables.data[m_table_value(value_i, type)];
-            Scalar2 VF1 = h_tables.data[m_table_value(value_i+1, type)];
+            Scalar2 VF1 = h_tables.data[m_table_value(value_i + 1, type)];
             // unpack the data
             Scalar V0 = VF0.x;
             Scalar V1 = VF1.x;
@@ -270,31 +231,31 @@ void BondTablePotential::computeForces(uint64_t timestep)
             h_force.data[idx_b].z += force_divr * dx.z;
             h_force.data[idx_b].w += bond_eng;
             for (unsigned int i = 0; i < 6; i++)
-                h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
+                h_virial.data[i * m_virial_pitch + idx_b] += bond_virial[i];
 
             h_force.data[idx_a].x -= force_divr * dx.x;
             h_force.data[idx_a].y -= force_divr * dx.y;
             h_force.data[idx_a].z -= force_divr * dx.z;
             h_force.data[idx_a].w += bond_eng;
             for (unsigned int i = 0; i < 6; i++)
-                h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
-
+                h_virial.data[i * m_virial_pitch + idx_a] += bond_virial[i];
             }
         else
             {
             m_exec_conf->msg->errorAllRanks() << "Table bond out of bounds" << endl;
             throw std::runtime_error("Error in bond calculation");
             }
-
         }
-    if (m_prof) m_prof->pop();
+    if (m_prof)
+        m_prof->pop();
     }
 
 //! Exports the BondTablePotential class to python
 void export_BondTablePotential(py::module& m)
     {
-    py::class_<BondTablePotential, ForceCompute, std::shared_ptr<BondTablePotential> >(m, "BondTablePotential")
-    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
-    .def("setTable", &BondTablePotential::setTable)
-    ;
+    py::class_<BondTablePotential, ForceCompute, std::shared_ptr<BondTablePotential>>(
+        m,
+        "BondTablePotential")
+        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>())
+        .def("setTable", &BondTablePotential::setTable);
     }

@@ -1,4 +1,11 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement Table."""
+
 from abc import ABCMeta, abstractmethod
+import copy
 from numbers import Integral
 from math import log10
 from sys import stdout
@@ -36,6 +43,12 @@ class _OutputWriter(metaclass=ABCMeta):
             return all(hasattr(C, method) for method in cls.__abstractmethods__)
         else:
             return NotImplemented
+
+
+def _ensure_writable(fh):
+    if not fh.writable():
+        raise ValueError("file-like object must be writable.")
+    return fh
 
 
 class _Formatter:
@@ -154,20 +167,16 @@ class _TableInternal(_InternalAction):
                  max_precision=10,
                  max_header_len=None):
 
-        def writable(fh):
-            if not fh.writable():
-                raise ValueError("file-like object must be writable.")
-            return fh
-
         param_dict = ParameterDict(header_sep=str,
                                    delimiter=str,
                                    min_column_width=int,
                                    max_header_len=OnlyTypes(int,
-                                                           allow_none=True),
+                                                            allow_none=True),
                                    pretty=bool,
                                    max_precision=int,
-                                   output=OnlyTypes(_OutputWriter,
-                                                   postprocess=writable),
+                                   output=OnlyTypes(
+                                       _OutputWriter,
+                                       postprocess=_ensure_writable),
                                    logger=Logger)
 
         param_dict.update(
@@ -184,7 +193,8 @@ class _TableInternal(_InternalAction):
         # internal variables that are not part of the state.
         # Ensure that only scalar and potentially string are set for the logger
         if (LoggerCategories.scalar not in logger.categories
-                or logger.categories & self._invalid_logger_categories !=
+                or logger.categories & self._invalid_logger_categories
+                !=  # noqa: W504 (yapf formats this incorrectly
                 LoggerCategories.NONE):
             raise ValueError(
                 "Given Logger must have the scalar categories set.")
@@ -275,6 +285,31 @@ class _TableInternal(_InternalAction):
             self._write_row(output_dict)
             self.output.flush()
 
+    def __getstate__(self):
+        state = copy.copy(self.__dict__)
+        state.pop('_comm', None)
+        # This is to handle when the output specified is just stdout. By default
+        # file objects like this are not picklable, so we need to handle it
+        # differently. We let `None` represent stdout in the state dictionary.
+        # Most other file like objects will simply fail to be pickled here.
+        if self.output == stdout:
+            param_dict = ParameterDict()
+            param_dict.update(state['_param_dict'])
+            state['_param_dict'] = param_dict
+            del state['_param_dict']['output']
+            state['_param_dict']['output'] = None
+            return state
+        else:
+            return super().__getstate__()
+
+    def __setstate__(self, state):
+        if state['_param_dict']['output'] is None:
+            del state['_param_dict']['output']
+            state['_param_dict']['output'] = stdout
+            state['_param_dict']._type_converter['output'] = OnlyTypes(
+                _OutputWriter, postprocess=_ensure_writable),
+        self.__dict__ = state
+
 
 class Table(_InternalCustomWriter):
     """A delimiter separated value file backend for a Logger.
@@ -301,22 +336,22 @@ class Table(_InternalCustomWriter):
         output (``file-like`` object , optional): A file-like object to output
             the data from, defaults to standard out. The object must have write
             and flush methods and a mode attribute.
-        header_sep (:obj:`str`, optional): String to use to separate names in
+        header_sep (`str`, optional): String to use to separate names in
             the logger's namespace, defaults to '.'. For example, if logging the
             total energy of an `hoomd.md.pair.LJ` pair force object, the default
             header would be ``md.pair.LJ.energy`` (assuming that
             ``max_header_len`` is not set).
-        delimiter (:obj:`str`, optional): String used to separate elements in
+        delimiter (`str`, optional): String used to separate elements in
             the space delimitated file, defaults to ' '.
-        pretty (:obj:`bool`, optional): Flags whether to attempt to make output
+        pretty (`bool`, optional): Flags whether to attempt to make output
             prettier and easier to read, defaults to True. To make the ouput
             easier to read, the output will compromise on outputted precision
             for improved readability. In many cases, though the precision will
             still be high with pretty set to ``True``.
-        max_precision (:obj:`int`, optional): If pretty is not set, then this
+        max_precision (`int`, optional): If pretty is not set, then this
             controls the maximum precision to use when outputing numerical
             values, defaults to 10.
-        max_header_len (:obj:`int`, optional): If not None (the default), limit
+        max_header_len (`int`, optional): If not None (the default), limit
             the outputted header names to length ``max_header_len``. When not
             None, names are grabbed from the most specific to the least. For
             example, if set to 7 the namespace 'hoomd.md.pair.LJ.energy' would
@@ -345,7 +380,7 @@ class Table(_InternalCustomWriter):
             output will compromise on outputted precision for improved
             readability. In many cases, though the precision will still be high
             with pretty set to ``True``.
-        max_precision (:obj:`int`, optional): If pretty is not set, then this
+        max_precision (`int`, optional): If pretty is not set, then this
             controls the maximum precision to use when outputing numerical
             values, defaults to 10.
         max_header_len (int): Limits the outputted header names to length

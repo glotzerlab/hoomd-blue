@@ -3,8 +3,8 @@
 
 // Maintainer: mphoward
 
-#include "hoomd/mpcd/SystemData.h"
 #include "hoomd/SnapshotSystemData.h"
+#include "hoomd/mpcd/SystemData.h"
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN()
@@ -12,53 +12,53 @@ HOOMD_UP_MAIN()
 class VirtualCallback
     {
     public:
-        //! Constructor
-        /*!
-         * \param pdata MPCD particle data
-         */
-        VirtualCallback(std::shared_ptr<mpcd::ParticleData> pdata)
-            : m_pdata(pdata), m_signal(false)
-            {
-            if (m_pdata)
-                m_pdata->getNumVirtualSignal().connect<VirtualCallback, &VirtualCallback::slot>(this);
-            }
+    //! Constructor
+    /*!
+     * \param pdata MPCD particle data
+     */
+    VirtualCallback(std::shared_ptr<mpcd::ParticleData> pdata) : m_pdata(pdata), m_signal(false)
+        {
+        if (m_pdata)
+            m_pdata->getNumVirtualSignal().connect<VirtualCallback, &VirtualCallback::slot>(this);
+        }
 
-        //! Destructor
-        ~VirtualCallback()
-            {
-            if (m_pdata)
-                m_pdata->getNumVirtualSignal().disconnect<VirtualCallback, &VirtualCallback::slot>(this);
-            }
+    //! Destructor
+    ~VirtualCallback()
+        {
+        if (m_pdata)
+            m_pdata->getNumVirtualSignal().disconnect<VirtualCallback, &VirtualCallback::slot>(
+                this);
+        }
 
-        bool operator()() const
-            {
-            return m_signal;
-            }
+    bool operator()() const
+        {
+        return m_signal;
+        }
 
-        //! Reset the callback signal
-        void reset()
-            {
-            m_signal = false;
-            }
+    //! Reset the callback signal
+    void reset()
+        {
+        m_signal = false;
+        }
 
     private:
-        std::shared_ptr<mpcd::ParticleData> m_pdata;    //!< MPCD particle data
-        bool m_signal;  //!< If true, callback has been done
+    std::shared_ptr<mpcd::ParticleData> m_pdata; //!< MPCD particle data
+    bool m_signal;                               //!< If true, callback has been done
 
-        //! Set the callback signal to true
-        void slot()
-            {
-            m_signal = true;
-            }
+    //! Set the callback signal to true
+    void slot()
+        {
+        m_signal = true;
+        }
     };
 
 //! Basic test case for virtual particle functionality
-UP_TEST( virtual_add_remove_test )
+UP_TEST(virtual_add_remove_test)
     {
     auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU);
 
     // default initialize an empty snapshot in the reference box
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = BoxDim(2.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));

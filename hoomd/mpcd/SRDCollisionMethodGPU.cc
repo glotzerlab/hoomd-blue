@@ -12,12 +12,12 @@
 #include "SRDCollisionMethodGPU.cuh"
 
 mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
-                                             unsigned int cur_timestep,
-                                             unsigned int period,
-                                             int phase,
-                                             uint16_t seed,
-                                             std::shared_ptr<mpcd::CellThermoCompute> thermo)
-    : mpcd::SRDCollisionMethod(sysdata,cur_timestep,period,phase,seed,thermo)
+                                                   unsigned int cur_timestep,
+                                                   unsigned int period,
+                                                   int phase,
+                                                   uint16_t seed,
+                                                   std::shared_ptr<mpcd::CellThermoCompute> thermo)
+    : mpcd::SRDCollisionMethod(sysdata, cur_timestep, period, phase, seed, thermo)
     {
     m_tuner_rotvec.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_srd_vec", m_exec_conf));
     m_tuner_rotate.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_srd_rotate", m_exec_conf));
@@ -32,7 +32,9 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(uint64_t timestep)
     if (m_T)
         {
         ArrayHandle<double> d_factors(m_factors, access_location::device, access_mode::overwrite);
-        ArrayHandle<double3> d_cell_energy(m_thermo->getCellEnergies(), access_location::device, access_mode::read);
+        ArrayHandle<double3> d_cell_energy(m_thermo->getCellEnergies(),
+                                           access_location::device,
+                                           access_mode::read);
 
         m_tuner_rotvec->begin();
         mpcd::gpu::srd_draw_vectors(d_rotvec.data,
@@ -47,7 +49,8 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(uint64_t timestep)
                                     (*m_T)(timestep),
                                     m_sysdef->getNDimensions(),
                                     m_tuner_rotvec->getParam());
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         m_tuner_rotvec->end();
         }
     else
@@ -65,7 +68,8 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(uint64_t timestep)
                                     1.0,
                                     m_sysdef->getNDimensions(),
                                     m_tuner_rotvec->getParam());
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         m_tuner_rotvec->end();
         }
     }
@@ -73,26 +77,37 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(uint64_t timestep)
 void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
     {
     // acquire MPCD particle data
-    ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(),
+                               access_location::device,
+                               access_mode::readwrite);
     const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
     // acquire cell velocities and rotation vectors
-    ArrayHandle<double4> d_cell_vel(m_thermo->getCellVelocities(), access_location::device, access_mode::read);
+    ArrayHandle<double4> d_cell_vel(m_thermo->getCellVelocities(),
+                                    access_location::device,
+                                    access_mode::read);
     ArrayHandle<double3> d_rotvec(m_rotvec, access_location::device, access_mode::read);
 
     // load scale factors if required
-    std::unique_ptr< ArrayHandle<double> > d_factors;
+    std::unique_ptr<ArrayHandle<double>> d_factors;
     if (m_T)
         {
-        d_factors.reset(new ArrayHandle<double>(m_factors, access_location::device, access_mode::read));
+        d_factors.reset(
+            new ArrayHandle<double>(m_factors, access_location::device, access_mode::read));
         }
 
     if (m_embed_group)
         {
-        ArrayHandle<unsigned int> d_embed_group(m_embed_group->getIndexArray(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_vel_embed(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_embed_cell_ids(m_cl->getEmbeddedGroupCellIds(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_embed_group(m_embed_group->getIndexArray(),
+                                                access_location::device,
+                                                access_mode::read);
+        ArrayHandle<Scalar4> d_vel_embed(m_pdata->getVelocities(),
+                                         access_location::device,
+                                         access_mode::readwrite);
+        ArrayHandle<unsigned int> d_embed_cell_ids(m_cl->getEmbeddedGroupCellIds(),
+                                                   access_location::device,
+                                                   access_mode::read);
 
         N_tot += m_embed_group->getNumMembers();
 
@@ -108,7 +123,8 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
                               N_mpcd,
                               N_tot,
                               m_tuner_rotate->getParam());
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         m_tuner_rotate->end();
         }
     else
@@ -125,7 +141,8 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
                               N_mpcd,
                               N_tot,
                               m_tuner_rotate->getParam());
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         m_tuner_rotate->end();
         }
     }
@@ -136,13 +153,13 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
 void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::SRDCollisionMethodGPU, mpcd::SRDCollisionMethod, std::shared_ptr<mpcd::SRDCollisionMethodGPU> >
-        (m, "SRDCollisionMethodGPU")
+    py::class_<mpcd::SRDCollisionMethodGPU,
+               mpcd::SRDCollisionMethod,
+               std::shared_ptr<mpcd::SRDCollisionMethodGPU>>(m, "SRDCollisionMethodGPU")
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       unsigned int,
                       unsigned int,
                       int,
                       unsigned int,
-                      std::shared_ptr<mpcd::CellThermoCompute>>())
-    ;
+                      std::shared_ptr<mpcd::CellThermoCompute>>());
     }

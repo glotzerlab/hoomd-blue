@@ -1,21 +1,22 @@
-#include <utility>
+#include "ExternalFieldEvalFactory.h"
 #include <memory>
 #include <sstream>
-#include "ExternalFieldEvalFactory.h"
+#include <utility>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Support/SourceMgr.h"
 #include "llvm/IRReader/IRReader.h"
-#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 3 || (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9)
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/TargetSelect.h"
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 3 \
+    || (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9)
 #include "llvm/ExecutionEngine/Orc/OrcABISupport.h"
 #else
 #include "llvm/ExecutionEngine/Orc/OrcArchitectureSupport.h"
 #endif
-#include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/Support/DynamicLibrary.h"
 
 #include "llvm/Support/raw_os_ostream.h"
@@ -38,15 +39,16 @@ ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& llvm_ir)
     // Add the program's symbols into the JIT's search space.
     if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr))
         {
-            m_error_msg = "Error loading program symbols.\n";
-            return;
+        m_error_msg = "Error loading program symbols.\n";
+        return;
         }
 
-    #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 3 || (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9)
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 3 \
+    || (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9)
     llvm::LLVMContext Context;
-    #else
-    llvm::LLVMContext &Context = llvm::getGlobalContext();
-    #endif
+#else
+    llvm::LLVMContext& Context = llvm::getGlobalContext();
+#endif
     llvm::SMDiagnostic Err;
 
     // Read the input IR data
@@ -77,11 +79,11 @@ ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& llvm_ir)
         return;
         }
 
-    #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 5
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 5
     m_eval = (ExternalFieldEvalFnPtr)(long unsigned int)(cantFail(eval.getAddress()));
-    #else
-    m_eval = (ExternalFieldEvalFnPtr) eval.getAddress();
-    #endif
+#else
+    m_eval = (ExternalFieldEvalFnPtr)eval.getAddress();
+#endif
 
     llvm_err.flush();
     }

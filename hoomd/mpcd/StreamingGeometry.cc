@@ -11,10 +11,9 @@
 #include "StreamingGeometry.h"
 
 namespace mpcd
-{
+    {
 namespace detail
-{
-
+    {
 void export_boundary(pybind11::module& m)
     {
     namespace py = pybind11;
@@ -26,14 +25,13 @@ void export_boundary(pybind11::module& m)
 void export_BulkGeometry(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<BulkGeometry, std::shared_ptr<BulkGeometry> >(m, "BulkGeometry")
-        .def(py::init<>());
+    py::class_<BulkGeometry, std::shared_ptr<BulkGeometry>>(m, "BulkGeometry").def(py::init<>());
     }
 
 void export_SlitGeometry(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<SlitGeometry, std::shared_ptr<SlitGeometry> >(m, "SlitGeometry")
+    py::class_<SlitGeometry, std::shared_ptr<SlitGeometry>>(m, "SlitGeometry")
         .def(py::init<Scalar, Scalar, boundary>())
         .def("getH", &SlitGeometry::getH)
         .def("getVelocity", &SlitGeometry::getVelocity)
@@ -43,12 +41,12 @@ void export_SlitGeometry(pybind11::module& m)
 void export_SlitPoreGeometry(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<SlitPoreGeometry, std::shared_ptr<SlitPoreGeometry> >(m, "SlitPoreGeometry")
+    py::class_<SlitPoreGeometry, std::shared_ptr<SlitPoreGeometry>>(m, "SlitPoreGeometry")
         .def(py::init<Scalar, Scalar, boundary>())
         .def("getH", &SlitPoreGeometry::getH)
         .def("getL", &SlitPoreGeometry::getL)
         .def("getBoundaryCondition", &SlitPoreGeometry::getBoundaryCondition);
     }
 
-} // end namespace detail
-} // end namespace mpcd
+    } // end namespace detail
+    } // end namespace mpcd

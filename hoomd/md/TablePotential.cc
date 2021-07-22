@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 #include "TablePotential.h"
 
@@ -18,13 +17,11 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 TablePotential::TablePotential(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<NeighborList> nlist,
-                               unsigned int table_width,
-                               const std::string& log_suffix)
-        : ForceCompute(sysdef), m_nlist(nlist), m_table_width(table_width)
+                               unsigned int table_width)
+    : ForceCompute(sysdef), m_nlist(nlist), m_table_width(table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing TablePotential" << endl;
 
@@ -53,15 +50,21 @@ TablePotential::TablePotential(std::shared_ptr<SystemDefinition> sysdef,
     TAG_ALLOCATION(m_params);
 
     Index2D full_type_pair_idx(m_pdata->getNTypes());
-    m_r_cut_nlist = std::make_shared<GlobalArray<Scalar>>(full_type_pair_idx.getNumElements(),
-                                                          m_exec_conf);
+    m_r_cut_nlist
+        = std::make_shared<GlobalArray<Scalar>>(full_type_pair_idx.getNumElements(), m_exec_conf);
     nlist->addRCutMatrix(m_r_cut_nlist);
 
-    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
-        cudaMemAdvise(m_tables.get(), m_tables.getNumElements()*sizeof(Scalar2), cudaMemAdviseSetReadMostly, 0);
-        cudaMemAdvise(m_params.get(), m_params.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_tables.get(),
+                      m_tables.getNumElements() * sizeof(Scalar2),
+                      cudaMemAdviseSetReadMostly,
+                      0);
+        cudaMemAdvise(m_params.get(),
+                      m_params.getNumElements() * sizeof(Scalar4),
+                      cudaMemAdviseSetReadMostly,
+                      0);
 
         // prefetch
         auto& gpu_map = m_exec_conf->getGPUIds();
@@ -69,27 +72,31 @@ TablePotential::TablePotential(std::shared_ptr<SystemDefinition> sysdef,
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
             // prefetch data on all GPUs
-            cudaMemPrefetchAsync(m_tables.get(), sizeof(Scalar2)*m_tables.getNumElements(), gpu_map[idev]);
-            cudaMemPrefetchAsync(m_params.get(), sizeof(Scalar4)*m_params.getNumElements(), gpu_map[idev]);
+            cudaMemPrefetchAsync(m_tables.get(),
+                                 sizeof(Scalar2) * m_tables.getNumElements(),
+                                 gpu_map[idev]);
+            cudaMemPrefetchAsync(m_params.get(),
+                                 sizeof(Scalar4) * m_params.getNumElements(),
+                                 gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
         }
-    #endif
+#endif
 
     assert(!m_tables.isNull());
     assert(!m_params.isNull());
 
-    m_log_name = std::string("pair_table_energy") + log_suffix;
-
     // connect to the ParticleData to receive notifications when the number of types changes
-    m_pdata->getNumTypesChangeSignal().connect<TablePotential, &TablePotential::slotNumTypesChange>(this);
+    m_pdata->getNumTypesChangeSignal().connect<TablePotential, &TablePotential::slotNumTypesChange>(
+        this);
     }
 
 TablePotential::~TablePotential()
     {
     m_exec_conf->msg->notice(5) << "Destroying TablePotential" << endl;
 
-    m_pdata->getNumTypesChangeSignal().disconnect<TablePotential, &TablePotential::slotNumTypesChange>(this);
+    m_pdata->getNumTypesChangeSignal()
+        .disconnect<TablePotential, &TablePotential::slotNumTypesChange>(this);
 
     if (m_attached)
         {
@@ -116,28 +123,26 @@ void TablePotential::slotNumTypesChange()
         {
         // copy existing data into them
         ArrayHandle<Scalar> h_new_r_cut_nlist(new_r_cut_nlist,
-                                                access_location::host,
-                                                access_mode::overwrite);
+                                              access_location::host,
+                                              access_mode::overwrite);
         ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
-                                            access_location::host,
-                                            access_mode::overwrite);
+                                          access_location::host,
+                                          access_mode::overwrite);
         ArrayHandle<Scalar4> h_new_params(new_params,
                                           access_location::host,
                                           access_mode::overwrite);
-        ArrayHandle<Scalar4> h_params(m_params,
-                                      access_location::host,
-                                      access_mode::overwrite);
+        ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::overwrite);
 
         for (unsigned int i = 0; i < new_type_pair_idx.getW(); i++)
             {
             for (unsigned int j = 0; j < new_type_pair_idx.getW(); j++)
                 {
-                h_new_r_cut_nlist.data[new_full_type_pair_idx(i,j)] =
-                    h_r_cut_nlist.data[old_full_type_pair_idx(i,j)];
+                h_new_r_cut_nlist.data[new_full_type_pair_idx(i, j)]
+                    = h_r_cut_nlist.data[old_full_type_pair_idx(i, j)];
                 if (i < j)
                     {
-                    h_new_params.data[new_type_pair_idx(i,j)] =
-                        h_params.data[m_type_pair_idx(i,j)];
+                    h_new_params.data[new_type_pair_idx(i, j)]
+                        = h_params.data[m_type_pair_idx(i, j)];
                     }
                 }
             }
@@ -153,11 +158,17 @@ void TablePotential::slotNumTypesChange()
     // set the new type pair indexer
     m_type_pair_idx = new_type_pair_idx;
 
-    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
-        cudaMemAdvise(m_tables.get(), m_tables.getNumElements()*sizeof(Scalar2), cudaMemAdviseSetReadMostly, 0);
-        cudaMemAdvise(m_params.get(), m_params.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_tables.get(),
+                      m_tables.getNumElements() * sizeof(Scalar2),
+                      cudaMemAdviseSetReadMostly,
+                      0);
+        cudaMemAdvise(m_params.get(),
+                      m_params.getNumElements() * sizeof(Scalar4),
+                      cudaMemAdviseSetReadMostly,
+                      0);
 
         // prefetch
         auto& gpu_map = m_exec_conf->getGPUIds();
@@ -165,12 +176,16 @@ void TablePotential::slotNumTypesChange()
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
             // prefetch data on all GPUs
-            cudaMemPrefetchAsync(m_tables.get(), sizeof(Scalar2)*m_tables.getNumElements(), gpu_map[idev]);
-            cudaMemPrefetchAsync(m_params.get(), sizeof(Scalar4)*m_params.getNumElements(), gpu_map[idev]);
+            cudaMemPrefetchAsync(m_tables.get(),
+                                 sizeof(Scalar2) * m_tables.getNumElements(),
+                                 gpu_map[idev]);
+            cudaMemPrefetchAsync(m_params.get(),
+                                 sizeof(Scalar4) * m_params.getNumElements(),
+                                 gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
         }
-    #endif
+#endif
 
     assert(!m_tables.isNull());
     assert(!m_params.isNull());
@@ -188,8 +203,8 @@ void TablePotential::slotNumTypesChange()
 */
 void TablePotential::setTable(unsigned int typ1,
                               unsigned int typ2,
-                              const std::vector<Scalar> &V,
-                              const std::vector<Scalar> &F,
+                              const std::vector<Scalar>& V,
+                              const std::vector<Scalar>& F,
                               Scalar rmin,
                               Scalar rmax)
     {
@@ -205,13 +220,14 @@ void TablePotential::setTable(unsigned int typ1,
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
         m_exec_conf->msg->error() << "pair.table rmin, rmax (" << rmin << "," << rmax
-             << ") is invalid" << endl;
+                                  << ") is invalid" << endl;
         throw runtime_error("Error initializing TablePotential");
         }
 
     if (V.size() != m_table_width || F.size() != m_table_width)
         {
-        m_exec_conf->msg->error() << "pair.table: table provided to setTable is not of the correct size" << endl;
+        m_exec_conf->msg->error()
+            << "pair.table: table provided to setTable is not of the correct size" << endl;
         throw runtime_error("Error initializing TablePotential");
         }
 
@@ -230,37 +246,15 @@ void TablePotential::setTable(unsigned int typ1,
     // update the r_cut_nlist value
         {
         Index2D type_pair_idx(m_pdata->getNTypes());
-        ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
+                                          access_location::host,
+                                          access_mode::readwrite);
         h_r_cut_nlist.data[type_pair_idx(typ1, typ2)] = rmax;
         h_r_cut_nlist.data[type_pair_idx(typ2, typ1)] = rmax;
         }
 
     // notify the neighbor list that we have changed r_cut values
     m_nlist->notifyRCutMatrixChange();
-    }
-
-/*! TablePotential provides
-    - \c pair_table_energy
-*/
-std::vector< std::string > TablePotential::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-Scalar TablePotential::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "pair.table: " << quantity << " is not a valid log quantity for TablePotential" << endl;
-        throw runtime_error("Error getting log value");
-        }
     }
 
 /*! \post The table based forces are computed for the given timestep. The neighborlist's
@@ -274,22 +268,29 @@ void TablePotential::computeForces(uint64_t timestep)
     m_nlist->compute(timestep);
 
     // start the profile for this compute
-    if (m_prof) m_prof->push("Table pair");
+    if (m_prof)
+        m_prof->push("Table pair");
 
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
 
     // access the neighbor list
-    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
+                                        access_location::host,
+                                        access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
+                                      access_location::host,
+                                      access_mode::read);
+    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
+                                          access_location::host,
+                                          access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -297,8 +298,8 @@ void TablePotential::computeForces(uint64_t timestep)
     assert(h_pos.data);
 
     // need to start from a zero force, energy and virial
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
@@ -312,7 +313,7 @@ void TablePotential::computeForces(uint64_t timestep)
     Index2D table_value(m_table_width);
 
     // for each particle
-    for (int i = 0; i < (int) m_pdata->getN(); i++)
+    for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
@@ -322,7 +323,7 @@ void TablePotential::computeForces(uint64_t timestep)
         assert(typei < m_pdata->getNTypes());
 
         // initialize current particle force, potential energy, and virial to 0
-        Scalar3 fi = make_scalar3(0,0,0);
+        Scalar3 fi = make_scalar3(0, 0, 0);
         Scalar pei = 0.0;
         Scalar virialxxi = 0.0;
         Scalar virialxyi = 0.0;
@@ -372,7 +373,7 @@ void TablePotential::computeForces(uint64_t timestep)
                 // compute index into the table and read in values
                 unsigned int value_i = (unsigned int)floor(value_f);
                 Scalar2 VF0 = h_tables.data[table_value(value_i, cur_table_index)];
-                Scalar2 VF1 = h_tables.data[table_value(value_i+1, cur_table_index)];
+                Scalar2 VF1 = h_tables.data[table_value(value_i + 1, cur_table_index)];
                 // unpack the data
                 Scalar V0 = VF0.x;
                 Scalar V1 = VF1.x;
@@ -394,15 +395,15 @@ void TablePotential::computeForces(uint64_t timestep)
 
                 // compute the virial
                 Scalar forcemag_div2r = Scalar(0.5) * forcemag_divr;
-                virialxxi += forcemag_div2r*dx.x*dx.x;
-                virialxyi += forcemag_div2r*dx.x*dx.y;
-                virialxzi += forcemag_div2r*dx.x*dx.z;
-                virialyyi += forcemag_div2r*dx.y*dx.y;
-                virialyzi += forcemag_div2r*dx.y*dx.z;
-                virialzzi += forcemag_div2r*dx.z*dx.z;
+                virialxxi += forcemag_div2r * dx.x * dx.x;
+                virialxyi += forcemag_div2r * dx.x * dx.y;
+                virialxzi += forcemag_div2r * dx.x * dx.z;
+                virialyyi += forcemag_div2r * dx.y * dx.y;
+                virialyzi += forcemag_div2r * dx.y * dx.z;
+                virialzzi += forcemag_div2r * dx.z * dx.z;
 
                 // add the force, potential energy and virial to the particle i
-                fi += dx*forcemag_divr;
+                fi += dx * forcemag_divr;
                 pei += pair_eng;
 
                 // add the force to particle j if we are using the third law
@@ -410,16 +411,16 @@ void TablePotential::computeForces(uint64_t timestep)
                 if (third_law && k < m_pdata->getN())
                     {
                     unsigned int mem_idx = k;
-                    h_force.data[mem_idx].x -= dx.x*forcemag_divr;
-                    h_force.data[mem_idx].y -= dx.y*forcemag_divr;
-                    h_force.data[mem_idx].z -= dx.z*forcemag_divr;
+                    h_force.data[mem_idx].x -= dx.x * forcemag_divr;
+                    h_force.data[mem_idx].y -= dx.y * forcemag_divr;
+                    h_force.data[mem_idx].z -= dx.z * forcemag_divr;
                     h_force.data[mem_idx].w += pair_eng;
-                    h_virial.data[0*m_virial_pitch+mem_idx] += forcemag_div2r * dx.x * dx.x;
-                    h_virial.data[1*m_virial_pitch+mem_idx] += forcemag_div2r * dx.x * dx.y;
-                    h_virial.data[2*m_virial_pitch+mem_idx] += forcemag_div2r * dx.x * dx.z;
-                    h_virial.data[3*m_virial_pitch+mem_idx] += forcemag_div2r * dx.y * dx.y;
-                    h_virial.data[4*m_virial_pitch+mem_idx] += forcemag_div2r * dx.y * dx.z;
-                    h_virial.data[5*m_virial_pitch+mem_idx] += forcemag_div2r * dx.z * dx.z;
+                    h_virial.data[0 * m_virial_pitch + mem_idx] += forcemag_div2r * dx.x * dx.x;
+                    h_virial.data[1 * m_virial_pitch + mem_idx] += forcemag_div2r * dx.x * dx.y;
+                    h_virial.data[2 * m_virial_pitch + mem_idx] += forcemag_div2r * dx.x * dx.z;
+                    h_virial.data[3 * m_virial_pitch + mem_idx] += forcemag_div2r * dx.y * dx.y;
+                    h_virial.data[4 * m_virial_pitch + mem_idx] += forcemag_div2r * dx.y * dx.z;
+                    h_virial.data[5 * m_virial_pitch + mem_idx] += forcemag_div2r * dx.z * dx.z;
                     }
                 }
             }
@@ -430,22 +431,24 @@ void TablePotential::computeForces(uint64_t timestep)
         h_force.data[mem_idx].y += fi.y;
         h_force.data[mem_idx].z += fi.z;
         h_force.data[mem_idx].w += pei;
-        h_virial.data[0*m_virial_pitch+mem_idx] += virialxxi;
-        h_virial.data[1*m_virial_pitch+mem_idx] += virialxyi;
-        h_virial.data[2*m_virial_pitch+mem_idx] += virialxzi;
-        h_virial.data[3*m_virial_pitch+mem_idx] += virialyyi;
-        h_virial.data[4*m_virial_pitch+mem_idx] += virialyzi;
-        h_virial.data[5*m_virial_pitch+mem_idx] += virialzzi;
+        h_virial.data[0 * m_virial_pitch + mem_idx] += virialxxi;
+        h_virial.data[1 * m_virial_pitch + mem_idx] += virialxyi;
+        h_virial.data[2 * m_virial_pitch + mem_idx] += virialxzi;
+        h_virial.data[3 * m_virial_pitch + mem_idx] += virialyyi;
+        h_virial.data[4 * m_virial_pitch + mem_idx] += virialyzi;
+        h_virial.data[5 * m_virial_pitch + mem_idx] += virialzzi;
         }
 
-    if (m_prof) m_prof->pop();
+    if (m_prof)
+        m_prof->pop();
     }
 
 //! Exports the TablePotential class to python
 void export_TablePotential(py::module& m)
     {
-    py::class_<TablePotential, ForceCompute, std::shared_ptr<TablePotential> >(m, "TablePotential")
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, unsigned int, const std::string& >())
-    .def("setTable", &TablePotential::setTable)
-    ;
+    py::class_<TablePotential, ForceCompute, std::shared_ptr<TablePotential>>(m, "TablePotential")
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<NeighborList>,
+                      unsigned int>())
+        .def("setTable", &TablePotential::setTable);
     }

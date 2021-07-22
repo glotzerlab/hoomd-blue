@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 #include "test_global_array.cuh"
 
 // Maintainer: joaander
@@ -16,7 +15,7 @@
 
     \post All \a num elements in d_data are incremented by 1
 */
-__global__ void gpu_add_one_kernel(int *d_data, size_t num)
+__global__ void gpu_add_one_kernel(int* d_data, size_t num)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -29,12 +28,12 @@ __global__ void gpu_add_one_kernel(int *d_data, size_t num)
 
     gpu_add_one is just a driver for gpu_add_one_kernel()
 */
-extern "C" hipError_t gpu_add_one(int *d_data, size_t num)
+extern "C" hipError_t gpu_add_one(int* d_data, size_t num)
     {
     unsigned int block_size = 256;
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)num / (double)block_size), 1, 1);
+    dim3 grid((int)ceil((double)num / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
     hipLaunchKernelGGL((gpu_add_one_kernel), dim3(grid), dim3(threads), 0, 0, d_data, num);
@@ -43,18 +42,17 @@ extern "C" hipError_t gpu_add_one(int *d_data, size_t num)
     return hipGetLastError();
     }
 
-
 /*! \param d_data Device pointer to the array where the data is held
     \param num Number of elements in the array
 
     \post Element \a i in \a d_data is set to \a i * \a i
 */
-__global__ void gpu_fill_test_pattern_kernel(int *d_data, size_t num)
+__global__ void gpu_fill_test_pattern_kernel(int* d_data, size_t num)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < num)
-        d_data[idx] = idx*idx;
+        d_data[idx] = idx * idx;
     }
 
 /*! \param d_data Device pointer to the array where the data is held
@@ -62,15 +60,21 @@ __global__ void gpu_fill_test_pattern_kernel(int *d_data, size_t num)
 
     gpu_fill_test_pattern is just a driver for gpu_fill_test_pattern_kernel()
 */
-extern "C" hipError_t gpu_fill_test_pattern(int *d_data, size_t num)
+extern "C" hipError_t gpu_fill_test_pattern(int* d_data, size_t num)
     {
     unsigned int block_size = 256;
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)num / (double)block_size), 1, 1);
+    dim3 grid((int)ceil((double)num / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    hipLaunchKernelGGL((gpu_fill_test_pattern_kernel), dim3(grid), dim3(threads), 0, 0, d_data, num);
+    hipLaunchKernelGGL((gpu_fill_test_pattern_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_data,
+                       num);
 
     hipDeviceSynchronize();
     return hipGetLastError();

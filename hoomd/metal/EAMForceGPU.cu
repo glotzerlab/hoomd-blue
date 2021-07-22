@@ -14,10 +14,23 @@
  */
 
 //! Kernel for computing EAM forces on the GPU
-__global__ void gpu_kernel_1(Scalar4 *d_force, Scalar *d_virial, const size_t virial_pitch, const unsigned int N,
-        const Scalar4 *d_pos, BoxDim box, const unsigned int *d_n_neigh, const unsigned int *d_nlist,
-        const unsigned int *d_head_list, const Scalar4 *d_F, const Scalar4 *d_rho, const Scalar4 *d_rphi,
-        const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi, Scalar *d_dFdP, const EAMTexInterData *d_eam_data)
+__global__ void gpu_kernel_1(Scalar4* d_force,
+                             Scalar* d_virial,
+                             const size_t virial_pitch,
+                             const unsigned int N,
+                             const Scalar4* d_pos,
+                             BoxDim box,
+                             const unsigned int* d_n_neigh,
+                             const unsigned int* d_nlist,
+                             const unsigned int* d_head_list,
+                             const Scalar4* d_F,
+                             const Scalar4* d_rho,
+                             const Scalar4* d_rphi,
+                             const Scalar4* d_dF,
+                             const Scalar4* d_drho,
+                             const Scalar4* d_drphi,
+                             Scalar* d_dFdP,
+                             const EAMTexInterData* d_eam_data)
     {
     __shared__ EAMTexInterData eam_data_ti;
 
@@ -30,16 +43,15 @@ __global__ void gpu_kernel_1(Scalar4 *d_force, Scalar *d_virial, const size_t vi
         {
         if (cur_offset + tidx < param_size)
             {
-            ((int *)&eam_data_ti)[cur_offset + tidx] = ((int *)d_eam_data)[cur_offset + tidx];
+            ((int*)&eam_data_ti)[cur_offset + tidx] = ((int*)d_eam_data)[cur_offset + tidx];
             }
         }
-
 
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= N)
-    return;
+        return;
 
     // load in the length of the list
     int n_neigh = d_n_neigh[idx];
@@ -50,11 +62,11 @@ __global__ void gpu_kernel_1(Scalar4 *d_force, Scalar *d_virial, const size_t vi
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // index and remainder
-    Scalar position;// look up position, scalar
-    unsigned int int_position;// look up index for position, integer
-    unsigned int idxs;// look up index in F, rho, rphi array, considering shift, integer
-    Scalar remainder;// look up remainder in array, integer
-    Scalar4 v, dv;// value, d(value)
+    Scalar position;           // look up position, scalar
+    unsigned int int_position; // look up index for position, integer
+    unsigned int idxs;         // look up index in F, rho, rphi array, considering shift, integer
+    Scalar remainder;          // look up remainder in array, integer
+    Scalar4 v, dv;             // value, d(value)
 
     // initialize the force to 0
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -99,20 +111,20 @@ __global__ void gpu_kernel_1(Scalar4 *d_force, Scalar *d_virial, const size_t vi
             {
             // calculate position r for rho(r)
             position = sqrtf(rsq) * rdr;
-            int_position = (unsigned int) position;
+            int_position = (unsigned int)position;
             int_position = min(int_position, nr - 1);
             remainder = position - int_position;
             // calculate P = sum{rho}
             idxs = int_position + nr * (typej * ntypes + typei);
             v = __ldg(d_rho + idxs);
             atomElectronDensity += v.w + v.z * remainder + v.y * remainder * remainder
-            + v.x * remainder * remainder * remainder;
+                                   + v.x * remainder * remainder * remainder;
             }
         }
 
     // calculate position rho for F(rho)
     position = atomElectronDensity * rdrho;
-    int_position = (unsigned int) position;
+    int_position = (unsigned int)position;
     int_position = min(int_position, nrho - 1);
     remainder = position - int_position;
 
@@ -122,17 +134,30 @@ __global__ void gpu_kernel_1(Scalar4 *d_force, Scalar *d_virial, const size_t vi
     // compute dF / dP
     d_dFdP[idx] = dv.z + dv.y * remainder + dv.x * remainder * remainder;
     // compute embedded energy F(P), sum up each particle
-    force.w += v.w + v.z * remainder + v.y * remainder * remainder + v.x * remainder * remainder * remainder;
+    force.w += v.w + v.z * remainder + v.y * remainder * remainder
+               + v.x * remainder * remainder * remainder;
     // update the d_force
     d_force[idx] = force;
-
     }
 
 //! Second stage kernel for computing EAM forces on the GPU
-__global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const size_t virial_pitch, const unsigned int N,
-        const Scalar4 *d_pos, BoxDim box, const unsigned int *d_n_neigh, const unsigned int *d_nlist,
-        const unsigned int *d_head_list, const Scalar4 *d_F, const Scalar4 *d_rho, const Scalar4 *d_rphi,
-        const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi, Scalar *d_dFdP, const EAMTexInterData *d_eam_data)
+__global__ void gpu_kernel_2(Scalar4* d_force,
+                             Scalar* d_virial,
+                             const size_t virial_pitch,
+                             const unsigned int N,
+                             const Scalar4* d_pos,
+                             BoxDim box,
+                             const unsigned int* d_n_neigh,
+                             const unsigned int* d_nlist,
+                             const unsigned int* d_head_list,
+                             const Scalar4* d_F,
+                             const Scalar4* d_rho,
+                             const Scalar4* d_rphi,
+                             const Scalar4* d_dF,
+                             const Scalar4* d_drho,
+                             const Scalar4* d_drphi,
+                             Scalar* d_dFdP,
+                             const EAMTexInterData* d_eam_data)
     {
     __shared__ EAMTexInterData eam_data_ti;
 
@@ -145,7 +170,7 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const size_t vi
         {
         if (cur_offset + tidx < param_size)
             {
-            ((int *)&eam_data_ti)[cur_offset + tidx] = ((int *)d_eam_data)[cur_offset + tidx];
+            ((int*)&eam_data_ti)[cur_offset + tidx] = ((int*)d_eam_data)[cur_offset + tidx];
             }
         }
 
@@ -153,7 +178,7 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const size_t vi
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= N)
-    return;
+        return;
 
     // load in the length of the list
     int n_neigh = d_n_neigh[idx];
@@ -165,20 +190,20 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const size_t vi
     int typei = __scalar_as_int(postype.w);
 
     // index and remainder
-    Scalar position;// look up position, scalar
-    unsigned int int_position;// look up index for position, integer
-    unsigned int idxs;// look up index in F, rho, rphi array, considering shift, integer
-    Scalar remainder;// look up remainder in array, integer
-    Scalar4 v, dv;// value, d(value)
+    Scalar position;           // look up position, scalar
+    unsigned int int_position; // look up index for position, integer
+    unsigned int idxs;         // look up index in F, rho, rphi array, considering shift, integer
+    Scalar remainder;          // look up remainder in array, integer
+    Scalar4 v, dv;             // value, d(value)
 
     // prefetch neighbor index
     int cur_neigh = 0;
     int next_neigh(0);
     next_neigh = __ldg(d_nlist + head_idx);
 
-    //Scalar4 force = force_data.force[idx];
+    // Scalar4 force = force_data.force[idx];
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-    //force.w = force_data.force[idx].w;
+    // force.w = force_data.force[idx].w;
     Scalar fxi = Scalar(0.0);
     Scalar fyi = Scalar(0.0);
     Scalar fzi = Scalar(0.0);
@@ -186,7 +211,7 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const size_t vi
     Scalar pairForce = Scalar(0.0);
     Scalar virial[6];
     for (int i = 0; i < 6; i++)
-    virial[i] = Scalar(0.0);
+        virial[i] = Scalar(0.0);
 
     force.w = d_force[idx].w;
     int ntypes = eam_data_ti.ntypes;
@@ -213,27 +238,25 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const size_t vi
         Scalar rsq = dot(dx, dx);
 
         if (rsq > r_cutsq)
-        continue;
+            continue;
 
         // calculate position r for phi(r)
         Scalar inverseR = rsqrtf(rsq);
         Scalar r = Scalar(1.0) / inverseR;
         position = r * rdr;
-        int_position = (unsigned int) position;
+        int_position = (unsigned int)position;
         int_position = min(int_position, nr - 1);
         remainder = position - int_position;
         // calculate the shift position for type ij
-        int shift =
-        (typei >= typej) ?
-        (int) (0.5 * (2 * ntypes - typej - 1) * typej + typei) * nr :
-        (int) (0.5 * (2 * ntypes - typei - 1) * typei + typej) * nr;
+        int shift = (typei >= typej) ? (int)(0.5 * (2 * ntypes - typej - 1) * typej + typei) * nr
+                                     : (int)(0.5 * (2 * ntypes - typei - 1) * typei + typej) * nr;
 
         idxs = int_position + shift;
         v = __ldg(d_rphi + idxs);
         dv = __ldg(d_drphi + idxs);
         // aspair_potential = r * phi
         Scalar aspair_potential = v.w + v.z * remainder + v.y * remainder * remainder
-        + v.x * remainder * remainder * remainder;
+                                  + v.x * remainder * remainder * remainder;
         // derivative_pair_potential = phi + r * dphi / dr
         Scalar derivative_pair_potential = dv.z + dv.y * remainder + dv.x * remainder * remainder;
         // pair_eng = phi
@@ -250,7 +273,8 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const size_t vi
         Scalar derivativeRhoJ = dv.z + dv.y * remainder + dv.x * remainder * remainder;
         // fullDerivativePhi = dF/dP * drho / dr for j + dF/dP * drho / dr for j + phi
         Scalar d_dFdPcur = __ldg(d_dFdP + cur_neigh);
-        Scalar fullDerivativePhi = d_dFdPidx * derivativeRhoJ + d_dFdPcur * derivativeRhoI + derivativePhi;
+        Scalar fullDerivativePhi
+            = d_dFdPidx * derivativeRhoJ + d_dFdPcur * derivativeRhoI + derivativePhi;
         // compute forces
         pairForce = -fullDerivativePhi * inverseR;
         // avoid double counting
@@ -276,17 +300,29 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const size_t vi
 
     d_force[idx] = force;
     for (int i = 0; i < 6; i++)
-    d_virial[i * virial_pitch + idx] = virial[i];
-
+        d_virial[i * virial_pitch + idx] = virial[i];
     }
 
 //! compute forces on GPU
-hipError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial, const size_t virial_pitch,
-        const unsigned int N, const Scalar4 *d_pos, const BoxDim &box, const unsigned int *d_n_neigh,
-        const unsigned int *d_nlist, const unsigned int *d_head_list, const size_t size_nlist,
-        const EAMTexInterData *d_eam_data, Scalar *d_dFdP, const Scalar4 *d_F, const Scalar4 *d_rho,
-        const Scalar4 *d_rphi, const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi,
-        const unsigned int block_size)
+hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
+                                            Scalar* d_virial,
+                                            const size_t virial_pitch,
+                                            const unsigned int N,
+                                            const Scalar4* d_pos,
+                                            const BoxDim& box,
+                                            const unsigned int* d_n_neigh,
+                                            const unsigned int* d_nlist,
+                                            const unsigned int* d_head_list,
+                                            const size_t size_nlist,
+                                            const EAMTexInterData* d_eam_data,
+                                            Scalar* d_dFdP,
+                                            const Scalar4* d_F,
+                                            const Scalar4* d_rho,
+                                            const Scalar4* d_rphi,
+                                            const Scalar4* d_dF,
+                                            const Scalar4* d_drho,
+                                            const Scalar4* d_drphi,
+                                            const unsigned int block_size)
     {
     static unsigned int max_block_size_1 = UINT_MAX;
     static unsigned int max_block_size_2 = UINT_MAX;
@@ -305,16 +341,56 @@ hipError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial, 
 
     // setup the grid to run the kernel
 
-    dim3 grid_1((int) ceil((double) N / (double) run_block_size_1), 1, 1);
+    dim3 grid_1((int)ceil((double)N / (double)run_block_size_1), 1, 1);
     dim3 threads_1(run_block_size_1, 1, 1);
 
-    dim3 grid_2((int) ceil((double) N / (double) run_block_size_2), 1, 1);
+    dim3 grid_2((int)ceil((double)N / (double)run_block_size_2), 1, 1);
     dim3 threads_2(run_block_size_2, 1, 1);
 
-    hipLaunchKernelGGL(gpu_kernel_1, dim3(grid_1), dim3(threads_1), 0, 0, d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
-            d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP, d_eam_data);
-    hipLaunchKernelGGL(gpu_kernel_2, dim3(grid_2), dim3(threads_2), 0, 0, d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
-            d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP, d_eam_data);
+    hipLaunchKernelGGL(gpu_kernel_1,
+                       dim3(grid_1),
+                       dim3(threads_1),
+                       0,
+                       0,
+                       d_force,
+                       d_virial,
+                       virial_pitch,
+                       N,
+                       d_pos,
+                       box,
+                       d_n_neigh,
+                       d_nlist,
+                       d_head_list,
+                       d_F,
+                       d_rho,
+                       d_rphi,
+                       d_dF,
+                       d_drho,
+                       d_drphi,
+                       d_dFdP,
+                       d_eam_data);
+    hipLaunchKernelGGL(gpu_kernel_2,
+                       dim3(grid_2),
+                       dim3(threads_2),
+                       0,
+                       0,
+                       d_force,
+                       d_virial,
+                       virial_pitch,
+                       N,
+                       d_pos,
+                       box,
+                       d_n_neigh,
+                       d_nlist,
+                       d_head_list,
+                       d_F,
+                       d_rho,
+                       d_rphi,
+                       d_dF,
+                       d_drho,
+                       d_drphi,
+                       d_dFdP,
+                       d_eam_data);
 
     return hipSuccess;
     }

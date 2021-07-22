@@ -7,7 +7,6 @@
 # Maintainer: joaander / All Developers are free to add commands for new
 # features
 
-
 from hoomd.md import _md
 import hoomd
 from hoomd.integrate import _integrator
@@ -89,16 +88,30 @@ class FIRE(_integrator):
         attempts can be set by the user.
 
     """
-    def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, wtol=1e-1, Etol= 1e-5, min_steps=10, aniso=None):
+
+    def __init__(self,
+                 dt,
+                 Nmin=5,
+                 finc=1.1,
+                 fdec=0.5,
+                 alpha_start=0.1,
+                 falpha=0.99,
+                 ftol=1e-1,
+                 wtol=1e-1,
+                 Etol=1e-5,
+                 min_steps=10,
+                 aniso=None):
 
         # initialize base class
         _integrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_integrator = _md.FIREEnergyMinimizer(hoomd.context.current.system_definition, dt)
+            self.cpp_integrator = _md.FIREEnergyMinimizer(
+                hoomd.context.current.system_definition, dt)
         else:
-            self.cpp_integrator = _md.FIREEnergyMinimizerGPU(hoomd.context.current.system_definition, dt)
+            self.cpp_integrator = _md.FIREEnergyMinimizerGPU(
+                hoomd.context.current.system_definition, dt)
 
         self.supports_methods = True
 
@@ -111,7 +124,7 @@ class FIRE(_integrator):
 
         # change the set parameters if not None
         self.dt = dt
-        self.metadata_fields = ['dt','aniso']
+        self.metadata_fields = ['dt', 'aniso']
 
         self.cpp_integrator.setNmin(Nmin)
         self.Nmin = Nmin
@@ -154,7 +167,8 @@ class FIRE(_integrator):
     _aniso_modes = {
         None: _md.IntegratorAnisotropicMode.Automatic,
         True: _md.IntegratorAnisotropicMode.Anisotropic,
-        False: _md.IntegratorAnisotropicMode.Isotropic}
+        False: _md.IntegratorAnisotropicMode.Isotropic
+    }
 
     def get_energy(self):
         R""" Returns the energy after the last iteration of the minimizer
@@ -179,8 +193,11 @@ class FIRE(_integrator):
             if aniso in self._aniso_modes:
                 anisoMode = self._aniso_modes[aniso]
             else:
-                hoomd.context.current.device.cpp_msg.error("integrate.mode_standard: unknown anisotropic mode {}.\n".format(aniso))
-                raise RuntimeError("Error setting anisotropic integration mode.")
+                hoomd.context.current.device.cpp_msg.error(
+                    "integrate.mode_standard: unknown anisotropic mode {}.\n"
+                    .format(aniso))
+                raise RuntimeError(
+                    "Error setting anisotropic integration mode.")
             self.aniso = aniso
             self.cpp_integrator.setAnisotropicMode(anisoMode)
 

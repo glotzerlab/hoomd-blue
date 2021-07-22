@@ -3,22 +3,24 @@
 #include "Updater.h"
 
 class PYBIND11_EXPORT PythonUpdater : public Updater
-{
+    {
     public:
-        PythonUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                      pybind11::object updater);
+    PythonUpdater(std::shared_ptr<SystemDefinition> sysdef, pybind11::object updater);
 
-        void update(uint64_t timestep);
+    void update(uint64_t timestep);
 
-        PDataFlags getRequestedPDataFlags();
+    PDataFlags getRequestedPDataFlags();
 
-        void setUpdater(pybind11::object updater);
+    void setUpdater(pybind11::object updater);
 
-        pybind11::object getUpdater() {return m_updater;}
+    pybind11::object getUpdater()
+        {
+        return m_updater;
+        }
 
     protected:
-        pybind11::object m_updater;
-        PDataFlags m_flags;
-};
+    pybind11::object m_updater;
+    PDataFlags m_flags;
+    };
 
 void export_PythonUpdater(pybind11::module& m);

@@ -1,9 +1,16 @@
-import numpy as np
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement Snapshot."""
+
 import hoomd
 from hoomd import _hoomd
+import warnings
 
 
 class _ConfigurationData:
+
     def __init__(self, cpp_obj):
         self._cpp_obj = cpp_obj
 
@@ -15,9 +22,7 @@ class _ConfigurationData:
     def box(self):
         b = self._cpp_obj._global_box
         L = b.getL()
-        return (L.x, L.y, L.z,
-                b.getTiltFactorXY(),
-                b.getTiltFactorXZ(),
+        return (L.x, L.y, L.z, b.getTiltFactorXY(), b.getTiltFactorXZ(),
                 b.getTiltFactorYZ())
 
     @box.setter
@@ -33,101 +38,304 @@ class _ConfigurationData:
 
 
 class Snapshot:
+    """Standalone copy of the simulation `State`.
+
+    Args:
+        communicator (Communicator): MPI communicator to be used with the
+          simulation.
+
+    Attributes:
+        communicator (Communicator): MPI communicator.
+
+    Note:
+        `Snapshot` is duck-type compatible with `gsd.hoomd.Snapshot` except
+        that arrays in `Snapshot` are not assignable. You can edit their
+        contents: e.g. ``snapshot.particles.typeid[:] == 0``.
+
+    Warning:
+        Data is only present on the root rank:
+
+        .. code::
+
+            if snapshot.communicator.rank == 0:
+                pos = snapshot.particles.position[0]
+
+    .. seealso:
+        `Simulation.create_state_from_snapshot`
+
+        `State.snapshot`
+
+    .. todo::
+
+        Concepts such as tags, typeid's, and other non-inituitive arrays need to
+        be elaborated upon.
+    """
+
     def __init__(self, communicator=None):
         if communicator is None:
-            self._comm = hoomd.communicator.Communicator()
+            self.communicator = hoomd.communicator.Communicator()
         else:
-            self._comm = communicator
+            self.communicator = communicator
 
         self._cpp_obj = _hoomd.SnapshotSystemData_double()
 
     @property
     def exists(self):
-        return self._comm.rank == 0
+        """bool: True when the MPI rank is 0.
+
+        .. deprecated:: 3.0.0-beta.7
+            Use ``snapshot.communicator.rank == 0`` instead.
+        """
+        warnings.warn("Deprecated, use snapshot.communicator.rank == 0",
+                      DeprecationWarning)
+        return self.communicator.rank == 0
 
     @property
     def configuration(self):
+        """Snapshot box configuration.
+
+        Attributes:
+            dimensions (int): Number of dimensions
+            box (tuple[float, float, float, float, float, float]): Simulation
+              box parameters ``[Lx, Ly, Lz, xy, xz, yz]``.
+
+        Note:
+            ``box`` accepts any values that `Box.from_box` allows when setting.
+        """
         return _ConfigurationData(self._cpp_obj)
 
     @property
     def particles(self):
-        if self.exists:
+        """Particles.
+
+        Attributes:
+            particles.N (int): Number of particles in the snapshot.
+
+            particles.types (list[str]):
+                Names of the particle types.
+
+            particles.position ((*N*, 3) `numpy.ndarray` of ``numpy.float32``):
+                Particle position :math:`[\\mathrm{length}]`.
+
+            particles.orientation ((*N*, 4) `numpy.ndarray` of \
+                ``numpy.float32``):
+                Particle orientation.
+
+            particles.typeid ((*N*, ) `numpy.ndarray` of ``numpy.uint32``):
+                Particle type id.
+
+            particles.mass ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
+                Particle mass :math:`[\\mathrm{mass}]`.
+
+            particles.charge ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
+                Particle charge :math:`[\\mathrm{charge}]`.
+
+            particles.diameter ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
+                Particle diameter :math:`[\\mathrm{length}]`.
+
+            particles.body ((*N*, ) `numpy.ndarray` of ``numpy.int32``):
+                Particle body.
+
+            particles.moment_inertia ((*N*, 3) `numpy.ndarray` of \
+                ``numpy.float32``):
+                Particle moment of inertia :math:`[\\mathrm{mass} \\cdot
+                \\mathrm{length}^2]`.
+
+            particles.velocity ((*N*, 3) `numpy.ndarray` of ``numpy.float32``):
+                Particle velocity :math:`[\\mathrm{velocity}]`.
+
+            particles.angmom ((*N*, 4) `numpy.ndarray` of ``numpy.float32``):
+                Particle angular momentum :math:`[\\mathrm{mass} \\cdot
+                \\mathrm{velocity} \\cdot \\mathrm{length}]`.
+
+            particles.image ((*N*, 3) `numpy.ndarray` of ``numpy.int32``):
+                Particle image.
+
+        Note:
+            Set ``N`` to change the size of the arrays.
+        """
+        if self.communicator.rank == 0:
             return self._cpp_obj.particles
         else:
-            return None
+            raise RuntimeError('Snapshot data is only present on rank 0')
 
     @property
     def bonds(self):
-        if self.exists:
+        """Bonds.
+
+        Attributes:
+            bonds.N (int): Number of bonds.
+
+            bonds.types (list[str]): Names of the bond types
+
+            bonds.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+                Bond type id.
+
+            bonds.group ((*N*, 2) `numpy.ndarray` of ``numpy.uint32``):
+                Tags of the particles in the bond.
+
+        Note:
+            Set ``N`` to change the size of the arrays.
+        """
+        if self.communicator.rank == 0:
             return self._cpp_obj.bonds
         else:
-            return None
+            raise RuntimeError('Snapshot data is only present on rank 0')
 
     @property
     def angles(self):
-        if self.exists:
+        """Angles.
+
+        Attributes:
+            angles.N (int): Number of angles.
+
+            angles.types (list[str]): Names of the angle types
+
+            angles.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+                Angle type id.
+
+            angles.group ((*N*, 3) `numpy.ndarray` of ``numpy.uint32``):
+                Tags of the particles in the angle.
+
+        Note:
+            Set ``N`` to change the size of the arrays.
+        """
+        if self.communicator.rank == 0:
             return self._cpp_obj.angles
         else:
-            return None
+            raise RuntimeError('Snapshot data is only present on rank 0')
 
     @property
     def dihedrals(self):
-        if self.exists:
+        """Dihedrals.
+
+        Attributes:
+            dihedrals.N (int): Number of dihedrals.
+
+            dihedrals.types (list[str]): Names of the dihedral types
+
+            dihedrals.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+                Dihedral type id.
+
+            dihedrals.group ((*N*, 4) `numpy.ndarray` of ``numpy.uint32``):
+                Tags of the particles in the dihedral.
+
+        Note:
+            Set ``N`` to change the size of the arrays.
+        """
+        if self.communicator.rank == 0:
             return self._cpp_obj.dihedrals
         else:
-            return None
+            raise RuntimeError('Snapshot data is only present on rank 0')
 
     @property
     def impropers(self):
-        if self.exists:
+        """Impropers.
+
+        Attributes:
+            impropers.N (int): Number of impropers.
+
+            impropers.types (list[str]): Names of the improper types
+
+            impropers.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+                Improper type id.
+
+            impropers.group ((*N*, 4) `numpy.ndarray` of ``numpy.uint32``):
+                Tags of the particles in the improper.
+
+        Note:
+            Set ``N`` to change the size of the arrays.
+        """
+        if self.communicator.rank == 0:
             return self._cpp_obj.impropers
         else:
-            return None
+            raise RuntimeError('Snapshot data is only present on rank 0')
 
     @property
     def pairs(self):
-        if self.exists:
+        """Special pairs.
+
+        Attributes:
+            pairs.N (int): Number of special pairs.
+
+            pairs.types (list[str]): Names of the special pair types
+
+            pairs.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+                Special pair type id.
+
+            pairs.group ((*N*, 2) `numpy.ndarray` of ``numpy.uint32``):
+                Tags of the particles in the special pair.
+
+        Note:
+            Set ``N`` to change the size of the arrays.
+        """
+        if self.communicator.rank == 0:
             return self._cpp_obj.pairs
         else:
-            return None
+            raise RuntimeError('Snapshot data is only present on rank 0')
 
     @property
     def constraints(self):
-        if self.exists:
+        """Constraints.
+
+        Attributes:
+            constraints.N (int): Number of constraints.
+
+            constraints.value ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
+                Constraint length.
+
+            constraints.group ((*N*, *2*) `numpy.ndarray` of ``numpy.uint32``):
+                Tags of the particles in the constraint.
+
+        Note:
+            Set ``N`` to change the size of the arrays.
+        """
+        if self.communicator.rank == 0:
             return self._cpp_obj.constraints
         else:
-            return None
+            raise RuntimeError('Snapshot data is only present on rank 0')
 
     @classmethod
     def _from_cpp_snapshot(cls, snapshot, communicator):
         sp = cls()
-        sp._comm = communicator
+        sp.communicator = communicator
         sp._cpp_obj = snapshot
         return sp
 
     def replicate(self, nx, ny, nz):
+        """Replicate the snapshot.
+
+        Args:
+            nx (int): Number of times to replicate in the x direction.
+            ny (int): Number of times to replicate in the y direction.
+            nz (int): Number of times to replicate in the z direction.
+        """
         self._cpp_obj.replicate(nx, ny, nz)
 
     def _broadcast_box(self):
-        self._cpp_obj._broadcast_box(self._comm.cpp_mpi_conf)
+        self._cpp_obj._broadcast_box(self.communicator.cpp_mpi_conf)
 
     @classmethod
     def from_gsd_snapshot(cls, gsd_snap, communicator):
-        """
-        Constructs a `hoomd.Snapshot` from a `gsd.hoomd.Snapshot` object.
+        """Constructs a `hoomd.Snapshot` from a `gsd.hoomd.Snapshot` object.
 
         Args:
-            gsd_snap (`gsd.hoomd.Snapshot`):
-                The gsd snapshot to convert to a `hoomd.Snapshot`.
-            communicator (hoomd.communicator.Communicator):
-                The MPI communicator to use for the snapshot. This prevents the
-                snapshot from being stored on every rank.
+            gsd_snap (`gsd.hoomd.Snapshot`): The gsd snapshot to convert to a
+                `hoomd.Snapshot`.
+            communicator (hoomd.communicator.Communicator): The MPI communicator
+                to use for the snapshot. This prevents the snapshot from being
+                stored on every rank.
+
+        Note:
+            `from_gsd_snapshot` only accesses the `gsd_snap` argument on rank 0.
+            In MPI simulations, avoid duplicating memory and file reads by
+            reading GSD files only on rank 0 and passing `gsd_snap=None` on
+            other ranks.
         """
-        gsd_snap.validate()
         snap = cls(communicator=communicator)
 
-        def set_properties(
-                snap_section, gsd_snap_section, properties, array_properties):
+        def set_properties(snap_section, gsd_snap_section, properties,
+                           array_properties):
             for prop in properties:
                 gsd_prop = getattr(gsd_snap_section, prop, None)
                 if gsd_prop is not None:
@@ -139,36 +347,29 @@ class Snapshot:
 
         if communicator.rank == 0:
 
-            set_properties(
-                snap.particles,
-                gsd_snap.particles,
-                ('N', 'types'),
-                ('angmom', 'body', 'charge', 'diameter', 'image', 'mass',
-                 'moment_inertia', 'orientation', 'position', 'typeid',
-                 'velocity')
-            )
+            gsd_snap.validate()
 
-            for section in (
-                    'angles', 'bonds', 'dihedrals', 'impropers', 'pairs'
-                    ):
-                set_properties(
-                    getattr(snap, section),
-                    getattr(gsd_snap, section),
-                    ('N', 'types'),
-                    ('group', 'typeid')
-                )
+            set_properties(snap.particles, gsd_snap.particles, ('N', 'types'),
+                           ('angmom', 'body', 'charge', 'diameter', 'image',
+                            'mass', 'moment_inertia', 'orientation', 'position',
+                            'typeid', 'velocity'))
 
-            set_properties(
-                snap.constraints,
-                gsd_snap.constraints,
-                ('N',),
-                ('group', 'value')
-            )
+            for section in ('angles', 'bonds', 'dihedrals', 'impropers',
+                            'pairs'):
+                set_properties(getattr(snap,
+                                       section), getattr(gsd_snap, section),
+                               ('N', 'types'), ('group', 'typeid'))
+
+            set_properties(snap.constraints, gsd_snap.constraints, ('N',),
+                           ('group', 'value'))
 
             # Set box attribute
             if gsd_snap.configuration.box is not None:
-                snap.configuration.box = gsd_snap.configuration.box
+                box = list(gsd_snap.configuration.box)
                 if gsd_snap.configuration.dimensions == 2:
-                    snap.configuration.box[2] = 0
+                    box[2] = 0
+                snap.configuration.box = box
+
+        snap._broadcast_box()
 
         return snap

@@ -2,11 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
-# features
-
-R""" Apply forces to particles.
-"""
+"""Apply forces to particles."""
 
 import hoomd
 from hoomd import _hoomd
@@ -17,23 +13,22 @@ from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import ParticleFilter
-from hoomd.md.constrain import ConstraintForce
+from hoomd.md.constrain import Constraint
 
 
-def ellip_preprocessing(constraint):
+def _ellip_preprocessing(constraint):
     if constraint is not None:
         if constraint.__class__.__name__ == "constraint_ellipsoid":
-            return act_force
+            return constraint
         else:
             raise RuntimeError(
                 "Active force constraint is not accepted (currently only "
-                "accepts ellipsoids)"
-            )
+                "accepts ellipsoids)")
     else:
         return None
 
 
-class _force:
+class _force:  # noqa - This will be removed eventually. Needed to build docs.
     pass
 
 
@@ -49,68 +44,54 @@ class Force(_HOOMDBaseObject):
     Initializes some loggable quantities.
     """
 
-    def _attach(self):
-        super()._attach()
-
-    @log
+    @log(requires_run=True)
     def energy(self):
-        """float: Sum of the energy of the whole system."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.calcEnergySum()
-        else:
-            return None
+        """float: Sum of the energy of the whole system \
+        :math:`[\\mathrm{energy}]`."""
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.calcEnergySum()
 
-    @log(category="particle")
+    @log(category="particle", requires_run=True)
     def energies(self):
-        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The energies
-        for all particles."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getEnergies()
-        else:
-            return None
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The \
+        energies for all particles :math:`[\\mathrm{energy}]`."""
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.getEnergies()
 
-    @log(category="particle")
+    @log(category="particle", requires_run=True)
     def forces(self):
-        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The forces
-        for all particles."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getForces()
-        else:
-            return None
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The \
+        forces for all particles :math:`[\\mathrm{force}]`."""
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.getForces()
 
-    @log(category="particle")
+    @log(category="particle", requires_run=True)
     def torques(self):
-        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque
-        for all particles."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getTorques()
-        else:
-            return None
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque \
+        for all particles :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`."""
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.getTorques()
 
-    @log(category="particle")
+    @log(category="particle", requires_run=True)
     def virials(self):
-        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial
-        for all particles."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getVirials()
-        else:
-            return None
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial \
+        for all particles :math:`[\\mathrm{energy}]`."""
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.getVirials()
 
 
-class constant(Force):
+class constant(Force):  # noqa - this will be renamed when it is ported to v3
     R"""Constant force.
 
     Args:
-        fvec (tuple): force vector (in force units)
-        tvec (tuple): torque vector (in torque units)
+        fvec (tuple): force vector :math:`[force]`
+        tvec (tuple): torque vector :math:`[force \cdot length]`
         fx (float): x component of force, retained for backwards compatibility
+          :math:`[\mathrm{force}]`
         fy (float): y component of force, retained for backwards compatibility
+          :math:`[\mathrm{force}]`
         fz (float): z component of force, retained for backwards compatibility
+          :math:`[\mathrm{force}]`
         group (``hoomd.group``): Group for which the force will be set.
         callback (`callable`): A python callback invoked every time the forces
             are computed
@@ -163,12 +144,10 @@ class constant(Force):
         else:
             self.tvec = (0, 0, 0)
 
-        if (self.fvec == (0, 0, 0)) and (
-            self.tvec == (0, 0, 0) and callback is None
-        ):
+        if (self.fvec == (0, 0, 0)) and (self.tvec == (0, 0, 0)
+                                         and callback is None):
             hoomd.context.current.device.cpp_msg.warning(
-                "The constant force specified has no non-zero components\n"
-            )
+                "The constant force specified has no non-zero components\n")
 
         # initialize the base class
         Force.__init__(self)
@@ -204,9 +183,9 @@ class constant(Force):
     R""" Change the value of the constant force.
 
     Args:
-        fx (float) New x-component of the force (in force units)
-        fy (float) New y-component of the force (in force units)
-        fz (float) New z-component of the force (in force units)
+        fx (float) New x-component of the force :math:`[\mathrm{force}]`
+        fy (float) New y-component of the force :math:`[\mathrm{force}]`
+        fz (float) New z-component of the force :math:`[\mathrm{force}]`
         fvec (tuple) New force vector
         tvec (tuple) New torque vector
         group Group for which the force will be set
@@ -224,7 +203,7 @@ class constant(Force):
         const.setForce(fvec=(0.2,0.1,-0.5), tvec=(0,0,1), group=fluid)
     """
 
-    def setForce(
+    def setForce(  # noqa - this will be documented when it is ported to v3
         self,
         fx=None,
         fy=None,
@@ -250,8 +229,7 @@ class constant(Force):
         if (fvec == (0, 0, 0)) and (tvec == (0, 0, 0)):
             hoomd.context.current.device.cpp_msg.warning(
                 "You are setting the constant force to have no non-zero "
-                "components\n"
-            )
+                "components\n")
 
         self.check_initialization()
         if group is not None:
@@ -303,28 +281,33 @@ class constant(Force):
         const.set_callback(None)
     """
 
-    def set_callback(self, callback=None):
+    def set_callback(self, callback=None):  # noqa - will be ported to v3
         self.cppForce.setCallback(callback)
 
     # there are no coeffs to update in the constant force compute
-    def update_coeffs(self):
+    def update_coeffs(self):  # noqa - will be ported to v3
         pass
 
 
 class Active(Force):
-    R"""Active force.
+    r"""Active force.
 
     Attributes:
         filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
             active forces.
         rotation_diff (float): rotational diffusion constant, :math:`D_r`, for
-            all particles in the group.
+            all particles in the group
+            :math:`[\mathrm{radian}^{2} \cdot \mathrm{time}^{-1}]`.
         active_force (tuple): active force vector in reference to the
-            orientation of a particle. It is defined per particle type and stays
-            constant during the simulation.
+            orientation of a particle :math:`[\mathrm{force}]`.
+            It is defined per particle type and stays constant during
+            the simulation.
         active_torque (tuple): active torque vector in reference to the
-            orientation of a particle. It is defined per particle type and stays
-            constant during the simulation.
+            orientation of a particle
+            :math:`[\mathrm{force} \cdot \mathrm{length}]`.
+            It is defined per particle type and stays constant
+            during the simulation.
+
 
     :py:class:`Active` specifies that an active force should be added to all
     particles.  Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where
@@ -361,17 +344,16 @@ class Active(Force):
         param_dict = ParameterDict(
             filter=ParticleFilter,
             rotation_diff=float(rotation_diff),
-            constraint=OnlyTypes(
-                ConstraintForce, allow_none=True, preprocess=ellip_preprocessing
-            ),
+            constraint=OnlyTypes(Constraint,
+                                 allow_none=True,
+                                 preprocess=_ellip_preprocessing),
         )
         param_dict.update(
             dict(
                 constraint=None,
                 rotation_diff=rotation_diff,
                 filter=filter,
-            )
-        )
+            ))
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -417,74 +399,3 @@ class Active(Force):
 
         # Attach param_dict and typeparam_dict
         super()._attach()
-
-
-class dipole(Force):
-    R"""Treat particles as dipoles in an electric field.
-
-    Args:
-        field_x (float): x-component of the field (units?)
-        field_y (float): y-component of the field (units?)
-        field_z (float): z-component of the field (units?)
-        p (float): magnitude of the particles' dipole moment in the local z
-            direction
-
-    Examples::
-
-        force.external_field_dipole(
-            field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0
-            )
-        const_ext_f_dipole = force.external_field_dipole(
-            field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0
-            )
-    """
-
-    def __init__(self, field_x, field_y, field_z, p):
-
-        # initialize the base class
-        Force.__init__(self)
-
-        # create the c++ mirror class
-        self.cppForce = _md.ConstExternalFieldDipoleForceCompute(
-            hoomd.context.current.system_definition,
-            field_x,
-            field_y,
-            field_z,
-            p,
-        )
-
-        hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
-
-        # store metadata
-        self.field_x = field_x
-        self.field_y = field_y
-        self.field_z = field_z
-
-    def set_params(field_x, field_y, field_z, p):
-        R"""Change the constant field and dipole moment.
-
-        Args:
-            field_x (float): x-component of the field (units?)
-            field_y (float): y-component of the field (units?)
-            field_z (float): z-component of the field (units?)
-            p (float): magnitude of the particles' dipole moment in the local z
-                direction
-
-        Examples::
-
-            const_ext_f_dipole = force.external_field_dipole(
-                field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0
-                )
-            const_ext_f_dipole.setParams(
-                field_x=0.1, field_y=0.1, field_z=0.0, p=1.0
-                )
-
-        """
-        self.check_initialization()
-
-        self.cppForce.setParams(field_x, field_y, field_z, p)
-
-    # there are no coeffs to update in the constant
-    # ExternalFieldDipoleForceCompute
-    def update_coeffs(self):
-        pass

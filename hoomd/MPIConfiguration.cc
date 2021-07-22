@@ -9,9 +9,9 @@
 #include "HOOMDMPI.h"
 #endif
 
-#include <stdexcept>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 
 /*! \file MPIConfiguration.cc
     \brief Defines MPIConfiguration and related classes
@@ -19,13 +19,13 @@
 
 //! Default constructor
 MPIConfiguration::MPIConfiguration(
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     MPI_Comm hoomd_world
-    #endif
+#endif
     )
     : m_rank(0), m_n_rank(1)
     {
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     m_mpi_comm = m_hoomd_world = hoomd_world;
 
     // use all ranks in a single partition
@@ -36,9 +36,8 @@ MPIConfiguration::MPIConfiguration(
     int rank;
     MPI_Comm_rank(m_mpi_comm, &rank);
     m_rank = rank;
-    #endif
+#endif
     }
-
 
 void MPIConfiguration::splitPartitions(unsigned int nrank)
     {
@@ -74,19 +73,21 @@ void MPIConfiguration::splitPartitions(unsigned int nrank)
 
 unsigned int MPIConfiguration::getNRanks() const
     {
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     int size;
     MPI_Comm_size(m_mpi_comm, &size);
     return size;
-    #else
+#else
     return 1;
-    #endif
+#endif
     }
 
 void export_MPIConfiguration(pybind11::module& m)
     {
-    pybind11::class_<MPIConfiguration, std::shared_ptr<MPIConfiguration> > mpiconfiguration(m,"MPIConfiguration");
-    mpiconfiguration.def(pybind11::init< >())
+    pybind11::class_<MPIConfiguration, std::shared_ptr<MPIConfiguration>> mpiconfiguration(
+        m,
+        "MPIConfiguration");
+    mpiconfiguration.def(pybind11::init<>())
         .def("splitPartitions", &MPIConfiguration::splitPartitions)
         .def("getPartition", &MPIConfiguration::getPartition)
         .def("getNRanks", &MPIConfiguration::getNRanks)
@@ -95,11 +96,12 @@ void export_MPIConfiguration(pybind11::module& m)
         .def("getNRanksGlobal", &MPIConfiguration::getNRanksGlobal)
         .def("getRankGlobal", &MPIConfiguration::getRankGlobal)
 #ifdef ENABLE_MPI
-        .def_static("_make_mpi_conf_mpi_comm",  [](pybind11::object mpi_comm) -> std::shared_ptr<MPIConfiguration>
-            {
-            MPI_Comm *comm = (MPI_Comm*)PyLong_AsVoidPtr(mpi_comm.ptr());
-            return std::make_shared<MPIConfiguration>(*comm);
-            })
+        .def_static("_make_mpi_conf_mpi_comm",
+                    [](pybind11::object mpi_comm) -> std::shared_ptr<MPIConfiguration>
+                    {
+                        MPI_Comm* comm = (MPI_Comm*)PyLong_AsVoidPtr(mpi_comm.ptr());
+                        return std::make_shared<MPIConfiguration>(*comm);
+                    })
 #endif
-    ;
+        ;
     }

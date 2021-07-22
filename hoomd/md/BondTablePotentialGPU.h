@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "BondTablePotential.h"
@@ -30,31 +29,29 @@
 class PYBIND11_EXPORT BondTablePotentialGPU : public BondTablePotential
     {
     public:
-        //! Constructs the compute
-        BondTablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
-                          unsigned int table_width,
-                          const std::string& log_suffix="");
+    //! Constructs the compute
+    BondTablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef, unsigned int table_width);
 
-        //! Destructor
-        virtual ~BondTablePotentialGPU();
+    //! Destructor
+    virtual ~BondTablePotentialGPU();
 
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
-        */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            BondTablePotential::setAutotunerParams(enable, period);
-            m_tuner->setPeriod(period);
-            m_tuner->setEnabled(enable);
-            }
+    //! Set autotuner parameters
+    /*! \param enable Enable/disable autotuning
+        \param period period (approximate) in time steps when returning occurs
+    */
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        BondTablePotential::setAutotunerParams(enable, period);
+        m_tuner->setPeriod(period);
+        m_tuner->setEnabled(enable);
+        }
 
     private:
-        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
-        GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
+    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
 
-        //! Actually compute the forces
-        virtual void computeForces(uint64_t timestep);
+    //! Actually compute the forces
+    virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the BondTablePotentialGPU class to python

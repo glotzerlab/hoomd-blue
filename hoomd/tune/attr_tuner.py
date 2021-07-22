@@ -1,9 +1,15 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement tuner utility classes."""
+
 from math import isclose
 from abc import ABCMeta, abstractmethod
 
 
 class _TuneDefinition(metaclass=ABCMeta):
-    """Internal class for defining y = f(x) relations
+    """Internal class for defining y = f(x) relations.
 
     This class is designed to allow for tuning x to achieve a specified value
     for y over a domain T. It abstracts over getting and setting x and getting
@@ -59,7 +65,8 @@ class _TuneDefinition(metaclass=ABCMeta):
         """The dependent variable.
 
         Can be set. When set the setting value is clamped within the provided
-        domain. See `clamp_into_domain` for further explanation."""
+        domain. See `clamp_into_domain` for further explanation.
+        """
         return self._get_x()
 
     @x.setter
@@ -116,13 +123,13 @@ class _TuneDefinition(metaclass=ABCMeta):
 
     @property
     def domain(self):
-        """tuple[``any``, ``any``]: A tuple pair of the minimum and maximum
+        """tuple[``any``, ``any``]: A tuple pair of the minimum and maximum \
             accepted values of x.
 
-            When, the domain is ``None`` then any value of x is accepted. Either
-            the minimum or maximum can be set to ``None`` as well which means
-            there is no maximum or minimum. The domain is used to wrap values
-            within the specified domain when setting x.
+        When, the domain is ``None`` then any value of x is accepted. Either
+        the minimum or maximum can be set to ``None`` as well which means
+        there is no maximum or minimum. The domain is used to wrap values
+        within the specified domain when setting x.
         """
         if self._domain is not None:
             return tuple(self._domain)
@@ -143,8 +150,8 @@ class _TuneDefinition(metaclass=ABCMeta):
 
 
 class ManualTuneDefinition(_TuneDefinition):
-    """
-    Class for defining y = f(x) relationships for tuning x for a set y target.
+    """Class for defining y = f(x) relationships for tuning x for a set y \
+    target.
 
     This class is made to be used with `SolverStep` subclasses.
     Here y represents a dependent variable of x. In general, x and y should be
@@ -163,7 +170,7 @@ class ManualTuneDefinition(_TuneDefinition):
         target (``any``): The target y value to approach.
         get_x (``callable``): A callable that gets the current value for x.
         set_x (``callable``): A callable that sets the current value for x.
-        domain (:obj:`tuple` [``any``, ``any``], optional): A tuple pair of the
+        domain (`tuple` [``any``, ``any``], optional): A tuple pair of the
             minimum and maximum accepted values of x, defaults to `None`. When,
             the domain is `None` then any value of x is accepted. Either the
             minimum or maximum can be set to `None` as well which means there is
@@ -202,12 +209,12 @@ class ManualTuneDefinition(_TuneDefinition):
         self._target = value
 
     def __hash__(self):
-        return hash((self._user_get_x,
-                     self._user_set_x,
-                     self._user_get_y,
+        """Compute a hash of the tune definition."""
+        return hash((self._user_get_x, self._user_set_x, self._user_get_y,
                      self._target))
 
     def __eq__(self, other):
+        """Test for equality."""
         return (self._user_get_x == other._user_get_x
                 and self._user_set_x == other._user_set_x
                 and self._user_get_y == other._user_get_y
@@ -230,6 +237,7 @@ class SolverStep(metaclass=ABCMeta):
         be used in `hoomd.custom.Action` subclasses for user defined tuners and
         updaters.
     """
+
     @abstractmethod
     def solve_one(self, tunable):
         """Takes in a tunable object and attempts to solve x for a specified y.
@@ -271,35 +279,40 @@ class SolverStep(metaclass=ABCMeta):
 
 
 class ScaleSolver(SolverStep):
-    """
-    Solves equations of f(x) = y using a ratio of the current y with the target.
+    """Solves equations of f(x) = y using a ratio of the current y with the \
+    target.
 
     Args:
-        max_scale (:obj:`float`, optional): The maximum amount to scale the
+        max_scale (`float`, optional): The maximum amount to scale the
             current x value with, defaults to 2.0.
-        gamma (:obj:`float`, optional): nonnegative real number used to dampen
+        gamma (`float`, optional): nonnegative real number used to dampen
             or increase the rate of change in x. ``gamma`` is added to the
             numerator and denominator of the ``y / target`` ratio. Larger values
             of ``gamma`` lead to smaller changes while a ``gamma`` of 0 leads to
             scaling x by exactly the ``y / target`` ratio.
-        correlation (:obj:`str`, optional): Defines whether the relationship
+        correlation (`str`, optional): Defines whether the relationship
             between x and y is of a positive or negative correlation, defaults
             to 'positive'. This determines which direction to scale x in for a
             given y.
-        tol (:obj:`float`, optional): The absolute tolerance for convergence of
+        tol (`float`, optional): The absolute tolerance for convergence of
             y, defaults to 1e-5.
+
     Note:
         This solver is only usable when quantities are strictly positive.
     """
 
-    def __init__(self, max_scale=2.0, gamma=2.0,
-                 correlation='positive', tol=1e-5):
+    def __init__(self,
+                 max_scale=2.0,
+                 gamma=2.0,
+                 correlation='positive',
+                 tol=1e-5):
         self.max_scale = max_scale
         self.gamma = gamma
         self.correlation = correlation.lower()
         self.tol = tol
 
     def solve_one(self, tunable):
+        """Solve one step."""
         x, y, target = tunable.x, tunable.y, tunable.target
         if abs(y - target) <= self.tol:
             return True
@@ -323,18 +336,28 @@ class ScaleSolver(SolverStep):
         tunable.x = tunable.clamp_into_domain(scale * x)
         return False
 
+    def __eq__(self, other):
+        """Test for equality."""
+        if not isinstance(other, SolverStep):
+            return NotImplemented
+        if not isinstance(other, type(self)):
+            return False
+        return all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr in ('max_scale', 'gamma', 'correlation', 'tol'))
+
 
 class SecantSolver(SolverStep):
-    """
-    Solves equations of f(x) = y using the secant method.
+    """Solves equations of f(x) = y using the secant method.
 
     Args:
-        gamma (:obj:`float`, optional): real number between 0 and 1 used to
+        gamma (`float`, optional): real number between 0 and 1 used to
             dampen the rate of change in x. ``gamma`` scales the corrections to
             x each iteration.  Larger values of ``gamma`` lead to larger changes
             while a ``gamma`` of 0 leads to no change in x at all.
-        tol (:obj:`float`, optional): The absolute tolerance for convergence of
+        tol (`float`, optional): The absolute tolerance for convergence of
             y, defaults to 1e-5.
+
     Note:
         Tempering the solver with a smaller than 1 ``gamma`` value is crucial
         for numeric stability. If instability is found, then lowering ``gamma``
@@ -350,6 +373,7 @@ class SecantSolver(SolverStep):
         self._counters = dict()
 
     def solve_one(self, tunable):
+        """Solve one step."""
         # start tuning new tunable
         if tunable not in self._previous_pair:
             self._initialize_tuning(tunable)
@@ -422,3 +446,13 @@ class SecantSolver(SolverStep):
         else:
             self._counters[tunable] = counter
             return x
+
+    def __eq__(self, other):
+        """Test for equality."""
+        if not isinstance(other, SolverStep):
+            return NotImplemented
+        if not isinstance(other, type(self)):
+            return False
+        return all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr in ('gamma', 'tol', '_counters', '_previous_pair'))

@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement Box."""
+
 import numpy as np
 from functools import partial
 import hoomd._hoomd as _hoomd
@@ -24,8 +30,7 @@ def _make_vec3(vec, vec_factory, scalar_type):
             return vec_factory(v, v, v)
     if l_vec == 3:
         try:
-            return vec_factory(scalar_type(vec[0]),
-                               scalar_type(vec[1]),
+            return vec_factory(scalar_type(vec[0]), scalar_type(vec[1]),
                                scalar_type(vec[2]))
         except (ValueError, TypeError):
             raise ValueError("Expected values of type {}.".format(scalar_type))
@@ -38,9 +43,7 @@ _make_scalar3 = partial(_make_vec3,
                         vec_factory=_hoomd.make_scalar3,
                         scalar_type=float)
 
-_make_int3 = partial(_make_vec3,
-                     vec_factory=_hoomd.make_int3,
-                     scalar_type=int)
+_make_int3 = partial(_make_vec3, vec_factory=_hoomd.make_int3, scalar_type=int)
 
 _make_char3 = partial(_make_vec3,
                       vec_factory=_hoomd.make_char3,
@@ -52,15 +55,15 @@ def _vec3_to_array(vec, dtype=None):
 
 
 class Box:
-    R""" Define box dimensions.
+    """Define box dimensions.
 
     Args:
-        Lx (float): box extent in the x direction (distance units).
-        Ly (float): box extent in the y direction (distance units).
-        Lz (float): box extent in the z direction (distance units).
-        xy (float): tilt factor xy (dimensionless).
-        xz (float): tilt factor xz (dimensionless).
-        yz (float): tilt factor yz (dimensionless).
+        Lx (float): box extent in the x direction :math:`[\\mathrm{length}]`.
+        Ly (float): box extent in the y direction :math:`[\\mathrm{length}]`.
+        Lz (float): box extent in the z direction :math:`[\\mathrm{length}]`.
+        xy (float): tilt factor xy :math:`[\\mathrm{dimensionless}]`.
+        xz (float): tilt factor xz :math:`[\\mathrm{dimensionless}]`.
+        yz (float): tilt factor yz :math:`[\\mathrm{dimensionless}]`.
 
     Simulation boxes in hoomd are specified by six parameters, ``Lx``, ``Ly``,
     ``Lz``, ``xy``, ``xz``, and ``yz``. `Box` provides a way to specify all
@@ -91,17 +94,15 @@ class Box:
     usage.
 
     Examples:
-
     * Cubic box with given length: ``hoomd.Box.cube(L=1)``
     * Square box with given length: ``hoomd.Box.square(L=1)``
     * From an upper triangular matrix: ``hoomd.Box.from_matrix(matrix)``
-    * Specify all values: ``hoomd.Box(Lx=1., Ly=2., Lz=3., xy=1., xz=2.,
-      yz=3.)``
+    * Specify values: ``hoomd.Box(Lx=1., Ly=2., Lz=3., xy=1., xz=2., yz=3.)``
     """
 
     # Constructors
     def __init__(self, Lx, Ly, Lz=0, xy=0, xz=0, yz=0):
-        if Lz == 0 and (xz != 0 or yz !=0):
+        if Lz == 0 and (xz != 0 or yz != 0):
             raise ValueError("Cannot set the xz or yz tilt factor on a 2D box.")
         self._cpp_obj = _hoomd.BoxDim(Lx, Ly, Lz)
         self._cpp_obj.setTiltFactors(xy, xz, yz)
@@ -111,7 +112,7 @@ class Box:
         """Create a cube with side lengths ``L``.
 
         Args:
-            L (float): The box side length (distance units).
+            L (float): The box side length :math:`[\\mathrm{length}]`.
 
         Returns:
             hoomd.Box: The created 3D box.
@@ -123,7 +124,7 @@ class Box:
         """Create a square with side lengths ``L``.
 
         Args:
-            L (float): The box side length (distance units).
+            L (float): The box side length :math:`[\\mathrm{length}]`.
 
         Returns:
             hoomd.Box: The created 2D box.
@@ -155,7 +156,7 @@ class Box:
         return b
 
     @classmethod
-    def _from_cpp(self, cpp_obj):
+    def _from_cpp(cls, cpp_obj):
         """Wrap a C++ BoxDim.
 
         Does not copy the C++ object.
@@ -172,22 +173,19 @@ class Box:
             box:
                 A box-like object
 
-        .. note:: Objects that can be converted to HOOMD-blue boxes include
-                  lists like :code:`[Lx, Ly, Lz, xy, xz, yz]`,
-                  dictionaries with keys
-                  :code:`'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz',
-                  objects with attributes
-                  :code:`Lx, Ly, Lz, xy, xz, yz,
-                  3x3 matrices (see `from_matrix`),
-                  or existing :class:`hoomd.Box` objects.
+        Note:
+           Objects that can be converted to HOOMD-blue boxes include lists like
+           ``[Lx, Ly, Lz, xy, xz, yz]``, dictionaries with keys ``'Lx',
+           'Ly', 'Lz', 'xy', 'xz', 'yz'``, objects with attributes ``Lx, Ly,
+           Lz, xy, xz, yz``, 3x3 matrices (see `from_matrix`), or existing
+           `hoomd.Box` objects.
 
-                  If any of :code:`Lz, xy, xz, yz` are not provided, they will
-                  be set to 0.
+           If any of ``Lz, xy, xz, yz`` are not provided, they will be set to 0.
 
-                  If all values are provided, a triclinic box will be
-                  constructed. If only :code:`Lx, Ly, Lz` are provided, an
-                  orthorhombic box will be constructed. If only :code:`Lx, Ly`
-                  are provided, a rectangular (2D) box will be constructed.
+           If all values are provided, a triclinic box will be constructed.
+           If only ``Lx, Ly, Lz`` are provided, an orthorhombic box will
+           be constructed. If only ``Lx, Ly`` are provided, a rectangular
+           (2D) box will be constructed.
 
         Returns:
             :class:`hoomd.Box`: The resulting box object.
@@ -238,7 +236,7 @@ class Box:
         return 2 if self.is2D else 3
 
     @property
-    def is2D(self):
+    def is2D(self):  # noqa: N802 - allow function name
         """bool: Flag whether the box is 2D.
 
         If ``Lz == 0``, the box is treated as 2D, otherwise it is 3D. This
@@ -248,50 +246,53 @@ class Box:
 
     # Length based properties
     @property
-    def L(self):
-        """(3) `numpy.ndarray` of `float`: The box lengths,
-        ``[Lx, Ly, Lz]``.
+    def L(self):  # noqa: N802 - allow function name
+        """(3) `numpy.ndarray` of `float`: The box lengths, ``[Lx, Ly, Lz]`` \
+        :math:`[\\mathrm{length}]`.
 
         Can be set with a float which sets all lengths, or a length 3 vector.
         """
         return _vec3_to_array(self._cpp_obj.getL())
 
     @L.setter
-    def L(self, new_L):
+    def L(self, new_L):  # noqa: N802: Allow function name
         newL = _make_scalar3(new_L)
         if newL.z == 0 and not self.is2D:
             self.tilts = [self.xy, 0, 0]
         self._cpp_obj.setL(newL)
 
     @property
-    def Lx(self):
-        """float: The length of the box in the x dimension."""
+    def Lx(self):  # noqa: N802: Allow function name
+        """float: The length of the box in the x dimension \
+        :math:`[\\mathrm{length}]`."""
         return self.L[0]
 
     @Lx.setter
-    def Lx(self, value):
+    def Lx(self, value):  # noqa: N802: Allow function name
         L = self.L
         L[0] = float(value)
         self.L = L
 
     @property
-    def Ly(self):
-        """float: The length of the box in the y dimension."""
+    def Ly(self):  # noqa: N802: Allow function name
+        """float: The length of the box in the y dimension \
+        :math:`[\\mathrm{length}]`."""
         return self.L[1]
 
     @Ly.setter
-    def Ly(self, value):
+    def Ly(self, value):  # noqa: N802: Allow function name
         L = self.L
         L[1] = float(value)
         self.L = L
 
     @property
-    def Lz(self):
-        """float: The length of the box in the z dimension."""
+    def Lz(self):  # noqa: N802: Allow function name
+        """float: The length of the box in the z dimension \
+        :math:`[\\mathrm{length}]`."""
         return self.L[2]
 
     @Lz.setter
-    def Lz(self, value):
+    def Lz(self, value):  # noqa: N802: Allow function name
         L = self.L
         L[2] = float(value)
         self.L = L
@@ -302,7 +303,8 @@ class Box:
         """(3) `numpy.ndarray` of `float`: The box tilts, ``[xy, xz, yz]``.
 
         Can be set using one tilt for all axes or three tilts. If the box is 2D
-        ``xz`` and ``yz`` will automatically be set to zero."""
+        ``xz`` and ``yz`` will automatically be set to zero.
+        """
         return np.array([self.xy, self.xz, self.yz])
 
     @tilts.setter
@@ -346,8 +348,7 @@ class Box:
     # Misc. properties
     @property
     def periodic(self):
-        """(3) `numpy.ndarray` of `bool`: The periodicity of
-        each dimension."""
+        """(3) `numpy.ndarray` of `bool`: The periodicity of each dimension."""
         return _vec3_to_array(self._cpp_obj.getPeriodic(), bool)
 
     @property
@@ -356,13 +357,16 @@ class Box:
 
         The lattice vectors are read-only.
         """
-        return np.concatenate(
-            [_vec3_to_array(self._cpp_obj.getLatticeVector(i))
-             for i in range(3)]).reshape(3, 3)
+        return np.concatenate([
+            _vec3_to_array(self._cpp_obj.getLatticeVector(i)) for i in range(3)
+        ]).reshape(3, 3)
 
     @property
     def volume(self):
-        """float: The current volume (area in 2D) of the box.
+        """float: Volume of the box.
+
+        :math:`[\\mathrm{length}^{2}]` in 2D and
+        :math:`[\\mathrm{length}^{3}]` in 3D.
 
         When setting volume the aspect ratio of the box is maintained while the
         lengths are changed.
@@ -375,7 +379,7 @@ class Box:
 
     @property
     def matrix(self):
-        """(3, 3) `numpy.ndarray` `float`: The upper triangular matrix that
+        """(3, 3) `numpy.ndarray` `float`: The upper triangular matrix that \
         defines the box.
 
         Can be used to set the box to one defined by an upper triangular
@@ -421,61 +425,22 @@ class Box:
 
     # Magic Methods
     def __repr__(self):
+        """Executable representation of the object."""
         return "hoomd.box.Box(Lx={}, Ly={}, Lz={}, xy={}, xz={}, yz={})".format(
             self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz)
 
     def __eq__(self, other):
+        """Test if boxes are equal."""
         if not isinstance(other, Box):
             return NotImplemented
         return self._cpp_obj == other._cpp_obj
 
     def __neq__(self, other):
+        """Test if boxes are not equal."""
         if not isinstance(other, Box):
             return NotImplemented
         return self._cpp_obj != other._cpp_obj
 
-#     def wrap(self, v, image=(0, 0, 0)):
-#         R""" Wrap a vector using the periodic boundary conditions.
-
-#         Args:
-#             v (Sequence[float]): The vector to wrap of length 3.
-#             image (Sequence[float]): A vector of integer image flags that will
-#                 be updated (optional).
-
-#         Returns:
-#             The wrapped vector and the image flags as two numpy arrays.
-#         """
-#         u = _make_scalar3(v)
-#         image = _make_int3(image)
-#         c = _make_char3([0, 0, 0])
-#         self._cpp_obj.wrap(u, image, c)
-#         return _vec3_to_array(u), _vec3_to_array(image)
-
-#     def min_image(self, v):
-#         R""" Apply the minimum image convention to a vector.
-
-#         Args:
-#             v (Sequence[float]): The vector to apply minimum image to.
-
-#         Returns:
-#             The minimum image as a tuple.
-#         """
-#         u = _make_scalar3(v)
-#         return _vec3_to_array(self._cpp_obj.minImage(u))
-
-#     def make_fraction(self, v):
-#         R""" Scale a vector to fractional coordinates.
-
-#         make_fraction takes a vector in a box and computes a vector where all
-#         components are between 0 and 1 representing their scaled position.
-
-#         Args:
-#             v (Sequence[float]): The vector to convert to fractional
-#                 coordinates.
-
-#         Returns:
-#             The scaled vector.
-#         """
-#         u = _make_scalar3(v)
-#         w = _make_scalar3([0., 0., 0.])
-#         return _vec3_to_array(self._cpp_obj.makeFraction(u, w))
+    def __reduce__(self):
+        """Reduce values to picklable format."""
+        return (type(self), (*self.L, *self.tilts))

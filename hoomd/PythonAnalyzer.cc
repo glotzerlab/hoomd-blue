@@ -3,8 +3,8 @@
 #include <exception>
 #include <string>
 
-PythonAnalyzer::PythonAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
-                               pybind11::object analyzer) : Analyzer(sysdef)
+PythonAnalyzer::PythonAnalyzer(std::shared_ptr<SystemDefinition> sysdef, pybind11::object analyzer)
+    : Analyzer(sysdef)
     {
     setAnalyzer(analyzer);
     }
@@ -19,7 +19,7 @@ void PythonAnalyzer::setAnalyzer(pybind11::object analyzer)
     {
     m_analyzer = analyzer;
     auto flags = PDataFlags();
-    for (auto flag: analyzer.attr("flags"))
+    for (auto flag : analyzer.attr("flags"))
         {
         flags.set(flag.cast<size_t>());
         }
@@ -33,9 +33,6 @@ PDataFlags PythonAnalyzer::getRequestedPDataFlags()
 
 void export_PythonAnalyzer(pybind11::module& m)
     {
-    pybind11::class_<PythonAnalyzer, Analyzer, std::shared_ptr<PythonAnalyzer>
-                    >(m, "PythonAnalyzer")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            pybind11::object>())
-        ;
+    pybind11::class_<PythonAnalyzer, Analyzer, std::shared_ptr<PythonAnalyzer>>(m, "PythonAnalyzer")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, pybind11::object>());
     }

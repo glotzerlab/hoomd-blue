@@ -1,16 +1,15 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: ajs42
 
+#include "ComputeThermoHMATypes.h"
 #include "hoomd/Compute.h"
 #include "hoomd/GPUArray.h"
-#include "ComputeThermoHMATypes.h"
 #include "hoomd/ParticleGroup.h"
 
-#include <memory>
 #include <limits>
+#include <memory>
 
 /*! \file ComputeThermoHMA.h
     \brief Declares a class for computing thermodynamic quantities
@@ -26,121 +25,133 @@
 #define __COMPUTE_THERMO_HMA_H__
 
 //! Computes thermodynamic properties of a group of particles
-/*! ComputeThermoHMA calculates instantaneous thermodynamic properties and provides them for the logger.
-    All computed values are stored in a GPUArray so that they can be accessed on the GPU without intermediate copies.
-    Use the enum values in thermoHMA_index to index the array and extract the properties of interest. Convenience
-    functions are provided for accessing the values on the CPU.
+/*! ComputeThermoHMA calculates instantaneous thermodynamic properties and provides them for Python.
+    All computed values are stored in a GPUArray so that they can be accessed on the GPU without
+   intermediate copies. Use the enum values in thermoHMA_index to index the array and extract the
+   properties of interest. Convenience functions are provided for accessing the values on the CPU.
 
     Computed quantities available in the GPUArray:
      - pressure (valid for the all group)
      - potential energy
 
-    All quantities are made available for the logger. ComputeThermo can be given a suffix which it will append
-    to each quantity provided to the logger. Typical usage is to provide _groupname as the suffix so that properties
-    of different groups can be logged seperately (e.g. pressureHMA_group1 and pressureHMA_group2).
+    All quantities are made available in Python as properties.
 
     \ingroup computes
 */
 class PYBIND11_EXPORT ComputeThermoHMA : public Compute
     {
     public:
-        //! Constructs the compute
-        ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<ParticleGroup> group, const double temperature,
-                      const double harmonicPressure, const std::string& suffix = std::string(""));
+    //! Constructs the compute
+    ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<ParticleGroup> group,
+                     const double temperature,
+                     const double harmonicPressure);
 
-        //! Destructor
-        virtual ~ComputeThermoHMA();
+    //! Destructor
+    virtual ~ComputeThermoHMA();
 
-        //! Compute the temperature
-        virtual void compute(uint64_t timestep);
+    //! Compute the temperature
+    virtual void compute(uint64_t timestep);
 
-        //! Returns the potential energy last computed by compute()
-        /*! \returns Instantaneous potential energy of the system, or NaN if the energy is not valid
-        */
-        Scalar getPotentialEnergyHMA()
+    //! Returns the potential energy last computed by compute()
+    /*! \returns Instantaneous potential energy of the system, or NaN if the energy is not valid
+     */
+    Scalar getPotentialEnergyHMA()
+        {
+#ifdef ENABLE_MPI
+        if (!m_properties_reduced)
+            reduceProperties();
+#endif
+
+        // return NaN if the flags are not valid
+        ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+        return h_properties.data[thermoHMA_index::potential_energyHMA];
+        }
+
+    //! Returns the pressure last computed by compute()
+    /*! \returns Instantaneous pressure of the system
+     */
+    Scalar getPressureHMA()
+        {
+        // return NaN if the flags are not valid
+        PDataFlags flags = m_pdata->getFlags();
+        if (flags[pdata_flag::pressure_tensor])
             {
-            #ifdef ENABLE_MPI
-            if (!m_properties_reduced) reduceProperties();
-            #endif
+// return the pressure
+#ifdef ENABLE_MPI
+            if (!m_properties_reduced)
+                reduceProperties();
+#endif
 
-            // return NaN if the flags are not valid
-            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            return h_properties.data[thermoHMA_index::potential_energyHMA];
+            ArrayHandle<Scalar> h_properties(m_properties,
+                                             access_location::host,
+                                             access_mode::read);
+            return h_properties.data[thermoHMA_index::pressureHMA];
             }
-
-
-        //! Returns the pressure last computed by compute()
-        /*! \returns Instantaneous pressure of the system
-        */
-        Scalar getPressureHMA()
+        else
             {
-            // return NaN if the flags are not valid
-            PDataFlags flags = m_pdata->getFlags();
-            if (flags[pdata_flag::pressure_tensor])
-                {
-                // return the pressure
-                #ifdef ENABLE_MPI
-                if (!m_properties_reduced) reduceProperties();
-                #endif
-
-                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-                return h_properties.data[thermoHMA_index::pressureHMA];
-                }
-            else
-                {
-                return std::numeric_limits<Scalar>::quiet_NaN();
-                }
+            return std::numeric_limits<Scalar>::quiet_NaN();
             }
+        }
 
-        //! Get the gpu array of properties
-        const GPUArray<Scalar>& getProperties()
-            {
-            #ifdef ENABLE_MPI
-            if (!m_properties_reduced) reduceProperties();
-            #endif
+    //! Get the gpu array of properties
+    const GPUArray<Scalar>& getProperties()
+        {
+#ifdef ENABLE_MPI
+        if (!m_properties_reduced)
+            reduceProperties();
+#endif
 
-            return m_properties;
-            }
+        return m_properties;
+        }
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
+    /*! Set the temperature
+        \param temperature Temperature to set
+    */
+    void setTemperature(Scalar temperature)
+        {
+        m_temperature = temperature;
+        }
 
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
+    //! Get the temperature
+    Scalar getTemperature()
+        {
+        return m_temperature;
+        }
 
-        //! Control the enable_logging flag
-        /*! Set this flag to false to prevent this compute from providing logged quantities.
-            This is useful for internal computes that should not appear in the logs.
+    /*! Set the harmonic pressure
+        \param harmonicPressure Harmonic pressure to set
+    */
+    void setHarmonicPressure(Scalar harmonicPressure)
+        {
+        m_harmonicPressure = harmonicPressure;
+        }
 
-            \param enable Flag to set
-        */
-        void setLoggingEnabled(bool enable)
-            {
-            m_logging_enabled = enable;
-            }
+    //! Get the harmonic pressure
+    Scalar getHarmonicPressure()
+        {
+        return m_harmonicPressure;
+        }
 
-        //! Method to be called when particles are added/removed/sorted
-        void slotParticleSort();
+    //! Method to be called when particles are added/removed/sorted
+    void slotParticleSort();
 
     protected:
-        std::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
-        GPUArray<Scalar> m_properties;  //!< Stores the computed properties
-        std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names
-        bool m_logging_enabled;         //!< Set to false to disable communication with the logger
+    std::shared_ptr<ParticleGroup> m_group; //!< Group to compute properties for
+    GPUArray<Scalar> m_properties;          //!< Stores the computed properties
 
-        //! Does the actual computation
-        virtual void computeProperties();
+    //! Does the actual computation
+    virtual void computeProperties();
 
-        #ifdef ENABLE_MPI
-        bool m_properties_reduced;      //!< True if properties have been reduced across MPI
+#ifdef ENABLE_MPI
+    bool m_properties_reduced; //!< True if properties have been reduced across MPI
 
-        //! Reduce properties over MPI
-        virtual void reduceProperties();
-        #endif
+    //! Reduce properties over MPI
+    virtual void reduceProperties();
+#endif
 
-        Scalar m_temperature, m_harmonicPressure;
-        GlobalArray<Scalar3> m_lattice_site;
+    Scalar m_temperature, m_harmonicPressure;
+    GlobalArray<Scalar3> m_lattice_site;
     };
 
 //! Exports the ComputeThermoHMA class to python

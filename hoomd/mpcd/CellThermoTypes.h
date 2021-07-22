@@ -21,10 +21,9 @@
 #endif
 
 namespace mpcd
-{
+    {
 namespace detail
-{
-
+    {
 //! Indexes into 1d array containing scalar thermo properties
 /*!
  * The last element contains the total number of properties.
@@ -33,7 +32,7 @@ struct thermo_index
     {
     enum property
         {
-        momentum_x=0,   //!< Net momentum in x
+        momentum_x = 0, //!< Net momentum in x
         momentum_y,     //!< Net momentum in y
         momentum_z,     //!< Net momentum in z
         energy,         //!< Net kinetic energy
@@ -51,7 +50,7 @@ struct thermo_options
     {
     enum value
         {
-        energy=0    //!< Cell-level energy
+        energy = 0 //!< Cell-level energy
         };
     };
 
@@ -90,8 +89,8 @@ struct CellEnergyPackOp
         }
     };
 
-} // end namespace detail
-} // end namespace mpcd
+    } // end namespace detail
+    } // end namespace mpcd
 
 #undef DEVICE
 
