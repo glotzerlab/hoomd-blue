@@ -71,14 +71,15 @@ class NList(_HOOMDBaseObject):
     is the per particle quantity stored in the `hoomd.State`).
 
     Attributes:
-        buffer (float): Buffer width.
+        buffer (float): Buffer width :math:`[\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
             neighbor list, see more details above.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
         check_dist (bool): Flag to enable / disable distance checking.
-        max_diameter (float): The maximum diameter a particle will achieve.
+        max_diameter (float): The maximum diameter a particle will achieve
+            :math:`[\mathrm{length}]`.
     """
 
     _remove_for_pickling = _HOOMDBaseObject._remove_for_pickling + (
@@ -104,17 +105,14 @@ class NList(_HOOMDBaseObject):
                                _defaults={'exclusions': exclusions})
         self._param_dict.update(params)
 
-    @log
+    @log(requires_run=True)
     def shortest_rebuild(self):
         """int: The shortest period between neighbor list rebuilds.
 
         `shortest_rebuild` is the smallest number of time steps between neighbor
         list rebuilds during the previous `Simulation.run`.
         """
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getSmallestRebuild()
+        return self._cpp_obj.getSmallestRebuild()
 
     # TODO need to add tuning Updater for NList
 
@@ -123,14 +121,15 @@ class Cell(NList):
     r"""Neighbor list computed via a cell list.
 
     Args:
-        buffer (float): Buffer width.
+        buffer (float): Buffer width :math:`[\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
             neighbor list, see more details in `NList`.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
         check_dist (bool): Flag to enable / disable distance checking.
-        max_diameter (float): The maximum diameter a particle will achieve.
+        max_diameter (float): The maximum diameter a particle will achieve
+            :math:`[\mathrm{length}]`.
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
 
@@ -179,15 +178,17 @@ class Stencil(NList):
     """Cell list based neighbor list using stencils.
 
     Args:
-        cell_width (float): The underlying stencil bin width for the cell list.
-        buffer (float): Buffer width.
+        cell_width (float): The underlying stencil bin width for the cell list
+            :math:`[\\mathrm{length}]`.
+        buffer (float): Buffer width :math:`[\\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
             neighbor list, see more details in `NList`.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
         check_dist (bool): Flag to enable / disable distance checking.
-        max_diameter (float): The maximum diameter a particle will achieve.
+        max_diameter (float): The maximum diameter a particle will achieve
+            :math:`[\\mathrm{length}]`.
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
 
@@ -220,7 +221,8 @@ class Stencil(NList):
         nl_s = nlist.Stencil(cell_width=1.5)
 
     Attributes:
-        cell_width (float): The underlying stencil bin width for the cell list.
+        cell_width (float): The underlying stencil bin width for the cell list
+            :math:`[\\mathrm{length}]`.
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
     """
@@ -257,14 +259,15 @@ class Tree(NList):
     """Bounding volume hierarchy based neighbor list.
 
     Args:
-        buffer (float): Buffer width.
+        buffer (float): Buffer width :math:`[\\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
             neighbor list, see more details in `NList`.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
         check_dist (bool): Flag to enable / disable distance checking.
-        max_diameter (float): The maximum diameter a particle will achieve.
+        max_diameter (float): The maximum diameter a particle will achieve
+            :math:`[\\mathrm{length}]`.
 
     `Tree` creates a neighbor list using a bounding volume hierarchy (BVH) tree
     traversal. A BVH tree of axis-aligned bounding boxes is constructed per

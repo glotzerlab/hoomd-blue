@@ -94,6 +94,7 @@ workflows all with Python code in your job.
    :maxdepth: 1
    :caption: Reference
 
+   units
    deprecated
    license
    credits

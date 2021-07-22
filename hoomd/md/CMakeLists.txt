@@ -131,6 +131,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 ManifoldSphere.h
                 MolecularForceCompute.cuh
                 MolecularForceCompute.h
+                MuellerPlatheFlowEnum.h
+                MuellerPlatheFlow.h
+                MuellerPlatheFlowGPU.h
                 NeighborListBinned.h
                 NeighborListGPUBinned.h
                 NeighborListGPU.h
@@ -337,7 +340,6 @@ set(files __init__.py
           compute.py
           constrain.py
           dihedral.py
-          external.py
           force.py
           improper.py
           integrate.py
@@ -362,6 +364,7 @@ install(FILES ${_md_headers}
        )
 
 add_subdirectory(pair)
+add_subdirectory(external)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

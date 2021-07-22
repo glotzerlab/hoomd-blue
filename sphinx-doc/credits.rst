@@ -43,6 +43,7 @@ The following people have contributed to the to HOOMD-blue:
 * Eric Jankowski, Boise State University
 * Erin Teich, University of Michigan
 * Fengyi Gao, University of Michigan
+* Gabrielle Jones, University of Michigan
 * Geert Kapteijns, University of Amsterdam
 * Greg van Anders, University of Michigan
 * Grey Garrett, University of Michigan

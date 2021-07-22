@@ -295,7 +295,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
         // choose a block size based on the max block size by regs (max_block_size) and include
         // dynamic shared memory usage
         unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
-        unsigned int shared_bytes
+        size_t shared_bytes
             = args.num_types * (sizeof(typename Shape::param_type) + 2 * sizeof(Scalar));
 
         if (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
@@ -351,7 +351,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
         // choose a block size based on the max block size by regs (max_block_size) and include
         // dynamic shared memory usage
         unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
-        unsigned int shared_bytes
+        size_t shared_bytes
             = args.num_types * (sizeof(typename Shape::param_type) + 2 * sizeof(Scalar));
 
         if (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
