@@ -124,11 +124,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     //! Returns true if CUDA error checking is enabled
     bool isCUDAErrorCheckingEnabled() const
         {
-#ifndef NDEBUG
-        return true;
-#else
         return m_hip_error_checking;
-#endif
         }
 
     //! Sets the hip error checking mode

@@ -15,6 +15,7 @@ md.pair
     DPDLJ
     DPDConservative
     Ewald
+    ExpandedMie
     ForceShiftedLJ
     Fourier
     Gauss
@@ -43,6 +44,7 @@ md.pair
         DPDLJ,
         DPDConservative,
         Ewald,
+        ExpandedMie,
         ForceShiftedLJ,
         Fourier,
         Gauss,
