@@ -1719,8 +1719,8 @@ class LJGauss(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        default_r_cut (float): Default cutoff radius (in distance units).
+        default_r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mod
 
     `LJGauss` specifies that a Lennard-Jones-Gauss pair potential should be
@@ -1742,12 +1742,12 @@ class LJGauss(Pair):
     .. py:attribute:: params
         The potential parameters. The dictionary has the following keys:
 
-        * ``epsilon`` (`float`, **required**) - energy parameter
-          :math:`\\varepsilon` (in energy units)
-        * ``sigma2`` (`float`, **required**) - Gaussian variance
-          :math:`\\sigma^2` (in squared distance units)
-        * ``r0`` (`float`, **required**) - Gaussian center
-          :math:`\\r_0` (in distance units)
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[energy]`
+        * ``sigma2`` (`float`, **required**) - 
+          Gaussian variance :math:`\\sigma^2` :math:`[\mathrm{length}^2]`
+        * ``r0`` (`float`, **required**) - 
+          Gaussian center :math:`\\r_0` :math:`[distance]`
 
     Example::
 
