@@ -170,7 +170,7 @@ def test_wrap(s):
         s.particles.position[:] = outs
         s.wrap()
         numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
-        numpy.testing.assert_allclose(s.particles.image, mults)
+        numpy.testing.assert_array_equal(s.particles.image, mults)
 
         # triclinic box
         box = [10, 12, 7, 0.1, 0.4, 0.2]
@@ -183,7 +183,7 @@ def test_wrap(s):
         s.particles.position[:] = outs
         s.wrap()
         numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
-        numpy.testing.assert_allclose(s.particles.image, mults)
+        numpy.testing.assert_array_equal(s.particles.image, mults)
 
         # 2D box
         box = [5, 11, 0, 0, 0, 0]
@@ -196,7 +196,7 @@ def test_wrap(s):
         s.particles.position[:] = outs
         s.wrap()
         numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
-        numpy.testing.assert_allclose(s.particles.image, mults)
+        numpy.testing.assert_array_equal(s.particles.image, mults)
 
         # tetragonal box
         box = [7, 7, 4, 0, 0, 0]
@@ -208,7 +208,7 @@ def test_wrap(s):
         s.particles.position[:] = outs
         s.wrap()
         numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
-        numpy.testing.assert_allclose(s.particles.image, mults)
+        numpy.testing.assert_array_equal(s.particles.image, mults)
 
         # orthorhombic box
         box = [8, 6, 4, 0, 0, 0]
@@ -220,7 +220,7 @@ def test_wrap(s):
         s.particles.position[:] = outs
         s.wrap()
         numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
-        numpy.testing.assert_allclose(s.particles.image, mults)
+        numpy.testing.assert_array_equal(s.particles.image, mults)
 
         # monoclinic box
         box = [7, 4, 8, 0, 0.25, 0]
@@ -232,7 +232,7 @@ def test_wrap(s):
         s.particles.position[:] = outs
         s.wrap()
         numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
-        numpy.testing.assert_allclose(s.particles.image, mults)
+        numpy.testing.assert_array_equal(s.particles.image, mults)
 
 
 def test_particles(s):
