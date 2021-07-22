@@ -47,7 +47,7 @@ def test_attach_detach(simulation_factory, two_particle_snapshot_factory):
 
 
 def _assert_thermo_properties(thermo, npart, rdof, tdof, pe, rke, tke, ke, p,
-                              pt):
+                              pt, volume):
 
     assert thermo.num_particles == npart
     assert thermo.rotational_degrees_of_freedom == rdof
@@ -67,6 +67,7 @@ def _assert_thermo_properties(thermo, npart, rdof, tdof, pe, rke, tke, ke, p,
                                rtol=1e-4)
     np.testing.assert_allclose(thermo.pressure, p, rtol=1e-4)
     np.testing.assert_allclose(thermo.pressure_tensor, pt, rtol=1e-4, atol=5e-5)
+    np.testing.assert_allclose(thermo.volume, volume, rtol=1e-7, atol=1e-7)
 
 
 def test_basic_system_3d(simulation_factory, two_particle_snapshot_factory):
@@ -85,9 +86,12 @@ def test_basic_system_3d(simulation_factory, two_particle_snapshot_factory):
 
     sim.run(1)
 
+    volume = (snap.configuration.box[0] * snap.configuration.box[1]
+              * snap.configuration.box[2])
+
     _assert_thermo_properties(thermo, 2, 0, 3, 0.0, 0.0, 4.0, 4.0,
                               2.0 / 3 * thermo.kinetic_energy / 20**3,
-                              [8.0 / 20.0**3, 0., 0., 0., 0., 0.])
+                              [8.0 / 20.0**3, 0., 0., 0., 0., 0.], volume)
 
 
 def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
@@ -114,15 +118,17 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
 
     sim.run(1)
 
+    volume = snap.configuration.box[0] * snap.configuration.box[1]
+
     # tests for group A
     _assert_thermo_properties(thermoA, 2, 0, 4, 0.0, 0.0, 1.0, 1.0,
                               thermoA.kinetic_energy / 2.0**2,
-                              (2.0 / 2.0**2, 0., 0., 0., 0., 0.))
+                              (2.0 / 2.0**2, 0., 0., 0., 0., 0.), volume)
 
     # tests for group B
     _assert_thermo_properties(thermoB, 2, 0, 4, 0.0, 0.0, 4.0, 4.0,
                               thermoB.kinetic_energy / 2.0**2,
-                              (8.0 / 2.0**2, 0., 0., 0., 0., 0.))
+                              (8.0 / 2.0**2, 0., 0., 0., 0., 0.), volume)
 
 
 def test_system_rotational_dof(simulation_factory, device):
@@ -151,10 +157,17 @@ def test_system_rotational_dof(simulation_factory, device):
 
     sim.run(1)
 
-    _assert_thermo_properties(
-        thermo, 3, 7, 6, 0.0, 57 / 4., 1.0, 61 / 4.,
-        2. / 3 * thermo.translational_kinetic_energy / 10.0**3,
-        (0., 0., 0., 2. / 10**3, 0., 0.))
+    _assert_thermo_properties(thermo,
+                              3,
+                              7,
+                              6,
+                              0.0,
+                              57 / 4.,
+                              1.0,
+                              61 / 4.,
+                              2. / 3 * thermo.translational_kinetic_energy
+                              / 10.0**3, (0., 0., 0., 2. / 10**3, 0., 0.),
+                              volume=1000)
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
