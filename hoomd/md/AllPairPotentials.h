@@ -17,6 +17,7 @@
 #include "EvaluatorPairLJ.h"
 #include "EvaluatorPairLJ0804.h"
 #include "EvaluatorPairLJ1208.h"
+#include "EvaluatorPairLJGauss.h"
 #include "EvaluatorPairMie.h"
 #include "EvaluatorPairMoliere.h"
 #include "EvaluatorPairMorse.h"
@@ -24,7 +25,6 @@
 #include "EvaluatorPairReactionField.h"
 #include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairTWF.h"
-#include "EvaluatorPairLJGauss.h"
 #include "EvaluatorPairYukawa.h"
 #include "EvaluatorPairZBL.h"
 #include "PotentialPair.h"
@@ -148,7 +148,7 @@ typedef PotentialPairGPU<EvaluatorPairOPP, gpu_compute_opp_forces> PotentialPair
 typedef PotentialPairGPU<EvaluatorPairTWF, gpu_compute_twf_forces> PotentialPairTWFGPU;
 
 //! Pair potential force compute for lj-gauss pair potential
-typedef PotentialPairGPU<EvaluatorPairLJGauss, gpu_compute_lj_gauss_forces > PotentialPairLJGaussGPU;
+typedef PotentialPairGPU<EvaluatorPairLJGauss, gpu_compute_lj_gauss_forces> PotentialPairLJGaussGPU;
 #endif
 
 #endif // __PAIR_POTENTIALS_H__

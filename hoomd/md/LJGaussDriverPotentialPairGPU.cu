@@ -5,8 +5,8 @@
     \brief Defines the driver functions for computing all types of pair forces on the GPU
 */
 
-#include "EvaluatorPairLJGauss.h"
 #include "AllDriverPotentialPairGPU.cuh"
+#include "EvaluatorPairLJGauss.h"
 
 hipError_t gpu_compute_lj_gauss_forces(const pair_args_t& pair_args,
                                        const EvaluatorPairLJGauss::param_type* d_params)

@@ -1713,8 +1713,9 @@ class TWF(Pair):
                               len_keys=2))
         self._add_typeparam(params)
 
+
 class LJGauss(Pair):
-    R""" Lennard-Jones-Gauss pair potential.
+    r"""Lennard-Jones-Gauss pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -1722,40 +1723,31 @@ class LJGauss(Pair):
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mod
 
-    :py:class:`LJGauss` specifies that a Lennard-Jones-Gauss pair potential should be added to every
-    non-excluded particle pair in the simulation.
-
+    `LJGauss` specifies that a Lennard-Jones-Gauss pair potential should be
+    applied between every non-excluded particle pair in the simulation.
 
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{LJGauss}}(r) = \\frac{1}{r^{12}} - \\frac{2}{r^{6}} - \\epsilon e^{- \\frac{\\left(r - r_{0}\\right)^{2}}{2 \\sigma^{2}}} \\\\
-                           = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{LJGauss}}(r) = \frac{1}{r^{12}} - \frac{2}{r^{6}} - \epsilon
+            e^{- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}}} \\
+            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
+    See `Pair` for details on how forces are calculated and the available
+    energy shifting and smoothing modes.  Use the `params` dictionary to set
+    potential coefficients.
 
-    See `Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes.  Use the `params` dictionary
-    to set potential coefficients. The coefficients must be set per
-    unique pair of particle types.
+    .. py:attribute:: params
+        The potential parameters. The dictionary has the following keys:
 
-    Attributes:
-        params (`TypeParameter` [\
-            `tuple` [``particle_type``, ``particle_type``],\
-            `dict`]):
-            The LJGauss potential parameters. The dictionary has the following
-            keys:
-            
-            * ``epsilon`` (`float`, **required**) - energy parameter :math:`\\varepsilon` (in energy units)
-
-            * ``sigma2`` (`float`, **required**) -
-              Gaussian variance/well spread  :math:`\\sigma^2` (in squared distance units)
-
-
-            * ``r0`` (`float`, **required**) -
-              Gaussian well center :math:`\\r_0` (in distance units)
-
+        * ``epsilon`` (`float`, **required**) - energy parameter
+          :math:`\\varepsilon` (in energy units)
+        * ``sigma2`` (`float`, **required**) - Gaussian variance
+          :math:`\\sigma^2` (in squared distance units)
+        * ``r0`` (`float`, **required**) - Gaussian center
+          :math:`\\r_0` (in distance units)
 
     Example::
 
@@ -1766,9 +1758,15 @@ class LJGauss(Pair):
         ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma2' : 0.02, 'r0' : 1.6}
     """
     _cpp_class_name = "PotentialPairLJGauss"
-    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-        super().__init__(nlist, r_cut, r_on, mode);
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, sigma2=float, r0=float,
-                                                 len_keys=2))
+
+    def __init__(self,
+                 nlist,
+                 default_r_cut=None,
+                 default_r_on=0.0,
+                 mode='none'):
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float, sigma2=float, r0=float,
+                              len_keys=2))
         self._add_typeparam(params)

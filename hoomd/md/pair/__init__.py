@@ -11,4 +11,4 @@ from . import aniso
 from .pair import (Pair, LJ, Gauss, SLJ, Yukawa, Ewald, Morse, DPD,
                    DPDConservative, DPDLJ, ForceShiftedLJ, Moliere, ZBL, Mie,
                    ReactionField, DLVO, Buckingham, LJ1208, LJ0804, Fourier,
-                   OPP, TWF)
+                   OPP, TWF, LJGauss)
