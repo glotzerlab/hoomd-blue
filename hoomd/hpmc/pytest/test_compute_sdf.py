@@ -7,10 +7,19 @@ import hoomd.hpmc.pytest.conftest
 
 
 def test_before_attaching():
-    sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
+    xmax = 0.02
+    dx = 1e-4
+    sdf = hoomd.hpmc.compute.SDF(xmax=xmax, dx=dx)
+    assert np.isclose(sdf.xmax, xmax)
+    assert np.isclose(sdf.dx, dx)
 
-    assert sdf.xmax == 0.02
-    assert sdf.dx == 1e-4
+    xmax = 0.04
+    dx = 2e-4
+    sdf.xmax = xmax
+    sdf.dx = dx
+    assert np.isclose(sdf.xmax, xmax)
+    assert np.isclose(sdf.dx, dx)
+
     with pytest.raises(hoomd.error.DataAccessError):
         sdf.sdf
     with pytest.raises(hoomd.error.DataAccessError):
@@ -37,14 +46,23 @@ def test_after_attaching(valid_args, simulation_factory,
     mc.shape["A"] = args
     sim.operations.add(mc)
 
-    sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
+    xmax = 0.02
+    dx = 1e-4
+    sdf = hoomd.hpmc.compute.SDF(xmax=xmax, dx=dx)
 
     sim.operations.add(sdf)
     assert len(sim.operations.computes) == 1
     sim.run(0)
 
-    assert sdf.xmax == 0.02
-    assert sdf.dx == 1e-4
+    assert np.isclose(sdf.xmax, xmax)
+    assert np.isclose(sdf.dx, dx)
+
+    xmax = 0.04
+    dx = 2e-4
+    sdf.xmax = xmax
+    sdf.dx = dx
+    assert np.isclose(sdf.xmax, xmax)
+    assert np.isclose(sdf.dx, dx)
 
     sim.run(10)
     assert isinstance(sdf.sdf, np.ndarray)
