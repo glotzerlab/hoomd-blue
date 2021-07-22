@@ -52,9 +52,9 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
             );
         particle_data.pos[i] = global_box.makeCoordinates(wrapped);
         auto const img = make_int3(
-            std::floor(frac.x),
-            std::floor(frac.y),
-            std::floor(frac.z)
+            static_cast<int>(std::floor(frac.x)),
+            static_cast<int>(std::floor(frac.y)),
+            static_cast<int>(std::floor(frac.z))
             );
         particle_data.image[i] = img;
         }
