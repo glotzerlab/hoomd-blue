@@ -1169,6 +1169,82 @@ class Mie(Pair):
         self._add_typeparam(params)
 
 
+class ExpandedMie(Pair):
+    """Expanded Mie pair potential.
+
+    Args:
+        nlist (`hoomd.md.nlist.NList`): Neighbor list.
+        default_r_cut (float): Default cutoff radius (in distance units).
+        default_r_on (float): Default turn-on radius (in distance units).
+        mode (str): Energy shifting/smoothing mode.
+
+    `ExpandedMie` specifies that a radially shifted Mie pair potential should be
+    applied between every non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        V_{\\mathrm{mie}}(r)
+          = & \\left( \\frac{n}{n-m} \\right) {\\left( \\frac{n}{m}
+          \\right)}^{\\frac{m}{n-m}} \\varepsilon \\left[ \\left(
+          \\frac{\\sigma}{r-\\Delta} \\right)^{n} - \\left( \\frac
+          {\\sigma}{r-\\Delta}
+          \\right)^{m} \\right] & r < r_{\\mathrm{cut}} \\\\
+          = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
+        \\end{eqnarray*}
+
+    See `Pair` for details on how forces are calculated and the available energy
+    shifting and smoothing modes.
+
+    .. py:attribute:: params
+
+        The Expanded Mie potential parameters.
+        The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          :math:`\\epsilon` :math:`[\\mathrm{energy}]`.
+        * ``sigma`` (`float`, **required**) -
+          :math:`\\sigma` :math:`[\\mathrm{length}]`.
+        * ``n`` (`float`, **required**) -
+          :math:`n` :math:`[\\mathrm{dimensionless}]`.
+        * ``m`` (`float`, **required**) -
+          :math:`m` :math:`[\\mathrm{dimensionless}]`.
+        * ``delta`` (`float`, **required**) -
+          :math:`\\Delta` :math:`[\\mathrm{length}]`.
+
+        Type: `TypeParameter` [ `tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    Example::
+
+        nl = nlist.Cell()
+        expanded_mie = pair.ExpandedMie(nlist=nl, default_r_cut=3.0)
+        mie.params[('A', 'B')] = {
+            "epsilon": 1.0, "sigma": 1.0, "n": 12, "m": 6,
+            "delta": 0.5}
+        expanded_mie.r_cut[('A', 'B')] = 2**(1.0 / 6.0)
+        expanded_mie.params[(['A', 'B'], ['C', 'D'])] = {
+            "epsilon": 1.5, "sigma": 2.0, "n": 12, "m": 6,
+            "delta": 0.5}
+    """
+    _cpp_class_name = "PotentialPairExpandedMie"
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
+
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float,
+                              sigma=float,
+                              n=float,
+                              m=float,
+                              delta=float,
+                              len_keys=2))
+
+        self._add_typeparam(params)
+
+
 class ReactionField(Pair):
     r"""Onsager reaction field pair potential.
 
