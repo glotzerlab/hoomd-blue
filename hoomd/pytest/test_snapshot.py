@@ -176,7 +176,7 @@ def test_wrap(s):
         box = [10, 12, 7, 0.1, 0.4, 0.2]
         inside = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
                   [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [0, 0, -3.5],
-                  [-7, -6.7, -3.5]]
+                  [-6.5, -6.5, -3.5]]
         outs, ins, mults = generate_outside(box, inside, multiples)
         s.configuration.box = box
         s.particles.N = len(ins)
