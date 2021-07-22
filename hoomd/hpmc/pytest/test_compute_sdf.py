@@ -65,10 +65,15 @@ def test_after_attaching(valid_args, simulation_factory,
     assert np.isclose(sdf.dx, dx)
 
     sim.run(10)
-    assert isinstance(sdf.sdf, np.ndarray)
-    assert len(sdf.sdf) > 0
-    assert isinstance(sdf.betaP, float)
-    assert not np.isclose(sdf.betaP, 0)
+    if not np.isnan(sdf.sdf).all():
+        assert sim.state.snapshot.communicator.rank == 0
+        assert isinstance(sdf.sdf, np.ndarray)
+        assert len(sdf.sdf) > 0
+        assert isinstance(sdf.betaP, float)
+        assert not np.isclose(sdf.betaP, 0)
+    else:
+        assert sim.state.snapshot.communicator.rank > 0
+        assert sdf.betaP is None
 
 
 _avg = np.array([
