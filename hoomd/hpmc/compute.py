@@ -194,16 +194,19 @@ class SDF(Compute):
         where :math:`d` is the dimensionality of the system, :math:`\\rho` is
         the number density, and :math:`\\beta = \\frac{1}{kT}`.
         """
-        # get the values to fit
-        n_fit = int(numpy.ceil(self.xmax / self.dx))
-        sdf_fit = self.sdf[0:n_fit]
-        # construct the x coordinates
-        x_fit = numpy.arange(0, self.xmax, self.dx)
-        x_fit += self.dx / 2
-        # perform the fit and extrapolation
-        p = numpy.polyfit(x_fit, sdf_fit, 5)
+        if not numpy.isnan(self.sdf).all():
+            # get the values to fit
+            n_fit = int(numpy.ceil(self.xmax / self.dx))
+            sdf_fit = self.sdf[0:n_fit]
+            # construct the x coordinates
+            x_fit = numpy.arange(0, self.xmax, self.dx)
+            x_fit += self.dx / 2
+            # perform the fit and extrapolation
+            p = numpy.polyfit(x_fit, sdf_fit, 5)
 
-        box = self._simulation.state.box
-        N = self._simulation.state.N_particles
-        rho = N / box.volume
-        return rho * (1 + numpy.polyval(p, 0.0) / (2 * box.dimensions))
+            box = self._simulation.state.box
+            N = self._simulation.state.N_particles
+            rho = N / box.volume
+            return rho * (1 + numpy.polyval(p, 0.0) / (2 * box.dimensions))
+        else:
+            return None
