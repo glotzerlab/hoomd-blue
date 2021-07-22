@@ -44,20 +44,6 @@ class EvaluatorPairLJGauss
         Scalar epsilon;
         Scalar sigma2;
         Scalar r0;
-        Scalar operator[](int i) const
-            {
-            switch (i)
-                {
-            case 0:
-                return epsilon;
-            case 1:
-                return sigma2;
-            case 2:
-                return r0;
-            default:
-                return 0;
-                }
-            };
 
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
@@ -226,8 +212,5 @@ class EvaluatorPairLJGauss
     Scalar sigma2;  //!< sigma^2 parameter extracted from the params passed to the constructor
     Scalar r0;      //!< r0 prarameter extracted from the params passed to the constructor
     };
-
-    // const std::map<unsigned int, std::string> EvaluatorPairLJGauss::param_order
-    //     = {{0, "epsilon"}, {1, "sigma2"}, {2, "r0"}};
 
 #endif // __PAIR_EVALUATOR_LJGAUSS_H__
