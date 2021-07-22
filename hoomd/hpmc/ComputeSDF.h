@@ -12,6 +12,10 @@
 #include "IntegratorHPMCMono.h"
 #include "hoomd/RNGIdentifiers.h"
 
+#ifdef ENABLE_MPI
+#include "hoomd/HOOMDMPI.h"
+#endif
+
 /*! \file ComputeSDF.h
     \brief Defines the template class for an sdf compute
     \note This header cannot be compiled by nvcc
@@ -257,11 +261,7 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
 // \return the sdf histogram
 template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDF()
     {
-#ifdef ENABLE_MPI
-    if (!m_exec_conf->isRoot())
-        return pybind11::none();
-#endif
-
+    bcast(*m_sdf.data(), 0, m_exec_conf->getMPICommunicator());
     return pybind11::array_t<double>(m_sdf.size(), m_sdf.data());
     }
 
