@@ -6,7 +6,7 @@
 
 template<class evaluator> class Normalized : public evaluator
     {
-    Normalized(typename evaluator::param_type param):evaluator(param) {}
+    Normalized(typename evaluator::param_type param) : evaluator(param) { }
     Scalar m_normValue = 1.;
 
     void setNormalizationValue(Scalar value)

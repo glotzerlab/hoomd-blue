@@ -232,12 +232,12 @@ class PotentialPair : public ForceCompute
         };
 
     virtual inline void pkgPerNeighbor(const unsigned int& i,
-                                          const unsigned int& j,
-                                          const unsigned int& typei,
-                                          const unsigned int& typej,
-                                          const bool& in_rcut,
-                                          evaluator& eval,
-                                          extra_pkg&) {};
+                                       const unsigned int& j,
+                                       const unsigned int& typei,
+                                       const unsigned int& typej,
+                                       const bool& in_rcut,
+                                       evaluator& eval,
+                                       extra_pkg&) {};
 
     virtual inline void pkgFinalize(extra_pkg&) {};
 
