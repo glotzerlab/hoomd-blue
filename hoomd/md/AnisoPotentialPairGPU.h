@@ -180,10 +180,6 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
 
     // access parameters
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
-    ArrayHandle<typename evaluator::shape_type> d_shape_params(this->m_shape_params,
-                                                               access_location::device,
-                                                               access_mode::read);
-
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_torque(this->m_torque, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
@@ -228,7 +224,7 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
                            this->m_exec_conf->dev_prop,
                            first),
              this->m_params.data(),
-             d_shape_params.data);
+             this->m_shape_params.data());
 
     if (!m_param)
         this->m_tuner->end();
@@ -264,10 +260,7 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::setShape(
     const typename evaluator::shape_type& shape_param)
     {
     AnisoPotentialPair<evaluator>::setShape(typ, shape_param);
-    ArrayHandle<typename evaluator::shape_type> h_shapes(this->m_shape_params,
-                                                         access_location::host,
-                                                         access_mode::readwrite);
-    h_shapes.data[typ].set_memory_hint();
+    this->m_shape_params[typ].set_memory_hint();
     }
 
 //! Export this pair potential to python
