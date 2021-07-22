@@ -261,10 +261,10 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
 // \return the sdf histogram
 template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDF()
     {
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (!m_exec_conf->isRoot())
         return pybind11::none();
-    #endif
+#endif
 
     return pybind11::array_t<double>(m_sdf.size(), m_sdf.data());
     }
