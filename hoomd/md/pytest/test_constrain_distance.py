@@ -48,7 +48,7 @@ def polymer_snapshot_factory(device):
             for x in x_coords:
                 for i, y in enumerate(y_coords):
                     position.append([x, y, 0])
-                    if i > 0:
+                    if i & 1:
                         constraint_values.append(bead_spacing)
                         tag = len(position) - 1
                         constraint_groups.append([tag, tag - 1])
