@@ -164,9 +164,10 @@ def test_values(simulation_factory, lattice_snapshot_factory):
     sim.run(6000)
 
     sdf_data = np.asarray(sdf_log.data)
-    # skip the first frame in averaging, then check that all values are
-    # within 3 error bars of the reference avg. This seems sufficient to get
-    # good test results even with different seeds or GPU runs
-    v = np.mean(sdf_data[1:, :], axis=0)
-    invalid = np.abs(_avg - v) > (8 * _err)
-    assert np.sum(invalid) == 0
+    if sim.state.snapshot.communicator.rank == 0:
+        # skip the first frame in averaging, then check that all values are
+        # within 3 error bars of the reference avg. This seems sufficient to get
+        # good test results even with different seeds or GPU runs
+        v = np.mean(sdf_data[1:, :], axis=0)
+        invalid = np.abs(_avg - v) > (8 * _err)
+        assert np.sum(invalid) == 0
