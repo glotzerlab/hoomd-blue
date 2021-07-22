@@ -1176,8 +1176,8 @@ class ExpandedMie(Pair):
         V_{\\mathrm{mie}}(r)
           = & \\left( \\frac{n}{n-m} \\right) {\\left( \\frac{n}{m}
           \\right)}^{\\frac{m}{n-m}} \\varepsilon \\left[ \\left(
-          \\frac{\\sigma}{r-\Delta} \\right)^{n} - \\left( \\frac
-          {\\sigma}{r-\Delta}
+          \\frac{\\sigma}{r-\\Delta} \\right)^{n} - \\left( \\frac
+          {\\sigma}{r-\\Delta}
           \\right)^{m} \\right] & r < r_{\\mathrm{cut}} \\\\
           = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
@@ -1191,15 +1191,15 @@ class ExpandedMie(Pair):
         The dictionary has the following keys:
 
         * ``epsilon`` (`float`, **required**) -
-          :math:`\epsilon` :math:`[\\mathrm{energy}]`.
+          :math:`\\epsilon` :math:`[\\mathrm{energy}]`.
         * ``sigma`` (`float`, **required**) -
-          :math:`\sigma` :math:`[\\mathrm{length}]`.
+          :math:`\\sigma` :math:`[\\mathrm{length}]`.
         * ``n`` (`float`, **required**) -
           :math:`n` :math:`[\\mathrm{dimensionless}]`.
         * ``m`` (`float`, **required**) -
           :math:`m` :math:`[\\mathrm{dimensionless}]`.
         * ``delta`` (`float`, **required**) -
-          :math:`\Delta` :math:`[\\mathrm{length}]`.
+          :math:`\\Delta` :math:`[\\mathrm{length}]`.
 
         Type: `TypeParameter` [ `tuple` [``particle_type``, ``particle_type``],
         `dict`]
