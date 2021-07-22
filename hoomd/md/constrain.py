@@ -208,7 +208,8 @@ class Rigid(Constraint):
         that the type is not a rigid body center. All types are set to ``None``
         by default. The keys for the body definition are
 
-        - ``types`` (list[str]): List of types of constituent particles
+        - ``constituent_types`` (list[str]): List of types of constituent
+          particles
         - ``positions`` (list[tuple[float, float, float]]): List of relative
           positions of constituent particles
         - ``orientations`` (list[tuple[float, float, float, float]]): List of
@@ -226,14 +227,14 @@ class Rigid(Constraint):
 
         rigid = constrain.Rigid()
         rigid.body['A'] = {
-            "types": ['A_const', 'A_const'],
+            "constituent_types": ['A_const', 'A_const'],
             "positions": [(0,0,1),(0,0,-1)],
             "orientations": [(1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0)],
             "charges": [0.0, 0.0],
             "diameters": [1.0, 1.0]
             }
         rigid.body['B'] = {
-            "types": ['B_const', 'B_const'],
+            "constituent_types": ['B_const', 'B_const'],
             "positions": [(0,0,.5),(0,0,-.5)],
             "orientations": [(1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0)],
             "charges": [0.0, 1.0],
@@ -244,7 +245,7 @@ class Rigid(Constraint):
         rigid.body["A"] = None
 
     Warning:
-        `Rigid` will significantly signifcantly slow down a simulation when
+        `Rigid` will signifcantly slow down a simulation when
         frequently changing rigid body definitions or adding/removing particles
         from the simulation.
     """

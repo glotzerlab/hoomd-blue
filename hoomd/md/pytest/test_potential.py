@@ -249,6 +249,19 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(slj_invalid_dicts, md.pair.SLJ, {}))
 
+    expanded_mie_valid_dict = {
+        "epsilon": 0.05,
+        "sigma": 0.5,
+        "n": 12,
+        "m": 6,
+        "delta": 0.25
+    }
+    expanded_mie_invalid_dicts = _make_invalid_param_dict(
+        expanded_mie_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(expanded_mie_invalid_dicts, md.pair.ExpandedMie,
+                             {}))
+
     dpd_valid_dict = {"A": 0.5, "gamma": 0.0005}
     dpd_invalid_dicts = _make_invalid_param_dict(dpd_valid_dict)
     invalid_params_list.extend(
@@ -561,6 +574,20 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(
         paramtuple(hoomd.md.pair.OPP, dict(zip(combos, opp_valid_param_dicts)),
                    {}))
+
+    expanded_mie_arg_dict = {
+        'epsilon': [.05, .025, .010],
+        'sigma': [.5, 1, 1.5],
+        'n': [12, 14, 16],
+        'm': [6, 8, 10],
+        'delta': [.1, .2, .3]
+    }
+    expanded_mie_valid_param_dicts = _make_valid_param_dicts(
+        expanded_mie_arg_dict)
+    valid_params_list.append(
+        paramtuple(hoomd.md.pair.ExpandedMie,
+                   dict(zip(combos, expanded_mie_valid_param_dicts)), {}))
+
     twf_arg_dict = {
         'sigma': [0.1, 0.2, 0.5],
         'epsilon': [0.1, 0.5, 2.0],
