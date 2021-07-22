@@ -211,9 +211,11 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut
     Index2D m_typpair_idx;        //!< Helper class for indexing per type pair arrays
     GlobalArray<Scalar> m_rcutsq; //!< Cutoff radius squared per type pair
-    std::vector<param_type, managed_allocator<param_type>> m_params; //!< Pair parameters per type pair
-    std::vector<shape_type, managed_allocator<shape_type>> m_shape_params; //!< Pair shapeeters per type pair
-    std::string m_prof_name;                //!< Cached profiler name
+    std::vector<param_type, managed_allocator<param_type>>
+        m_params; //!< Pair parameters per type pair
+    std::vector<shape_type, managed_allocator<shape_type>>
+        m_shape_params;      //!< Pair shapeeters per type pair
+    std::string m_prof_name; //!< Cached profiler name
 
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
