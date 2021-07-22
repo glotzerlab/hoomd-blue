@@ -50,8 +50,8 @@ class Distance(Constraint):
     Args:
         tolerance (float): Relative tolerance for constraint violation warnings.
 
-    `Distance` applies constraint forces between particles to satisfy
-    user-specified distance constraints. The algorithm implemented is described
+    `Distance` applies forces between particles to constrain the distances
+    between particles to specific values. The algorithm implemented is described
     in:
 
     1. M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative
