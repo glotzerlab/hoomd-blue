@@ -290,7 +290,6 @@ _valid_args = [
     }, 2),
     (SimplePolygon, {
         "vertices": [(-0.5, 0.5), (0.5, -0.5), (0.5, 0.5)],
-        "sweep_radius": 0.2
     }, 2),
     (Sphere, {
         "diameter": 1
