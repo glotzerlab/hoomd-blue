@@ -20,8 +20,8 @@ class BoxMC(Updater):
 
     Args:
         betaP (`float` or :py:mod:`hoomd.variant.Variant`):
-            :math:`\frac{p}{k_{\mathrm{B}}T}` (units of inverse area in 2D or
-            inverse volume in 3D).
+            :math:`\frac{p}{k_{\mathrm{B}}T}` :math:`[\mathrm{length}^{-2}]`
+            in 2D or :math:`[\mathrm{length}^{-3}]` in 3D.
         trigger (hoomd.trigger.Trigger): Select the timesteps to perform box
             trial moves.
 
@@ -63,7 +63,7 @@ class BoxMC(Updater):
             * ``weight`` (float) - Maximum change of HOOMD-blue box parameters
               Lx, Ly, and Lz.
             * ``delta`` (tuple[float, float, float]) - Maximum change of the
-              box lengths ``(Lx, Ly, Lz)``.
+              box lengths ``(Lx, Ly, Lz)`` :math:`[\mathrm{length}]`.
 
         shear (dict):
             Parameters for isovolume box shear moves. The dictionary has the
@@ -413,69 +413,45 @@ class MuVT(Updater):
                                 integrator._cpp_obj, self.ngibbs)
         super()._attach()
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def insert_moves(self):
         """tuple[int, int]: Count of the accepted and rejected paricle \
         insertion moves.
 
         None when not attached
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
+        counter = self._cpp_obj.getCounters(1)
+        return counter.insert
 
-        if counter is None:
-            return None
-        else:
-            return counter.insert
-
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def remove_moves(self):
         """tuple[int, int]: Count of the accepted and rejected paricle removal \
         moves.
 
         None when not attached
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
+        counter = self._cpp_obj.getCounters(1)
+        return counter.remove
 
-        if counter is None:
-            return None
-        else:
-            return counter.remove
-
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def exchange_moves(self):
         """tuple[int, int]: Count of the accepted and rejected paricle \
         exchange moves.
 
         None when not attached
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
+        counter = self._cpp_obj.getCounters(1)
+        return counter.exchange
 
-        if counter is None:
-            return None
-        else:
-            return counter.exchange
-
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def volume_moves(self):
         """tuple[int, int]: Count of the accepted and rejected paricle volume \
         moves.
 
         None when not attached
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
-
-        if counter is None:
-            return None
-        else:
-            return counter.volume
+        counter = self._cpp_obj.getCounters(1)
+        return counter.volume
 
     @log(category='object')
     def N(self):  # noqa: N802 - allow N as a function name
@@ -649,20 +625,14 @@ class Clusters(Updater):
                                     integrator._cpp_obj)
         super()._attach()
 
-    @log
+    @log(requires_run=True)
     def avg_cluster_size(self):
         """float: the typical size of clusters.
 
         None when not attached.
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
-
-        if counter is None:
-            return None
-        else:
-            return counter.average_cluster_size
+        counter = self._cpp_obj.getCounters(1)
+        return counter.average_cluster_size
 
 
 class QuickCompress(Updater):

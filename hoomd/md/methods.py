@@ -9,9 +9,9 @@ import hoomd
 from hoomd.md.manifold import Manifold
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.filter import ParticleFilter
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
+from hoomd.filter import ParticleFilter
 from hoomd.variant import Variant
 from collections.abc import Sequence
 
@@ -95,14 +95,14 @@ class NVT(Method):
     r"""NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
-            apply this method.
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which
+            to apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point
-            for the Nosé-Hoover thermostat. (in energy units).
+            for the Nosé-Hoover thermostat :math:`[\mathrm{energy}]`.
 
-        tau (`float`): Coupling constant for the Nosé-Hoover thermostat.
-            (in time units).
+        tau (`float`): Coupling constant for the Nosé-Hoover thermostat
+            :math:`[\mathrm{time}]`.
 
     `NVT` performs constant volume, constant temperature simulations
     using the Nosé-Hoover thermostat, using the MTK equations described in Refs.
@@ -147,10 +147,10 @@ class NVT(Method):
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point
-            for the Nosé-Hoover thermostat. (in energy units).
+            for the Nosé-Hoover thermostat :math:`[\mathrm{energy}]`.
 
-        tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time
-            units).
+        tau (float): Coupling constant for the Nosé-Hoover thermostat
+            :math:`[\mathrm{time}]`.
 
         translational_thermostat_dof (tuple[float, float]): Additional degrees
             of freedom for the translational thermostat (:math:`\xi`,
@@ -214,13 +214,11 @@ class NVT(Method):
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatDOF(self._simulation.timestep)
 
-    @hoomd.logging.log
+    @hoomd.logging.log(requires_run=True)
     def thermostat_energy(self):
-        """Energy the thermostat contributes to the Hamiltonian [energy]."""
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
+        """Energy the thermostat contributes to the Hamiltonian \
+        :math:`[\\mathrm{energy}]`."""
+        return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
 
 
 class NPT(Method):
@@ -231,18 +229,21 @@ class NPT(Method):
             apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point for the
-            thermostat. (in energy units).
+            thermostat :math:`[\mathrm{energy}]`.
 
-        tau (`float`): Coupling constant for the thermostat (in time units).
+        tau (`float`): Coupling constant for the thermostat
+            :math:`[\mathrm{time}]`.
 
-        S: Stress components set point for the barostat (in pressure units).
+        S: Stress components set point for the barostat.
            In Voigt notation:
-           :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case of
-           isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+           :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
+           :math:`[\mathrm{pressure}]`. In case of isotropic
+           pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
            Accepts: `tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
            `hoomd.variant.Variant` or `float`.
 
-        tauS (`float`): Coupling constant for the barostat (in time units).
+        tauS (`float`): Coupling constant for the barostat
+           :math:`[\mathrm{time}]`.
 
         couple (`str`): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all", default to "all".
@@ -253,14 +254,14 @@ class NPT(Method):
             rescale corresponding lengths or tilt factors and components of
             particle coordinates and velocities.
 
-        rescale_all (`bool`): if True, rescale all particles, not only those in
-            the group, Default to False.
+        rescale_all (`bool`): if True, rescale all particles, not only those
+            in the group, Default to False.
 
         gamma (`float`): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    `NPT` performs constant pressure, constant temperature simulations, allowing
-    for a fully deformable simulation box.
+    `NPT` performs constant pressure, constant temperature simulations,
+    allowing for a fully deformable simulation box.
 
     The integration method is based on the rigorous Martyna-Tobias-Klein
     equations of motion for NPT. For optimal stability, the update equations
@@ -370,18 +371,21 @@ class NPT(Method):
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point for the
-            thermostat. (in energy units).
+            thermostat :math:`[\mathrm{energy}]`.
 
-        tau (float): Coupling constant for the thermostat (in time units).
+        tau (float): Coupling constant for the thermostat
+            :math:`[\mathrm{time}]`.
 
         S (List[hoomd.variant.Variant]): Stress components set
-            point for the barostat (in pressure units).
+            point for the barostat.
             In Voigt notation,
-            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can
-            be reset after method object is created. For example, An isoropic
-            pressure can be set by ``npt.S = 4.``
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
+            :math:`[\mathrm{pressure}]`. Stress can be reset after the method
+            object is created. For example, an isoropic pressure can be set by
+            ``npt.S = 4.``
 
-        tauS (float): Coupling constant for the barostat (in time units).
+        tauS (float): Coupling constant for the barostat
+            :math:`[\mathrm{time}]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all".
@@ -507,21 +511,17 @@ class NPT(Method):
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             self._simulation.timestep)
 
-    @hoomd.logging.log
+    @hoomd.logging.log(requires_run=True)
     def thermostat_energy(self):
-        """Energy the thermostat contributes to the Hamiltonian [energy]."""
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
+        """Energy the thermostat contributes to the Hamiltonian \
+        :math:`[\\mathrm{energy}]`."""
+        return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
 
-    @hoomd.logging.log
+    @hoomd.logging.log(requires_run=True)
     def barostat_energy(self):
-        """Energy the barostat contributes to the Hamiltonian [energy]."""
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
+        """Energy the barostat contributes to the Hamiltonian \
+        :math:`[\\mathrm{energy}]`."""
+        return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
 
 
 class NPH(Method):
@@ -531,14 +531,16 @@ class NPH(Method):
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
-        S: Stress components set point for the barostat (in pressure units).
+        S: Stress components set point for the barostat.
            In Voigt notation:
-           :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case of
-           isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+           :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
+           :math:`[\mathrm{pressure}]`. In case of isotropic pressure P
+           (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
            Accepts: `tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
            `hoomd.variant.Variant` or `float`.
 
-        tauS (float): Coupling constant for the barostat (in time units).
+        tauS (float): Coupling constant for the barostat
+           :math:`[\mathrm{time}]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all", default to "all".
@@ -584,13 +586,15 @@ class NPH(Method):
             apply this method.
 
         S (`tuple` [`hoomd.variant.Variant`, ...]): Stress components set
-            point for the barostat (in pressure units) (totalling 6 components.
+            point for the barostat totalling 6 components.
             In Voigt notation,
-            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can
-            be reset after method object is created. For example, An isoropic
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
+            :math:`[\mathrm{pressure}]`. Stress can be reset after
+            method object is created. For example, an isoropic
             pressure can be set by ``nph.S = 4.``
 
-        tauS (float): Coupling constant for the barostat (in time units).
+        tauS (float): Coupling constant for the barostat
+            :math:`[\mathrm{time}]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all".
@@ -701,13 +705,11 @@ class NPH(Method):
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             self._simulation.timestep)
 
-    @hoomd.logging.log
+    @hoomd.logging.log(requires_run=True)
     def barostat_energy(self):
-        """Energy the barostat contributes to the Hamiltonian [energy]."""
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
+        """Energy the barostat contributes to the Hamiltonian \
+        :math:`[\\mathrm{energy}]`."""
+        return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
 
 
 class NVE(MethodRATTLE):
@@ -831,24 +833,27 @@ class Langevin(MethodRATTLE):
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
-            simulation (in energy units).
+            simulation :math:`[\mathrm{energy}]`.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the drag
-            coefficient where :math:`d_i` is particle diameter.
+            coefficient where :math:`d_i` is particle diameter
+            :math:`[\mathrm{mass} \cdot
+            \mathrm{length}^{-1} \cdot \mathrm{time}^{-1}]`.
             Defaults to None.
 
         tally_reservoir_energy (`bool`): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
             energy conservation can then be monitored by adding
             ``langevin_reservoir_energy_groupname`` to the logged quantities.
-            Defaults to False.
+            Defaults to False :math:`[\mathrm{energy}]`.
 
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.
 
         tolerance (`float`): Defines the tolerated error particles are allowed
             to deviate from the manifold in terms of the implicit function.
-            This is only used if RATTLE algorithm is triggered. Defaults to 1e-6
+            This is only used if RATTLE algorithm is triggered.
+            Defaults to 1e-6
 
     .. rubric:: Translational degrees of freedom
 
@@ -927,29 +932,32 @@ class Langevin(MethodRATTLE):
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
-            simulation (in energy units).
+            simulation :math:`[\mathrm{energy}]`.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag
-            coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
+            coefficient where :math:`d_i` is particle diameter
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
+            \cdot \mathrm{time}^{-1}]`. Defaults to None.
 
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
             which is used by and as a trigger for the RATTLE algorithm of this
             method. Defaults to None.
 
-        tolerance (float): Defines the tolerated error particles are allowed to
-            deviate from the manifold in terms of the implicit function.
+        tolerance (float): Defines the tolerated error particles are allowed
+            to deviate from the manifold in terms of the implicit function.
             Defaults to 1e-6.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
             diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero.
+            parameter is either positive float or zero
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero.
+            tuple is either positive float or zero
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
     """
 
@@ -1035,18 +1043,20 @@ class Brownian(MethodRATTLE):
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
-            simulation (in energy units).
+            simulation :math:`[\mathrm{energy}]`.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the
             drag coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
+            Defaults to None
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
+            \cdot \mathrm{time}^{-1}]`.
 
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.
 
         tolerance (`float`): Defines the toleraated error particles are allowed
-            to deviate from the manifold in terms of the implicit function. This
-            is only used if RATTLE algorithm is triggered. Defaults to 1e-6
+            to deviate from the manifold in terms of the implicit function.
+            This is only used if RATTLE algorithm is triggered. Defaults to 1e-6
 
     `Brownian` integrates particles forward in time according to the overdamped
     Langevin equations of motion, sometimes called Brownian dynamics, or the
@@ -1068,16 +1078,16 @@ class Brownian(MethodRATTLE):
 
     where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
     potentials and constraint forces, :math:`\gamma` is the drag coefficient,
-    :math:`\vec{F}_\mathrm{R}` is a uniform random force, :math:`\vec{v}` is the
-    particle's velocity, and :math:`d` is the dimensionality of the system.
+    :math:`\vec{F}_\mathrm{R}` is a uniform random force, :math:`\vec{v}` is
+    the particle's velocity, and :math:`d` is the dimensionality of the system.
     The magnitude of the random force is chosen via the fluctuation-dissipation
     theorem to be consistent with the specified drag and temperature, :math:`T`.
     When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`. If a
     manifold constraint is set, the RATTLE algorithm is used additionally.
 
     `Brownian` uses the integrator from I. Snook, The Langevin and Generalised
-    Langevin Approach to the Dynamics of Atomic, Polymeric and Colloidal Systems
-    , 2007, section 6.2.5 `link`_, with the exception that
+    Langevin Approach to the Dynamics of Atomic, Polymeric and Colloidal
+    Systems, 2007, section 6.2.5 `link`_, with the exception that
     :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
     distribution.
 
@@ -1131,11 +1141,12 @@ class Brownian(MethodRATTLE):
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
-            simulation (in energy units).
+            simulation :math:`[\mathrm{energy}]`.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag
-            coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
+            coefficient where :math:`d_i` is particle diameter
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
+            \cdot \mathrm{time}^{-1}]`. Defaults to None.
 
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
             which is used by and as a trigger for the RATTLE algorithm of this
@@ -1148,12 +1159,15 @@ class Brownian(MethodRATTLE):
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
             diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero.
+            parameter is either positive float or zero
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
         gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`]]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero.
+            tuple is either positive float or zero
+            :math:`[\mathrm{force} \cdot \mathrm{length} \cdot
+            \mathrm{radian}^{-1} \cdot \mathrm{time}^{-1}]`.
     """
 
     def __init__(self,
@@ -1237,9 +1251,9 @@ class Berendsen(Method):
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
-            simulation (in energy units).
+            simulation. :math:`[energy]`
 
-        tau (`float`): Time constant of thermostat. (in time units)
+        tau (`float`): Time constant of thermostat. :math:`[time]`
 
     :py:class:`Berendsen` rescales the velocities of all particles on each time
     step. The rescaling is performed so that the difference in the current
@@ -1269,9 +1283,9 @@ class Berendsen(Method):
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
-            simulation (in energy units).
+            simulation. :math:`[energy]`
 
-        tau (float): Time constant of thermostat. (in time units)
+        tau (float): Time constant of thermostat. :math:`[time]`
     """
 
     def __init__(self, filter, kT, tau):

@@ -27,13 +27,6 @@
 #define DEVICE
 #endif
 
-// SCALARASINT resolves to __scalar_as_int on the device and to __scalar_as_int on the host
-#ifdef __HIPCC__
-#define SCALARASINT(x) __scalar_as_int(x)
-#else
-#define SCALARASINT(x) __scalar_as_int(x)
-#endif
-
 //! Class for evaluating sphere constraints
 /*! <b>General Overview</b>
     EvaluatorExternalPeriodic is an evaluator to induce a periodic modulation on the concentration
@@ -54,7 +47,38 @@ class EvaluatorExternalPeriodic
     {
     public:
     //! type of parameters this external potential accepts
-    typedef Scalar4 param_type;
+    struct param_type
+        {
+        Scalar A;
+        Scalar w;
+        int i;
+        int p;
+
+#ifndef __HIPCC__
+        param_type() : A(1.0), w(1.0), i(0), p(1) { }
+
+        param_type(pybind11::dict params)
+            {
+            i = params["i"].cast<int>();
+            A = params["A"].cast<Scalar>();
+            w = params["w"].cast<Scalar>();
+            p = params["p"].cast<int>();
+            }
+
+        param_type(int i_, Scalar A_, Scalar w_, int p_) : A(A_), w(w_), i(i_), p(p_) { }
+
+        pybind11::dict toPython()
+            {
+            pybind11::dict d;
+            d["i"] = i;
+            d["A"] = A;
+            d["w"] = w;
+            d["p"] = p;
+            return d;
+            }
+#endif
+        } __attribute__((aligned(16)));
+
     typedef Scalar field_type; // dummy type
 
     //! Constructs the constraint evaluator
@@ -66,12 +90,9 @@ class EvaluatorExternalPeriodic
                                      const BoxDim& box,
                                      const param_type& params,
                                      const field_type& field)
-        : m_pos(X), m_box(box)
+        : m_pos(X), m_box(box), m_index(params.i), m_orderParameter(params.A),
+          m_interfaceWidth(params.w), m_periodicity(params.p)
         {
-        m_index = SCALARASINT(params.x);
-        m_orderParameter = params.y;
-        m_interfaceWidth = params.z;
-        m_periodicity = SCALARASINT(params.w);
         }
 
     //! External Periodic doesn't need diameters

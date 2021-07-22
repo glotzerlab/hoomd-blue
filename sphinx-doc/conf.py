@@ -11,6 +11,8 @@ sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('..'))
 
+os.environ['SPHINX'] = '1'
+
 # TEMPORARY
 # TODO: remove this when 3.0 is closer to completion
 # stop warning about invalid references
@@ -33,6 +35,7 @@ autodoc_docstring_signature = True
 
 autodoc_mock_imports = [
     'hoomd._hoomd',
+    'hoomd.version_config',
     'hoomd.md._md',
     'hoomd.metal._metal',
     'hoomd.mpcd._mpcd',
@@ -53,8 +56,8 @@ project = 'HOOMD-blue'
 copyright = '2009-2021 The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.0.0-beta.6'
-release = '3.0.0-beta.6'
+version = '3.0.0-beta.7'
+release = '3.0.0-beta.7'
 
 language = None
 

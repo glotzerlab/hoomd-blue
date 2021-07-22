@@ -8,7 +8,23 @@
 simulations using HOOMD.
 """
 import sys
+import pathlib
 import os
+
+if ((pathlib.Path(__file__).parent / 'CMakeLists.txt').exists()
+        and 'SPHINX' not in os.environ):
+    print("It appears that hoomd is being imported from the source directory:")
+    print(pathlib.Path(__file__).parent)
+    print()
+    print("""Compile the package and import from the build directory or install
+the package and import from the Python environment.
+
+To run pytest, either:
+(1) compile then execute `python3 -m pytest <build-directory>/hoomd` or
+(2) compile and install. Then, ensuring your current working directory is
+outside the hoomd source directory, execute `python3 -m pytest --pyargs hoomd`.
+""",
+          file=sys.stderr)
 
 from hoomd import version
 from hoomd import trigger
@@ -17,6 +33,7 @@ from hoomd.box import Box
 from hoomd import data
 from hoomd import filter
 from hoomd import device
+from hoomd import error
 from hoomd import update
 from hoomd import integrate
 from hoomd import communicator

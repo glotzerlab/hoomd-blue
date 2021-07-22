@@ -115,7 +115,7 @@ class Snapshot:
                 Names of the particle types.
 
             particles.position ((*N*, 3) `numpy.ndarray` of ``numpy.float32``):
-                Particle position.
+                Particle position :math:`[\\mathrm{length}]`.
 
             particles.orientation ((*N*, 4) `numpy.ndarray` of \
                 ``numpy.float32``):
@@ -125,26 +125,28 @@ class Snapshot:
                 Particle type id.
 
             particles.mass ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
-                Particle mass.
+                Particle mass :math:`[\\mathrm{mass}]`.
 
             particles.charge ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
-                Particle charge.
+                Particle charge :math:`[\\mathrm{charge}]`.
 
             particles.diameter ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
-                Particle diameter.
+                Particle diameter :math:`[\\mathrm{length}]`.
 
             particles.body ((*N*, ) `numpy.ndarray` of ``numpy.int32``):
                 Particle body.
 
             particles.moment_inertia ((*N*, 3) `numpy.ndarray` of \
                 ``numpy.float32``):
-                Particle moment of inertia.
+                Particle moment of inertia :math:`[\\mathrm{mass} \\cdot
+                \\mathrm{length}^2]`.
 
             particles.velocity ((*N*, 3) `numpy.ndarray` of ``numpy.float32``):
-                Particle velocity.
+                Particle velocity :math:`[\\mathrm{velocity}]`.
 
             particles.angmom ((*N*, 4) `numpy.ndarray` of ``numpy.float32``):
-                Particle angular momentum.
+                Particle angular momentum :math:`[\\mathrm{mass} \\cdot
+                \\mathrm{velocity} \\cdot \\mathrm{length}]`.
 
             particles.image ((*N*, 3) `numpy.ndarray` of ``numpy.int32``):
                 Particle image.
@@ -323,8 +325,13 @@ class Snapshot:
             communicator (hoomd.communicator.Communicator): The MPI communicator
                 to use for the snapshot. This prevents the snapshot from being
                 stored on every rank.
+
+        Note:
+            `from_gsd_snapshot` only accesses the `gsd_snap` argument on rank 0.
+            In MPI simulations, avoid duplicating memory and file reads by
+            reading GSD files only on rank 0 and passing `gsd_snap=None` on
+            other ranks.
         """
-        gsd_snap.validate()
         snap = cls(communicator=communicator)
 
         def set_properties(snap_section, gsd_snap_section, properties,
@@ -339,6 +346,8 @@ class Snapshot:
                     getattr(snap_section, prop)[:] = gsd_prop
 
         if communicator.rank == 0:
+
+            gsd_snap.validate()
 
             set_properties(snap.particles, gsd_snap.particles, ('N', 'types'),
                            ('angmom', 'body', 'charge', 'diameter', 'image',
@@ -356,8 +365,11 @@ class Snapshot:
 
             # Set box attribute
             if gsd_snap.configuration.box is not None:
-                snap.configuration.box = gsd_snap.configuration.box
+                box = list(gsd_snap.configuration.box)
                 if gsd_snap.configuration.dimensions == 2:
-                    assert(snap.configuration.box[2] == 0)
+                    box[2] = 0
+                snap.configuration.box = box
+
+        snap._broadcast_box()
 
         return snap
