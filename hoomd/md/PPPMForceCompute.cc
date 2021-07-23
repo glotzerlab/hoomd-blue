@@ -1835,5 +1835,11 @@ void export_PPPMForceCompute(py::module& m)
                       std::shared_ptr<ParticleGroup>>())
         .def("setParams", &PPPMForceCompute::setParams)
         .def("getQSum", &PPPMForceCompute::getQSum)
-        .def("getQ2Sum", &PPPMForceCompute::getQ2Sum);
+        .def("getQ2Sum", &PPPMForceCompute::getQ2Sum)
+        .def_property_readonly("resolution", &PPPMForceCompute::getResolution)
+        .def_property_readonly("order", &PPPMForceCompute::getOrder)
+        .def_property_readonly("kappa", &PPPMForceCompute::getKappa)
+        .def_property_readonly("r_cut", &PPPMForceCompute::getRCut)
+        .def_property_readonly("alpha", &PPPMForceCompute::getAlpha)
+        ;
     }
