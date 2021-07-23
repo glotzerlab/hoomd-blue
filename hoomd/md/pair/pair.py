@@ -10,7 +10,7 @@ from hoomd.md import force
 from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-import numpy
+import numpy as np
 from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, positive_real,
                                       nonnegative_real)
 
@@ -610,8 +610,8 @@ class Table(Pair):
             'params', 'particle_types',
             TypeParameterDict(
                 r_min=float,
-                V=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
-                F=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                V=hoomd.data.typeconverter.NDArrayValidator(np.float64),
+                F=hoomd.data.typeconverter.NDArrayValidator(np.float64),
                 len_keys=2))
         self._add_typeparam(params)
 
