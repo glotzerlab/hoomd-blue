@@ -218,8 +218,7 @@ class Coulomb(Force):
         self._pair_force.params[(particle_types,
                                  particle_types)] = dict(kappa=kappa,
                                                          alpha=alpha)
-        self._pair_force.r_cut[(particle_types,
-                                 particle_types)] = rcut
+        self._pair_force.r_cut[(particle_types, particle_types)] = rcut
 
         # set the parameters for the appropriate type
         self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha)
