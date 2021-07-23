@@ -114,8 +114,9 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     //! Set the shape parameters for a single type through Python
     virtual void setShapePython(std::string typ, const pybind11::object shape_param);
 
-    std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type>& params,
-                                                 const GlobalArray<shape_type>& shape_params) const
+    std::vector<std::string> getTypeShapeMapping(
+        const std::vector<param_type, managed_allocator<param_type>>& params,
+        const std::vector<shape_type, managed_allocator<shape_type>>& shape_params) const
         {
         std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
         Scalar4 q = make_scalar4(1, 0, 0, 0);
@@ -236,8 +237,8 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
         GlobalArray<Scalar> new_rcutsq(new_type_pair_idx.getNumElements(), m_exec_conf);
         GlobalArray<Scalar> new_r_cut_nlist(new_type_pair_idx.getNumElements(), m_exec_conf);
         GlobalArray<Scalar> new_ronsq(new_type_pair_idx.getNumElements(), m_exec_conf);
-        auto new_params = std::vector<param_type, managed_allocator<param_type>>(
-            new_type_pair_idx.getNumElements(),
+        std::vector<param_type, managed_allocator<param_type>> new_params(
+            static_cast<size_t>(new_type_pair_idx.getNumElements()),
             param_type(),
             managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
@@ -263,7 +264,7 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
                     h_new_rcutsq.data[new_type_pair_idx(i, j)] = h_rcutsq.data[m_typpair_idx(i, j)];
                     h_new_r_cut_nlist.data[new_type_pair_idx(i, j)]
                         = h_r_cut_nlist.data[m_typpair_idx(i, j)];
-                    new_params.data[new_type_pair_idx(i, j)] = m_params[m_typpair_idx(i, j)];
+                    new_params[new_type_pair_idx(i, j)] = m_params[m_typpair_idx(i, j)];
                     }
                 }
             }
@@ -360,16 +361,16 @@ AnisoPotentialPair<aniso_evaluator>::AnisoPotentialPair(std::shared_ptr<SystemDe
     GlobalArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
     GlobalArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
-    auto params = std::vector<param_type, managed_allocator<param_type>>(
-        m_typpair_idx.getNumElements(),
+    std::vector<param_type, managed_allocator<param_type>> params(
+        static_cast<size_t>(m_typpair_idx.getNumElements()),
         param_type(),
         managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
     m_params.swap(params);
 
-    auto shape_params = std::vector<shape_type, managed_allocator<shape_type>>(
-        m_pdata->getNTypes(),
+    std::vector<shape_type, managed_allocator<shape_type>> shape_params(
+        static_cast<size_t>(m_pdata->getNTypes()),
         shape_type(),
-        managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
+        managed_allocator<shape_type>(m_exec_conf->isCUDAEnabled()));
     m_shape_params.swap(shape_params);
 
     m_r_cut_nlist
