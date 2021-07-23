@@ -25,44 +25,6 @@ def _bad_iterable_type(obj):
     return isinstance(obj, (str, dict, io.IOBase))
 
 
-def _islice_index(sequence, *args):
-    r"""Yield indices for a given slice applied to a specific sequence.
-
-    Args:
-        sequence (Sequence[Any]):
-            Any sequence-like object.
-        \*args:
-            Either a slice object or the start, stop, and step of the slice
-            explicitly given.
-
-    Yields:
-        int:
-            The indices corresponding to the slice applied to the sequence.
-    """
-    if len(args) == 1 and isinstance(args[0], slice):
-        slice_ = args[0]
-        args = [slice_.start, slice_.stop, slice_.step]
-    yield from itertools.islice(list(range(len(sequence))), *args)
-
-
-def _islice(sequence, *args):
-    r"""Yield the values of a given slice applied to a specific sequence.
-
-    Args:
-        sequence (Sequence[Any]):
-            Any sequence-like object.
-        \*args:
-            Either a slice object or the start, stop, and step of the slice
-            explicitly given.
-
-    Yields:
-        Any:
-            The values corresponding to the slice applied to the sequence.
-    """
-    for i in _islice_index(sequence, *args):
-        yield sequence[i]
-
-
 def dict_map(dict_, func):
     r"""Perform a recursive map on a nested mapping.
 

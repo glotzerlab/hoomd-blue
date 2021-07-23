@@ -8,8 +8,6 @@ from collections.abc import MutableSequence
 import inspect
 from copy import copy
 
-from ..util import _islice_index
-
 
 class _PartialIsInstance:
     """Allows partial function application of isinstance over classes.
@@ -125,14 +123,18 @@ class SyncedList(MutableSequence):
     def __getitem__(self, index):
         """Grabs the python list item."""
         index = self._handle_index(index)
-        if inspect.isgenerator(index):
+        # since _handle_index always returns a range or int we can safely use an
+        # isinstance check here.
+        if isinstance(index, range):
             return [self._list[i] for i in index]
         return self._list[index]
 
     def __delitem__(self, index):
         """Deletes an item from list. Handles detaching if necessary."""
         index = self._handle_index(index)
-        if inspect.isgenerator(index):
+        # since _handle_index always returns a range or int we can safely use an
+        # isinstance check here.
+        if isinstance(index, range):
             # We must iterate from highest value to lowest to ensure we don't
             # accidentally try to delete an index that doesn't exist any more.
             for i in sorted(index, reverse=True):
@@ -183,7 +185,7 @@ class SyncedList(MutableSequence):
         return self._handle_slice(index)
 
     def _handle_slice(self, index):
-        yield from (self._handle_int(i) for i in _islice_index(self, index))
+        return range(0, len(self))[index]
 
     def synced_iter(self):
         """Iterate over values in the list. Does nothing when not synced."""
