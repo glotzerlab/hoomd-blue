@@ -236,8 +236,10 @@ class SyncedList(MutableSequence):
         """Detach all items, clear _synced_list, and remove cpp references."""
         if not self._synced:
             return
-        # while not strictly necessary we check for self._attach_members
-        # here to avoid looping if necessary.
+        # while not strictly necessary we check self._attach_members here to
+        # avoid looping unless necessary (_detach_value checks
+        # self._attach_members as well) making the check a slight performance
+        # bump for non-attaching members.
         if self._attach_members:
             for item in self:
                 self._detach_value(item)
