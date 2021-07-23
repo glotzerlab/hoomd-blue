@@ -156,7 +156,7 @@ class EvaluatorBondTether
             bond_eng = U_att + U_rep;
             }
 
-        return true;
+        return false;
         }
 
 #ifndef __HIPCC__
