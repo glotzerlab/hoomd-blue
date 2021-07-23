@@ -61,6 +61,14 @@ class Distance(Constraint):
        Molecular Dynamics Simulations," Journal of Computational Physics,
        vol. 172, no. 1, pp. 188--197, Sep. 2001.
 
+    Each distance constraint takes the form:
+
+    .. math::
+
+        \\chi_{ij}(r) = (\\vec{r}_j - \\vec{r}_i) \\cdot
+          (\\vec{r}_j - \\vec{r}_i)
+          - d_{ij}^2 = 0
+
     In brief, the second derivative of the Lagrange multipliers with respect to
     time is set to zero, such that both the distance constraints and their time
     derivatives are conserved within the accuracy of the Velocity Verlet scheme,
@@ -70,9 +78,10 @@ class Distance(Constraint):
 
     .. hint::
 
-        Define the particles and distances for each pairwise distance constraint
-        in a GSD file with `gsd.hoomd.Snapshot.constraints` or in a
-        `hoomd.Snapshot` with `hoomd.Snapshot.constraints`.
+        Define the particles (:math:`i,j`) and distances (:math:`d_{ij}`) for
+        each pairwise distance constraint in a GSD file with
+        `gsd.hoomd.Snapshot.constraints` or in a `hoomd.Snapshot` with
+        `hoomd.Snapshot.constraints`.
 
     Warning:
         In MPI simulations, all particles connected through constraints will be
