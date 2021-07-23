@@ -72,6 +72,10 @@ class EvaluatorPairExpandedMie
         Scalar m_pow;      //!< Lower exponent for potential
         Scalar delta;      //!< shift in radial distance for use in Mie potential
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifndef ENABLE_HIP
         //! set CUDA memory hints
         void set_memory_hint() const { }
@@ -80,7 +84,7 @@ class EvaluatorPairExpandedMie
 #ifndef __HIPCC__
         param_type() : repulsive(0), attractive(0), n_pow(0), m_pow(0), delta(0) { }
 
-        param_type(const pybind11::dict v)
+        param_type(const pybind11::dict v, bool managed = false)
             {
             n_pow = v["n"].cast<Scalar>();
             m_pow = v["m"].cast<Scalar>();
