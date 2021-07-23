@@ -7,7 +7,6 @@
 import io
 from collections.abc import Iterable, Mapping
 from copy import deepcopy
-import itertools
 
 
 def _to_camel_case(string):
