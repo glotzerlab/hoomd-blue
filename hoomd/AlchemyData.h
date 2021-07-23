@@ -119,8 +119,9 @@ class AlchemicalMDParticle : public AlchemicalParticle
         }
 
     Scalar momentum = 0.; // the momentum of the particle
-    Scalar2 mass;         // mass (x) and it's inverse (y) (don't have to recompute constantly)
-    Scalar mu = 0.;       //!< the alchemical potential of the particle
+    Scalar2 mass
+        = make_scalar2(1.0, 1.0); // mass (x) and it's inverse (y) (don't have to recompute constantly)
+    Scalar mu = 0.;          //!< the alchemical potential of the particle
     GlobalArray<Scalar> m_alchemical_derivatives; //!< Per particle alchemical forces
     protected:
     // the timestep the net force was computed and the netforce
@@ -141,8 +142,7 @@ inline void export_AlchemicalMDParticle(pybind11::module& m)
     pybind11::class_<AlchemicalMDParticle, std::shared_ptr<AlchemicalMDParticle>>(
         m,
         "AlchemicalMDParticle")
-        .def("setMass", &AlchemicalMDParticle::setMass)
-        .def_readonly("mass", &AlchemicalMDParticle::mass)
+        .def_property("mass", &AlchemicalMDParticle::getMass, &AlchemicalMDParticle::setMass)
         .def_readwrite("mu", &AlchemicalMDParticle::mu)
         .def_readwrite("alpha", &AlchemicalMDParticle::value)
         .def_readwrite("momentum", &AlchemicalMDParticle::momentum)
