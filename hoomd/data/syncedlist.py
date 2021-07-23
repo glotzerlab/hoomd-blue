@@ -69,12 +69,12 @@ class SyncedList(MutableSequence):
             members of the SyncedList instance. Defaults to None which causes
             SyncedList to start with an empty list.
         callable_class (bool, optional): If a class is passed as validation and
-            this is `True` (defaults to ``False``), then the class will be
+            this is ``True`` (defaults to ``False``), then the class will be
             treated as a callable and not used for type checking.
-        attach_members (bool, optional): Whether list members have a concept of
-            attaching (defaults to ``True``). If ``True`` then the `SyncedList`
-            object handles adding, attaching, detaching, and removing. If not,
-            these steps are skipped regardless of synced status.
+        attach_members (bool, optional): Whether list members can be attached
+            (defaults to ``True``). If ``True`` then the `SyncedList` object
+            handles adding, attaching, detaching, and removing. If not, these
+            steps are skipped regardless of synced status.
     """
 
     # Also guarantees that lists remain in same order when using the public API.
@@ -106,7 +106,7 @@ class SyncedList(MutableSequence):
         return len(self._list)
 
     def __setitem__(self, index, value):
-        """Change self[index] to value.
+        """Set self[index] to value.
 
         Detaches removed value and syncs cpp_list if necessary.
         """
