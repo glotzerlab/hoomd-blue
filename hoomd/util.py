@@ -7,6 +7,7 @@
 import io
 from collections.abc import Iterable, Mapping
 from copy import deepcopy
+import itertools
 
 
 def _to_camel_case(string):
@@ -38,21 +39,10 @@ def _islice_index(sequence, *args):
         int:
             The indices corresponding to the slice applied to the sequence.
     """
-    if len(args) == 1:
-        slice = args[0]
-        start, stop, step = slice.start, slice.stop, slice.step
-    elif len(args) == 3:
-        start, stop, step = args
-    else:
-        raise ValueError(
-            "Expected either a slice object or start, stop, and step.")
-
-    step = step if step is not None else 1
-    if start is None:
-        start = 0 if step > 0 else len(sequence)
-    if stop is None:
-        stop = 0 if step < 0 else len(sequence)
-    yield from range(start, stop, step)
+    if len(args) == 1 and isinstance(args[0], slice):
+        slice_ = args[0]
+        args = [slice_.start, slice_.stop, slice_.step]
+    yield from itertools.islice(list(range(len(sequence))), *args)
 
 
 def _islice(sequence, *args):
