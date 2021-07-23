@@ -365,6 +365,7 @@ install(FILES ${_md_headers}
        )
 
 add_subdirectory(pair)
+add_subdirectory(long_range)
 add_subdirectory(external)
 
 if (BUILD_TESTING)
