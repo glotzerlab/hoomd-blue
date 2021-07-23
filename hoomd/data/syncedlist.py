@@ -222,7 +222,7 @@ class SyncedList(MutableSequence):
             else:
                 raise ValueError(f"Value {value} could not be validated.")
         except ValueError as verr:
-            raise ValueError(f"Validation failed: {verr.args[0]}")
+            raise ValueError(f"Validation failed: {verr.args[0]}") from verr
 
     def _sync(self, simulation, synced_list):
         """Attach all list items and update for automatic attachment."""
