@@ -151,7 +151,7 @@ class SyncedList(MutableSequence):
         self._attach_value(value)
         # Wrap index like normal but allow for inserting a new element to the
         # end of the list.
-        if index != len(self):
+        if index < len(self):
             index = self._handle_int(index)
         if self._synced:
             self._synced_list.insert(index,
