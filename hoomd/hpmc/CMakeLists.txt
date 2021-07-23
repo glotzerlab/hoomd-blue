@@ -42,10 +42,10 @@ set(_hpmc_sources   module.cc
                     )
 
 set(_hpmc_headers
-    AnalyzerSDF.h
     ComputeFreeVolumeGPU.cuh
     ComputeFreeVolumeGPU.h
     ComputeFreeVolume.h
+    ComputeSDF.h
     ExternalFieldComposite.h
     ExternalField.h
     ExternalFieldLattice.h
@@ -167,8 +167,7 @@ install(TARGETS _hpmc EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-set(files   analyze.py
-            compute.py
+set(files   compute.py
             __init__.py
             integrate.py
             update.py
