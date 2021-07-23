@@ -589,10 +589,10 @@ class Table(Pair):
             the tabulated potential, corresponding to the first element of the
             energy and force arrays :math:`[\\mathrm{length}]`.
 
-          * ``V`` ((*N*,) `numpy.ndarray` of ``numpy.float64``, **required**) -
+          * ``V`` ((*N*,) `numpy.ndarray` of `float`, **required**) -
             the tabulated energy values :math:`[\\mathrm{energy}]`.
 
-          * ``F`` ((*N*,) `numpy.ndarray` of ``numpy.float64``, **required**) -
+          * ``F`` ((*N*,) `numpy.ndarray` of `float`, **required**) -
             the tabulated force values :math:`[\\mathrm{force}]`. Must have the
             same length as ``V``.
 
