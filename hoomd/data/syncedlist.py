@@ -180,9 +180,9 @@ class SyncedList(MutableSequence):
         return integer
 
     def _handle_index(self, index):
-        if not isinstance(index, slice):
-            return self._handle_int(index)
-        return self._handle_slice(index)
+        if isinstance(index, slice):
+            return self._handle_slice(index)
+        return self._handle_int(index)
 
     def _handle_slice(self, index):
         return range(0, len(self))[index]
