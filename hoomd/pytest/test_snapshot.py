@@ -144,18 +144,21 @@ def test_wrap(s):
         for i, inside_point in enumerate(interior_points):
             for j, f in enumerate(multipliers):
                 for k, image in enumerate(initial_images):
-                    input_points[i, j, k, :] = a * f[0] + b * f[1] + c * f[2
-                                                ] + inside_point
+                    input_points[
+                        i, j,
+                        k, :] = a * f[0] + b * f[1] + c * f[2] + inside_point
                     check_points[i, j, k, :] = inside_point
                     input_images[i, j, k, :] = image
-                    check_images[i, j, k, :] = numpy.array(image) + numpy.array(f)
+                    check_images[i, j,
+                                 k, :] = numpy.array(image) + numpy.array(f)
         return input_points.reshape((-1, 3)), check_points.reshape(
-            (-1, 3)), input_images.reshape(
-                (-1, 3)), check_images.reshape((-1, 3))
+            (-1, 3)), input_images.reshape((-1, 3)), check_images.reshape(
+                (-1, 3))
 
     def run_box_type(s, box, interior_points, multiples, initial_images):
-        (input_points, check_points, input_images, check_images) = generate_outside(box, interior_points, multiples,
-                                               initial_images)
+        (input_points, check_points, input_images,
+         check_images) = generate_outside(box, interior_points, multiples,
+                                          initial_images)
         s.configuration.box = box
         s.particles.N = len(input_points)
         s.particles.position[:] = input_points
