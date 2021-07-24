@@ -136,37 +136,35 @@ def test_wrap(s):
         a = numpy.array([box[0], 0, 0])
         b = numpy.array([box[1] * box[3], box[1], 0])
         c = numpy.array([box[2] * box[4], box[2] * box[5], box[2]])
-        test_input_points = numpy.zeros(
+        input_points = numpy.zeros(
             (len(interior_points), len(multipliers), len(initial_images), 3))
-        test_check_points = numpy.zeros_like(test_input_points)
-        test_input_images = numpy.zeros_like(test_input_points)
-        test_check_images = numpy.zeros_like(test_input_points)
+        check_points = numpy.zeros_like(input_points)
+        input_images = numpy.zeros_like(input_points)
+        check_images = numpy.zeros_like(input_points)
         for i, inside_point in enumerate(interior_points):
-            for j, factor in enumerate(multipliers):
+            for j, f in enumerate(multipliers):
                 for k, image in enumerate(initial_images):
-                    test_input_points[i, j, k, :] = inside_point + a * factor[
-                        0] + b * factor[1] + c * factor[2]
-                    test_check_points[i, j, k, :] = inside_point
-                    test_input_images[i, j, k, :] = image
-                    test_check_images[
-                        i, j, k, :] = numpy.array(image) + numpy.array(factor)
-        return test_input_points.reshape((-1, 3)), test_check_points.reshape(
-            (-1, 3)), test_input_images.reshape(
-                (-1, 3)), test_check_images.reshape((-1, 3))
+                    input_points[i, j, k, :] = a * f[0] + b * f[1] + c * f[2
+                                                ] + inside_point
+                    check_points[i, j, k, :] = inside_point
+                    input_images[i, j, k, :] = image
+                    check_images[i, j, k, :] = numpy.array(image) + numpy.array(f)
+        return input_points.reshape((-1, 3)), check_points.reshape(
+            (-1, 3)), input_images.reshape(
+                (-1, 3)), check_images.reshape((-1, 3))
 
     def run_box_type(s, box, interior_points, multiples, initial_images):
-        (test_input_points, test_check_points, test_input_images,
-         test_check_images) = generate_outside(box, interior_points, multiples,
+        (input_points, check_points, input_images, check_images) = generate_outside(box, interior_points, multiples,
                                                initial_images)
         s.configuration.box = box
-        s.particles.N = len(test_input_points)
-        s.particles.position[:] = test_input_points
-        s.particles.image[:] = test_input_images
+        s.particles.N = len(input_points)
+        s.particles.position[:] = input_points
+        s.particles.image[:] = input_images
         s.wrap()
         numpy.testing.assert_allclose(s.particles.position,
-                                      test_check_points,
+                                      check_points,
                                       atol=1e-12)
-        numpy.testing.assert_array_equal(s.particles.image, test_check_images)
+        numpy.testing.assert_array_equal(s.particles.image, check_images)
         return
 
     if s.communicator.rank == 0:
