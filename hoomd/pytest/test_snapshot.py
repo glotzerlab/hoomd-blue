@@ -134,28 +134,40 @@ def test_wrap(s):
         a = numpy.array([box[0], 0, 0])
         b = numpy.array([box[1] * box[3], box[1], 0])
         c = numpy.array([box[2] * box[4], box[2] * box[5], box[2]])
-        test_input_points = numpy.zeros((len(interior_points), len(multipliers), len(initial_images), 3))
+        test_input_points = numpy.zeros(
+            (len(interior_points), len(multipliers), len(initial_images), 3))
         test_check_points = numpy.zeros_like(test_input_points)
         test_input_images = numpy.zeros_like(test_input_points)
         test_check_images = numpy.zeros_like(test_input_points)
         for i, inside_point in enumerate(interior_points):
             for j, factor in enumerate(multipliers):
                 for k, image in enumerate(initial_images):
-                    test_input_points[i, j, k, :] = inside_point + a * factor[0] + b * factor[1] + c * factor[2]
+                    test_input_points[i, j, k, :] = inside_point + a * factor[
+                        0] + b * factor[1] + c * factor[2]
                     test_check_points[i, j, k, :] = inside_point
                     test_input_images[i, j, k, :] = image
-                    test_check_images[i, j, k, :] = numpy.array(image) + numpy.array(factor)
-        return test_input_points.reshape((-1, 3)), test_check_points.reshape((-1, 3)), test_input_images.reshape((-1, 3)), test_check_images.reshape((-1,3))
-
+                    test_check_images[
+                        i, j, k, :] = numpy.array(image) + numpy.array(factor)
+        return test_input_points.reshape((-1, 3)), test_check_points.reshape(
+            (-1, 3)), test_input_images.reshape(
+                (-1, 3)), test_check_images.reshape((-1, 3))
 
     def run_box_type(s, box, interior_points, multiples, initial_images):
-        test_input_points, test_check_points, test_input_images, test_check_images = generate_outside(box, interior_points, multiples, initial_images)
+        (test_input_points,
+         test_check_points,
+         test_input_images,
+         test_check_images) = generate_outside(box,
+                                               interior_points,
+                                               multiples,
+                                               initial_images)
         s.configuration.box = box
         s.particles.N = len(test_input_points)
         s.particles.position[:] = test_input_points
         s.particles.image[:] = test_input_images
         s.wrap()
-        numpy.testing.assert_allclose(s.particles.position, test_check_points, atol=1e-12)
+        numpy.testing.assert_allclose(s.particles.position,
+                                      test_check_points,
+                                      atol=1e-12)
         numpy.testing.assert_array_equal(s.particles.image, test_check_images)
         return
 
@@ -182,53 +194,58 @@ def test_wrap(s):
 
         # cubic box
         run_box_type(s,
-                     box = [1, 1, 1, 0, 0, 0],
-                     interior_points = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
-                                        [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2]],
-                     multiples = multiples,
-                     initial_images = test_images)
+                     box=[1, 1, 1, 0, 0, 0],
+                     interior_points=[[0, 0, 0], [-0.5, 0.0, -0.2],
+                                      [0.0, 0.3, -0.1], [0.3, 0.2, -0.1],
+                                      [-0.5, 0.2, -0.2]],
+                     multiples=multiples,
+                     initial_images=test_images)
 
         # triclinic box
         run_box_type(s,
-                     box = [10, 12, 7, 0.1, 0.4, 0.2],
-                     interior_points = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
-                                        [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [0, 0, -3.5],
-                                        [-6.5, -6.5, -3.5]],
-                     multiples = multiples,
-                     initial_images = test_images)
+                     box=[10, 12, 7, 0.1, 0.4, 0.2],
+                     interior_points=[[0, 0, 0], [-0.5, 0.0, -0.2],
+                                      [0.0, 0.3, -0.1], [0.3, 0.2, -0.1],
+                                      [-0.5, 0.2, -0.2], [0, 0, -3.5],
+                                      [-6.5, -6.5, -3.5]],
+                     multiples=multiples,
+                     initial_images=test_images)
 
         # 2D box
         multiples2d = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0],
                        [-1, -1, 0], [1, 1, 0], [-10, 20, 0]]
         run_box_type(s,
-                     box = [5, 11, 0, 0, 0, 0],
-                     interior_points = [[1, 0, 0], [2.4, 5, 0], [-2.5, 0, 0], [-2.5, -5.5, 0]],
-                     multiples = multiples2d,
-                     initial_images = multiples2d)
+                     box=[5, 11, 0, 0, 0, 0],
+                     interior_points=[[1, 0, 0], [2.4, 5, 0], [-2.5, 0, 0],
+                                      [-2.5, -5.5, 0]],
+                     multiples=multiples2d,
+                     initial_images=multiples2d)
 
         # tetragonal box
         run_box_type(s,
-                     box = [7, 7, 4, 0, 0, 0],
-                     interior_points = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
-                                        [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [-3.5, -3.5, -2]],
-                     multiples = multiples,
-                     initial_images = test_images)
+                     box=[7, 7, 4, 0, 0, 0],
+                     interior_points=[[0, 0, 0], [-0.5, 0.0, -0.2],
+                                      [0.0, 0.3, -0.1], [0.3, 0.2, -0.1],
+                                      [-0.5, 0.2, -0.2], [-3.5, -3.5, -2]],
+                     multiples=multiples,
+                     initial_images=test_images)
 
         # orthorhombic box
         run_box_type(s,
-                     box = [8, 6, 4, 0, 0, 0],
-                     interior_points = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
-                                        [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [-4, -3, -2]],
-                     multiples = multiples,
-                     initial_images = test_images)
+                     box=[8, 6, 4, 0, 0, 0],
+                     interior_points=[[0, 0, 0], [-0.5, 0.0, -0.2],
+                                      [0.0, 0.3, -0.1], [0.3, 0.2, -0.1],
+                                      [-0.5, 0.2, -0.2], [-4, -3, -2]],
+                     multiples=multiples,
+                     initial_images=test_images)
 
         # monoclinic box
         run_box_type(s,
-                     box = [7, 4, 8, 0, 0.25, 0],
-                     interior_points = [[-2, 1, -1], [-4, 0, -3], [2, 1, 1], [-1, 0, -4],
-                                        [-4.5, -2, -4]],
-                     multiples = multiples,
-                     initial_images = test_images)
+                     box=[7, 4, 8, 0, 0.25, 0],
+                     interior_points=[[-2, 1, -1], [-4, 0, -3], [2, 1, 1],
+                                      [-1, 0, -4], [-4.5, -2, -4]],
+                     multiples=multiples,
+                     initial_images=test_images)
 
 
 def test_particles(s):
