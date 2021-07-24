@@ -153,12 +153,8 @@ def test_wrap(s):
                 (-1, 3)), test_check_images.reshape((-1, 3))
 
     def run_box_type(s, box, interior_points, multiples, initial_images):
-        (test_input_points,
-         test_check_points,
-         test_input_images,
-         test_check_images) = generate_outside(box,
-                                               interior_points,
-                                               multiples,
+        (test_input_points, test_check_points, test_input_images,
+         test_check_images) = generate_outside(box, interior_points, multiples,
                                                initial_images)
         s.configuration.box = box
         s.particles.N = len(test_input_points)
