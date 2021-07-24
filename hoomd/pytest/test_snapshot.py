@@ -128,8 +128,7 @@ def test_configuration(s):
 def test_wrap(s):
 
     def generate_outside(box, interior_points, multipliers, initial_images):
-        """Generate test cases from interior points (not verified) by
-adding box vectors."""
+        """Generate test cases from interior points by adding box vectors."""
         # construct unit cell from box vectors
         # see
         # hoomd-blue.readthedocs.io/en/latest/...
