@@ -127,21 +127,26 @@ def test_configuration(s):
 
 def test_wrap(s):
 
-    def generate_outside(box, inside, multipliers):
-        """Generate test cases from interior points by adding box vectors."""
+    def generate_outside(box, interior_points, multipliers, initial_images):
+        """Generate test cases from interior points (not verified) by adding box vectors."""
+        # construct unit cell from box vectors
+        # see hoomd-blue.readthedocs.io/en/latest/package-hoomd.html#hoomd.Box.from_matrix
         a = numpy.array([box[0], 0, 0])
         b = numpy.array([box[1] * box[3], box[1], 0])
         c = numpy.array([box[2] * box[4], box[2] * box[5], box[2]])
-        out = numpy.zeros((len(inside), len(multipliers), 3))
-        ins = numpy.zeros_like(out)
-        mults = numpy.zeros_like(out)
-        for i, point in enumerate(inside):
-            for j, f in enumerate(multipliers):
-                out[i, j, :] = point + a * f[0] + b * f[1] + c * f[2]
-                ins[i, j, :] = point
-                mults[i, j, :] = f
-        return out.reshape((-1, 3)), ins.reshape((-1, 3)), mults.reshape(
-            (-1, 3))
+        test_input_points = numpy.zeros((len(interior_points), len(multipliers), len(initial_images), 3))
+        test_check_points = numpy.zeros_like(test_input_points)
+        test_input_images = numpy.zeros_like(test_input_points)
+        test_check_images = numpy.zeros_like(test_input_points)
+        for i, inside_point in enumerate(interior_points):
+            for j, factor in enumerate(multipliers):
+                for k, image in enumerate(initial_images):
+                    test_input_points[i, j, k, :] = inside_point + a * factor[0] + b * factor[1] + c * factor[2]
+                    test_check_points[i, j, k, :] = inside_point
+                    test_input_images[i, j, k, :] = image
+                    test_check_images[i, j, k, :] = numpy.array(image) + numpy.array(factor)
+        return test_input_points.reshape((-1, 3)), test_check_points.reshape((-1, 3)), test_input_images.reshape((-1, 3)), test_check_images.reshape((-1,3))
+
 
     if s.communicator.rank == 0:
         # multiples of lattice vectors to add to interior points to generate
