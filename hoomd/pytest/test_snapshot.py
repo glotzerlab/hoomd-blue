@@ -148,6 +148,17 @@ def test_wrap(s):
         return test_input_points.reshape((-1, 3)), test_check_points.reshape((-1, 3)), test_input_images.reshape((-1, 3)), test_check_images.reshape((-1,3))
 
 
+    def run_box_type(s, box, interior_points, multiples, initial_images):
+        test_input_points, test_check_points, test_input_images, test_check_images = generate_outside(box, interior_points, multiples, initial_images)
+        s.configuration.box = box
+        s.particles.N = len(test_input_points)
+        s.particles.position[:] = test_input_points
+        s.particles.image[:] = test_input_images
+        s.wrap()
+        numpy.testing.assert_allclose(s.particles.position, test_check_points, atol=1e-12)
+        numpy.testing.assert_array_equal(s.particles.image, test_check_images)
+        return
+
     if s.communicator.rank == 0:
         # multiples of lattice vectors to add to interior points to generate
         # tests
@@ -168,6 +179,13 @@ def test_wrap(s):
         ]
 
         test_images = multiples
+
+        run_box_type(s,
+                     box = [1, 1, 1, 0, 0, 0],
+                     interior_points = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
+                                        [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2]],
+                     multiples = multiples,
+                     initial_images = test_images)
 
         box = [1, 1, 1, 0, 0, 0]
         inside = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
