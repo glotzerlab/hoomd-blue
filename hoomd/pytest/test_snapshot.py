@@ -180,6 +180,7 @@ def test_wrap(s):
 
         test_images = multiples
 
+        # cubic box
         run_box_type(s,
                      box = [1, 1, 1, 0, 0, 0],
                      interior_points = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
@@ -187,81 +188,47 @@ def test_wrap(s):
                      multiples = multiples,
                      initial_images = test_images)
 
-        box = [1, 1, 1, 0, 0, 0]
-        inside = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
-                  [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2]]
-        outs, ins, im, mults = generate_outside(box, inside, multiples, test_images)
-        s.configuration.box = box
-        s.particles.N = len(ins)
-        s.particles.position[:] = outs
-        s.particles.image[:] = im
-        s.wrap()
-        numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
-        numpy.testing.assert_array_equal(s.particles.image, mults)
-
         # triclinic box
-        # box = [10, 12, 7, 0.1, 0.4, 0.2]
-        # inside = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
-        #           [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [0, 0, -3.5],
-        #           [-6.5, -6.5, -3.5]]
-        # outs, ins, im, mults = generate_outside(box, inside, multiples)
-        # s.configuration.box = box
-        # s.particles.N = len(ins)
-        # s.particles.position[:] = outs
-        # s.particles.image[:] = im
-        # s.wrap()
-        # numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
-        # numpy.testing.assert_array_equal(s.particles.image, mults)
+        run_box_type(s,
+                     box = [10, 12, 7, 0.1, 0.4, 0.2],
+                     interior_points = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
+                                        [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [0, 0, -3.5],
+                                        [-6.5, -6.5, -3.5]],
+                     multiples = multiples,
+                     initial_images = test_images)
 
         # 2D box
-        box = [5, 11, 0, 0, 0, 0]
-        inside = [[1, 0, 0], [2.4, 5, 0], [-2.5, 0, 0], [-2.5, -5.5, 0]]
         multiples2d = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0],
                        [-1, -1, 0], [1, 1, 0], [-10, 20, 0]]
-        outs, ins, im, mults = generate_outside(box, inside, multiples2d, multiples2d)
-        s.configuration.box = box
-        s.particles.N = len(ins)
-        s.particles.position[:] = outs
-        s.particles.image[:] = im
-        s.wrap()
-        numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
-        numpy.testing.assert_array_equal(s.particles.image, mults)
+        run_box_type(s,
+                     box = [5, 11, 0, 0, 0, 0],
+                     interior_points = [[1, 0, 0], [2.4, 5, 0], [-2.5, 0, 0], [-2.5, -5.5, 0]],
+                     multiples = multiples2d,
+                     initial_images = multiples2d)
 
         # tetragonal box
-        box = [7, 7, 4, 0, 0, 0]
-        inside = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
-                  [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [-3.5, -3.5, -2]]
-        outs, ins, mults = generate_outside(box, inside, multiples)
-        s.configuration.box = box
-        s.particles.N = len(ins)
-        s.particles.position[:] = outs
-        s.wrap()
-        numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
-        numpy.testing.assert_array_equal(s.particles.image, mults)
+        run_box_type(s,
+                     box = [7, 7, 4, 0, 0, 0],
+                     interior_points = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
+                                        [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [-3.5, -3.5, -2]],
+                     multiples = multiples,
+                     initial_images = test_images)
 
         # orthorhombic box
-        box = [8, 6, 4, 0, 0, 0]
-        inside = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
-                  [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [-4, -3, -2]]
-        outs, ins, mults = generate_outside(box, inside, multiples)
-        s.configuration.box = box
-        s.particles.N = len(ins)
-        s.particles.position[:] = outs
-        s.wrap()
-        numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
-        numpy.testing.assert_array_equal(s.particles.image, mults)
+        run_box_type(s,
+                     box = [8, 6, 4, 0, 0, 0],
+                     interior_points = [[0, 0, 0], [-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
+                                        [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2], [-4, -3, -2]],
+                     multiples = multiples,
+                     initial_images = test_images)
 
         # monoclinic box
-        box = [7, 4, 8, 0, 0.25, 0]
-        s.configuration.box = box
-        inside = [[-2, 1, -1], [-4, 0, -3], [2, 1, 1], [-1, 0, -4],
-                  [-4.5, -2, -4]]
-        outs, ins, mults = generate_outside(box, inside, multiples)
-        s.particles.N = len(ins)
-        s.particles.position[:] = outs
-        s.wrap()
-        numpy.testing.assert_allclose(s.particles.position, ins, atol=1e-12)
-        numpy.testing.assert_array_equal(s.particles.image, mults)
+        run_box_type(s,
+                     box = [7, 4, 8, 0, 0.25, 0],
+                     interior_points = [[-2, 1, -1], [-4, 0, -3], [2, 1, 1], [-1, 0, -4],
+                                        [-4.5, -2, -4]],
+                     multiples = multiples,
+                     initial_images = test_images)
 
 
 def test_particles(s):
