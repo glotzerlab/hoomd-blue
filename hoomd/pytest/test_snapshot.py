@@ -142,21 +142,18 @@ def generate_outside(box, interior_points, multipliers, initial_images):
         for j, f in enumerate(multipliers):
             for k, image in enumerate(initial_images):
                 input_points[
-                    i, j,
-                    k, :] = a * f[0] + b * f[1] + c * f[2] + inside_point
+                    i, j, k, :] = a * f[0] + b * f[1] + c * f[2] + inside_point
                 check_points[i, j, k, :] = inside_point
                 input_images[i, j, k, :] = image
-                check_images[i, j,
-                             k, :] = numpy.array(image) + numpy.array(f)
+                check_images[i, j, k, :] = numpy.array(image) + numpy.array(f)
     return input_points.reshape((-1, 3)), check_points.reshape(
-        (-1, 3)), input_images.reshape((-1, 3)), check_images.reshape(
-            (-1, 3))
+        (-1, 3)), input_images.reshape((-1, 3)), check_images.reshape((-1, 3))
 
 
 def run_box_type(s, box, interior_points, multiples, initial_images):
     (input_points, check_points, input_images,
-    check_images) = generate_outside(box, interior_points, multiples,
-                                     initial_images)
+     check_images) = generate_outside(box, interior_points, multiples,
+                                      initial_images)
     s.configuration.box = box
     s.particles.N = len(input_points)
     s.particles.position[:] = input_points
@@ -167,6 +164,7 @@ def run_box_type(s, box, interior_points, multiples, initial_images):
                                   atol=1e-12)
     numpy.testing.assert_array_equal(s.particles.image, check_images)
     return
+
 
 # multiples of lattice vectors to add to interior points to generate
 multiples = [
@@ -187,6 +185,7 @@ multiples = [
 
 test_images = multiples
 
+
 def test_wrap_cubic(s):
     if s.communicator.rank == 0:
         run_box_type(s,
@@ -196,6 +195,7 @@ def test_wrap_cubic(s):
                                       [-0.5, 0.2, -0.2]],
                      multiples=multiples,
                      initial_images=test_images)
+
 
 def test_wrap_triclinic(s):
     if s.communicator.rank == 0:
@@ -208,7 +208,8 @@ def test_wrap_triclinic(s):
                      multiples=multiples,
                      initial_images=test_images)
 
-def test_wrap_2D(s):
+
+def test_wrap_2d(s):
     if s.communicator.rank == 0:
         multiples2d = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0],
                        [-1, -1, 0], [1, 1, 0], [-10, 20, 0]]
@@ -218,6 +219,7 @@ def test_wrap_2D(s):
                                       [-2.5, -5.5, 0]],
                      multiples=multiples2d,
                      initial_images=multiples2d)
+
 
 def test_wrap_tetragonal(s):
     if s.communicator.rank == 0:
@@ -229,6 +231,7 @@ def test_wrap_tetragonal(s):
                      multiples=multiples,
                      initial_images=test_images)
 
+
 def test_wrap_orthorhombic(s):
     if s.communicator.rank == 0:
         run_box_type(s,
@@ -238,6 +241,7 @@ def test_wrap_orthorhombic(s):
                                       [-0.5, 0.2, -0.2], [-4, -3, -2]],
                      multiples=multiples,
                      initial_images=test_images)
+
 
 def test_wrap_monoclinic(s):
     if s.communicator.rank == 0:
