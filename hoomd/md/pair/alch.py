@@ -4,7 +4,6 @@
 
 """Alchemical potentials."""
 
-from hoomd import md
 from hoomd.logging import log, Loggable
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import TypeParameterDict
@@ -15,24 +14,32 @@ from hoomd.md.pair import pair
 # without making overly complicated
 # I just like alch(MD/MC) as alchemy specification aliases
 
+# TODO: remove this variable when the log names are finalized
+_api=['value','mass','mu','avalue','amomentum','net_aforce','aforces']
 
 class _AlchemicalPairPotential(Loggable):
-    def __new__(cls, clsname, superclasses, attributedict):
+    def __new__(cls, name, superclasses, attributedict):
         attributedict['_cpp_class_name']='Alchemical'+superclasses[0]._cpp_class_name
         superclasses+=(_AlchemicalMethods,)
-        return super().__new__(cls, clsname, superclasses, attributedict)
+        return super().__new__(cls, name, superclasses, attributedict)
     
-    def __init__(cls, clsname, superclasses, attributedict):
+    def __init__(cls, name, superclasses, attributedict):
         cls._reserved_default_attrs['_alchemical_parameters']=list
         cls._accepted_modes=('none', 'shift')
-        super().__init__(clsname, superclasses, attributedict)
+        super().__init__(name, superclasses, attributedict)
 
 # Perhaps define a true base alch particle to base this off of just adding the
 # MD components mirroring the cpp side       
 class AlchemicalMDParticle(_HOOMDBaseObject):
     __slots__=['force', 'name', 'typepair', '_cpp_obj', '_mass']
+    
+    def __new__(cls, force:_AlchemicalPairPotential, name:str ='', typepair:tuple = None, mass:float = 1.0 ):
+        typepair=tuple(sorted(typepair))
+        if (typepair,name) in force.alchemical_particles:
+            return force.alchemical_particles[typepair,name]
+        return super().__new__(cls)
 
-    def __init__(self, force:pair.Pair, name:str ='', typepair:tuple = None, mass:float = 1.0):
+    def __init__(self, force:_AlchemicalPairPotential, name:str ='', typepair:tuple = None, mass:float = 1.0):
         self.force = force
         self.name = name
         self.typepair = typepair
@@ -53,7 +60,7 @@ class AlchemicalMDParticle(_HOOMDBaseObject):
         self._enable()
         super()._add(simulation)
         
-    @property
+    @log(default=False)
     def mass(self):
         if self._attached:
             return self._cpp_obj.mass
@@ -87,7 +94,7 @@ class AlchemicalMDParticle(_HOOMDBaseObject):
     def aforces(self):
         return self._cpp_obj.forces
         
-    @log
+    @log(requires_run=True)
     def net_aforce(self):
         return self._cpp_obj.net_force()
 
@@ -131,8 +138,17 @@ class _AlchemicalMethods(_HOOMDBaseObject):
                 return vals
             else:
                 return vals[k]
-
-
+                
+        def __setitem__(self,key,val):
+            raise NotImplementedError
+            
+        def __contains__(self,key):
+            key = self._validate_and_split_alchem(key)
+            return key in self._dict.keys()
+        
+        def keys(self):
+            return self._dict.keys()
+            
     def _attach(self):
         super()._attach()
         for v in self.alchemical_particles._dict.values():
@@ -151,5 +167,3 @@ class LJGauss(pair.LJGauss,metaclass=_AlchemicalPairPotential):
         _AlchemicalMethods.__init__(self)
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         
-
-
