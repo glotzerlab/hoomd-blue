@@ -165,10 +165,6 @@ void PotentialPairDPDThermoGPU<evaluator, gpu_cpdf>::computeForces(uint64_t time
 
     // access parameters
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
-    ArrayHandle<typename evaluator::param_type> d_params(this->m_params,
-                                                         access_location::device,
-                                                         access_mode::read);
-
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
@@ -204,7 +200,7 @@ void PotentialPairDPDThermoGPU<evaluator, gpu_cpdf>::computeForces(uint64_t time
                              this->m_shift_mode,
                              flags[pdata_flag::pressure_tensor],
                              threads_per_particle),
-             d_params.data);
+             this->m_params.data());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
