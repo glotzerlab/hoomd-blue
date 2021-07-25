@@ -606,11 +606,7 @@ def _valid_params(particle_types=['A', 'B']):
         paramtuple(hoomd.md.pair.TWF, dict(zip(combos, twf_valid_param_dicts)),
                    {}))
 
-    ljgauss_arg_dict = {
-        'r0': [1.8],
-        'epsilon': [2.0],
-        'sigma2': [0.02]
-    }
+    ljgauss_arg_dict = {'r0': [1.8], 'epsilon': [2.0], 'sigma2': [0.02]}
     ljgauss_valid_param_dicts = _make_valid_param_dicts(ljgauss_arg_dict)
     valid_params_list.append(
         paramtuple(hoomd.md.pair.LJGauss,

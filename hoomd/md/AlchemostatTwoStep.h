@@ -49,7 +49,7 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
         m_nTimeFactor = alchemTimeFactor;
         m_halfDeltaT = Scalar(0.5) * m_deltaT * m_nTimeFactor;
         }
-        
+
     virtual void getAlchemTimeFactor()
         {
         return m_nTimeFactor;

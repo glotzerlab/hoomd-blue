@@ -1910,9 +1910,9 @@ class LJGauss(Pair):
 
         * ``epsilon`` (`float`, **required**) -
           energy parameter :math:`\varepsilon` :math:`[energy]`
-        * ``sigma2`` (`float`, **required**) - 
+        * ``sigma2`` (`float`, **required**) -
           Gaussian variance :math:`\\sigma^2` :math:`[\mathrm{length}^2]`
-        * ``r0`` (`float`, **required**) - 
+        * ``r0`` (`float`, **required**) -
           Gaussian center :math:`\\r_0` :math:`[distance]`
 
     Example::
