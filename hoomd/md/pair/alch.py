@@ -191,7 +191,6 @@ class LJGauss(pair.LJGauss, metaclass=_AlchemicalPairPotential):
 # from hoomd.util import SyncedList
 # from hoomd.md.integrate import BaseIntegrator
 
-
 # class Alchemostat(ABC, _HOOMDBaseObject):
 
 #     # synced list? or operation style?
