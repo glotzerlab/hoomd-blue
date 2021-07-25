@@ -186,35 +186,35 @@ class LJGauss(pair.LJGauss, metaclass=_AlchemicalPairPotential):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
 
-# TODO: the rest of this should likely be moved to a new namespace
-from collections.abc import ABC, abstractmethod
-from hoomd.util import SyncedList
-from hoomd.md.integrate import BaseIntegrator
+# # TODO: the rest of this should likely be moved to a new namespace
+# from collections.abc import ABC, abstractmethod
+# from hoomd.util import SyncedList
+# from hoomd.md.integrate import BaseIntegrator
 
 
-class Alchemostat(ABC, _HOOMDBaseObject):
+# class Alchemostat(ABC, _HOOMDBaseObject):
 
-    # synced list? or operation style?
-    @property
-    def alchemical_particles(self):
-        return self._alchemical_particles
+#     # synced list? or operation style?
+#     @property
+#     def alchemical_particles(self):
+#         return self._alchemical_particles
 
-    @alchemical_particles.setter
-    def alchemical_particles(self, alchemical_particles):
-        # This condition is necessary to allow for += and -= operators to work
-        # correctly with alchemostat.alchemical_particles (+=/-=).
-        if alchemical_particles is self._alchemical_particles:
-            return
-        else:
-            # Handle error cases first
-            if alchemical_particles._added or alchemical_particles._simulation is not None:
-                raise RuntimeError(
-                    "Cannot add `hoomd.Alchemicalalchemical_particles` object that belongs to "
-                    "another `hoomd.Simulation` object.")
+#     @alchemical_particles.setter
+#     def alchemical_particles(self, alchemical_particles):
+#         # This condition is necessary to allow for += and -= operators to work
+#         # correctly with alchemostat.alchemical_particles (+=/-=).
+#         if alchemical_particles is self._alchemical_particles:
+#             return
+#         else:
+#             # Handle error cases first
+#             if alchemical_particles._added or alchemical_particles._simulation is not None:
+#                 raise RuntimeError(
+#                     "Cannot add `hoomd.Alchemicalalchemical_particles` object that belongs to "
+#                     "another `hoomd.Simulation` object.")
 
-    @property
-    def time_factor(self):
-        if self.attached:
-            return self._cpp_obj.alchemicalTimeFactor
-        else:
-            return storedparams
+#     @property
+#     def time_factor(self):
+#         if self.attached:
+#             return self._cpp_obj.alchemicalTimeFactor
+#         else:
+#             return storedparams

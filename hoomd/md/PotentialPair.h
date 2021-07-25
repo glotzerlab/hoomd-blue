@@ -18,6 +18,7 @@
 #include "hoomd/GlobalArray.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
+#include "hoomd/managed_allocator.h"
 #include "hoomd/md/EvaluatorPairLJ.h"
 
 #ifdef ENABLE_HIP

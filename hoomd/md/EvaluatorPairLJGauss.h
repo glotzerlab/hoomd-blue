@@ -7,7 +7,6 @@
 #define __PAIR_EVALUATOR_LJGAUSS_H__
 
 #ifndef __HIPCC__
-#include <map>
 #include <string>
 #endif
 

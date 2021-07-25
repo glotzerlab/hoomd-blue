@@ -264,18 +264,15 @@ AlchemicalPotentialPair<evaluator>::pkgInitialize(const uint64_t& timestep)
     // Precompute normalization
     if (m_normalized)
         {
-        ArrayHandle<typename evaluator::param_type> h_params(this->m_params,
-                                                             access_location::host,
-                                                             access_mode::read);
         pkg.normalizationValues.assign(m_alchemy_index.getNumElements(), 1.0);
         for (unsigned int i = 0; i < m_alchemy_index.getW(); i++)
             for (unsigned int j = 0; j <= i; j++)
                 {
                 unsigned int idx = m_alchemy_index(i, j);
-                pkg.normalizationValues[idx]
-                    = m_normalizer(evaluator::alchemParams(h_params.data[this->m_typpair_idx(i, j)],
-                                                           pkg.alphas[idx])
-                                       .asDict());
+                pkg.normalizationValues[idx] = m_normalizer(
+                    evaluator::alchemParams(this->m_params[this->m_typpair_idx(i, j)],
+                                            pkg.alphas[idx])
+                        .asDict());
                 ;
                 }
         }
