@@ -54,7 +54,6 @@
 #include "QuaternionMath.h"
 #include "TableAngleForceCompute.h"
 #include "TableDihedralForceCompute.h"
-#include "TablePotential.h"
 #include "TwoStepBD.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepLangevin.h"
@@ -101,7 +100,6 @@
 #include "PotentialTersoffGPU.h"
 #include "TableAngleForceComputeGPU.h"
 #include "TableDihedralForceComputeGPU.h"
-#include "TablePotentialGPU.h"
 #include "TwoStepBDGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepLangevinGPU.h"
@@ -248,7 +246,6 @@ PYBIND11_MODULE(_md, m)
     export_OPLSDihedralForceCompute(m);
     export_TableDihedralForceCompute(m);
     export_HarmonicImproperForceCompute(m);
-    export_TablePotential(m);
     export_BondTablePotential(m);
     export_PotentialPair<PotentialPairBuckingham>(m, "PotentialPairBuckingham");
     export_PotentialPair<PotentialPairLJ>(m, "PotentialPairLJ");
@@ -284,6 +281,7 @@ PYBIND11_MODULE(_md, m)
         m,
         "PotentialPairDPDThermoDPD");
     export_PotentialPair<PotentialPairDPDLJ>(m, "PotentialPairDPDLJ");
+    export_PotentialPair<PotentialPairTable>(m, "PotentialPairTable");
     export_PotentialPairDPDThermo<PotentialPairDPDLJThermoDPD, PotentialPairDPDLJ>(
         m,
         "PotentialPairDPDLJThermoDPD");
@@ -374,6 +372,7 @@ PYBIND11_MODULE(_md, m)
         m,
         "PotentialPairDPDThermoDPDGPU");
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
+    export_PotentialPairGPU<PotentialPairTableGPU, PotentialPairTable>(m, "PotentialPairTableGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD>(
         m,
         "PotentialPairDPDLJThermoDPDGPU");
@@ -394,7 +393,6 @@ PYBIND11_MODULE(_md, m)
         m,
         "PotentialSpecialPairCoulombGPU");
     export_BondTablePotentialGPU(m);
-    export_TablePotentialGPU(m);
     export_HarmonicAngleForceComputeGPU(m);
     export_CosineSqAngleForceComputeGPU(m);
     export_TableAngleForceComputeGPU(m);

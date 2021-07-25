@@ -30,6 +30,7 @@
 #include "EvaluatorPairReactionField.h"
 #include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairTWF.h"
+#include "EvaluatorPairTable.h"
 #include "EvaluatorPairYukawa.h"
 #include "EvaluatorPairZBL.h"
 #include "PotentialPairDPDThermoGPU.cuh"
@@ -139,6 +140,11 @@ gpu_compute_fourier_forces(const pair_args_t& pair_args,
 //! Compute oscillating pair potential forces on the GPU with EvaluatorPairOPP
 hipError_t __attribute__((visibility("default")))
 gpu_compute_opp_forces(const pair_args_t& pair_args, const EvaluatorPairOPP::param_type* d_params);
+
+//! Compute tabulated pair potential forces on the GPU with EvaluatorPairTable
+hipError_t __attribute__((visibility("default")))
+gpu_compute_table_forces(const pair_args_t& pair_args,
+                         const EvaluatorPairTable::param_type* d_params);
 
 //! Compute oscillating pair potential forces on the GPU with EvaluatorPairOPP
 hipError_t __attribute__((visibility("default")))

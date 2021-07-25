@@ -5,7 +5,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
-#include "AnalyzerSDF.h"
+#include "ComputeSDF.h"
 #include "ShapeConvexPolygon.h"
 #include "ShapeConvexPolyhedron.h"
 #include "ShapeEllipsoid.h"

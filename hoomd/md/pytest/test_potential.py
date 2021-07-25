@@ -128,10 +128,10 @@ def _make_invalid_param_dict(valid_dict):
         # Set one invalid argument per dictionary
         # Set two invalid arguments per key
         valid_value = invalid_dicts[count][key]
-        if not isinstance(valid_value, list):
+        if not isinstance(valid_value, (list, np.ndarray)):
             invalid_dicts[count][key] = [1, 2]
             invalid_count += 1
-        if not isinstance(valid_value, str):
+        if not isinstance(valid_value, (str, np.ndarray)):
             invalid_dicts[count + 1][key] = 'str'
             invalid_count += 1
         if invalid_count == 2:
@@ -298,6 +298,14 @@ def _invalid_params():
     ljgauss_invalid_dicts = _make_invalid_param_dict(ljgauss_valid_dict)
     invalid_params_list.extend(
         _make_invalid_params(ljgauss_invalid_dicts, hoomd.md.pair.LJGauss, {}))
+    table_valid_dict = {
+        'V': np.arange(0, 20, 1) / 10,
+        'F': np.asarray(20 * [-1.9 / 2.5]),
+        'r_min': 0.0
+    }
+    table_invalid_dicts = _make_invalid_param_dict(table_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(table_invalid_dicts, hoomd.md.pair.Table, {}))
 
     tersoff_valid_dict = {
         'cutoff_thickness': 1.0,
@@ -608,6 +616,22 @@ def _valid_params(particle_types=['A', 'B']):
         paramtuple(hoomd.md.pair.LJGauss,
                    dict(zip(combos, ljgauss_valid_param_dicts)), {}))
 
+    rs = [
+        np.arange(0, 2.6, 0.1),
+        np.linspace(0.5, 2.5, 25),
+        np.arange(0.8, 2.6, 0.1)
+    ]
+    Vs = [r[::-1] * 5 for r in rs]
+    Fs = [-1 * np.diff(V) / np.diff(r) for V, r in zip(Vs, rs)]
+    table_arg_dict = {
+        'V': [V[:-1] for V in Vs],
+        'F': Fs,
+        'r_min': [r[0] for r in rs]
+    }
+    table_valid_param_dicts = _make_valid_param_dicts(table_arg_dict)
+    valid_params_list.append(
+        paramtuple(hoomd.md.pair.Table,
+                   dict(zip(combos, table_valid_param_dicts)), {}))
     return valid_params_list
 
 
@@ -801,10 +825,13 @@ def _calculate_force(sim):
 
     Finds the negative derivative of energy divided by inter-particle distance
     """
+    dr = 1e-6
+
     snap = sim.state.snapshot
     if snap.communicator.rank == 0:
-        initial_pos = snap.particles.position
-        snap.particles.position[1] = initial_pos[1] * 0.99999999
+        initial_pos = np.array(snap.particles.position)
+        snap.particles.position[1, 0] = initial_pos[1, 0] - dr
+
     sim.state.snapshot = snap
     E0 = sim.operations.integrator.forces[0].energies
     snap = sim.state.snapshot
@@ -814,16 +841,18 @@ def _calculate_force(sim):
         mag_r0 = np.linalg.norm(r0)
         direction = r0 / mag_r0
 
-        snap.particles.position[1] = initial_pos[1] * 1.00000001
+        snap.particles.position[1, 0] = initial_pos[1, 0] + dr
+
     sim.state.snapshot = snap
     E1 = sim.operations.integrator.forces[0].energies
+
     snap = sim.state.snapshot
     if snap.communicator.rank == 0:
         pos = snap.particles.position
         mag_r1 = np.linalg.norm(pos[0] - pos[1])
+        Fa = -1 * ((sum(E1) - sum(E0)) / (mag_r1 - mag_r0)) * direction
+        Fb = -Fa
 
-        Fa = -1 * ((E1[0] - E0[0]) / (mag_r1 - mag_r0)) * 2 * direction
-        Fb = -1 * ((E1[1] - E0[1]) / (mag_r1 - mag_r0)) * 2 * direction * -1
     snap = sim.state.snapshot
     if snap.communicator.rank == 0:
         snap.particles.position[1] = initial_pos[1]

@@ -195,13 +195,12 @@ class PotentialPair : public ForceCompute
     computeEnergyBetweenSetsPythonList(pybind11::array_t<int, pybind11::array::c_style> tags1,
                                        pybind11::array_t<int, pybind11::array::c_style> tags2);
 
-    std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type>& params) const
+    std::vector<std::string> getTypeShapeMapping() const
         {
-        ArrayHandle<param_type> h_params(params, access_location::host, access_mode::read);
         std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
         for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
             {
-            evaluator eval(Scalar(0.0), Scalar(0.0), h_params.data[m_typpair_idx(i, i)]);
+            evaluator eval(Scalar(0.0), Scalar(0.0), m_params[m_typpair_idx(i, i)]);
             type_shape_mapping[i] = eval.getShapeSpec();
             }
         return type_shape_mapping;
@@ -213,8 +212,10 @@ class PotentialPair : public ForceCompute
     Index2D m_typpair_idx;        //!< Helper class for indexing per type pair arrays
     GlobalArray<Scalar> m_rcutsq; //!< Cutoff radius squared per type pair
     GlobalArray<Scalar> m_ronsq;  //!< ron squared per type pair
-    GlobalArray<param_type> m_params; //!< Pair parameters per type pair
-    std::string m_prof_name;          //!< Cached profiler name
+
+    /// Per type pair potential parameters
+    std::vector<param_type, managed_allocator<param_type>> m_params;
+    std::string m_prof_name; //!< Cached profiler name
 
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
@@ -245,12 +246,15 @@ class PotentialPair : public ForceCompute
     virtual void slotNumTypesChange()
         {
         Index2D new_type_pair_idx = Index2D(m_pdata->getNTypes());
+        std::vector<param_type, managed_allocator<param_type>> new_params(
+            new_type_pair_idx.getNumElements(),
+            param_type(),
+            managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
         // allocate new parameter arrays
         GlobalArray<Scalar> new_rcutsq(new_type_pair_idx.getNumElements(), m_exec_conf);
         GlobalArray<Scalar> new_r_cut_nlist(new_type_pair_idx.getNumElements(), m_exec_conf);
         GlobalArray<Scalar> new_ronsq(new_type_pair_idx.getNumElements(), m_exec_conf);
-        GlobalArray<param_type> new_params(new_type_pair_idx.getNumElements(), m_exec_conf);
 
             {
             // copy existing data into them
@@ -268,12 +272,6 @@ class PotentialPair : public ForceCompute
                                             access_location::host,
                                             access_mode::overwrite);
             ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::overwrite);
-            ArrayHandle<param_type> h_new_params(new_params,
-                                                 access_location::host,
-                                                 access_mode::overwrite);
-            ArrayHandle<param_type> h_params(m_params,
-                                             access_location::host,
-                                             access_mode::overwrite);
 
             // copy over entries that are valid in both the new and old matrices
             unsigned int copy_w = std::min(new_type_pair_idx.getW(), m_typpair_idx.getW());
@@ -287,7 +285,7 @@ class PotentialPair : public ForceCompute
                     h_new_r_cut_nlist.data[new_type_pair_idx(i, j)]
                         = h_r_cut_nlist.data[m_typpair_idx(i, j)];
                     h_new_ronsq.data[new_type_pair_idx(i, j)] = h_ronsq.data[m_typpair_idx(i, j)];
-                    h_new_params.data[new_type_pair_idx(i, j)] = h_params.data[m_typpair_idx(i, j)];
+                    new_params[new_type_pair_idx(i, j)] = m_params[m_typpair_idx(i, j)];
                     }
                 }
             }
@@ -315,8 +313,8 @@ class PotentialPair : public ForceCompute
                           m_ronsq.getNumElements() * sizeof(Scalar),
                           cudaMemAdviseSetReadMostly,
                           0);
-            cudaMemAdvise(m_params.get(),
-                          m_params.getNumElements() * sizeof(param_type),
+            cudaMemAdvise(m_params.data(),
+                          m_params.size() * sizeof(param_type),
                           cudaMemAdviseSetReadMostly,
                           0);
 
@@ -332,8 +330,8 @@ class PotentialPair : public ForceCompute
                 cudaMemPrefetchAsync(m_ronsq.get(),
                                      sizeof(Scalar) * m_ronsq.getNumElements(),
                                      gpu_map[idev]);
-                cudaMemPrefetchAsync(m_params.get(),
-                                     sizeof(param_type) * m_params.getNumElements(),
+                cudaMemPrefetchAsync(m_params.data(),
+                                     sizeof(param_type) * m_params.size(),
                                      gpu_map[idev]);
                 }
             CHECK_CUDA_ERROR();
@@ -364,8 +362,10 @@ PotentialPair<evaluator, extra_pkg>::PotentialPair(std::shared_ptr<SystemDefinit
     m_rcutsq.swap(rcutsq);
     GlobalArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_ronsq.swap(ronsq);
-    GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
-    m_params.swap(params);
+    m_params = std::vector<param_type, managed_allocator<param_type>>(
+        m_typpair_idx.getNumElements(),
+        param_type(),
+        managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
     m_r_cut_nlist
         = std::make_shared<GlobalArray<Scalar>>(m_typpair_idx.getNumElements(), m_exec_conf);
@@ -382,8 +382,8 @@ PotentialPair<evaluator, extra_pkg>::PotentialPair(std::shared_ptr<SystemDefinit
                       m_ronsq.getNumElements() * sizeof(Scalar),
                       cudaMemAdviseSetReadMostly,
                       0);
-        cudaMemAdvise(m_params.get(),
-                      m_params.getNumElements() * sizeof(param_type),
+        cudaMemAdvise(m_params.data(),
+                      m_params.size() * sizeof(param_type),
                       cudaMemAdviseSetReadMostly,
                       0);
 
@@ -399,8 +399,8 @@ PotentialPair<evaluator, extra_pkg>::PotentialPair(std::shared_ptr<SystemDefinit
             cudaMemPrefetchAsync(m_ronsq.get(),
                                  sizeof(Scalar) * m_ronsq.getNumElements(),
                                  gpu_map[idev]);
-            cudaMemPrefetchAsync(m_params.get(),
-                                 sizeof(param_type) * m_params.getNumElements(),
+            cudaMemPrefetchAsync(m_params.data(),
+                                 sizeof(param_type) * m_params.size(),
                                  gpu_map[idev]);
             }
         }
@@ -442,9 +442,8 @@ void PotentialPair<evaluator, extra_pkg>::setParams(unsigned int typ1,
                                                     const param_type& param)
     {
     validateTypes(typ1, typ2, "setting params");
-    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
-    h_params.data[m_typpair_idx(typ1, typ2)] = param;
-    h_params.data[m_typpair_idx(typ2, typ1)] = param;
+    m_params[m_typpair_idx(typ1, typ2)] = param;
+    m_params[m_typpair_idx(typ2, typ1)] = param;
     }
 
 template<class evaluator, typename extra_pkg>
@@ -453,7 +452,7 @@ void PotentialPair<evaluator, extra_pkg>::setParamsPython(pybind11::tuple typ,
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
-    setParams(typ1, typ2, param_type(params));
+    setParams(typ1, typ2, param_type(params, m_exec_conf->isCUDAEnabled()));
     }
 
 template<class evaluator, typename extra_pkg>
@@ -463,8 +462,7 @@ pybind11::dict PotentialPair<evaluator, extra_pkg>::getParams(pybind11::tuple ty
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
     validateTypes(typ1, typ2, "setting params");
 
-    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-    return h_params.data[m_typpair_idx(typ1, typ2)].asDict();
+    return m_params[m_typpair_idx(typ1, typ2)].asDict();
     }
 
 template<class evaluator, typename extra_pkg>
@@ -575,7 +573,7 @@ int PotentialPair<evaluator, extra_pkg>::slotWriteGSDShapeSpec(gsd_handle& handl
     GSDShapeSpecWriter shapespec(m_exec_conf);
     m_exec_conf->msg->notice(10) << "PotentialPair writing to GSD File to name: "
                                  << shapespec.getName() << std::endl;
-    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
+    int retval = shapespec.write(handle, this->getTypeShapeMapping());
     return retval;
     }
 
@@ -623,7 +621,6 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
     const BoxDim& box = m_pdata->getGlobalBox();
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
-    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
@@ -695,7 +692,7 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
 
             // get parameters for this type pair
             unsigned int typpair_idx = m_typpair_idx(typei, typej);
-            param_type param = h_params.data[typpair_idx];
+            param_type param = m_params[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
             Scalar ronsq = Scalar(0.0);
             if (m_shift_mode == xplor)
@@ -890,7 +887,6 @@ inline void PotentialPair<evaluator, extra_pkg>::computeEnergyBetweenSets(InputI
     const BoxDim& box = m_pdata->getGlobalBox();
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
-    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
     // for each particle in tags1
     while (first1 != last1)
@@ -945,7 +941,7 @@ inline void PotentialPair<evaluator, extra_pkg>::computeEnergyBetweenSets(InputI
 
             // get parameters for this type pair
             unsigned int typpair_idx = m_typpair_idx(typei, typej);
-            param_type param = h_params.data[typpair_idx];
+            const param_type& param = m_params[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
             Scalar ronsq = Scalar(0.0);
             if (m_shift_mode == xplor)

@@ -10,6 +10,7 @@ from hoomd.md import force
 from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
+import numpy as np
 from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, positive_real,
                                       nonnegative_real)
 
@@ -523,6 +524,95 @@ class Ewald(Pair):
             'params', 'particle_types',
             TypeParameterDict(kappa=float, alpha=0.0, len_keys=2))
 
+        self._add_typeparam(params)
+
+
+class Table(Pair):
+    """Tabulated pair potential.
+
+    Args:
+        nlist (`hoomd.md.nlist.NList`): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\\mathrm{length}]`.
+
+    `Table` specifies that a tabulated pair potential should be applied between
+    every non-excluded particle pair in the simulation in the range
+    :math:`[r_{\\mathrm{min}}, r_{\\mathrm{cut}})`
+
+    Note:
+        For potentials that diverge near r=0, to set *r_min* to a non-zero
+        value.
+
+    The force :math:`\\vec{F}` is:
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        \\vec{F}(\\vec{r}) = & 0 & r < r_{\\mathrm{min}} \\\\
+                           = & F(r)\\hat{r}
+                             & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
+                           = & 0 & r \\ge r_{\\mathrm{max}} \\\\
+        \\end{eqnarray*}
+
+    and the potential :math:`V(r)` is:
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        V(r) = & 0 & r < r_{\\mathrm{min}} \\\\
+             = & V(r)
+               & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
+             = & 0 & r \\ge r_{\\mathrm{max}} \\\\
+        \\end{eqnarray*}
+
+    where :math:`\\vec{r}` is the vector pointing from one particle to the other
+    in the pair.
+
+    Provide :math:`F(r)` and :math:`V(r)` on an evenly space set of grid points
+    points between :math:`r_{\\mathrm{min}}` and :math:`r_{\\mathrm{cut}}`.
+    `Table` linearly interpolates values when :math:`r` lies between grid points
+    and between the last grid point and :math:`r=r_{\\mathrm{cut}}`.  The force
+    must be specificed commensurate with the potential: :math:`F =
+    -\\frac{\\partial V}{\\partial r}`.
+
+    `Table` does not support energy shifting or smoothing modes.
+
+    Attributes:
+        params (`TypeParameter` [\
+          `tuple` [``particle_type``, ``particle_type``],\
+          `dict`]):
+          The potential parameters. The dictionary has the following keys:
+
+          * ``r_min`` (`float`, **required**) - the minimum distance to apply
+            the tabulated potential, corresponding to the first element of the
+            energy and force arrays :math:`[\\mathrm{length}]`.
+
+          * ``V`` ((*N*,) `numpy.ndarray` of `float`, **required**) -
+            the tabulated energy values :math:`[\\mathrm{energy}]`.
+
+          * ``F`` ((*N*,) `numpy.ndarray` of `float`, **required**) -
+            the tabulated force values :math:`[\\mathrm{force}]`. Must have the
+            same length as ``V``.
+
+    Note:
+
+        The implicitly defined :math:`r` values are those that would be returned
+        by ``numpy.linspace(r_min, r_cut, len(V), endpoint=False)``.
+    """
+    _cpp_class_name = "PotentialPairTable"
+    _accepted_modes = ("none",)
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
+        super().__init__(nlist, default_r_cut, default_r_on, 'none')
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(
+                r_min=float,
+                V=hoomd.data.typeconverter.NDArrayValidator(np.float64),
+                F=hoomd.data.typeconverter.NDArrayValidator(np.float64),
+                len_keys=2))
         self._add_typeparam(params)
 
 
@@ -1795,8 +1885,8 @@ class LJGauss(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        default_r_cut (float): Default cutoff radius (in distance units).
+        default_r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mod
 
     `LJGauss` specifies that a Lennard-Jones-Gauss pair potential should be
@@ -1818,12 +1908,12 @@ class LJGauss(Pair):
     .. py:attribute:: params
         The potential parameters. The dictionary has the following keys:
 
-        * ``epsilon`` (`float`, **required**) - energy parameter
-          :math:`\\varepsilon` (in energy units)
-        * ``sigma2`` (`float`, **required**) - Gaussian variance
-          :math:`\\sigma^2` (in squared distance units)
-        * ``r0`` (`float`, **required**) - Gaussian center
-          :math:`\\r_0` (in distance units)
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[energy]`
+        * ``sigma2`` (`float`, **required**) - 
+          Gaussian variance :math:`\\sigma^2` :math:`[\mathrm{length}^2]`
+        * ``r0`` (`float`, **required**) - 
+          Gaussian center :math:`\\r_0` :math:`[distance]`
 
     Example::
 
