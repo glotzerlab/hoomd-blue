@@ -1,4 +1,8 @@
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 // Maintainer: jproc
+
 #ifndef __PAIR_EVALUATOR_LJGAUSS_H__
 #define __PAIR_EVALUATOR_LJGAUSS_H__
 
@@ -19,8 +23,10 @@
 // compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 //! Class for evaluating the LJGauss pair potential
@@ -45,6 +51,10 @@ class EvaluatorPairLJGauss
         Scalar sigma2;
         Scalar r0;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
         void set_memory_hint() const
@@ -56,7 +66,7 @@ class EvaluatorPairLJGauss
 #ifndef __HIPCC__
         param_type() : epsilon(0), sigma2(1.0), r0(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             epsilon = v["epsilon"].cast<Scalar>();
             sigma2 = v["sigma2"].cast<Scalar>();
@@ -72,7 +82,7 @@ class EvaluatorPairLJGauss
             return v;
             }
 #endif
-        };
+        } __attribute__((aligned(16)));
 
     // static const std::map<unsigned int, std::string> param_order;
 
