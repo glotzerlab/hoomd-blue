@@ -1416,6 +1416,13 @@ void PPPMForceCompute::computeForces(uint64_t timestep)
             computeBodyCorrection();
             }
 
+        if (m_nlist->getDiameterShift())
+            {
+            m_exec_conf->msg->warning()
+                << "Neighbor diameter shifting is enabled, "
+                   "PPPM may not correct for all excluded interactions" << std::endl;
+            }
+
         m_need_initialize = false;
         m_ptls_added_removed = false;
         }
