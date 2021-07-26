@@ -62,16 +62,17 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
     method is sensitive to the cutoff for the real space part, the order of
     interpolation and grid resolution.
 
-    `J. W. Eastwood, R. W. Hockney, and D. N. Lawrence 1980`_ describes the
-    algorithm. `D. LeBard et. al. 2012`_ describes the implementation in
-    HOOMD-blue. Please cite it if you utilize this functionality in your work.
+    * `J. W. Eastwood, R. W. Hockney, and D. N. Lawrence 1980`_ describes the
+      algorithm.
+    * `D. LeBard et. al. 2012`_ describes the implementation in
+      HOOMD-blue. Please cite it if you utilize this functionality in your work.
 
     The Debye screening parameter :math:`\\alpha` enables the screening of
-    electrostatic interactions following the `md.pair.Yukawa` potential. Use
-    `md.long_range.pppm.Coulomb` with a non-zeo :math:`\\alpha` to compute
-    screened electrostatic interactions when the cutoff is so large that the
-    short ranged interactions are inefficient. See `Salin, G and Caillol, J.
-    2000`_ for details.
+    electrostatic interactions with the same functional form as the short range
+    `md.pair.Yukawa` potential. Use `md.long_range.pppm.Coulomb` with a non-zeo
+    :math:`\\alpha` to compute screened electrostatic interactions when the
+    cutoff is so large that the short ranged interactions are inefficient. See
+    `Salin, G and Caillol, J. 2000`_ for details.
 
     Warning:
         In MPI simulations with multiple ranks, the grid resolution must be a
@@ -83,9 +84,9 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
         Add both of these forces to the integrator.
 
     Warning:
-        Do not change force or neighborlist parameters after calling
-        `make_pppm_coulomb_forces`. It sets all parameters for the returned
-        `Force` objects appropriately.
+        `make_pppm_coulomb_forces` sets all parameters for the returned
+        `Force` objects appropriately. Do not change the parameters of
+        ``real_space_force`` directly.
 
     .. _J. W. Eastwood, R. W. Hockney, and D. N. Lawrence 1980:
       https://doi.org/10.1063/1.464397
@@ -94,12 +95,12 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
 
     .. _Salin, G and Caillol, J. 2000: http://dx.doi.org/10.1063/1.1326477
     """
-    real_space_force = hoomd.md.pair.Ewald()
+    real_space_force = hoomd.md.pair.Ewald(nlist)
 
     # the real space force may be attached before the reciprocal space one
     # set default parameters to avoid errors in this case
-    real_space_force.default = dict(kappa=0, alpha=0)
-    real_space_force.r_cut.default = rcut
+    real_space_force.params.default = dict(kappa=0, alpha=0)
+    real_space_force.r_cut.default = r_cut
 
     reciprocal_space_force = Coulomb(nlist=nlist,
                                      resolution=resolution,
@@ -131,7 +132,8 @@ class Coulomb(Force):
     """
 
     def __init__(self, nlist, resolution, order, r_cut, alpha, pair_force):
-        self._nlist = hoomd.data.typeconverter.OnlyTypes(hoomd.md.nlist.NList)
+        self._nlist = hoomd.data.typeconverter.OnlyTypes(
+            hoomd.md.nlist.NList)(nlist)
         self._param_dict.update(
             hoomd.data.parameterdicts.ParameterDict(resolution=(int, int, int),
                                                     order=int,
@@ -160,22 +162,25 @@ class Coulomb(Force):
         else:
             cls = hoomd.md._md.PPPMForceComputeGPU
 
+        # Access set parameters before attaching. These values are needed to
+        # compute derived parameters before all paramters are given to the
+        # _cpp_obj at the end.
+        Nx, Ny, Nz = self.resolution
+        order = self.order
+        rcut = self.r_cut
+        alpha = self.alpha
+
         group = self._simulation.state._get_group(hoomd.filter.All())
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
                             self.nlist._cpp_obj, group)
 
-        # set parameters
+        # compute the kappa parameter
         q2 = self._cpp_obj.getQ2Sum()
         N = self._simulation.state.N_particles
         box = self._simulation.state.box
         Lx = box.Lx
         Ly = box.Ly
         Lz = box.Lz
-
-        Nx, Ny, Nz = self.resolution
-        order = self.order
-        rcut = self.r_cut
-        alpha = self.alpha
 
         hx = Lx / Nx
         hy = Ly / Ny
@@ -214,14 +219,22 @@ class Coulomb(Force):
                 raise RuntimeError("Cannot compute PPPM\n"
                                    "kappa is not converging")
 
+        # set parameters
         particle_types = self._simulation.state.particle_types
-        self._pair_force.params[(particle_types,
-                                 particle_types)] = dict(kappa=kappa,
-                                                         alpha=alpha)
-        self._pair_force.r_cut[(particle_types, particle_types)] = rcut
 
-        # set the parameters for the appropriate type
-        self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha)
+        # this doesn't work: #1068
+        # self._pair_force.params[(particle_types,
+        #                          particle_types)] = dict(kappa=kappa,
+        #                                                  alpha=alpha)
+        # self._pair_force.r_cut[(particle_types, particle_types)] = rcut
+
+        # workaround
+        for a in particle_types:
+            for b in particle_types:
+                self._pair_force.params[(a, b)] = dict(kappa=kappa, alpha=alpha)
+                self._pair_force.r_cut[(a, b)] = rcut
+
+        self._cpp_obj.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha)
 
         super()._attach()
 
@@ -235,7 +248,8 @@ class Coulomb(Force):
         if self._attached:
             raise RuntimeError("nlist cannot be set after scheduling.")
         else:
-            self._nlist = hoomd.data.typeconverter.OnlyTypes(value)
+            self._nlist = hoomd.data.typeconverter.OnlyTypes(
+                hoomd.md.nlist.NList)(value)
 
     @property
     def _children(self):
