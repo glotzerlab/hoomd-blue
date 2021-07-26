@@ -127,25 +127,21 @@ def test_configuration(s):
 
 def generate_outside(box, interior_points, multipliers, initial_images):
     """Generate test cases from interior points by adding box vectors."""
-    # construct unit cell from box vectors
-    # see
-    # hoomd-blue.readthedocs.io/en/latest/package-hoomd.html#hoomd.Box.from_matrix # noqa
-    a = numpy.array([box[0], 0, 0])
-    b = numpy.array([box[1] * box[3], box[1], 0])
-    c = numpy.array([box[2] * box[4], box[2] * box[5], box[2]])
+    box = hoomd.Box.from_box(box)
+    lattice_vectors = box.lattice_vectors
     input_points = numpy.zeros(
         (len(interior_points), len(multipliers), len(initial_images), 3))
     check_points = numpy.zeros_like(input_points)
     input_images = numpy.zeros_like(input_points, dtype=int)
     check_images = numpy.zeros_like(input_points, dtype=int)
     for i, inside_point in enumerate(interior_points):
-        for j, f in enumerate(multipliers):
+        for j, factor in enumerate(multipliers):
             for k, image in enumerate(initial_images):
                 input_points[
-                    i, j, k, :] = a * f[0] + b * f[1] + c * f[2] + inside_point
+                    i, j, k, :] = lattice_vectors.T @ numpy.array(factor) + inside_point
                 check_points[i, j, k, :] = inside_point
                 input_images[i, j, k, :] = image
-                check_images[i, j, k, :] = numpy.array(image) + numpy.array(f)
+                check_images[i, j, k, :] = numpy.array(image) + numpy.array(factor)
     return input_points.reshape((-1, 3)), check_points.reshape(
         (-1, 3)), input_images.reshape((-1, 3)), check_images.reshape((-1, 3))
 
