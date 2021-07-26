@@ -138,11 +138,12 @@ def generate_outside(box, interior_points, multipliers, initial_images):
     for i, inside_point in enumerate(interior_points):
         for j, factor in enumerate(multipliers):
             for k, image in enumerate(initial_images):
-                input_points[
-                    i, j, k, :] = lattice_vectors.T @ numpy.array(factor) + inside_point
+                input_points[i, j, k, :] = lattice_vectors.T @ numpy.array(
+                    factor) + inside_point
                 check_points[i, j, k, :] = inside_point
                 input_images[i, j, k, :] = image
-                check_images[i, j, k, :] = numpy.array(image) + numpy.array(factor)
+                check_images[i, j,
+                             k, :] = numpy.array(image) + numpy.array(factor)
     return input_points.reshape((-1, 3)), check_points.reshape(
         (-1, 3)), input_images.reshape((-1, 3)), check_images.reshape((-1, 3))
 
@@ -160,6 +161,7 @@ def run_box_type(s, box, interior_points, multiples, initial_images):
                                   check_points,
                                   atol=1e-12)
     numpy.testing.assert_array_equal(s.particles.image, check_images)
+
 
 # Multiples of lattice vectors to add to interior points
 multiples = numpy.array([
@@ -182,6 +184,7 @@ test_images = multiples
 
 multiples2d = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0],
                [-1, -1, 0], [1, 1, 0], [-10, 20, 0]]
+
 
 def test_wrap_cubic(s):
     if s.communicator.rank == 0:
