@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import hoomd
 from hoomd import md
 
 
@@ -66,3 +67,26 @@ def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
     _assert_correct_params(fire, new_params)
 
     _set_and_check_new_params(fire)
+
+
+def test_run_minimization(lattice_snapshot_factory, simulation_factory):
+    snap = lattice_snapshot_factory(a=0.9, n=5)
+    sim = simulation_factory(snap)
+
+    lj = md.pair.LJ(default_r_cut=2.5, nlist=md.nlist.Cell())
+    lj.params[('A', 'A')] = dict(sigma=1.0, epsilon=1.0)
+    nve = md.methods.NVE(hoomd.filter.All())
+
+    fire = md.minimize.FIRE(dt=0.0025)
+    fire.force_tol = 1e-5
+    fire.energy_tol = 1e-10
+
+    sim.operations.integrator = fire
+    fire.methods.append(nve)
+    sim.run(10)
+
+
+    # TODO I would also like to see a test where the md integrator and fire
+    # are switched out during a short run, because that is a common use case
+
+    # TODO might also need a pickling test
