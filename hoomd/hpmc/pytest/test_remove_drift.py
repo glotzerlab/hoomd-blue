@@ -172,7 +172,7 @@ def test_remove_drift(simulation_factory, lattice_snapshot_factory):
         box = s.configuration.box[0:3]
         new_positions = s.particles.position
         # unwrap positions
-        new_positions += s.particles.image*box
+        new_positions += s.particles.image * box
         drift = np.mean(reference_positions - new_positions, axis=0)
         assert np.allclose(drift, [0, 0, 0], atol=0.005, rtol=0)
 
