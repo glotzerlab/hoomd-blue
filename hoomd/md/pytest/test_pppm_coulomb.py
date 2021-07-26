@@ -30,8 +30,8 @@ def two_charged_particle_snapshot_factory(two_particle_snapshot_factory):
     return make_snapshot
 
 
-
-def test_attach_detach(simulation_factory, two_charged_particle_snapshot_factory):
+def test_attach_detach(simulation_factory,
+                       two_charged_particle_snapshot_factory):
     """Ensure that md.long_range.pppm.Coulomb can be attached.
 
     Also test that parameters can be set.
