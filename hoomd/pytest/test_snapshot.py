@@ -136,8 +136,8 @@ def generate_outside(box, interior_points, multipliers, initial_images):
     input_points = numpy.zeros(
         (len(interior_points), len(multipliers), len(initial_images), 3))
     check_points = numpy.zeros_like(input_points)
-    input_images = numpy.zeros_like(input_points)
-    check_images = numpy.zeros_like(input_points)
+    input_images = numpy.zeros_like(input_points, dtype=int)
+    check_images = numpy.zeros_like(input_points, dtype=int)
     for i, inside_point in enumerate(interior_points):
         for j, f in enumerate(multipliers):
             for k, image in enumerate(initial_images):
