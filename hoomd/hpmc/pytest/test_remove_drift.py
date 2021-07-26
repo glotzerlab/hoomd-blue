@@ -144,7 +144,7 @@ def test_remove_drift(simulation_factory, lattice_snapshot_factory):
                                  n=10,
                                  r=0))
     sim.seed = 19233
-    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.5, default_a=0.5)
     mc.shape["A"] = dict(diameter=1.0)
     sim.operations.integrator = mc
 
@@ -158,7 +158,7 @@ def test_remove_drift(simulation_factory, lattice_snapshot_factory):
     reference_positions = comm.bcast(reference_positions, root=0)
 
     # randomize a bit
-    sim.run(100)
+    sim.run(500)
 
     # remove the drift from the previous run
     remove_drift = hoomd.hpmc.update.RemoveDrift(
@@ -169,9 +169,12 @@ def test_remove_drift(simulation_factory, lattice_snapshot_factory):
 
     s = sim.state.snapshot
     if s.communicator.rank == 0:
-        reference_com = np.mean(reference_positions, axis=0)
-        new_com = np.mean(s.particles.position, axis=0)
-        assert np.allclose(reference_com, new_com, atol=0.05)
+        box = s.configuration.box[0:3]
+        new_positions = s.particles.position
+        # unwrap positions
+        new_positions += s.particles.image*box
+        drift = np.mean(reference_positions - new_positions, axis=0)
+        assert np.allclose(drift, [0, 0, 0], atol=0.005, rtol=0)
 
 
 @pytest.mark.cpu
