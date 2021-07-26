@@ -67,6 +67,14 @@ template<class Shape> class RemoveDriftUpdater : public Updater
                                                     rawdata[array_index + 1],
                                                     rawdata[array_index + 2]);
             }
+
+#ifdef ENABLE_MPI
+        if (this->m_pdata->getDomainDecomposition())
+            {
+            bcast(m_ref_positions, 0, m_exec_conf->getMPICommunicator());
+            }
+#endif
+
         }
 
     //! Get reference positions as a Nx3 numpy array
