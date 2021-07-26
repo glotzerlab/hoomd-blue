@@ -1,4 +1,5 @@
 from hoomd.snapshot import Snapshot
+from hoomd import Box
 import numpy
 import pytest
 from hoomd.pytest.test_simulation import make_gsd_snapshot
@@ -127,7 +128,7 @@ def test_configuration(s):
 
 def generate_outside(box, interior_points, multipliers, initial_images):
     """Generate test cases from interior points by adding box vectors."""
-    box = hoomd.Box.from_box(box)
+    box = Box.from_box(box)
     lattice_vectors = box.lattice_vectors
     input_points = numpy.zeros(
         (len(interior_points), len(multipliers), len(initial_images), 3))
