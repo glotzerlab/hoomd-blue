@@ -337,7 +337,6 @@ install(TARGETS _md EXPORT HOOMDTargets
 set(files __init__.py
           angle.py
           bond.py
-          charge.py
           compute.py
           constrain.py
           dihedral.py

@@ -9,7 +9,6 @@ Perform Molecular Dynamics simulations with HOOMD-blue.
 
 from hoomd.md import angle
 from hoomd.md import bond
-from hoomd.md import charge
 from hoomd.md import compute
 from hoomd.md import constrain
 from hoomd.md import dihedral

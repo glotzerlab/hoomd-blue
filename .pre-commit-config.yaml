@@ -43,7 +43,6 @@ repos:
     # These also need to be removed in setup.cfg
     exclude: |
       (?x)(
-        ^hoomd/md/charge.py|
         ^hoomd/md/wall.py|
         ^hoomd/md/impropers.py|
         ^hoomd/md/constrain.py|
