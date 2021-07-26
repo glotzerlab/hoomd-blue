@@ -389,11 +389,11 @@ class Tether(Bond):
     :py:class:`Tether` specifies a Tethering potential energy between two
     particles in each defined bond.
 
-    The tethered network is described in Refs. 
-    `Gompper, G. & Kroll, D. M. in Statistical Mechanics of Membranes and 
+    The tethered network is described in Refs.
+    `Gompper, G. & Kroll, D. M. in Statistical Mechanics of Membranes and
     Surfaces 2nd edn (eds Nelson, D. R. et al.) 359-426 (World Scientific, 2004)
     <https://www.worldscientific.com/worldscibooks/10.1142/5473>`_ and `Noguchi
-    , H. & Gompper, G., Phys. Rev. E 72 011901 (2005) 
+    , H. & Gompper, G., Phys. Rev. E 72 011901 (2005)
     <https://link.aps.org/doi/10.1103/PhysRevE.72.011901>`_.
 
     .. math::
