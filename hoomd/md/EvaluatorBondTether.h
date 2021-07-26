@@ -151,12 +151,17 @@ class EvaluatorBondTether
             }
         if (k_b != Scalar(0.0))
             {
-            force_divr = (F_att + F_rep) / r;
+            // Check if bond length restriction is violated
+            if (rsq >= l_max * l_max)
+                return false;
+            if (rsq <= l_min * l_min)
+                return false;
 
+            force_divr = (F_att + F_rep) / r;
             bond_eng = U_att + U_rep;
             }
 
-        return false;
+        return true;
         }
 
 #ifndef __HIPCC__
