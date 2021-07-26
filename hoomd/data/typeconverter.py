@@ -339,7 +339,7 @@ class NDArrayValidator(_HelpValidate):
 
     def _validate(self, arr):
         """Validate an array or array-like object."""
-        typed_and_ordered = array(arr, dtype=self._dtype, order=self._order)
+        typed_and_ordered = np.array(arr, dtype=self._dtype, order=self._order)
         if len(typed_and_ordered.shape) != len(self._shape):
             raise ValueError(
                 f"Expected array of {len(self._shape)} dimensions, but "
