@@ -136,6 +136,6 @@ def test_pppm_energy(simulation_factory, two_charged_particle_snapshot_factory):
 
     energy = ewald.energy + coulomb.energy
 
-    # The reference energy is from a LAMMPS simulation. The tolerance is loose
+    # The reference energy is from a LAMMPS simulation. The tolerance is large
     # as the PPPM parameters do not directly map between the two codes
     numpy.testing.assert_allclose(energy, -1.0021254, rtol=1e-2)
