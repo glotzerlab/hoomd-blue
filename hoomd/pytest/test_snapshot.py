@@ -163,7 +163,6 @@ def run_box_type(s, box, interior_points, multiples, initial_images):
                                   check_points,
                                   atol=1e-12)
     numpy.testing.assert_array_equal(s.particles.image, check_images)
-    return
 
 
 # multiples of lattice vectors to add to interior points to generate
