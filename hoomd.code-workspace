@@ -86,20 +86,28 @@
             "__nullptr": "cpp"
         },
         "cSpell.words": [
+            "Berendsen",
             "Frenkel",
             "GPUs",
             "HOOMD",
+            "Hirasawa",
             "Jens",
             "Jupyter",
             "Jupyter's",
+            "Simulation",
             "Spheropolygon",
             "Spheropolyhedron",
+            "Verlet",
+            "Yoneya",
             "asarray",
             "cmake",
             "cpptools",
             "cuda",
             "dtype",
             "hpmc",
+            "joaander",
+            "langevin",
+            "mathrm",
             "noqa",
             "nselect",
             "numpy",
@@ -123,8 +131,7 @@
             "uint",
             "unmap",
             "verts",
-            "yapf",
-            "mathrm"
+            "yapf"
         ]
     }
 }
