@@ -180,6 +180,8 @@ multiples = numpy.array([
 
 test_images = multiples
 
+multiples2d = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0],
+               [-1, -1, 0], [1, 1, 0], [-10, 20, 0]]
 
 def test_wrap_cubic(s):
     if s.communicator.rank == 0:
@@ -206,8 +208,6 @@ def test_wrap_triclinic(s):
 
 def test_wrap_2d(s):
     if s.communicator.rank == 0:
-        multiples2d = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0],
-                       [-1, -1, 0], [1, 1, 0], [-10, 20, 0]]
         run_box_type(s,
                      box=[5, 11, 0, 0, 0, 0],
                      interior_points=[[1, 0, 0], [2.4, 5, 0], [-2.5, 0, 0],
