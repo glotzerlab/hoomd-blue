@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <typeinfo>
+#include <limits>
 
 /*! \ingroup hoomd_lib
     @{
