@@ -126,31 +126,29 @@ def test_configuration(s):
         assert s.configuration.dimensions == 3
 
 
-def generate_outside(box, interior_points, multipliers, initial_images):
+def generate_outside(box, interior_points, unwrap_images, initial_images):
     """Generate test cases from interior points by adding box vectors."""
     box = Box.from_box(box)
-    lattice_vectors = box.lattice_vectors
+    matrix = box.matrix
     input_points = numpy.zeros(
-        (len(interior_points), len(multipliers), len(initial_images), 3))
+        (len(interior_points), len(unwrap_images), len(initial_images), 3))
     check_points = numpy.zeros_like(input_points)
     input_images = numpy.zeros_like(input_points, dtype=int)
     check_images = numpy.zeros_like(input_points, dtype=int)
     for i, inside_point in enumerate(interior_points):
-        for j, factor in enumerate(multipliers):
-            for k, image in enumerate(initial_images):
-                input_points[i, j, k, :] = lattice_vectors.T @ numpy.array(
-                    factor) + inside_point
+        for j, unwrap_image in enumerate(unwrap_images):
+            for k, initial_image in enumerate(initial_images):
+                input_points[i, j, k, :] = matrix @ unwrap_image + inside_point
                 check_points[i, j, k, :] = inside_point
-                input_images[i, j, k, :] = image
-                check_images[i, j,
-                             k, :] = numpy.array(image) + numpy.array(factor)
+                input_images[i, j, k, :] = initial_image
+                check_images[i, j, k, :] = initial_image + unwrap_image
     return input_points.reshape((-1, 3)), check_points.reshape(
         (-1, 3)), input_images.reshape((-1, 3)), check_images.reshape((-1, 3))
 
 
-def run_box_type(s, box, interior_points, multiples, initial_images):
+def run_box_type(s, box, interior_points, unwrap_images, initial_images):
     (input_points, check_points, input_images,
-     check_images) = generate_outside(box, interior_points, multiples,
+     check_images) = generate_outside(box, interior_points, unwrap_images,
                                       initial_images)
     s.configuration.box = box
     s.particles.N = len(input_points)
@@ -164,7 +162,7 @@ def run_box_type(s, box, interior_points, multiples, initial_images):
 
 
 # Multiples of lattice vectors to add to interior points
-multiples = numpy.array([
+unwrap_images = numpy.array([
     [0, 0, 0],
     [1, 0, 0],
     [0, 1, 0],
@@ -180,10 +178,11 @@ multiples = numpy.array([
     [-50, -50, 50],
 ])
 
-test_images = multiples
+test_images = unwrap_images
 
-multiples2d = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0],
-               [-1, -1, 0], [1, 1, 0], [-10, 20, 0]]
+unwrap_images_2d = numpy.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0],
+                                [0, -1, 0], [-1, -1, 0], [1, 1, 0],
+                                [-10, 20, 0]])
 
 
 def test_wrap_cubic(s):
@@ -193,7 +192,7 @@ def test_wrap_cubic(s):
                      interior_points=[[0, 0, 0], [-0.5, 0.0, -0.2],
                                       [0.0, 0.3, -0.1], [0.3, 0.2, -0.1],
                                       [-0.5, 0.2, -0.2]],
-                     multiples=multiples,
+                     unwrap_images=unwrap_images,
                      initial_images=test_images)
 
 
@@ -205,7 +204,7 @@ def test_wrap_triclinic(s):
                                       [0.0, 0.3, -0.1], [0.3, 0.2, -0.1],
                                       [-0.5, 0.2, -0.2], [0, 0, -3.5],
                                       [-6.5, -6.5, -3.5]],
-                     multiples=multiples,
+                     unwrap_images=unwrap_images,
                      initial_images=test_images)
 
 
@@ -215,8 +214,8 @@ def test_wrap_2d(s):
                      box=[5, 11, 0, 0, 0, 0],
                      interior_points=[[1, 0, 0], [2.4, 5, 0], [-2.5, 0, 0],
                                       [-2.5, -5.5, 0]],
-                     multiples=multiples2d,
-                     initial_images=multiples2d)
+                     unwrap_images=unwrap_images_2d,
+                     initial_images=unwrap_images_2d)
 
 
 def test_wrap_tetragonal(s):
@@ -226,7 +225,7 @@ def test_wrap_tetragonal(s):
                      interior_points=[[0, 0, 0], [-0.5, 0.0, -0.2],
                                       [0.0, 0.3, -0.1], [0.3, 0.2, -0.1],
                                       [-0.5, 0.2, -0.2], [-3.5, -3.5, -2]],
-                     multiples=multiples,
+                     unwrap_images=unwrap_images,
                      initial_images=test_images)
 
 
@@ -237,7 +236,7 @@ def test_wrap_orthorhombic(s):
                      interior_points=[[0, 0, 0], [-0.5, 0.0, -0.2],
                                       [0.0, 0.3, -0.1], [0.3, 0.2, -0.1],
                                       [-0.5, 0.2, -0.2], [-4, -3, -2]],
-                     multiples=multiples,
+                     unwrap_images=unwrap_images,
                      initial_images=test_images)
 
 
@@ -247,7 +246,7 @@ def test_wrap_monoclinic(s):
                      box=[7, 4, 8, 0, 0.25, 0],
                      interior_points=[[-2, 1, -1], [-4, 0, -3], [2, 1, 1],
                                       [-1, 0, -4], [-4.5, -2, -4]],
-                     multiples=multiples,
+                     unwrap_images=unwrap_images,
                      initial_images=test_images)
 
 
