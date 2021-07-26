@@ -14,7 +14,6 @@ from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
 from hoomd.data.smart_default import (_to_base_defaults, _to_default,
                                       _SmartDefault, _NoDefault)
 from hoomd.error import TypeConversionError
-import numpy as np
 
 
 def has_str_elems(obj):

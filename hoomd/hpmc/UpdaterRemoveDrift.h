@@ -74,7 +74,6 @@ template<class Shape> class RemoveDriftUpdater : public Updater
             bcast(m_ref_positions, 0, m_exec_conf->getMPICommunicator());
             }
 #endif
-
         }
 
     //! Get reference positions as a Nx3 numpy array
