@@ -7,7 +7,7 @@
 from collections.abc import MutableMapping
 from itertools import product, combinations_with_replacement
 from copy import copy
-
+import numpy as np
 from hoomd.util import _to_camel_case, _is_iterable
 from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
                                       TypeConverterMapping, OnlyIf, Either)
@@ -150,7 +150,7 @@ class _ValidatedDefaultDict:
             return NotImplemented
         return (self.default == other.default
                 and set(self.keys()) == set(other.keys())
-                and all(self[key] == other[key] for key in self.keys()))
+                and np.all(self[key] == other[key] for key in self.keys()))
 
     @property
     def default(self):

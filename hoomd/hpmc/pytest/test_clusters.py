@@ -53,6 +53,7 @@ def test_valid_construction_and_attach(device, simulation_factory,
     """Test that Clusters can be attached with valid arguments."""
     integrator = valid_args[0]
     args = valid_args[1]
+    n_dimensions = valid_args[2]
     # Need to unpack union integrators
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
@@ -67,10 +68,9 @@ def test_valid_construction_and_attach(device, simulation_factory,
     mc.shape["B"] = args
 
     cl = hoomd.hpmc.update.Clusters(**constructor_args)
-    dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                      dimensions=dim,
+                                      dimensions=n_dimensions,
                                       d=2,
                                       L=50))
     sim.operations.updaters.append(cl)
@@ -100,6 +100,7 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     """Test that Clusters can get and set attributes while attached."""
     integrator = valid_args[0]
     args = valid_args[1]
+    n_dimensions = valid_args[2]
     # Need to unpack union integrators
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
@@ -114,10 +115,9 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     mc.shape["B"] = args
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10))
-    dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                      dimensions=dim,
+                                      dimensions=n_dimensions,
                                       d=2,
                                       L=50))
     sim.operations.updaters.append(cl)

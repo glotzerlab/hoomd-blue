@@ -318,7 +318,6 @@ class NDArrayValidator(_HelpValidate):
             ``None`` which means no postprocessing.
         allow_none (`bool`, optional): Whether to allow ``None`` as a valid
             value. Defaults to ``None``.
-
     The validation will attempt to convert array-like objects to arrays. We will
     change the dtype and ordering if necessary, but do not reshape the given
     arrays since this is non-trivial depending on the shape specification passed
@@ -338,11 +337,9 @@ class NDArrayValidator(_HelpValidate):
         self._shape = shape
         self._order = order
 
-    def _validate(self, array):
+    def _validate(self, arr):
         """Validate an array or array-like object."""
-        typed_and_ordered = np.array(array,
-                                     dtype=self._dtype,
-                                     order=self._order)
+        typed_and_ordered = array(arr, dtype=self._dtype, order=self._order)
         if len(typed_and_ordered.shape) != len(self._shape):
             raise ValueError(
                 f"Expected array of {len(self._shape)} dimensions, but "
