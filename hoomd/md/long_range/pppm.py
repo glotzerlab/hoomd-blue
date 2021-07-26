@@ -195,7 +195,6 @@ class Coulomb(Force):
         fmid = _diffpr(hx, hy, hz, Lx, Ly, Lz, N, order, kappa, q2, rcut)
 
         if f * fmid >= 0.0:
-            hoomd.context.current.device.cpp_msg.error("\n")
             raise RuntimeError("Cannot compute PPPM Coloumb forces,\n"
                                "f*fmid >= 0.0")
 
@@ -233,6 +232,7 @@ class Coulomb(Force):
             for b in particle_types:
                 self._pair_force.params[(a, b)] = dict(kappa=kappa, alpha=alpha)
                 self._pair_force.r_cut[(a, b)] = rcut
+                print("Setting ewald params for", a, b)
 
         self._cpp_obj.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha)
 
@@ -250,6 +250,9 @@ class Coulomb(Force):
         else:
             self._nlist = hoomd.data.typeconverter.OnlyTypes(
                 hoomd.md.nlist.NList)(value)
+
+            # ensure that the pair force uses the same neighbor list
+            self._pair_force.nlist = value
 
     @property
     def _children(self):
