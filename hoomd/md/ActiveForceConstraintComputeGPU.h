@@ -240,6 +240,6 @@ void export_ActiveForceConstraintComputeGPU(py::module& m, const std::string& na
                       std::shared_ptr<ParticleGroup>,
                       Scalar,
                       Manifold,
-		      Scalar>());
+                      Scalar>());
     }
 #endif

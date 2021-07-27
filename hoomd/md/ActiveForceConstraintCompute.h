@@ -32,7 +32,7 @@ class PYBIND11_EXPORT ActiveForceConstraintCompute : public ActiveForceCompute
                                  std::shared_ptr<ParticleGroup> group,
                                  Scalar rotation_diff,
                                  Manifold manifold,
-				 Scalar deltaT);
+                                 Scalar deltaT);
     //
     //! Destructor
     ~ActiveForceConstraintCompute();
@@ -63,22 +63,27 @@ class PYBIND11_EXPORT ActiveForceConstraintCompute : public ActiveForceCompute
     \param manifold Manifold constraint
  */
 template<class Manifold>
-ActiveForceConstraintCompute<Manifold>::ActiveForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
-                                 std::shared_ptr<ParticleGroup> group,
-                                 Scalar rotation_diff,
-                                 Manifold manifold,
-				 Scalar deltaT)
-        : ActiveForceCompute(sysdef, group, rotation_diff, deltaT), m_manifold(manifold), m_box_changed(true)
-        {
-         m_pdata->getBoxChangeSignal().template connect<ActiveForceConstraintCompute<Manifold>, &ActiveForceConstraintCompute<Manifold>::setBoxChange>(this);
-        }
+ActiveForceConstraintCompute<Manifold>::ActiveForceConstraintCompute(
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<ParticleGroup> group,
+    Scalar rotation_diff,
+    Manifold manifold,
+    Scalar deltaT)
+    : ActiveForceCompute(sysdef, group, rotation_diff, deltaT), m_manifold(manifold),
+      m_box_changed(true)
+    {
+    m_pdata->getBoxChangeSignal()
+        .template connect<ActiveForceConstraintCompute<Manifold>,
+                          &ActiveForceConstraintCompute<Manifold>::setBoxChange>(this);
+    }
 
-template<class Manifold>
-ActiveForceConstraintCompute<Manifold>::~ActiveForceConstraintCompute()
-        {
-    	m_pdata->getBoxChangeSignal().template disconnect<ActiveForceConstraintCompute<Manifold>, &ActiveForceConstraintCompute<Manifold>::setBoxChange>(this);
-        m_exec_conf->msg->notice(5) << "Destroying ActiveForceConstraintCompute" << std::endl;
-        }
+template<class Manifold> ActiveForceConstraintCompute<Manifold>::~ActiveForceConstraintCompute()
+    {
+    m_pdata->getBoxChangeSignal()
+        .template disconnect<ActiveForceConstraintCompute<Manifold>,
+                             &ActiveForceConstraintCompute<Manifold>::setBoxChange>(this);
+    m_exec_conf->msg->notice(5) << "Destroying ActiveForceConstraintCompute" << std::endl;
+    }
 
 /*! This function applies rotational diffusion to the orientations of all active particles. The
  orientation of any torque vector
@@ -109,7 +114,6 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timest
 
         quat<Scalar> quati(h_orientation.data[idx]);
 
-
         Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
 
         vec3<Scalar> norm = vec3<Scalar>(m_manifold.derivative(current_pos));
@@ -122,7 +126,6 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timest
               / 2.0; // half angle to calculate the quaternion which represents the rotation
         quat<Scalar> rot_quat(slow::cos(theta),
                               slow::sin(theta) * norm); // rotational diffusion quaternion
-
 
         quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
         h_orientation.data[idx] = quat_to_scalar4(quati);
@@ -151,18 +154,18 @@ template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstra
 
         if (h_f_actVec.data[type].w != 0)
             {
-            Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+            Scalar3 current_pos
+                = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
 
             vec3<Scalar> norm = vec3<Scalar>(m_manifold.derivative(current_pos));
             norm.normalize();
 
             vec3<Scalar> f(h_f_actVec.data[type].x,
-                                     h_f_actVec.data[type].y,
-                                     h_f_actVec.data[type].z);
+                           h_f_actVec.data[type].y,
+                           h_f_actVec.data[type].z);
             quat<Scalar> quati(h_orientation.data[idx]);
-            vec3<Scalar> fi
-                = rotate(quati,
-                         f); // rotate active force vector from local to global frame
+            vec3<Scalar> fi = rotate(quati,
+                                     f); // rotate active force vector from local to global frame
 
             Scalar dot_prod = dot(fi, norm);
 
@@ -174,7 +177,7 @@ template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstra
             fi.y -= norm.y * dot_prod;
             fi.z -= norm.z * dot_prod;
 
-            Scalar new_norm = slow::rsqrt(dot(fi,fi));
+            Scalar new_norm = slow::rsqrt(dot(fi, fi));
             fi *= new_norm;
 
             vec3<Scalar> rot_vec = cross(norm, fi);
@@ -202,15 +205,14 @@ void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
         {
         m_rotationConst = slow::sqrt(2.0 * m_rotationDiff * m_deltaT);
 
-    	if(m_box_changed)
-    		{
-    		if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
-    		    {
-    		    throw std::runtime_error("Parts of the manifold are outside the box");
-    		    }
- 		m_box_changed = false;
-    		}
-
+        if (m_box_changed)
+            {
+            if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+                {
+                throw std::runtime_error("Parts of the manifold are outside the box");
+                }
+            m_box_changed = false;
+            }
 
         last_computed = timestep;
 
@@ -236,13 +238,13 @@ template<class Manifold>
 void export_ActiveForceConstraintCompute(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ActiveForceConstraintCompute<Manifold>,
-               ActiveForceCompute,
-               std::shared_ptr<ActiveForceConstraintCompute<Manifold>>>(m, name.c_str())
+                     ActiveForceCompute,
+                     std::shared_ptr<ActiveForceConstraintCompute<Manifold>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Scalar,
-                      Manifold,
-		      Scalar>());
+                            std::shared_ptr<ParticleGroup>,
+                            Scalar,
+                            Manifold,
+                            Scalar>());
     }
 
 #endif

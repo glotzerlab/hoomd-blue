@@ -78,7 +78,6 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepL
         };
 
     protected:
-
     //! Helper function to be called when box changes
     void setBoxChange()
         {
@@ -118,7 +117,9 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
 
-    m_pdata->getBoxChangeSignal().template connect<TwoStepRATTLEBD<Manifold>, &TwoStepRATTLEBD<Manifold>::setBoxChange>(this);
+    m_pdata->getBoxChangeSignal()
+        .template connect<TwoStepRATTLEBD<Manifold>, &TwoStepRATTLEBD<Manifold>::setBoxChange>(
+            this);
 
     if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
         {
@@ -126,12 +127,13 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
         }
     }
 
-template<class Manifold>
-TwoStepRATTLEBD<Manifold>::~TwoStepRATTLEBD()
-        {
- 	m_pdata->getBoxChangeSignal().template disconnect<TwoStepRATTLEBD<Manifold>, &TwoStepRATTLEBD<Manifold>::setBoxChange>(this);
-        m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLEBD" << endl;
-        }
+template<class Manifold> TwoStepRATTLEBD<Manifold>::~TwoStepRATTLEBD()
+    {
+    m_pdata->getBoxChangeSignal()
+        .template disconnect<TwoStepRATTLEBD<Manifold>, &TwoStepRATTLEBD<Manifold>::setBoxChange>(
+            this);
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLEBD" << endl;
+    }
 
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1
@@ -183,14 +185,14 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
 
     const BoxDim& box = m_pdata->getBox();
 
-    if(m_box_changed)
-    	{
-    	if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
-    	    {
-    	    throw std::runtime_error("Parts of the manifold are outside the box");
-    	    }
-    	m_box_changed = false;
-    	}
+    if (m_box_changed)
+        {
+        if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+            {
+            throw std::runtime_error("Parts of the manifold are outside the box");
+            }
+        m_box_changed = false;
+        }
 
     uint16_t seed = m_sysdef->getSeed();
 

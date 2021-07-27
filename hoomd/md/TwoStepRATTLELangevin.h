@@ -136,7 +136,9 @@ TwoStepRATTLELangevin<Manifold>::TwoStepRATTLELangevin(std::shared_ptr<SystemDef
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLELangevin" << endl;
 
-    m_pdata->getBoxChangeSignal().template connect<TwoStepRATTLELangevin<Manifold>, &TwoStepRATTLELangevin<Manifold>::setBoxChange>(this);
+    m_pdata->getBoxChangeSignal()
+        .template connect<TwoStepRATTLELangevin<Manifold>,
+                          &TwoStepRATTLELangevin<Manifold>::setBoxChange>(this);
 
     if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
         {
@@ -144,12 +146,13 @@ TwoStepRATTLELangevin<Manifold>::TwoStepRATTLELangevin(std::shared_ptr<SystemDef
         }
     }
 
-template<class Manifold>
-TwoStepRATTLELangevin<Manifold>::~TwoStepRATTLELangevin()
-        {
- 	m_pdata->getBoxChangeSignal().template disconnect<TwoStepRATTLELangevin<Manifold>, &TwoStepRATTLELangevin<Manifold>::setBoxChange>(this);
-        m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLELangevin" << endl;
-        }
+template<class Manifold> TwoStepRATTLELangevin<Manifold>::~TwoStepRATTLELangevin()
+    {
+    m_pdata->getBoxChangeSignal()
+        .template disconnect<TwoStepRATTLELangevin<Manifold>,
+                             &TwoStepRATTLELangevin<Manifold>::setBoxChange>(this);
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLELangevin" << endl;
+    }
 
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
@@ -178,14 +181,14 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepOne(
 
     const BoxDim& box = m_pdata->getBox();
 
-    if(m_box_changed)
-    	{
-    	if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
-    	    {
-    	    throw std::runtime_error("Parts of the manifold are outside the box");
-    	    }
-    	m_box_changed = false;
-    	}
+    if (m_box_changed)
+        {
+        if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+            {
+            throw std::runtime_error("Parts of the manifold are outside the box");
+            }
+        m_box_changed = false;
+        }
 
     // perform the first half step of the RATTLE algorithm applied on velocity verlet
     // v(t+deltaT/2) = v(t) + (1/2)*deltaT*(a-alpha*n_manifold(x(t))/m)
