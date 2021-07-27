@@ -43,6 +43,7 @@ class Constraint(_HOOMDBaseObject):
 
         super()._attach()
 
+
 class Distance(Constraint):
     """Constrain pairwise particle distances.
 
