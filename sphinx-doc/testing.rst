@@ -23,6 +23,17 @@ should run long enough to ensure reasonable sampling, but not too long. These
 test run in a CI environment on every pull request. Individual validation tests
 should execute in less than 10 minutes.
 
+Requirements
+------------
+
+The following Python packages are required to execute tests. Some tests will be skipped when
+optional requirements are missing.
+
+- gsd (optional)
+- mpi4py (optional)
+- pytest
+- rowan (optional)
+
 Running tests
 -------------
 
