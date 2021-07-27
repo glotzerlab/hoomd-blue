@@ -72,8 +72,7 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
         {
         Scalar3 current_pos = make_scalar3(posidx.x, posidx.y, posidx.z);
 
-        vec3<Scalar> norm = vec3<Scalar>(manifold.derivative(current_pos));
-        norm.normalize();
+        vec3<Scalar> norm = normalize(vec3<Scalar>(manifold.derivative(current_pos)));
 
         vec3<Scalar> f(fact.x, fact.y, fact.z);
         quat<Scalar> quati(__ldg(d_orientation + idx));
@@ -142,8 +141,7 @@ gpu_compute_active_force_constraint_rotational_diffusion_kernel(const unsigned i
         hoomd::Counter(ptag));
 
     Scalar3 current_pos = make_scalar3(posidx.x, posidx.y, posidx.z);
-    vec3<Scalar> norm = vec3<Scalar>(manifold.derivative(current_pos));
-    norm.normalize();
+    vec3<Scalar> norm = normalize(vec3<Scalar>(manifold.derivative(current_pos)));
 
     Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
     Scalar theta = delta_theta / 2.0; // angle on plane defining orientation of active force vector
