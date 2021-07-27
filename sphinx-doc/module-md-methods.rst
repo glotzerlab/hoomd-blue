@@ -9,13 +9,10 @@ md.methods
     :nosignatures:
 
     Brownian
-    BrownianRattle
     Langevin
-    LangevinRattle
     NPH
     NPT
     NVE
-    NVERattle
     NVT
 
 
@@ -24,13 +21,16 @@ md.methods
 .. automodule:: hoomd.md.methods
     :synopsis: Integration methods.
     :members: Method,
-              MethodRATTLE,
               Brownian,
-              BrownianRattle,
               Langevin,
-              LangevinRattle,
               NPH,
               NPT,
               NVE,
-              NVERattle,
               NVT
+
+.. rubric:: Modules
+
+.. toctree::
+   :maxdepth: 3
+
+   module-md-methods-rattle

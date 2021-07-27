@@ -341,7 +341,6 @@ set(files __init__.py
           integrate.py
           manifold.py
           many_body.py
-          methods.py
           nlist.py
           update.py
           wall.py
@@ -360,6 +359,7 @@ install(FILES ${_md_headers}
        )
 
 add_subdirectory(pair)
+add_subdirectory(methods)
 add_subdirectory(external)
 
 if (BUILD_TESTING)
