@@ -23,7 +23,7 @@ def _method_base_params():
 
     method_base_params_list.extend([
         paramtuple(langevin_setup_params, langevin_extra_params,
-                   langevin_changed_params, hoomd.md.methods.LangevinRattle,
+                   langevin_changed_params, hoomd.md.methods.rattle.Langevin,
                    hoomd.md.methods.Langevin)
     ])
 
@@ -36,7 +36,7 @@ def _method_base_params():
 
     method_base_params_list.extend([
         paramtuple(brownian_setup_params, brownian_extra_params,
-                   brownian_changed_params, hoomd.md.methods.BrownianRattle,
+                   brownian_changed_params, hoomd.md.methods.rattle.Brownian,
                    hoomd.md.methods.Brownian)
     ])
 
@@ -112,7 +112,7 @@ def _method_base_params():
 
     method_base_params_list.extend([
         paramtuple(nve_setup_params, nve_extra_params, nve_changed_params,
-                   hoomd.md.methods.NVERattle, hoomd.md.methods.NVE)
+                   hoomd.md.methods.rattle.NVE, hoomd.md.methods.NVE)
     ])
 
     return method_base_params_list

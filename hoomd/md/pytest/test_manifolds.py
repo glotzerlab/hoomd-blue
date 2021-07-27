@@ -111,8 +111,8 @@ def test_attributes_attached(simulation_factory, two_particle_snapshot_factory,
 
     all_ = hoomd.filter.All()
     surface = manifold_base_params.surface(**manifold_base_params.setup_params)
-    method = hoomd.md.methods.NVERattle(filter=all_,
-                                        manifold_constraint=surface)
+    method = hoomd.md.methods.rattle.NVE(filter=all_,
+                                         manifold_constraint=surface)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
@@ -131,8 +131,8 @@ def test_pickling(manifold_base_params, simulation_factory,
                   two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
     manifold = manifold_base_params.surface(**manifold_base_params.setup_params)
-    nve = hoomd.md.methods.NVERattle(filter=hoomd.filter.All(),
-                                     manifold_constraint=manifold)
+    nve = hoomd.md.methods.rattle.NVE(filter=hoomd.filter.All(),
+                                      manifold_constraint=manifold)
     integrator = hoomd.md.Integrator(0.005, methods=[nve])
     sim.operations += integrator
     pickling_check(manifold)
