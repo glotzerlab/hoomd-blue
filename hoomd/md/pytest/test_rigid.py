@@ -14,6 +14,7 @@ import hoomd.md as md
 
 skip_rowan = pytest.mark.skipif(skip_rowan, reason="rowan cannot be imported.")
 
+
 @pytest.fixture
 def valid_body_definition():
     return {
