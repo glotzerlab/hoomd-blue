@@ -23,8 +23,9 @@ def two_charged_particle_snapshot_factory(two_particle_snapshot_factory):
                                           d=d,
                                           L=L)
 
-        s.particles.charge[0] = -q
-        s.particles.charge[1] = q
+        if s.communicator.rank == 0:
+            s.particles.charge[0] = -q
+            s.particles.charge[1] = q
         return s
 
     return make_snapshot
