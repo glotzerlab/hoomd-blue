@@ -21,7 +21,6 @@
 #include "SharedSignal.h"
 #include "SystemDefinition.h"
 
-#include <limits>
 #include <memory>
 #include <typeinfo>
 
