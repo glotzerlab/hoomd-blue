@@ -31,7 +31,6 @@ set(_md_sources module-md.cc
                    PPPMForceCompute.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
-                   TablePotential.cc
                    TwoStepBD.cc
                    TwoStepBerendsen.cc
                    TwoStepLangevinBase.cc
@@ -88,6 +87,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairLJ1208.h
                 EvaluatorPairLJ0804.h
                 EvaluatorPairMie.h
+		EvaluatorPairExpandedMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
                 EvaluatorPairOPP.h
@@ -158,8 +158,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h
                 TableDihedralForceCompute.h
-                TablePotentialGPU.h
-                TablePotential.h
                 TwoStepBDGPU.h
                 TwoStepRATTLEBDGPU.h
                 TwoStepRATTLEBDGPU.cuh
@@ -207,7 +205,6 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
-                           TablePotentialGPU.cc
                            TwoStepBDGPU.cc
                            TwoStepBerendsenGPU.cc
                            TwoStepLangevinGPU.cc
@@ -234,9 +231,11 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       GaussDriverPotentialPairGPU.cu
                       LJDriverPotentialPairGPU.cu
                       MieDriverPotentialPairGPU.cu
+		      ExpandedMieDriverPotentialPairGPU.cu
                       MoliereDriverPotentialPairGPU.cu
                       MorseDriverPotentialPairGPU.cu
                       OPPDriverPotentialPairGPU.cu
+                      TableDriverPotentialPairGPU.cu
                       TWFDriverPotentialPairGPU.cu
                       FourierDriverPotentialPairGPU.cu
                       PairLJ1208DriverPotentialPairGPU.cu
@@ -264,7 +263,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       PPPMForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
-                      TablePotentialGPU.cu
                       TwoStepBDGPU.cu
                       TwoStepBerendsenGPU.cu
                       TwoStepLangevinGPU.cu

@@ -66,6 +66,10 @@ template<class Real> struct SnapshotSystemData
      */
     void replicate(unsigned int nx, unsigned int ny, unsigned int nz);
 
+    //! Move the snapshot's particle positions back into the box. Update particle images based on
+    //! the number of wrapped images.
+    void wrap();
+
     // Broadcast information from rank 0 to all ranks
     /*! \param mpi_conf The MPI configuration
         Broadcasts the box and other metadata. Large particle data arrays are left on rank 0.

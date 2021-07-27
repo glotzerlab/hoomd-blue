@@ -209,15 +209,21 @@ template<class T> class ManagedArray
             size_int++;
 
         // align ptr to size of data type
-        size_t max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T)) - 1;
-        char* ptr_align = (char*)(((unsigned long int)s_ptr + max_align_bytes) & ~max_align_bytes);
+        size_t max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T));
+        size_t padding = ((unsigned long)s_ptr % max_align_bytes);
+        if (padding != 0)
+            padding = max_align_bytes - padding;
+        char* ptr_align = s_ptr + padding;
 
-        if (size_int * sizeof(int) + max_align_bytes > available_bytes)
+        // this should compute the size of the allocated memory as
+        // size_int * sizeof(int) + padding, but that leads to memory errors in HPMC
+        // for unknown reasons - JAA
+        if (size_int * sizeof(int) + max_align_bytes - 1 > available_bytes)
             return nullptr;
 
         // increment pointer
         s_ptr = ptr_align + size_int * sizeof(int);
-        available_bytes -= (unsigned int)(size_int * sizeof(int) + max_align_bytes);
+        available_bytes -= (unsigned int)(size_int * sizeof(int) + max_align_bytes - 1);
 
         return (void*)ptr_align;
         }
