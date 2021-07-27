@@ -4,7 +4,7 @@
 
 """Integration methods for molecular dynamics.
 
-For rattle integrators see `hoomd.md.methods.rattle`
+For methods that constrain motion to a manifold see `hoomd.md.methods.rattle`
 """
 
 from . import rattle

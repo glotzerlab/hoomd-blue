@@ -2,7 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""MD integration methods."""
+"""MD integration methods with manifold constraints."""
 
 from hoomd.md import _md
 import hoomd
@@ -16,15 +16,10 @@ from hoomd.variant import Variant
 
 
 class MethodRATTLE(Method):
-    """Base class rattle integration method.
+    """Base class RATTLE integration method.
 
-    Provides common methods for all subclasses which are compatible with the
-    RATTLE algorithm. Particles can be constrained to a manifold surface using
-    the RATTLE scheme. For poor initial conditions that include overlapping
-    atoms, a limit can be specified to the movement a particle is allowed to
-    make in one time step. After a few thousand time steps with the limit set,
-    the system should be in a safe state to continue with unconstrained
-    integration.
+    Provides common methods for all integration methods which implement the
+    RATTLE algorithm to constrain particles to a manifold surface.
 
     Warning:
         The particles should be initialised close to the implicit surface of
@@ -32,10 +27,8 @@ class MethodRATTLE(Method):
         automatically, the mapping can lead to small inter-particle distances
         and, hence, large forces between particles!
 
-    For the equations of motion, see:
-
-    * S. Paquay and R. Kusters  2016
-      (`paper link <https://doi.org/10.1016/j.bpj.2016.02.017>`__)
+    See Also:
+    * `Paquay and Kusters 2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`__
 
     Note:
         Users should use the subclasses and not instantiate `MethodRATTLE`
@@ -93,16 +86,9 @@ class NVE(MethodRATTLE):
             function.  This is only used if RATTLE algorithm is triggered.
             Defaults to 1e-6
 
-    `NVE` performs constant volume, constant energy simulations using
-    the standard Velocity-Verlet method. The particles are constrained to a
-    manifold by using the RATTLE algorithm. For poor initial conditions that
-    include overlapping atoms, a limit can be specified to the movement a
-    particle is allowed to make in one time step. After a few thousand time
-    steps with the limit set, the system should be in a safe state to continue
-    with unconstrained integration.
-
-    .. todo::
-        Update when zero momentum updater is added.
+    `NVE` performs constant volume, constant energy simulations as described
+    in `hoomd.md.methods.NVE`. In addition the particles are constrained to a
+    manifold by using the RATTLE algorithm.
 
     Examples::
 
