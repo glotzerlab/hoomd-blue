@@ -8,7 +8,6 @@
 */
 
 #include "System.h"
-#include "SignalHandler.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
@@ -86,7 +85,6 @@ void System::setCommunicator(std::shared_ptr<Communicator> comm)
 
 void System::run(uint64_t nsteps, bool write_at_start)
     {
-    ScopedSignalHandler signal_handler;
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
 
