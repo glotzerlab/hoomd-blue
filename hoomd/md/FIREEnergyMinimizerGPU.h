@@ -40,13 +40,15 @@ class PYBIND11_EXPORT FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     protected:
     unsigned int m_nparticles;       //!< number of particles in the system
     unsigned int m_block_size;       //!< block size for partial sum memory
-    GPUArray<Scalar> m_partial_sum1; //!< memory space for partial sum over P
+    GPUArray<Scalar> m_partial_sum1; //!< memory space for partial sum over P and E
     GPUArray<Scalar> m_partial_sum2; //!< memory space for partial sum over vsq
     GPUArray<Scalar> m_partial_sum3; //!< memory space for partial sum over asq
-    GPUArray<Scalar> m_sum;          //!< memory space for sum over vsq
+    GPUArray<Scalar> m_sum;          //!< memory space for sum over E
     GPUArray<Scalar> m_sum3;         //!< memory space for the sum over P, vsq, asq
 
     private:
+    //! allocate the memory needed to store partial sums
+    void initializePartialSumArrays();
     };
 
 //! Exports the FIREEnergyMinimizerGPU class to python

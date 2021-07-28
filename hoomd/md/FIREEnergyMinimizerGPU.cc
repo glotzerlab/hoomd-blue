@@ -18,7 +18,7 @@ using namespace std;
     \param dt Default step size
 */
 FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar dt)
-    : FIREEnergyMinimizer(sysdef, dt)
+    : FIREEnergyMinimizer(sysdef, dt), m_block_size(256)
     {
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
@@ -33,9 +33,16 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
     GPUArray<Scalar> sum3(3, m_exec_conf);
     m_sum3.swap(sum3);
 
-    // initialize the partial sum arrays
-    m_block_size = 256; // 128;
+    reset();
+    }
 
+
+/*
+ * Allocate the memory buffers to store the partial sums.
+ */
+void FIREEnergyMinimizerGPU::initializePartialSumArrays()
+    {
+    // initialize the partial sum arrays
     unsigned int num_blocks = 0;
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
@@ -52,9 +59,8 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
     m_partial_sum2.swap(partial_sum2);
     GPUArray<Scalar> partial_sum3(num_blocks, m_exec_conf);
     m_partial_sum3.swap(partial_sum3);
-
-    reset();
     }
+
 
 /*! \param timesteps is the iteration number
  */
@@ -73,6 +79,8 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
     Scalar energy(0.0);
     Scalar tnorm(0.0);
     Scalar wnorm(0.0);
+
+    initializePartialSumArrays();
 
     // compute the total energy on the GPU
     // CPU version is Scalar energy = computePotentialEnergy(timesteps)/Scalar(group_size);
