@@ -199,8 +199,7 @@ class NVT(Method):
         kT (`hoomd.variant.Variant` or `float`): Temperature set point
             for the alchemostat :math:`[\mathrm{energy}]`.
 
-        tau (`float`): Coupling constant for the alchemostat
-            :math:`[\mathrm{time}]`.
+        tau (`float`): Time factor for the alchemostat
 
     Examples::
 
@@ -214,17 +213,16 @@ class NVT(Method):
         kT (hoomd.variant.Variant): Temperature set point
             for the alchemostat :math:`[\mathrm{energy}]`.
 
-        tau (float): Coupling constant for the alchemostat
-            :math:`[\mathrm{time}]`.
+        tau (float): Time factor for the alchemostat
 
     """
 
-    def __init__(self, filter, kT, tau):
+    def __init__(self, filter, kT, time_factor):
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
                                    kT=Variant,
-                                   tau=float(tau))
+                                   time_factor=float(tau))
         param_dict.update(
             dict(kT=kT,
                  filter=filter))
@@ -235,7 +233,7 @@ class NVT(Method):
         cpp_class = hoomd.md._md.TwoStepNVTAlchemy
         group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
-        self._cpp_obj = cpp_class(cpp_sys_def, group, thermo, self.tau, self.kT)
+        self._cpp_obj = cpp_class(cpp_sys_def, group, self.time_factor, self.kT)
         super()._attach()
 
 
