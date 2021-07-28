@@ -201,8 +201,6 @@ class AlchemicalMethod(Method):
     def __init__(self, alchemical_particles):
         if alchemical_particles is None:
             alchemical_particles = []
-        # for particle in alchemical_particles:
-        #     self._add_dependent(particle)
         self._alchemical_particles = syncedlist.SyncedList(
             AlchemicalMDParticle, syncedlist._PartialGetAttr('_cpp_obj'), iterable=alchemical_particles)
 
@@ -217,10 +215,7 @@ class AlchemicalMethod(Method):
 
     @alchemical_particles.setter
     def alchemical_particles(self, value):
-        print("clearing list")
         self._alchemical_particles.clear()
-        print("extending value")
-        # self._alchemical_particles.extend(value)
         self._alchemical_particles = value
 
 
