@@ -35,6 +35,16 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
         throw std::runtime_error("Error initializing ActiveForceComputeGPU");
         }
 
+
+    // initialize autotuner
+    std::vector<unsigned int> valid_params;
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
+        valid_params.push_back(block_size);
+
+    m_tuner_force.reset(new Autotuner(valid_params, 5, 100000, "active_force", this->m_exec_conf));
+    m_tuner_diffusion.reset(new Autotuner(valid_params, 5, 100000, "active_diffusion", this->m_exec_conf));
+
     // unsigned int N = m_pdata->getNGlobal();
     // unsigned int group_size = m_group->getNumMembersGlobal();
     unsigned int type = m_pdata->getNTypes();
@@ -92,6 +102,10 @@ void ActiveForceComputeGPU::setForces()
     unsigned int group_size = m_group->getNumMembers();
     unsigned int N = m_pdata->getN();
 
+    // compute the forces on the GPU
+    m_exec_conf->beginMultiGPU();
+    m_tuner_force->begin();
+
     gpu_compute_active_force_set_forces(group_size,
                                         d_index_array.data,
                                         d_force.data,
@@ -101,7 +115,14 @@ void ActiveForceComputeGPU::setForces()
                                         d_f_actVec.data,
                                         d_t_actVec.data,
                                         N,
-                                        m_block_size);
+                                        m_tuner_force->getParam());
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    m_tuner_force->end();
+    m_exec_conf->endMultiGPU();
+
     }
 
 /*! This function applies rotational diffusion to all active particles. The angle between the torque
@@ -127,6 +148,10 @@ void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
     bool is2D = (m_sysdef->getNDimensions() == 2);
     unsigned int group_size = m_group->getNumMembers();
 
+    // perform the update on the GPU
+    m_exec_conf->beginMultiGPU();
+    m_tuner_diffusion->begin();
+
     gpu_compute_active_force_rotational_diffusion(group_size,
                                                   d_tag.data,
                                                   d_index_array.data,
@@ -137,7 +162,13 @@ void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
                                                   m_rotationConst,
                                                   timestep,
                                                   m_sysdef->getSeed(),
-                                                  m_block_size);
+                                        	  m_tuner_diffusion->getParam());
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    m_tuner_diffusion->end();
+    m_exec_conf->endMultiGPU();
     }
 
 void export_ActiveForceComputeGPU(py::module& m)
@@ -145,12 +176,5 @@ void export_ActiveForceComputeGPU(py::module& m)
     py::class_<ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU>>(
         m,
         "ActiveForceComputeGPU")
-<<<<<<< HEAD
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar>());
-=======
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Scalar,
-                      Scalar>());
->>>>>>> 03412c6e0acbb2f44987466ccfb3f1c1f135a1aa
     }

@@ -6,6 +6,7 @@
 #include "ActiveForceComputeGPU.cuh"
 #include "ActiveForceConstraintCompute.h"
 #include "ActiveForceConstraintComputeGPU.cuh"
+#include "hoomd/Autotuner.h"
 
 /*! \file ActiveForceConstraintComputeGPU.h
     \brief Declares a class for computing active forces on the GPU
@@ -38,8 +39,28 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU
                                     Scalar rotation_diff,
                                     Manifold manifold);
 
+    //! Set autotuner parameters
+    /*! \param enable Enable/disable autotuning
+        \param period period (approximate) in time steps when returning occurs
+    */
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        ActiveForceConstraintCompute<Manifold>::setAutotunerParams(enable, period);
+        m_tuner_force->setPeriod(period);
+        m_tuner_force->setEnabled(enable);
+        m_tuner_diffusion->setPeriod(period);
+        m_tuner_diffusion->setEnabled(enable);
+        m_tuner_constraint->setPeriod(period);
+        m_tuner_constraint->setEnabled(enable);
+        }
+
     protected:
-    unsigned int m_block_size; //!< block size to execute on the GPU
+    std::unique_ptr<Autotuner>
+	    m_tuner_force; //!< Autotuner for block size (force kernel)
+    std::unique_ptr<Autotuner>
+	    m_tuner_diffusion; //!< Autotuner for block size (diff kernel)
+    std::unique_ptr<Autotuner>
+	    m_tuner_constraint; //!< Autotuner for block size (constr kernel)
 
     //! Set forces for particles
     virtual void setForces();
@@ -83,6 +104,15 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
                                         << endl;
         throw std::runtime_error("Error initializing ActiveForceConstraintComputeGPU");
         }
+
+    // initialize autotuner
+    std::vector<unsigned int> valid_params;
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
+        valid_params.push_back(block_size);
+
+    m_tuner_force.reset(new Autotuner(valid_params, 5, 100000, "active_constraint_force", this->m_exec_conf));
+    m_tuner_diffusion.reset(new Autotuner(valid_params, 5, 100000, "active_constraint_diffusion", this->m_exec_conf));
 
     unsigned int type = this->m_pdata->getNTypes();
     GlobalVector<Scalar4> tmp_f_activeVec(type, this->m_exec_conf);
@@ -145,6 +175,10 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForc
     unsigned int group_size = this->m_group->getNumMembers();
     unsigned int N = this->m_pdata->getN();
 
+
+    // compute the forces on the GPU
+    this->m_exec_conf->beginMultiGPU();
+    this->m_tuner_force->begin();
     gpu_compute_active_force_set_forces(group_size,
                                         d_index_array.data,
                                         d_force.data,
@@ -154,7 +188,13 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForc
                                         d_f_actVec.data,
                                         d_t_actVec.data,
                                         N,
-                                        this->m_block_size);
+                                        this->m_tuner_force->getParam());
+
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    this->m_tuner_force->end();
+    this->m_exec_conf->endMultiGPU();
     }
 
 /*! This function applies rotational diffusion to all active particles. The angle between the torque
@@ -184,6 +224,10 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t tim
     bool is2D = (this->m_sysdef->getNDimensions() == 2);
     unsigned int group_size = this->m_group->getNumMembers();
 
+    // perform the update on the GPU
+    this->m_exec_conf->beginMultiGPU();
+    this->m_tuner_diffusion->begin();
+
     gpu_compute_active_force_constraint_rotational_diffusion<Manifold>(group_size,
                                                                        d_tag.data,
                                                                        d_index_array.data,
@@ -194,7 +238,13 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t tim
                                                                        this->m_rotationConst,
                                                                        timestep,
                                                                        this->m_sysdef->getSeed(),
-                                                                       this->m_block_size);
+                                        	  		       this->m_tuner_diffusion->getParam());
+
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    this->m_tuner_diffusion->end();
+    this->m_exec_conf->endMultiGPU();
     }
 
 /*! This function sets an ellipsoid surface constraint for all active particles
@@ -219,13 +269,23 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setCons
 
     unsigned int group_size = this->m_group->getNumMembers();
 
+    // perform the update on the GPU
+    this->m_exec_conf->beginMultiGPU();
+    this->m_tuner_constraint->begin();
+
     gpu_compute_active_force_set_constraints<Manifold>(group_size,
                                                        d_index_array.data,
                                                        d_pos.data,
                                                        d_orientation.data,
                                                        d_f_actVec.data,
                                                        this->m_manifold,
-                                                       this->m_block_size);
+                                        	       this->m_tuner_constraint->getParam());
+
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    this->m_tuner_constraint->end();
+    this->m_exec_conf->endMultiGPU();
     }
 
 template<class Manifold>
