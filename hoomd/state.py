@@ -174,32 +174,32 @@ class State:
 
     @property
     def particle_types(self):
-        """list[str]: List of all particle types in the simulation."""
+        """list[str]: List of all particle types in the simulation state."""
         return self._cpp_sys_def.getParticleData().getTypes()
 
     @property
     def bond_types(self):
-        """list[str]: List of all bond types in the simulation."""
+        """list[str]: List of all bond types in the simulation state."""
         return self._cpp_sys_def.getBondData().getTypes()
 
     @property
     def angle_types(self):
-        """list[str]: List of all angle types in the simulation."""
+        """list[str]: List of all angle types in the simulation state."""
         return self._cpp_sys_def.getAngleData().getTypes()
 
     @property
     def dihedral_types(self):
-        """list[str]: List of all dihedral types in the simulation."""
+        """list[str]: List of all dihedral types in the simulation state."""
         return self._cpp_sys_def.getDihedralData().getTypes()
 
     @property
     def improper_types(self):
-        """list[str]: List of all improper types in the simulation."""
+        """list[str]: List of all improper types in the simulation state."""
         return self._cpp_sys_def.getImproperData().getTypes()
 
     @property
     def special_pair_types(self):
-        """list[str]: List of all special pair types in the simulation."""
+        """list[str]: List of all special pair types in the simulation state."""
         return self._cpp_sys_def.getPairData().getTypes()
 
     @property
@@ -220,40 +220,41 @@ class State:
 
     @property
     def N_particles(self):  # noqa: N802 - allow N in name
-        """int: The number of particles in the simulation."""
+        """int: The number of particles in the simulation state."""
         return self._cpp_sys_def.getParticleData().getNGlobal()
 
     @property
     def N_bonds(self):  # noqa: N802 - allow N in name
-        """int: The number of bonds in the simulation."""
+        """int: The number of bonds in the simulation state."""
         return self._cpp_sys_def.getBondData().getNGlobal()
 
     @property
     def N_angles(self):  # noqa: N802 - allow N in name
-        """int: The number of angles in the simulation."""
+        """int: The number of angles in the simulation state."""
         return self._cpp_sys_def.getAngleData().getNGlobal()
 
     @property
     def N_impropers(self):  # noqa: N802 - allow N in name
-        """int: The number of impropers in the simulation."""
+        """int: The number of impropers in the simulation state."""
         return self._cpp_sys_def.getImproperData().getNGlobal()
 
     @property
     def N_special_pairs(self):  # noqa: N802 - allow N in name
-        """int: The number of special pairs in the simulation."""
+        """int: The number of special pairs in the simulation state."""
         return self._cpp_sys_def.getPairData().getNGlobal()
 
     @property
     def N_dihedrals(self):  # noqa: N802 - allow N in name
-        """int: The number of dihedrals in the simulation."""
+        """int: The number of dihedrals in the simulation state."""
         return self._cpp_sys_def.getDihedralData().getNGlobal()
 
     @property
     def box(self):
         """hoomd.Box: A copy of the current simulation box.
 
-        See Also:
-            `set_box`
+        Note:
+            The `box` property cannot be set. Call `set_box` to set a new
+            simulation box.
         """
         b = Box._from_cpp(self._cpp_sys_def.getParticleData().getGlobalBox())
         return Box.from_box(b)
