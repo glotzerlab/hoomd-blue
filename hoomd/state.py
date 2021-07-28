@@ -286,18 +286,15 @@ class State:
                 "Cannot set state to new snapshot inside local snapshot.")
         if self._simulation.device.communicator.rank == 0:
             if snapshot.particles.types != self.particle_types:
-                raise RuntimeError(
-                    "Particle types must remain the same")
+                raise RuntimeError("Particle types must remain the same")
             if snapshot.bonds.types != self.bond_types:
                 raise RuntimeError("Bond types must remain the same")
             if snapshot.angles.types != self.angle_types:
                 raise RuntimeError("Angle types must remain the same")
             if snapshot.dihedrals.types != self.dihedral_types:
-                raise RuntimeError(
-                    "Dihedral types must remain the same")
+                raise RuntimeError("Dihedral types must remain the same")
             if snapshot.impropers.types != self.improper_types:
-                raise RuntimeError(
-                    "Improper types must remain the same")
+                raise RuntimeError("Improper types must remain the same")
             if snapshot.pairs.types != self.special_pair_types:
                 raise RuntimeError("Pair types must remain the same")
 
