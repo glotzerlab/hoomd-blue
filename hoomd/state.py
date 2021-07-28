@@ -277,8 +277,29 @@ class State:
             self._cpp_sys_def.setNDimensions(value.dimensions)
         self._cpp_sys_def.getParticleData().setGlobalBox(value._cpp_obj)
 
-    def replicate(self):  # noqa: D102
-        raise NotImplementedError
+    def replicate(self, nx, ny, nz=1):
+        """Replicate the state of the system along the periodic box directions.
+
+        Args:
+            nx (int): Number of times to replicate in the x direction.
+            ny (int): Number of times to replicate in the y direction.
+            nz (int): Number of times to replicate in the z direction.
+
+        `replicate` makes the system state ``nx * ny * nz`` times larger. In
+        each of the new periodic box images, it places a copy of the initial
+        state with the particle positions offset to locate them in the image and
+        the bond, angle, dihedral, improper, and pair group tags offset to apply
+        to the copied particles. All other particle properties (mass, typeid,
+        velocity, charge, ...) are copied to the new particles without change.
+
+        After placing the particles, `replicate` expands the simulation box by a
+        factor of ``nx``, ``ny``, and ``nz`` in the direction of the first,
+        second, and third box lattice vectors respectively and adjusts the
+        particle positions to center them in the new box.
+        """
+        snap = self.take_snapshot()
+        snap.replicate(nx, ny, nz)
+        self.restore_snapshot(snap)
 
     def _get_group(self, filter_):
         cls = filter_.__class__

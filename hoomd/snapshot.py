@@ -299,13 +299,16 @@ class Snapshot:
         sp._cpp_obj = snapshot
         return sp
 
-    def replicate(self, nx, ny, nz):
-        """Replicate the snapshot.
+    def replicate(self, nx, ny, nz=1):
+        """Replicate the snapshot along the periodic box directions.
 
         Args:
             nx (int): Number of times to replicate in the x direction.
             ny (int): Number of times to replicate in the y direction.
             nz (int): Number of times to replicate in the z direction.
+
+        Performs the same operation as `State.replicate` on a `Snapshot`.
+
         Returns:
             ``self``
         """

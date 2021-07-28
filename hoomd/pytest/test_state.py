@@ -218,3 +218,25 @@ def test_thermalize_angular_momentum(simulation_factory,
         # too large for an allclose check.
         expected_K = (3 * snap.particles.N) / 2 * 1.5
         assert K > expected_K * 3 / 4 and K < expected_K * 4 / 3
+
+
+def test_replicate(simulation_factory, lattice_snapshot_factory):
+    initial_snapshot = lattice_snapshot_factory(a=10, n=1)
+
+    sim = simulation_factory(initial_snapshot)
+
+    initial_snapshot.replicate(2, 2, 2)
+    if initial_snapshot.communicator.rank == 0:
+        numpy.testing.assert_allclose(initial_snapshot.particles.position,
+                                      [[-5, -5, -5],
+                                       [-5, -5, 5],
+                                       [-5, 5, -5],
+                                       [-5, 5, 5],
+                                       [5, -5, -5],
+                                       [5, -5, 5],
+                                       [5, 5, -5],
+                                       [5, 5, 5]])
+
+    sim.state.replicate(2, 2, 2)
+    new_snapshot = sim.state.take_snapshot()
+    assert_snapshots_equal(initial_snapshot, new_snapshot)
