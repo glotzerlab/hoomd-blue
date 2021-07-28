@@ -8,6 +8,7 @@ from hoomd.logging import log, Loggable
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeconverter import SetOnce
+from hoomd.data import syncedlist
 from hoomd.md.pair import pair
 from hoomd.md.methods import Method
 from hoomd.filter import ParticleFilter
@@ -189,7 +190,34 @@ class LJGauss(pair.LJGauss, metaclass=_AlchemicalPairPotential):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
 
-class NVT(Method):
+class AlchemicalMethod(Method):
+    def __init__(self, alchemical_particles):
+        if alchemical_particles is None:
+            alchemical_particles = []
+        # for particle in alchemical_particles:
+        #     self._add_dependent(particle)
+        self._alchemical_particles = syncedlist.SyncedList(
+            AlchemicalMDParticle, syncedlist._PartialGetAttr('_cpp_obj'), iterable=alchemical_particles)
+
+    def _attach(self):
+        self.alchemical_particles._sync(self._simulation,
+                                        self._cpp_obj.alchemical_particles)
+        super()._attach()
+
+    @property
+    def alchemical_particles(self):
+        return self._alchemical_particles
+
+    @alchemical_particles.setter
+    def alchemical_particles(self, value):
+        print("clearing list")
+        self._alchemical_particles.clear()
+        print("extending value")
+        # self._alchemical_particles.extend(value)
+        self._alchemical_particles = value
+
+
+class NVT(AlchemicalMethod):
     r"""Alchemical NVT Integration.
 
     Args:
@@ -200,6 +228,8 @@ class NVT(Method):
             for the alchemostat :math:`[\mathrm{energy}]`.
 
         time_factor (`int`): Time factor for the alchemostat
+
+        alchemical_particles (list): List of alchemical particles
 
     Examples::
 
@@ -215,9 +245,11 @@ class NVT(Method):
 
         time_factor (int): Time factor for the alchemostat
 
+        alchemical_particles (list): List of alchemical particles
+
     """
 
-    def __init__(self, filter, kT, time_factor):
+    def __init__(self, filter, kT, time_factor, alchemical_particles):
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
@@ -228,6 +260,7 @@ class NVT(Method):
                  filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
+        super().__init__(alchemical_particles)
 
     def _attach(self):
         cpp_class = hoomd.md._md.TwoStepNVTAlchemy
@@ -238,7 +271,7 @@ class NVT(Method):
         super()._attach()
 
 
-class NVE(Method):
+class NVE(AlchemicalMethod):
     r"""Alchemical NVE Integration.
 
     Args:
@@ -246,6 +279,8 @@ class NVE(Method):
             to apply this method.
 
         time_factor (`int`): Time factor for the alchemostat
+
+        alchemical_particles (list): List of alchemical particles
 
     Examples::
 
@@ -258,9 +293,11 @@ class NVE(Method):
 
         time_factor (int): Time factor for the alchemostat
 
+        alchemical_particles (list): List of alchemical particles
+
     """
 
-    def __init__(self, filter, time_factor):
+    def __init__(self, filter, time_factor, alchemical_particles=[]):
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
@@ -269,6 +306,7 @@ class NVE(Method):
             dict(filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
+        super().__init__(alchemical_particles)
 
     def _attach(self):
         cpp_class = hoomd.md._md.TwoStepNVEAlchemy
