@@ -64,6 +64,11 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
         return m_alchemicalParticles;
         }
 
+    void setAlchemicalParticleList(std::vector<std::shared_ptr<AlchemicalMDParticle>> alchemicalParticles)
+        {
+        m_alchemicalParticles = alchemicalParticles;
+        }
+
     void addAlchemicalParticle(std::shared_ptr<AlchemicalMDParticle> alpha)
         {
         m_alchemicalParticles.push_back(alpha);
@@ -119,6 +124,7 @@ inline void export_AlchemostatTwoStep(pybind11::module& m)
                      std::shared_ptr<AlchemostatTwoStep>>(m, "AlchemostatTwoStep")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, unsigned int>())
         .def_property("time_factor", &AlchemostatTwoStep::getAlchemTimeFactor, &AlchemostatTwoStep::setAlchemTimeFactor)
+        .def_property("alchemical_particles", &AlchemostatTwoStep::getAlchemicalParticleList, &AlchemostatTwoStep::setAlchemicalParticleList)
         .def("getAlchemicalParticleList", &AlchemostatTwoStep::getAlchemicalParticleList)
         .def("addAlchemicalParticle", &AlchemostatTwoStep::addAlchemicalParticle)
         .def("getNDOF", &AlchemostatTwoStep::getNDOF)
