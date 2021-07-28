@@ -26,12 +26,18 @@ class AlchemicalParticle
     {
     public:
     AlchemicalParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
-        : value(Scalar(1.0)), m_exec_conf(exec_conf) {};
+        : value(Scalar(1.0)), m_exec_conf(exec_conf), m_attached(true) {};
+
+    virtual void notifyDetach()
+        {
+        m_attached = false;
+        }
 
     Scalar value; //!< Alpha space dimensionless position of the particle
     uint64_t m_nextTimestep;
 
     protected:
+    bool m_attached;
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf;                 //!< Stored shared ptr to the execution configuration
     std::shared_ptr<Compute> m_base; //!< the associated Alchemical Compute
@@ -147,7 +153,8 @@ inline void export_AlchemicalMDParticle(pybind11::module& m)
         .def_readwrite("alpha", &AlchemicalMDParticle::value)
         .def_readwrite("momentum", &AlchemicalMDParticle::momentum)
         .def_property_readonly("forces", &AlchemicalMDParticle::getDAlphas)
-        .def("net_force", pybind11::overload_cast<>(&AlchemicalMDParticle::getNetForce));
+        .def("net_force", pybind11::overload_cast<>(&AlchemicalMDParticle::getNetForce))
+        .def("notifyDetach", &AlchemicalMDParticle::notifyDetach);
     }
 
 inline void export_AlchemicalPairParticle(pybind11::module& m)
