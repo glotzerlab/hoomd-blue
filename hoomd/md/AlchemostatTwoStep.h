@@ -18,8 +18,12 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
     {
     public:
     //! Constructs the integration method and associates it with the system
-    AlchemostatTwoStep(std::shared_ptr<SystemDefinition> sysdef)
-        : IntegrationMethodTwoStep(sysdef, std::make_shared<ParticleGroup>()) {};
+    AlchemostatTwoStep(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group,
+                       unsigned int alchemTimeFactor)
+        : IntegrationMethodTwoStep(sysdef, group), m_nTimeFactor(alchemTimeFactor), 
+          m_halfDeltaT(0.5 * m_deltaT * alchemTimeFactor) {};
+
     virtual ~AlchemostatTwoStep() { }
 
     //! Get the number of degrees of freedom associated with the alchemostat
@@ -113,9 +117,8 @@ inline void export_AlchemostatTwoStep(pybind11::module& m)
     pybind11::class_<AlchemostatTwoStep,
                      IntegrationMethodTwoStep,
                      std::shared_ptr<AlchemostatTwoStep>>(m, "AlchemostatTwoStep")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setAlchemTimeFactor", &AlchemostatTwoStep::setAlchemTimeFactor)
-        .def("getAlchemTimeFactor", &AlchemostatTwoStep::getAlchemTimeFactor)
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, unsigned int>())
+        .def_property("time_factor", &AlchemostatTwoStep::getAlchemTimeFactor, &AlchemostatTwoStep::setAlchemTimeFactor)
         .def("getAlchemicalParticleList", &AlchemostatTwoStep::getAlchemicalParticleList)
         .def("addAlchemicalParticle", &AlchemostatTwoStep::addAlchemicalParticle)
         .def("getNDOF", &AlchemostatTwoStep::getNDOF)
