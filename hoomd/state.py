@@ -11,6 +11,7 @@ from hoomd.box import Box
 from hoomd.snapshot import Snapshot
 from hoomd.data import LocalSnapshot, LocalSnapshotGPU
 import hoomd
+import warnings
 
 
 def _create_domain_decomposition(device, box):
@@ -38,13 +39,15 @@ def _create_domain_decomposition(device, box):
 class State:
     """The state of a `hoomd.Simulation` object.
 
-    Provides access (read/write) to a `hoomd.Simulation` object's particle,
-    bond, angle, etc. data. Data access is facilitated through two complementary
-    APIs: *global* and *local* snapshots (note that global does not refer to
-    variable scope here). See `State.snapshot`, `State.cpu_local_snapshot`, and
-    `State.gpu_local_snapshot` for information about these data access patterns.
-    In addition, many commonly used smaller quantities such as the number of
-    particles in a simulation are available directly through `State` object
+    `State` stores a `hoomd.Simulation` object's particle, bond, angle, etc.
+    data that describe the microstate of the system. Data access is facilitated
+    through two complementary APIs: *local* snapshots that access data directly
+    available on the local MPI rank and *global* snapshots that collect the
+    entire state on rank 0. See `State.cpu_local_snapshot`,
+    `State.gpu_local_snapshot`, `State.take_snapshot`, and
+    `State.restore_snapshot` for information about these data access patterns.
+    In addition, many commonly used quantities such as the number of particles
+    and types in a simulation are available directly through `State` object
     properties.
 
     Note:
@@ -52,7 +55,7 @@ class State:
         way to set a state created outside of a `hoomd.Simulation` object to a
         simulation. Use `hoomd.Simulation.create_state_from_gsd` and
         `hoomd.Simulation.create_state_from_snapshot` to instantiate a
-        `State` object.
+        `State` object as part of a simulation.
     """
 
     def __init__(self, simulation, snapshot):
@@ -81,56 +84,91 @@ class State:
 
     @property
     def snapshot(self):
-        r"""hoomd.Snapshot: All data of a simulation's current microstate.
+        """Simulation snapshot.
 
-        `State.snapshot` should be used when all of a simulation's state
-        information is desired in a single object. When accessed, data across
-        all MPI ranks and from GPUs is gathered on the root MPI rank's memory.
-        When accessing data in MPI simulations, it is recommended to use a
-        ``if snapshot.communicator.rank == 0:`` conditional to prevent
-        attempting to access data on a non-root rank.
+        .. deprecated:: 3.0.0-beta.8
+            Use `take_snapshot` and `restore_snapshot` instead.
+        """
+        warnings.warn("Deprecated, use state.take_snapshot()",
+                      DeprecationWarning)
+        return self.take_snapshot()
 
-        This property can be set to replace the system state with the given
-        `hoomd.Snapshot` object.  Example use cases in which a simulation's
-        state may be reset from a snapshot include Monte Carlo schemes
-        implemented at the Python script level, where the current snapshot is
-        passed to the Monte Carlo simulation before being passed back after
-        running some Monte Carlo steps.
+    @snapshot.setter
+    def snapshot(self, snapshot):
+        warnings.warn("Deprecated, use state.restore_snapshot()",
+                      DeprecationWarning)
+        self.restore_snapshot(snapshot)
 
-        Warning:
-            Using `State.snapshot` multiple times will gather data across MPI
-            ranks and GPUs every time. If the snapshot is needed for more than
-            one use, it is recommended to store it in a variable.
+    def take_snapshot(self):
+        """Make a copy of the simulation current microstate.
+
+        `State.take_snapshot` makes a copy of the simulation microstate and
+        makes it available in a single object. `State.restore_snapshot` resets
+        the internal microstate to that in the given snapshot. Use these methods
+        to implement techniques like hybrid MD/MC or umbrella sampling where
+        entire system configurations need to be reset to a previous one after a
+        rejected move.
 
         Note:
-            Setting or getting a snapshot is an order :math:`O(N_{particles}
-            + N_{bonds} + \ldots)` operation.
+            Data across all MPI ranks and from GPUs is gathered on the root MPI
+            rank's memory. When accessing data in MPI simulations, use a ``if
+            snapshot.communicator.rank == 0:`` conditional to access data arrays
+            only on the root rank.
+
+        Note:
+            `State.take_snapshot` is an order :math:`O(N_{particles} + N_{bonds}
+            + \\ldots)` operation.
+
+        See Also:
+            `restore_snapshot`
+
+        Returns:
+            hoomd.Snapshot: The current simulation microstate
         """
         cpp_snapshot = self._cpp_sys_def.takeSnapshot_double()
         return Snapshot._from_cpp_snapshot(cpp_snapshot,
                                            self._simulation.device.communicator)
 
-    @snapshot.setter
-    def snapshot(self, snapshot):
+    def restore_snapshot(self, snapshot):
+        """Restore the microstate of the simulation from a snapshot.
+
+        Args:
+            snapshot (hoomd.Snapshot): Snapshot of the system from
+              `take_snapshot`
+
+        Warning:
+            `restore_snapshot` can only make limited changes to the simulation
+            state. While it can change the number of particles/bonds/etc... or
+            their properties, it cannot change the number or names of the
+            particle/bond/etc.. types.
+
+        Note:
+            `State.restore_snapshot` is an order :math:`O(N_{particles} +
+            N_{bonds} + \\ldots)` operation and is very expensive when the
+            simulation device is a GPU.
+
+        See Also:
+            `take_snapshot`
+        """
         if self._in_context_manager:
             raise RuntimeError(
                 "Cannot set state to new snapshot inside local snapshot.")
         if self._simulation.device.communicator.rank == 0:
-            if len(snapshot.particles.types) != len(self.particle_types):
+            if snapshot.particles.types != self.particle_types:
                 raise RuntimeError(
-                    "Number of particle types must remain the same")
-            if len(snapshot.bonds.types) != len(self.bond_types):
-                raise RuntimeError("Number of bond types must remain the same")
-            if len(snapshot.angles.types) != len(self.angle_types):
-                raise RuntimeError("Number of angle types must remain the same")
-            if len(snapshot.dihedrals.types) != len(self.dihedral_types):
+                    "Particle types must remain the same")
+            if snapshot.bonds.types != self.bond_types:
+                raise RuntimeError("Bond types must remain the same")
+            if snapshot.angles.types != self.angle_types:
+                raise RuntimeError("Angle types must remain the same")
+            if snapshot.dihedrals.types != self.dihedral_types:
                 raise RuntimeError(
-                    "Number of dihedral types must remain the same")
-            if len(snapshot.impropers.types) != len(self.improper_types):
+                    "Dihedral types must remain the same")
+            if snapshot.impropers.types != self.improper_types:
                 raise RuntimeError(
-                    "Number of dihedral types must remain the same")
-            if len(snapshot.pairs.types) != len(self.special_pair_types):
-                raise RuntimeError("Number of pair types must remain the same")
+                    "Improper types must remain the same")
+            if snapshot.pairs.types != self.special_pair_types:
+                raise RuntimeError("Pair types must remain the same")
 
         self._cpp_sys_def.initializeFromSnapshot(snapshot._cpp_obj)
 

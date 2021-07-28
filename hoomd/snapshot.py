@@ -38,7 +38,7 @@ class _ConfigurationData:
 
 
 class Snapshot:
-    """Standalone copy of the simulation `State`.
+    """Self-contained copy of the simulation `State`.
 
     Args:
         communicator (Communicator): MPI communicator to be used with the
@@ -63,7 +63,9 @@ class Snapshot:
     .. seealso:
         `Simulation.create_state_from_snapshot`
 
-        `State.snapshot`
+        `State.take_snapshot`
+
+        `State.restore_snapshot`
 
     .. todo::
 
