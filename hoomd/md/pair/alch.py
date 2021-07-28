@@ -237,6 +237,46 @@ class NVT(Method):
         super()._attach()
 
 
+class NVE(Method):
+    r"""Alchemical NVE Integration.
+
+    Args:
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which
+            to apply this method.
+
+        tau (`float`): Time factor for the alchemostat
+
+    Examples::
+
+        nve=hoomd.md.methods.NVE(filter=hoomd.filter.All(), tau=0.5)
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
+            apply this method.
+
+        tau (float): Time factor for the alchemostat
+
+    """
+
+    def __init__(self, filter, kT, time_factor):
+
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter,
+                                   time_factor=float(tau))
+        param_dict.update(
+            dict(filter=filter))
+        # set defaults
+        self._param_dict.update(param_dict)
+
+    def _attach(self):
+        cpp_class = hoomd.md._md.TwoStepNVEAlchemy
+        group = self._simulation.state._get_group(self.filter)
+        cpp_sys_def = self._simulation.state._cpp_sys_def
+        self._cpp_obj = cpp_class(cpp_sys_def, group, self.time_factor)
+        super()._attach()
+
+
 # # TODO: the rest of this should likely be moved to a new namespace
 # from collections.abc import ABC, abstractmethod
 # from hoomd.util import SyncedList
