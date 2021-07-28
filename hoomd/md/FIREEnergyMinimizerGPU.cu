@@ -234,7 +234,7 @@ hipError_t gpu_fire_compute_sum_pe(unsigned int* d_group_members,
                        d_partial_sum_pe);
 
     hipLaunchKernelGGL((gpu_fire_reduce_partial_sum_kernel),
-                       dim3(grid),
+                       dim3(1, 1, 1),
                        dim3(threads),
                        block_size * sizeof(Scalar),
                        0,
@@ -582,7 +582,7 @@ hipError_t gpu_fire_compute_sum_all(const unsigned int N,
     dim3 grid(num_blocks, 1, 1);
     dim3 grid1(1, 1, 1);
     dim3 threads(block_size, 1, 1);
-    dim3 threads1(256, 1, 1);
+    dim3 threads1(256, 1, 1);  // TODO should this value be hard-coded, or should it just be the same as m_block_size?
 
     // run the kernels
     hipLaunchKernelGGL((gpu_fire_reduce_P_partial_kernel),
@@ -591,7 +591,6 @@ hipError_t gpu_fire_compute_sum_all(const unsigned int N,
                        block_size * sizeof(Scalar),
                        0,
                        d_vel,
-
                        d_accel,
                        d_group_members,
                        group_size,
@@ -665,7 +664,7 @@ hipError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
     dim3 grid(num_blocks, 1, 1);
     dim3 grid1(1, 1, 1);
     dim3 threads(block_size, 1, 1);
-    dim3 threads1(256, 1, 1);
+    dim3 threads1(256, 1, 1); // TODO same comment about hard-coding as above
 
     // run the kernels
     hipLaunchKernelGGL((gpu_fire_reduce_Pr_partial_kernel),
@@ -786,7 +785,7 @@ hipError_t gpu_fire_update_v(Scalar4* d_vel,
                              Scalar factor_t)
     {
     // setup the grid to run the kernel
-    int block_size = 256;
+    int block_size = 256;  // TODO another hard coded block size
     dim3 grid((group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
@@ -859,7 +858,7 @@ hipError_t gpu_fire_update_angmom(const Scalar4* d_net_torque,
                                   Scalar factor_r)
     {
     // setup the grid to run the kernel
-    int block_size = 256;
+    int block_size = 256;  // TODO another hard coded block size
     dim3 grid((group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
