@@ -47,6 +47,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceCompute.h
                 ActiveForceConstraintCompute.h
                 ActiveForceConstraintComputeGPU.h
+		ActiveForceConstraintComputeGPU.cuh
                 AllAnisoPairPotentials.h
                 AllBondPotentials.h
                 AllExternalPotentials.h

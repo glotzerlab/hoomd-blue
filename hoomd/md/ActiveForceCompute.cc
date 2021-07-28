@@ -264,14 +264,10 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
 
             if (m_sysdef->getNDimensions() == 2) // 2D
                 {
-                Scalar delta_theta; // rotational diffusion angle
-                delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-                Scalar theta
-                    = delta_theta
-                      / 2.0; // half angle to calculate the quaternion which represents the rotation
-                vec3<Scalar> b(0, 0, slow::sin(theta));
+                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
 
-                quat<Scalar> rot_quat(slow::cos(theta), b); // rotational diffusion quaternion
+                vec3<Scalar> b(0, 0, 1.0);
+    		quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(b, delta_theta);
 
                 quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
                 h_orientation.data[idx] = quat_to_scalar4(quati);
@@ -294,12 +290,7 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
                 aux_vec *= aux_vec_mag;
 
                 Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-                Scalar theta
-                    = delta_theta
-                      / 2.0; // half angle to calculate the quaternion which represents the rotation
-                quat<Scalar> rot_quat(slow::cos(theta),
-                                      slow::sin(theta)
-                                          * aux_vec); // rotational diffusion quaternion
+    		quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(aux_vec, delta_theta);
 
                 quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
                 h_orientation.data[idx] = quat_to_scalar4(quati);

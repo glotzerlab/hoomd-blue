@@ -100,13 +100,10 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
         if (is2D) // 2D
             {
-            Scalar delta_theta; // rotational diffusion angle
-            delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
-            Scalar theta
-                = delta_theta / 2.0; // angle on plane defining orientation of active force vector
-            vec3<Scalar> b(0, 0, slow::sin(theta));
+            Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
 
-            quat<Scalar> rot_quat(slow::cos(theta), b);
+	    vec3<Scalar> b(0, 0, 1.0);
+    	    quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(b, delta_theta);
 
             quati = rot_quat * quati;
             d_orientation[idx] = quat_to_scalar4(quati);
@@ -125,10 +122,8 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             Scalar aux_vec_mag = slow::rsqrt(dot(aux_vec, aux_vec));
             aux_vec *= aux_vec_mag;
 
-            Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
-            Scalar theta
-                = delta_theta / 2.0; // angle on plane defining orientation of active force vector
-            quat<Scalar> rot_quat(slow::cos(theta), slow::sin(theta) * aux_vec);
+            Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
+    	    quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(aux_vec, delta_theta);
 
             quati = rot_quat * quati;
             d_orientation[idx] = quat_to_scalar4(quati);

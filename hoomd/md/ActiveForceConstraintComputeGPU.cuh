@@ -83,7 +83,7 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
 
         Scalar dot_perp_prod = slow::rsqrt(1 - dot_prod * dot_prod);
 
-        Scalar phi_half = slow::atan(dot_prod * dot_perp_prod) / 2.0;
+        Scalar phi = slow::atan(dot_prod * dot_perp_prod);
 
         fi.x -= norm.x * dot_prod;
         fi.y -= norm.y * dot_prod;
@@ -94,9 +94,8 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
         fi *= new_norm;
 
         vec3<Scalar> rot_vec = cross(norm, fi);
-        rot_vec *= slow::sin(phi_half);
 
-        quat<Scalar> rot_quat(cos(phi_half), rot_vec);
+	quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(rot_vec, phi);
 
         quati = rot_quat * quati;
 
@@ -146,8 +145,8 @@ gpu_compute_active_force_constraint_rotational_diffusion_kernel(const unsigned i
     norm.normalize();
 
     Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
-    Scalar theta = delta_theta / 2.0; // angle on plane defining orientation of active force vector
-    quat<Scalar> rot_quat(slow::cos(theta), slow::sin(theta) * norm);
+
+    quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(norm, delta_theta);
 
     quati = rot_quat * quati;
     d_orientation[idx] = quat_to_scalar4(quati);

@@ -291,7 +291,8 @@ class Active(Force):
             It is defined per particle type and stays constant during
             the simulation.
         active_torque (tuple): active torque vector in reference to the
-            orientation of a particle. It is defined per particle type and stays
+            orientation of a particle :math:`[\mathrm{force} \cdot
+            \mathrm{length}]`. It is defined per particle type and stays
             constant during the simulation.
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.

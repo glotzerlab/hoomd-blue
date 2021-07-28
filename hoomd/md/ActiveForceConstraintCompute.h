@@ -115,12 +115,7 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timest
 
         Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
 
-        Scalar theta
-            = delta_theta
-              / 2.0; // half angle to calculate the quaternion which represents the rotation
-        quat<Scalar> rot_quat(slow::cos(theta),
-                              slow::sin(theta) * norm); // rotational diffusion quaternion
-
+	quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(norm, delta_theta);
 
         quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
         h_orientation.data[idx] = quat_to_scalar4(quati);
@@ -166,7 +161,7 @@ template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstra
 
             Scalar dot_perp_prod = slow::rsqrt(1 - dot_prod * dot_prod);
 
-            Scalar phi_half = slow::atan(dot_prod * dot_perp_prod) / 2.0;
+            Scalar phi = slow::atan(dot_prod * dot_perp_prod);
 
             fi.x -= norm.x * dot_prod;
             fi.y -= norm.y * dot_prod;
@@ -176,9 +171,7 @@ template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstra
             fi *= new_norm;
 
             vec3<Scalar> rot_vec = cross(norm, fi);
-            rot_vec *= fast::sin(phi_half);
-
-            quat<Scalar> rot_quat(cos(phi_half), rot_vec);
+            quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(rot_vec, phi);
 
             quati = rot_quat * quati;
 
