@@ -231,6 +231,14 @@ class NVT(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
+    def _attach(self):
+        cpp_class = hoomd.md._md.TwoStepNVTAlchemy
+        group = self._simulation.state._get_group(self.filter)
+        cpp_sys_def = self._simulation.state._cpp_sys_def
+        self._cpp_obj = cpp_class(cpp_sys_def, group, thermo, self.tau, self.kT)
+        super()._attach()
+
+
 # # TODO: the rest of this should likely be moved to a new namespace
 # from collections.abc import ABC, abstractmethod
 # from hoomd.util import SyncedList
