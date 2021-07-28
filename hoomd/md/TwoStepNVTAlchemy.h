@@ -30,7 +30,10 @@ class TwoStepNVTAlchemy : public AlchemostatTwoStep
     {
     public:
     //! Constructs the integration method and associates it with the system
-    TwoStepNVTAlchemy(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Variant> T);
+    TwoStepNVTAlchemy(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<ParticleGroup> group,
+                      unsigned int alchemTimeFactor,
+                      std::shared_ptr<Variant> T);
     virtual ~TwoStepNVTAlchemy();
 
     void setQ(Scalar Q)
