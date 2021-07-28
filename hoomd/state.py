@@ -61,13 +61,13 @@ class State:
     def __init__(self, simulation, snapshot):
         self._simulation = simulation
         snapshot._broadcast_box()
-        domain_decomp = _create_domain_decomposition(
+        decomposition = _create_domain_decomposition(
             simulation.device, snapshot._cpp_obj._global_box)
 
-        if domain_decomp is not None:
+        if decomposition is not None:
             self._cpp_sys_def = _hoomd.SystemDefinition(
                 snapshot._cpp_obj, simulation.device._cpp_exec_conf,
-                domain_decomp)
+                decomposition)
         else:
             self._cpp_sys_def = _hoomd.SystemDefinition(
                 snapshot._cpp_obj, simulation.device._cpp_exec_conf)
@@ -334,7 +334,7 @@ class State:
         The `hoomd.data.LocalSnapshot` data access is mediated through
         `hoomd.array.HOOMDArray` objects. This lets us ensure memory safety when
         directly accessing HOOMD-blue's data. The interface provides zero-copy
-        access (zero-copy is guarenteed on CPU, access may be zero-copy if
+        access (zero-copy is guaranteed on CPU, access may be zero-copy if
         running on GPU).
 
         Changing the data in the buffers exposed by the local snapshot will
@@ -433,7 +433,8 @@ class State:
 
         `thermalize_particle_momenta` assigns random angular momenta to each
         rotational degree of freedom that has a non-zero moment of intertia.
-        Each particle can have 0, 1, 2, or 3 rotational degrees of freedom.
+        Each particle can have 0, 1, 2, or 3 rotational degrees of freedom
+        as determine by its moment of inertia.
 
         .. seealso::
             `md.methods.NVT.thermalize_thermostat_dof`

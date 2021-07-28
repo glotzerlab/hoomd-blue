@@ -66,11 +66,6 @@ class Snapshot:
         `State.take_snapshot`
 
         `State.restore_snapshot`
-
-    .. todo::
-
-        Concepts such as tags, typeid's, and other non-inituitive arrays need to
-        be elaborated upon.
     """
 
     def __init__(self, communicator=None):
