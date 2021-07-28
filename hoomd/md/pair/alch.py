@@ -59,7 +59,6 @@ class AlchemicalMDParticle(_HOOMDBaseObject):
         self.force = force
         self.name = name
         self.typepair = typepair
-        self.force._add_dependent(self)
         self._mass = mass
         if self.force._attached:
             self._attach()
@@ -69,13 +68,18 @@ class AlchemicalMDParticle(_HOOMDBaseObject):
             *map(self.force._simulation.state.particle_types.index,
                  self.typepair),
             self.force._alchemical_parameters.index(self.name))
+        self._enable()
         self.mass = self._mass
         self._mass = self.mass
 
     # Need to enable and disable via synced list of alchemostat
     def _add(self, simulation):
-        self._enable()
         super()._add(simulation)
+
+    def _detach(self):
+        if self._attached:
+            self._disable()
+            super()._detach()
 
     @log(default=False)
     def mass(self):
@@ -118,6 +122,9 @@ class AlchemicalMDParticle(_HOOMDBaseObject):
 
     def _enable(self):
         self.force._cpp_obj.enableAlchemicalPairParticle(self._cpp_obj)
+
+    def _disable(self):
+        self.force._cpp_obj.disableAlchemicalPairParticle(self._cpp_obj)
 
 
 class _AlchemicalMethods(_HOOMDBaseObject):
