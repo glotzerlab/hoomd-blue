@@ -374,6 +374,7 @@ void export_AlchemicalPotentialPair(pybind11::module& m, const std::string& name
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("getAlchemicalPairParticle", &T::getAlchemicalPairParticle)
         .def("enableAlchemicalPairParticle", &T::enableAlchemicalPairParticle)
+        .def("disableAlchemicalPairParticle", &T::disableAlchemicalPairParticle)
         .def("setNormalizer", &T::setNormalizer)
         // .def_property_readonly("")
         ;
