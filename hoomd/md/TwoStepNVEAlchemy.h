@@ -28,7 +28,9 @@ class TwoStepNVEAlchemy : public AlchemostatTwoStep
     {
     public:
     //! Constructs the integration method and associates it with the system
-    TwoStepNVEAlchemy(std::shared_ptr<SystemDefinition> sysdef);
+    TwoStepNVEAlchemy(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<ParticleGroup> group,
+                      unsigned int alchemTimeFactor);
     virtual ~TwoStepNVEAlchemy();
 
     //! Performs the first step of the integration

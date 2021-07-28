@@ -17,8 +17,10 @@ namespace py = pybind11;
     \param group The group of particles this integration method is to work on
     \param skip_restart Skip initialization of the restart information
 */
-TwoStepNVEAlchemy::TwoStepNVEAlchemy(std::shared_ptr<SystemDefinition> sysdef)
-    : AlchemostatTwoStep(sysdef)
+TwoStepNVEAlchemy::TwoStepNVEAlchemy(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<ParticleGroup> group,
+                                     unsigned int alchemTimeFactor)
+    : AlchemostatTwoStep(sysdef, group, alchemTimeFactor)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVEAlchemy" << endl;
 
@@ -119,5 +121,5 @@ void TwoStepNVEAlchemy::integrateStepTwo(uint64_t timestep)
 void export_TwoStepNVEAlchemy(py::module& m)
     {
     py::class_<TwoStepNVEAlchemy, std::shared_ptr<TwoStepNVEAlchemy>>(m, "TwoStepNVEAlchemy")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, unsigned int>());
     }
