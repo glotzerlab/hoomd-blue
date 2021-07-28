@@ -360,6 +360,7 @@ set(files box.py
           conftest.py
           device.py
           __init__.py
+          error.py
           integrate.py
           operation.py
           operations.py

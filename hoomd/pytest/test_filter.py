@@ -14,7 +14,7 @@ def make_filter_snapshot(device):
 
     def filter_snapshot(n=10, particle_types=['A']):
         s = Snapshot(device.communicator)
-        if s.exists:
+        if s.communicator.rank == 0:
             s.configuration.box = [20, 20, 20, 0, 0, 0]
             s.particles.N = n
             s.particles.position[:] = np.random.uniform(-10, 10, size=(n, 3))
@@ -72,7 +72,7 @@ def test_type_filter(make_filter_snapshot, simulation_factory, type_indices):
     assert B_filter(sim.state) == []
 
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         set_types(s, range(N), particle_types, "B")
     sim.state.snapshot = s
     assert A_filter(sim.state) == []
@@ -80,7 +80,7 @@ def test_type_filter(make_filter_snapshot, simulation_factory, type_indices):
 
     A_inds, B_inds = type_indices
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         set_types(s, A_inds, particle_types, "A")
         set_types(s, B_inds, particle_types, "B")
     sim.state.snapshot = s
@@ -188,7 +188,7 @@ def test_intersection(make_filter_snapshot, simulation_factory, set_indices):
     sim = simulation_factory(filter_snapshot)
     A_inds, B_inds, C_inds = set_indices
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         set_types(s, A_inds, particle_types, "A")
         set_types(s, B_inds, particle_types, "B")
         set_types(s, C_inds, particle_types, "C")
@@ -213,7 +213,7 @@ def test_union(make_filter_snapshot, simulation_factory, set_indices):
     sim = simulation_factory(filter_snapshot)
     A_inds, B_inds, C_inds = set_indices
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         set_types(s, A_inds, particle_types, "A")
         set_types(s, B_inds, particle_types, "B")
         set_types(s, C_inds, particle_types, "C")
@@ -234,7 +234,7 @@ def test_difference(make_filter_snapshot, simulation_factory, set_indices):
     sim = simulation_factory(filter_snapshot)
     A_inds, B_inds, C_inds = set_indices
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         set_types(s, A_inds, particle_types, "A")
         set_types(s, B_inds, particle_types, "B")
         set_types(s, C_inds, particle_types, "C")
@@ -338,7 +338,7 @@ def test_custom_filter(make_filter_snapshot, simulation_factory):
     sim.operations += md.Integrator(0.005, methods=[langevin])
     sim.run(100)
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         assert not np.allclose(snap.particles.position[negative_charge_ind],
                                original_positions)
         assert np.allclose(snap.particles.position[positive_charge_tags],

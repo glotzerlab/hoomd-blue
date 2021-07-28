@@ -211,7 +211,7 @@ def base_snapshot(device):
 
     snapshot = hoomd.Snapshot(device.communicator)
 
-    if snapshot.exists:
+    if snapshot.communicator.rank == 0:
         snapshot.configuration.box = [2.1, 2.1, 2.1, 0, 0, 0]
         set_snapshot(snapshot, _particle_data, 'particles')
         set_snapshot(snapshot, _bond_data, 'bonds')
@@ -388,7 +388,7 @@ class TestLocalSnapshots:
     def check_tag_shape(base_snapshot, local_snapshot, group, ranks):
         mpi_comm = MPI.COMM_WORLD
 
-        if base_snapshot.exists:
+        if base_snapshot.communicator.rank == 0:
             N = getattr(base_snapshot, group).N
         else:
             N = None
@@ -442,7 +442,7 @@ class TestLocalSnapshots:
 
         mpi_comm = MPI.COMM_WORLD
 
-        if snapshot.exists:
+        if snapshot.communicator.rank == 0:
             N = getattr(snapshot, section_name).N
         else:
             N = None

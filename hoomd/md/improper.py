@@ -202,8 +202,8 @@ class harmonic(force._force):
 
     Coefficients:
 
-    - :math:`k` - strength of force, ``k`` (in energy units)
-    - :math:`\chi_{0}` - equilibrium angle, ``chi`` (in radians)
+    - :math:`k` - strength of force, ``k`` :math:`[\mathrm{energy}]`
+    - :math:`\chi_{0}` - equilibrium angle, ``chi`` :math:`[\mathrm{radian}]`
 
     Coefficients :math:`k` and :math:`\chi_0` must be set for each type of improper in the simulation using
     :py:meth:`improper_coeff.set() <coeff.set()>`.

@@ -371,7 +371,7 @@ def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
                                couple='xyz')
 
     snap = two_particle_snapshot_factory()
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.moment_inertia[:] = [[1, 1, 1], [2, 0, 0]]
 
     sim = simulation_factory(snap)
@@ -478,7 +478,7 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
     nvt = hoomd.md.methods.NVT(filter=all_, kT=constant, tau=2.0)
 
     snap = two_particle_snapshot_factory()
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.moment_inertia[:] = [[1, 1, 1], [2, 0, 0]]
 
     sim = simulation_factory(snap)

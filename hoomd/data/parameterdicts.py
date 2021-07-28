@@ -7,13 +7,13 @@
 from collections.abc import MutableMapping
 from itertools import product, combinations_with_replacement
 from copy import copy
-
+import numpy as np
 from hoomd.util import _to_camel_case, _is_iterable
-from hoomd.data.typeconverter import (to_type_converter, TypeConversionError,
-                                      RequiredArg, TypeConverterMapping, OnlyIf,
-                                      Either)
+from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
+                                      TypeConverterMapping, OnlyIf, Either)
 from hoomd.data.smart_default import (_to_base_defaults, _to_default,
                                       _SmartDefault, _NoDefault)
+from hoomd.error import TypeConversionError
 
 
 def has_str_elems(obj):
@@ -149,7 +149,7 @@ class _ValidatedDefaultDict:
             return NotImplemented
         return (self.default == other.default
                 and set(self.keys()) == set(other.keys())
-                and all(self[key] == other[key] for key in self.keys()))
+                and np.all(self[key] == other[key] for key in self.keys()))
 
     @property
     def default(self):
@@ -344,6 +344,13 @@ class ParameterDict(MutableMapping):
     def __len__(self):
         """int: The number of keys."""
         return len(self._dict)
+
+    def __eq__(self, other):
+        """Equality between ParameterDict objects."""
+        if not isinstance(other, ParameterDict):
+            return NotImplemented
+        return (set(self.keys()) == set(other.keys()) and np.all(
+            np.all(self[key] == other[key]) for key in self.keys()))
 
     def update(self, other):
         """Add keys and values to the dictionary."""

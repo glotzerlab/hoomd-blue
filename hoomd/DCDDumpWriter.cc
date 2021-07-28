@@ -15,6 +15,7 @@
 #include "Communicator.h"
 #endif
 
+#include <limits>
 #include <stdexcept>
 
 namespace py = pybind11;

@@ -88,7 +88,7 @@ def get_snapshot(sys, device):
     def make_shapshot():
         box1, points1 = sys[0]
         s = hoomd.snapshot.Snapshot(device.communicator)
-        if s.exists:
+        if s.communicator.rank == 0:
             s.configuration.box = box1
             s.particles.N = points1.shape[0]
             s.particles.typeid[:] = [0] * points1.shape[0]
