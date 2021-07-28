@@ -60,7 +60,9 @@ class Snapshot:
             if snapshot.communicator.rank == 0:
                 pos = snapshot.particles.position[0]
 
-    .. seealso:
+    See Also:
+        `State`
+
         `Simulation.create_state_from_snapshot`
 
         `State.take_snapshot`
