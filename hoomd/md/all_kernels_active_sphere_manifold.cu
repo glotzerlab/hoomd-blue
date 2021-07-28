@@ -4,7 +4,6 @@
 #include "ActiveForceConstraintComputeGPU.cuh"
 #include "ManifoldSphere.h"
 
-
 template hipError_t
 gpu_compute_active_force_set_constraints<ManifoldSphere>(const unsigned int group_size,
                                                          unsigned int* d_index_array,

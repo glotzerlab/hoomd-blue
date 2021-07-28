@@ -22,7 +22,6 @@ ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar rotation_diff)
     : ForceCompute(sysdef), m_group(group), m_rotationDiff(rotation_diff)
     {
-
     // allocate memory for the per-type active_force storage and initialize them to (1.0,0,0)
     GlobalVector<Scalar4> tmp_f_activeVec(m_pdata->getNTypes(), m_exec_conf);
 

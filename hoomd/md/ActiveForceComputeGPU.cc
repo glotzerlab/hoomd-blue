@@ -145,5 +145,12 @@ void export_ActiveForceComputeGPU(py::module& m)
     py::class_<ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU>>(
         m,
         "ActiveForceComputeGPU")
+<<<<<<< HEAD
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar>());
+=======
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ParticleGroup>,
+                      Scalar,
+                      Scalar>());
+>>>>>>> 03412c6e0acbb2f44987466ccfb3f1c1f135a1aa
     }

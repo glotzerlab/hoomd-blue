@@ -137,14 +137,14 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(un
                               access_location::device,
                               access_mode::readwrite);
 
-    if(this->m_box_changed)
-    	{
-    	if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
-    	    {
-    	    throw std::runtime_error("Parts of the manifold are outside the box");
-    	    }
-    	this->m_box_changed = false;
-    	}
+    if (this->m_box_changed)
+        {
+        if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
+            {
+            throw std::runtime_error("Parts of the manifold are outside the box");
+            }
+        this->m_box_changed = false;
+        }
 
     ArrayHandle<unsigned int> d_index_array(this->m_group->getIndexArray(),
                                             access_location::device,

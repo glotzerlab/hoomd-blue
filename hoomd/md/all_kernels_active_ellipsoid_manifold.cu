@@ -4,7 +4,6 @@
 #include "ActiveForceConstraintComputeGPU.cuh"
 #include "ManifoldEllipsoid.h"
 
-
 template hipError_t
 gpu_compute_active_force_set_constraints<ManifoldEllipsoid>(const unsigned int group_size,
                                                             unsigned int* d_index_array,
