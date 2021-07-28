@@ -19,12 +19,10 @@ using namespace hoomd;
  */
 ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                        std::shared_ptr<ParticleGroup> group,
-                                       Scalar rotation_diff,
-                                       Scalar deltaT)
+                                       Scalar rotation_diff)
     : ForceCompute(sysdef), m_group(group), m_rotationDiff(rotation_diff)
     {
 
-    m_deltaT = deltaT;
     // allocate memory for the per-type active_force storage and initialize them to (1.0,0,0)
     GlobalVector<Scalar4> tmp_f_activeVec(m_pdata->getNTypes(), m_exec_conf);
 
@@ -345,7 +343,7 @@ void export_ActiveForceCompute(pybind11::module& m)
     pybind11::class_<ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute>>(
         m,
         "ActiveForceCompute")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar>())
         .def_property("rotation_diff", &ActiveForceCompute::getRdiff, &ActiveForceCompute::setRdiff)
         .def("setActiveForce", &ActiveForceCompute::setActiveForce)
         .def("getActiveForce", &ActiveForceCompute::getActiveForce)

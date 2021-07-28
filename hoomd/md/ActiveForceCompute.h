@@ -31,8 +31,7 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     //! Constructs the compute
     ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ParticleGroup> group,
-                       Scalar rotation_diff,
-                       Scalar deltaT);
+                       Scalar rotation_diff);
 
     //! Destructor
     ~ActiveForceCompute();

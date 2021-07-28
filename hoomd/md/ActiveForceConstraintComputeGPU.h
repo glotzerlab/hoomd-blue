@@ -36,8 +36,7 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU
     ActiveForceConstraintComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                     std::shared_ptr<ParticleGroup> group,
                                     Scalar rotation_diff,
-                                    Manifold manifold,
-                                    Scalar deltaT);
+                                    Manifold manifold);
 
     protected:
     unsigned int m_block_size; //!< block size to execute on the GPU
@@ -73,9 +72,8 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<ParticleGroup> group,
     Scalar rotation_diff,
-    Manifold manifold,
-    Scalar deltaT)
-    : ActiveForceConstraintCompute<Manifold>(sysdef, group, rotation_diff, manifold, deltaT),
+    Manifold manifold)
+    : ActiveForceConstraintCompute<Manifold>(sysdef, group, rotation_diff, manifold),
       m_block_size(256)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -239,7 +237,6 @@ void export_ActiveForceConstraintComputeGPU(py::module& m, const std::string& na
         .def(py::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       Scalar,
-                      Manifold,
-		      Scalar>());
+                      Manifold>());
     }
 #endif

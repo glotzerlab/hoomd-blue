@@ -24,9 +24,8 @@ using namespace std;
 */
 ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                              std::shared_ptr<ParticleGroup> group,
-                                             Scalar rotation_diff,
-					     Scalar deltaT)
-    : ActiveForceCompute(sysdef, group, rotation_diff, deltaT), m_block_size(256)
+                                             Scalar rotation_diff)
+    : ActiveForceCompute(sysdef, group, rotation_diff), m_block_size(256)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -146,5 +145,5 @@ void export_ActiveForceComputeGPU(py::module& m)
     py::class_<ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU>>(
         m,
         "ActiveForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar>());
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar>());
     }

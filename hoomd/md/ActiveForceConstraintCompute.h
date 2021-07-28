@@ -31,8 +31,7 @@ class PYBIND11_EXPORT ActiveForceConstraintCompute : public ActiveForceCompute
     ActiveForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<ParticleGroup> group,
                                  Scalar rotation_diff,
-                                 Manifold manifold,
-				 Scalar deltaT);
+                                 Manifold manifold);
     //
     //! Destructor
     ~ActiveForceConstraintCompute();
@@ -66,9 +65,8 @@ template<class Manifold>
 ActiveForceConstraintCompute<Manifold>::ActiveForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<ParticleGroup> group,
                                  Scalar rotation_diff,
-                                 Manifold manifold,
-				 Scalar deltaT)
-        : ActiveForceCompute(sysdef, group, rotation_diff, deltaT), m_manifold(manifold), m_box_changed(true)
+                                 Manifold manifold)
+        : ActiveForceCompute(sysdef, group, rotation_diff), m_manifold(manifold), m_box_changed(true)
         {
          m_pdata->getBoxChangeSignal().template connect<ActiveForceConstraintCompute<Manifold>, &ActiveForceConstraintCompute<Manifold>::setBoxChange>(this);
         }
@@ -241,8 +239,7 @@ void export_ActiveForceConstraintCompute(pybind11::module& m, const std::string&
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       Scalar,
-                      Manifold,
-		      Scalar>());
+                      Manifold>());
     }
 
 #endif

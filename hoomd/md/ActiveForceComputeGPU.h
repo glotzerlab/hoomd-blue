@@ -27,8 +27,7 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     //! Constructs the compute
     ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<ParticleGroup> group,
-                          Scalar rotation_diff,
-			  Scalar deltaT);
+                          Scalar rotation_diff);
 
     protected:
     unsigned int m_block_size; //!< block size to execute on the GPU
