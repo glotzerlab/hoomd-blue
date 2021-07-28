@@ -250,32 +250,47 @@ class State:
 
     @property
     def box(self):
-        """hoomd.Box: The current simulation box.
+        """hoomd.Box: A copy of the current simulation box.
 
-        Editing the box directly is not allowed. For example
-        ``state.box.scale(1.1)`` would not scale the state's box. To set the
-        state's box to a new box ``state.box = new_box`` must be used.
+        See Also:
+            `set_box`
         """
         b = Box._from_cpp(self._cpp_sys_def.getParticleData().getGlobalBox())
         return Box.from_box(b)
 
     @box.setter
     def box(self, value):
+        warnings.warn("Deprecated, use state.set_box()", DeprecationWarning)
+        self.set_box(value)
+
+    def set_box(self, box):
+        """Set a new simulation box.
+
+        Args:
+            box (Box): New simulation box.
+
+        Note:
+            All particles must be inside the new box. `set_box` does not change
+            any particle properties.
+
+        See Also:
+            `hoomd.update.BoxResize.update`
+        """
         if self._in_context_manager:
             raise RuntimeError(
                 "Cannot set system box within local snapshot context manager.")
         try:
-            value = Box.from_box(value)
+            box = Box.from_box(box)
         except Exception:
             raise ValueError('{} is not convertable to hoomd.Box using '
-                             'hoomd.Box.from_box'.format(value))
+                             'hoomd.Box.from_box'.format(box))
 
-        if value.dimensions != self._cpp_sys_def.getNDimensions():
+        if box.dimensions != self._cpp_sys_def.getNDimensions():
             self._simulation.device._cpp_msg.warning(
                 "Box changing dimensions from {} to {}."
-                "".format(self._cpp_sys_def.getNDimensions(), value.dimensions))
-            self._cpp_sys_def.setNDimensions(value.dimensions)
-        self._cpp_sys_def.getParticleData().setGlobalBox(value._cpp_obj)
+                "".format(self._cpp_sys_def.getNDimensions(), box.dimensions))
+            self._cpp_sys_def.setNDimensions(box.dimensions)
+        self._cpp_sys_def.getParticleData().setGlobalBox(box._cpp_obj)
 
     def replicate(self, nx, ny, nz=1):
         """Replicate the state of the system along the periodic box directions.
