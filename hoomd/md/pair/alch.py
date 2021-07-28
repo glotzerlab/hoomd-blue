@@ -197,7 +197,7 @@ class LJGauss(pair.LJGauss, metaclass=_AlchemicalPairPotential):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
 
-class AlchemicalMethod(Method):
+class Alchemostat(Method):
     def __init__(self, alchemical_particles):
         if alchemical_particles is None:
             alchemical_particles = []
@@ -219,7 +219,7 @@ class AlchemicalMethod(Method):
         self._alchemical_particles = value
 
 
-class NVT(AlchemicalMethod):
+class NVT(Alchemostat):
     r"""Alchemical NVT Integration.
 
     Args:
@@ -273,7 +273,7 @@ class NVT(AlchemicalMethod):
         super()._attach()
 
 
-class NVE(AlchemicalMethod):
+class NVE(Alchemostat):
     r"""Alchemical NVE Integration.
 
     Args:
