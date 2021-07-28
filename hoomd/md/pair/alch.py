@@ -9,6 +9,9 @@ from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeconverter import SetOnce
 from hoomd.md.pair import pair
+from hoomd.md.methods import Method
+from hoomd.filter import ParticleFilter
+from hoomd.variant import Variant
 
 # alternative access? hoomd.alch.md.pair would be nice to somehow link here
 # without making overly complicated
@@ -185,6 +188,48 @@ class LJGauss(pair.LJGauss, metaclass=_AlchemicalPairPotential):
         _AlchemicalMethods.__init__(self)
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
+
+class NVT(Method):
+    r"""Alchemical NVT Integration.
+
+    Args:
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which
+            to apply this method.
+
+        kT (`hoomd.variant.Variant` or `float`): Temperature set point
+            for the alchemostat :math:`[\mathrm{energy}]`.
+
+        tau (`float`): Coupling constant for the alchemostat
+            :math:`[\mathrm{time}]`.
+
+    Examples::
+
+        nvt=hoomd.md.methods.NVT(filter=hoomd.filter.All(), kT=1.0, tau=0.5)
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
+            apply this method.
+
+        kT (hoomd.variant.Variant): Temperature set point
+            for the alchemostat :math:`[\mathrm{energy}]`.
+
+        tau (float): Coupling constant for the alchemostat
+            :math:`[\mathrm{time}]`.
+
+    """
+
+    def __init__(self, filter, kT, tau):
+
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter,
+                                   kT=Variant,
+                                   tau=float(tau))
+        param_dict.update(
+            dict(kT=kT,
+                 filter=filter))
+        # set defaults
+        self._param_dict.update(param_dict)
 
 # # TODO: the rest of this should likely be moved to a new namespace
 # from collections.abc import ABC, abstractmethod
