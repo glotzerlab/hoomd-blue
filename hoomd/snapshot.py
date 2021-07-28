@@ -309,12 +309,20 @@ class Snapshot:
             nx (int): Number of times to replicate in the x direction.
             ny (int): Number of times to replicate in the y direction.
             nz (int): Number of times to replicate in the z direction.
+        Returns:
+            ``self``
         """
         self._cpp_obj.replicate(nx, ny, nz)
+        return self
 
     def wrap(self):
-        """Wrap particles into the simulation box."""
+        """Wrap particles into the simulation box.
+
+        Returns:
+            ``self``
+        """
         self._cpp_obj.wrap()
+        return self
 
     def _broadcast_box(self):
         self._cpp_obj._broadcast_box(self.communicator.cpp_mpi_conf)
