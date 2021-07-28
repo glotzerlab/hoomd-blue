@@ -25,7 +25,7 @@ using namespace std;
 ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                              std::shared_ptr<ParticleGroup> group,
                                              Scalar rotation_diff)
-    : ActiveForceCompute(sysdef, group, rotation_diff), m_block_size(256)
+    : ActiveForceCompute(sysdef, group, rotation_diff)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {

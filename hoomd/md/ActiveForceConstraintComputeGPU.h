@@ -94,8 +94,7 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
     std::shared_ptr<ParticleGroup> group,
     Scalar rotation_diff,
     Manifold manifold)
-    : ActiveForceConstraintCompute<Manifold>(sysdef, group, rotation_diff, manifold),
-      m_block_size(256)
+    : ActiveForceConstraintCompute<Manifold>(sysdef, group, rotation_diff, manifold)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
@@ -107,7 +106,7 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
 
     // initialize autotuner
     std::vector<unsigned int> valid_params;
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
     for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         valid_params.push_back(block_size);
 
