@@ -3,10 +3,10 @@
 # License.
 
 """Alchemical potentials."""
-
+import hoomd
 from hoomd.logging import log, Loggable
 from hoomd.operation import _HOOMDBaseObject
-from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeconverter import SetOnce
 from hoomd.md.pair import pair
 from hoomd.md.methods import Method
@@ -234,6 +234,7 @@ class NVT(Method):
         group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
         self._cpp_obj = cpp_class(cpp_sys_def, group, self.time_factor, self.kT)
+        self._cpp_obj.setNextAlchemicalTimestep(self._simulation.timestep)
         super()._attach()
 
 
@@ -274,6 +275,7 @@ class NVE(Method):
         group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
         self._cpp_obj = cpp_class(cpp_sys_def, group, self.time_factor)
+        self._cpp_obj.setNextAlchemicalTimestep(self._simulation.timestep)
         super()._attach()
 
 
