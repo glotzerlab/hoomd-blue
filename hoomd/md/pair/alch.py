@@ -199,7 +199,7 @@ class NVT(Method):
         kT (`hoomd.variant.Variant` or `float`): Temperature set point
             for the alchemostat :math:`[\mathrm{energy}]`.
 
-        tau (`float`): Time factor for the alchemostat
+        time_factor (`int`): Time factor for the alchemostat
 
     Examples::
 
@@ -213,7 +213,7 @@ class NVT(Method):
         kT (hoomd.variant.Variant): Temperature set point
             for the alchemostat :math:`[\mathrm{energy}]`.
 
-        tau (float): Time factor for the alchemostat
+        time_factor (int): Time factor for the alchemostat
 
     """
 
@@ -222,7 +222,7 @@ class NVT(Method):
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
                                    kT=Variant,
-                                   time_factor=float(tau))
+                                   time_factor=int(time_factor))
         param_dict.update(
             dict(kT=kT,
                  filter=filter))
@@ -244,7 +244,7 @@ class NVE(Method):
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which
             to apply this method.
 
-        tau (`float`): Time factor for the alchemostat
+        time_factor (`int`): Time factor for the alchemostat
 
     Examples::
 
@@ -255,15 +255,15 @@ class NVE(Method):
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
-        tau (float): Time factor for the alchemostat
+        time_factor (int): Time factor for the alchemostat
 
     """
 
-    def __init__(self, filter, kT, time_factor):
+    def __init__(self, filter, time_factor):
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
-                                   time_factor=float(tau))
+                                   time_factor=int(time_factor))
         param_dict.update(
             dict(filter=filter))
         # set defaults
