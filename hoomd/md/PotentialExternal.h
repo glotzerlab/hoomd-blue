@@ -57,21 +57,6 @@ template<class evaluator> class PotentialExternal : public ForceCompute
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
-
-    //! Method to be called when number of types changes
-    virtual void slotNumTypesChange()
-        {
-        // skip the reallocation if the number of types does not change
-        // this keeps old parameters when restoring a snapshot
-        // it will result in invalid coefficients if the snapshot has a different type id -> name
-        // mapping
-        if (m_pdata->getNTypes() == m_params.getNumElements())
-            return;
-
-        // reallocate parameter array
-        GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
-        m_params.swap(params);
-        }
     };
 
 /*! Constructor
@@ -86,21 +71,12 @@ PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition
 
     GPUArray<field_type> field(1, m_exec_conf);
     m_field.swap(field);
-
-    // connect to the ParticleData to receive notifications when the maximum number of particles
-    // changes
-    m_pdata->getNumTypesChangeSignal()
-        .template connect<PotentialExternal<evaluator>,
-                          &PotentialExternal<evaluator>::slotNumTypesChange>(this);
     }
 
 /*! Destructor
  */
 template<class evaluator> PotentialExternal<evaluator>::~PotentialExternal()
     {
-    m_pdata->getNumTypesChangeSignal()
-        .template disconnect<PotentialExternal<evaluator>,
-                             &PotentialExternal<evaluator>::slotNumTypesChange>(this);
     }
 
 /*! Computes the specified constraint forces
