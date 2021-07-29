@@ -29,7 +29,7 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
     //! Get the number of degrees of freedom associated with the alchemostat
     unsigned int getNDOF()
         {
-        return m_iteratorDOF + m_alchemicalParticles.size();
+        return m_iteratorDOF + static_cast<unsigned int>(m_alchemicalParticles.size());
         };
 
     virtual void randomizeVelocities(unsigned int timestep)

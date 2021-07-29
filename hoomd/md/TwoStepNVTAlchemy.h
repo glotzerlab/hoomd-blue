@@ -73,7 +73,6 @@ class TwoStepNVTAlchemy : public AlchemostatTwoStep
     Scalar m_Q;
     Scalar m_alchem_KE;
     std::shared_ptr<Variant> m_T;
-    unsigned int m_iteratorDOF = 1;
 
     //! advance the thermostat
     /*!\param timestep The time step

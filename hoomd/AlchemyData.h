@@ -26,7 +26,7 @@ class AlchemicalParticle
     {
     public:
     AlchemicalParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
-        : value(Scalar(1.0)), m_exec_conf(exec_conf), m_attached(true) {};
+        : value(Scalar(1.0)), m_attached(true), m_exec_conf(exec_conf) {};
 
     virtual void notifyDetach()
         {
