@@ -3,21 +3,24 @@ from hoomd.conftest import pickling_check
 from hoomd.md.pair.alch import LJGauss, NVT, NVE
 import pytest
 
-
 _NVE_args = (NVE, {}, {})
 
-_NVT_args = (NVT, {'kT': hoomd.variant.Constant(1)}, {'kT': hoomd.variant.Constant(0.5)})
+_NVT_args = (NVT, {
+    'kT': hoomd.variant.Constant(1)
+}, {
+    'kT': hoomd.variant.Constant(0.5)
+})
 
 
 def get_alchemostat():
     return [_NVE_args, _NVT_args]
 
 
-@pytest.mark.parametrize("alchemostat_cls, extra_property_1st_value, extra_property_2nd_value", get_alchemostat())
-def test_before_attaching(simulation_factory,
-                          two_particle_snapshot_factory,
-                          alchemostat_cls,
-                          extra_property_1st_value,
+@pytest.mark.parametrize(
+    "alchemostat_cls, extra_property_1st_value, extra_property_2nd_value",
+    get_alchemostat())
+def test_before_attaching(simulation_factory, two_particle_snapshot_factory,
+                          alchemostat_cls, extra_property_1st_value,
                           extra_property_2nd_value):
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=1))
     ljg = LJGauss(hoomd.md.nlist.Cell(), default_r_cut=3.0)
@@ -58,11 +61,11 @@ def test_before_attaching(simulation_factory,
         assert getattr(alchemostat, name) == extra_property_2nd_value[name]
 
 
-@pytest.mark.parametrize("alchemostat_cls, extra_property_1st_value, extra_property_2nd_value", get_alchemostat())
-def test_after_attaching(simulation_factory,
-                         two_particle_snapshot_factory,
-                         alchemostat_cls,
-                         extra_property_1st_value,
+@pytest.mark.parametrize(
+    "alchemostat_cls, extra_property_1st_value, extra_property_2nd_value",
+    get_alchemostat())
+def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
+                         alchemostat_cls, extra_property_1st_value,
                          extra_property_2nd_value):
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=1))
     ljg = LJGauss(hoomd.md.nlist.Cell(), default_r_cut=3.0)
@@ -107,11 +110,11 @@ def test_after_attaching(simulation_factory,
     sim.run(10)
 
 
-@pytest.mark.parametrize("alchemostat_cls, extra_property_1st_value, extra_property_2nd_value", get_alchemostat())
-def test_pickling(simulation_factory,
-                  two_particle_snapshot_factory,
-                  alchemostat_cls,
-                  extra_property_1st_value,
+@pytest.mark.parametrize(
+    "alchemostat_cls, extra_property_1st_value, extra_property_2nd_value",
+    get_alchemostat())
+def test_pickling(simulation_factory, two_particle_snapshot_factory,
+                  alchemostat_cls, extra_property_1st_value,
                   extra_property_2nd_value):
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=1))
     ljg = LJGauss(hoomd.md.nlist.Cell(), default_r_cut=3.0)

@@ -198,11 +198,14 @@ class LJGauss(pair.LJGauss, metaclass=_AlchemicalPairPotential):
 
 
 class Alchemostat(Method):
+
     def __init__(self, alchemical_particles):
         if alchemical_particles is None:
             alchemical_particles = []
         self._alchemical_particles = syncedlist.SyncedList(
-            AlchemicalMDParticle, syncedlist._PartialGetAttr('_cpp_obj'), iterable=alchemical_particles)
+            AlchemicalMDParticle,
+            syncedlist._PartialGetAttr('_cpp_obj'),
+            iterable=alchemical_particles)
 
     def _attach(self):
         self.alchemical_particles._sync(self._simulation,
@@ -257,9 +260,7 @@ class NVT(Alchemostat):
         param_dict = ParameterDict(filter=ParticleFilter,
                                    kT=Variant,
                                    time_factor=int(time_factor))
-        param_dict.update(
-            dict(kT=kT,
-                 filter=filter))
+        param_dict.update(dict(kT=kT, filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
         super().__init__(alchemical_particles)
@@ -304,8 +305,7 @@ class NVE(Alchemostat):
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
                                    time_factor=int(time_factor))
-        param_dict.update(
-            dict(filter=filter))
+        param_dict.update(dict(filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
         super().__init__(alchemical_particles)
