@@ -10,6 +10,8 @@ from hoomd.md.force import Force
 from hoomd.md import force
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyTypes
 import hoomd
 
 import math
