@@ -308,11 +308,15 @@ void Messenger::noticeStr(unsigned int level, const std::string& msg)
 */
 void Messenger::openFile(const std::string& fname)
     {
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_mpi_config->getNRanks() > 1)
         {
         // open the shared file
-        m_streambuf_out = std::make_shared<mpi_io>(m_mpi_config->getCommunicator(), fname);
+        std::string broadcast_fname = fname;
+        bcast(broadcast_fname, 0, m_mpi_config->getCommunicator());
+
+        m_streambuf_out
+            = std::make_shared<mpi_io>(m_mpi_config->getCommunicator(), broadcast_fname);
         m_file_out = std::make_shared<std::ostream>(m_streambuf_out.get());
         }
     else
@@ -320,9 +324,9 @@ void Messenger::openFile(const std::string& fname)
         // open the file
         m_file_out = std::make_shared<std::ofstream>(fname.c_str());
         }
-    #else
+#else
     m_file_out = std::make_shared<std::ofstream>(fname.c_str());
-    #endif
+#endif
 
     // update the error, warning, and notice streams
     m_file_err = std::shared_ptr<std::ostream>();

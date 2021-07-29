@@ -4,7 +4,6 @@
 """Choose which hardware device(s) should execute the simulation."""
 
 import contextlib
-import os
 import hoomd
 from hoomd import _hoomd
 
@@ -79,7 +78,9 @@ class Device:
 
         Note:
             All MPI ranks within a given partition must open the same file.
-            Different partitions may open separate files. For example:
+            To ensure this, the given file name on rank 0 is broadcast to the
+            other ranks. Different partitions may open separate files. For
+            example:
 
             .. code::
 
