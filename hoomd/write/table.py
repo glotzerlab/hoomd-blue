@@ -16,6 +16,7 @@ from hoomd.logging import LoggerCategories, Logger
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.util import dict_flatten
+from hoomd.custom import Action
 
 
 class _OutputWriter(metaclass=ABCMeta):
@@ -157,6 +158,10 @@ class _TableInternal(_InternalAction):
         'sequence', 'object', 'particle', 'bond', 'angle', 'dihedral',
         'improper', 'pair', 'constraint', 'strings'
     ])
+
+    flags = [Action.Flags.ROTATIONAL_KINETIC_ENERGY,
+             Action.Flags.PRESSURE_TENSOR,
+             Action.Flags.EXTERNAL_FIELD_VIRIAL]
 
     def __init__(self,
                  logger,
