@@ -104,7 +104,7 @@ class State:
       particles may be in any order.
 
     Note:
-        HOOMD stores angular momentum as a quaterion because that is the form
+        HOOMD stores angular momentum as a quaternion because that is the form
         used when integrating the equations of motion (see `Kamberaj 2005`_).
         The angular momentum quaternion :math:`\\mathbf{P_S}` is defined with
         respect to the orientation quaternion of the particle
