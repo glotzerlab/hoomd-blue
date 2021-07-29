@@ -173,8 +173,8 @@ class State:
     number of times in the x, y, and z directions. Each MPI rank stores and
     operates on the particles local to that rank, those contained within the
     region defined by the split planes. Each MPI rank communicates with its
-    neighbors to obtain the properties of particles (ghost particles) near the
-    boundary between ranks so that it can compute interactions across the
+    neighbors to obtain the properties of particles near the boundary between
+    ranks (ghost particles) so that it can compute interactions across the
     boundary.
 
     .. rubric:: Accessing Data
