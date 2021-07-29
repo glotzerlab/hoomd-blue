@@ -315,6 +315,7 @@ class NVE(Alchemostat):
         group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
         self._cpp_obj = cpp_class(cpp_sys_def, group, self.time_factor)
+        self._cpp_obj.setNextAlchemicalTimestep(self._simulation.timestep)
         super()._attach()
 
 
