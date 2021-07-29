@@ -227,10 +227,16 @@ def test_replicate(simulation_factory, lattice_snapshot_factory):
 
     initial_snapshot.replicate(2, 2, 2)
     if initial_snapshot.communicator.rank == 0:
-        numpy.testing.assert_allclose(
-            initial_snapshot.particles.position,
-            [[-5, -5, -5], [-5, -5, 5], [-5, 5, -5], [-5, 5, 5], [5, -5, -5],
-             [5, -5, 5], [5, 5, -5], [5, 5, 5]])
+        numpy.testing.assert_allclose(initial_snapshot.particles.position, [
+            [-5, -5, -5],
+            [-5, -5, 5],
+            [-5, 5, -5],
+            [-5, 5, 5],
+            [5, -5, -5],
+            [5, -5, 5],
+            [5, 5, -5],
+            [5, 5, 5],
+        ])
 
     sim.state.replicate(2, 2, 2)
     new_snapshot = sim.state.take_snapshot()
