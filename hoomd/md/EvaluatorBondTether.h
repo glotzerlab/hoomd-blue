@@ -57,7 +57,7 @@ struct tether_params
 
         if (l_min < l_c1 && l_min < l_c0 && l_min < l_max && l_c1 < l_c0 && l_c1 < l_max
             && l_c0 < l_max)
-            {/* deliberately empty to pass*/
+            { /* deliberately empty to pass*/
             }
         else
             {
