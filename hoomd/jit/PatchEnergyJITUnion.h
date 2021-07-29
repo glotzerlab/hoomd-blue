@@ -54,9 +54,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         }
 
     //! Destructor
-    virtual ~PatchEnergyJITUnion()
-        {
-        }
+    virtual ~PatchEnergyJITUnion() { }
 
     //! Set the per-type constituent particles
     /*! \param type The particle type to set the constituent particles for

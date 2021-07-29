@@ -75,9 +75,7 @@ PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition
 
 /*! Destructor
  */
-template<class evaluator> PotentialExternal<evaluator>::~PotentialExternal()
-    {
-    }
+template<class evaluator> PotentialExternal<evaluator>::~PotentialExternal() { }
 
 /*! Computes the specified constraint forces
     \param timestep Current timestep
