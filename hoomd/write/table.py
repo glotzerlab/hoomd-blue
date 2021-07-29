@@ -159,9 +159,10 @@ class _TableInternal(_InternalAction):
         'improper', 'pair', 'constraint', 'strings'
     ])
 
-    flags = [Action.Flags.ROTATIONAL_KINETIC_ENERGY,
-             Action.Flags.PRESSURE_TENSOR,
-             Action.Flags.EXTERNAL_FIELD_VIRIAL]
+    flags = [
+        Action.Flags.ROTATIONAL_KINETIC_ENERGY, Action.Flags.PRESSURE_TENSOR,
+        Action.Flags.EXTERNAL_FIELD_VIRIAL
+    ]
 
     def __init__(self,
                  logger,
