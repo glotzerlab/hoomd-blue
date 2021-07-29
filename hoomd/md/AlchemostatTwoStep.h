@@ -21,7 +21,7 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
     AlchemostatTwoStep(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ParticleGroup> group,
                        unsigned int alchemTimeFactor)
-        : IntegrationMethodTwoStep(sysdef, group), m_nTimeFactor(alchemTimeFactor), 
+        : IntegrationMethodTwoStep(sysdef, group), m_nTimeFactor(alchemTimeFactor),
           m_halfDeltaT(0.5 * m_deltaT * alchemTimeFactor) {};
 
     virtual ~AlchemostatTwoStep() { }
