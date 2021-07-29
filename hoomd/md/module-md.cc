@@ -447,7 +447,7 @@ PYBIND11_MODULE(_md, m)
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
     export_AlchemostatTwoStep(m);
-    // export_TwoStepNVEAlchemy(m);
+    export_TwoStepNVEAlchemy(m);
     export_TwoStepNVTAlchemy(m);
 
     // RATTLE
