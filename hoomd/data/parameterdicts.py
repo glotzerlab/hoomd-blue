@@ -16,17 +16,17 @@ from hoomd.data.smart_default import (_to_base_defaults, _to_default,
 from hoomd.error import TypeConversionError
 
 
-def has_str_elems(obj):
+def _has_str_elems(obj):
     """Returns True if all elements of iterable are str."""
     return all([isinstance(elem, str) for elem in obj])
 
 
-def is_good_iterable(obj):
+def _is_good_iterable(obj):
     """Returns True if object is iterable with respect to types."""
-    return _is_iterable(obj) and has_str_elems(obj)
+    return _is_iterable(obj) and _has_str_elems(obj)
 
 
-def proper_type_return(val):
+def _proper_type_return(val):
     """Expects and requires a dictionary with type keys."""
     if len(val) == 0:
         return None
@@ -114,7 +114,7 @@ class _ValidatedDefaultDict:
         """
         if isinstance(key, tuple) and len(key) == self._len_keys:
             if any([
-                    not is_good_iterable(v) and not isinstance(v, str)
+                    not _is_good_iterable(v) and not isinstance(v, str)
                     for v in key
             ]):
                 raise KeyError("The key {} is not valid.".format(key))
@@ -189,7 +189,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
                 vals[key] = self._dict[key]
             except KeyError:
                 vals[key] = self.default
-        return proper_type_return(vals)
+        return _proper_type_return(vals)
 
     def __setitem__(self, key, val):
         """Set parameter by key."""
@@ -250,7 +250,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         vals = dict()
         for key in self._yield_keys(key):
             vals[key] = getattr(self._cpp_obj, self._getter)(key)
-        return proper_type_return(vals)
+        return _proper_type_return(vals)
 
     def __setitem__(self, key, val):
         """Set parameter by key."""
