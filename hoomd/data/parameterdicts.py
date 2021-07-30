@@ -37,6 +37,23 @@ def _proper_type_return(val):
 
 
 class _ValidatedDefaultDict:
+    """Provide support for validating values and multi-type tuple keys.
+
+    The class provides the interface for using `hoomd.data.typeconverter` value
+    validation and processing as well as an infrastructure for setting and
+    getting multiple mapping values at once.
+
+    In addition, default values for all non-existent keys can be set (similar to
+    default dict) using the `hoomd.data.smart_default` logic. This lets partial
+    defaults be set.
+
+    The constuctor expects either a single positional arugment defining the type
+    validation for keys, or keyword arguments defining the dictionary of
+    parameters for each key.
+
+    The keyword argument ``_defaults`` is special and is used to specify default
+    values at object construction.
+    """
 
     def __init__(self, *args, **kwargs):
         _defaults = kwargs.pop('_defaults', _NoDefault)
