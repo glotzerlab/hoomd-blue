@@ -90,7 +90,6 @@ set(_hoomd_sources Analyzer.cc
                    PythonTuner.cc
                    PythonUpdater.cc
                    SFCPackTuner.cc
-                   SignalHandler.cc
                    SnapshotSystemData.cc
                    System.cc
                    SystemDefinition.cc
@@ -185,7 +184,6 @@ set(_hoomd_headers
     SFCPackTunerGPU.h
     SFCPackTuner.h
     SharedSignal.h
-    SignalHandler.h
     SnapshotSystemData.h
     SystemDefinition.h
     System.h
