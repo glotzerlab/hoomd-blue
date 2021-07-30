@@ -1,5 +1,6 @@
 import hoomd
 import io
+import numpy
 
 
 def test_table_pressure(simulation_factory, two_particle_snapshot_factory):
@@ -11,15 +12,22 @@ def test_table_pressure(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(snap)
     sim.operations.add(thermo)
 
-    integrator = hoomd.md.Integrator(dt=0.0001)
+    integrator = hoomd.md.Integrator(dt=0.0)
     integrator.methods.append(
         hoomd.md.methods.NVT(hoomd.filter.All(), tau=1, kT=1))
     sim.operations.integrator = integrator
 
     logger = hoomd.logging.Logger(categories=['scalar'])
-    logger.add(thermo)
+    logger.add(thermo, quantities=['pressure'])
     output = io.StringIO("")
     table_writer = hoomd.write.Table(1, logger, output)
     sim.operations.writers.append(table_writer)
 
     sim.run(1)
+
+    output_lines = output.getvalue().split('\n')
+    ideal_gas_pressure = (2 * thermo.translational_kinetic_energy / 3
+                          / sim.state.box.volume)
+    numpy.testing.assert_allclose(float(output_lines[1]),
+                                  ideal_gas_pressure,
+                                  rtol=0.2)
