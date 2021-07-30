@@ -137,8 +137,8 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 def test_remove_drift(simulation_factory, lattice_snapshot_factory):
     """Test that RemoveDrift modifies positions correctly."""
     dev = hoomd.device.CPU()
-    sim = hoomd.simulation.Simulation(device = dev, seed = 10234)
-    snap = hoomd.snapshot.Snapshot(communicator = dev.communicator)
+    sim = hoomd.simulation.Simulation(device=dev, seed=10234)
+    snap = hoomd.snapshot.Snapshot(communicator=dev.communicator)
     reference_positions = np.array([[2, 0, 0.1], [-2, 0, 0.1]])
     box = np.array([10, 10, 10, 0, 0, 0])
     if snap.communicator.rank == 0:
