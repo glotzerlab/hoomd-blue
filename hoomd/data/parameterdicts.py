@@ -268,7 +268,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
     def _yield_keys(self, key):
         """Includes key check for existing simulation keys."""
-        curr_keys = self.keys()
+        curr_keys = set(self.keys())
         for key in super()._yield_keys(key):
             if key not in curr_keys:
                 raise KeyError("Type {} does not exist in the "
