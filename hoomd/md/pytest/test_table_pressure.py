@@ -30,5 +30,5 @@ def test_table_pressure(simulation_factory, two_particle_snapshot_factory):
     if sim.device.communicator.rank == 0:
         output_lines = output.getvalue().split('\n')
         numpy.testing.assert_allclose(float(output_lines[1]),
-                                        ideal_gas_pressure,
-                                        rtol=0.2)
+                                      ideal_gas_pressure,
+                                      rtol=0.2)
