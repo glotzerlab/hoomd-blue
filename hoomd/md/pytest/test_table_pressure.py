@@ -25,9 +25,10 @@ def test_table_pressure(simulation_factory, two_particle_snapshot_factory):
 
     sim.run(1)
 
-    output_lines = output.getvalue().split('\n')
     ideal_gas_pressure = (2 * thermo.translational_kinetic_energy / 3
                           / sim.state.box.volume)
-    numpy.testing.assert_allclose(float(output_lines[1]),
-                                  ideal_gas_pressure,
-                                  rtol=0.2)
+    if sim.device.communicator.rank == 0:
+        output_lines = output.getvalue().split('\n')
+        numpy.testing.assert_allclose(float(output_lines[1]),
+                                        ideal_gas_pressure,
+                                        rtol=0.2)
