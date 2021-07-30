@@ -113,17 +113,15 @@ class _ValidatedDefaultDict:
         iterable of type strings.
         """
         if isinstance(key, tuple) and len(key) == self._len_keys:
-            fst, snd = key
             if any([
                     not is_good_iterable(v) and not isinstance(v, str)
                     for v in key
             ]):
                 raise KeyError("The key {} is not valid.".format(key))
-            key = list(key)
-            for ind in range(len(key)):
-                if isinstance(key[ind], str):
-                    key[ind] = [key[ind]]
-            return list(product(*key))
+            # convert str to single item list for proper enumeration using
+            # product
+            key_types_list = [v if isinstance(v, str) else [v] for v in key]
+            return list(product(*key_types_list))
         elif _is_iterable(key):
             keys = []
             for k in key:
