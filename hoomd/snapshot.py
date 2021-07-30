@@ -318,7 +318,7 @@ class Snapshot:
         return self
 
     def wrap(self):
-        """Wrap particles into the simulation box.
+        """Wrap particles into the snapshot box.
 
         Returns:
             ``self``

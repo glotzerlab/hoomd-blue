@@ -73,7 +73,7 @@ class State:
       particle's type. `particle_types` maps type ids to names with:
       ``name = particle_types[t_id]``.
     - :math:`b_\\mathrm{id}`: body id :math:`[\\mathrm{dimensionless}]` -
-      integer that identifies the particle's body. A value of ``-1`` indicates
+      integer that identifies the particle's rigid body. A value of ``-1`` indicates
       that this particle does not belong to a body. A positive value indicates
       that the particle belongs to the body :math:`b_\\mathrm{id}`. This
       particle is the central particle of a body when the body id is equal to
@@ -141,7 +141,7 @@ class State:
     - :math:`t_\\mathrm{id}`: type id :math:`[\\mathrm{dimensionless}]` -
       integer in the range ``[0,len(bond_types)``) that identifies the
       bond's type. `bond_types` maps type ids to names with:
-      ``name = particle_types[t_id]``. Similarly, `angle_types` lists the
+      ``name = bond_types[t_id]``. Similarly, `angle_types` lists the
       angle types, `dihedral_types` lists the dihedral types, `improper_types`
       lists the improper types, and `special_pair_types` lists the special pair
       types.
