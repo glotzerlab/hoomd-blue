@@ -136,29 +136,27 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 @pytest.mark.cpu
 def test_remove_drift(simulation_factory, lattice_snapshot_factory):
     """Test that RemoveDrift modifies positions correctly."""
-    sim = simulation_factory(
-        lattice_snapshot_factory(particle_types=['A'],
-                                 dimensions=3,
-                                 a=4,
-                                 n=10,
-                                 r=0))
-    sim.seed = 19233
-    mc = hoomd.hpmc.integrate.Sphere(default_d=0.5, default_a=0.5)
+    dev = hoomd.device.CPU()
+    sim = hoomd.simulation.Simulation(device = dev, seed = 10234)
+    snap = hoomd.snapshot.Snapshot(communicator = dev.communicator)
+    reference_positions = np.array([[2, 0, 0.1], [-2, 0, 0.1]])
+    box = np.array([10, 10, 10, 0, 0, 0])
+    if snap.communicator.rank == 0:
+        snap.particles.N = 2
+        snap.particles.position[:] = reference_positions
+        snap.configuration.box = box
+        snap.particles.types = ["A"]
+    sim.create_state_from_snapshot(snap)
+
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.5)
     mc.shape["A"] = dict(diameter=1.0)
     sim.operations.integrator = mc
-
-    # use initial lattice configuration as reference
-    comm = MPI.COMM_WORLD
-    s = sim.state.snapshot
-    if s.communicator.rank == 0:
-        reference_positions = s.particles.position
-    else:
-        reference_positions = None
-    reference_positions = comm.bcast(reference_positions, root=0)
 
     # randomize a bit
     sim.run(500)
 
+    # make sure only the updater is acting on the system
+    sim.operations.integrator.d["A"] = 0
     # remove the drift from the previous run
     remove_drift = hoomd.hpmc.update.RemoveDrift(
         trigger=hoomd.trigger.Periodic(1),
@@ -168,12 +166,9 @@ def test_remove_drift(simulation_factory, lattice_snapshot_factory):
 
     s = sim.state.snapshot
     if s.communicator.rank == 0:
-        box = s.configuration.box[0:3]
         new_positions = s.particles.position
-        # unwrap positions
-        new_positions += s.particles.image * box
-        drift = np.mean(reference_positions - new_positions, axis=0)
-        assert np.allclose(drift, [0, 0, 0], atol=0.005, rtol=0)
+        drift = np.mean(new_positions - reference_positions, axis=0)
+        assert np.allclose(drift, [0, 0, 0])
 
 
 @pytest.mark.cpu
