@@ -1,5 +1,5 @@
 import pytest
-from hoomd.filter import (CustomFilter, Rigid)
+from hoomd.filter import CustomFilter, Rigid
 import hoomd.md as md
 import numpy as np
 from hoomd import Snapshot
