@@ -24,8 +24,6 @@ CellListStencil::CellListStencil(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing CellListStencil" << endl;
 
-    m_pdata->getNumTypesChangeSignal().connect<CellListStencil, &CellListStencil::slotTypeChange>(
-        this);
     m_pdata->getBoxChangeSignal().connect<CellListStencil, &CellListStencil::requestCompute>(this);
     m_cl->getCellWidthChangeSignal().connect<CellListStencil, &CellListStencil::requestCompute>(
         this);
@@ -45,8 +43,6 @@ CellListStencil::~CellListStencil()
     {
     m_exec_conf->msg->notice(5) << "Destroying CellListStencil" << endl;
 
-    m_pdata->getNumTypesChangeSignal()
-        .disconnect<CellListStencil, &CellListStencil::slotTypeChange>(this);
     m_pdata->getBoxChangeSignal().disconnect<CellListStencil, &CellListStencil::requestCompute>(
         this);
     m_cl->getCellWidthChangeSignal().disconnect<CellListStencil, &CellListStencil::requestCompute>(

@@ -655,7 +655,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
 template<class NL> void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SystemDefinition> sysdef_6(
-        new SystemDefinition(6, BoxDim(40.0, 40.0, 40.0), 4, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(6, BoxDim(40.0, 40.0, 40.0), 8, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     // test 1: 4 types, but missing two in the middle
         {
@@ -682,9 +682,9 @@ template<class NL> void neighborlist_type_tests(std::shared_ptr<ExecutionConfigu
     auto r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(), exec_conf);
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
-        for (unsigned int i = 0; i < 4; i++)
+        for (unsigned int i = 0; i < type_pair_idx.getW(); i++)
             {
-            for (unsigned int j = 0; j < 4; j++)
+            for (unsigned int j = 0; j < type_pair_idx.getH(); j++)
                 {
                 h_r_cut.data[type_pair_idx(i, j)] = 3.0;
                 }
@@ -742,147 +742,15 @@ template<class NL> void neighborlist_type_tests(std::shared_ptr<ExecutionConfigu
             }
         }
 
-    // add a new type
-    pdata_6->addType("E");
-    // update the rcut for the new type
-    type_pair_idx = nlist_6->getTypePairIndexer();
-    r_cut->resize(type_pair_idx.getNumElements());
-        {
-        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
-        for (unsigned int i = 0; i < 5; i++)
-            {
-            for (unsigned int j = 0; j < 5; j++)
-                {
-                h_r_cut.data[type_pair_idx(i, j)] = 3.0;
-                }
-            }
-        }
-    nlist_6->notifyRCutMatrixChange();
-
-    nlist_6->compute(10);
-    // result is unchanged
-        {
-        ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(),
-                                            access_location::host,
-                                            access_mode::read);
-        CHECK_EQUAL_UINT(h_n_neigh.data[0], 5);
-        CHECK_EQUAL_UINT(h_n_neigh.data[1], 5);
-        CHECK_EQUAL_UINT(h_n_neigh.data[2], 5);
-        CHECK_EQUAL_UINT(h_n_neigh.data[3], 5);
-        CHECK_EQUAL_UINT(h_n_neigh.data[4], 5);
-        CHECK_EQUAL_UINT(h_n_neigh.data[5], 5);
-
-        ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(),
-                                          access_location::host,
-                                          access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(),
-                                              access_location::host,
-                                              access_mode::read);
-        for (unsigned int cur_p = 0; cur_p < 6; ++cur_p)
-            {
-            vector<unsigned int> nbrs(5, 0), check_nbrs;
-
-            // create the sorted list of computed neighbors
-            for (unsigned int cur_neigh = 0; cur_neigh < 5; ++cur_neigh)
-                {
-                nbrs[cur_neigh] = h_nlist.data[h_head_list.data[cur_p] + cur_neigh];
-                }
-            sort(nbrs.begin(), nbrs.end());
-
-            // create the list of expected neighbors (everybody except for myself)
-            check_nbrs.reserve(5);
-            for (unsigned int i = 0; i < 6; ++i)
-                {
-                if (i != cur_p)
-                    {
-                    check_nbrs.push_back(i);
-                    }
-                }
-            sort(check_nbrs.begin(), check_nbrs.end());
-
-            for (unsigned int i = 0; i < 5; ++i)
-                {
-                UP_ASSERT_EQUAL(nbrs[i], check_nbrs[i]);
-                }
-            }
-        }
-
-    // add two more empty types
-    pdata_6->addType("F");
-    pdata_6->addType("G");
-    // update the rcut for the new type
-    type_pair_idx = nlist_6->getTypePairIndexer();
-    r_cut->resize(type_pair_idx.getNumElements());
-        {
-        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
-        for (unsigned int i = 0; i < 7; i++)
-            {
-            for (unsigned int j = 0; j < 7; j++)
-                {
-                h_r_cut.data[type_pair_idx(i, j)] = 3.0;
-                }
-            }
-        }
-    nlist_6->notifyRCutMatrixChange();
-
-    nlist_6->compute(20);
-    // result is unchanged
-        {
-        ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(),
-                                            access_location::host,
-                                            access_mode::read);
-        CHECK_EQUAL_UINT(h_n_neigh.data[0], 5);
-        CHECK_EQUAL_UINT(h_n_neigh.data[1], 5);
-        CHECK_EQUAL_UINT(h_n_neigh.data[2], 5);
-        CHECK_EQUAL_UINT(h_n_neigh.data[3], 5);
-        CHECK_EQUAL_UINT(h_n_neigh.data[4], 5);
-        CHECK_EQUAL_UINT(h_n_neigh.data[5], 5);
-
-        ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(),
-                                          access_location::host,
-                                          access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(),
-                                              access_location::host,
-                                              access_mode::read);
-        for (unsigned int cur_p = 0; cur_p < 6; ++cur_p)
-            {
-            vector<unsigned int> nbrs(5, 0), check_nbrs;
-
-            // create the sorted list of computed neighbors
-            for (unsigned int cur_neigh = 0; cur_neigh < 5; ++cur_neigh)
-                {
-                nbrs[cur_neigh] = h_nlist.data[h_head_list.data[cur_p] + cur_neigh];
-                }
-            sort(nbrs.begin(), nbrs.end());
-
-            // create the list of expected neighbors (everybody except for myself)
-            check_nbrs.reserve(5);
-            for (unsigned int i = 0; i < 6; ++i)
-                {
-                if (i != cur_p)
-                    {
-                    check_nbrs.push_back(i);
-                    }
-                }
-            sort(check_nbrs.begin(), check_nbrs.end());
-
-            for (unsigned int i = 0; i < 5; ++i)
-                {
-                UP_ASSERT_EQUAL(nbrs[i], check_nbrs[i]);
-                }
-            }
-        }
-
-    pdata_6->addType("H");
     type_pair_idx = nlist_6->getTypePairIndexer();
     r_cut->resize(type_pair_idx.getNumElements());
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
 
         // set r_cut to 3.0 for all type pairs
-        for (unsigned int i = 0; i < 8; i++)
+        for (unsigned int i = 0; i < type_pair_idx.getW(); i++)
             {
-            for (unsigned int j = 0; j < 8; j++)
+            for (unsigned int j = 0; j < type_pair_idx.getH(); j++)
                 {
                 h_r_cut.data[type_pair_idx(i, j)] = 3.0;
                 }

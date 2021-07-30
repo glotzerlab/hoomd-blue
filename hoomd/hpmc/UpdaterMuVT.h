@@ -209,9 +209,6 @@ template<class Shape> class UpdaterMuVT : public Updater
                                    unsigned int& extra_ndof,
                                    Scalar& lnboltzmann);
 
-    //! Method to be called when number of types changes
-    virtual void slotNumTypesChange();
-
     //! Map particles by type
     virtual void mapTypes();
 
@@ -335,8 +332,6 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
     m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
-    m_pdata->getNumTypesChangeSignal()
-        .template connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
     m_pdata->getParticleSortSignal()
         .template connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::mapTypes>(this);
 
@@ -385,8 +380,6 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
 //! Destructor
 template<class Shape> UpdaterMuVT<Shape>::~UpdaterMuVT()
     {
-    m_pdata->getNumTypesChangeSignal()
-        .template disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
     m_pdata->getParticleSortSignal()
         .template disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::mapTypes>(this);
     m_pdata->getMaxParticleNumberChangeSignal()
@@ -489,14 +482,6 @@ template<class Shape> unsigned int UpdaterMuVT<Shape>::getNumParticlesType(unsig
         }
 #endif
     return nptl_type;
-    }
-
-//! Destructor
-template<class Shape> void UpdaterMuVT<Shape>::slotNumTypesChange()
-    {
-    // resize parameter list
-    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
-    m_type_map.resize(m_pdata->getNTypes());
     }
 
 //! Get a poisson-distributed number of depletants

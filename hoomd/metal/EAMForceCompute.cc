@@ -36,18 +36,11 @@ EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
     // initialize the number of types value
     m_ntypes = m_pdata->getNTypes();
     assert(m_ntypes > 0);
-
-    // connect to the ParticleData to receive notifications when the number of particle types
-    // changes
-    m_pdata->getNumTypesChangeSignal()
-        .connect<EAMForceCompute, &EAMForceCompute::slotNumTypesChange>(this);
     }
 
 EAMForceCompute::~EAMForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying EAMForceCompute" << endl;
-    m_pdata->getNumTypesChangeSignal()
-        .disconnect<EAMForceCompute, &EAMForceCompute::slotNumTypesChange>(this);
     }
 
 void EAMForceCompute::loadFile(char* filename, int type_of_file)
