@@ -78,6 +78,7 @@ class AlchemicalMDParticle(_HOOMDBaseObject):
 
     def _detach(self):
         if self._attached:
+            self.force.params[self.typepair][self.name] = self.value
             self._disable()
             super()._detach()
 
@@ -254,7 +255,7 @@ class NVT(Alchemostat):
 
     """
 
-    def __init__(self, filter, kT, time_factor, alchemical_particles):
+    def __init__(self, filter, kT, time_factor=1, alchemical_particles=[]):
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
@@ -300,7 +301,7 @@ class NVE(Alchemostat):
 
     """
 
-    def __init__(self, filter, time_factor, alchemical_particles=[]):
+    def __init__(self, filter, time_factor=1, alchemical_particles=[]):
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,

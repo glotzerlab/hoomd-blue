@@ -113,6 +113,7 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
 @pytest.mark.parametrize(
     "alchemostat_cls, extra_property_1st_value, extra_property_2nd_value",
     get_alchemostat())
+# TODO: fix pickling, might work after mirroring python
 def test_pickling(simulation_factory, two_particle_snapshot_factory,
                   alchemostat_cls, extra_property_1st_value,
                   extra_property_2nd_value):

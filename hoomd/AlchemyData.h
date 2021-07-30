@@ -126,7 +126,8 @@ class AlchemicalMDParticle : public AlchemicalParticle
 
     Scalar momentum = 0.; // the momentum of the particle
     Scalar2 mass
-        = make_scalar2(1.0, 1.0); // mass (x) and it's inverse (y) (don't have to recompute constantly)
+        = make_scalar2(1.0,
+                       1.0); // mass (x) and it's inverse (y) (don't have to recompute constantly)
     Scalar mu = 0.;          //!< the alchemical potential of the particle
     GlobalArray<Scalar> m_alchemical_derivatives; //!< Per particle alchemical forces
     protected:
@@ -134,10 +135,15 @@ class AlchemicalMDParticle : public AlchemicalParticle
     std::pair<uint64_t, Scalar> m_timestepNetForce;
     };
 
+// TODO: store a pointer to the force, to mirror the python, also add mass as an argument
+// TODO: add additional constructor that can work just off of python objects, maybe see
+// ComputeFreeVolume for the string conversion to type pair
+// parameter dict must be the same
 class AlchemicalPairParticle : public AlchemicalMDParticle
     {
     public:
     AlchemicalPairParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
+                           std::shared_ptr<ForceCompute> force_pair,
                            int3 type_pair_param)
         : AlchemicalMDParticle(exec_conf), m_type_pair_param(type_pair_param) {};
     int3 m_type_pair_param;
