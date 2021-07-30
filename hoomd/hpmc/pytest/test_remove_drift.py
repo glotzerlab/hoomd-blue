@@ -10,7 +10,6 @@ import pytest
 import hoomd.hpmc.pytest.conftest
 import numpy as np
 
-
 # note: The parameterized tests validate parameters so we can't pass in values
 # here that require preprocessing
 valid_constructor_args = [
