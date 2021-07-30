@@ -16,40 +16,172 @@ def test_init(op_list):
         return isinstance(x, DummyOperation)
 
     # Test automatic to_synced_list function generation
-    slist = SyncedList(validation=validate)
-    assert slist._validate == validate
+    synced_list = SyncedList(validation=validate)
+    assert synced_list._validate == validate
     op = DummyOperation()
-    assert slist._to_synced_list_conversion(op) is op
+    assert synced_list._to_synced_list_conversion(op) is op
 
     # Test specified to_synced_list
     def cpp_identity(x):
         return x._cpp_obj
 
-    slist = SyncedList(validation=validate, to_synced_list=cpp_identity)
-    assert slist._to_synced_list_conversion == cpp_identity
+    synced_list = SyncedList(validation=validate, to_synced_list=cpp_identity)
+    assert synced_list._to_synced_list_conversion == cpp_identity
     op._cpp_obj = 2
-    assert slist._to_synced_list_conversion(op) == 2
+    assert synced_list._to_synced_list_conversion(op) == 2
 
     # Test full initialziation
-    slist = SyncedList(validation=validate,
-                       to_synced_list=cpp_identity,
-                       iterable=op_list)
-    assert len(slist._list) == 3
-    assert all(op._added for op in slist)
+    synced_list = SyncedList(validation=validate,
+                             to_synced_list=cpp_identity,
+                             iterable=op_list)
+    assert len(synced_list._list) == 3
+    assert all(op._added for op in synced_list)
 
 
 @fixture
-def slist_empty():
+def synced_list_empty():
     return SyncedList(_PartialIsInstance(Operation))
 
 
 @fixture
-def slist(slist_empty, op_list):
-    slist_empty.extend(op_list)
-    return slist_empty
+def synced_list(synced_list_empty, op_list):
+    synced_list_empty.extend(op_list)
+    return synced_list_empty
+
+
+def test_contains(synced_list_empty, op_list):
+    for op in op_list:
+        synced_list_empty._list.append(op)
+        assert op in synced_list_empty
+        new_op = DummyOperation()
+        print(id(new_op), [id(op) for op in synced_list_empty])
+        assert new_op not in synced_list_empty
+
+
+def test_len(synced_list_empty, op_list):
+    synced_list_empty._list.extend(op_list)
+    assert len(synced_list_empty) == 3
+    del synced_list_empty._list[1]
+    assert len(synced_list_empty) == 2
+
+
+def test_iter(synced_list, op_list):
+    for op, op2 in zip(synced_list, synced_list._list):
+        assert op is op2
+
+
+def test_getitem(synced_list):
+    assert all([op is synced_list[i] for i, op in enumerate(synced_list)])
+    assert synced_list[:] == synced_list._list
+    assert synced_list[1:] == synced_list._list[1:]
+
+
+def test_synced(synced_list):
+    assert not synced_list._synced
+    synced_list._synced_list = None
+    assert synced_list._synced
+
+
+def test_attach_value(synced_list):
+    op = DummyOperation()
+    synced_list._attach_value(op)
+    assert not op._attached
+    assert op._added
+    synced_list._synced_list = []
+    synced_list._simulation = DummySimulation()
+    op = DummyOperation()
+    synced_list._attach_value(op)
+    assert op._attached
+    assert op._added
+
+
+def test_validate_or_error(synced_list):
+    with raises(ValueError):
+        synced_list._validate_or_error(3)
+    with raises(ValueError):
+        synced_list._validate_or_error(None)
+    with raises(ValueError):
+        synced_list._validate_or_error("hello")
+    assert synced_list._validate_or_error(DummyOperation())
+
+
+def test_syncing(synced_list, op_list):
+    sync_list = []
+    synced_list._sync(None, sync_list)
+    assert len(sync_list) == 3
+    assert all([op is op2 for op, op2 in zip(synced_list, sync_list)])
+    assert all([op._attached for op in synced_list])
+
+
+def test_unsync(synced_list, op_list):
+    sync_list = []
+    synced_list._sync(None, sync_list)
+    synced_list._unsync()
+    assert all([not op._attached for op in synced_list])
+    assert not hasattr(synced_list, "_synced_list")
+
+
+def test_delitem(synced_list):
+    old_op = synced_list[2]
+    del synced_list[2]
+    assert len(synced_list) == 2
+    assert old_op not in synced_list
+    assert not old_op._added
+    synced_list.append(old_op)
+    old_ops = synced_list[1:]
+    del synced_list[1:]
+    assert len(synced_list) == 1
+    assert all(old_op not in synced_list for old_op in old_ops)
+    assert all(not old_op._added for old_op in old_ops)
+    synced_list.extend(old_ops)
+
+    # Tested attached
+    sync_list = []
+    synced_list._sync(None, sync_list)
+    old_op = synced_list[1]
+    del synced_list[1]
+    assert len(synced_list) == 2
+    assert len(sync_list) == 2
+    assert old_op not in synced_list
+    assert all(old_op is not op for op in sync_list)
+    assert not old_op._attached
+    assert not old_op._added
+    old_ops = synced_list[1:]
+    del synced_list[1:]
+    assert len(synced_list) == 1
+    assert all(old_op not in synced_list for old_op in old_ops)
+    assert all(not (old_op._added or old_op._attached) for old_op in old_ops)
+
+
+def test_setitem(synced_list, op_list):
+    with raises(IndexError):
+        synced_list[3]
+    with raises(IndexError):
+        synced_list[-4]
+    new_op = DummyOperation()
+    synced_list[1] = new_op
+    assert new_op is synced_list[1]
+    assert new_op._added
+
+    # Check when attached
+    sync_list = []
+    synced_list._sync(None, sync_list)
+    new_op = DummyOperation()
+    old_op = synced_list[1]
+    synced_list[1] = new_op
+    assert not (old_op._attached or old_op._added)
+    assert new_op._attached and new_op._added
+    assert sync_list[1] is new_op
+
+
+def test_synced_iter(synced_list):
+    synced_list._simulation = None
+    synced_list._synced_list = [1, 2, 3]
+    assert all([i == j for i, j in zip(range(1, 4), synced_list.synced_iter())])
 
 
 class OpInt(int):
+    """Used to test SyncedList where item equality checks are needed."""
 
     def _attach(self):
         self._cpp_obj = None
@@ -73,219 +205,88 @@ class OpInt(int):
 
 
 @fixture
-def islist(slist_empty):
+def int_synced_list(synced_list_empty):
     return SyncedList(_PartialIsInstance(int),
                       iterable=[OpInt(i) for i in [1, 2, 3]])
 
 
-def test_contains(slist_empty, op_list):
-    for op in op_list:
-        slist_empty._list.append(op)
-        assert op in slist_empty
-        new_op = DummyOperation()
-        print(id(new_op), [id(op) for op in slist_empty])
-        assert new_op not in slist_empty
-
-
-def test_len(slist_empty, op_list):
-    slist_empty._list.extend(op_list)
-    assert len(slist_empty) == 3
-    del slist_empty._list[1]
-    assert len(slist_empty) == 2
-
-
-def test_iter(slist, op_list):
-    for op, op2 in zip(slist, slist._list):
-        assert op is op2
-
-
-def test_getitem(slist):
-    assert all([op is slist[i] for i, op in enumerate(slist)])
-    assert slist[:] == slist._list
-    assert slist[1:] == slist._list[1:]
-
-
-def test_synced(slist):
-    assert not slist._synced
-    slist._synced_list = None
-    assert slist._synced
-
-
-def test_attach_value(slist):
-    op = DummyOperation()
-    slist._attach_value(op)
-    assert not op._attached
-    assert op._added
-    slist._synced_list = []
-    slist._simulation = DummySimulation()
-    op = DummyOperation()
-    slist._attach_value(op)
-    assert op._attached
-    assert op._added
-
-
-def test_validate_or_error(slist):
-    with raises(ValueError):
-        slist._validate_or_error(3)
-    with raises(ValueError):
-        slist._validate_or_error(None)
-    with raises(ValueError):
-        slist._validate_or_error("hello")
-    assert slist._validate_or_error(DummyOperation())
-
-
-def test_syncing(slist, op_list):
-    sync_list = []
-    slist._sync(None, sync_list)
-    assert len(sync_list) == 3
-    assert all([op is op2 for op, op2 in zip(slist, sync_list)])
-    assert all([op._attached for op in slist])
-
-
-def test_unsync(slist, op_list):
-    sync_list = []
-    slist._sync(None, sync_list)
-    slist._unsync()
-    assert all([not op._attached for op in slist])
-    assert not hasattr(slist, "_synced_list")
-
-
-def test_delitem(slist):
-    old_op = slist[2]
-    del slist[2]
-    assert len(slist) == 2
-    assert old_op not in slist
-    assert not old_op._added
-    slist.append(old_op)
-    old_ops = slist[1:]
-    del slist[1:]
-    assert len(slist) == 1
-    assert all(old_op not in slist for old_op in old_ops)
-    assert all(not old_op._added for old_op in old_ops)
-    slist.extend(old_ops)
-
-    # Tested attached
-    sync_list = []
-    slist._sync(None, sync_list)
-    old_op = slist[1]
-    del slist[1]
-    assert len(slist) == 2
-    assert len(sync_list) == 2
-    assert old_op not in slist
-    assert all(old_op is not op for op in sync_list)
-    assert not old_op._attached
-    assert not old_op._added
-    old_ops = slist[1:]
-    del slist[1:]
-    assert len(slist) == 1
-    assert all(old_op not in slist for old_op in old_ops)
-    assert all(not (old_op._added or old_op._attached) for old_op in old_ops)
-
-
-def test_setitem(slist, op_list):
-    with raises(IndexError):
-        slist[3]
-    with raises(IndexError):
-        slist[-4]
-    new_op = DummyOperation()
-    slist[1] = new_op
-    assert new_op is slist[1]
-    assert new_op._added
-
-    # Check when attached
-    sync_list = []
-    slist._sync(None, sync_list)
-    new_op = DummyOperation()
-    old_op = slist[1]
-    slist[1] = new_op
-    assert not (old_op._attached or old_op._added)
-    assert new_op._attached and new_op._added
-    assert sync_list[1] is new_op
-
-
-def test_synced_iter(slist):
-    slist._simulation = None
-    slist._synced_list = [1, 2, 3]
-    assert all([i == j for i, j in zip(range(1, 4), slist.synced_iter())])
-
-
-def test_sync(islist):
-    islist.append(OpInt(4))
-    assert len(islist) == 4
-    assert islist[-1] == 4
+def test_sync(int_synced_list):
+    int_synced_list.append(OpInt(4))
+    assert len(int_synced_list) == 4
+    assert int_synced_list[-1] == 4
 
     # Test attached
     sync_list = []
-    islist._sync(None, sync_list)
-    islist.append(OpInt(5))
-    assert len(islist) == 5
+    int_synced_list._sync(None, sync_list)
+    int_synced_list.append(OpInt(5))
+    assert len(int_synced_list) == 5
     assert len(sync_list) == 5
-    assert islist[-1] == 5
+    assert int_synced_list[-1] == 5
 
 
-def test_insert(islist):
+def test_insert(int_synced_list):
     index = 1
-    islist.insert(1, OpInt(4))
-    assert len(islist) == 4
-    assert islist[index] == 4
+    int_synced_list.insert(1, OpInt(4))
+    assert len(int_synced_list) == 4
+    assert int_synced_list[index] == 4
 
     # Test attached
     sync_list = []
-    islist._sync(None, sync_list)
-    islist.insert(index, OpInt(5))
-    assert len(islist) == 5
+    int_synced_list._sync(None, sync_list)
+    int_synced_list.insert(index, OpInt(5))
+    assert len(int_synced_list) == 5
     assert len(sync_list) == 5
-    assert islist[index] == 5
+    assert int_synced_list[index] == 5
 
 
-def test_extend(islist):
+def test_extend(int_synced_list):
     oplist = [OpInt(i) for i in range(4, 7)]
-    islist.extend(oplist)
-    assert len(islist) == 6
-    assert islist[3:] == oplist
+    int_synced_list.extend(oplist)
+    assert len(int_synced_list) == 6
+    assert int_synced_list[3:] == oplist
 
     # Test attached
     oplist = [OpInt(i) for i in range(7, 10)]
     sync_list = []
-    islist._sync(None, sync_list)
-    islist.extend(oplist)
-    assert len(islist) == 9
+    int_synced_list._sync(None, sync_list)
+    int_synced_list.extend(oplist)
+    assert len(int_synced_list) == 9
     assert len(sync_list) == 9
     assert sync_list[6:] == oplist
-    assert islist[6:] == oplist
+    assert int_synced_list[6:] == oplist
 
 
-def test_clear(islist):
-    islist.clear()
-    assert len(islist) == 0
+def test_clear(int_synced_list):
+    int_synced_list.clear()
+    assert len(int_synced_list) == 0
     oplist = [OpInt(i) for i in range(1, 4)]
-    islist.extend(oplist)
+    int_synced_list.extend(oplist)
 
     # Test attached
     sync_list = []
-    islist._sync(None, sync_list)
-    islist.clear()
-    assert len(islist) == 0
+    int_synced_list._sync(None, sync_list)
+    int_synced_list.clear()
+    assert len(int_synced_list) == 0
     assert len(sync_list) == 0
     assert all([not op._attached for op in oplist])
 
 
-def test_remove(islist):
-    islist.clear()
+def test_remove(int_synced_list):
+    int_synced_list.clear()
     oplist = [OpInt(i) for i in range(1, 4)]
-    islist.extend(oplist)
-    islist.remove(oplist[1])
-    assert len(islist) == 2
-    assert oplist[1] not in islist
+    int_synced_list.extend(oplist)
+    int_synced_list.remove(oplist[1])
+    assert len(int_synced_list) == 2
+    assert oplist[1] not in int_synced_list
 
     # Test attached
     sync_list = []
-    islist._sync(None, sync_list)
-    islist.remove(oplist[0])
-    assert len(islist) == 1
+    int_synced_list._sync(None, sync_list)
+    int_synced_list.remove(oplist[0])
+    assert len(int_synced_list) == 1
     assert len(sync_list) == 1
     assert not oplist[0]._attached
-    assert oplist[0] not in islist
+    assert oplist[0] not in int_synced_list
     assert oplist[0] not in sync_list
 
 
@@ -308,5 +309,5 @@ def test_without_attaching():
     assert all(not op._attached for op in synced_list)
 
 
-def test_pickling(slist):
-    pickling_check(slist)
+def test_pickling(synced_list):
+    pickling_check(synced_list)
