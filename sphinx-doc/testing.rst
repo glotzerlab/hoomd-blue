@@ -33,6 +33,7 @@ optional requirements are missing.
 - mpi4py (optional)
 - pytest
 - rowan (optional)
+- CuPy
 
 Running tests
 -------------
