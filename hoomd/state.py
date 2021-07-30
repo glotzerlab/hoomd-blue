@@ -73,11 +73,11 @@ class State:
       particle's type. `particle_types` maps type ids to names with:
       ``name = particle_types[t_id]``.
     - :math:`b_\\mathrm{id}`: body id :math:`[\\mathrm{dimensionless}]` -
-      integer that identifies the particle's rigid body. A value of ``-1`` indicates
-      that this particle does not belong to a body. A positive value indicates
-      that the particle belongs to the body :math:`b_\\mathrm{id}`. This
-      particle is the central particle of a body when the body id is equal to
-      the tag :math:`b_\\mathrm{id} = p_\\mathrm{tag}`. (used by
+      integer that identifies the particle's rigid body. A value of ``-1``
+      indicates that this particle does not belong to a body. A positive value
+      indicates that the particle belongs to the body :math:`b_\\mathrm{id}`.
+      This particle is the central particle of a body when the body id is equal
+      to the tag :math:`b_\\mathrm{id} = p_\\mathrm{tag}`. (used by
       `md.constrain.Rigid`)
     - :math:`m`: mass :math:`[\\mathrm{mass}]` - the particle's mass.
     - :math:`I`: moment of inertia :math:`[\\mathrm{mass} \\cdot
