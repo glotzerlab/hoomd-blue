@@ -18,7 +18,6 @@ set(files __init__.py
     test_thermo.py
     test_thermoHMA.py
     forces_and_energies.json
-    test_write_debug_data_md.py
     test_nlist.py
     test_rigid.py
     test_zero_momentum.py
