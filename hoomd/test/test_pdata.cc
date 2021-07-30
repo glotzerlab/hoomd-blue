@@ -612,15 +612,6 @@ UP_TEST(ParticleData_test)
             UP_ASSERT(h_body.data[i] == NO_BODY);
             }
         }
-
-    // check that new types can be added
-    ParticleData pdata_type_test(123, box, 1, exec_conf);
-
-    UP_ASSERT(pdata_type_test.getNTypes() == 1);
-    UP_ASSERT(pdata_type_test.addType("test") == 1);
-    UP_ASSERT(pdata_type_test.getNTypes() == 2);
-    UP_ASSERT(pdata_type_test.getNameByType(1) == "test");
-    UP_ASSERT(pdata_type_test.getTypeByName("test") == 1);
     }
 
 //! Tests the RandomParticleInitializer class

@@ -45,18 +45,12 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
         h_a.data[typ] = 0.1;
         }
 
-    // Connect to number of types change signal
-    m_pdata->getNumTypesChangeSignal().connect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(
-        this);
-
     resetStats();
     }
 
 IntegratorHPMC::~IntegratorHPMC()
     {
     m_exec_conf->msg->notice(5) << "Destroying IntegratorHPMC" << endl;
-    m_pdata->getNumTypesChangeSignal()
-        .disconnect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(this);
 
 #ifdef ENABLE_MPI
     if (m_communicator_ghost_width_connected)
@@ -66,27 +60,6 @@ IntegratorHPMC::~IntegratorHPMC()
         m_comm->getCommFlagsRequestSignal()
             .disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
 #endif
-    }
-
-void IntegratorHPMC::slotNumTypesChange()
-    {
-    // old size of arrays
-    unsigned int old_ntypes = (unsigned int)m_a.size();
-    assert(m_a.size() == m_d.size());
-
-    unsigned int ntypes = m_pdata->getNTypes();
-
-    m_a.resize(ntypes);
-    m_d.resize(ntypes);
-
-    // set default values for newly added types
-    ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
-    for (unsigned int typ = old_ntypes; typ < ntypes; typ++)
-        {
-        h_d.data[typ] = 0.1;
-        h_a.data[typ] = 0.1;
-        }
     }
 
 /*! \returns True if the particle orientations are normalized
@@ -263,7 +236,6 @@ void export_IntegratorHPMC(py::module& m)
         .def("getMPS", &IntegratorHPMC::getMPS)
         .def("getCounters", &IntegratorHPMC::getCounters)
         .def("communicate", &IntegratorHPMC::communicate)
-        .def("slotNumTypesChange", &IntegratorHPMC::slotNumTypesChange)
         .def("disablePatchEnergyLogOnly", &IntegratorHPMC::disablePatchEnergyLogOnly)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &IntegratorHPMC::setCommunicator)
