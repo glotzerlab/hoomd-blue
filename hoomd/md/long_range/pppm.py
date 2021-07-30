@@ -7,6 +7,7 @@
 import hoomd
 from hoomd.md.force import Force
 import math
+import numpy
 
 
 def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
@@ -207,6 +208,7 @@ class Coulomb(Force):
 
         ncount = 0
 
+        # iteratively compute kappa to minimize the error
         while math.fabs(dgew) > 0.00001 and fmid != 0.0:
             dgew *= 0.5
             kappa = rtb + dgew
@@ -260,6 +262,7 @@ class Coulomb(Force):
 
 
 def _diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
+    """Part of the algorithm that computes the estimated error of the method."""
     lprx = _rms(hx, xprd, N, order, kappa, q2)
     lpry = _rms(hy, yprd, N, order, kappa, q2)
     lprz = _rms(hz, zprd, N, order, kappa, q2)
@@ -272,7 +275,8 @@ def _diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
 
 
 def _rms(h, prd, N, order, kappa, q2):
-    acons = [[0 for _ in range(8)] for _ in range(8)]
+    """Part of the algorithm that computes the estimated error of the method."""
+    acons = numpy.zeros((8, 8))
 
     acons[1][0] = 2.0 / 3.0
     acons[2][0] = 1.0 / 50.0
