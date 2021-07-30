@@ -56,47 +56,49 @@ class _ValidatedDefaultDict:
     """
 
     def __init__(self, *args, **kwargs):
-        _defaults = kwargs.pop('_defaults', _NoDefault)
+        defaults = kwargs.pop('_defaults', _NoDefault)
         if len(kwargs) != 0 and len(args) != 0:
-            raise ValueError("An unnamed argument and keyword arguments "
+            raise ValueError("Positional argument(s) and keyword argument(s) "
                              "cannot both be specified.")
 
         if len(kwargs) == 0 and len(args) == 0:
-            raise ValueError("Either an unnamed argument or keyword "
-                             "arguments must be specified.")
+            raise ValueError("Either a positional or keyword "
+                             "argument must be specified.")
         if len(args) > 1:
-            raise ValueError("Only one unnamed argument allowed.")
-        if len(kwargs) > 0:
-            default_arg = kwargs
-        else:
-            default_arg = args[0]
-        self._type_converter = to_type_converter(default_arg)
-        self._default = _to_default(default_arg, _defaults)
+            raise ValueError("Only one positional argument allowed.")
 
-    def _validate_values(self, val):
-        val = self._type_converter(val)
-        if isinstance(val, dict):
+        if len(kwargs) > 0:
+            type_spec = kwargs
+        else:
+            type_spec = args[0]
+        self._type_converter = to_type_converter(type_spec)
+        self._default = _to_default(type_spec, defaults)
+
+    def _validate_values(self, value):
+        validated_value = self._type_converter(value)
+        # We can check the validated_value is a dict here since if it passed the
+        # type validation it is of a form we expect.
+        if isinstance(validated_value, dict):
             if isinstance(self._type_converter, TypeConverterMapping):
-                dft_keys = set(self._type_converter.keys())
+                expected_keys = set(self._type_converter.keys())
             elif isinstance(self._type_converter.converter, OnlyIf):
-                dft_keys = set(self._type_converter.converter.cond.keys())
+                expected_keys = set(self._type_converter.converter.cond.keys())
             elif isinstance(self._type_converter.converter, Either):
                 mapping = next(
                     filter(lambda x: isinstance(x, TypeConverterMapping),
                            self._type_converter.converter.specs))
-                dft_keys = set(mapping.keys())
+                expected_keys = set(mapping.keys())
             else:
                 raise ValueError
-            bad_keys = set(val.keys()) - dft_keys
+            bad_keys = set(validated_value.keys()) - expected_keys
             if len(bad_keys) != 0:
                 raise ValueError("Keys must be a subset of available keys. "
                                  "Bad keys are {}".format(bad_keys))
+        # update validated_value with the default (specifically to add dict keys
+        # that have defaults and were not manually specified).
         if isinstance(self._default, _SmartDefault):
-            val = self._default(val)
-        return val
-
-    # Add function to validate dictionary keys' value types as well
-    # Could follow current model on the args based type checking
+            return self._default(validated_value)
+        return validated_value
 
     def _validate_and_split_key(self, key):
         """Validate key given regardless of key length."""
