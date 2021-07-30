@@ -9,13 +9,7 @@ from hoomd.conftest import operation_pickling_check
 import pytest
 import hoomd.hpmc.pytest.conftest
 import numpy as np
-try:
-    from mpi4py import MPI
-    skip_mpi = False
-except ImportError:
-    skip_mpi = True
 
-skip_mpi = pytest.mark.skipif(skip_mpi, reason="MPI4py is not importable.")
 
 # note: The parameterized tests validate parameters so we can't pass in values
 # here that require preprocessing
