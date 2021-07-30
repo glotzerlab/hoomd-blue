@@ -17,16 +17,18 @@ class Communicator(object):
         mpi_comm: Accepts an mpi4py communicator. Use this argument to perform
           many independent hoomd simulations where you communicate between those
           simulations using your own mpi4py code.
-        nrank (int): (MPI) Number of ranks to include in a partition
+        ranks_per_partition (int): (MPI) Number of ranks to include in a
+          partition
     """
 
-    def __init__(self, mpi_comm=None, nrank=None):
+    def __init__(self, mpi_comm=None, ranks_per_partition=None):
 
-        # check nrank
-        if nrank is not None:
+        # check ranks_per_partition
+        if ranks_per_partition is not None:
             if not hoomd.version.mpi_enabled:
                 raise RuntimeError(
-                    "The nrank option is only available in MPI builds.\n")
+                    "The ranks_per_partition option is only available in MPI.\n"
+                )
 
         mpi_available = hoomd.version.mpi_enabled
 
@@ -64,14 +66,14 @@ class Communicator(object):
                 raise RuntimeError(
                     "Invalid mpi_comm object: {}".format(mpi_comm))
 
-        if nrank is not None:
+        if ranks_per_partition is not None:
             # check validity
-            if (self.cpp_mpi_conf.getNRanksGlobal() % nrank):
-                raise RuntimeError(
-                    'Total number of ranks is not a multiple of --nrank')
+            if (self.cpp_mpi_conf.getNRanksGlobal() % ranks_per_partition):
+                raise RuntimeError('Total number of ranks is not a multiple of '
+                                   'ranks_per_partition.')
 
             # split the communicator into partitions
-            self.cpp_mpi_conf.splitPartitions(nrank)
+            self.cpp_mpi_conf.splitPartitions(ranks_per_partition)
 
     @property
     def num_ranks(self):
@@ -133,8 +135,8 @@ class Communicator(object):
 
         HOOMD calls MPI_Abort to tear down all running MPI processes whenever
         there is an uncaught exception. By default, this will abort the entire
-        MPI execution. When using partitions (``nrank is not None``), an
-        uncaught exception on one partition will therefore abort all of them.
+        MPI execution. When using partitions, an uncaught exception on one
+        partition will therefore abort all of them.
 
         Use the return value of :py:meth:`localize_abort()` as a context manager
         to tell HOOMD that all operations within the context will use only
