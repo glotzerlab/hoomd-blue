@@ -397,9 +397,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     //! Method to scale the box
     virtual bool attemptBoxResize(uint64_t timestep, const BoxDim& new_box);
 
-    //! Method to be called when number of types changes
-    virtual void slotNumTypesChange();
-
     ExternalField* getExternalField()
         {
         return m_external_base;

@@ -86,9 +86,9 @@ Tools
 Documentation
 ^^^^^^^^^^^^^
 
-Documentation comments should be in Javadoc format and precede the item they
-document for compatibility with Doxygen and most source code editors. Multi-line
-documentation comment blocks start with ``/**`` and single line ones start with
+Documentation comments should be in Javadoc format and precede the item they document for
+compatibility with many source code editors. Multi-line documentation comment blocks start with
+``/**`` and single line ones start with
 ``///``.
 
 .. code:: c++

@@ -102,16 +102,6 @@ class PYBIND11_EXPORT CellListStencil : public Compute
     GPUArray<Scalar4> m_stencil;        //!< Stencil of shifts and closest distance to bin
     GPUArray<unsigned int> m_n_stencil; //!< Number of bins in a stencil
     bool m_compute_stencil;             //!< Flag if stencil should be recomputed
-
-    //! Slot for the number of types changing, which triggers a resize
-    void slotTypeChange()
-        {
-        GPUArray<unsigned int> n_stencil(m_pdata->getNTypes(), m_exec_conf);
-        m_n_stencil.swap(n_stencil);
-
-        m_rstencil = std::vector<Scalar>(m_pdata->getNTypes(), -1.0);
-        requestCompute();
-        }
     };
 
 //! Exports CellListStencil to python

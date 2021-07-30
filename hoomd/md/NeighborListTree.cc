@@ -21,12 +21,10 @@ using namespace hpmc::detail;
 
 NeighborListTree::NeighborListTree(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
     : NeighborList(sysdef, r_buff), m_box_changed(true), m_max_num_changed(true),
-      m_remap_particles(true), m_type_changed(true), m_n_images(0)
+      m_remap_particles(true), m_types_allocated(false), m_n_images(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListTree" << endl;
 
-    m_pdata->getNumTypesChangeSignal()
-        .connect<NeighborListTree, &NeighborListTree::slotNumTypesChanged>(this);
     m_pdata->getBoxChangeSignal().connect<NeighborListTree, &NeighborListTree::slotBoxChanged>(
         this);
     m_pdata->getMaxParticleNumberChangeSignal()
@@ -38,8 +36,6 @@ NeighborListTree::NeighborListTree(std::shared_ptr<SystemDefinition> sysdef, Sca
 NeighborListTree::~NeighborListTree()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListTree" << endl;
-    m_pdata->getNumTypesChangeSignal()
-        .disconnect<NeighborListTree, &NeighborListTree::slotNumTypesChanged>(this);
     m_pdata->getBoxChangeSignal().disconnect<NeighborListTree, &NeighborListTree::slotBoxChanged>(
         this);
     m_pdata->getMaxParticleNumberChangeSignal()
@@ -70,7 +66,7 @@ void NeighborListTree::setupTree()
         m_max_num_changed = false;
         }
 
-    if (m_type_changed)
+    if (!m_types_allocated)
         {
         // double corruption happens if we just resize due to the way the AABBNodes are allocated
         // so first destroy all of the trees from the vector and then resize. could probably be
@@ -83,7 +79,7 @@ void NeighborListTree::setupTree()
 
         slotRemapParticles();
 
-        m_type_changed = false;
+        m_types_allocated = true;
         }
 
     if (m_remap_particles)
