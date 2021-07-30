@@ -133,7 +133,6 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     assert np.all(getattr(remove_drift, attr) == value)
 
 
-@skip_mpi
 @pytest.mark.cpu
 def test_remove_drift(simulation_factory, lattice_snapshot_factory):
     """Test that RemoveDrift modifies positions correctly."""
