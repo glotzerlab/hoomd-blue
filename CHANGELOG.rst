@@ -10,12 +10,26 @@ v3.0.0-beta.8 (not yet released)
 *Added*
 
 - Consistent documentation of parameter dimensions and units reference documentation.
+- ``md.update.ReversePerturbationFlow`` - implementation of ``mueller_plathe_flow`` from v2.
+- ``md.pair.ExpandedMie`` - Mie potential where ``r`` is replaced with ``r - delta``.
+- ``md.pair.Table`` - Pair potential evaluated using the given tabulated values.
+- ``md.constrain.Distance`` - fix distances between pairs of particles.
+- ``hpmc.compute.SDF`` - compute the pressure of convex hard particle systems.
+- ``Snapshot.wrap()`` - wrap snapshot particles back into the box.
+- Support gcc11.
 
 *Changed*
 
+- Improved documentation.
 - [breaking] Constructor arguments that set a default value per type or pair of types now have
   default in their name (e.g. ``r_cut`` to ``default_r_cut`` for pair potentials and ``a`` to
   ``default_a`` for HPMC integrators).
+- [developer] Support git worktree checkouts.
+
+*Fixed*
+
+- Bug where ``ThermdynamicQuantities.volume`` returned 0 in 2D simulations.
+- Update neighbor list exclusions after the number of particles changes.
 
 *Removed*
 
