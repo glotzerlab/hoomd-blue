@@ -179,5 +179,6 @@ def test_elastic_moves(device, simulation_factory, lattice_snapshot_factory):
     assert elastic_move.stiffness is c
     shape_updater = hoomd.hpmc.update.Shape(shape_move=elastic_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
     sim.operations.add(shape_updater)
-    sim.run(0)
+    sim.run(2)
     assert elastic_move.stiffness is c
+    assert not np.isclose(shape_updater.shape_move_energy, 0.0)
