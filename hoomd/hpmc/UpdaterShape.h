@@ -23,7 +23,6 @@ class UpdaterShape  : public Updater
         UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
                      std::shared_ptr< ShapeMoveBase<Shape> > move,
-                     std::shared_ptr< ShapeLogBoltzmannFunction<Shape> > lbf,
                      Scalar move_ratio,
                      unsigned int seed,
                      unsigned int tselect,
@@ -62,7 +61,7 @@ class UpdaterShape  : public Updater
             ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
             for (unsigned int ndx = 0; ndx < m_ntypes.getNumElements(); ndx++)
                 {
-                energy += m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[ndx], ndx, m_mc->getParams()[ndx], h_det.data[ndx]);
+                energy += m_move_function->computeEnergy(timestep, h_ntypes.data[ndx], ndx, m_mc->getParams()[ndx], h_det.data[ndx]);
                 }
             return energy;
             }
@@ -100,10 +99,6 @@ class UpdaterShape  : public Updater
             std::fill(m_box_accepted.begin(), m_box_accepted.end(), 0);
             std::fill(m_box_total.begin(), m_box_total.end(), 0);
             }
-
-        void setLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
-
-        std::shared_ptr< ShapeLogBoltzmannFunction<Shape> > getLogBoltzmannFunction();
 
         void setShapeMove(std::shared_ptr< ShapeMoveBase<Shape> > move);
 
@@ -162,7 +157,6 @@ class UpdaterShape  : public Updater
         unsigned int                m_move_ratio;                                   // probability of performing a shape move
         std::shared_ptr< ShapeMoveBase<Shape> >   m_move_function;                  // shape move function to apply in the updater
         std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;                 // hpmc particle integrator
-        std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function; // function to calculate energy change associated with shape move
         GPUArray< Scalar >          m_determinant;                                  // determinant of the shape's moment of inertia tensor
         GPUArray< unsigned int >    m_ntypes;                                       // number of particle types in the simulation
         std::vector< std::string >  m_provided_quantities;                          // provided log quantities
@@ -180,7 +174,6 @@ template < class Shape >
 UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
                                   std::shared_ptr< ShapeMoveBase<Shape> > move,
-                                  std::shared_ptr< ShapeLogBoltzmannFunction<Shape> > lbf,
                                   Scalar move_ratio,
                                   unsigned int seed,
                                   unsigned int tselect,
@@ -189,7 +182,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   bool multiphase,
                                   unsigned int numphase)
     : Updater(sysdef), m_seed(seed), m_global_partition(0), m_type_select(tselect), m_nsweeps(nsweeps),
-      m_move_ratio(move_ratio*65535), m_mc(mc), m_log_boltz_function(lbf),
+      m_move_ratio(move_ratio*65535), m_mc(mc),
       m_determinant(m_pdata->getNTypes(), m_exec_conf), m_move_function(move),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
       m_pretend(pretend),m_initialized(false), m_multi_phase(multiphase),
@@ -205,11 +198,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_provided_quantities.push_back("shape_move_particle_volume");
     m_provided_quantities.push_back("shape_move_multi_phase_box");
 
-    std::vector< std::string > quantities(m_log_boltz_function->getProvidedLogQuantities());
-    m_provided_quantities.reserve( m_provided_quantities.size() + quantities.size() );
-    m_provided_quantities.insert(m_provided_quantities.end(), quantities.begin(), quantities.end());
-
-    quantities = m_move_function->getProvidedLogQuantities();
+    std::vector< std::string > quantities(m_move_function->getProvidedLogQuantities());
     m_provided_quantities.reserve( m_provided_quantities.size() + quantities.size() );
     m_provided_quantities.insert(m_provided_quantities.end(), quantities.begin(), quantities.end());
 
@@ -257,10 +246,6 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         {
         return m_move_function->getLogValue(quantity, timestep);
         }
-    else if(m_log_boltz_function->isProvidedQuantity(quantity))
-        {
-        return m_log_boltz_function->getLogValue(quantity, timestep);
-        }
     else if(quantity == "shape_move_acceptance_ratio")
         {
         unsigned int ctAccepted = 0, ctTotal = 0;
@@ -294,7 +279,7 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
         for(unsigned int i = 0; i < m_pdata->getNTypes(); i++)
             {
-            energy += m_log_boltz_function->computeEnergy(
+            energy += m_move_function->computeEnergy(
                     timestep, h_ntypes.data[i], i, m_mc->getParams()[i], h_det.data[i]);
             }
         return energy;
@@ -323,7 +308,7 @@ void UpdaterShape<Shape>::update(uint64_t timestep)
     bool warn = !m_initialized;
     if(!m_initialized)
         initialize();
-    if(!m_move_function || !m_log_boltz_function)
+    if(!m_move_function)
         {
     	if(warn) m_exec_conf->msg->warning() << "update.shape: running without a move function! " << std::endl;
     	return;
@@ -399,14 +384,14 @@ void UpdaterShape<Shape>::update(uint64_t timestep)
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
             // energy and moment of interia change.
             assert(h_det.data[typ_i] != 0 && h_det_backup.data[typ_i] != 0);
-            log_boltz += (*m_log_boltz_function)(   timestep,
-                                                    h_ntypes.data[typ_i],           // number of particles of type typ_i,
-                                                    typ_i,                          // the type id
-                                                    param,                          // new shape parameter
-                                                    h_det.data[typ_i],              // new determinant
-                                                    param_copy[cur_type],           // old shape parameter
-                                                    h_det_backup.data[typ_i]        // old determinant
-                                                );
+            log_boltz += (*m_move_function)(   timestep,
+                                               h_ntypes.data[typ_i],           // number of particles of type typ_i,
+                                               typ_i,                          // the type id
+                                               param,                          // new shape parameter
+                                               h_det.data[typ_i],              // new determinant
+                                               param_copy[cur_type],           // old shape parameter
+                                               h_det_backup.data[typ_i]        // old determinant
+                                           );
             m_mc->setParam(typ_i, param);
             }  // end loop over particle types
         if (this->m_prof)
@@ -643,18 +628,6 @@ void UpdaterShape<Shape>::initialize()
     }
 
 template< typename Shape>
-void UpdaterShape<Shape>::setLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf)
-    {
-    m_log_boltz_function = lbf;
-    }
-
-template< typename Shape>
-std::shared_ptr< ShapeLogBoltzmannFunction<Shape> > UpdaterShape<Shape>::getLogBoltzmannFunction()
-    {
-    return m_log_boltz_function;
-    }
-
-template< typename Shape>
 void UpdaterShape<Shape>::setShapeMove(std::shared_ptr<ShapeMoveBase<Shape> > move)
     {
     m_move_function = move;
@@ -733,7 +706,6 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
     .def( pybind11::init<   std::shared_ptr<SystemDefinition>,
                             std::shared_ptr< IntegratorHPMCMono<Shape> >,
                             std::shared_ptr< ShapeMoveBase<Shape> >,
-                            std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >,
                             Scalar,
                             unsigned int,
                             unsigned int,
@@ -746,7 +718,6 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
     .def_property_readonly("particle_volume", &UpdaterShape<Shape>::getParticleVolume)
     .def("getShapeMoveEnergy", &UpdaterShape<Shape>::getShapeMoveEnergy)
     .def("getShapeParam", &UpdaterShape<Shape>::getShapeParam)
-    .def("setLogBoltzmannFunction", &UpdaterShape<Shape>::setLogBoltzmannFunction)
     .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)
     .def("connectGSDStateSignal", &UpdaterShape<Shape>::connectGSDStateSignal)
     .def("restoreStateGSD", &UpdaterShape<Shape>::restoreStateGSD)
