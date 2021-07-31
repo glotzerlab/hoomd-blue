@@ -4,6 +4,7 @@ from . import _hpmc
 from hoomd.hpmc import integrate
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
+import numpy
 
 
 class ShapeMove(_HOOMDBaseObject):
@@ -79,7 +80,6 @@ class Constant(ShapeMove):
             raise RuntimeError("Integrator is not attached yet.")
 
         move_cls = None
-        boltzmann_cls = None
         shapes = ['Sphere', 'ConvexPolygon', 'SimplePolygon',
                   'ConvexPolyhedron', 'ConvexSpheropolyhedron',
                   'Ellipsoid', 'ConvexSpheropolygon', 'Polyhedron',
@@ -87,13 +87,11 @@ class Constant(ShapeMove):
         for shape in shapes:
             if isinstance(integrator, getattr(integrate, shape)):
                 move_cls = getattr(_hpmc, 'ConstantShapeMove' + shape)
-                boltzmann_cls = getattr(_hpmc, 'AlchemyLogBoltzmann' + shape)
-        if move_cls is None or boltzmann_cls is None:
+        if move_cls is None:
             raise RuntimeError("Integrator not supported")
 
         ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
         self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes, self.shape_params)
-        self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
 
 
@@ -147,21 +145,15 @@ class Elastic(ShapeMove):
             raise RuntimeError("Integrator is not attached yet.")
 
         move_cls = None
-        shape_cls = None
-        boltzmann_cls = None
         if isinstance(integrator, integrate.ConvexPolyhedron):
             move_cls = _hpmc.ElasticShapeMoveConvexPolyhedron
-            boltzmann_cls = _hpmc.ShapeSpringLogBoltzmannConvexPolyhedron
-            shape_cls = hoomd.hpmc._hpmc.PolyhedronVertices
         elif isinstance(integrator, integrate.Ellipsoid):
             move_cls = _hpmc.ElasticShapeMoveEllipsoid
             for type_shape in self.mc.type_shapes():
-                if not np.isclose(type_shape["a"], type_shape["b"]) or \
-                   not np.isclose(type_shape["a"], type_shape["c"]) or \
-                   not np.isclose(type_shape["b"], type_shape["c"]):
+                if not numpy.isclose(type_shape["a"], type_shape["b"]) or \
+                   not numpy.isclose(type_shape["a"], type_shape["c"]) or \
+                   not numpy.isclose(type_shape["b"], type_shape["c"]):
                     raise ValueError("This updater only works when a=b=c initially.")
-            boltzmann_cls = _hpmc.ShapeSpringLogBoltzmannEllipsoid
-            shape_cls = hoomd.hpmc._hpmc.EllipsoidParams
         else:
             raise RuntimeError("Integrator not supported")
 
@@ -169,22 +161,10 @@ class Elastic(ShapeMove):
         self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
                                  ntypes,
                                  self.stepsize,
-                                 self.param_ratio)
-        self._log_boltzmann_function = boltzmann_cls(self._param_dict["stiffness"], self._param_dict["reference"], self._cpp_obj)
+                                 self.param_ratio,
+                                 self.stiffness,
+                                 self.reference)
         super()._attach()
-
-    @property
-    def stiffness(self):
-        if self._attached:
-            return self._log_boltzmann_function.stiffness(self._simulation.timestep)
-        else:
-            return self._param_dict["stiffness"]
-
-    @stiffness.setter
-    def stiffness(self, new_stiffness):
-        self._param_dict["stiffness"] = new_stiffness
-        if self._attached:
-            self._log_boltzmann_function.stiffness = new_stiffness
 
     @log(category="scalar")
     def shape_move_stiffness(self):
@@ -262,16 +242,15 @@ class Python(ShapeMove):
             raise RuntimeError("Integrator is not attached yet.")
 
         move_cls = None
-        boltzmann_cls = None
         shapes = ['Sphere', 'ConvexPolygon', 'SimplePolygon',
                   'ConvexPolyhedron', 'ConvexSpheropolyhedron',
                   'Ellipsoid', 'ConvexSpheropolygon', 'Polyhedron',
                   'Sphinx', 'SphereUnion']
+        print()
         for shape in shapes:
             if isinstance(integrator, getattr(integrate, shape)):
                 move_cls = getattr(_hpmc, 'PythonShapeMove' + shape)
-                boltzmann_cls = getattr(_hpmc, 'AlchemyLogBoltzmann' + shape)
-        if move_cls is None or boltzmann_cls is None:
+        if move_cls is None:
             raise RuntimeError("Integrator not supported")
 
         ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
@@ -281,7 +260,6 @@ class Python(ShapeMove):
                                  self.params,
                                  self.stepsize,
                                  self.param_ratio)
-        self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
 
     @log(category='object')
@@ -347,10 +325,8 @@ class Vertex(ShapeMove):
             raise RuntimeError("Integrator is not attached yet.")
 
         move_cls = None
-        boltzmann_cls = None
         if isinstance(integrator, integrate.ConvexPolyhedron):
             move_cls = _hpmc.GeneralizedShapeMoveConvexPolyhedron
-            boltzmann_cls = _hpmc.AlchemyLogBoltzmannConvexPolyhedron
         else:
             raise RuntimeError("Integrator not supported")
 
@@ -360,5 +336,4 @@ class Vertex(ShapeMove):
                                  self.stepsize,
                                  self.param_ratio,
                                  self.volume)
-        self._log_boltzmann_function = boltzmann_cls()
         super()._attach()

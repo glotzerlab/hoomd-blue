@@ -636,7 +636,6 @@ class Shape(Updater):
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     integrator._cpp_obj,
                                     self.shape_move._cpp_obj,
-                                    self.shape_move._log_boltzmann_function,
                                     self.move_ratio,
                                     self._simulation.seed,
                                     self.nselect,
