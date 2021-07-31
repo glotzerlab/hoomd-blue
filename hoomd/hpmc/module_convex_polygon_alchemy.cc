@@ -22,8 +22,6 @@ namespace hpmc
 void export_convex_polygon_alchemy(py::module& m)
     {
     export_ShapeMoveInterface< ShapeConvexPolygon >(m, "ShapeMoveConvexPolygon");
-    export_ShapeLogBoltzmann< ShapeConvexPolygon >(m, "LogBoltzmannConvexPolygon");
-    export_AlchemyLogBoltzmannFunction< ShapeConvexPolygon >(m, "AlchemyLogBoltzmannConvexPolygon");
     export_UpdaterShape< ShapeConvexPolygon >(m, "UpdaterShapeConvexPolygon");
     export_PythonShapeMove< ShapeConvexPolygon >(m, "PythonShapeMoveConvexPolygon");
     export_ConstantShapeMove< ShapeConvexPolygon >(m, "ConstantShapeMoveConvexPolygon");

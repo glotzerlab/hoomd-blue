@@ -19,8 +19,6 @@ namespace hpmc
 void export_convex_spheropolyhedron_alchemy(py::module& m)
     {
     export_ShapeMoveInterface< ShapeSpheropolyhedron >(m, "ShapeMoveSpheropolyhedron");
-    export_ShapeLogBoltzmann< ShapeSpheropolyhedron >(m, "LogBoltzmannSpheropolyhedron");
-    export_AlchemyLogBoltzmannFunction< ShapeSpheropolyhedron >(m, "AlchemyLogBoltzmannSpheropolyhedron");
     export_UpdaterShape< ShapeSpheropolyhedron >(m, "UpdaterShapeSpheropolyhedron");
     export_PythonShapeMove< ShapeSpheropolyhedron >(m, "PythonShapeMoveSpheropolyhedron");
     export_ConstantShapeMove< ShapeSpheropolyhedron >(m, "ConstantShapeMoveSpheropolyhedron");

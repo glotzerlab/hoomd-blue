@@ -41,39 +41,13 @@ void export_ElasticShapeMove(pybind11::module& m, const std::string& name)
     .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                         unsigned int,
                         Scalar,
-                        Scalar >())
+                        Scalar,
+                        std::shared_ptr<Variant>,
+                        pybind11::dict >())
     .def_property("stepsize", &ElasticShapeMove<Shape>::getStepsizeValue, &ElasticShapeMove<Shape>::setStepsizeValue)
     .def_property("param_ratio", &ElasticShapeMove<Shape>::getParamRatio, &ElasticShapeMove<Shape>::setParamRatio)
-    ;
-    }
-
-template< typename Shape >
-void export_ShapeLogBoltzmann(pybind11::module& m, const std::string& name)
-    {
-    pybind11::class_< ShapeLogBoltzmannFunction<Shape>, std::shared_ptr< ShapeLogBoltzmannFunction<Shape> > >
-    (m, (name + "Interface").c_str() )
-    .def(pybind11::init< >())
-    ;
-    }
-
-template<class Shape>
-void export_ShapeSpringLogBoltzmannFunction(pybind11::module& m, const std::string& name)
-    {
-    pybind11::class_< ShapeSpring<Shape>, std::shared_ptr< ShapeSpring<Shape> >, ShapeLogBoltzmannFunction<Shape> >(m, name.c_str())
-    .def(pybind11::init<std::shared_ptr<Variant>,
-                        pybind11::dict,
-                        std::shared_ptr<ElasticShapeMove<Shape>> >())
-    .def_property("stiffness", &ShapeSpring<Shape>::getStiffness, &ShapeSpring<Shape>::setStiffness)
-    .def_property("reference", &ShapeSpring<Shape>::getReference, &ShapeSpring<Shape>::setReference)
-    ;
-    }
-
-template<class Shape>
-void export_AlchemyLogBoltzmannFunction(pybind11::module& m, const std::string& name)
-    {
-    pybind11::class_< AlchemyLogBoltzmannFunction<Shape>, std::shared_ptr< AlchemyLogBoltzmannFunction<Shape> >, ShapeLogBoltzmannFunction<Shape> >
-    (m, name.c_str())
-    .def(pybind11::init< >())
+    .def_property("stiffness", &ElasticShapeMove<Shape>::getStiffness, &ElasticShapeMove<Shape>::setStiffness)
+    .def_property("reference", &ElasticShapeMove<Shape>::getReference, &ElasticShapeMove<Shape>::setReference)
     ;
     }
 
@@ -120,75 +94,53 @@ void export_ConstantShapeMove(pybind11::module& m, const std::string& name)
 
 template void export_UpdaterShape< ShapeSphere >(pybind11::module& m, const std::string& name);
 template void export_ShapeMoveInterface< ShapeSphere >(pybind11::module& m, const std::string& name);
-template void export_ShapeLogBoltzmann< ShapeSphere >(pybind11::module& m, const std::string& name);
-template void export_AlchemyLogBoltzmannFunction< ShapeSphere >(pybind11::module& m, const std::string& name);
 template void export_PythonShapeMove< ShapeSphere >(pybind11::module& m, const std::string& name);
 template void export_ConstantShapeMove< ShapeSphere >(pybind11::module& m, const std::string& name);
 
 template void export_ShapeMoveInterface< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
-template void export_ShapeLogBoltzmann< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 template void export_ElasticShapeMove< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
-template void export_ShapeSpringLogBoltzmannFunction< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
-template void export_AlchemyLogBoltzmannFunction< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 template void export_UpdaterShape< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 template void export_PythonShapeMove< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 template void export_ConstantShapeMove< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 
 template void export_ShapeMoveInterface< ShapeConvexPolygon >(pybind11::module& m, const std::string& name);
-template void export_ShapeLogBoltzmann< ShapeConvexPolygon >(pybind11::module& m, const std::string& name);
-template void export_AlchemyLogBoltzmannFunction< ShapeConvexPolygon >(pybind11::module& m, const std::string& name);
 template void export_UpdaterShape< ShapeConvexPolygon >(pybind11::module& m, const std::string& name);
 template void export_PythonShapeMove< ShapeConvexPolygon >(pybind11::module& m, const std::string& name);
 template void export_ConstantShapeMove< ShapeConvexPolygon >(pybind11::module& m, const std::string& name);
 
 template void export_ShapeMoveInterface< ShapeSimplePolygon >(pybind11::module& m, const std::string& name);
-template void export_ShapeLogBoltzmann< ShapeSimplePolygon >(pybind11::module& m, const std::string& name);
-template void export_AlchemyLogBoltzmannFunction< ShapeSimplePolygon >(pybind11::module& m, const std::string& name);
 template void export_UpdaterShape< ShapeSimplePolygon >(pybind11::module& m, const std::string& name);
 template void export_PythonShapeMove< ShapeSimplePolygon >(pybind11::module& m, const std::string& name);
 template void export_ConstantShapeMove< ShapeSimplePolygon >(pybind11::module& m, const std::string& name);
 
 template void export_ShapeMoveInterface< ShapeSpheropolygon >(pybind11::module& m, const std::string& name);
-template void export_ShapeLogBoltzmann< ShapeSpheropolygon >(pybind11::module& m, const std::string& name);
-template void export_AlchemyLogBoltzmannFunction< ShapeSpheropolygon >(pybind11::module& m, const std::string& name);
 template void export_UpdaterShape< ShapeSpheropolygon >(pybind11::module& m, const std::string& name);
 template void export_PythonShapeMove< ShapeSpheropolygon >(pybind11::module& m, const std::string& name);
 template void export_ConstantShapeMove< ShapeSpheropolygon >(pybind11::module& m, const std::string& name);
 
 template void export_ShapeMoveInterface< ShapePolyhedron >(pybind11::module& m, const std::string& name);
-template void export_ShapeLogBoltzmann< ShapePolyhedron >(pybind11::module& m, const std::string& name);
-template void export_AlchemyLogBoltzmannFunction< ShapePolyhedron >(pybind11::module& m, const std::string& name);
 template void export_UpdaterShape< ShapePolyhedron >(pybind11::module& m, const std::string& name);
 template void export_PythonShapeMove< ShapePolyhedron >(pybind11::module& m, const std::string& name);
 template void export_ConstantShapeMove< ShapePolyhedron >(pybind11::module& m, const std::string& name);
 
 template void export_ShapeMoveInterface< ShapeConvexPolyhedron >(pybind11::module& m, const std::string& name);
-template void export_ShapeLogBoltzmann< ShapeConvexPolyhedron >(pybind11::module& m, const std::string& name);
 template void export_ElasticShapeMove< ShapeConvexPolyhedron >(pybind11::module& m, const std::string& name);
-template void export_ShapeSpringLogBoltzmannFunction< ShapeConvexPolyhedron >(pybind11::module& m, const std::string& name);
-template void export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron >(pybind11::module& m, const std::string& name);
 template void export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron >(pybind11::module& m, const std::string& name);
 template void export_UpdaterShape< ShapeConvexPolyhedron >(pybind11::module& m, const std::string& name);
 template void export_PythonShapeMove< ShapeConvexPolyhedron >(pybind11::module& m, const std::string& name);
 template void export_ConstantShapeMove< ShapeConvexPolyhedron >(pybind11::module& m, const std::string& name);
 
 template void export_ShapeMoveInterface< ShapeSpheropolyhedron >(pybind11::module& m, const std::string& name);
-template void export_ShapeLogBoltzmann< ShapeSpheropolyhedron >(pybind11::module& m, const std::string& name);
-template void export_AlchemyLogBoltzmannFunction< ShapeSpheropolyhedron >(pybind11::module& m, const std::string& name);
 template void export_UpdaterShape< ShapeSpheropolyhedron >(pybind11::module& m, const std::string& name);
 template void export_PythonShapeMove< ShapeSpheropolyhedron >(pybind11::module& m, const std::string& name);
 template void export_ConstantShapeMove< ShapeSpheropolyhedron >(pybind11::module& m, const std::string& name);
 
 template void export_ShapeMoveInterface< ShapeSphinx >(pybind11::module& m, const std::string& name);
-template void export_ShapeLogBoltzmann< ShapeSphinx >(pybind11::module& m, const std::string& name);
-template void export_AlchemyLogBoltzmannFunction< ShapeSphinx >(pybind11::module& m, const std::string& name);
 template void export_UpdaterShape< ShapeSphinx >(pybind11::module& m, const std::string& name);
 template void export_PythonShapeMove< ShapeSphinx >(pybind11::module& m, const std::string& name);
 template void export_ConstantShapeMove< ShapeSphinx >(pybind11::module& m, const std::string& name);
 
 template void export_ShapeMoveInterface< ShapeUnion<ShapeSphere> >(pybind11::module& m, const std::string& name);
-template void export_ShapeLogBoltzmann< ShapeUnion<ShapeSphere> >(pybind11::module& m, const std::string& name);
-template void export_AlchemyLogBoltzmannFunction< ShapeUnion<ShapeSphere> >(pybind11::module& m, const std::string& name);
 template void export_UpdaterShape< ShapeUnion<ShapeSphere> >(pybind11::module& m, const std::string& name);
 template void export_PythonShapeMove< ShapeUnion<ShapeSphere> >(pybind11::module& m, const std::string& name);
 template void export_ConstantShapeMove< ShapeUnion<ShapeSphere> >(pybind11::module& m, const std::string& name);

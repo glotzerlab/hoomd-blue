@@ -19,8 +19,6 @@ namespace hpmc
 void export_simple_polygon_alchemy(py::module& m)
     {
     export_ShapeMoveInterface< ShapeSimplePolygon >(m, "ShapeMoveSimplePolygon");
-    export_ShapeLogBoltzmann< ShapeSimplePolygon >(m, "LogBoltzmannSimplePolygon");
-    export_AlchemyLogBoltzmannFunction< ShapeSimplePolygon >(m, "AlchemyLogBoltzmannSimplePolygon");
     export_UpdaterShape< ShapeSimplePolygon >(m, "UpdaterShapeSimplePolygon");
     export_PythonShapeMove< ShapeSimplePolygon >(m, "PythonShapeMoveSimplePolygon");
     export_ConstantShapeMove< ShapeSimplePolygon >(m, "ConstantShapeMoveSimplePolygon");

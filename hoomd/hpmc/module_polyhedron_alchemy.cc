@@ -19,8 +19,6 @@ namespace hpmc
 void export_polyhedron_alchemy(py::module& m)
     {
     export_ShapeMoveInterface< ShapePolyhedron >(m, "ShapeMovePolyhedron");
-    export_ShapeLogBoltzmann< ShapePolyhedron >(m, "LogBoltzmannPolyhedron");
-    export_AlchemyLogBoltzmannFunction< ShapePolyhedron >(m, "AlchemyLogBoltzmannPolyhedron");
     export_UpdaterShape< ShapePolyhedron >(m, "UpdaterShapePolyhedron");
     export_PythonShapeMove< ShapePolyhedron >(m, "PythonShapeMovePolyhedron");
     export_ConstantShapeMove< ShapePolyhedron >(m, "ConstantShapeMovePolyhedron");
