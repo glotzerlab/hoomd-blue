@@ -8,6 +8,7 @@
 
 #include <bitset>
 #include <cstddef>
+#include <memory>
 #include <numeric>
 
 #include "hoomd/AlchemyData.h"
@@ -75,7 +76,9 @@ template<class evaluator> struct Normalized : public evaluator
     \sa export_PotentialPair()
 */
 template<class evaluator>
-class AlchemicalPotentialPair : public PotentialPair<evaluator, AlchemyPackage<evaluator>>
+class AlchemicalPotentialPair
+    : public PotentialPair<evaluator, AlchemyPackage<evaluator>>,
+      public std::enable_shared_from_this<AlchemicalPotentialPair<evaluator>>
     {
     public:
     //! Construct the pair potential
@@ -90,8 +93,9 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, AlchemyPackage<e
             = m_alchemical_particles[k * m_alchemy_index.getNumElements() + m_alchemy_index(i, j)];
         if (alpha_p == nullptr)
             {
-            alpha_p
-                = std::make_shared<AlchemicalPairParticle>(this->m_exec_conf, make_int3(i, j, k));
+            alpha_p = std::make_shared<AlchemicalPairParticle>(this->m_exec_conf,
+                                                               this->shared_from_this(),
+                                                               make_int3(i, j, k));
             }
         return alpha_p;
         }
@@ -141,8 +145,7 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, AlchemyPackage<e
     std::function<Scalar(pybind11::kwargs)> m_normalizer;
     bool m_normalized = false;
 
-    //! Method to be called when number of types changes
-    void slotNumTypesChange() override;
+    //! Method to be called when number of particles changes
     void slotNumParticlesChange()
         {
         unsigned int N = this->m_pdata->getN();
@@ -177,10 +180,6 @@ AlchemicalPotentialPair<evaluator>::AlchemicalPotentialPair(
     this->m_exec_conf->msg->notice(5)
         << "Constructing AlchemicalPotentialPair<" << evaluator::getName() << ">" << std::endl;
 
-    this->m_pdata->getNumTypesChangeSignal()
-        .template connect<AlchemicalPotentialPair<evaluator>,
-                          &AlchemicalPotentialPair<evaluator>::slotNumTypesChange>(this);
-
     this->m_pdata->getGlobalParticleNumberChangeSignal()
         .template connect<AlchemicalPotentialPair<evaluator>,
                           &AlchemicalPotentialPair<evaluator>::slotNumParticlesChange>(this);
@@ -191,40 +190,9 @@ template<class evaluator> AlchemicalPotentialPair<evaluator>::~AlchemicalPotenti
     this->m_exec_conf->msg->notice(5)
         << "Destroying AlchemicalPotentialPair<" << evaluator::getName() << ">" << std::endl;
 
-    this->m_pdata->getNumTypesChangeSignal()
-        .template disconnect<AlchemicalPotentialPair<evaluator>,
-                             &AlchemicalPotentialPair<evaluator>::slotNumTypesChange>(this);
-
     this->m_pdata->getGlobalParticleNumberChangeSignal()
         .template disconnect<AlchemicalPotentialPair<evaluator>,
                              &AlchemicalPotentialPair<evaluator>::slotNumParticlesChange>(this);
-    }
-
-template<class evaluator> void AlchemicalPotentialPair<evaluator>::slotNumTypesChange()
-    {
-    Index2DUpperTriangular new_alchemy_index = Index2DUpperTriangular(this->m_pdata->getNTypes());
-    std::vector<mask_type> new_mask(new_alchemy_index.getNumElements());
-    std::vector<std::shared_ptr<AlchemicalPairParticle>> new_particles(
-        new_alchemy_index.getNumElements() * evaluator::num_alchemical_parameters);
-
-    // copy over entries that are valid in both the new and old matrices
-    unsigned int copy_w = std::min(new_alchemy_index.getW(), m_alchemy_index.getW());
-    for (unsigned int i = 0; i < copy_w; i++)
-        for (unsigned int j = 0; j < i; j++)
-            {
-            new_mask[new_alchemy_index(i, j)] = m_alchemy_mask[m_alchemy_index(i, j)];
-            for (unsigned int k = 0; k < evaluator::num_alchemical_parameters; k++)
-                {
-                new_particles[k * new_alchemy_index.getNumElements() + new_alchemy_index(i, j)]
-                    = m_alchemical_particles[k * m_alchemy_index.getNumElements()
-                                             + m_alchemy_index(i, j)];
-                }
-            }
-    m_alchemy_index = new_alchemy_index;
-    m_alchemical_particles.swap(new_particles);
-    m_alchemy_mask.swap(new_mask);
-
-    PotentialPair<evaluator, AlchemyPackage<evaluator>>::slotNumTypesChange();
     }
 
 template<class evaluator>

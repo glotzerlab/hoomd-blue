@@ -28,7 +28,7 @@ class AlchemicalParticle
     AlchemicalParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
         : value(Scalar(1.0)), m_attached(true), m_exec_conf(exec_conf) {};
 
-    virtual void notifyDetach()
+    void notifyDetach()
         {
         m_attached = false;
         }
@@ -45,8 +45,10 @@ class AlchemicalParticle
 class AlchemicalMDParticle : public AlchemicalParticle
     {
     public:
-    AlchemicalMDParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
-        : AlchemicalParticle(exec_conf) {};
+    AlchemicalMDParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
+                         std::shared_ptr<const ForceCompute> force)
+
+        : AlchemicalParticle(exec_conf), m_force(force) {};
 
     void inline zeroForces()
         {
@@ -133,9 +135,9 @@ class AlchemicalMDParticle : public AlchemicalParticle
     protected:
     // the timestep the net force was computed and the netforce
     std::pair<uint64_t, Scalar> m_timestepNetForce;
+    std::weak_ptr<const ForceCompute> m_force;
     };
 
-// TODO: store a pointer to the force, to mirror the python, also add mass as an argument
 // TODO: add additional constructor that can work just off of python objects, maybe see
 // ComputeFreeVolume for the string conversion to type pair
 // parameter dict must be the same
@@ -143,9 +145,9 @@ class AlchemicalPairParticle : public AlchemicalMDParticle
     {
     public:
     AlchemicalPairParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                           std::shared_ptr<ForceCompute> force_pair,
+                           std::shared_ptr<const ForceCompute> force,
                            int3 type_pair_param)
-        : AlchemicalMDParticle(exec_conf), m_type_pair_param(type_pair_param) {};
+        : AlchemicalMDParticle(exec_conf, force), m_type_pair_param(type_pair_param) {};
     int3 m_type_pair_param;
     };
 

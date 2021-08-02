@@ -11,7 +11,6 @@ from hoomd.data.typeconverter import SetOnce
 from hoomd.data import syncedlist
 from hoomd.md.pair import pair
 from hoomd.md.methods import Method
-from hoomd.filter import ParticleFilter
 from hoomd.variant import Variant
 
 # alternative access? hoomd.alch.md.pair would be nice to somehow link here
@@ -23,6 +22,7 @@ _api = ['value', 'mass', 'mu', 'avalue', 'amomentum', 'net_aforce', 'aforces']
 
 
 class _AlchemicalPairPotential(Loggable):
+    """A metaclass to make alchemical modifications to the pair potential."""
 
     def __new__(cls, name, superclasses, attributedict):
         attributedict[
@@ -30,15 +30,17 @@ class _AlchemicalPairPotential(Loggable):
         superclasses += (_AlchemicalMethods,)
         return super().__new__(cls, name, superclasses, attributedict)
 
-    def __init__(cls, name, superclasses, attributedict):
-        cls._reserved_default_attrs['_alchemical_parameters'] = list
-        cls._accepted_modes = ('none', 'shift')
+    def __init__(self, name, superclasses, attributedict):
+        self._reserved_default_attrs['_alchemical_parameters'] = list
+        self._accepted_modes = ('none', 'shift')
         super().__init__(name, superclasses, attributedict)
 
 
 # Perhaps define a true base alch particle to base this off of just adding the
 # MD components mirroring the cpp side
 class AlchemicalMDParticle(_HOOMDBaseObject):
+    """Alchemical pair particle associated with a specific force."""
+
     __slots__ = ['force', 'name', 'typepair', '_cpp_obj', '_mass']
 
     def __new__(cls,
@@ -46,7 +48,9 @@ class AlchemicalMDParticle(_HOOMDBaseObject):
                 name: str = '',
                 typepair: tuple = None,
                 mass: float = 1.0):
+        """This is not a public method @flake8."""
         typepair = tuple(sorted(typepair))
+        # if an instenace already exists, return that one
         if (typepair, name) in force.alchemical_particles:
             return force.alchemical_particles[typepair, name]
         return super().__new__(cls)
@@ -62,6 +66,10 @@ class AlchemicalMDParticle(_HOOMDBaseObject):
         self._mass = mass
         if self.force._attached:
             self._attach()
+        # store metadata
+        param_dict = ParameterDict(force=force, typepair=tuple)
+        # set defaults
+        self._param_dict.update(param_dict)
 
     def _attach(self):
         self._cpp_obj = self.force._cpp_obj.getAlchemicalPairParticle(
@@ -84,6 +92,7 @@ class AlchemicalMDParticle(_HOOMDBaseObject):
 
     @log(default=False)
     def mass(self):
+        """Alchemical mass."""
         if self._attached:
             return self._cpp_obj.mass
         else:
@@ -98,27 +107,33 @@ class AlchemicalMDParticle(_HOOMDBaseObject):
 
     @log
     def value(self):
+        """Current value of the alchemical parameter."""
         return self.force.params[self.typepair][self.name] * (
             self._cpp_obj.alpha if self._attached else 1.)
 
     @log(default=False, requires_run=True)
     def avalue(self):
+        """Dimensionless alchemical alpha space value."""
         return self._cpp_obj.alpha
 
     @log(default=False, requires_run=True)
     def amomentum(self):
+        """Momentum in alchemical alpha space."""
         return self._cpp_obj.alpha
 
     @log(default=False, requires_run=True)
     def mu(self):
+        """Alchemical potential."""
         return self._cpp_obj.mu
 
     @log(default=False, requires_run=True, category='particle')
     def aforces(self):
+        """Per particle forces in alchemical alpha space."""
         return self._cpp_obj.forces
 
     @log(requires_run=True)
     def net_aforce(self):
+        """Net force in alchemical alpha space."""
         return self._cpp_obj.net_force()
 
     def _enable(self):
@@ -150,9 +165,8 @@ class _AlchemicalMethods(_HOOMDBaseObject):
                         break
                 else:
                     raise KeyError(
-                        key,
-                        'Not a valid combination of particle types and alchemical parameter keys.'
-                    )
+                        key, """Not a valid combination of particle types and
+                        alchemical parameter keys.""")
                 return tuple(self._yield_keys(typepair)), tuple(
                     self._validate_and_split_len_one(param))
 
@@ -162,7 +176,7 @@ class _AlchemicalMethods(_HOOMDBaseObject):
             for t in typepair:
                 for p in param:
                     k = (t, p)
-                    if not k in self._dict:
+                    if k not in self._dict:
                         self._dict[k] = AlchemicalMDParticle(self.outer, p, t)
                     vals[k] = self._dict[k]
             if len(vals) > 1:
@@ -187,6 +201,7 @@ class _AlchemicalMethods(_HOOMDBaseObject):
 
 
 class LJGauss(pair.LJGauss, metaclass=_AlchemicalPairPotential):
+    """Alchemical Lennard Jones Gauss pair potential."""
     _alchemical_parameters = ['epsilon', 'sigma2', 'r0']
 
     def __init__(self,
@@ -199,6 +214,7 @@ class LJGauss(pair.LJGauss, metaclass=_AlchemicalPairPotential):
 
 
 class Alchemostat(Method):
+    """Alchemostat Base Class."""
 
     def __init__(self, alchemical_particles):
         if alchemical_particles is None:
@@ -215,6 +231,11 @@ class Alchemostat(Method):
 
     @property
     def alchemical_particles(self):
+        """Owned alchemical particles.
+
+        Alchemical particles which will be integrated by this integrator
+        method.
+        """
         return self._alchemical_particles
 
     @alchemical_particles.setter
@@ -227,9 +248,6 @@ class NVT(Alchemostat):
     r"""Alchemical NVT Integration.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which
-            to apply this method.
-
         kT (`hoomd.variant.Variant` or `float`): Temperature set point
             for the alchemostat :math:`[\mathrm{energy}]`.
 
@@ -239,13 +257,10 @@ class NVT(Alchemostat):
 
     Examples::
 
-        nvt=hoomd.md.methods.NVT(filter=hoomd.filter.All(), kT=1.0, tau=0.5)
+        nvt=hoomd.md.methods.NVT(kT=1.0, tau=0.5)
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
 
     Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
-            apply this method.
-
         kT (hoomd.variant.Variant): Temperature set point
             for the alchemostat :math:`[\mathrm{energy}]`.
 
@@ -255,22 +270,19 @@ class NVT(Alchemostat):
 
     """
 
-    def __init__(self, filter, kT, time_factor=1, alchemical_particles=[]):
+    def __init__(self, kT, time_factor=1, alchemical_particles=[]):
 
         # store metadata
-        param_dict = ParameterDict(filter=ParticleFilter,
-                                   kT=Variant,
-                                   time_factor=int(time_factor))
-        param_dict.update(dict(kT=kT, filter=filter))
+        param_dict = ParameterDict(kT=Variant, time_factor=int(time_factor))
+        param_dict.update(dict(kT=kT))
         # set defaults
         self._param_dict.update(param_dict)
         super().__init__(alchemical_particles)
 
     def _attach(self):
         cpp_class = hoomd.md._md.TwoStepNVTAlchemy
-        group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
-        self._cpp_obj = cpp_class(cpp_sys_def, group, self.time_factor, self.kT)
+        self._cpp_obj = cpp_class(cpp_sys_def, self.time_factor, self.kT)
         self._cpp_obj.setNextAlchemicalTimestep(self._simulation.timestep)
         super()._attach()
 
@@ -279,75 +291,33 @@ class NVE(Alchemostat):
     r"""Alchemical NVE Integration.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which
-            to apply this method.
-
         time_factor (`int`): Time factor for the alchemostat
 
         alchemical_particles (list): List of alchemical particles
 
     Examples::
 
-        nve=hoomd.md.methods.NVE(filter=hoomd.filter.All(), tau=0.5)
+        nve=hoomd.md.methods.NVE()
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
 
     Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
-            apply this method.
-
         time_factor (int): Time factor for the alchemostat
 
         alchemical_particles (list): List of alchemical particles
 
     """
 
-    def __init__(self, filter, time_factor=1, alchemical_particles=[]):
+    def __init__(self, time_factor=1, alchemical_particles=[]):
 
         # store metadata
-        param_dict = ParameterDict(filter=ParticleFilter,
-                                   time_factor=int(time_factor))
-        param_dict.update(dict(filter=filter))
+        param_dict = ParameterDict(time_factor=int(time_factor))
         # set defaults
         self._param_dict.update(param_dict)
         super().__init__(alchemical_particles)
 
     def _attach(self):
         cpp_class = hoomd.md._md.TwoStepNVEAlchemy
-        group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
-        self._cpp_obj = cpp_class(cpp_sys_def, group, self.time_factor)
+        self._cpp_obj = cpp_class(cpp_sys_def, self.time_factor)
         self._cpp_obj.setNextAlchemicalTimestep(self._simulation.timestep)
         super()._attach()
-
-
-# # TODO: the rest of this should likely be moved to a new namespace
-# from collections.abc import ABC, abstractmethod
-# from hoomd.util import SyncedList
-# from hoomd.md.integrate import BaseIntegrator
-
-# class Alchemostat(ABC, _HOOMDBaseObject):
-
-#     # synced list? or operation style?
-#     @property
-#     def alchemical_particles(self):
-#         return self._alchemical_particles
-
-#     @alchemical_particles.setter
-#     def alchemical_particles(self, alchemical_particles):
-#         # This condition is necessary to allow for += and -= operators to work
-#         # correctly with alchemostat.alchemical_particles (+=/-=).
-#         if alchemical_particles is self._alchemical_particles:
-#             return
-#         else:
-#             # Handle error cases first
-#             if alchemical_particles._added or alchemical_particles._simulation is not None:
-#                 raise RuntimeError(
-#                     "Cannot add `hoomd.Alchemicalalchemical_particles` object that belongs to "
-#                     "another `hoomd.Simulation` object.")
-
-#     @property
-#     def time_factor(self):
-#         if self.attached:
-#             return self._cpp_obj.alchemicalTimeFactor
-#         else:
-#             return storedparams

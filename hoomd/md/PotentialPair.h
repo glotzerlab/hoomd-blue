@@ -409,12 +409,6 @@ PotentialPair<evaluator, extra_pkg>::PotentialPair(std::shared_ptr<SystemDefinit
 
     // initialize name
     m_prof_name = std::string("Pair ") + evaluator::getName();
-
-    // connect to the ParticleData to receive notifications when the maximum number of particles
-    // changes
-    m_pdata->getNumTypesChangeSignal()
-        .template connect<PotentialPair<evaluator, extra_pkg>,
-                          &PotentialPair<evaluator, extra_pkg>::slotNumTypesChange>(this);
     }
 
 template<class evaluator, typename extra_pkg> PotentialPair<evaluator, extra_pkg>::~PotentialPair()
@@ -422,9 +416,6 @@ template<class evaluator, typename extra_pkg> PotentialPair<evaluator, extra_pkg
     m_exec_conf->msg->notice(5) << "Destroying PotentialPair<" << evaluator::getName() << ">"
                                 << std::endl;
 
-    m_pdata->getNumTypesChangeSignal()
-        .template disconnect<PotentialPair<evaluator, extra_pkg>,
-                             &PotentialPair<evaluator, extra_pkg>::slotNumTypesChange>(this);
     if (m_attached)
         {
         m_nlist->removeRCutMatrix(m_r_cut_nlist);

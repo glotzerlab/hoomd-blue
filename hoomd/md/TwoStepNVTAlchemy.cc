@@ -20,10 +20,9 @@ namespace py = pybind11;
     \param skip_restart Skip initialization of the restart information
 */
 TwoStepNVTAlchemy::TwoStepNVTAlchemy(std::shared_ptr<SystemDefinition> sysdef,
-                                     std::shared_ptr<ParticleGroup> group,
                                      unsigned int alchemTimeFactor,
                                      std::shared_ptr<Variant> T)
-    : AlchemostatTwoStep(sysdef, group, alchemTimeFactor), m_Q(1.0), m_alchem_KE(0.0), m_T(T)
+    : AlchemostatTwoStep(sysdef, alchemTimeFactor), m_Q(1.0), m_alchem_KE(0.0), m_T(T)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVTAlchemy" << std::endl;
 
@@ -200,8 +199,7 @@ void export_TwoStepNVTAlchemy(py::module& m)
     py::class_<TwoStepNVTAlchemy, AlchemostatTwoStep, std::shared_ptr<TwoStepNVTAlchemy>>(
         m,
         "TwoStepNVTAlchemy")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>,
-             unsigned int, std::shared_ptr<Variant>>())
+        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int, std::shared_ptr<Variant>>())
         .def("setT", &TwoStepNVTAlchemy::setT)
         .def("setQ", &TwoStepNVTAlchemy::setQ)
         .def_property("kT", &TwoStepNVTAlchemy::getT, &TwoStepNVTAlchemy::setT)

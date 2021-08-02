@@ -18,11 +18,9 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
     {
     public:
     //! Constructs the integration method and associates it with the system
-    AlchemostatTwoStep(std::shared_ptr<SystemDefinition> sysdef,
-                       std::shared_ptr<ParticleGroup> group,
-                       unsigned int alchemTimeFactor)
-        : IntegrationMethodTwoStep(sysdef, group), m_nTimeFactor(alchemTimeFactor),
-          m_halfDeltaT(0.5 * m_deltaT * alchemTimeFactor) {};
+    AlchemostatTwoStep(std::shared_ptr<SystemDefinition> sysdef, unsigned int alchemTimeFactor)
+        : IntegrationMethodTwoStep(sysdef, std::make_shared<ParticleGroup>()),
+          m_nTimeFactor(alchemTimeFactor), m_halfDeltaT(0.5 * m_deltaT * alchemTimeFactor) {};
 
     virtual ~AlchemostatTwoStep() { }
 
@@ -64,7 +62,8 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
         return m_alchemicalParticles;
         }
 
-    void setAlchemicalParticleList(std::vector<std::shared_ptr<AlchemicalMDParticle>> alchemicalParticles)
+    void setAlchemicalParticleList(
+        std::vector<std::shared_ptr<AlchemicalMDParticle>> alchemicalParticles)
         {
         m_alchemicalParticles = alchemicalParticles;
         }
@@ -122,9 +121,13 @@ inline void export_AlchemostatTwoStep(pybind11::module& m)
     pybind11::class_<AlchemostatTwoStep,
                      IntegrationMethodTwoStep,
                      std::shared_ptr<AlchemostatTwoStep>>(m, "AlchemostatTwoStep")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, unsigned int>())
-        .def_property("time_factor", &AlchemostatTwoStep::getAlchemTimeFactor, &AlchemostatTwoStep::setAlchemTimeFactor)
-        .def_property("alchemical_particles", &AlchemostatTwoStep::getAlchemicalParticleList, &AlchemostatTwoStep::setAlchemicalParticleList)
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
+        .def_property("time_factor",
+                      &AlchemostatTwoStep::getAlchemTimeFactor,
+                      &AlchemostatTwoStep::setAlchemTimeFactor)
+        .def_property("alchemical_particles",
+                      &AlchemostatTwoStep::getAlchemicalParticleList,
+                      &AlchemostatTwoStep::setAlchemicalParticleList)
         .def("getAlchemicalParticleList", &AlchemostatTwoStep::getAlchemicalParticleList)
         .def("addAlchemicalParticle", &AlchemostatTwoStep::addAlchemicalParticle)
         .def("getNDOF", &AlchemostatTwoStep::getNDOF)
