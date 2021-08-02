@@ -2432,7 +2432,7 @@ unsigned int ParticleData::addParticle(unsigned int type)
         {
         // update reverse-lookup table
         ArrayHandle<unsigned int> h_rtag(m_rtag, access_location::host, access_mode::readwrite);
-        assert(h_rtag.data[tag] = NOT_LOCAL);
+        assert((h_rtag.data[tag] = NOT_LOCAL));
         if (m_exec_conf->getRank() == 0)
             {
             // we add the particle at the end

@@ -10,6 +10,7 @@ md.force
 
     Force
     Active
+    ActiveOnManifold
 
 .. rubric:: Details
 
@@ -20,5 +21,9 @@ md.force
         :members:
 
     .. autoclass:: Active
+        :show-inheritance:
+        :no-inherited-members:
+
+    .. autoclass:: ActiveOnManifold
         :show-inheritance:
         :no-inherited-members:
