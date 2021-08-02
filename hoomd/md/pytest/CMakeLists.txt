@@ -12,6 +12,7 @@ set(files __init__.py
     test_flags.py
     test_lj_equation_of_state.py
     test_potential.py
+    test_pppm_coulomb.py
     test_manifolds.py
     test_methods.py
     test_reverse_perturbation_flow.py
