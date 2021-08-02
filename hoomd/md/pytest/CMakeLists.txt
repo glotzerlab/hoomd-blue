@@ -15,6 +15,7 @@ set(files __init__.py
     test_manifolds.py
     test_methods.py
     test_reverse_perturbation_flow.py
+    test_table_pressure.py
     test_thermo.py
     test_thermoHMA.py
     forces_and_energies.json
