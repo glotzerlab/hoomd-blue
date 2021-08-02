@@ -345,7 +345,8 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
     def __init__(self, cpp_obj, param_name, types, type_param_dict):
         # store info to communicate with c++
         self._cpp_obj = cpp_obj
-        self._param_name = param_name
+        self._setter = "set" + _to_camel_case(param_name)
+        self._getter = "get" + _to_camel_case(param_name)
         self._len_keys = type_param_dict._len_keys
         self._type_keys = self._compute_type_keys(types)
         # Get default data
@@ -395,14 +396,6 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
             if not_set_keys != []:
                 raise ValueError("{} were not set.".format(not_set_keys))
         return val
-
-    @property
-    def _setter(self):
-        return 'set' + _to_camel_case(self._param_name)
-
-    @property
-    def _getter(self):
-        return 'get' + _to_camel_case(self._param_name)
 
     def _compute_type_keys(self, types):
         """Compute valid type keys from given types.
