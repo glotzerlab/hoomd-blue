@@ -27,7 +27,6 @@ valid_attrs = [('trigger', hoomd.trigger.Periodic(10000)),
                ('reference_positions', [(0, 0, 0), (1, 0, 1)])]
 
 
-@pytest.mark.cpu
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction(device, constructor_args):
     """Test that RemoveDrift can be constructed with valid arguments."""
@@ -38,7 +37,6 @@ def test_valid_construction(device, constructor_args):
         assert np.all(getattr(remove_drift, attr) == value)
 
 
-@pytest.mark.cpu
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_and_attach(simulation_factory,
                                        two_particle_snapshot_factory,
@@ -76,7 +74,6 @@ def test_valid_construction_and_attach(simulation_factory,
         assert np.all(getattr(remove_drift, attr) == value)
 
 
-@pytest.mark.cpu
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr(attr, value):
     """Test that RemoveDrift can get and set attributes."""
@@ -88,7 +85,6 @@ def test_valid_setattr(attr, value):
     assert np.all(getattr(remove_drift, attr) == value)
 
 
-@pytest.mark.cpu
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_attached(attr, value, simulation_factory,
                                 two_particle_snapshot_factory, valid_args):
@@ -126,7 +122,6 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     assert np.all(getattr(remove_drift, attr) == value)
 
 
-@pytest.mark.cpu
 def test_remove_drift(simulation_factory, lattice_snapshot_factory):
     """Test that RemoveDrift modifies positions correctly."""
     dev = hoomd.device.CPU()
@@ -164,7 +159,6 @@ def test_remove_drift(simulation_factory, lattice_snapshot_factory):
         assert np.allclose(drift, [0, 0, 0])
 
 
-@pytest.mark.cpu
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     """Test that RemoveDrift objects are picklable."""
     sim = simulation_factory(two_particle_snapshot_factory())
