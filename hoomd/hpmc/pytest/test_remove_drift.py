@@ -78,7 +78,7 @@ def test_valid_construction_and_attach(simulation_factory,
 
 @pytest.mark.cpu
 @pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_setattr(device, attr, value):
+def test_valid_setattr(attr, value):
     """Test that RemoveDrift can get and set attributes."""
     remove_drift = hoomd.hpmc.update.RemoveDrift(
         trigger=hoomd.trigger.Periodic(10),
