@@ -9,10 +9,13 @@ from hoomd.data.parameterdicts import AttachedTypeParameterDict
 
 
 class TypeParameter(MutableMapping):
-    """Store parameters per type.
+    """Implement a type based mutable mapping.
 
-    `TypeParameter` instance allow for the setting of per-type parameters with
-    smart default and value validation/processing abilities.
+    *Implements the `collections.abc.MutableMapping` interface (``__delitem__``
+    is disallowed).*
+
+    `TypeParameter` instances extend the base Python mapping interface with with
+    smart defaults, value/key validation/processing, and advanced indexing.
 
     .. rubric:: Indexing
 
