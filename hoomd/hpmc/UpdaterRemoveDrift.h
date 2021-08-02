@@ -42,9 +42,8 @@ template<class Shape> class RemoveDriftUpdater : public Updater
     public:
     //! Constructor
     RemoveDriftUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                       std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                        pybind11::array_t<double> ref_positions)
-        : Updater(sysdef), m_mc(mc)
+        : Updater(sysdef)
         {
         setReferencePositions(ref_positions);
         }
@@ -148,14 +147,9 @@ template<class Shape> class RemoveDriftUpdater : public Updater
             h_postype.data[i] = vec_to_scalar4(r_i - rshift, postype_i.w);
             box.wrap(h_postype.data[i], h_image.data[i]);
             }
-
-        m_mc->invalidateAABBTree();
-        // migrate and exchange particles
-        m_mc->communicate(true);
         }
 
     protected:
-    std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
     std::vector<vec3<Scalar>> m_ref_positions;
     };
 
@@ -167,7 +161,6 @@ template<class Shape> void export_RemoveDriftUpdater(pybind11::module& m, std::s
                      Updater,
                      std::shared_ptr<RemoveDriftUpdater<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             pybind11::array_t<Scalar>>())
         .def_property("reference_positions",
                       &RemoveDriftUpdater<Shape>::getReferencePositions,
