@@ -342,18 +342,17 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         `hoomd.operation._BaseHOOMDObject` subclasses.
     """
 
-    def __init__(self, cpp_obj, param_name, type_kind, type_param_dict, sim):
+    def __init__(self, cpp_obj, param_name, types, type_param_dict):
         # store info to communicate with c++
         self._cpp_obj = cpp_obj
         self._param_name = param_name
-        self._sim = sim
-        self._type_kind = type_kind
         self._len_keys = type_param_dict._len_keys
+        self._type_keys = self._compute_type_keys(types)
         # Get default data
         self._default = type_param_dict._default
         self._type_converter = type_param_dict._type_converter
         # add all types to c++
-        for key in self.keys():
+        for key in self:
             self._single_setitem(key, type_param_dict[key])
 
     def to_detached(self):
@@ -365,7 +364,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
             type_param_dict = TypeParameterDict(self.default,
                                                 len_keys=self._len_keys)
         type_param_dict._type_converter = self._type_converter
-        for key in self.keys():
+        for key in self:
             type_param_dict[key] = self[key]
         return type_param_dict
 
@@ -379,9 +378,8 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
     def _yield_keys(self, key):
         """Includes key check for existing simulation keys."""
-        curr_keys = set(self.keys())
         for key in super()._yield_keys(key):
-            if key not in curr_keys:
+            if key not in self._type_keys:
                 raise KeyError("Type {} does not exist in the "
                                "system.".format(key))
             else:
@@ -406,24 +404,33 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
     def _getter(self):
         return 'get' + _to_camel_case(self._param_name)
 
+    def _compute_type_keys(self, types):
+        """Compute valid type keys from given types.
+
+        We store types as a set since set iteration for ~50 items is marginally
+        slower to iterate over than a list, but multiple times faster to check
+        for contained values.
+        """
+        if self._len_keys == 1:
+            return set(types)
+        else:
+            return {
+                tuple(sorted(key))
+                for key in combinations_with_replacement(types, self._len_keys)
+            }
+
     def __iter__(self):
         """Iterate through mapping keys."""
-        single_keys = getattr(self._sim.state, self._type_kind)
-        if self._len_keys == 1:
-            yield from single_keys
-        else:
-            for key in combinations_with_replacement(single_keys,
-                                                     self._len_keys):
-                yield tuple(sorted(list(key)))
+        yield from self._type_keys
 
     def __len__(self):
         """Return mapping length."""
-        return len(getattr(self._sim.state, self._type_kind))
+        return len(self._type_keys)
 
     def to_dict(self):
         """Convert to a `dict`."""
         rtn_dict = dict()
-        for key in self.keys():
+        for key in self:
             rtn_dict[key] = getattr(self._cpp_obj, self._getter)(key)
         return rtn_dict
 

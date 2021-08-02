@@ -183,9 +183,8 @@ def test_attaching(typedict_singleton_keys):
     typedict_singleton_keys['B'] = dict(bar='second')
     return AttachedTypeParameterDict(cpp_obj,
                                      param_name='type_param',
-                                     type_kind='particle_types',
-                                     type_param_dict=typedict_singleton_keys,
-                                     sim=sim)
+                                     types=sim.state.particle_types,
+                                     type_param_dict=typedict_singleton_keys)
 
 
 @fixture(scope='function')

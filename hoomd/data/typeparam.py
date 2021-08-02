@@ -50,9 +50,9 @@ class TypeParameter:
         self.param_dict.default = value
 
     def _attach(self, cpp_obj, sim):
-        self.param_dict = AttachedTypeParameterDict(cpp_obj, self.name,
-                                                    self.type_kind,
-                                                    self.param_dict, sim)
+        self.param_dict = AttachedTypeParameterDict(
+            cpp_obj, self.name, getattr(sim.state, self.type_kind),
+            self.param_dict)
         return self
 
     def _detach(self):
