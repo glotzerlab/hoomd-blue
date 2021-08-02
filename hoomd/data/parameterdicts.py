@@ -5,7 +5,7 @@
 """Implement parameter dictionaries."""
 
 from abc import abstractmethod
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping
 from itertools import product, combinations_with_replacement
 from copy import copy
 import numpy as np
@@ -56,7 +56,9 @@ def _raise_if_required_arg(value, current_context=()):
     if isinstance(value, Mapping):
         for key, item in value.items():
             _raise_if_required_arg(item, current_context + (key,))
-    if isinstance(value, Sequence):
+    # _is_good_iterable is required over isinstance(value, Sequence) because a
+    # str of 1 character is still a sequence and results in infinite recursion.
+    elif _is_good_iterable(value):
         for index, item in enumerate(value):
             _raise_if_required_arg(item, current_context + (index,))
 
@@ -440,7 +442,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
     def to_dict(self):
         """Convert to a `dict`."""
-        rtn_dict = dict()
+        rtn_dict = {}
         for key in self:
             rtn_dict[key] = getattr(self._cpp_obj, self._getter)(key)
         return rtn_dict
