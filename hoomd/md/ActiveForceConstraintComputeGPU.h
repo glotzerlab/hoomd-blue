@@ -111,6 +111,8 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
         new Autotuner(valid_params, 5, 100000, "active_constraint_force", this->m_exec_conf));
     m_tuner_diffusion.reset(
         new Autotuner(valid_params, 5, 100000, "active_constraint_diffusion", this->m_exec_conf));
+    m_tuner_constraint.reset(
+        new Autotuner(valid_params, 5, 100000, "active_constraint_constraint", this->m_exec_conf));
 
     unsigned int type = this->m_pdata->getNTypes();
     GlobalVector<Scalar4> tmp_f_activeVec(type, this->m_exec_conf);
