@@ -14,7 +14,7 @@ class TypeParameter(MutableMapping):
     `TypeParameter` instance allow for the setting of per-type parameters with
     smart default and value validation/processing abilities.
 
-    Indexing
+    .. rubric:: Indexing
 
     For getting and setting values, multiple index formats are supported. The
     base case is either a string representing the appropriate type or a tuple of
@@ -42,7 +42,7 @@ class TypeParameter(MutableMapping):
         ("A", ["B", "C", "D"])
 
 
-    Defaults and setting values
+    .. rubric:: Defaults and setting values
 
     `TypeParameter` instances have default values that can be accessed via
     ``default`` which will be used for all types not defined. In addition, when
