@@ -144,12 +144,11 @@ class _ValidatedDefaultDict(MutableMapping):
         """Set the value for the keys if not already specified.
 
         Args:
-            keys:
-                Valid keys specifications (depends on the expected key length).
-            default (``any``):
-                The value to default to if a key is not found in the mapping.
-                Must be compatible with the typing specification specified on
-                construction.
+            keys: Valid keys specifications (depends on the expected key
+                length).
+            default (``any``): The value to default to if a key is not found in
+                the mapping.  Must be compatible with the typing specification
+                specified on construction.
         """
         self.__setitem__(filter(self.__contains__, self._yield_keys(keys)),
                          default)
@@ -309,7 +308,39 @@ class TypeParameterDict(_ValidatedDefaultDict):
 
 
 class AttachedTypeParameterDict(_ValidatedDefaultDict):
-    """Parameter dictionary synchronized with a C++ class."""
+    """Parameter dictionary synchronized with a C++ class.
+
+    This class serves as the "attached" version of the `TypeParameterDict`. The
+    class performs the same indexing and mutation options as
+    `TypeParameterDict`, but only allows querying for keys that match the actual
+    types of the simulation it is attached to.
+
+    The interface expects the passed in C++ object to have a getter and setter
+    that follow the camel case style version of ``param_name``. Likewise
+    type_kind must be a str of a valid attribute to query types from the state.
+
+    Args:
+        cpp_obj:
+            A pybind11 wrapped C++ object to set and get the type parameters
+            from.
+        param_name (str):
+            A snake case parameter name (handled automatically by
+            ``TypeParameter``) that when changed to camel case prefixed by get
+            or set is the str name for the pybind11 exported getter and setter.
+        type_kind (str):
+            The str name of the attribute to query the parent simulation's state
+            for existent types.
+        type_param_dict (TypeParameterDict):
+            The `TypeParameterDict` to convert to the "attached" version.
+        sim (hoomd.Simulation):
+            The simulation to attach to.
+
+    Note:
+        This class should not be directly instantiated even by developers, but
+        the `hoomd.data.type_param.TypeParameter` class should be used to
+        automatically handle this in conjunction with
+        `hoomd.operation._BaseHOOMDObject` subclasses.
+    """
 
     def __init__(self, cpp_obj, param_name, type_kind, type_param_dict, sim):
         # store info to communicate with c++
