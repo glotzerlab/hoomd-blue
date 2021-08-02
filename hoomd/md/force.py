@@ -14,6 +14,7 @@ from hoomd.data.typeconverter import OnlyTypes
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import ParticleFilter
 from hoomd.md.manifold import Manifold
+import numpy
 
 
 class _force:  # noqa - This will be removed eventually. Needed to build docs.
