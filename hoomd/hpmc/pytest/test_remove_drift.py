@@ -28,7 +28,7 @@ valid_attrs = [('trigger', hoomd.trigger.Periodic(10000)),
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-def test_valid_construction(device, constructor_args):
+def test_valid_construction(constructor_args):
     """Test that RemoveDrift can be constructed with valid arguments."""
     remove_drift = hoomd.hpmc.update.RemoveDrift(**constructor_args)
 
