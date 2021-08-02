@@ -5,7 +5,7 @@
 """Implement parameter dictionaries."""
 
 from abc import abstractmethod
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from itertools import product, combinations_with_replacement
 from copy import copy
 import numpy as np
@@ -35,6 +35,30 @@ def _proper_type_return(val):
         return list(val.values())[0]
     else:
         return val
+
+
+def _raise_if_required_arg(value, current_context=()):
+    """Ensure that there are no RequiredArgs in value."""
+
+    def _raise_error_with_context(context):
+        """Produce a useful error message on missing parameters."""
+        context_str = " "
+        for c in context:
+            if isinstance(c, str):
+                context_str = context_str + f"in key {c} "
+            elif isinstance(c, int):
+                context_str = context_str + f"in index {c} "
+        raise ValueError(f"Value{context_str}is required")
+
+    if value is RequiredArg:
+        _raise_error_with_context(current_context)
+
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            _raise_if_required_arg(item, current_context + (key,))
+    if isinstance(value, Sequence):
+        for index, item in enumerate(value):
+            _raise_if_required_arg(item, current_context + (index,))
 
 
 class _ValidatedDefaultDict(MutableMapping):
@@ -388,13 +412,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
     def _validate_values(self, val):
         val = super()._validate_values(val)
-        if isinstance(val, dict):
-            not_set_keys = []
-            for k, v in val.items():
-                if v is RequiredArg:
-                    not_set_keys.append(k)
-            if not_set_keys != []:
-                raise ValueError("{} were not set.".format(not_set_keys))
+        _raise_if_required_arg(val)
         return val
 
     def _compute_type_keys(self, types):
