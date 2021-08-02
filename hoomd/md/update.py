@@ -11,7 +11,6 @@ When an updater is specified, it acts on the particle system each time step it
 is triggered to change its state.
 """
 
-from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
 from hoomd.operation import Updater

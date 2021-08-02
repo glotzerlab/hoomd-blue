@@ -35,7 +35,6 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
         throw std::runtime_error("Error initializing ActiveForceComputeGPU");
         }
 
-
     // initialize autotuner
     std::vector<unsigned int> valid_params;
     unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
@@ -43,7 +42,8 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
         valid_params.push_back(block_size);
 
     m_tuner_force.reset(new Autotuner(valid_params, 5, 100000, "active_force", this->m_exec_conf));
-    m_tuner_diffusion.reset(new Autotuner(valid_params, 5, 100000, "active_diffusion", this->m_exec_conf));
+    m_tuner_diffusion.reset(
+        new Autotuner(valid_params, 5, 100000, "active_diffusion", this->m_exec_conf));
 
     // unsigned int N = m_pdata->getNGlobal();
     // unsigned int group_size = m_group->getNumMembersGlobal();
@@ -122,7 +122,6 @@ void ActiveForceComputeGPU::setForces()
 
     m_tuner_force->end();
     m_exec_conf->endMultiGPU();
-
     }
 
 /*! This function applies rotational diffusion to all active particles. The angle between the torque
@@ -162,7 +161,7 @@ void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
                                                   m_rotationConst,
                                                   timestep,
                                                   m_sysdef->getSeed(),
-                                        	  m_tuner_diffusion->getParam());
+                                                  m_tuner_diffusion->getParam());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

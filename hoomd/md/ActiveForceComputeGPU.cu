@@ -102,8 +102,8 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             {
             Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
 
-	    vec3<Scalar> b(0, 0, 1.0);
-    	    quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(b, delta_theta);
+            vec3<Scalar> b(0, 0, 1.0);
+            quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(b, delta_theta);
 
             quati = rot_quat * quati;
             d_orientation[idx] = quat_to_scalar4(quati);
@@ -123,7 +123,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             aux_vec *= aux_vec_mag;
 
             Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
-    	    quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(aux_vec, delta_theta);
+            quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(aux_vec, delta_theta);
 
             quati = rot_quat * quati;
             d_orientation[idx] = quat_to_scalar4(quati);

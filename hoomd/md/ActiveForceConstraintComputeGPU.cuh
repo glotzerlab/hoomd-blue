@@ -94,7 +94,7 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
 
         vec3<Scalar> rot_vec = cross(norm, fi);
 
-	quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(rot_vec, phi);
+        quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(rot_vec, phi);
 
         quati = rot_quat * quati;
 

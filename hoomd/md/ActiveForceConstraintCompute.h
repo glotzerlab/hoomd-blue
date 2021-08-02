@@ -62,14 +62,17 @@ class PYBIND11_EXPORT ActiveForceConstraintCompute : public ActiveForceCompute
     \param manifold Manifold constraint
  */
 template<class Manifold>
-ActiveForceConstraintCompute<Manifold>::ActiveForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
-                                 std::shared_ptr<ParticleGroup> group,
-                                 Scalar rotation_diff,
-                                 Manifold manifold)
-        : ActiveForceCompute(sysdef, group, rotation_diff), m_manifold(manifold), m_box_changed(true)
-        {
-         m_pdata->getBoxChangeSignal().template connect<ActiveForceConstraintCompute<Manifold>, &ActiveForceConstraintCompute<Manifold>::setBoxChange>(this);
-        }
+ActiveForceConstraintCompute<Manifold>::ActiveForceConstraintCompute(
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<ParticleGroup> group,
+    Scalar rotation_diff,
+    Manifold manifold)
+    : ActiveForceCompute(sysdef, group, rotation_diff), m_manifold(manifold), m_box_changed(true)
+    {
+    m_pdata->getBoxChangeSignal()
+        .template connect<ActiveForceConstraintCompute<Manifold>,
+                          &ActiveForceConstraintCompute<Manifold>::setBoxChange>(this);
+    }
 
 template<class Manifold> ActiveForceConstraintCompute<Manifold>::~ActiveForceConstraintCompute()
     {
@@ -114,7 +117,7 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timest
 
         Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
 
-	quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(norm, delta_theta);
+        quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(norm, delta_theta);
 
         quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
         h_orientation.data[idx] = quat_to_scalar4(quati);
@@ -227,9 +230,9 @@ void export_ActiveForceConstraintCompute(pybind11::module& m, const std::string&
                      ActiveForceCompute,
                      std::shared_ptr<ActiveForceConstraintCompute<Manifold>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Scalar,
-                      Manifold>());
+                            std::shared_ptr<ParticleGroup>,
+                            Scalar,
+                            Manifold>());
     }
 
 #endif

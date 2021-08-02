@@ -266,7 +266,7 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
                 Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
 
                 vec3<Scalar> b(0, 0, 1.0);
-    		quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(b, delta_theta);
+                quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(b, delta_theta);
 
                 quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
                 h_orientation.data[idx] = quat_to_scalar4(quati);
@@ -289,7 +289,7 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
                 aux_vec *= aux_vec_mag;
 
                 Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-    		quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(aux_vec, delta_theta);
+                quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(aux_vec, delta_theta);
 
                 quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
                 h_orientation.data[idx] = quat_to_scalar4(quati);
@@ -333,7 +333,8 @@ void export_ActiveForceCompute(pybind11::module& m)
     pybind11::class_<ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute>>(
         m,
         "ActiveForceCompute")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar>())
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar>())
         .def_property("rotation_diff", &ActiveForceCompute::getRdiff, &ActiveForceCompute::setRdiff)
         .def("setActiveForce", &ActiveForceCompute::setActiveForce)
         .def("getActiveForce", &ActiveForceCompute::getActiveForce)

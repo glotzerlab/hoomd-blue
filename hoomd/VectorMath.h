@@ -323,7 +323,7 @@ template<class Real> DEVICE inline vec3<Real> cross(const vec3<Real>& a, const v
 */
 template<class Real> DEVICE inline vec3<Real> normalize(const vec3<Real>& a)
     {
-    Real inverse_norm = fast::rsqrt(dot(a,a));
+    Real inverse_norm = fast::rsqrt(dot(a, a));
     return a * inverse_norm;
     }
 
@@ -620,7 +620,7 @@ template<class Real> DEVICE inline Real perpdot(const vec2<Real>& a, const vec2<
 */
 template<class Real> DEVICE inline vec2<Real> normalize(const vec2<Real>& a)
     {
-    Real inverse_norm = fast::rsqrt(dot(a,a));
+    Real inverse_norm = fast::rsqrt(dot(a, a));
     return a * inverse_norm;
     }
 

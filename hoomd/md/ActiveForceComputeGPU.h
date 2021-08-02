@@ -30,7 +30,6 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
                           std::shared_ptr<ParticleGroup> group,
                           Scalar rotation_diff);
 
-
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
         \param period period (approximate) in time steps when returning occurs
@@ -45,10 +44,8 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
         }
 
     protected:
-    std::unique_ptr<Autotuner>
-	    m_tuner_force; //!< Autotuner for block size (force kernel)
-    std::unique_ptr<Autotuner>
-	    m_tuner_diffusion; //!< Autotuner for block size (diff kernel)
+    std::unique_ptr<Autotuner> m_tuner_force;     //!< Autotuner for block size (force kernel)
+    std::unique_ptr<Autotuner> m_tuner_diffusion; //!< Autotuner for block size (diff kernel)
 
     //! Set forces for particles
     virtual void setForces();

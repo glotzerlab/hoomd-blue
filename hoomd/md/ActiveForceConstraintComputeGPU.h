@@ -55,12 +55,9 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU
         }
 
     protected:
-    std::unique_ptr<Autotuner>
-	    m_tuner_force; //!< Autotuner for block size (force kernel)
-    std::unique_ptr<Autotuner>
-	    m_tuner_diffusion; //!< Autotuner for block size (diff kernel)
-    std::unique_ptr<Autotuner>
-	    m_tuner_constraint; //!< Autotuner for block size (constr kernel)
+    std::unique_ptr<Autotuner> m_tuner_force;      //!< Autotuner for block size (force kernel)
+    std::unique_ptr<Autotuner> m_tuner_diffusion;  //!< Autotuner for block size (diff kernel)
+    std::unique_ptr<Autotuner> m_tuner_constraint; //!< Autotuner for block size (constr kernel)
 
     //! Set forces for particles
     virtual void setForces();
@@ -110,8 +107,10 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
     for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         valid_params.push_back(block_size);
 
-    m_tuner_force.reset(new Autotuner(valid_params, 5, 100000, "active_constraint_force", this->m_exec_conf));
-    m_tuner_diffusion.reset(new Autotuner(valid_params, 5, 100000, "active_constraint_diffusion", this->m_exec_conf));
+    m_tuner_force.reset(
+        new Autotuner(valid_params, 5, 100000, "active_constraint_force", this->m_exec_conf));
+    m_tuner_diffusion.reset(
+        new Autotuner(valid_params, 5, 100000, "active_constraint_diffusion", this->m_exec_conf));
 
     unsigned int type = this->m_pdata->getNTypes();
     GlobalVector<Scalar4> tmp_f_activeVec(type, this->m_exec_conf);
@@ -174,7 +173,6 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForc
     unsigned int group_size = this->m_group->getNumMembers();
     unsigned int N = this->m_pdata->getN();
 
-
     // compute the forces on the GPU
     this->m_exec_conf->beginMultiGPU();
     this->m_tuner_force->begin();
@@ -227,17 +225,18 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t tim
     this->m_exec_conf->beginMultiGPU();
     this->m_tuner_diffusion->begin();
 
-    gpu_compute_active_force_constraint_rotational_diffusion<Manifold>(group_size,
-                                                                       d_tag.data,
-                                                                       d_index_array.data,
-                                                                       d_pos.data,
-                                                                       d_orientation.data,
-                                                                       this->m_manifold,
-                                                                       is2D,
-                                                                       this->m_rotationConst,
-                                                                       timestep,
-                                                                       this->m_sysdef->getSeed(),
-                                        	  		       this->m_tuner_diffusion->getParam());
+    gpu_compute_active_force_constraint_rotational_diffusion<Manifold>(
+        group_size,
+        d_tag.data,
+        d_index_array.data,
+        d_pos.data,
+        d_orientation.data,
+        this->m_manifold,
+        is2D,
+        this->m_rotationConst,
+        timestep,
+        this->m_sysdef->getSeed(),
+        this->m_tuner_diffusion->getParam());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -278,7 +277,7 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setCons
                                                        d_orientation.data,
                                                        d_f_actVec.data,
                                                        this->m_manifold,
-                                        	       this->m_tuner_constraint->getParam());
+                                                       this->m_tuner_constraint->getParam());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
