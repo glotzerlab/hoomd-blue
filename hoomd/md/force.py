@@ -34,38 +34,59 @@ class Force(_HOOMDBaseObject):
 
     @log(requires_run=True)
     def energy(self):
-        """float: Sum of the energy of the whole system \
+        """float: Total contribution to the potential energy of the system \
         :math:`[\\mathrm{energy}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.calcEnergySum()
 
     @log(category="particle", requires_run=True)
     def energies(self):
-        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The \
-        energies for all particles :math:`[\\mathrm{energy}]`."""
+        """(*N_particles*, ) `numpy.ndarray` of ``float``: Energy \
+        contribution from each particle :math:`[\\mathrm{energy}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getEnergies()
 
+    @log(requires_run=True)
+    def additional_energy(self):
+        """float: Additional energy term not included in `energies` \
+        :math:`[\\mathrm{energy}]`."""
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.getExternalEnergy()
+
     @log(category="particle", requires_run=True)
     def forces(self):
-        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The \
-        forces for all particles :math:`[\\mathrm{force}]`."""
+        """(*N_particles*, 3) `numpy.ndarray` of ``float``: The \
+        force applied to each particle :math:`[\\mathrm{force}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getForces()
 
     @log(category="particle", requires_run=True)
     def torques(self):
-        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque \
-        for all particles :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`."""
+        """(*N_particles*, 3) `numpy.ndarray` of ``float``: The torque applied \
+        to each particle :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getTorques()
 
     @log(category="particle", requires_run=True)
     def virials(self):
-        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial \
-        for all particles :math:`[\\mathrm{energy}]`."""
+        """(*N_particles*, 6) `numpy.ndarray` of ``float``: Virial tensor \
+        contribution from each particle :math:`[\\mathrm{energy}]`.
+
+        The 6 elements form the upper-triangular virial tensor in the order:
+        xx, xy, xz, yy, yz, zz.
+        """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getVirials()
+
+    @log(category="sequence", requires_run=True)
+    def additional_virial(self):
+        """(1, 6) `numpy.ndarray` of ``float``: Additional virial tensor \
+        term not included in `virials` :math:`[\\mathrm{energy}]`."""
+        self._cpp_obj.compute(self._simulation.timestep)
+        virial = []
+        for i in range(6):
+            virial.append(self._cpp_obj.getExternalVirial(i))
+        return numpy.array(virial, dtype=numpy.float64)
 
 
 class constant(Force):  # noqa - this will be renamed when it is ported to v3

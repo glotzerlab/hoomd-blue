@@ -72,6 +72,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 CosineSqAngleForceCompute.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
+                EvaluatorBondTether.h
                 EvaluatorSpecialPairLJ.h
                 EvaluatorSpecialPairCoulomb.h
                 EvaluatorExternalElectricField.h
@@ -327,7 +328,6 @@ install(TARGETS _md EXPORT HOOMDTargets
 set(files __init__.py
           angle.py
           bond.py
-          charge.py
           compute.py
           constrain.py
           dihedral.py
@@ -355,6 +355,7 @@ install(FILES ${_md_headers}
        )
 
 add_subdirectory(pair)
+add_subdirectory(long_range)
 add_subdirectory(external)
 
 if (BUILD_TESTING)

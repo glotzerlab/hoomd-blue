@@ -300,7 +300,6 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
 
     # test dynamic=['attribute']
     if snap.communicator.rank == 0:
-        snap.particles.types = ['t3', 't4']
         snap.particles.typeid[:] = N_particles * [1]
         snap.particles.mass[:] = N_particles * [0.8]
         snap.particles.diameter[:] = N_particles * [0.2]
@@ -319,7 +318,6 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
             for step in range(5, 10):
-                assert traj[step].particles.types == ['t3', 't4']
                 np.testing.assert_allclose(traj[step].particles.mass,
                                            N_particles * [0.8],
                                            rtol=1e-07,
@@ -347,7 +345,6 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
         snap.bonds.N = 3
         snap.bonds.typeid[2] = 0
         snap.bonds.group[2] = [10, 11]
-        snap.angles.types = ['a3', 'a4']
 
     sim.state.snapshot = snap
 
@@ -361,7 +358,6 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
             assert traj[-1].bonds.N == 3
-            assert traj[-1].angles.types == ['a3', 'a4']
 
 
 def test_write_gsd_log(create_md_sim, tmp_path):

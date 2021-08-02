@@ -38,7 +38,7 @@ class _ConfigurationData:
 
 
 class Snapshot:
-    """Standalone copy of the simulation `State`.
+    """Self-contained copy of the simulation `State`.
 
     Args:
         communicator (Communicator): MPI communicator to be used with the
@@ -60,15 +60,14 @@ class Snapshot:
             if snapshot.communicator.rank == 0:
                 pos = snapshot.particles.position[0]
 
-    .. seealso:
+    See Also:
+        `State`
+
         `Simulation.create_state_from_snapshot`
 
-        `State.snapshot`
+        `State.get_snapshot`
 
-    .. todo::
-
-        Concepts such as tags, typeid's, and other non-inituitive arrays need to
-        be elaborated upon.
+        `State.set_snapshot`
     """
 
     def __init__(self, communicator=None):
@@ -302,19 +301,30 @@ class Snapshot:
         sp._cpp_obj = snapshot
         return sp
 
-    def replicate(self, nx, ny, nz):
-        """Replicate the snapshot.
+    def replicate(self, nx, ny, nz=1):
+        """Replicate the snapshot along the periodic box directions.
 
         Args:
             nx (int): Number of times to replicate in the x direction.
             ny (int): Number of times to replicate in the y direction.
             nz (int): Number of times to replicate in the z direction.
+
+        Performs the same operation as `State.replicate` on a `Snapshot`.
+
+        Returns:
+            ``self``
         """
         self._cpp_obj.replicate(nx, ny, nz)
+        return self
 
     def wrap(self):
-        """Wrap particles into the simulation box."""
+        """Wrap particles into the snapshot box.
+
+        Returns:
+            ``self``
+        """
         self._cpp_obj.wrap()
+        return self
 
     def _broadcast_box(self):
         self._cpp_obj._broadcast_box(self.communicator.cpp_mpi_conf)
