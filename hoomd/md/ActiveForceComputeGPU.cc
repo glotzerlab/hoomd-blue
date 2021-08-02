@@ -103,7 +103,6 @@ void ActiveForceComputeGPU::setForces()
     unsigned int N = m_pdata->getN();
 
     // compute the forces on the GPU
-    m_exec_conf->beginMultiGPU();
     m_tuner_force->begin();
 
     gpu_compute_active_force_set_forces(group_size,
@@ -121,7 +120,6 @@ void ActiveForceComputeGPU::setForces()
         CHECK_CUDA_ERROR();
 
     m_tuner_force->end();
-    m_exec_conf->endMultiGPU();
     }
 
 /*! This function applies rotational diffusion to all active particles. The angle between the torque
@@ -148,7 +146,6 @@ void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     // perform the update on the GPU
-    m_exec_conf->beginMultiGPU();
     m_tuner_diffusion->begin();
 
     gpu_compute_active_force_rotational_diffusion(group_size,
@@ -167,7 +164,6 @@ void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
         CHECK_CUDA_ERROR();
 
     m_tuner_diffusion->end();
-    m_exec_conf->endMultiGPU();
     }
 
 void export_ActiveForceComputeGPU(py::module& m)
