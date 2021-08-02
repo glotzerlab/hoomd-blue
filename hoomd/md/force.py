@@ -374,8 +374,8 @@ class Active(Force):
         super()._attach()
 
 
-class ActiveConstraint(Force):
-    r"""Active force with manifold constraint.
+class ActiveOnManifold(Force):
+    r"""Active force on a manifold.
 
     Attributes:
         filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
@@ -394,18 +394,22 @@ class ActiveConstraint(Force):
             \mathrm{length}]`. It is defined per particle type and stays
             constant during the simulation.
 
-    :py:class:`ActiveConstraint` specifies that a constrained active force
+    :py:class:`ActiveOnManifold` specifies that a constrained active force
     should be added to all particles similar to :py:class:`Active`. The
     active force vector :math:`\hat{p}_i` is restricted to the local tangent
     plane of the manifold constraint at point :math:`{\bf r}_i`. For more
     information see :py:class:`Active`.
+
+    Hint:
+        Use `ActiveOnManifold` with a `md.methods.rattle` integration method
+        with the same manifold constraint.
 
     Examples::
 
 
         all = filter.All()
         sphere = hoomd.md.manifold.Sphere(r=10)
-        active = hoomd.md.force.ActiveConstraint(
+        active = hoomd.md.force.ActiveOnManifold(
             filter=hoomd.filter.All(), rotation_diff=0.01,
             manifold_constraint = sphere
             )

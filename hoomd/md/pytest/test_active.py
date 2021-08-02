@@ -21,7 +21,7 @@ def test_attributes():
 
 def test_attributes_constraints():
     plane = hoomd.md.manifold.Plane()
-    active = hoomd.md.force.ActiveConstraint(filter=hoomd.filter.All(),
+    active = hoomd.md.force.ActiveOnManifold(filter=hoomd.filter.All(),
                                              rotation_diff=0.01,
                                              manifold_constraint=plane)
 
@@ -69,7 +69,7 @@ def test_attach(simulation_factory, two_particle_snapshot_factory):
 
 def test_attach_manifold(simulation_factory, two_particle_snapshot_factory):
     plane = hoomd.md.manifold.Plane()
-    active = hoomd.md.force.ActiveConstraint(filter=hoomd.filter.All(),
+    active = hoomd.md.force.ActiveOnManifold(filter=hoomd.filter.All(),
                                              rotation_diff=0.01,
                                              manifold_constraint=plane)
 
@@ -114,7 +114,7 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
 
 def test_pickling_constraint(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
-    active = hoomd.md.force.ActiveConstraint(
+    active = hoomd.md.force.ActiveOnManifold(
         filter=hoomd.filter.All(),
         rotation_diff=0.01,
         manifold_constraint=hoomd.md.manifold.Plane())
