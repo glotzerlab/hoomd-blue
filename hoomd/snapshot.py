@@ -65,9 +65,9 @@ class Snapshot:
 
         `Simulation.create_state_from_snapshot`
 
-        `State.take_snapshot`
+        `State.get_snapshot`
 
-        `State.restore_snapshot`
+        `State.set_snapshot`
     """
 
     def __init__(self, communicator=None):

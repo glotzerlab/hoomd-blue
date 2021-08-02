@@ -239,5 +239,5 @@ def test_replicate(simulation_factory, lattice_snapshot_factory):
         ])
 
     sim.state.replicate(2, 2, 2)
-    new_snapshot = sim.state.take_snapshot()
+    new_snapshot = sim.state.get_snapshot()
     assert_snapshots_equal(initial_snapshot, new_snapshot)

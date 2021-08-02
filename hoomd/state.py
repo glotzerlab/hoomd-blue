@@ -183,7 +183,7 @@ class State:
     that access data directly available on the local MPI rank (including the
     local and ghost particles) and *global* snapshots that collect the entire
     state on rank 0. See `State.cpu_local_snapshot`, `State.gpu_local_snapshot`,
-    `State.take_snapshot`, and `State.restore_snapshot` for information about
+    `State.get_snapshot`, and `State.set_snapshot` for information about
     these data access patterns.
 
     .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
@@ -218,23 +218,23 @@ class State:
         """Simulation snapshot.
 
         .. deprecated:: 3.0.0-beta.8
-            Use `take_snapshot` and `restore_snapshot` instead.
+            Use `get_snapshot` and `set_snapshot` instead.
         """
-        warnings.warn("Deprecated, use state.take_snapshot()",
+        warnings.warn("Deprecated, use state.get_snapshot()",
                       DeprecationWarning)
-        return self.take_snapshot()
+        return self.get_snapshot()
 
     @snapshot.setter
     def snapshot(self, snapshot):
-        warnings.warn("Deprecated, use state.restore_snapshot()",
+        warnings.warn("Deprecated, use state.set_snapshot()",
                       DeprecationWarning)
-        self.restore_snapshot(snapshot)
+        self.set_snapshot(snapshot)
 
-    def take_snapshot(self):
+    def get_snapshot(self):
         """Make a copy of the simulation current state.
 
-        `State.take_snapshot` makes a copy of the simulation state and
-        makes it available in a single object. `State.restore_snapshot` resets
+        `State.get_snapshot` makes a copy of the simulation state and
+        makes it available in a single object. `State.set_snapshot` resets
         the internal state to that in the given snapshot. Use these methods
         to implement techniques like hybrid MD/MC or umbrella sampling where
         entire system configurations need to be reset to a previous one after a
@@ -247,11 +247,11 @@ class State:
             only on the root rank.
 
         Note:
-            `State.take_snapshot` is an order :math:`O(N_{particles} + N_{bonds}
+            `State.get_snapshot` is an order :math:`O(N_{particles} + N_{bonds}
             + \\ldots)` operation.
 
         See Also:
-            `restore_snapshot`
+            `set_snapshot`
 
         Returns:
             hoomd.Snapshot: The current simulation state
@@ -260,26 +260,28 @@ class State:
         return Snapshot._from_cpp_snapshot(cpp_snapshot,
                                            self._simulation.device.communicator)
 
-    def restore_snapshot(self, snapshot):
+    def set_snapshot(self, snapshot):
         """Restore the state of the simulation from a snapshot.
 
         Args:
             snapshot (hoomd.Snapshot): Snapshot of the system from
-              `take_snapshot`
+              `get_snapshot`
 
         Warning:
-            `restore_snapshot` can only make limited changes to the simulation
+            `set_snapshot` can only make limited changes to the simulation
             state. While it can change the number of particles/bonds/etc... or
             their properties, it cannot change the number or names of the
             particle/bond/etc.. types.
 
         Note:
-            `State.restore_snapshot` is an order :math:`O(N_{particles} +
+            `State.set_snapshot` is an order :math:`O(N_{particles} +
             N_{bonds} + \\ldots)` operation and is very expensive when the
             simulation device is a GPU.
 
         See Also:
-            `take_snapshot`
+            `get_snapshot`
+
+            `Simulation.create_state_from_snapshot`
         """
         if self._in_context_manager:
             raise RuntimeError(
@@ -446,9 +448,9 @@ class State:
         second, and third box lattice vectors respectively and adjusts the
         particle positions to center them in the new box.
         """
-        snap = self.take_snapshot()
+        snap = self.get_snapshot()
         snap.replicate(nx, ny, nz)
-        self.restore_snapshot(snap)
+        self.set_snapshot(snap)
 
     def _get_group(self, filter_):
         cls = filter_.__class__
