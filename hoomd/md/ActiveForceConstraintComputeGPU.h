@@ -174,7 +174,6 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForc
     unsigned int N = this->m_pdata->getN();
 
     // compute the forces on the GPU
-    this->m_exec_conf->beginMultiGPU();
     this->m_tuner_force->begin();
     gpu_compute_active_force_set_forces(group_size,
                                         d_index_array.data,
@@ -191,7 +190,6 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForc
         CHECK_CUDA_ERROR();
 
     this->m_tuner_force->end();
-    this->m_exec_conf->endMultiGPU();
     }
 
 /*! This function applies rotational diffusion to all active particles. The angle between the torque
@@ -222,7 +220,6 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t tim
     unsigned int group_size = this->m_group->getNumMembers();
 
     // perform the update on the GPU
-    this->m_exec_conf->beginMultiGPU();
     this->m_tuner_diffusion->begin();
 
     gpu_compute_active_force_constraint_rotational_diffusion<Manifold>(
@@ -242,7 +239,6 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t tim
         CHECK_CUDA_ERROR();
 
     this->m_tuner_diffusion->end();
-    this->m_exec_conf->endMultiGPU();
     }
 
 /*! This function sets an ellipsoid surface constraint for all active particles
@@ -268,7 +264,6 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setCons
     unsigned int group_size = this->m_group->getNumMembers();
 
     // perform the update on the GPU
-    this->m_exec_conf->beginMultiGPU();
     this->m_tuner_constraint->begin();
 
     gpu_compute_active_force_set_constraints<Manifold>(group_size,
@@ -283,7 +278,6 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setCons
         CHECK_CUDA_ERROR();
 
     this->m_tuner_constraint->end();
-    this->m_exec_conf->endMultiGPU();
     }
 
 template<class Manifold>
