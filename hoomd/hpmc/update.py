@@ -475,9 +475,13 @@ class RemoveDrift(Updater):
             reference positions of the lattice :math:`[\\mathrm{length}]`.
         trigger (`hoomd.trigger.Trigger`): Select the timesteps to remove drift.
 
-    During the time steps specified by *trigger*, particle positions are
-    modified such that the their center of mass coincides with that of
-    *reference_positions*.
+    During the time steps specified by *trigger*, the average drift :math:`\\Delta\\vec{r}`
+    from the *reference_positions* (:math:`\\vec{r}_{ref}`) is substracted from the
+    particle positions. The drift computed by this updater is given by:
+
+    .. math::
+
+        \\Delta\\vec{r} = \\frac{1}{\\mathrm{N_{particles}} \\sum_i \\mathrm{min\_image}(\\vec{r}_i - \\vec{r}_{ref,i})
 
     Examples::
 
