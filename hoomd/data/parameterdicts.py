@@ -4,6 +4,7 @@
 
 """Implement parameter dictionaries."""
 
+from abc import abstractmethod
 from collections.abc import MutableMapping
 from itertools import product, combinations_with_replacement
 from copy import copy
@@ -36,7 +37,7 @@ def _proper_type_return(val):
         return val
 
 
-class _ValidatedDefaultDict:
+class _ValidatedDefaultDict(MutableMapping):
     """Provide support for validating values and multi-type tuple keys.
 
     The class provides the interface for using `hoomd.data.typeconverter` value
@@ -53,9 +54,20 @@ class _ValidatedDefaultDict:
 
     The keyword argument ``_defaults`` is special and is used to specify default
     values at object construction.
+
+    All keys into this mapping are expected to be str instance is _len_keys is
+    one, otherwise a tuple of str instances. For tuples, the tuple is sorted
+    first before accessing or setting any data. This is to prevent needing to
+    store data for both ``("a", "b")`` and ``("b", "a")`` while preventing the
+    user from needing to consider tuple item order.
+
+    Note:
+        This class is not directly instantiable due to abstract methods that
+        must be written for subclasses: `__len__`, `_single_setitem`,
+        `_single_getitem`, and `__iter__` (yield keys).
     """
 
-    def __init__(self, *args, **kwargs):
+    def _set_validation_and_defaults(self, *args, **kwargs):
         defaults = kwargs.pop('_defaults', _NoDefault)
         if len(kwargs) != 0 and len(args) != 0:
             raise ValueError("Positional argument(s) and keyword argument(s) "
@@ -73,6 +85,74 @@ class _ValidatedDefaultDict:
             type_spec = args[0]
         self._type_converter = to_type_converter(type_spec)
         self._default = _to_default(type_spec, defaults)
+
+    @abstractmethod
+    def _single_getitem(self, key):
+        pass
+
+    def __getitem__(self, keys):
+        """Access parameter by key."""
+        return self.get(keys, self.default)
+
+    @abstractmethod
+    def _single_setitem(self, key, item):
+        pass
+
+    def __setitem__(self, keys, item):
+        """Set parameter by key."""
+        keys = self._yield_keys(keys)
+        try:
+            validated_value = self._validate_values(item)
+        except TypeConversionError as err:
+            raise TypeConversionError("For types {}, error {}.".format(
+                list(keys), str(err)))
+        for key in keys:
+            self._single_setitem(key, validated_value)
+
+    def __delitem__(self, key):
+        raise NotImplementedError("__delitem__ is not defined for this type.")
+
+    def get(self, keys, default=None):
+        """Get values for keys with undefined keys returning default.
+
+        Args:
+            keys:
+                Valid keys specifications (depends on the expected key length).
+            default (``any``, optional):
+                The value to default to if a key is not found in the mapping.
+                If not set, the value defaults to the mapping's default.
+
+        Returns:
+            values:
+                Returns a dict of the values for the keys asked for if multiple
+                keys were specified; otherwise, returns the value for the single
+                key.
+        """
+        # We implement get manually since __getitem__ will always return a value
+        # for a properly formatted key. This explicit method uses the provided
+        # default with the benefit that __getitem__ can be defined in terms of
+        # get.
+        value = {}
+        for key in self._yield_keys(keys):
+            try:
+                value[key] = self._single_getitem(key)
+            except KeyError:
+                value[key] = default
+        return _proper_type_return(value)
+
+    def setdefault(self, keys, default):
+        """Set the value for the keys if not already specified.
+
+        Args:
+            keys:
+                Valid keys specifications (depends on the expected key length).
+            default (``any``):
+                The value to default to if a key is not found in the mapping.
+                Must be compatible with the typing specification specified on
+                construction.
+        """
+        self.__setitem__(filter(self.__contains__, self._yield_keys(keys)),
+                         default)
 
     def _validate_values(self, value):
         validated_value = self._type_converter(value)
@@ -110,7 +190,7 @@ class _ValidatedDefaultDict:
     def _validate_and_split_len_one(self, key):
         """Validate single type keys.
 
-        Accepted input is a type string, and arbitrarily nested interators that
+        Accepted input is a string, and arbitrarily nested iterators that
         culminate in str types.
         """
         if isinstance(key, str):
@@ -127,7 +207,7 @@ class _ValidatedDefaultDict:
         """Validate all key lengths greater than one, N.
 
         Valid input is an arbitrarily deep series of iterables that culminate
-        in N length tuples, this includes an iterable depth of zero. The N
+        in N length tuples, this includes an iterable depth of zero.  The N
         length tuples can contain for each member either a type string or an
         iterable of type strings.
         """
@@ -139,7 +219,7 @@ class _ValidatedDefaultDict:
                 raise KeyError("The key {} is not valid.".format(key))
             # convert str to single item list for proper enumeration using
             # product
-            key_types_list = [v if isinstance(v, str) else [v] for v in key]
+            key_types_list = [[v] if isinstance(v, str) else v for v in key]
             return list(product(*key_types_list))
         elif _is_iterable(key):
             keys = []
@@ -197,37 +277,31 @@ class TypeParameterDict(_ValidatedDefaultDict):
         if len_keys < 1 or len_keys != int(len_keys):
             raise ValueError("len_keys must be a positive integer.")
         self._len_keys = len_keys
-        super().__init__(*args, **kwargs)
-        self._dict = dict()
+        self._set_validation_and_defaults(*args, **kwargs)
+        self._dict = {}
 
-    def __getitem__(self, key):
+    def _single_getitem(self, key):
         """Access parameter by key."""
-        vals = dict()
-        for key in self._yield_keys(key):
-            try:
-                vals[key] = self._dict[key]
-            except KeyError:
-                vals[key] = self.default
-        return _proper_type_return(vals)
-
-    def __setitem__(self, key, val):
-        """Set parameter by key."""
-        keys = self._yield_keys(key)
         try:
-            val = self._validate_values(val)
-        except TypeConversionError as err:
-            raise TypeConversionError("For types {}, error {}.".format(
-                list(keys), str(err)))
-        for key in keys:
-            self._dict[key] = val
+            return self._dict[key]
+        except KeyError:
+            return self.default
 
-    def keys(self):
-        """Get the keys in the dictionary."""
+    def _single_setitem(self, key, item):
+        """Set parameter by key."""
+        self._dict[key] = item
+
+    def __iter__(self):
+        """Get the keys in the mapping."""
         if self._len_keys == 1:
             yield from self._dict.keys()
         else:
             for key in self._dict.keys():
                 yield tuple(sorted(list(key)))
+
+    def __len__(self):
+        """Return mapping length."""
+        return len(self._dict)
 
     def to_dict(self):
         """Convert to a `dict`."""
@@ -249,7 +323,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         self._type_converter = type_param_dict._type_converter
         # add all types to c++
         for key in self.keys():
-            self[key] = type_param_dict[key]
+            self._single_setitem(key, type_param_dict[key])
 
     def to_detached(self):
         """Convert to a detached parameter dict."""
@@ -264,24 +338,13 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
             type_param_dict[key] = self[key]
         return type_param_dict
 
-    def __getitem__(self, key):
+    def _single_getitem(self, key):
         """Access parameter by key."""
-        vals = dict()
-        for key in self._yield_keys(key):
-            vals[key] = getattr(self._cpp_obj, self._getter)(key)
-        return _proper_type_return(vals)
+        return getattr(self._cpp_obj, self._getter)(key)
 
-    def __setitem__(self, key, val):
+    def _single_setitem(self, key, item):
         """Set parameter by key."""
-        keys = self._yield_keys(key)
-        try:
-            val = self._validate_values(val)
-        except TypeConversionError as err:
-            raise TypeConversionError("For types {}, error {}.".format(
-                list(keys), str(err)))
-
-        for key in keys:
-            getattr(self._cpp_obj, self._setter)(key, val)
+        getattr(self._cpp_obj, self._setter)(key, item)
 
     def _yield_keys(self, key):
         """Includes key check for existing simulation keys."""
@@ -312,8 +375,8 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
     def _getter(self):
         return 'get' + _to_camel_case(self._param_name)
 
-    def keys(self):
-        """Iterate through the keys."""
+    def __iter__(self):
+        """Iterate through mapping keys."""
         single_keys = getattr(self._sim.state, self._type_kind)
         if self._len_keys == 1:
             yield from single_keys
@@ -321,6 +384,10 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
             for key in combinations_with_replacement(single_keys,
                                                      self._len_keys):
                 yield tuple(sorted(list(key)))
+
+    def __len__(self):
+        """Return mapping length."""
+        return len(getattr(self._sim.state, self._type_kind))
 
     def to_dict(self):
         """Convert to a `dict`."""
