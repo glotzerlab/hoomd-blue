@@ -2,10 +2,17 @@ from collections.abc import Sequence
 
 import numpy as np
 import pytest
-import rowan
+
+try:
+    import rowan
+    skip_rowan = False
+except ImportError:
+    skip_rowan = True
 
 import hoomd
 import hoomd.md as md
+
+skip_rowan = pytest.mark.skipif(skip_rowan, reason="rowan cannot be imported.")
 
 
 @pytest.fixture
@@ -113,6 +120,7 @@ def check_bodies(snapshot, definition):
                           definition["orientations"][i])
 
 
+@skip_rowan
 def test_create_bodies(simulation_factory, two_particle_snapshot_factory,
                        valid_body_definition):
     rigid = md.constrain.Rigid()
@@ -174,6 +182,7 @@ def test_error_on_invalid_body(simulation_factory,
         sim.run(0)
 
 
+@skip_rowan
 def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
                             valid_body_definition):
     rigid = md.constrain.Rigid()

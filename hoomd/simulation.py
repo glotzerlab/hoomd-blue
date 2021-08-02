@@ -177,7 +177,7 @@ class Simulation(metaclass=Loggable):
         self._init_system(step)
 
     def create_state_from_snapshot(self, snapshot):
-        """Create the simulations state from a `Snapshot`.
+        """Create the simulation state from a `Snapshot`.
 
         Args:
             snapshot (Snapshot or gsd.hoomd.Snapshot): Snapshot to initialize
@@ -187,6 +187,11 @@ class Simulation(metaclass=Loggable):
 
         When `timestep` is `None` before calling, `create_state_from_snapshot`
         sets `timestep` to 0.
+
+        See Also:
+            `State.get_snapshot`
+
+            `State.set_snapshot`
         """
         if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")

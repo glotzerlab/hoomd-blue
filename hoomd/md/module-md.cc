@@ -278,6 +278,7 @@ PYBIND11_MODULE(_md, m)
         "PotentialPairDPDLJThermoDPD");
     export_PotentialBond<PotentialBondHarmonic>(m, "PotentialBondHarmonic");
     export_PotentialBond<PotentialBondFENE>(m, "PotentialBondFENE");
+    export_PotentialBond<PotentialBondTether>(m, "PotentialBondTether");
     export_PotentialSpecialPair<PotentialSpecialPairLJ>(m, "PotentialSpecialPairLJ");
     export_PotentialSpecialPair<PotentialSpecialPairCoulomb>(m, "PotentialSpecialPairCoulomb");
     export_NeighborList(m);
@@ -371,6 +372,8 @@ PYBIND11_MODULE(_md, m)
         m,
         "PotentialBondHarmonicGPU");
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>(m, "PotentialBondFENEGPU");
+    export_PotentialBondGPU<PotentialBondTetherGPU, PotentialBondTether>(m,
+                                                                         "PotentialBondTetherGPU");
     export_PotentialSpecialPairGPU<PotentialSpecialPairLJGPU, PotentialSpecialPairLJ>(
         m,
         "PotentialSpecialPairLJGPU");

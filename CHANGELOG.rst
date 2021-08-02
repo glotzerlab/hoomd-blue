@@ -17,6 +17,12 @@ v3.0.0-beta.8 (not yet released)
 - ``hpmc.compute.SDF`` - compute the pressure of convex hard particle systems.
 - ``Snapshot.wrap()`` - wrap snapshot particles back into the box.
 - Support gcc11.
+- ``md.bond.Tether`` - A bond with minimum and maximum lengths.
+- ``State.get_snapshot`` and ``State.set_snapshot`` - methods to access the global snapshot.
+- ``State.set_box`` set a new simulation box without modifying particle properties.
+- ``md.long_range.pppm.make_pppm_coulomb_forces`` - Long range electrostatics evaluated by PPPM.
+- ``md.long_range.pppm.Coulomb`` - The reciprocal part of PPPM electrostatics.
+- ``md.force.ActiveOnManifold`` - Active forces constrained to manifolds.
 
 *Changed*
 
@@ -25,16 +31,31 @@ v3.0.0-beta.8 (not yet released)
   default in their name (e.g. ``r_cut`` to ``default_r_cut`` for pair potentials and ``a`` to
   ``default_a`` for HPMC integrators).
 - [developer] Support git worktree checkouts.
+- [breaking] Rename ``nrank`` to ``ranks_per_partition`` in ``Communicator``.
+- rowan is now an optional dependency when running unit tests.
+- ``Snapshot`` and ``Box`` methods that make in-place modifications return the object.
 
 *Fixed*
 
 - Bug where ``ThermdynamicQuantities.volume`` returned 0 in 2D simulations.
 - Update neighbor list exclusions after the number of particles changes.
+- Test failures with the CMake option ``BUILD_MD=off``.
+- ``write.Table`` can now display MD pressures.
+
+*Deprecated*
+
+- ``State.snapshot`` - use ``get_snapshot`` and ``set_snapshot``.
+- The ability to set boxes with the property ``State.box`` - use ``set_box``.
 
 *Removed*
 
+- [breaking] ``Simulation.write_debug_data``.
+- [breaking] ``shared_msg_file`` option to ``Device``. ``msg_file`` now has the same behavior as
+  ``shared_msg_file``.
 - [developers] C++ and Python implementations of ``constraint_ellipsoid``, from ``hoomd.md.update``
   and ``sphere`` and ``oneD`` from ``hoomd.md.constrain``.
+- [developers] Doxygen configuration files.
+
 
 v3.0.0-beta.7 (2021-06-16)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
