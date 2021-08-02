@@ -76,6 +76,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 CosineSqAngleForceCompute.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
+                EvaluatorBondTether.h
                 EvaluatorSpecialPairLJ.h
                 EvaluatorSpecialPairCoulomb.h
                 EvaluatorConstraintEllipsoid.h
