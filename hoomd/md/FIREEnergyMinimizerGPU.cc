@@ -33,14 +33,19 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
     GPUArray<Scalar> sum3(3, m_exec_conf);
     m_sum3.swap(sum3);
 
+    // initialize the partial sum arrays
+    m_partial_sum1 = GPUVector<Scalar>(m_exec_conf);
+    m_partial_sum2 = GPUVector<Scalar>(m_exec_conf);
+    m_partial_sum3 = GPUVector<Scalar>(m_exec_conf);
+
     reset();
     }
 
 
 /*
- * Allocate the memory buffers to store the partial sums.
+ * Update the size of the memory buffers to store the partial sums, if needed.
  */
-void FIREEnergyMinimizerGPU::initializePartialSumArrays()
+void FIREEnergyMinimizerGPU::resizePartialSumArrays()
     {
     // initialize the partial sum arrays
     unsigned int num_blocks = 0;
@@ -53,12 +58,13 @@ void FIREEnergyMinimizerGPU::initializePartialSumArrays()
         }
 
     num_blocks = num_blocks / m_block_size + 1;
-    GPUArray<Scalar> partial_sum1(num_blocks, m_exec_conf);
-    m_partial_sum1.swap(partial_sum1);
-    GPUArray<Scalar> partial_sum2(num_blocks, m_exec_conf);
-    m_partial_sum2.swap(partial_sum2);
-    GPUArray<Scalar> partial_sum3(num_blocks, m_exec_conf);
-    m_partial_sum3.swap(partial_sum3);
+
+    if (num_blocks != m_partial_sum1.size())
+        {
+        m_partial_sum1.resize(num_blocks);
+        m_partial_sum2.resize(num_blocks);
+        m_partial_sum3.resize(num_blocks);
+        }
     }
 
 
@@ -80,7 +86,8 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
     Scalar tnorm(0.0);
     Scalar wnorm(0.0);
 
-    initializePartialSumArrays();
+    // update partial sum memory space if needed
+    resizePartialSumArrays();
 
     // compute the total energy on the GPU
     // CPU version is Scalar energy = computePotentialEnergy(timesteps)/Scalar(group_size);
