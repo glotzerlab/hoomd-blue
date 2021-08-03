@@ -468,7 +468,7 @@ class MuVT(Updater):
 
 
 class RemoveDrift(Updater):
-    """Remove the center of mass drift from a system restrained on a lattice.
+    r"""Remove the center of mass drift from a system restrained on a lattice.
 
     Args:
         reference_positions ((*N*, 3) `numpy.ndarray` of ``numpy.float64``): the
@@ -508,10 +508,8 @@ class RemoveDrift(Updater):
             self._simulation.device._cpp_msg.warning(
                 "Falling back on CPU. No GPU implementation available.\n")
 
-        cpp_cls_name = "RemoveDriftUpdater" + integrator.__class__.__name__
-        cpp_cls = getattr(_hpmc, cpp_cls_name)
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                self.reference_positions)
+        self._cpp_obj = _hpmc.UpdaterRemoveDrift(
+            self._simulation.state._cpp_sys_def, self.reference_positions)
         super()._attach()
 
 

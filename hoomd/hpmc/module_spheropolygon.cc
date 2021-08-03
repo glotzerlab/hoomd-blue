@@ -19,7 +19,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -46,7 +45,6 @@ void export_spheropolygon(py::module& m)
     export_ExternalFieldInterface<ShapeSpheropolygon>(m, "ExternalFieldSpheropolygon");
     export_LatticeField<ShapeSpheropolygon>(m, "ExternalFieldLatticeSpheropolygon");
     export_ExternalFieldComposite<ShapeSpheropolygon>(m, "ExternalFieldCompositeSpheropolygon");
-    export_RemoveDriftUpdater<ShapeSpheropolygon>(m, "RemoveDriftUpdaterConvexSpheropolygon");
     // export_ExternalFieldWall<ShapeSpheropolygon>(m, "WallSpheropolygon");
     // export_UpdaterExternalFieldWall<ShapeSpheropolygon>(m,
     // "UpdaterExternalFieldWallSpheropolygon");

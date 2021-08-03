@@ -21,6 +21,7 @@
 #include "UpdaterClusters.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterQuickCompress.h"
+#include "UpdaterRemoveDrift.h"
 
 #include "GPUTree.h"
 
@@ -61,6 +62,7 @@ PYBIND11_MODULE(_hpmc, m)
 
     export_UpdaterBoxMC(m);
     export_UpdaterQuickCompress(m);
+    export_UpdaterRemoveDrift(m);
     export_external_fields(m);
 
     export_sphere(m);

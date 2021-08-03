@@ -37,11 +37,11 @@ namespace hpmc
 //! A nonsense particle updater written to demonstrate how to write a plugin
 /*! This updater simply sets all of the particle's velocities to 0 when update() is called.
  */
-template<class Shape> class RemoveDriftUpdater : public Updater
+class UpdaterRemoveDrift : public Updater
     {
     public:
     //! Constructor
-    RemoveDriftUpdater(std::shared_ptr<SystemDefinition> sysdef,
+    UpdaterRemoveDrift(std::shared_ptr<SystemDefinition> sysdef,
                        pybind11::array_t<double> ref_positions)
         : Updater(sysdef)
         {
@@ -154,17 +154,16 @@ template<class Shape> class RemoveDriftUpdater : public Updater
     };
 
 //! Export the ExampleUpdater class to python
-template<class Shape> void export_RemoveDriftUpdater(pybind11::module& m, std::string name)
+void export_UpdaterRemoveDrift(pybind11::module& m)
     {
-    using pybind11::class_;
-    pybind11::class_<RemoveDriftUpdater<Shape>,
+    pybind11::class_<UpdaterRemoveDrift,
                      Updater,
-                     std::shared_ptr<RemoveDriftUpdater<Shape>>>(m, name.c_str())
+                     std::shared_ptr<UpdaterRemoveDrift>>(m, "UpdaterRemoveDrift")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            pybind11::array_t<Scalar>>())
+                            pybind11::array_t<double>>())
         .def_property("reference_positions",
-                      &RemoveDriftUpdater<Shape>::getReferencePositions,
-                      &RemoveDriftUpdater<Shape>::setReferencePositions);
+                      &UpdaterRemoveDrift::getReferencePositions,
+                      &UpdaterRemoveDrift::setReferencePositions);
     }
     } // namespace hpmc
 
