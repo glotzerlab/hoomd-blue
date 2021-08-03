@@ -108,6 +108,16 @@ set(_mpcd_cu_sources
     SRDCollisionMethodGPU.cu
     )
 
+if (THRUST_FIX)
+  list(FILTER CUDA_NVCC_FLAGS EXCLUDE REGEX THRUST_CUB_WRAPPED_NAMESPACE) 
+  list(FILTER CUDA_NVCC_FLAGS EXCLUDE REGEX HOOMD_THRUST)
+  list(FILTER CUDA_NVCC_FLAGS EXCLUDE REGEX HOOMD_CUB)  
+  list(APPEND CUDA_NVCC_FLAGS "-DTHRUST_CUB_WRAPPED_NAMESPACE=THRUST_CUB_MPCD")
+  list(APPEND CUDA_NVCC_FLAGS "-DHOOMD_THRUST=THRUST_CUB_MPCD::thrust")
+  list(APPEND CUDA_NVCC_FLAGS "-DHOOMD_CUB=THRUST_CUB_MPCD::cub")        
+endif()
+
+  
 if (ENABLE_CUDA)
     # Separable compilation is needed to support ExternalField.cu polymorphism.
     # This likely breaks plugin support though. :-(

@@ -783,7 +783,7 @@ cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element *d_reduced,
                                    const mpcd::detail::cell_thermo_element *d_tmp_thermo,
                                    const unsigned int Ncell)
     {
-    cub::DeviceReduce::Sum(d_tmp, tmp_bytes, d_tmp_thermo, d_reduced, Ncell);
+    HOOMD_CUB::DeviceReduce::Sum(d_tmp, tmp_bytes, d_tmp_thermo, d_reduced, Ncell);
     return cudaSuccess;
     }
 

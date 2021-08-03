@@ -777,14 +777,14 @@ void gpu_update_composite(unsigned int N,
 struct is_center
     {
     __host__ __device__
-    bool operator()(const thrust::tuple<unsigned int, unsigned int>& t)
+    bool operator()(const HOOMD_THRUST::tuple<unsigned int, unsigned int>& t)
         {
         return t.get<0>() == t.get<1>();
         }
     };
 
 // create a lookup table ptl idx -> center idx
-struct lookup_op : thrust::unary_function<unsigned int, unsigned int>
+struct lookup_op : HOOMD_THRUST::unary_function<unsigned int, unsigned int>
     {
     __host__ __device__ lookup_op(const unsigned int *_d_rtag)
         : d_rtag(_d_rtag) {}
@@ -807,22 +807,22 @@ cudaError_t gpu_find_rigid_centers(const unsigned int *d_body,
                                 unsigned int *d_lookup_center,
                                 unsigned int &n_rigid)
     {
-    thrust::device_ptr<const unsigned int> body(d_body);
-    thrust::device_ptr<const unsigned int> tag(d_tag);
-    thrust::device_ptr<unsigned int> rigid_center(d_rigid_center);
-    thrust::counting_iterator<unsigned int> count(0);
+    HOOMD_THRUST::device_ptr<const unsigned int> body(d_body);
+    HOOMD_THRUST::device_ptr<const unsigned int> tag(d_tag);
+    HOOMD_THRUST::device_ptr<unsigned int> rigid_center(d_rigid_center);
+    HOOMD_THRUST::counting_iterator<unsigned int> count(0);
 
     // create a contiguos list of rigid center indicies
-    auto it = thrust::copy_if(count,
+    auto it = HOOMD_THRUST::copy_if(count,
                     count + N + nghost,
-                    thrust::make_zip_iterator(thrust::make_tuple(body, tag)),
+                    HOOMD_THRUST::make_zip_iterator(HOOMD_THRUST::make_tuple(body, tag)),
                     rigid_center,
                     is_center());
 
     n_rigid = it - rigid_center;
 
-    thrust::device_ptr<unsigned int> lookup_center(d_lookup_center);
-    thrust::transform(body,
+    HOOMD_THRUST::device_ptr<unsigned int> lookup_center(d_lookup_center);
+    HOOMD_THRUST::transform(body,
         body + N + nghost,
         lookup_center,
         lookup_op(d_rtag));
