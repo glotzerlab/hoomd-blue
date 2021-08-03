@@ -196,7 +196,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 endif()
 
 if (ENABLE_CUDA)
-if (${CUDA_VERSION_MAJOR} GREATER_EQUAL 11 AND ${CUDA_VERSION_MINOR} GREATER_EQUAL 5)
+if (${CUDA_VERSION} VERSION_EQUAL "11.4")
+    message(WARNING "CUDA 11.4 has a known bug that may result in the error: `__global__ function call is not configure`")
+endif()
+
+if (${CUDA_VERSION} VERSION_GREATER "11.4")
   message(STATUS "Applying the CUDA 11.5 Thrust fix")
   set(THRUST_FIX 1)
 else()
