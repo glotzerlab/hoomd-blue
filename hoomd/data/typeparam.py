@@ -14,22 +14,37 @@ class TypeParameter(MutableMapping):
     *Implements the `collections.abc.MutableMapping` interface (``__delitem__``
     is disallowed).*
 
-    `TypeParameter` instances extend the base Python mapping interface with with
-    smart defaults, value/key validation/processing, and advanced indexing.
+    `TypeParameter` instances extend the base Python mapping interface with
+    smart defaults, value/key validation/processing, and advanced indexing. The
+    class's intended purpose is to store data per type or per unique
+    combinations of type (such as type pairs for `hoomd.md.pair` potentials) of
+    a prescribed length.
 
     .. rubric:: Indexing
 
     For getting and setting values, multiple index formats are supported. The
     base case is either a string representing the appropriate type or a tuple of
-    such strings if multiple types are required per key. Extending this an
-    iterator of the final types will retreive or set all keys in the iterator.
-    Likewise, for each item in the final tuple (if the expected key type is a
-    tuple of multiple string types), an iterator can be used instead of a string
-    which will result in all permutations of such iterators in the tuple. Both
-    advanced intexing methods can be combined.
+    such strings if multiple types are required per key. This is the exact same
+    indexing behavior expect from a Python `dict`, and all functions (barring
+    those that delete keys) should function as expected for a Python
+    `collections.defaultdict`.
+
+    Two ways to extend this base indexing are supported. First is using an
+    iterator of the final key types. This will perform the method for all
+    specified types in the iterator.  Likewise, for each item in the final tuple
+    (if the expected key type is a tuple of multiple string types), an iterator
+    can be used instead of a string which will result in all permutations of
+    such iterators in the tuple. Both advanced intexing methods can be combined.
 
     Note:
-        Ordering in tuples does not matter.
+        All methods support advanced indexing as well, and behave as one might
+        expect. Methods that set values will do so for all keys specified, and
+        methods that return values will return values for all keys (within a
+        `dict` instance).
+
+    Note:
+        Ordering in tuples does not matter. Values in tuples are sorted before
+        being stored or queried.
 
     Below are some example indexing values for single and multiple key indexing.
 
@@ -63,26 +78,44 @@ class TypeParameter(MutableMapping):
         lj.params.default = {"epsilon": 4}
         print(lj.params.default)
         # {"epsilon": 4.0, "sigma": hoomd.data.typeconverter.RequiredArg}
-        # We do no need to specify epsilon to use new default value when
+        # We do not need to specify epsilon to use new default value when
         # setting
         lj.params[("A", "B")] = {"sigma": 1.0}
         print(lj.params[("A", "B")])
         # {"epsilon": 4.0, "sigma": 1.0}
 
     Note:
-        Setting values for fictitious but valid types will not trigger an error
-        before calling `hoomd.Simulation.run`, but attempts to access that data
-        or set values for fictitious types afterwards will result in
-        ``KeyError`` exceptions.
+        Before calling `hoomd.Simulation.run` for the `TypeParameter`
+        instance's associated simulation, keys are not checked that their types
+        exist in the `hoomd.State` object. After calling ``run``, however, all
+        such data for non-existent types is removed, and querying or attempting
+        to set those keys will result in a ``KeyError``.
 
     Warning:
-        For nested data structures, editing the internal stuctures such as a
-        list inside a dict will not be reflected after calling
-        `hoomd.Simulation.run`. Doing so even before a call to ``run`` is
-        currently considered to be an anti-pattern. This restriction is planned
-        to be lifted in the future. Examples where this nested structure appears
-        are the union shape intergrators in HPMC and the table pair potential in
-        MD.
+        Values after calling `hoomd.Simulation.run` are returned **by copy** not
+        reference. Beforehand, values are returned by reference.  For nested
+        data structures, this means that directly editing the internal stuctures
+        such as a list inside a dict will not be reflected after calling
+        `hoomd.Simulation.run`. Examples of nested structure are the union shape
+        intergrators in HPMC and the table pair potential in MD.  The
+        recommended way to handle mutation for nested structures in general is a
+        read-modify-write approach shown below in a code example. Future
+        versions of HOOMD-blue version 3 may lift this restriction and allow for
+        direct modification of nested structures.
+
+        .. code-block:: python
+
+            union_shape = hoomd.hpmc.integrate.SphereUnion()
+            union_shape.shape["union"] = {
+                "shapes": [{"diameter": 1.0}, {"diameter": 1.5}],
+                "positions": [(0.0, 0.0, 0.0), (-1.0, 0.0, 0.0)]
+                }
+            # read
+            shape_spec = union_shape.shape["union"]
+            # modify
+            shape_spec["shapes"][1] = {"diameter": 2.0}
+            # write
+            union_shape.shape["union"] = shape_spec
     """
     __slots__ = ("name", "type_kind", "param_dict")
 
