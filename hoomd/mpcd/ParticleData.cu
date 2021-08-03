@@ -158,8 +158,8 @@ cudaError_t mpcd::gpu::partition_particles(void *d_tmp,
                                            const unsigned int N)
     {
 
-    cub::CountingInputIterator<unsigned int> ids(0);
-    cub::DevicePartition::Flagged(d_tmp, tmp_bytes, ids, d_remove_flags, d_remove_ids, d_num_remove, N);
+    HOOMD_CUB::CountingInputIterator<unsigned int> ids(0);
+    HOOMD_CUB::DevicePartition::Flagged(d_tmp, tmp_bytes, ids, d_remove_flags, d_remove_ids, d_num_remove, N);
     return cudaSuccess;
     }
 

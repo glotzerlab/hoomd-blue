@@ -7,7 +7,7 @@
 /*! \file LoadBalancerGPU.cu
     \brief Implementation the GPU functions for load balancing
 */
-
+ 
 #ifdef ENABLE_MPI
 
 #include "LoadBalancerGPU.cuh"
@@ -147,7 +147,7 @@ unsigned int gpu_load_balance_select_off_rank(unsigned int *d_off_rank,
     // final precaution against calling with an empty array
     if (N == 0) return 0;
 
-    unsigned int* last = thrust::copy_if(thrust::device, d_ranks, d_ranks+N, d_off_rank, NotEqual(cur_rank));
+    unsigned int* last = HOOMD_THRUST::copy_if(HOOMD_THRUST::device, d_ranks, d_ranks+N, d_off_rank, NotEqual(cur_rank));
     return (last-d_off_rank);
     }
 
