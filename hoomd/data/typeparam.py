@@ -34,7 +34,7 @@ class TypeParameter(MutableMapping):
     specified types in the iterator.  Likewise, for each item in the final tuple
     (if the expected key type is a tuple of multiple string types), an iterator
     can be used instead of a string which will result in all permutations of
-    such iterators in the tuple. Both advanced intexing methods can be combined.
+    such iterators in the tuple. Both advanced indexing methods can be combined.
 
     Note:
         All methods support advanced indexing as well, and behave as one might
