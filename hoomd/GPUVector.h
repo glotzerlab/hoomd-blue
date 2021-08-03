@@ -220,7 +220,7 @@ GPUVectorBase<T, Array>& GPUVectorBase<T, Array>::operator=(const GPUVectorBase&
         {
         m_size = rhs.m_size;
         // invoke base class operator
-        (Array)* this = rhs;
+        Array::operator=(rhs);
         }
 
     return *this;
