@@ -195,6 +195,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
 endif()
 
+if (ENABLE_CUDA)
 if (${CUDA_VERSION_MAJOR} GREATER_EQUAL 11 AND ${CUDA_VERSION_MINOR} GREATER_EQUAL 5)
   message(STATUS "Applying the CUDA 11.5 Thrust fix")
   set(THRUST_FIX 1)
@@ -208,10 +209,9 @@ if (THRUST_FIX)
   list(APPEND CUDA_NVCC_FLAGS "-DHOOMD_CUB=THRUST_CUB_HOOMD::cub")
 else()
   list(APPEND CUDA_NVCC_FLAGS "-DHOOMD_THRUST=thrust")
-  list(APPEND CUDA_NVCC_FLAGS "-DHOOMD_CUB=cub")  
+  list(APPEND CUDA_NVCC_FLAGS "-DHOOMD_CUB=cub")
 endif()
-  
-if (ENABLE_CUDA)
+
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hoomd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
