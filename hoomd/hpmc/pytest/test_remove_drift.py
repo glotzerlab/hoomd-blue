@@ -42,30 +42,12 @@ def test_valid_construction_and_attach(simulation_factory,
                                        two_particle_snapshot_factory,
                                        constructor_args, valid_args):
     """Test that RemoveDrift can be attached with valid arguments."""
-    integrator = valid_args[0]
-    args = valid_args[1]
-    # Need to unpack union integrators
-    if isinstance(integrator, tuple):
-        inner_integrator = integrator[0]
-        integrator = integrator[1]
-        inner_mc = inner_integrator()
-        for i in range(len(args["shapes"])):
-            # This will fill in default values for the inner shape objects
-            inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
-    mc = integrator()
-    mc.shape["A"] = args
-    mc.shape["B"] = args
-
     remove_drift = hoomd.hpmc.update.RemoveDrift(**constructor_args)
-    dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                      dimensions=dim,
                                       d=2,
                                       L=50))
     sim.operations.updaters.append(remove_drift)
-    sim.operations.integrator = mc
 
     sim.run(0)
 
@@ -89,32 +71,13 @@ def test_valid_setattr(attr, value):
 def test_valid_setattr_attached(attr, value, simulation_factory,
                                 two_particle_snapshot_factory, valid_args):
     """Test that RemoveDrift can get and set attributes while attached."""
-    integrator = valid_args[0]
-    args = valid_args[1]
-    # Need to unpack union integrators
-    if isinstance(integrator, tuple):
-        inner_integrator = integrator[0]
-        integrator = integrator[1]
-        inner_mc = inner_integrator()
-        for i in range(len(args["shapes"])):
-            # This will fill in default values for the inner shape objects
-            inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
-    mc = integrator()
-    mc.shape["A"] = args
-    mc.shape["B"] = args
-
     remove_drift = hoomd.hpmc.update.RemoveDrift(
         trigger=hoomd.trigger.Periodic(10),
         reference_positions=[(0, 0, 1), (-1, 0, 1)])
-    dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                      dimensions=dim,
-                                      d=2,
                                       L=50))
     sim.operations.updaters.append(remove_drift)
-    sim.operations.integrator = mc
 
     sim.run(0)
 
@@ -162,11 +125,6 @@ def test_remove_drift(simulation_factory, lattice_snapshot_factory):
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     """Test that RemoveDrift objects are picklable."""
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
-    mc.shape['A'] = dict(diameter=1.1)
-    mc.shape['B'] = dict(diameter=1.3)
-    sim.operations.integrator = mc
-
     remove_drift = hoomd.hpmc.update.RemoveDrift(
         trigger=hoomd.trigger.Periodic(5),
         reference_positions=[(0, 0, 1), (-1, 0, 1)])

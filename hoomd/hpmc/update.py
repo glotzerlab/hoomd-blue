@@ -504,12 +504,6 @@ class RemoveDrift(Updater):
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
-        if not isinstance(integrator, integrate.HPMCIntegrator):
-            raise RuntimeError("The integrator must be a HPMC integrator.")
-
-        if not integrator._attached:
-            raise RuntimeError("Integrator is not attached yet.")
-
         if isinstance(self._simulation.device, hoomd.device.GPU):
             self._simulation.device._cpp_msg.warning(
                 "Falling back on CPU. No GPU implementation available.\n")
@@ -517,7 +511,7 @@ class RemoveDrift(Updater):
         cpp_cls_name = "RemoveDriftUpdater" + integrator.__class__.__name__
         cpp_cls = getattr(_hpmc, cpp_cls_name)
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj, self.reference_positions)
+                                self.reference_positions)
         super()._attach()
 
 
