@@ -505,9 +505,9 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
         cli);
 
     // locality sort on those pairs
-    thrust::device_ptr<uint2> d_sort_idx_thrust(d_sort_idx);
-    thrust::device_ptr<unsigned int> d_sort_permutation_thrust(d_sort_permutation);
-    thrust::sort_by_key(d_sort_idx_thrust, d_sort_idx_thrust + cli.getNumElements(), d_sort_permutation_thrust, comp_less_uint2());
+    HOOMD_THRUST::device_ptr<uint2> d_sort_idx_thrust(d_sort_idx);
+    HOOMD_THRUST::device_ptr<unsigned int> d_sort_permutation_thrust(d_sort_permutation);
+    HOOMD_THRUST::sort_by_key(d_sort_idx_thrust, d_sort_idx_thrust + cli.getNumElements(), d_sort_permutation_thrust, comp_less_uint2());
 
     // apply sorted order
     gpu_apply_sorted_cell_list_order<<<grid, threads>>>(

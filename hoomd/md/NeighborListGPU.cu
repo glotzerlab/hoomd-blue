@@ -442,8 +442,8 @@ cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
                                                                                             N,
                                                                                             ntypes);
 
-    thrust::device_ptr<unsigned int> t_head_list = thrust::device_pointer_cast(d_head_list);
-    thrust::exclusive_scan(t_head_list, t_head_list+N, t_head_list);
+    HOOMD_THRUST::device_ptr<unsigned int> t_head_list = HOOMD_THRUST::device_pointer_cast(d_head_list);
+    HOOMD_THRUST::exclusive_scan(t_head_list, t_head_list+N, t_head_list);
 
     gpu_nlist_get_nlist_size_kernel<<<1,1>>>(d_req_size_nlist, d_head_list, N);
 

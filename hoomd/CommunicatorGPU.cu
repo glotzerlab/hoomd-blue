@@ -32,7 +32,7 @@
 #include "hoomd/extern/kernels/scan.cuh"
 #include "hoomd/extern/kernels/sortedsearch.cuh"
 
-using namespace thrust;
+//using namespace thrust;
 
 //! Select a particle for migration
 __global__ void gpu_select_particle_migrate(
@@ -64,7 +64,7 @@ __global__ void gpu_select_particle_migrate(
     }
 
 //! Select a particle for migration
-struct get_migrate_key_gpu : public thrust::unary_function<const unsigned int, unsigned int>
+struct get_migrate_key_gpu : public HOOMD_THRUST::unary_function<const unsigned int, unsigned int>
     {
     const uint3 my_pos;     //!< My domain decomposition position
     const Index3D di;             //!< Domain indexer
@@ -234,41 +234,41 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    CachedAllocator& alloc)
     {
     // Wrap input & output
-    thrust::device_ptr<pdata_element> in_ptr(d_in);
-    thrust::device_ptr<const unsigned int> comm_flags_ptr(d_comm_flags);
-    thrust::device_ptr<unsigned int> keys_ptr(d_keys);
-    thrust::device_ptr<const unsigned int> neighbors_ptr(d_neighbors);
+    HOOMD_THRUST::device_ptr<pdata_element> in_ptr(d_in);
+    HOOMD_THRUST::device_ptr<const unsigned int> comm_flags_ptr(d_comm_flags);
+    HOOMD_THRUST::device_ptr<unsigned int> keys_ptr(d_keys);
+    HOOMD_THRUST::device_ptr<const unsigned int> neighbors_ptr(d_neighbors);
 
     // generate keys
-    thrust::transform(comm_flags_ptr, comm_flags_ptr + nsend, keys_ptr, get_migrate_key_gpu(my_pos, di,mask,d_cart_ranks));
+    HOOMD_THRUST::transform(comm_flags_ptr, comm_flags_ptr + nsend, keys_ptr, get_migrate_key_gpu(my_pos, di,mask,d_cart_ranks));
 
     // allocate temp arrays
-    thrust::device_ptr<unsigned int> tmp_ptr(d_tmp);
-    thrust::device_ptr<pdata_element> in_copy_ptr(d_in_copy);
+    HOOMD_THRUST::device_ptr<unsigned int> tmp_ptr(d_tmp);
+    HOOMD_THRUST::device_ptr<pdata_element> in_copy_ptr(d_in_copy);
 
     // copy and fill with ascending integer sequence
-    thrust::counting_iterator<unsigned int> count_it(0);
-    thrust::copy(make_zip_iterator(thrust::make_tuple(count_it, in_ptr)),
-        thrust::make_zip_iterator(thrust::make_tuple(count_it + nsend, in_ptr + nsend)),
-        thrust::make_zip_iterator(thrust::make_tuple(tmp_ptr, in_copy_ptr)));
+    HOOMD_THRUST::counting_iterator<unsigned int> count_it(0);
+    HOOMD_THRUST::copy(make_zip_iterator(HOOMD_THRUST::make_tuple(count_it, in_ptr)),
+        HOOMD_THRUST::make_zip_iterator(HOOMD_THRUST::make_tuple(count_it + nsend, in_ptr + nsend)),
+        HOOMD_THRUST::make_zip_iterator(HOOMD_THRUST::make_tuple(tmp_ptr, in_copy_ptr)));
 
     // sort buffer by neighbors
-    if (nsend) mgpu::MergesortPairs(thrust::raw_pointer_cast(keys_ptr), d_tmp, nsend, *mgpu_context);
+    if (nsend) mgpu::MergesortPairs(HOOMD_THRUST::raw_pointer_cast(keys_ptr), d_tmp, nsend, *mgpu_context);
 
     // reorder send buf
-    thrust::gather(tmp_ptr, tmp_ptr + nsend, in_copy_ptr, in_ptr);
+    HOOMD_THRUST::gather(tmp_ptr, tmp_ptr + nsend, in_copy_ptr, in_ptr);
 
-    thrust::device_ptr<unsigned int> begin_ptr(d_begin);
-    thrust::device_ptr<unsigned int> end_ptr(d_end);
+    HOOMD_THRUST::device_ptr<unsigned int> begin_ptr(d_begin);
+    HOOMD_THRUST::device_ptr<unsigned int> end_ptr(d_end);
 
-    thrust::lower_bound(thrust::cuda::par(alloc),
+    HOOMD_THRUST::lower_bound(HOOMD_THRUST::cuda::par(alloc),
         keys_ptr,
         keys_ptr + nsend,
         neighbors_ptr,
         neighbors_ptr + nneigh,
         begin_ptr);
 
-    thrust::upper_bound(thrust::cuda::par(alloc),
+    HOOMD_THRUST::upper_bound(HOOMD_THRUST::cuda::par(alloc),
         keys_ptr,
         keys_ptr + nsend,
         neighbors_ptr,
@@ -277,7 +277,7 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
     }
 
 //! Wrap a particle in a pdata_element
-struct wrap_particle_op_gpu : public thrust::unary_function<const pdata_element, pdata_element>
+struct wrap_particle_op_gpu : public HOOMD_THRUST::unary_function<const pdata_element, pdata_element>
     {
     const BoxDim box; //!< The box for which we are applying boundary conditions
 
@@ -311,10 +311,10 @@ void gpu_wrap_particles(const unsigned int n_recv,
                         const BoxDim& box)
     {
     // Wrap device ptr
-    thrust::device_ptr<pdata_element> in_ptr(d_in);
+    HOOMD_THRUST::device_ptr<pdata_element> in_ptr(d_in);
 
     // Apply box wrap to input buffer
-    thrust::transform(in_ptr, in_ptr + n_recv, in_ptr, wrap_particle_op_gpu(box));
+    HOOMD_THRUST::transform(in_ptr, in_ptr + n_recv, in_ptr, wrap_particle_op_gpu(box));
     }
 
 //! Reset reverse lookup tags of particles we are removing
@@ -326,11 +326,11 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
                      unsigned int *d_delete_tags,
                      unsigned int *d_rtag)
     {
-    thrust::device_ptr<unsigned int> delete_tags_ptr(d_delete_tags);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
+    HOOMD_THRUST::device_ptr<unsigned int> delete_tags_ptr(d_delete_tags);
+    HOOMD_THRUST::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
-    thrust::constant_iterator<unsigned int> not_local(NOT_LOCAL);
-    thrust::scatter(not_local,
+    HOOMD_THRUST::constant_iterator<unsigned int> not_local(NOT_LOCAL);
+    HOOMD_THRUST::scatter(not_local,
                     not_local + n_delete_ptls,
                     delete_tags_ptr,
                     rtag_ptr);
@@ -747,19 +747,19 @@ void gpu_exchange_ghosts_make_indices(
         // sort tags by neighbors
         mgpu::MergesortPairs_uint2(d_ghost_neigh, d_ghost_idx_adj, n_out, *mgpu_context);
 
-        thrust::device_ptr<const unsigned int> unique_neighbors(d_unique_neighbors);
-        thrust::device_ptr<unsigned int> ghost_neigh(d_ghost_neigh);
-        thrust::device_ptr<unsigned int> ghost_begin(d_ghost_begin);
-        thrust::device_ptr<unsigned int> ghost_end(d_ghost_end);
+        HOOMD_THRUST::device_ptr<const unsigned int> unique_neighbors(d_unique_neighbors);
+        HOOMD_THRUST::device_ptr<unsigned int> ghost_neigh(d_ghost_neigh);
+        HOOMD_THRUST::device_ptr<unsigned int> ghost_begin(d_ghost_begin);
+        HOOMD_THRUST::device_ptr<unsigned int> ghost_end(d_ghost_end);
 
-        thrust::lower_bound(thrust::cuda::par(alloc),
+        HOOMD_THRUST::lower_bound(HOOMD_THRUST::cuda::par(alloc),
             ghost_neigh,
             ghost_neigh + n_out,
             unique_neighbors,
             unique_neighbors + n_unique_neigh,
             ghost_begin);
 
-        thrust::upper_bound(thrust::cuda::par(alloc),
+        HOOMD_THRUST::upper_bound(HOOMD_THRUST::cuda::par(alloc),
             ghost_neigh,
             ghost_neigh + n_out,
             unique_neighbors,
@@ -1219,11 +1219,11 @@ void gpu_compute_ghost_rtags(
      const unsigned int *d_tag,
      unsigned int *d_rtag)
     {
-    thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
+    HOOMD_THRUST::device_ptr<const unsigned int> tag_ptr(d_tag);
+    HOOMD_THRUST::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
-    thrust::counting_iterator<unsigned int> idx(first_idx);
-    thrust::scatter(idx, idx + n_ghost, tag_ptr, rtag_ptr);
+    HOOMD_THRUST::counting_iterator<unsigned int> idx(first_idx);
+    HOOMD_THRUST::scatter(idx, idx + n_ghost, tag_ptr, rtag_ptr);
     }
 
 /*!

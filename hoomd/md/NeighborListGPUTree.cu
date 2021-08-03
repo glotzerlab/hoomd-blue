@@ -167,11 +167,11 @@ uchar2 gpu_nlist_sort_types(void *d_tmp,
                             const unsigned int N,
                             const unsigned int num_bits)
     {
-    cub::DoubleBuffer<unsigned int> d_keys(d_types, d_sorted_types);
-    cub::DoubleBuffer<unsigned int> d_vals(d_indexes, d_sorted_indexes);
+    HOOMD_CUB::DoubleBuffer<unsigned int> d_keys(d_types, d_sorted_types);
+    HOOMD_CUB::DoubleBuffer<unsigned int> d_vals(d_indexes, d_sorted_indexes);
 
     // we counted number of bits to sort, so the range of bit indexes is [0,num_bits)
-    cub::DeviceRadixSort::SortPairs(d_tmp, tmp_bytes, d_keys, d_vals, N, 0, num_bits);
+    HOOMD_CUB::DeviceRadixSort::SortPairs(d_tmp, tmp_bytes, d_keys, d_vals, N, 0, num_bits);
 
     uchar2 swap = make_uchar2(0,0);
     if (d_tmp != NULL)
@@ -251,7 +251,7 @@ cudaError_t gpu_nlist_count_types(unsigned int *d_first,
 
     {
     // initially, fill all types as empty
-    thrust::fill(thrust::device, d_first, d_first+ntypes, NeighborListTypeSentinel);
+    HOOMD_THRUST::fill(HOOMD_THRUST::device, d_first, d_first+ntypes, NeighborListTypeSentinel);
     cudaMemset(d_last, 0, sizeof(unsigned int)*ntypes);
 
     static unsigned int max_block_size = UINT_MAX;

@@ -12,7 +12,7 @@ if (CMAKE_VERSION VERSION_GREATER 3.0.99)
     set(CMAKE_CXX_STANDARD 11)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     # findcuda needs to be told explicitly to use c++11 as CMAKE_CXX_STANDARD does not modify CMAKE_CXX_FLAGS
-    list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
+    list(APPEND CUDA_NVCC_FLAGS "-std=c++14;--expt-relaxed-constexpr")
 else()
     # manually enable flags
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")

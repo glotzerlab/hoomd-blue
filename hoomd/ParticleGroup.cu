@@ -99,14 +99,14 @@ cudaError_t gpu_compact_index_list(unsigned int N,
     size_t   temp_storage_bytes = 0;
 
     // determine size of temporary storage
-    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
+    HOOMD_CUB::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
+    HOOMD_CUB::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
     alloc.deallocate((char *)d_temp_storage);
 
-    thrust::device_ptr<unsigned int> is_member(d_is_member);
-    num_local_members = thrust::reduce(thrust::cuda::par(alloc),
+    HOOMD_THRUST::device_ptr<unsigned int> is_member(d_is_member);
+    num_local_members = HOOMD_THRUST::reduce(HOOMD_THRUST::cuda::par(alloc),
         is_member,
         is_member + N);
 

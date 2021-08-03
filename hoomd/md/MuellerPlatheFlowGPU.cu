@@ -10,7 +10,7 @@
 #include <thrust/functional.h>
 #include <thrust/device_ptr.h>
 
-struct vel_search_un_opt : public thrust::unary_function< const unsigned int,Scalar3>
+struct vel_search_un_opt : public HOOMD_THRUST::unary_function< const unsigned int,Scalar3>
     {
         vel_search_un_opt(const Scalar4*const d_vel,const unsigned int *const d_tag,flow_enum::Direction flow_direction)
             :
@@ -41,7 +41,7 @@ struct vel_search_un_opt : public thrust::unary_function< const unsigned int,Sca
             }
     };
 template <typename CMP>
-struct vel_search_binary_opt : public thrust::binary_function< Scalar3, Scalar3, Scalar3 >
+struct vel_search_binary_opt : public HOOMD_THRUST::binary_function< Scalar3, Scalar3, Scalar3 >
     {
         vel_search_binary_opt(const unsigned int*const d_rtag,
                               const Scalar4*const d_pos,
@@ -137,25 +137,25 @@ cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
                                         const flow_enum::Direction flow_direction,
                                         const flow_enum::Direction slab_direction)
     {
-    thrust::device_ptr<const unsigned int> member_ptr(d_group_members);
+    HOOMD_THRUST::device_ptr<const unsigned int> member_ptr(d_group_members);
 
     vel_search_un_opt un_opt(d_vel, d_tag,flow_direction);
 
     if( has_max_slab )
         {
-        vel_search_binary_opt<thrust::greater<const Scalar> > max_bin_opt(
+        vel_search_binary_opt<HOOMD_THRUST::greater<const Scalar> > max_bin_opt(
             d_rtag,d_pos,gl_box,Nslabs,max_slab,*last_max_vel,slab_direction);
         Scalar3 init = *last_max_vel;
-        *last_max_vel = thrust::transform_reduce(member_ptr,member_ptr+group_size,
+        *last_max_vel = HOOMD_THRUST::transform_reduce(member_ptr,member_ptr+group_size,
                                                  un_opt,init,max_bin_opt);
         }
 
     if( has_min_slab )
         {
-        vel_search_binary_opt<thrust::less<const Scalar> > min_bin_opt(
+        vel_search_binary_opt<HOOMD_THRUST::less<const Scalar> > min_bin_opt(
             d_rtag,d_pos,gl_box,Nslabs,min_slab,*last_min_vel,slab_direction);
         Scalar3 init = *last_min_vel;
-        *last_min_vel = thrust::transform_reduce(member_ptr,member_ptr+group_size,
+        *last_min_vel = HOOMD_THRUST::transform_reduce(member_ptr,member_ptr+group_size,
                                                  un_opt,init,min_bin_opt);
         }
 

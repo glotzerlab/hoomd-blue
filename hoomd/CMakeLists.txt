@@ -196,6 +196,26 @@ if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 endif()
 
 if (ENABLE_CUDA)
+if (${CUDA_VERSION} VERSION_EQUAL "11.4")
+    message(WARNING "CUDA 11.4 has a known bug that may result in the error: `__global__ function call is not configure`")
+endif()
+
+if (${CUDA_VERSION} VERSION_GREATER "11.4")
+  message(STATUS "Applying the CUDA 11.5 Thrust fix")
+  set(THRUST_FIX 1)
+else()
+  set(THRUST_FIX 0)
+endif()
+
+if (THRUST_FIX)
+  list(APPEND CUDA_NVCC_FLAGS "-DTHRUST_CUB_WRAPPED_NAMESPACE=THRUST_CUB_HOOMD")
+  list(APPEND CUDA_NVCC_FLAGS "-DHOOMD_THRUST=THRUST_CUB_HOOMD::thrust")
+  list(APPEND CUDA_NVCC_FLAGS "-DHOOMD_CUB=THRUST_CUB_HOOMD::cub")
+else()
+  list(APPEND CUDA_NVCC_FLAGS "-DHOOMD_THRUST=thrust")
+  list(APPEND CUDA_NVCC_FLAGS "-DHOOMD_CUB=cub")
+endif()
+
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hoomd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 

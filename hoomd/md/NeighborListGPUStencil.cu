@@ -651,9 +651,9 @@ void gpu_compute_nlist_stencil_sort_types(unsigned int *d_pids,
                                           bool &swap,
                                           const unsigned int N)
     {
-    cub::DoubleBuffer<unsigned int> d_keys(d_types, d_types_alt);
-    cub::DoubleBuffer<unsigned int> d_vals(d_pids, d_pids_alt);
-    cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N);
+    HOOMD_CUB::DoubleBuffer<unsigned int> d_keys(d_types, d_types_alt);
+    HOOMD_CUB::DoubleBuffer<unsigned int> d_vals(d_pids, d_pids_alt);
+    HOOMD_CUB::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N);
     if (d_tmp_storage != NULL)
         {
         swap = (d_vals.selector == 1);

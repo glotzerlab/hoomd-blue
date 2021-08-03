@@ -60,7 +60,7 @@ class WarpReduce
          */
         DEVICE T Sum(T input)
             {
-            return Reduce(input, cub::Sum());
+            return Reduce(input, HOOMD_CUB::Sum());
             }
 
         //! Sum reduction over valid items.
@@ -75,7 +75,7 @@ class WarpReduce
          */
         DEVICE T Sum(T input, int valid_items)
             {
-            return Reduce(input, cub::Sum(), valid_items);
+            return Reduce(input, HOOMD_CUB::Sum(), valid_items);
             }
 
         //! Custom reduction.
@@ -116,7 +116,7 @@ class WarpReduce
             }
 
     private:
-        typedef cub::WarpReduceShfl<T,LOGICAL_WARP_THREADS,PTX_ARCH> WarpReduceShfl;    //!< CUB shuffle-based reduce
+        typedef HOOMD_CUB::WarpReduceShfl<T,LOGICAL_WARP_THREADS,PTX_ARCH> WarpReduceShfl;    //!< CUB shuffle-based reduce
         typedef typename WarpReduceShfl::TempStorage TempStorage;                       //!< Nominal data type for CUB temporary storage
     };
 
@@ -155,7 +155,7 @@ class WarpScan
          */
         DEVICE void InclusiveSum(T input, T& output)
             {
-            InclusiveScan(input, output, cub::Sum());
+            InclusiveScan(input, output, HOOMD_CUB::Sum());
             }
 
         //! Inclusive sum for each thread in logical warp, plus accumulation for all.
@@ -169,7 +169,7 @@ class WarpScan
          */
         DEVICE void InclusiveSum(T input, T& output, T& aggregate)
             {
-            InclusiveScan(input, output, cub::Sum(), aggregate);
+            InclusiveScan(input, output, HOOMD_CUB::Sum(), aggregate);
             }
 
         //! Inclusive scan with a custom scan operator.
@@ -220,7 +220,7 @@ class WarpScan
         DEVICE void ExclusiveSum(T input, T& output)
             {
             T initial = 0;
-            ExclusiveScan(input, output, initial, cub::Sum());
+            ExclusiveScan(input, output, initial, HOOMD_CUB::Sum());
             }
 
         //! Exclusive sum for each thread in logical warp, plus accumulation for all.
@@ -235,7 +235,7 @@ class WarpScan
         DEVICE void ExclusiveSum(T input, T& output, T& aggregate)
             {
             T initial = 0;
-            ExclusiveScan(input, output, initial, cub::Sum(), aggregate);
+            ExclusiveScan(input, output, initial, HOOMD_CUB::Sum(), aggregate);
             }
 
         //! Exclusive scan with a custom scan operator.
@@ -257,7 +257,7 @@ class WarpScan
             // first compute inclusive scan, then update to make exclusive
             T inclusive;
             scan.InclusiveScan(input, inclusive, scan_op);
-            scan.Update(input, inclusive, output, scan_op, cub::Int2Type<IS_INTEGER>());
+            scan.Update(input, inclusive, output, scan_op, HOOMD_CUB::Int2Type<IS_INTEGER>());
             }
 
         //! Exclusive scan with a custom scan operator and initial value.
@@ -280,7 +280,7 @@ class WarpScan
             // first compute inclusive scan, then update to make exclusive
             T inclusive;
             scan.InclusiveScan(input, inclusive, scan_op);
-            scan.Update(input, inclusive, output, scan_op, initial, cub::Int2Type<IS_INTEGER>());
+            scan.Update(input, inclusive, output, scan_op, initial, HOOMD_CUB::Int2Type<IS_INTEGER>());
             }
 
         //! Exclusive scan with a custom scan operator, plus accumulation for all.
@@ -303,7 +303,7 @@ class WarpScan
             // first compute inclusive scan, then update to make exclusive
             T inclusive;
             scan.InclusiveScan(input, inclusive, scan_op);
-            scan.Update(input, inclusive, output, aggregate, scan_op, cub::Int2Type<IS_INTEGER>());
+            scan.Update(input, inclusive, output, aggregate, scan_op, HOOMD_CUB::Int2Type<IS_INTEGER>());
             }
 
         //! Exclusive scan with a custom scan operator and initial value, plus accumulation for all.
@@ -327,7 +327,7 @@ class WarpScan
             // first compute inclusive scan, then update to make exclusive
             T inclusive;
             scan.InclusiveScan(input, inclusive, scan_op);
-            scan.Update(input, inclusive, output, aggregate, scan_op, initial, cub::Int2Type<IS_INTEGER>());
+            scan.Update(input, inclusive, output, aggregate, scan_op, initial, HOOMD_CUB::Int2Type<IS_INTEGER>());
             }
 
         //! Broadcast a value to logical warp.
@@ -346,12 +346,12 @@ class WarpScan
             }
 
     private:
-        typedef cub::WarpScanShfl<T,LOGICAL_WARP_THREADS,PTX_ARCH> WarpScanShfl;    //!< CUB shuffle-based scan
+        typedef HOOMD_CUB::WarpScanShfl<T,LOGICAL_WARP_THREADS,PTX_ARCH> WarpScanShfl;    //!< CUB shuffle-based scan
         typedef typename WarpScanShfl::TempStorage TempStorage;                     //!< Nominal data type for CUB temporary storage
 
         enum
             {
-            IS_INTEGER = ((cub::Traits<T>::CATEGORY == cub::SIGNED_INTEGER) || (cub::Traits<T>::CATEGORY == cub::UNSIGNED_INTEGER))
+            IS_INTEGER = ((HOOMD_CUB::Traits<T>::CATEGORY == HOOMD_CUB::SIGNED_INTEGER) || (HOOMD_CUB::Traits<T>::CATEGORY == HOOMD_CUB::UNSIGNED_INTEGER))
             };
     };
 

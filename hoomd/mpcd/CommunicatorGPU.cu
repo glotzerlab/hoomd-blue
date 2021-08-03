@@ -66,7 +66,7 @@ __global__ void stage_particles(unsigned int *d_comm_flag,
 } // end namespace kernel
 
 //! Functor to select a particle for migration
-struct get_migrate_key : public thrust::unary_function<const unsigned int, unsigned int>
+struct get_migrate_key : public HOOMD_THRUST::unary_function<const unsigned int, unsigned int>
     {
     const uint3 my_pos;      //!< My domain decomposition position
     const Index3D di;        //!< Domain indexer
@@ -206,18 +206,18 @@ size_t mpcd::gpu::sort_comm_send_buffer(mpcd::detail::pdata_element *d_sendbuf,
                                         const unsigned int Nsend)
     {
     // transform extracted communication flags into destination rank
-    thrust::device_ptr<mpcd::detail::pdata_element> sendbuf(d_sendbuf);
-    thrust::device_ptr<unsigned int> keys(d_tmp_keys);
-    thrust::transform(sendbuf, sendbuf + Nsend, keys, mpcd::gpu::get_migrate_key(grid_pos, di, mask, d_cart_ranks));
+    HOOMD_THRUST::device_ptr<mpcd::detail::pdata_element> sendbuf(d_sendbuf);
+    HOOMD_THRUST::device_ptr<unsigned int> keys(d_tmp_keys);
+    HOOMD_THRUST::transform(sendbuf, sendbuf + Nsend, keys, mpcd::gpu::get_migrate_key(grid_pos, di, mask, d_cart_ranks));
 
     // sort the destination ranks
-    thrust::sort_by_key(keys, keys + Nsend, sendbuf);
+    HOOMD_THRUST::sort_by_key(keys, keys + Nsend, sendbuf);
 
     // run length encode to get the number going to each rank
-    thrust::device_ptr<unsigned int> neigh_send(d_neigh_send);
-    thrust::device_ptr<unsigned int> num_send(d_num_send);
-    size_t num_neigh = thrust::reduce_by_key(keys, keys + Nsend,
-                                             thrust::constant_iterator<int>(1),
+    HOOMD_THRUST::device_ptr<unsigned int> neigh_send(d_neigh_send);
+    HOOMD_THRUST::device_ptr<unsigned int> num_send(d_num_send);
+    size_t num_neigh = HOOMD_THRUST::reduce_by_key(keys, keys + Nsend,
+                                             HOOMD_THRUST::constant_iterator<int>(1),
                                              neigh_send,
                                              num_send).first - neigh_send;
 
@@ -245,7 +245,7 @@ void mpcd::gpu::reduce_comm_flags(unsigned int *d_req_flags,
                                   const unsigned int N)
     {
     mpcd::ops::BitwiseOr bit_or;
-    cub::DeviceReduce::Reduce(d_tmp, tmp_bytes, d_comm_flags, d_req_flags, N, bit_or, (unsigned int)0);
+    HOOMD_CUB::DeviceReduce::Reduce(d_tmp, tmp_bytes, d_comm_flags, d_req_flags, N, bit_or, (unsigned int)0);
     }
 
 namespace mpcd
@@ -253,7 +253,7 @@ namespace mpcd
 namespace gpu
 {
 //! Wrap a particle in a pdata_element
-struct wrap_particle_op : public thrust::unary_function<const mpcd::detail::pdata_element, mpcd::detail::pdata_element>
+struct wrap_particle_op : public HOOMD_THRUST::unary_function<const mpcd::detail::pdata_element, mpcd::detail::pdata_element>
     {
     const BoxDim box; //!< The box for which we are applying boundary conditions
 
@@ -292,9 +292,9 @@ void mpcd::gpu::wrap_particles(const unsigned int n_recv,
                                const BoxDim& box)
     {
     // Wrap device ptr
-    thrust::device_ptr<mpcd::detail::pdata_element> in_ptr(d_in);
+    HOOMD_THRUST::device_ptr<mpcd::detail::pdata_element> in_ptr(d_in);
 
     // Apply box wrap to input buffer
-    thrust::transform(in_ptr, in_ptr + n_recv, in_ptr, mpcd::gpu::wrap_particle_op(box));
+    HOOMD_THRUST::transform(in_ptr, in_ptr + n_recv, in_ptr, mpcd::gpu::wrap_particle_op(box));
     }
 #endif // ENABLE_MPI
