@@ -23,8 +23,10 @@
 // compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 //! Class for evaluating the Fourier pair potential
@@ -61,6 +63,10 @@ class EvaluatorPairFourier
         Scalar a[3]; //!< Fourier component coefficents
         Scalar b[3]; //!< Fourier component coefficents
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         //! set CUDA memory hint
         void set_memory_hint() const { }
@@ -76,7 +82,7 @@ class EvaluatorPairFourier
                 }
             }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             pybind11::list py_a(v["a"]);
             pybind11::list py_b(v["b"]);

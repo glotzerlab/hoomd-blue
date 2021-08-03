@@ -10,6 +10,7 @@ from hoomd.md import force
 from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
+import numpy as np
 from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, positive_real,
                                       nonnegative_real)
 
@@ -523,6 +524,95 @@ class Ewald(Pair):
             'params', 'particle_types',
             TypeParameterDict(kappa=float, alpha=0.0, len_keys=2))
 
+        self._add_typeparam(params)
+
+
+class Table(Pair):
+    """Tabulated pair potential.
+
+    Args:
+        nlist (`hoomd.md.nlist.NList`): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\\mathrm{length}]`.
+
+    `Table` specifies that a tabulated pair potential should be applied between
+    every non-excluded particle pair in the simulation in the range
+    :math:`[r_{\\mathrm{min}}, r_{\\mathrm{cut}})`
+
+    Note:
+        For potentials that diverge near r=0, to set *r_min* to a non-zero
+        value.
+
+    The force :math:`\\vec{F}` is:
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        \\vec{F}(\\vec{r}) = & 0 & r < r_{\\mathrm{min}} \\\\
+                           = & F(r)\\hat{r}
+                             & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
+                           = & 0 & r \\ge r_{\\mathrm{max}} \\\\
+        \\end{eqnarray*}
+
+    and the potential :math:`V(r)` is:
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        V(r) = & 0 & r < r_{\\mathrm{min}} \\\\
+             = & V(r)
+               & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
+             = & 0 & r \\ge r_{\\mathrm{max}} \\\\
+        \\end{eqnarray*}
+
+    where :math:`\\vec{r}` is the vector pointing from one particle to the other
+    in the pair.
+
+    Provide :math:`F(r)` and :math:`V(r)` on an evenly space set of grid points
+    points between :math:`r_{\\mathrm{min}}` and :math:`r_{\\mathrm{cut}}`.
+    `Table` linearly interpolates values when :math:`r` lies between grid points
+    and between the last grid point and :math:`r=r_{\\mathrm{cut}}`.  The force
+    must be specificed commensurate with the potential: :math:`F =
+    -\\frac{\\partial V}{\\partial r}`.
+
+    `Table` does not support energy shifting or smoothing modes.
+
+    Attributes:
+        params (`TypeParameter` [\
+          `tuple` [``particle_type``, ``particle_type``],\
+          `dict`]):
+          The potential parameters. The dictionary has the following keys:
+
+          * ``r_min`` (`float`, **required**) - the minimum distance to apply
+            the tabulated potential, corresponding to the first element of the
+            energy and force arrays :math:`[\\mathrm{length}]`.
+
+          * ``V`` ((*N*,) `numpy.ndarray` of `float`, **required**) -
+            the tabulated energy values :math:`[\\mathrm{energy}]`.
+
+          * ``F`` ((*N*,) `numpy.ndarray` of `float`, **required**) -
+            the tabulated force values :math:`[\\mathrm{force}]`. Must have the
+            same length as ``V``.
+
+    Note:
+
+        The implicitly defined :math:`r` values are those that would be returned
+        by ``numpy.linspace(r_min, r_cut, len(V), endpoint=False)``.
+    """
+    _cpp_class_name = "PotentialPairTable"
+    _accepted_modes = ("none",)
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
+        super().__init__(nlist, default_r_cut, default_r_on, 'none')
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(
+                r_min=float,
+                V=hoomd.data.typeconverter.NDArrayValidator(np.float64),
+                F=hoomd.data.typeconverter.NDArrayValidator(np.float64),
+                len_keys=2))
         self._add_typeparam(params)
 
 
@@ -1164,6 +1254,82 @@ class Mie(Pair):
                               sigma=float,
                               n=float,
                               m=float,
+                              len_keys=2))
+
+        self._add_typeparam(params)
+
+
+class ExpandedMie(Pair):
+    """Expanded Mie pair potential.
+
+    Args:
+        nlist (`hoomd.md.nlist.NList`): Neighbor list.
+        default_r_cut (float): Default cutoff radius (in distance units).
+        default_r_on (float): Default turn-on radius (in distance units).
+        mode (str): Energy shifting/smoothing mode.
+
+    `ExpandedMie` specifies that a radially shifted Mie pair potential should be
+    applied between every non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        V_{\\mathrm{mie}}(r)
+          = & \\left( \\frac{n}{n-m} \\right) {\\left( \\frac{n}{m}
+          \\right)}^{\\frac{m}{n-m}} \\varepsilon \\left[ \\left(
+          \\frac{\\sigma}{r-\\Delta} \\right)^{n} - \\left( \\frac
+          {\\sigma}{r-\\Delta}
+          \\right)^{m} \\right] & r < r_{\\mathrm{cut}} \\\\
+          = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
+        \\end{eqnarray*}
+
+    See `Pair` for details on how forces are calculated and the available energy
+    shifting and smoothing modes.
+
+    .. py:attribute:: params
+
+        The Expanded Mie potential parameters.
+        The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          :math:`\\epsilon` :math:`[\\mathrm{energy}]`.
+        * ``sigma`` (`float`, **required**) -
+          :math:`\\sigma` :math:`[\\mathrm{length}]`.
+        * ``n`` (`float`, **required**) -
+          :math:`n` :math:`[\\mathrm{dimensionless}]`.
+        * ``m`` (`float`, **required**) -
+          :math:`m` :math:`[\\mathrm{dimensionless}]`.
+        * ``delta`` (`float`, **required**) -
+          :math:`\\Delta` :math:`[\\mathrm{length}]`.
+
+        Type: `TypeParameter` [ `tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    Example::
+
+        nl = nlist.Cell()
+        expanded_mie = pair.ExpandedMie(nlist=nl, default_r_cut=3.0)
+        mie.params[('A', 'B')] = {
+            "epsilon": 1.0, "sigma": 1.0, "n": 12, "m": 6,
+            "delta": 0.5}
+        expanded_mie.r_cut[('A', 'B')] = 2**(1.0 / 6.0)
+        expanded_mie.params[(['A', 'B'], ['C', 'D'])] = {
+            "epsilon": 1.5, "sigma": 2.0, "n": 12, "m": 6,
+            "delta": 0.5}
+    """
+    _cpp_class_name = "PotentialPairExpandedMie"
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
+
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float,
+                              sigma=float,
+                              n=float,
+                              m=float,
+                              delta=float,
                               len_keys=2))
 
         self._add_typeparam(params)

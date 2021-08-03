@@ -13,17 +13,19 @@ def _assert_correct_params(fire, param_dict):
 
 def _make_random_params():
     """Get random values for the fire parameters."""
-    params = {'dt': np.random.rand(),
-              'aniso': 'auto',
-              'min_steps_adapt': np.random.randint(1, 25),
-              'finc_dt': 1 + np.random.rand(),
-              'fdec_dt': np.random.rand(),
-              'alpha_start': np.random.rand(),
-              'fdec_alpha': np.random.rand(),
-              'force_tol': np.random.rand(),
-              'angmom_tol': np.random.rand(),
-              'energy_tol': np.random.rand(),
-              'min_steps_conv': np.random.randint(1, 15)}
+    params = {
+        'dt': np.random.rand(),
+        'aniso': 'auto',
+        'min_steps_adapt': np.random.randint(1, 25),
+        'finc_dt': 1 + np.random.rand(),
+        'fdec_dt': np.random.rand(),
+        'alpha_start': np.random.rand(),
+        'fdec_alpha': np.random.rand(),
+        'force_tol': np.random.rand(),
+        'angmom_tol': np.random.rand(),
+        'energy_tol': np.random.rand(),
+        'min_steps_conv': np.random.randint(1, 15)
+    }
     return params
 
 
@@ -42,17 +44,19 @@ def _set_and_check_new_params(fire):
 def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
     """Assert we can get/set params when not attached and when attached."""
     fire = md.minimize.FIRE(dt=0.01)
-    default_params = {'dt': 0.01,
-                      'aniso': 'auto',
-                      'min_steps_adapt': 5,
-                      'finc_dt': 1.1,
-                      'fdec_dt': 0.5,
-                      'alpha_start': 0.1,
-                      'fdec_alpha': 0.99,
-                      'force_tol': 0.1,
-                      'angmom_tol': 0.1,
-                      'energy_tol': 1e-5,
-                      'min_steps_conv': 10}
+    default_params = {
+        'dt': 0.01,
+        'aniso': 'auto',
+        'min_steps_adapt': 5,
+        'finc_dt': 1.1,
+        'fdec_dt': 0.5,
+        'alpha_start': 0.1,
+        'fdec_alpha': 0.99,
+        'force_tol': 0.1,
+        'angmom_tol': 0.1,
+        'energy_tol': 1e-5,
+        'min_steps_conv': 10
+    }
     _assert_correct_params(fire, default_params)
 
     new_params = _set_and_check_new_params(fire)
@@ -84,7 +88,6 @@ def test_run_minimization(lattice_snapshot_factory, simulation_factory):
     sim.operations.integrator = fire
     fire.methods.append(nve)
     sim.run(10)
-
 
     # TODO I would also like to see a test where the md integrator and fire
     # are switched out during a short run, because that is a common use case

@@ -118,6 +118,7 @@ class FIRE(_DynamicIntegrator):
 
     """
     _cpp_class_name = "FIREEnergyMinimizer"
+
     def __init__(self,
                  dt,
                  aniso='auto',
@@ -136,25 +137,25 @@ class FIRE(_DynamicIntegrator):
                 min_steps_adapt=int,  # TODO find a way force positive integers
                 finc_dt=float,
                 fdec_dt=float,
-                alpha_start=float,  # TODO find a way to prevent user from resetting this value
+                alpha_start=
+                float,  # TODO find a way to prevent user from resetting this value
                 fdec_alpha=float,
                 force_tol=float,
                 angmom_tol=float,
                 energy_tol=float,
                 min_steps_conv=int,  # TODO find a way to force positive integers
-                _defaults={"aniso": "auto",
-                           "min_steps_adapt": 5,
-                           "finc_dt": 1.1,
-                           "fdec_dt": 0.5,
-                           "alpha_start": 0.1,
-                           "fdec_alpha": 0.99,
-                           "force_tol": 0.1,
-                           "angmom_tol": 0.1,
-                           "energy_tol": 1e-5,
-                           "min_steps_conv": 10
-                           }
-            )
-        )
+                _defaults={
+                    "aniso": "auto",
+                    "min_steps_adapt": 5,
+                    "finc_dt": 1.1,
+                    "fdec_dt": 0.5,
+                    "alpha_start": 0.1,
+                    "fdec_alpha": 0.99,
+                    "force_tol": 0.1,
+                    "angmom_tol": 0.1,
+                    "energy_tol": 1e-5,
+                    "min_steps_conv": 10
+                }))
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):

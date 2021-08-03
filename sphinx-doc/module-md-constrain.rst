@@ -9,6 +9,7 @@ md.constrain
     :nosignatures:
 
     Constraint
+    Distance
     Rigid
 
 
@@ -17,4 +18,4 @@ md.constrain
 .. automodule:: hoomd.md.constrain
     :synopsis: Constraints.
     :undoc-members:
-    :members: Constraint, Rigid
+    :members: Constraint, Distance, Rigid
