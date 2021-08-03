@@ -36,8 +36,7 @@ class Force(_HOOMDBaseObject):
     @log(requires_run=True)
     def energy(self):
         """float: Total contribution to the potential energy of the system \
-        :math:`[\\mathrm{energy}]`.
-        """
+        :math:`[\\mathrm{energy}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.calcEnergySum()
 
@@ -56,8 +55,7 @@ class Force(_HOOMDBaseObject):
     @log(requires_run=True)
     def additional_energy(self):
         """float: Additional energy term not included in `energies` \
-        :math:`[\\mathrm{energy}]`.
-        """
+        :math:`[\\mathrm{energy}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getExternalEnergy()
 
