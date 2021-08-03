@@ -146,7 +146,7 @@ class TypeParameter(MutableMapping):
         """__delitem__ is not available for `TypeParameter` objects."""
         raise NotImplementedError("__delitem__ is not defined for this type.")
 
-    def get(self, key, value):
+    def get(self, key, default):
         """Get values for keys with undefined keys returning default.
 
         Args:
@@ -162,7 +162,7 @@ class TypeParameter(MutableMapping):
                 keys were specified; otherwise, returns the value for the single
                 key.
         """
-        return self.param_dict.get(key, value)
+        return self.param_dict.get(key, default)
 
     def setdefault(self, key, default):
         """Set the value for the keys if not already specified.
