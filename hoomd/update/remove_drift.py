@@ -4,9 +4,11 @@
 
 """Implement RemoveDrift."""
 
+import hoomd
 from hoomd.operation import Updater
-from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import NDArrayValidator
 from hoomd import _hoomd
+import numpy as np
 
 
 class RemoveDrift(Updater):
@@ -29,9 +31,7 @@ class RemoveDrift(Updater):
     def __init__(self, reference_positions, trigger=1):
         super().__init__(trigger)
         self._param_dict.update({
-            "reference_positions":
-                hoomd.data.typeconverter.NDArrayValidator(
-                    np.float64, (None, 3))
+            "reference_positions": NDArrayValidator(np.float64, (None, 3))
         })
         self.reference_positions = reference_positions
 
