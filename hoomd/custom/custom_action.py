@@ -19,20 +19,26 @@ class _AbstractLoggable(Loggable, ABCMeta):
 
 
 class Action(metaclass=_AbstractLoggable):
-    """Base class for all Python Actions.
+    """Base class for user-defined actions.
 
-    This class is the parent class for all Python `Action` subclasses. This
-    class requires all subclasses to implement the :meth:`~.act` method which
-    performs the Python object's task whether that be updating the system,
-    writing output, or analyzing some property of the system.
+    To implement a custom operation in Python, subclass `Action` and
+    re-implement the :meth:`~.act` method to perform the desired action. To
+    include the action in the simulation run loop, pass an instance of the
+    action to `hoomd.update.CustomUpdater`, `hoomd.write.CustomWriter`, or
+    `hoomd.tune.CustomTuner`.
 
-    To use subclasses of this class, the object must be passed as an argument
-    to a `hoomd.update.CustomUpdater`, `hoomd.write.CustomWriter`, or
-    `hoomd.tune.CustomTuner` constructor.
+    .. code-block:: python
 
-    If the pressure, rotational kinetic energy, or external field virial is
-    needed for a subclass, the flags attribute of the class needs to be set with
-    the appropriate flags from the internal `Action.Flags` enumeration.
+        from hoomd.custom import Action
+
+
+        class ExampleAction(Action):
+            def act(self, timestep):
+                self.com = self._state.snapshot.particles.position.mean(axis=0)
+
+    To request that HOOMD-blue compute virials, pressure, the rotational kinetic
+    energy, or the external field virial, set the flags attribute with the
+    appropriate flags from the internal `Action.Flags` enumeration.
 
     .. code-block:: python
 
@@ -47,8 +53,7 @@ class Action(metaclass=_AbstractLoggable):
             def act(self, timestep):
                 pass
 
-    For advertising loggable quantities through the wrapping object, the
-    decorator `hoomd.logging.log` can be used.
+    Use the `hoomd.logging.log` decorator to define loggable properties.
 
     .. code-block:: python
 
@@ -65,19 +70,6 @@ class Action(metaclass=_AbstractLoggable):
             def act(self, timestep):
                 pass
 
-    An example of a `Action` that actually performs an action is given
-    below. This `Action` computes the center of mass of the system.
-
-    .. code-block:: python
-
-        from hoomd.custom import Action
-
-
-        class ExampleAction(Action):
-            def act(self, timestep):
-                self.com = self._state.snapshot.particles.position.mean(axis=0)
-
-
     Attributes:
         flags (list[hoomd.custom.Action.Flags]): List of flags from the
             `hoomd.custom.Action.Flags`. Used to tell the integrator if
@@ -85,7 +77,7 @@ class Action(metaclass=_AbstractLoggable):
     """
 
     class Flags(IntEnum):
-        """Flags to indictate the integrator should calcuate certain quantities.
+        """Flags to indictate the integrator should calculate quantities.
 
         * PRESSURE_TENSOR = 0
         * ROTATIONAL_KINETIC_ENERGY = 1
@@ -123,17 +115,12 @@ class Action(metaclass=_AbstractLoggable):
     def act(self, timestep):
         """Performs whatever action a subclass implements.
 
-        This method can change the state (updater) or compute or store data
-        (analyzer).
-
         Args:
             timestep (int): The current timestep in a simulation.
 
         Note:
-            A `hoomd.State` is not given here. This means that if the default
-            `attach` method is overwritten, there is no way to query or change
-            the state when called. By default, the state is accessible through
-            ``self._state`` after attaching.
+            Use ``self._state`` to access the simulation state via
+            `hoomd.State`.
         """
         pass
 

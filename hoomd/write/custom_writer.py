@@ -24,9 +24,26 @@ class _WriterProperty:
 
 
 class CustomWriter(CustomOperation, _WriterProperty, Writer):
-    """Writer wrapper for `hoomd.custom.Action` objects.
+    """User-defined writer.
 
-    For usage see `hoomd.custom.CustomOperation`.
+    Args:
+        action (hoomd.custom.Action): The action to call.
+        trigger (hoomd.trigger.Trigger): Select the timesteps to call the
+          action.
+
+    `CustomWriter` is a `hoomd.operation.Writer` that wraps a user-defined
+    `hoomd.custom.Action` object  so it can be added to the `hoomd.Simulation`'s
+    `hoomd.Operations` and called during the run.
+
+    Writers may read the system state and generate output files or print to
+    output streams. Writers should not modify the system state.
+
+    See Also:
+        The base class `hoomd.custom.CustomOperation`.
+
+        `hoomd.update.CustomUpdater`
+
+        `hoomd.tune.CustomTuner`
     """
     _cpp_list_name = 'analyzers'
     _cpp_class_name = 'PythonAnalyzer'

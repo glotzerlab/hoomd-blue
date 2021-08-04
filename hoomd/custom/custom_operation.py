@@ -14,13 +14,12 @@ from hoomd import _hoomd
 
 
 class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
-    """Wrapper for user created `hoomd.custom.Action` objects.
+    """User defined operation.
 
-    This is the parent class for `hoomd.update.CustomUpdater` and
-    `hoomd.analyze.CustomWriter`.  A basic wrapper that allows for Python
-    object inheriting from `hoomd.custom.Action` to be attached to
-    a simulation.  To see how to implement a custom Python action, look at the
-    documentation for `hoomd.custom.Action`.
+    This is the parent class for `hoomd.tune.CustomTuner`,
+    `hoomd.update.CustomUpdater`. and `hoomd.analyze.CustomWriter`.  These
+    classes wrap Python objects that inherit from `hoomd.custom.Action`
+    so they can be added to the simulation operations.
 
     This class also implements a "pass-through" system for attributes.
     Attributes and methods from the passed in `action` will be available
