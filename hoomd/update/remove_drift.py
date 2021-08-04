@@ -30,9 +30,8 @@ class RemoveDrift(Updater):
 
     def __init__(self, reference_positions, trigger=1):
         super().__init__(trigger)
-        self._param_dict.update({
-            "reference_positions": NDArrayValidator(np.float64, (None, 3))
-        })
+        self._param_dict.update(
+            {"reference_positions": NDArrayValidator(np.float64, (None, 3))})
         self.reference_positions = reference_positions
 
     def _add(self, simulation):

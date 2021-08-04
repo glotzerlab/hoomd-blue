@@ -56,9 +56,9 @@ def test_valid_construction_and_attach(simulation_factory,
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr(attr, value):
     """Test that RemoveDrift can get and set attributes."""
-    remove_drift = hoomd.update.RemoveDrift(
-        trigger=hoomd.trigger.Periodic(10),
-        reference_positions=[(0, 0, 1), (-1, 0, 1)])
+    remove_drift = hoomd.update.RemoveDrift(trigger=hoomd.trigger.Periodic(10),
+                                            reference_positions=[(0, 0, 1),
+                                                                 (-1, 0, 1)])
 
     setattr(remove_drift, attr, value)
     assert np.all(getattr(remove_drift, attr) == value)
@@ -68,9 +68,9 @@ def test_valid_setattr(attr, value):
 def test_valid_setattr_attached(attr, value, simulation_factory,
                                 two_particle_snapshot_factory):
     """Test that RemoveDrift can get and set attributes while attached."""
-    remove_drift = hoomd.update.RemoveDrift(
-        trigger=hoomd.trigger.Periodic(10),
-        reference_positions=[(0, 0, 1), (-1, 0, 1)])
+    remove_drift = hoomd.update.RemoveDrift(trigger=hoomd.trigger.Periodic(10),
+                                            reference_positions=[(0, 0, 1),
+                                                                 (-1, 0, 1)])
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'], L=50))
     sim.operations.updaters.append(remove_drift)
@@ -85,7 +85,8 @@ def test_remove_drift(simulation_factory, lattice_snapshot_factory):
     """Test that RemoveDrift modifies positions correctly."""
     # reference positions in a simple cubic lattice with a=1
     reference_positions = [[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5],
-                           [-0.5, 0.5, -0.5], [-0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
+                           [-0.5, 0.5, -0.5], [-0.5, 0.5,
+                                               0.5], [0.5, -0.5, -0.5],
                            [0.5, -0.5, 0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]]
 
     # initialize simulation with randomized positions (off lattice)
@@ -110,7 +111,7 @@ def test_remove_drift(simulation_factory, lattice_snapshot_factory):
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     """Test that RemoveDrift objects are picklable."""
     sim = simulation_factory(two_particle_snapshot_factory())
-    remove_drift = hoomd.update.RemoveDrift(
-        trigger=hoomd.trigger.Periodic(5),
-        reference_positions=[(0, 0, 1), (-1, 0, 1)])
+    remove_drift = hoomd.update.RemoveDrift(trigger=hoomd.trigger.Periodic(5),
+                                            reference_positions=[(0, 0, 1),
+                                                                 (-1, 0, 1)])
     operation_pickling_check(remove_drift, sim)
