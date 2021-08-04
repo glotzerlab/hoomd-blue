@@ -43,7 +43,12 @@ class Force(_HOOMDBaseObject):
     @log(category="particle", requires_run=True)
     def energies(self):
         """(*N_particles*, ) `numpy.ndarray` of ``float``: Energy \
-        contribution from each particle :math:`[\\mathrm{energy}]`."""
+        contribution from each particle :math:`[\\mathrm{energy}]`.
+
+        Attention:
+            In MPI parallel execution, the array is available on rank 0 only.
+            `energies` is `None` on ranks >= 1.
+        """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getEnergies()
 
@@ -57,14 +62,24 @@ class Force(_HOOMDBaseObject):
     @log(category="particle", requires_run=True)
     def forces(self):
         """(*N_particles*, 3) `numpy.ndarray` of ``float``: The \
-        force applied to each particle :math:`[\\mathrm{force}]`."""
+        force applied to each particle :math:`[\\mathrm{force}]`.
+
+        Attention:
+            In MPI parallel execution, the array is available on rank 0 only.
+            `forces` is `None` on ranks >= 1.
+        """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getForces()
 
     @log(category="particle", requires_run=True)
     def torques(self):
         """(*N_particles*, 3) `numpy.ndarray` of ``float``: The torque applied \
-        to each particle :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`."""
+        to each particle :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`.
+
+        Attention:
+            In MPI parallel execution, the array is available on rank 0 only.
+            `torques` is `None` on ranks >= 1.
+        """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getTorques()
 
@@ -75,6 +90,18 @@ class Force(_HOOMDBaseObject):
 
         The 6 elements form the upper-triangular virial tensor in the order:
         xx, xy, xz, yy, yz, zz.
+
+        Attention:
+            To improve performance `Force` objects only compute virials when
+            needed. When not computed, `virials` is `None`. Virials are computed
+            on every step when using a `md.methods.NPT` or `md.methods.NPH`
+            integrator, on steps where a writer is triggered (such as
+            `write.GSD` which may log pressure or virials), or when
+            `Simulation.always_compute_pressure` is `True`.
+
+        Attention:
+            In MPI parallel execution, the array is available on rank 0 only.
+            `virials` is `None` on ranks >= 1.
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getVirials()

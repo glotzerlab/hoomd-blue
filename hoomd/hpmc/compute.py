@@ -176,7 +176,12 @@ class SDF(Compute):
     @log(category='sequence', requires_run=True)
     def sdf(self):
         """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[i]` - The scale \
-        distribution function :math:`[\\mathrm{probability\\ density}]`."""
+        distribution function :math:`[\\mathrm{probability\\ density}]`.
+
+        Attention:
+            In MPI parallel execution, the array is available on rank 0 only.
+            `sdf` is `None` on ranks >= 1.
+        """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.sdf
 
@@ -193,6 +198,10 @@ class SDF(Compute):
 
         where :math:`d` is the dimensionality of the system, :math:`\\rho` is
         the number density, and :math:`\\beta = \\frac{1}{kT}`.
+
+        Attention:
+            In MPI parallel execution, `betaP` is available on rank 0 only.
+            `betaP` is `None` on ranks >= 1.
         """
         if not numpy.isnan(self.sdf).all():
             # get the values to fit
