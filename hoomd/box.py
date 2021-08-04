@@ -348,7 +348,8 @@ class Box:
     # Misc. properties
     @property
     def periodic(self):
-        """(3, ) `numpy.ndarray` of `bool`: The periodicity of each dimension."""
+        """(3, ) `numpy.ndarray` of `bool`: The periodicity of each \
+        dimension."""
         return _vec3_to_array(self._cpp_obj.getPeriodic(), bool)
 
     @property
