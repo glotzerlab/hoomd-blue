@@ -20,10 +20,10 @@ class RemoveDrift(Updater):
             lattice :math:`[\mathrm{length}]`.
         trigger (`hoomd.trigger.Trigger`): Select the timesteps to remove drift.
 
-    During the time steps specified by *trigger*, the average drift
+    During the time steps specified by *trigger*, the mean drift
     :math:`\Delta\vec{r}` from the *reference_positions*
-    (:math:`\vec{r}_{ref}`) is substracted from the current particle positions.
-    The drift computed by this updater is given by:
+    (:math:`\vec{r}_{ref, i}`) is substracted from the current particle
+    positions (:math:`\vec{r}_i`). The drift is then given is given by:
 
     .. math::
 
