@@ -9,11 +9,12 @@ hoomd.update
     :nosignatures:
 
     BoxResize
+    RemoveDrift
     CustomUpdater
 
 .. rubric:: Details
 
 .. automodule:: hoomd.update
     :synopsis: Modify the system state periodically.
-    :members: BoxResize, CustomUpdater
+    :members: BoxResize, RemoveDrift, CustomUpdater
     :imported-members:
