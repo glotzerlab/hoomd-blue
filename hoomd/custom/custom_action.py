@@ -99,6 +99,9 @@ class Action(metaclass=_AbstractLoggable):
         Args:
             simulation (hoomd.Simulation): The simulation to attach the action
                 to.
+
+        Stores the simulation state in ``self._state``. Override this in derived
+        classes to implement other behaviors.
         """
         self._state = simulation.state
 
@@ -120,7 +123,7 @@ class Action(metaclass=_AbstractLoggable):
 
         Note:
             Use ``self._state`` to access the simulation state via
-            `hoomd.State`.
+            `hoomd.State` when using the base class `attach`.
         """
         pass
 
