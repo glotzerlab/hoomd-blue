@@ -186,7 +186,7 @@ def test_attaching(typedict_singleton_keys):
                                   param_name='type_param',
                                   types=sim.state.particle_types,
                                   type_param_dict=typedict_singleton_keys)
-        typedict_singleton_keys['C'] = dict(bar='third')
+    typedict_singleton_keys['C'] = dict(bar='third')
     return AttachedTypeParameterDict(cpp_obj,
                                      param_name='type_param',
                                      types=sim.state.particle_types,
