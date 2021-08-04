@@ -469,25 +469,20 @@ class MuVT(Updater):
 
 
 class RemoveDrift(Updater):
-    r"""Remove the center of mass drift from a system restrained on a lattice.
+    r"""Remove the average drift from a system restrained on a lattice.
 
     Args:
-        reference_positions ((*N*, 3) `numpy.ndarray` of ``numpy.float64``): the
+        reference_positions ((*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``): the
             reference positions of the lattice :math:`[\\mathrm{length}]`.
         trigger (`hoomd.trigger.Trigger`): Select the timesteps to remove drift.
 
     During the time steps specified by *trigger*, the average drift :math:`\\Delta\\vec{r}`
     from the *reference_positions* (:math:`\\vec{r}_{ref}`) is substracted from the
-    particle positions. The drift computed by this updater is given by:
+    current particle positions. The drift computed by this updater is given by:
 
     .. math::
 
         \\Delta\\vec{r} = \\frac{1}{\\mathrm{N_{particles}} \\sum_i \\mathrm{min\_image}(\\vec{r}_i - \\vec{r}_{ref,i})
-
-    Examples::
-
-        rd = hpmc.update.RemoveDrift(reference_positions=[(0, 0, 0), (1, 1, 1)],
-                                     trigger=hoomd.trigger.Periodic(100))
     """
 
     def __init__(self, reference_positions, trigger=1):
