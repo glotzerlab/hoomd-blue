@@ -5,7 +5,6 @@
 #include "Analyzer.h"
 #include "BondedGroupData.h"
 #include "BoxResizeUpdater.h"
-#include "UpdaterRemoveDrift.h"
 #include "CallbackAnalyzer.h"
 #include "CellList.h"
 #include "CellListStencil.h"
@@ -37,6 +36,7 @@
 #include "Trigger.h"
 #include "Tuner.h"
 #include "Updater.h"
+#include "UpdaterRemoveDrift.h"
 #include "Variant.h"
 
 // ParticleFilter objects

@@ -141,11 +141,10 @@ class UpdaterRemoveDrift : public Updater
 /// Export the UpdaterRemoveDrift to python
 void export_UpdaterRemoveDrift(pybind11::module& m)
     {
-    pybind11::class_<UpdaterRemoveDrift,
-                     Updater,
-                     std::shared_ptr<UpdaterRemoveDrift>>(m, "UpdaterRemoveDrift")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            pybind11::array_t<double>>())
+    pybind11::class_<UpdaterRemoveDrift, Updater, std::shared_ptr<UpdaterRemoveDrift>>(
+        m,
+        "UpdaterRemoveDrift")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, pybind11::array_t<double>>())
         .def_property("reference_positions",
                       &UpdaterRemoveDrift::getReferencePositions,
                       &UpdaterRemoveDrift::setReferencePositions);
