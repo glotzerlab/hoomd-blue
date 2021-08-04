@@ -617,9 +617,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
     //! Reallocate internal neighbor list data structures
     void reallocate();
 
-    //! Reallocate internal data structures that depend on types
-    void reallocateTypes();
-
     //! Check the status of the conditions
     bool checkConditions();
 

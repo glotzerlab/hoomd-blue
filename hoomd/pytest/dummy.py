@@ -70,9 +70,18 @@ class DummyOperation(Operation):
 
     This is for testing purposes.
     """
+    _current_obj_number = 0
+
+    def __init__(self):
+        """Increment object counter to enable equality comparison."""
+        self.id = self._current_obj_number
+        self.__class__._current_obj_number += 1
 
     def _attach(self):
         self._cpp_obj = DummyCppObj()
+
+    def __eq__(self, other):
+        return self.id == other.id
 
 
 class DummyTriggeredOp(_TriggeredOperation):

@@ -207,8 +207,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     std::vector<bool> m_d_max_changed; //!< True if maximum body diameter changed (per type)
     std::vector<Scalar> m_body_max_diameter; //!< List of diameters for all body types
     Scalar m_global_max_d;                   //!< Maximum over all body diameters
-    //! Helper function to be called when the number of types changes
-    void slotNumTypesChange();
 
     //! Method to be called when particles are added or removed
     void slotPtlsAddedRemoved()

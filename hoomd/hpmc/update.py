@@ -355,8 +355,9 @@ class MuVT(Updater):
 
     Gibbs ensemble simulations are also supported, where particles and volumeare
     swapped between two or more boxes.  Every box correspond to one MPI
-    partition, and can therefore run on multiple ranks. See ``hoomd.comm`` and
-    the --nrank command line option for how to split a MPI task into partitions.
+    partition, and can therefore run on multiple ranks. Use the
+    ``ranks_per_partition`` argument of `hoomd.communicator.Communicator` to
+    enable partitioned simulations.
 
     Note:
         Multiple Gibbs ensembles are also supported in a single parallel job,

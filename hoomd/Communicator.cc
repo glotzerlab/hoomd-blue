@@ -1288,10 +1288,6 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     m_pdata->getGhostParticlesRemovedSignal()
         .connect<Communicator, &Communicator::slotGhostParticlesRemoved>(this);
 
-    // connect to type change signal
-    m_pdata->getNumTypesChangeSignal().connect<Communicator, &Communicator::slotNumTypesChanged>(
-        this);
-
     // allocate per type ghost width
     GlobalArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
     m_r_ghost.swap(r_ghost);
@@ -1401,8 +1397,6 @@ Communicator::~Communicator()
     m_pdata->getParticleSortSignal().disconnect<Communicator, &Communicator::forceMigrate>(this);
     m_pdata->getGhostParticlesRemovedSignal()
         .disconnect<Communicator, &Communicator::slotGhostParticlesRemoved>(this);
-    m_pdata->getNumTypesChangeSignal().disconnect<Communicator, &Communicator::slotNumTypesChanged>(
-        this);
 
     m_sysdef->getBondData()
         ->getGroupNumChangeSignal()

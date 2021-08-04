@@ -225,106 +225,6 @@ template<class evaluator> class PotentialPair : public ForceCompute
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
-
-    //! Method to be called when number of types changes
-    virtual void slotNumTypesChange()
-        {
-        Index2D new_type_pair_idx = Index2D(m_pdata->getNTypes());
-        std::vector<param_type, managed_allocator<param_type>> new_params(
-            new_type_pair_idx.getNumElements(),
-            param_type(),
-            managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
-
-        // allocate new parameter arrays
-        GlobalArray<Scalar> new_rcutsq(new_type_pair_idx.getNumElements(), m_exec_conf);
-        GlobalArray<Scalar> new_r_cut_nlist(new_type_pair_idx.getNumElements(), m_exec_conf);
-        GlobalArray<Scalar> new_ronsq(new_type_pair_idx.getNumElements(), m_exec_conf);
-
-            {
-            // copy existing data into them
-            ArrayHandle<Scalar> h_new_rcutsq(new_rcutsq,
-                                             access_location::host,
-                                             access_mode::overwrite);
-            ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar> h_new_r_cut_nlist(new_r_cut_nlist,
-                                                  access_location::host,
-                                                  access_mode::overwrite);
-            ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
-                                              access_location::host,
-                                              access_mode::overwrite);
-            ArrayHandle<Scalar> h_new_ronsq(new_ronsq,
-                                            access_location::host,
-                                            access_mode::overwrite);
-            ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::overwrite);
-
-            // copy over entries that are valid in both the new and old matrices
-            unsigned int copy_w = std::min(new_type_pair_idx.getW(), m_typpair_idx.getW());
-            unsigned int copy_h = std::min(new_type_pair_idx.getH(), m_typpair_idx.getH());
-
-            for (unsigned int i = 0; i < copy_w; i++)
-                {
-                for (unsigned int j = 0; j < copy_h; j++)
-                    {
-                    h_new_rcutsq.data[new_type_pair_idx(i, j)] = h_rcutsq.data[m_typpair_idx(i, j)];
-                    h_new_r_cut_nlist.data[new_type_pair_idx(i, j)]
-                        = h_r_cut_nlist.data[m_typpair_idx(i, j)];
-                    h_new_ronsq.data[new_type_pair_idx(i, j)] = h_ronsq.data[m_typpair_idx(i, j)];
-                    new_params[new_type_pair_idx(i, j)] = m_params[m_typpair_idx(i, j)];
-                    }
-                }
-            }
-
-        // swap the new arrays in
-        m_rcutsq.swap(new_rcutsq);
-        m_ronsq.swap(new_ronsq);
-        m_params.swap(new_params);
-
-        // except for the r_cut_nlist which the nlist also refers to, copy the new data over
-        *m_r_cut_nlist = new_r_cut_nlist;
-
-        // set the new type pair indexer
-        m_typpair_idx = new_type_pair_idx;
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-        if (m_pdata->getExecConf()->isCUDAEnabled()
-            && m_pdata->getExecConf()->allConcurrentManagedAccess())
-            {
-            cudaMemAdvise(m_rcutsq.get(),
-                          m_rcutsq.getNumElements() * sizeof(Scalar),
-                          cudaMemAdviseSetReadMostly,
-                          0);
-            cudaMemAdvise(m_ronsq.get(),
-                          m_ronsq.getNumElements() * sizeof(Scalar),
-                          cudaMemAdviseSetReadMostly,
-                          0);
-            cudaMemAdvise(m_params.data(),
-                          m_params.size() * sizeof(param_type),
-                          cudaMemAdviseSetReadMostly,
-                          0);
-
-            // prefetch
-            auto& gpu_map = m_exec_conf->getGPUIds();
-
-            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-                {
-                // prefetch data on all GPUs
-                cudaMemPrefetchAsync(m_rcutsq.get(),
-                                     sizeof(Scalar) * m_rcutsq.getNumElements(),
-                                     gpu_map[idev]);
-                cudaMemPrefetchAsync(m_ronsq.get(),
-                                     sizeof(Scalar) * m_ronsq.getNumElements(),
-                                     gpu_map[idev]);
-                cudaMemPrefetchAsync(m_params.data(),
-                                     sizeof(param_type) * m_params.size(),
-                                     gpu_map[idev]);
-                }
-            CHECK_CUDA_ERROR();
-            }
-#endif
-
-        // notify the neighbor list that we have changed r_cut values
-        m_nlist->notifyRCutMatrixChange();
-        }
     };
 
 /*! \param sysdef System to compute forces on
@@ -392,12 +292,6 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
 
     // initialize name
     m_prof_name = std::string("Pair ") + evaluator::getName();
-
-    // connect to the ParticleData to receive notifications when the maximum number of particles
-    // changes
-    m_pdata->getNumTypesChangeSignal()
-        .template connect<PotentialPair<evaluator>, &PotentialPair<evaluator>::slotNumTypesChange>(
-            this);
     }
 
 template<class evaluator> PotentialPair<evaluator>::~PotentialPair()
@@ -405,9 +299,6 @@ template<class evaluator> PotentialPair<evaluator>::~PotentialPair()
     m_exec_conf->msg->notice(5) << "Destroying PotentialPair<" << evaluator::getName() << ">"
                                 << std::endl;
 
-    m_pdata->getNumTypesChangeSignal()
-        .template disconnect<PotentialPair<evaluator>,
-                             &PotentialPair<evaluator>::slotNumTypesChange>(this);
     if (m_attached)
         {
         m_nlist->removeRCutMatrix(m_r_cut_nlist);

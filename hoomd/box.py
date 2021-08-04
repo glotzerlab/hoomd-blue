@@ -412,16 +412,20 @@ class Box:
     def scale(self, s):
         R"""Scale box dimensions.
 
-        Scales the box by the given scale factors. Tilt factors are not
+        Scales the box in place by the given scale factors. Tilt factors are not
         modified.
 
         Args:
             s (float or Sequence[float]): scale factors in each dimension. If a
                 single float is given then scale all dimensions by s; otherwise,
                 s must be a sequence of 3 values used to scale each dimension.
+
+        Returns:
+            ``self``
         """
         s = np.asarray(s, dtype=float)
         self.L *= s
+        return self
 
     # Magic Methods
     def __repr__(self):

@@ -25,10 +25,6 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
 #endif
       m_global_max_d_changed(true)
     {
-    // connect to the ParticleData to receive notifications when the number of types changes
-    m_pdata->getNumTypesChangeSignal().connect<ForceComposite, &ForceComposite::slotNumTypesChange>(
-        this);
-
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
 
@@ -74,8 +70,6 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
 ForceComposite::~ForceComposite()
     {
     // disconnect from signal in ParticleData;
-    m_pdata->getNumTypesChangeSignal()
-        .disconnect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
     m_pdata->getGlobalParticleNumberChangeSignal()
         .disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
     m_pdata->getCompositeParticlesSignal()
@@ -265,38 +259,6 @@ Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
         }
 
     return d_max;
-    }
-
-void ForceComposite::slotNumTypesChange()
-    {
-    unsigned int old_ntypes = (unsigned int)m_body_len.getNumElements();
-    unsigned int new_ntypes = m_pdata->getNTypes();
-
-    size_t height = m_body_pos.getHeight();
-
-    // resize per-type arrays (2D)
-    m_body_types.resize(new_ntypes, height);
-    m_body_pos.resize(new_ntypes, height);
-    m_body_orientation.resize(new_ntypes, height);
-
-    m_body_charge.resize(new_ntypes);
-    m_body_diameter.resize(new_ntypes);
-
-    m_body_idx = Index2D((unsigned int)m_body_pos.getPitch(), (unsigned int)height);
-
-    m_body_len.resize(new_ntypes);
-
-    // reset newly added elements to zero
-    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
-    for (unsigned int i = old_ntypes; i < new_ntypes; ++i)
-        {
-        h_body_len.data[i] = 0;
-        }
-
-    m_d_max.resize(new_ntypes, Scalar(0.0));
-    m_d_max_changed.resize(new_ntypes, false);
-
-    m_body_max_diameter.resize(new_ntypes, 0.0);
     }
 
 Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
