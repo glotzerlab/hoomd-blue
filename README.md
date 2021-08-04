@@ -11,7 +11,7 @@
 **HOOMD-blue** is a Python package that runs simulations of particle systems on CPUs and GPUs. It
 performs hard particle Monte Carlo simulations of a variety of shape classes and molecular dynamics
 simulations of particles with a range of pair, bond, angle, and other potentials. Many features are
-targetted at the soft matter research community, though the code is general and capable of many
+targeted at the soft matter research community, though the code is general and capable of many
 types of particle simulations.
 
 ## Resources
@@ -50,6 +50,7 @@ mc.shape['octahedron'] = dict(vertices=[
 cpu = hoomd.device.CPU()
 sim = hoomd.Simulation(device=cpu, seed=20)
 sim.operations.integrator = mc
+# See HOOMD tutorial for how to construct an initial configuration 'init.gsd'
 sim.create_state_from_gsd(filename='init.gsd')
 
 sim.run(1e5)
