@@ -102,7 +102,7 @@ class Device:
 
     @property
     def devices(self):
-        """List[str]: Descriptions of the active hardware devices."""
+        """list[str]: Descriptions of the active hardware devices."""
         return self._cpp_exec_conf.getActiveDevices()
 
     @property
@@ -146,7 +146,7 @@ class GPU(Device):
     """Select a GPU or GPU(s) to execute simulations.
 
     Args:
-        gpu_ids (List[int]): List of GPU ids to use. Set to `None` to let the
+        gpu_ids (list[int]): List of GPU ids to use. Set to `None` to let the
             driver auto-select a GPU.
 
         num_cpu_threads (int): Number of TBB threads. Set to `None` to
@@ -268,7 +268,7 @@ class GPU(Device):
         """Get the available GPU devices.
 
         Returns:
-            List[str]: Descriptions of the available devices (if any).
+            list[str]: Descriptions of the available devices (if any).
         """
         return list(_hoomd.ExecutionConfiguration.getCapableDevices())
 
@@ -277,7 +277,7 @@ class GPU(Device):
         """Get messages describing the reasons why devices are unavailable.
 
         Returns:
-            List[str]: Messages indicating why some devices are unavailable
+            list[str]: Messages indicating why some devices are unavailable
             (if any).
         """
         return list(_hoomd.ExecutionConfiguration.getScanMessages())
