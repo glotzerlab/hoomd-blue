@@ -122,6 +122,7 @@ set(_hoomd_headers
     BondedGroupData.h
     BoxDim.h
     BoxResizeUpdater.h
+    UpdaterRemoveDrift.h
     CachedAllocator.h
     CallbackAnalyzer.h
     CellListGPU.cuh

@@ -10,7 +10,6 @@ set(files __init__.py
           test_quick_compress.py
           test_small_box_2d.py
           test_small_box_3d.py
-          test_remove_drift.py
           conftest.py
           depletants_sphere.py
     )
