@@ -28,7 +28,7 @@ class RemoveDrift(Updater):
     .. math::
 
         \Delta\vec{r} = \frac{1}{\mathrm{N_{particles}}}
-            \sum_{i=1}^\mathrm{N_{particles}} \mathrm{minimage}(\vec{r}_i -
+            \sum_{i=1}^\mathrm{N_{particles}} \mathrm{min\_image}(\vec{r}_i -
             \vec{r}_{ref,i})
     """
 
