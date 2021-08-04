@@ -100,7 +100,7 @@ def test_remove_drift(simulation_factory, lattice_snapshot_factory):
     sim.run(1)
 
     # ensure the drift is close to zero after the updater has been executed
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         new_positions = s.particles.position
         drift = np.mean(new_positions - reference_positions, axis=0)

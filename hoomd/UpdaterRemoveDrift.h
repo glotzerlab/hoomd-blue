@@ -1,37 +1,26 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-// **********************
-// This is a simple example code written for no function purpose other then to demonstrate the steps
-// needed to write a c++ source code plugin for HOOMD-Blue. This example includes an example Updater
-// class, but it can just as easily be replaced with a ForceCompute, Integrator, or any other C++
-// code at all.
+// Maintainer: joaander
+
+/*! \file UpdaterRemoveDrift.h
+    \brief Declares an updater that removes the average drift from the particles
+*/
 
 // inclusion guard
 #ifndef _REMOVE_DRIFT_UPDATER_H_
 #define _REMOVE_DRIFT_UPDATER_H_
-
-/*! \file ExampleUpdater.h
-    \brief Declaration of ExampleUpdater
-*/
-
-// First, hoomd.h should be included
 
 #include "hoomd/Updater.h"
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
-// (if you really don't want to include the whole hoomd.h, you can include individual files IF AND
-// ONLY IF hoomd_config.h is included first) For example:
-//
-// #include "hoomd/Updater.h"
 
-// Second, we need to declare the class. One could just as easily use any class in HOOMD as a
-// template here, there are no restrictions on what a template can do
-
-//! A nonsense particle updater written to demonstrate how to write a plugin
-/*! This updater simply sets all of the particle's velocities to 0 when update() is called.
+/** This updater removes the average particle drift from the reference positions.
+ * The minimum image convention is applied to each particle displacement from the
+ * reference configuration before averaging over N_particles. The particles are
+ * wrapped back into the box after the mean drift is substracted.
  */
 class UpdaterRemoveDrift : public Updater
     {
@@ -44,18 +33,18 @@ class UpdaterRemoveDrift : public Updater
         setReferencePositions(ref_positions);
         }
 
-    //! Set reference positions from a Nx3 numpy array
+    //! Set reference positions from a (N_particles, 3) numpy array
     void setReferencePositions(const pybind11::array_t<double> ref_pos)
         {
-        const size_t N = ref_pos.request().shape[0];
+        const size_t N_particles = ref_pos.request().shape[0];
         const size_t dim = ref_pos.request().shape[1];
-        if (N != this->m_pdata->getNGlobal() || dim != 3)
+        if (N_particles != this->m_pdata->getNGlobal() || dim != 3)
             {
             throw std::runtime_error("The array must be of shape (N_particles, 3).");
             }
         const double* rawdata = static_cast<double*>(ref_pos.request().ptr);
         m_ref_positions.resize(m_pdata->getNGlobal());
-        for (size_t i = 0; i < N; i++)
+        for (size_t i = 0; i < N_particles; i++)
             {
             const size_t array_index = i * 3;
             this->m_ref_positions[i] = vec3<Scalar>(rawdata[array_index],
@@ -71,7 +60,7 @@ class UpdaterRemoveDrift : public Updater
 #endif
         }
 
-    //! Get reference positions as a Nx3 numpy array
+    //! Get reference positions as a (N_particles, 3) numpy array
     pybind11::array_t<double> getReferencePositions() const
         {
         std::vector<size_t> dims(2);
@@ -149,7 +138,7 @@ class UpdaterRemoveDrift : public Updater
     std::vector<vec3<Scalar>> m_ref_positions;
     };
 
-//! Export the ExampleUpdater class to python
+/// Export the UpdaterRemoveDrift to python
 void export_UpdaterRemoveDrift(pybind11::module& m)
     {
     pybind11::class_<UpdaterRemoveDrift,
