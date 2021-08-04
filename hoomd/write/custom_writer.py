@@ -32,8 +32,8 @@ class CustomWriter(CustomOperation, _WriterProperty, Writer):
           action.
 
     `CustomWriter` is a `hoomd.operation.Writer` that wraps a user-defined
-    `hoomd.custom.Action` object  so it can be added to the `hoomd.Simulation`'s
-    `hoomd.Operations` and called during the run.
+    `hoomd.custom.Action` object so the action can be added to a
+    `hoomd.Operations` instance for use with `hoomd.Simulation` objects.
 
     Writers may read the system state and generate output files or print to
     output streams. Writers should not modify the system state.

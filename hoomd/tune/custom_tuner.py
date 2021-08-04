@@ -34,7 +34,7 @@ class CustomTuner(CustomOperation, _TunerProperty, Tuner):
           action.
 
     `CustomTuner` is a `hoomd.operation.Tuner` that wraps a user-defined
-    `hoomd.custom.Action` object  so the action can be added to a
+    `hoomd.custom.Action` object so the action can be added to a
     `hoomd.Operations` instance for use with `hoomd.Simulation` objects.
 
     Tuners modify the parameters of other operations to improve performance.

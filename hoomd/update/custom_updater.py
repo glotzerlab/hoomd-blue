@@ -32,8 +32,8 @@ class CustomUpdater(CustomOperation, _UpdaterProperty, Updater):
           action.
 
     `CustomUpdater` is a `hoomd.operation.Updater` that wraps a user-defined
-    `hoomd.custom.Action` object  so it can be added to the `hoomd.Simulation`'s
-    `hoomd.Operations` and called during the run.
+    `hoomd.custom.Action` object so the action can be added to a
+    `hoomd.Operations` instance for use with `hoomd.Simulation` objects.
 
     Updaters modify the system state.
 
