@@ -26,7 +26,7 @@ class _TunerProperty:
 
 
 class CustomTuner(CustomOperation, _TunerProperty, Tuner):
-    """User-defined writer.
+    """User-defined tuner.
 
     Args:
         action (hoomd.custom.Action): The action to call.
@@ -34,8 +34,8 @@ class CustomTuner(CustomOperation, _TunerProperty, Tuner):
           action.
 
     `CustomTuner` is a `hoomd.operation.Tuner` that wraps a user-defined
-    `hoomd.custom.Action` object  so it can be added to the `hoomd.Simulation`'s
-    `hoomd.Operations` and called during the run.
+    `hoomd.custom.Action` object  so the action can be added to a
+    `hoomd.Operations` instance for use with `hoomd.Simulation` objects.
 
     Tuners modify the parameters of other operations to improve performance.
     Tuners may read the system state, but not modify it.

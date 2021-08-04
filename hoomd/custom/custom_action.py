@@ -22,7 +22,7 @@ class Action(metaclass=_AbstractLoggable):
     """Base class for user-defined actions.
 
     To implement a custom operation in Python, subclass `Action` and
-    re-implement the :meth:`~.act` method to perform the desired action. To
+    implement the :meth:`~.act` method to perform the desired action. To
     include the action in the simulation run loop, pass an instance of the
     action to `hoomd.update.CustomUpdater`, `hoomd.write.CustomWriter`, or
     `hoomd.tune.CustomTuner`.
