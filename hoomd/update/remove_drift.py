@@ -27,8 +27,9 @@ class RemoveDrift(Updater):
 
     .. math::
 
-        \Delta\vec{r} = \frac{1}{\mathrm{N_{particles}} \sum_i
-            \mathrm{min\_image}(\vec{r}_i - \vec{r}_{ref,i})
+        \Delta\vec{r} = \frac{1}{\mathrm{N_{particles}}}
+            \sum_{i=1}^\mathrm{N_{particles}} \mathrm{minimage}(\vec{r}_i -
+            \vec{r}_{ref,i})
     """
 
     def __init__(self, reference_positions, trigger=1):
