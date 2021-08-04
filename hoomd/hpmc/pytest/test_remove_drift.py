@@ -87,34 +87,28 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 
 def test_remove_drift(simulation_factory, lattice_snapshot_factory):
     """Test that RemoveDrift modifies positions correctly."""
-    dev = hoomd.device.CPU()
-    sim = hoomd.simulation.Simulation(device=dev, seed=10234)
-    snap = hoomd.snapshot.Snapshot(communicator=dev.communicator)
-    reference_positions = np.array([[2, 0, 0.1], [-2, 0, 0.1]])
-    box = np.array([10, 10, 10, 0, 0, 0])
-    if snap.communicator.rank == 0:
-        snap.particles.N = 2
-        snap.particles.position[:] = reference_positions
-        snap.configuration.box = box
-        snap.particles.types = ["A"]
-    sim.create_state_from_snapshot(snap)
+    # reference positions in a simple cubic lattice with a=1
+    reference_positions = [[-0.5, -0.5, -0.5],
+                           [-0.5, -0.5,  0.5],
+                           [-0.5,  0.5, -0.5],
+                           [-0.5,  0.5,  0.5],
+                           [ 0.5, -0.5, -0.5],
+                           [ 0.5, -0.5,  0.5],
+                           [ 0.5,  0.5, -0.5],
+                           [ 0.5,  0.5,  0.5]]
 
-    mc = hoomd.hpmc.integrate.Sphere(default_d=0.5)
-    mc.shape["A"] = dict(diameter=1.0)
-    sim.operations.integrator = mc
+    # initialize simulation with randomized positions (off lattice)
+    snap = lattice_snapshot_factory(dimensions=3, n=2, a=1, r=0.1)
+    sim = simulation_factory(snap)
 
-    # randomize a bit
-    sim.run(500)
-
-    # make sure only the updater is acting on the system
-    sim.operations.integrator.d["A"] = 0
-    # remove the drift from the previous run
+    # add remove drift updater and run
     remove_drift = hoomd.hpmc.update.RemoveDrift(
         trigger=hoomd.trigger.Periodic(1),
         reference_positions=reference_positions)
     sim.operations.updaters.append(remove_drift)
     sim.run(1)
 
+    # ensure the drift is close to zero after the updater has been executed
     s = sim.state.snapshot
     if s.communicator.rank == 0:
         new_positions = s.particles.position
