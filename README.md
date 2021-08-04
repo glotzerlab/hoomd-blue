@@ -73,6 +73,7 @@ integrator.methods.append(nvt)
 gpu = hoomd.device.GPU()
 sim = hoomd.Simulation(device=gpu)
 sim.operations.integrator = integrator
+# See HOOMD tutorial for how to construct an initial configuration 'init.gsd'
 sim.create_state_from_gsd(filename='init.gsd')
 sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
 
