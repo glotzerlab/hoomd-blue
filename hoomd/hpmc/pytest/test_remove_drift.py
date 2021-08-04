@@ -44,9 +44,7 @@ def test_valid_construction_and_attach(simulation_factory,
     """Test that RemoveDrift can be attached with valid arguments."""
     remove_drift = hoomd.hpmc.update.RemoveDrift(**constructor_args)
     sim = simulation_factory(
-        two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                      d=2,
-                                      L=50))
+        two_particle_snapshot_factory(particle_types=['A', 'B'], d=2, L=50))
     sim.operations.updaters.append(remove_drift)
 
     sim.run(0)
@@ -75,8 +73,7 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
         trigger=hoomd.trigger.Periodic(10),
         reference_positions=[(0, 0, 1), (-1, 0, 1)])
     sim = simulation_factory(
-        two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                      L=50))
+        two_particle_snapshot_factory(particle_types=['A', 'B'], L=50))
     sim.operations.updaters.append(remove_drift)
 
     sim.run(0)
@@ -88,14 +85,10 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 def test_remove_drift(simulation_factory, lattice_snapshot_factory):
     """Test that RemoveDrift modifies positions correctly."""
     # reference positions in a simple cubic lattice with a=1
-    reference_positions = [[-0.5, -0.5, -0.5],
-                           [-0.5, -0.5,  0.5],
-                           [-0.5,  0.5, -0.5],
-                           [-0.5,  0.5,  0.5],
-                           [ 0.5, -0.5, -0.5],
-                           [ 0.5, -0.5,  0.5],
-                           [ 0.5,  0.5, -0.5],
-                           [ 0.5,  0.5,  0.5]]
+    reference_positions = [[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5],
+                           [-0.5, 0.5, -0.5], [-0.5, 0.5,
+                                               0.5], [0.5, -0.5, -0.5],
+                           [0.5, -0.5, 0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]]
 
     # initialize simulation with randomized positions (off lattice)
     snap = lattice_snapshot_factory(dimensions=3, n=2, a=1, r=0.1)
