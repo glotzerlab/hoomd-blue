@@ -24,9 +24,25 @@ class _UpdaterProperty:
 
 
 class CustomUpdater(CustomOperation, _UpdaterProperty, Updater):
-    """Updater wrapper for `hoomd.custom.Action` objects.
+    """User-defined updater.
 
-    For usage see `hoomd.custom.CustomOperation`.
+    Args:
+        action (hoomd.custom.Action): The action to call.
+        trigger (hoomd.trigger.Trigger): Select the timesteps to call the
+          action.
+
+    `CustomUpdater` is a `hoomd.operation.Updater` that wraps a user-defined
+    `hoomd.custom.Action` object so the action can be added to a
+    `hoomd.Operations` instance for use with `hoomd.Simulation` objects.
+
+    Updaters modify the system state.
+
+    See Also:
+        The base class `hoomd.custom.CustomOperation`.
+
+        `hoomd.tune.CustomTuner`
+
+        `hoomd.write.CustomWriter`
     """
     _cpp_list_name = 'updaters'
     _cpp_class_name = 'PythonUpdater'
