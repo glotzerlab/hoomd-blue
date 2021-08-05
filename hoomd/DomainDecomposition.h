@@ -113,17 +113,17 @@ class PYBIND11_EXPORT DomainDecomposition
         if (dir == 0)
             {
             assert(idx >= 0 && idx < m_nx + 1);
-            return m_cum_frac_x[idx];
+            return m_cumulative_frac_x[idx];
             }
         else if (dir == 1)
             {
             assert(idx >= 0 && idx < m_ny + 1);
-            return m_cum_frac_y[idx];
+            return m_cumulative_frac_y[idx];
             }
         else if (dir == 2)
             {
             assert(idx >= 0 && idx < m_nz + 1);
-            return m_cum_frac_z[idx];
+            return m_cumulative_frac_z[idx];
             }
         else
             {
@@ -140,11 +140,11 @@ class PYBIND11_EXPORT DomainDecomposition
     std::vector<Scalar> getCumulativeFractions(unsigned int dir) const
         {
         if (dir == 0)
-            return m_cum_frac_x;
+            return m_cumulative_frac_x;
         else if (dir == 1)
-            return m_cum_frac_y;
+            return m_cumulative_frac_y;
         else if (dir == 2)
-            return m_cum_frac_z;
+            return m_cumulative_frac_z;
         else
             {
             m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
@@ -227,9 +227,9 @@ class PYBIND11_EXPORT DomainDecomposition
     std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
     const MPI_Comm m_mpi_comm;                           //!< MPI communicator
 
-    std::vector<Scalar> m_cum_frac_x; //!< Cumulative fractions in x below cut plane index
-    std::vector<Scalar> m_cum_frac_y; //!< Cumulative fractions in y below cut plane index
-    std::vector<Scalar> m_cum_frac_z; //!< Cumulative fractions in z below cut plane index
+    std::vector<Scalar> m_cumulative_frac_x; //!< Cumulative fractions in x below cut plane index
+    std::vector<Scalar> m_cumulative_frac_y; //!< Cumulative fractions in y below cut plane index
+    std::vector<Scalar> m_cumulative_frac_z; //!< Cumulative fractions in z below cut plane index
 #endif                                // ENABLE_MPI
     };
 
