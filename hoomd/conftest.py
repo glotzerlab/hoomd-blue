@@ -55,7 +55,7 @@ def simulation_factory(device):
     TODO: duck type this to allow it to create state from GSD files as well
     """
 
-    def make_simulation(snapshot=None):
+    def make_simulation(snapshot=None, domain_decomposition=None):
         sim = Simulation(device)
 
         # reduce sorter grid to avoid Hilbert curve overhead in unit tests
@@ -64,7 +64,10 @@ def simulation_factory(device):
                 tuner.grid = 8
 
         if (snapshot is not None):
-            sim.create_state_from_snapshot(snapshot)
+            if domain_decomposition is None:
+                sim.create_state_from_snapshot(snapshot)
+            else:
+                sim.create_state_from_snapshot(snapshot, domain_decomposition)
         return sim
 
     return make_simulation

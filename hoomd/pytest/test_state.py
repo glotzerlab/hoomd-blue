@@ -241,3 +241,42 @@ def test_replicate(simulation_factory, lattice_snapshot_factory):
     sim.state.replicate(2, 2, 2)
     new_snapshot = sim.state.get_snapshot()
     assert_snapshots_equal(initial_snapshot, new_snapshot)
+
+
+def test_domain_decomposition(device, simulation_factory,
+                              lattice_snapshot_factory):
+    snapshot = lattice_snapshot_factory()
+
+    if device.communicator.num_ranks == 1:
+        sim = simulation_factory(snapshot)
+        assert sim.state.domain_decomposition == (1, 1, 1)
+        assert sim.state.domain_decomposition_split_fractions == ([], [], [])
+    elif device.communicator.num_ranks == 2:
+        sim = simulation_factory(snapshot)
+        assert sim.state.domain_decomposition == (1, 1, 2)
+        assert sim.state.domain_decomposition_split_fractions == ([], [], [0.5])
+
+        sim = simulation_factory(snapshot, domain_decomposition=(None, 1, 1))
+        assert sim.state.domain_decomposition == (2, 1, 1)
+        assert sim.state.domain_decomposition_split_fractions == ([0.5], [], [])
+
+        sim = simulation_factory(snapshot, domain_decomposition=(2, 1, 1))
+        assert sim.state.domain_decomposition == (2, 1, 1)
+        assert sim.state.domain_decomposition_split_fractions == ([0.5], [], [])
+
+        sim = simulation_factory(snapshot, domain_decomposition=(1, None, 1))
+        assert sim.state.domain_decomposition == (1, 2, 1)
+        assert sim.state.domain_decomposition_split_fractions == ([], [0.5], [])
+
+        sim = simulation_factory(snapshot, domain_decomposition=(1, 2, 1))
+        assert sim.state.domain_decomposition == (1, 2, 1)
+        assert sim.state.domain_decomposition_split_fractions == ([], [0.5], [])
+
+        sim = simulation_factory(snapshot,
+                                 domain_decomposition=(None, None, [0.25,
+                                                                    0.75]))
+        assert sim.state.domain_decomposition == (1, 1, 2)
+        assert sim.state.domain_decomposition_split_fractions == ([], [],
+                                                                  [0.25])
+    else:
+        raise RuntimeError("Test only supports 1 and 2 ranks")

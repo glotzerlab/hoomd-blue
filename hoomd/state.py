@@ -659,12 +659,12 @@ class State:
         decomposition = particle_data.getDomainDecomposition()
 
         if not hoomd.version.mpi_enabled or decomposition is None:
-            return [[], [], []]
+            return ([], [], [])
         else:
-            return [
+            return tuple([
                 list(decomposition.getCumulativeFractions(dir))[1:-1]
                 for dir in range(3)
-            ]
+            ])
 
     @property
     def domain_decomposition(self):
@@ -674,9 +674,9 @@ class State:
         decomposition = particle_data.getDomainDecomposition()
 
         if not hoomd.version.mpi_enabled or decomposition is None:
-            return [1, 1, 1]
+            return (1, 1, 1)
         else:
-            return [
+            return tuple([
                 len(decomposition.getCumulativeFractions(dir)) - 1
                 for dir in range(3)
-            ]
+            ])
