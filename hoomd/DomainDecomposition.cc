@@ -77,14 +77,11 @@ DomainDecomposition::DomainDecomposition(std::shared_ptr<ExecutionConfiguration>
     if ((nx > 0 && try_fxs.size() != m_nx - 1) || (ny > 0 && try_fys.size() != m_ny - 1)
         || (nz > 0 && try_fzs.size() != m_nz - 1))
         {
-        m_exec_conf->msg->warning() << "Domain decomposition grid does not match specification, "
-                                       "defaulting to uniform spacing"
-                                    << std::endl;
-
-        // clear out the vectors and default to uniform in all dimensions
-        try_fxs.clear();
-        try_fys.clear();
-        try_fzs.clear();
+        std::ostringstream o;
+        o << "Domain decomposition grid does not match specification:"
+          << "(" << m_nx << "," << m_ny << "," << m_nz << ") is not (" << try_fxs.size() + 1 << ","
+          << try_fys.size() + 1 << "," << try_fzs.size() + 1 << ")";
+        throw std::invalid_argument(o.str());
         }
 
     // if domain fractions weren't set, fill the fractions uniformly
@@ -160,12 +157,8 @@ void DomainDecomposition::initializeDomainGrid(Scalar3 L,
             bool found_decomposition = findDecomposition(nranks, L, nx, ny, nz);
             if (!found_decomposition)
                 {
-                m_exec_conf->msg->warning()
-                    << "Unable to find a decomposition with"
-                    << " requested dimensions. Choosing default decomposition." << endl;
-
-                nx = ny = nz = 0;
-                findDecomposition(nranks, L, nx, ny, nz);
+                throw std::invalid_argument(
+                    "Unable to find a decomposition with the requested dimensions.");
                 }
             }
         m_nx = nx;
@@ -278,11 +271,11 @@ void DomainDecomposition::initializeDomainGrid(Scalar3 L,
         }
 
     // Print out information about the domain decomposition
-    m_exec_conf->msg->notice(1) << "HOOMD-blue is using domain decomposition: n_x = " << m_nx
-                                << " n_y = " << m_ny << " n_z = " << m_nz << "." << std::endl;
+    m_exec_conf->msg->notice(2) << "Using domain decomposition: n_x = " << m_nx << " n_y = " << m_ny
+                                << " n_z = " << m_nz << "." << std::endl;
 
     if (m_twolevel)
-        m_exec_conf->msg->notice(1) << nx_intra << " x " << ny_intra << " x " << nz_intra
+        m_exec_conf->msg->notice(2) << nx_intra << " x " << ny_intra << " x " << nz_intra
                                     << " local grid on " << m_nodes.size() << " nodes" << std::endl;
 
     // compute position of this box in the domain grid by reverse look-up
@@ -509,8 +502,7 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
     {
     if (dir > 2)
         {
-        m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
-        throw std::runtime_error("comm: requested direction does not exist");
+        throw std::invalid_argument("Requested direction does not exist.");
         }
 
     bool changed = false;
@@ -543,8 +535,7 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
 
             if (m_cum_frac_x.front() != Scalar(0.0) || m_cum_frac_x.back() != Scalar(1.0))
                 {
-                m_exec_conf->msg->error() << "comm: specified fractions are invalid" << std::endl;
-                throw std::runtime_error("comm: specified fractions are invalid");
+                throw std::invalid_argument("Specified fractions are invalid.");
                 }
             }
         else if (dir == 1)
@@ -553,8 +544,7 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
 
             if (m_cum_frac_y.front() != Scalar(0.0) || m_cum_frac_y.back() != Scalar(1.0))
                 {
-                m_exec_conf->msg->error() << "comm: specified fractions are invalid" << std::endl;
-                throw std::runtime_error("comm: specified fractions are invalid");
+                throw std::invalid_argument("Specified fractions are invalid.");
                 }
             }
         else if (dir == 2)
@@ -563,17 +553,14 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
 
             if (m_cum_frac_z.front() != Scalar(0.0) || m_cum_frac_z.back() != Scalar(1.0))
                 {
-                m_exec_conf->msg->error() << "comm: specified fractions are invalid" << std::endl;
-                throw std::runtime_error("comm: specified fractions are invalid");
+                throw std::invalid_argument("Specified fractions are invalid.");
                 }
             }
         }
     else // if no change, it's because things don't match up
         {
-        m_exec_conf->msg->error()
-            << "comm: domain decomposition cannot change topology after construction" << std::endl;
-        throw std::runtime_error(
-            "comm: domain decomposition cannot change topology after construction");
+        throw std::invalid_argument(
+            "domain decomposition cannot change topology after construction");
         }
     }
 
@@ -624,21 +611,18 @@ unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box,
     if (f.x < -tol || f.x >= 1.0 + tol || f.y < -tol || f.y >= 1.0 + tol || f.z < -tol
         || f.z >= 1.0 + tol)
         {
-        m_exec_conf->msg->error() << "Particle coordinates outside global box." << std::endl;
-        m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;
-        m_exec_conf->msg->error() << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z
-                                  << std::endl;
-        m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
-        m_exec_conf->msg->error() << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z
-                                  << std::endl;
+        std::ostringstream o;
+        o << "Particle coordinates outside global box." << std::endl;
+        o << "Cartesian coordinates: " << std::endl;
+        o << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
+        o << "Fractional coordinates: " << std::endl;
+        o << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
         Scalar3 lo = global_box.getLo();
         Scalar3 hi = global_box.getHi();
-        m_exec_conf->msg->error() << "Global box lo: (" << lo.x << ", " << lo.y << ", " << lo.z
-                                  << ")" << std::endl;
-        m_exec_conf->msg->error() << "           hi: (" << hi.x << ", " << hi.y << ", " << hi.z
-                                  << ")" << std::endl;
+        o << "Global box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
+        o << "           hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
 
-        throw std::runtime_error("Error placing particle");
+        throw std::runtime_error(o.str());
         }
 
     // compute the box the particle should be placed into
