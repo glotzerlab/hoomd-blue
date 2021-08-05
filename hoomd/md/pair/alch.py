@@ -18,15 +18,27 @@ from hoomd.variant import Variant
 # I just like alch(MD/MC) as alchemy specification aliases
 
 # TODO: remove this variable when the log names are finalized
-_api = ['value', 'mass', 'mu', 'avalue', 'amomentum', 'net_aforce', 'aforces']
+_api = {}
+_api[0.1] = [
+    'value', 'mass', 'mu', 'avalue', 'amomentum', 'net_aforce', 'aforces'
+]
 
 
 class _AlchemicalPairPotential(Loggable):
     """A metaclass to make alchemical modifications to the pair potential."""
 
     def __new__(cls, name, superclasses, attributedict):
-        attributedict[
-            '_cpp_class_name'] = 'Alchemical' + superclasses[0]._cpp_class_name
+        new_cpp_name = [
+            'PotentialPair', 'Alchemical', superclasses[0]._cpp_class_name[13:]
+        ]
+        if attributedict.get('noramlized', False):
+            new_cpp_name.insert(2, 'Normalized')
+            attributedict['_particle_type'] = AlchemicalNormalizedPairParticle
+        else:
+            attributedict['normalized'] = False
+            attributedict['_particle_type'] = AlchemicalPairParticle
+        attributedict['_cpp_class_name'] = ''.join(new_cpp_name)
+
         superclasses += (_AlchemicalMethods,)
         return super().__new__(cls, name, superclasses, attributedict)
 
@@ -38,7 +50,7 @@ class _AlchemicalPairPotential(Loggable):
 
 # Perhaps define a true base alch particle to base this off of just adding the
 # MD components mirroring the cpp side
-class AlchemicalMDParticle(_HOOMDBaseObject):
+class AlchemicalPairParticle(_HOOMDBaseObject):
     """Alchemical pair particle associated with a specific force."""
 
     __slots__ = ['force', 'name', 'typepair', '_cpp_obj', '_mass']
@@ -143,6 +155,20 @@ class AlchemicalMDParticle(_HOOMDBaseObject):
         self.force._cpp_obj.disableAlchemicalPairParticle(self._cpp_obj)
 
 
+class AlchemicalNormalizedPairParticle(AlchemicalPairParticle):
+    """Alchemical normalized pair particle."""
+
+    @log(default=False, requires_run=True)
+    def norm_value(self):
+        """Normalization Value."""
+        return self._cpp_obj.norm_value
+
+    @log(default=False, requires_run=True, category='particle')
+    def aforces(self):
+        """Per particle forces in alchemical alpha space."""
+        return self._cpp_obj.forces * self._cpp_obj.norm_value
+
+
 class _AlchemicalMethods(_HOOMDBaseObject):
 
     def __init__(self):
@@ -152,7 +178,7 @@ class _AlchemicalMethods(_HOOMDBaseObject):
 
         def __init__(self, outer):
             self.outer = outer
-            super().__init__(SetOnce(AlchemicalMDParticle), len_keys=2)
+            super().__init__(SetOnce(outer._particle_type), len_keys=2)
 
         def _validate_and_split_alchem(self, key):
             if isinstance(key, tuple) and len(key) == self._len_keys:
@@ -177,7 +203,8 @@ class _AlchemicalMethods(_HOOMDBaseObject):
                 for p in param:
                     k = (t, p)
                     if k not in self._dict:
-                        self._dict[k] = AlchemicalMDParticle(self.outer, p, t)
+                        self._dict[k] = self.outer._particle_type(
+                            self.outer, p, t)
                     vals[k] = self._dict[k]
             if len(vals) > 1:
                 return vals
@@ -213,6 +240,20 @@ class LJGauss(pair.LJGauss, metaclass=_AlchemicalPairPotential):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
 
+class NLJGauss(pair.LJGauss, metaclass=_AlchemicalPairPotential):
+    """Alchemical Lennard Jones Gauss pair potential."""
+    _alchemical_parameters = ['epsilon', 'sigma2', 'r0']
+    noramlized = True
+
+    def __init__(self,
+                 nlist,
+                 default_r_cut=None,
+                 default_r_on=0.0,
+                 mode='none'):
+        _AlchemicalMethods.__init__(self)
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+
+
 class Alchemostat(Method):
     """Alchemostat Base Class."""
 
@@ -220,7 +261,7 @@ class Alchemostat(Method):
         if alchemical_particles is None:
             alchemical_particles = []
         self._alchemical_particles = syncedlist.SyncedList(
-            AlchemicalMDParticle,
+            AlchemicalPairParticle,
             syncedlist._PartialGetAttr('_cpp_obj'),
             iterable=alchemical_particles)
 

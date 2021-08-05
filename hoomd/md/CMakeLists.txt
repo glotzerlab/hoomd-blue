@@ -49,7 +49,7 @@ set(_md_sources module-md.cc
 
 set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceCompute.h
-                AlchemicalPotentialPair.h
+                AlchemyData.h
                 AllAnisoPairPotentials.h
                 AllBondPotentials.h
                 AllExternalPotentials.h
@@ -152,6 +152,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialExternalGPU.h
                 PotentialExternalGPU.cuh
                 PotentialExternal.h
+                PotentialPairAlchemical.h
+                PotentialPairAlchemicalNormalized.h
                 PotentialPairDPDThermoGPU.h
                 PotentialPairDPDThermoGPU.cuh
                 PotentialPairDPDThermo.h

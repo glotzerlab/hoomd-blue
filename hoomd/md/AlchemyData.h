@@ -11,6 +11,7 @@
 #define __ALCHEMYDATA_H__
 
 #include "hoomd/ExecutionConfiguration.h"
+#include <algorithm>
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
@@ -18,13 +19,12 @@
 #include <memory>
 #include <string>
 
-#include "HOOMDMPI.h"
 #include "hoomd/ForceCompute.h"
+#include "hoomd/HOOMDMPI.h"
 #include "hoomd/HOOMDMath.h"
 
-class AlchemicalParticle
+struct AlchemicalParticle
     {
-    public:
     AlchemicalParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
         : value(Scalar(1.0)), m_attached(true), m_exec_conf(exec_conf) {};
 
@@ -42,9 +42,9 @@ class AlchemicalParticle
         m_exec_conf;                 //!< Stored shared ptr to the execution configuration
     std::shared_ptr<Compute> m_base; //!< the associated Alchemical Compute
     };
-class AlchemicalMDParticle : public AlchemicalParticle
+
+struct AlchemicalMDParticle : AlchemicalParticle
     {
-    public:
     AlchemicalMDParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                          std::shared_ptr<const ForceCompute> force)
 
@@ -68,7 +68,7 @@ class AlchemicalMDParticle : public AlchemicalParticle
         {
         // TODO: remove this sanity check after we're done making sure timing works
         zeroForces();
-        m_timestepNetForce.first = timestep;
+        m_timestep_net_force.first = timestep;
         }
 
     void setNetForce()
@@ -81,25 +81,25 @@ class AlchemicalMDParticle : public AlchemicalParticle
             netForce += h_forces.data[i];
         // TODO: make clear the implementation choices being averaged quantities
         netForce /= Scalar(m_alchemical_derivatives.getNumElements());
-        m_timestepNetForce.second = netForce;
+        m_timestep_net_force.second = netForce;
         }
 
     void setNetForce(Scalar norm_value)
         {
         setNetForce();
-        m_timestepNetForce.second *= norm_value;
+        m_timestep_net_force.second *= norm_value;
         }
 
     Scalar getNetForce(uint64_t timestep)
         {
         // TODO: remove this sanity check after we're done making sure timing works
-        assert(m_timestepNetForce.first == timestep);
-        return m_timestepNetForce.second;
+        assert(m_timestep_net_force.first == timestep);
+        return m_timestep_net_force.second;
         }
 
     Scalar getNetForce()
         {
-        return m_timestepNetForce.second;
+        return m_timestep_net_force.second;
         }
 
     void setMass(Scalar new_mass)
@@ -134,16 +134,15 @@ class AlchemicalMDParticle : public AlchemicalParticle
     GlobalArray<Scalar> m_alchemical_derivatives; //!< Per particle alchemical forces
     protected:
     // the timestep the net force was computed and the netforce
-    std::pair<uint64_t, Scalar> m_timestepNetForce;
+    std::pair<uint64_t, Scalar> m_timestep_net_force;
     std::weak_ptr<const ForceCompute> m_force;
     };
 
 // TODO: add additional constructor that can work just off of python objects, maybe see
 // ComputeFreeVolume for the string conversion to type pair
 // parameter dict must be the same
-class AlchemicalPairParticle : public AlchemicalMDParticle
+struct AlchemicalPairParticle : AlchemicalMDParticle
     {
-    public:
     AlchemicalPairParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                            std::shared_ptr<const ForceCompute> force,
                            int3 type_pair_param)
@@ -151,7 +150,14 @@ class AlchemicalPairParticle : public AlchemicalMDParticle
     int3 m_type_pair_param;
     };
 
-inline void export_AlchemicalMDParticle(pybind11::module& m)
+struct AlchemicalNormalizedPairParticle : AlchemicalPairParticle
+    {
+    using AlchemicalPairParticle::AlchemicalPairParticle;
+
+    Scalar alchemical_derivative_normalization_value = 1;
+    };
+
+inline void export_AlchemicalMDParticles(pybind11::module& m)
     {
     pybind11::class_<AlchemicalMDParticle, std::shared_ptr<AlchemicalMDParticle>>(
         m,
@@ -161,15 +167,23 @@ inline void export_AlchemicalMDParticle(pybind11::module& m)
         .def_readwrite("alpha", &AlchemicalMDParticle::value)
         .def_readwrite("momentum", &AlchemicalMDParticle::momentum)
         .def_property_readonly("forces", &AlchemicalMDParticle::getDAlphas)
-        .def("net_force", pybind11::overload_cast<>(&AlchemicalMDParticle::getNetForce))
+        .def_property_readonly("net_force",
+                               pybind11::overload_cast<>(&AlchemicalMDParticle::getNetForce))
         .def("notifyDetach", &AlchemicalMDParticle::notifyDetach);
-    }
 
-inline void export_AlchemicalPairParticle(pybind11::module& m)
-    {
     pybind11::class_<AlchemicalPairParticle,
                      AlchemicalMDParticle,
-                     std::shared_ptr<AlchemicalPairParticle>>(m, "AlchemicalPairParticle");
+                     std::shared_ptr<AlchemicalPairParticle>>
+        nameThatShouldNeverAppear(m, "AlchemicalPairParticle");
+
+    pybind11::class_<AlchemicalNormalizedPairParticle,
+                     AlchemicalPairParticle,
+                     std::shared_ptr<AlchemicalNormalizedPairParticle>>(
+        m,
+        "AlchemicalNormalizedPairParticle")
+        .def_readwrite(
+            "norm_value",
+            &AlchemicalNormalizedPairParticle::alchemical_derivative_normalization_value);
     }
 
 #endif

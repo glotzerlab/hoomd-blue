@@ -4,7 +4,6 @@
 // Maintainer: joaander All developers are free to add the calls needed to export their modules
 
 #include "ActiveForceCompute.h"
-#include "AlchemicalPotentialPair.h"
 #include "AlchemostatTwoStep.h"
 #include "AllAnisoPairPotentials.h"
 #include "AllBondPotentials.h"
@@ -49,6 +48,8 @@
 #include "PotentialBond.h"
 #include "PotentialExternal.h"
 #include "PotentialPair.h"
+#include "PotentialPairAlchemical.h"
+#include "PotentialPairAlchemicalNormalized.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialTersoff.h"
 #include "QuaternionMath.h"
@@ -270,10 +271,12 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
     export_PotentialPair<PotentialPairLJGauss>(m, "PotentialPairLJGauss");
-    export_AlchemicalMDParticle(m);
-    export_AlchemicalPairParticle(m);
-    export_AlchemicalPotentialPair<EvaluatorPairLJGauss>(m, "AlchemicalPotentialPairLJGauss");
-    // export_AlchemicalPotentialPair<EvaluatorPairOPP>(m, "AlchemicalPotentialPairLJGauss");
+    export_AlchemicalMDParticles(m);
+    export_PotentialPairAlchemical<EvaluatorPairLJGauss>(m, "PotentialPairAlchemicalLJGauss");
+    export_PotentialPairAlchemicalNormalized<EvaluatorPairLJGauss>(
+        m,
+        "PotentialPairAlchemicalNormalizedLJGauss");
+    // export_PotentialPairAlchemical<EvaluatorPairOPP>(m, "PotentialPairAlchemicalLJGauss");
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
