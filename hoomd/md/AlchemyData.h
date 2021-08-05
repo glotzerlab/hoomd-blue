@@ -45,10 +45,9 @@ struct AlchemicalParticle
 
 struct AlchemicalMDParticle : AlchemicalParticle
     {
-    AlchemicalMDParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                         std::shared_ptr<const ForceCompute> force)
+    AlchemicalMDParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
 
-        : AlchemicalParticle(exec_conf), m_force(force) {};
+        : AlchemicalParticle(exec_conf) {};
 
     void inline zeroForces()
         {
@@ -135,7 +134,6 @@ struct AlchemicalMDParticle : AlchemicalParticle
     protected:
     // the timestep the net force was computed and the netforce
     std::pair<uint64_t, Scalar> m_timestep_net_force;
-    std::weak_ptr<const ForceCompute> m_force;
     };
 
 // TODO: add additional constructor that can work just off of python objects, maybe see
@@ -144,9 +142,8 @@ struct AlchemicalMDParticle : AlchemicalParticle
 struct AlchemicalPairParticle : AlchemicalMDParticle
     {
     AlchemicalPairParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                           std::shared_ptr<const ForceCompute> force,
                            int3 type_pair_param)
-        : AlchemicalMDParticle(exec_conf, force), m_type_pair_param(type_pair_param) {};
+        : AlchemicalMDParticle(exec_conf), m_type_pair_param(type_pair_param) {};
     int3 m_type_pair_param;
     };
 

@@ -8,6 +8,7 @@
 
 #include "PotentialPairAlchemical.h"
 
+#include "pybind11/eval.h"
 #include "pybind11/functional.h"
 #include "pybind11/stl.h"
 
@@ -72,20 +73,17 @@ template<class evaluator,
          typename extra_pkg = AlchemyPackageNormalized<evaluator>,
          typename alpha_particle_type = AlchemicalNormalizedPairParticle>
 class PotentialPairAlchemicalNormalized
-    : public PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>,
-      public std::enable_shared_from_this<
-          PotentialPairAlchemicalNormalized<evaluator, extra_pkg, alpha_particle_type>>
+    : public PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>
     {
     protected:
     public:
     //! Construct the pair potential
     PotentialPairAlchemicalNormalized(std::shared_ptr<SystemDefinition> sysdef,
-                                      std::shared_ptr<NeighborList> nlist)
-        : PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>(sysdef, nlist){};
+                                      std::shared_ptr<NeighborList> nlist);
     //! Destructor
     ~PotentialPairAlchemicalNormalized() {};
 
-    void setNormalizer(std::function<std::vector<Scalar>(pybind11::list)>& callback)
+    void setNormalizer(pybind11::function& callback)
         {
         m_normalizer = callback;
         }
@@ -99,7 +97,7 @@ class PotentialPairAlchemicalNormalized
     using PotentialPair<evaluator, extra_pkg>::m_params;
     using PotentialPair<evaluator, extra_pkg>::m_typpair_idx;
 
-    std::function<std::vector<Scalar>(pybind11::list)> m_normalizer = nullptr;
+    pybind11::function m_normalizer;
 
     // Extra steps to insert
     inline extra_pkg pkgInitialize(const uint64_t& timestep) override;
@@ -111,6 +109,14 @@ class PotentialPairAlchemicalNormalized
                                evaluator& eval,
                                extra_pkg&) override;
     inline void pkgFinalize(extra_pkg&) override;
+    };
+template<class evaluator, typename extra_pkg, typename alpha_particle_type>
+PotentialPairAlchemicalNormalized<evaluator, extra_pkg, alpha_particle_type>::
+    PotentialPairAlchemicalNormalized(std::shared_ptr<SystemDefinition> sysdef,
+                                      std::shared_ptr<NeighborList> nlist)
+    : PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>(sysdef, nlist)
+    {
+    m_normalizer = pybind11::eval("lambda x : [1.] * len(x)").cast<pybind11::function>();
     };
 
 template<class evaluator, typename extra_pkg, typename alpha_particle_type>
@@ -125,7 +131,8 @@ PotentialPairAlchemicalNormalized<evaluator, extra_pkg, alpha_particle_type>::pk
 
     // Precompute normalization
     // pkg.normalization_values.assign(m_alchemy_index.getNumElements(), 1.0);
-    std::vector<pybind11::dict> norm_function_input(m_alchemy_index.getNumElements(),pybind11::dict());
+    std::vector<pybind11::dict> norm_function_input(m_alchemy_index.getNumElements(),
+                                                    pybind11::dict());
     for (unsigned int i = 0; i < m_alchemy_index.getW(); i++)
         for (unsigned int j = 0; j <= i; j++)
             {
@@ -135,7 +142,8 @@ PotentialPairAlchemicalNormalized<evaluator, extra_pkg, alpha_particle_type>::pk
             norm_function_input[idx]["mask"] = pkg.compute_mask[idx].to_string();
             norm_function_input[idx]["pair"] = std::pair<unsigned int, unsigned int>(i, j);
             }
-    std::vector<Scalar> norm_function_output = m_normalizer(pybind11::cast(norm_function_input));
+    auto norm_function_output
+        = pybind11::cast<std::vector<Scalar>>(m_normalizer(norm_function_input));
     pkg.normalization_values.swap(norm_function_output);
 
     return pkg;
@@ -197,8 +205,7 @@ void export_PotentialPairAlchemicalNormalized(pybind11::module& m, const std::st
     pybind11::class_<T, base, std::shared_ptr<T>> PotentialPairAlchemicalNormalized(m,
                                                                                     name.c_str());
     PotentialPairAlchemicalNormalized
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<NeighborList>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setNormalizer", &T::setNormalizer);
     }
 

@@ -57,9 +57,7 @@ template<class evaluator,
          typename extra_pkg = AlchemyPackage<evaluator>,
          typename alpha_particle_type = AlchemicalPairParticle>
 class PotentialPairAlchemical
-    : public PotentialPair<evaluator, extra_pkg>,
-      public std::enable_shared_from_this<
-          PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>>
+    : public PotentialPair<evaluator, extra_pkg>
     {
     public:
     //! Construct the pair potential
@@ -75,7 +73,6 @@ class PotentialPairAlchemical
         if (alpha_p == nullptr)
             {
             alpha_p = std::make_shared<alpha_particle_type>(m_exec_conf,
-                                                            this->shared_from_this(),
                                                             make_int3(i, j, k));
             }
         return alpha_p;
