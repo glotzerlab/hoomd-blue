@@ -533,7 +533,8 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
             {
             MPI_Bcast(&m_cumulative_frac_x[0], m_nx + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
 
-            if (m_cumulative_frac_x.front() != Scalar(0.0) || m_cumulative_frac_x.back() != Scalar(1.0))
+            if (m_cumulative_frac_x.front() != Scalar(0.0)
+                || m_cumulative_frac_x.back() != Scalar(1.0))
                 {
                 throw std::invalid_argument("Specified fractions are invalid.");
                 }
@@ -542,7 +543,8 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
             {
             MPI_Bcast(&m_cumulative_frac_y[0], m_ny + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
 
-            if (m_cumulative_frac_y.front() != Scalar(0.0) || m_cumulative_frac_y.back() != Scalar(1.0))
+            if (m_cumulative_frac_y.front() != Scalar(0.0)
+                || m_cumulative_frac_y.back() != Scalar(1.0))
                 {
                 throw std::invalid_argument("Specified fractions are invalid.");
                 }
@@ -551,7 +553,8 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
             {
             MPI_Bcast(&m_cumulative_frac_z[0], m_nz + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
 
-            if (m_cumulative_frac_z.front() != Scalar(0.0) || m_cumulative_frac_z.back() != Scalar(1.0))
+            if (m_cumulative_frac_z.front() != Scalar(0.0)
+                || m_cumulative_frac_z.back() != Scalar(1.0))
                 {
                 throw std::invalid_argument("Specified fractions are invalid.");
                 }
@@ -576,13 +579,13 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim& global_box)
 
     // position of this domain in the grid
     Scalar3 lo_cumulative_frac = make_scalar3(m_cumulative_frac_x[m_grid_pos.x],
-                                       m_cumulative_frac_y[m_grid_pos.y],
-                                       m_cumulative_frac_z[m_grid_pos.z]);
+                                              m_cumulative_frac_y[m_grid_pos.y],
+                                              m_cumulative_frac_z[m_grid_pos.z]);
     Scalar3 lo = global_box.getLo() + lo_cumulative_frac * L;
 
     Scalar3 hi_cumulative_frac = make_scalar3(m_cumulative_frac_x[m_grid_pos.x + 1],
-                                       m_cumulative_frac_y[m_grid_pos.y + 1],
-                                       m_cumulative_frac_z[m_grid_pos.z + 1]);
+                                              m_cumulative_frac_y[m_grid_pos.y + 1],
+                                              m_cumulative_frac_z[m_grid_pos.z + 1]);
     Scalar3 hi = global_box.getLo() + hi_cumulative_frac * L;
 
     // set periodic flags

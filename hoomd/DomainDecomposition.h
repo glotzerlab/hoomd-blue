@@ -230,7 +230,7 @@ class PYBIND11_EXPORT DomainDecomposition
     std::vector<Scalar> m_cumulative_frac_x; //!< Cumulative fractions in x below cut plane index
     std::vector<Scalar> m_cumulative_frac_y; //!< Cumulative fractions in y below cut plane index
     std::vector<Scalar> m_cumulative_frac_z; //!< Cumulative fractions in z below cut plane index
-#endif                                // ENABLE_MPI
+#endif                                       // ENABLE_MPI
     };
 
 #ifdef ENABLE_MPI
