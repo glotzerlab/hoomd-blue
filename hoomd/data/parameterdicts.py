@@ -406,7 +406,12 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         getattr(self._cpp_obj, self._setter)(key, item)
 
     def _yield_keys(self, key):
-        """Includes key check for existing simulation keys."""
+        """Includes key check for existing simulation keys.
+
+        Overwritting this means that __getitem__ and __setitem__ plus any
+        methods that rely on them will error properly even if we don't check for
+        the key's existence there.
+        """
         for key in super()._yield_keys(key):
             if key not in self._type_keys:
                 raise KeyError("Type {} does not exist in the "
