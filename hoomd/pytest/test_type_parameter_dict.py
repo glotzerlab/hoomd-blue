@@ -212,7 +212,7 @@ def test_attached_values(attached_param_dict):
 
 
 def test_attached_keys(attached_param_dict):
-    assert list(attached_param_dict.keys()) == ['A', 'B']
+    assert attached_param_dict.keys() == {'A', 'B', 'C'}
 
 
 def test_attached_type_error_raising(attached_param_dict):
@@ -244,11 +244,11 @@ def test_pair_attached_value_setting(typedict_pair_keys, valid_pair_keys):
         cpp_obj,
         param_name='type_param',
         types=sim.state.particle_types,
-        type_param_dict=typedict_singleton_keys)
+        type_param_dict=typedict_pair_keys)
     attached_type_parameter[("A", "B")] = {"foo": 2, "baz": "world"}
     attached_type_parameter[("A", ["B", "C"])] = {"foo": 2, "baz": "world"}
     with raises(KeyError):
-        attached_param_dict[("A", "D")] = {"foo": 4}
+        attached_type_parameter[("A", "D")] = {"foo": 4}
 
 
 def test_attach_dettach(attached_param_dict):
