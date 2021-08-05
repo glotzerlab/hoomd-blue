@@ -314,6 +314,19 @@ class PYBIND11_EXPORT ParticleGroup
         return m_rotational_dof;
         }
 
+    /// Get a NumPy array of the the local member tags.
+    /** This is necessary to enable testing in Python the updating of ParticleGroup instances.
+     */
+    pybind11::array_t<unsigned int> getMemberTags() const
+        {
+        const ArrayHandle<unsigned int> h_member_tags(m_member_tags,
+                                                      access_location::host,
+                                                      access_mode::read);
+        return pybind11::array_t<unsigned int, pybind11::array::c_style>(
+            static_cast<ssize_t>(m_member_tags.getNumElements()),
+            h_member_tags.data);
+        }
+
     /** Get the number of particles present in both groups.
 
         @param other Second group
