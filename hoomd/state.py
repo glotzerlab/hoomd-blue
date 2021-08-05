@@ -650,3 +650,33 @@ class State:
         self._simulation._warn_if_seed_unset()
         group = self._get_group(filter)
         group.thermalizeParticleMomenta(kT, self._simulation.timestep)
+
+    @property
+    def domain_decomposition_split_fractions(self):
+        """tuple(list[int], list[int], list[int]): Box fractions of the domain \
+        split planes in the x, y, and z directions."""
+        particle_data = self._cpp_sys_def.getParticleData()
+        decomposition = particle_data.getDomainDecomposition()
+
+        if not hoomd.version.mpi_enabled or decomposition is None:
+            return [[], [], []]
+        else:
+            return [
+                list(decomposition.getCumulativeFractions(dir))[1:-1]
+                for dir in range(3)
+            ]
+
+    @property
+    def domain_decomposition(self):
+        """tuple(int, int, int): Number of domains in the x, y, and z \
+        directions."""
+        particle_data = self._cpp_sys_def.getParticleData()
+        decomposition = particle_data.getDomainDecomposition()
+
+        if not hoomd.version.mpi_enabled or decomposition is None:
+            return [1, 1, 1]
+        else:
+            return [
+                len(decomposition.getCumulativeFractions(dir)) - 1
+                for dir in range(3)
+            ]
