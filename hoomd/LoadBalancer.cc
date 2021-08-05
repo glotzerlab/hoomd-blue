@@ -614,7 +614,7 @@ void LoadBalancer::resetStats()
 
 void export_LoadBalancer(py::module& m)
     {
-    py::class_<LoadBalancer, Updater, std::shared_ptr<LoadBalancer>>(m, "LoadBalancer")
+    py::class_<LoadBalancer, Tuner, std::shared_ptr<LoadBalancer>>(m, "LoadBalancer")
         .def(py::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<DomainDecomposition>,
                       std::shared_ptr<Trigger>>())

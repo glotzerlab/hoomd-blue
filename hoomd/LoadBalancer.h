@@ -113,7 +113,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         }
 
     /// Get value of m_enable_x
-    bool getEnableX(bool enable)
+    bool getEnableX()
         {
         return m_enable_x;
         }
@@ -125,7 +125,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         }
 
     /// Get value of m_enable_y
-    bool getEnableY(bool enable)
+    bool getEnableY()
         {
         return m_enable_y;
         }
@@ -137,7 +137,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         }
 
     /// Get value of m_enable_z
-    bool getEnableZ(bool enable)
+    bool getEnableZ()
         {
         return m_enable_z;
         }
