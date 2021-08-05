@@ -380,7 +380,9 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         self._type_converter = type_param_dict._type_converter
         # add all types to c++
         for key in self:
-            self._single_setitem(key, type_param_dict[key])
+            parameter = type_param_dict._single_getitem(key)
+            _raise_if_required_arg(parameter)
+            self._single_setitem(key, parameter)
 
     def to_detached(self):
         """Convert to a detached parameter dict."""
