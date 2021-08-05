@@ -8,7 +8,6 @@
 
 #include "PotentialPairAlchemical.h"
 
-#include "pybind11/eval.h"
 #include "pybind11/functional.h"
 #include "pybind11/stl.h"
 
@@ -75,11 +74,12 @@ template<class evaluator,
 class PotentialPairAlchemicalNormalized
     : public PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>
     {
-    protected:
     public:
     //! Construct the pair potential
     PotentialPairAlchemicalNormalized(std::shared_ptr<SystemDefinition> sysdef,
-                                      std::shared_ptr<NeighborList> nlist);
+                                      std::shared_ptr<NeighborList> nlist)
+        : PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>(sysdef, nlist) {};
+
     //! Destructor
     ~PotentialPairAlchemicalNormalized() {};
 
@@ -97,7 +97,7 @@ class PotentialPairAlchemicalNormalized
     using PotentialPair<evaluator, extra_pkg>::m_params;
     using PotentialPair<evaluator, extra_pkg>::m_typpair_idx;
 
-    pybind11::function m_normalizer;
+    pybind11::function m_normalizer = {};
 
     // Extra steps to insert
     inline extra_pkg pkgInitialize(const uint64_t& timestep) override;
@@ -110,14 +110,6 @@ class PotentialPairAlchemicalNormalized
                                extra_pkg&) override;
     inline void pkgFinalize(extra_pkg&) override;
     };
-template<class evaluator, typename extra_pkg, typename alpha_particle_type>
-PotentialPairAlchemicalNormalized<evaluator, extra_pkg, alpha_particle_type>::
-    PotentialPairAlchemicalNormalized(std::shared_ptr<SystemDefinition> sysdef,
-                                      std::shared_ptr<NeighborList> nlist)
-    : PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>(sysdef, nlist)
-    {
-    m_normalizer = pybind11::eval("lambda x : [1.] * len(x)").cast<pybind11::function>();
-    };
 
 template<class evaluator, typename extra_pkg, typename alpha_particle_type>
 inline extra_pkg
@@ -129,23 +121,26 @@ PotentialPairAlchemicalNormalized<evaluator, extra_pkg, alpha_particle_type>::pk
         = PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::pkgInitialize(
             timestep);
 
-    // Precompute normalization
-    // pkg.normalization_values.assign(m_alchemy_index.getNumElements(), 1.0);
-    std::vector<pybind11::dict> norm_function_input(m_alchemy_index.getNumElements(),
-                                                    pybind11::dict());
-    for (unsigned int i = 0; i < m_alchemy_index.getW(); i++)
-        for (unsigned int j = 0; j <= i; j++)
-            {
-            unsigned int idx = m_alchemy_index(i, j);
-            norm_function_input[idx]
-                = evaluator::alchemParams(m_params[m_typpair_idx(i, j)], pkg.alphas[idx]).asDict();
-            norm_function_input[idx]["mask"] = pkg.compute_mask[idx].to_string();
-            norm_function_input[idx]["pair"] = std::pair<unsigned int, unsigned int>(i, j);
-            }
-    auto norm_function_output
-        = pybind11::cast<std::vector<Scalar>>(m_normalizer(norm_function_input));
-    pkg.normalization_values.swap(norm_function_output);
-
+    pkg.normalization_values.assign(m_alchemy_index.getNumElements(), 1.0);
+    // Precompute normalization if set
+    if (m_normalizer)
+        {
+        std::vector<pybind11::dict> norm_function_input(m_alchemy_index.getNumElements(),
+                                                        pybind11::dict());
+        for (unsigned int i = 0; i < m_alchemy_index.getW(); i++)
+            for (unsigned int j = 0; j <= i; j++)
+                {
+                unsigned int idx = m_alchemy_index(i, j);
+                norm_function_input[idx]
+                    = evaluator::alchemParams(m_params[m_typpair_idx(i, j)], pkg.alphas[idx])
+                          .asDict();
+                norm_function_input[idx]["mask"] = pkg.compute_mask[idx].to_string();
+                norm_function_input[idx]["pair"] = std::pair<unsigned int, unsigned int>(i, j);
+                }
+        auto norm_function_output
+            = pybind11::cast<std::vector<Scalar>>(m_normalizer(norm_function_input));
+        pkg.normalization_values = norm_function_output;
+        }
     return pkg;
     }
 
