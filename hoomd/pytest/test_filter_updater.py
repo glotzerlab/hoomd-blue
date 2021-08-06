@@ -68,7 +68,7 @@ def test_updating(simulation, filter_updater, filter_list):
     simulation.run(0)
     rng = np.random.default_rng(43)
 
-    def modify_charge(state):
+    def modify_typeid(state):
         with state.cpu_local_snapshot as snapshot:
             Np = len(snapshot.particles.typeid)
             indices = rng.choice(state.N_particles,
@@ -78,7 +78,7 @@ def test_updating(simulation, filter_updater, filter_list):
             snapshot.particles.typeid[indices] = values
 
     for _ in range(4):
-        modify_charge(simulation.state)
+        modify_typeid(simulation.state)
         simulation.run(1)
         for filter_ in filter_list:
             assert_group_match(filter_, simulation.state)
