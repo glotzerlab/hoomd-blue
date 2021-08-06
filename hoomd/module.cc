@@ -45,8 +45,8 @@
 // include GPU classes
 #ifdef ENABLE_HIP
 #include "CellListGPU.h"
-#include "SFCPackTunerGPU.h"
 #include "LoadBalancerGPU.h"
+#include "SFCPackTunerGPU.h"
 #include <hip/hip_runtime.h>
 #endif
 

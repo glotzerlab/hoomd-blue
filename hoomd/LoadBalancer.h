@@ -43,8 +43,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
     {
     public:
     //! Constructor
-    LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
-                 std::shared_ptr<Trigger> trigger);
+    LoadBalancer(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
     //! Destructor
     virtual ~LoadBalancer();
 
@@ -148,7 +147,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
     std::shared_ptr<DomainDecomposition> m_decomposition; //!< The domain decomposition to balance
     std::shared_ptr<Trigger> m_trigger;
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     const MPI_Comm m_mpi_comm; //!< MPI communicator for all ranks
 
     //! Computes the maximum imbalance factor
@@ -194,7 +193,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         m_recompute_max_imbalance = true;
         m_needs_recount = false;
         }
-    #endif // ENABLE_MPI
+#endif // ENABLE_MPI
 
     Scalar m_max_imbalance;         //!< Maximum imbalance
     bool m_recompute_max_imbalance; //!< Flag if maximum imbalance needs to be computed

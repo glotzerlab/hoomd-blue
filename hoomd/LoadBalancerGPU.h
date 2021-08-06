@@ -28,8 +28,7 @@ class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
     {
     public:
     //! Constructor
-    LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
-                    std::shared_ptr<Trigger> trigger);
+    LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
 
     //! Destructor
     virtual ~LoadBalancerGPU();
@@ -54,11 +53,11 @@ class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
         }
 
     protected:
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     //! Count the number of particles that have gone off either edge of the rank along a dimension
     //! on the GPU
     virtual void countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts);
-    #endif
+#endif
 
     private:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size counting particles

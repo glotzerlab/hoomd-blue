@@ -113,8 +113,7 @@ void export_LoadBalancerGPU(py::module& m)
     {
     py::class_<LoadBalancerGPU, LoadBalancer, std::shared_ptr<LoadBalancerGPU>>(m,
                                                                                 "LoadBalancerGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<Trigger>>());
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
 #endif // ENABLE_HIP
