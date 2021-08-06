@@ -71,9 +71,7 @@ def test_updating(simulation, filter_updater, filter_list):
     def modify_typeid(state):
         with state.cpu_local_snapshot as snapshot:
             Np = len(snapshot.particles.typeid)
-            indices = rng.choice(state.N_particles,
-                                 max(1, int(Np * 0.1)),
-                                 replace=False)
+            indices = rng.choice(Np, max(1, int(Np * 0.1)), replace=False)
             values = rng.choice([0, 1], len(indices))
             snapshot.particles.typeid[indices] = values
 
