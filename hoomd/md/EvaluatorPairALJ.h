@@ -235,7 +235,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
      */
     struct shape_type
         {
-        HOSTDEVICE shape_type() { }
+        HOSTDEVICE shape_type() :has_rounding(false) { }
 
 #ifndef __HIPCC__
 
