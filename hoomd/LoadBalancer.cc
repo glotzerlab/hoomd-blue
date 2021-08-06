@@ -29,9 +29,8 @@ namespace py = pybind11;
  * \param decomposition Domain decomposition
  */
 LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
-                           std::shared_ptr<DomainDecomposition> decomposition,
                            std::shared_ptr<Trigger> trigger)
-    : Tuner(sysdef, trigger), m_decomposition(decomposition),
+    : Tuner(sysdef, trigger), m_decomposition(sysdef->getParticleData()->getDomainDecomposition()),
       m_mpi_comm(m_exec_conf->getMPICommunicator()), m_max_imbalance(Scalar(1.0)),
       m_recompute_max_imbalance(true), m_needs_migrate(false), m_needs_recount(false),
       m_tolerance(Scalar(1.05)), m_maxiter(1), m_max_scale(Scalar(0.05)), m_N_own(m_pdata->getN()),
@@ -616,7 +615,6 @@ void export_LoadBalancer(py::module& m)
     {
     py::class_<LoadBalancer, Tuner, std::shared_ptr<LoadBalancer>>(m, "LoadBalancer")
         .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<DomainDecomposition>,
                       std::shared_ptr<Trigger>>())
         .def_property("tolerance", &LoadBalancer::getTolerance, &LoadBalancer::setTolerance)
         .def_property("max_iterations",

@@ -74,7 +74,7 @@ void test_load_balancer_basic(std::shared_ptr<ExecutionConfiguration> exec_conf,
     pdata->initializeFromSnapshot(snap);
 
     auto trigger = std::make_shared<PeriodicTrigger>(1);
-    std::shared_ptr<LoadBalancer> lb(new LB(sysdef, decomposition, trigger));
+    std::shared_ptr<LoadBalancer> lb(new LB(sysdef, trigger));
     lb->setCommunicator(comm);
     lb->setMaxIterations(2);
 
@@ -182,7 +182,7 @@ void test_load_balancer_multi(std::shared_ptr<ExecutionConfiguration> exec_conf,
     pdata->initializeFromSnapshot(snap);
 
     auto trigger = std::make_shared<PeriodicTrigger>(1);
-    std::shared_ptr<LoadBalancer> lb(new LB(sysdef, decomposition, trigger));
+    std::shared_ptr<LoadBalancer> lb(new LB(sysdef, trigger));
     lb->setCommunicator(comm);
     lb->enableDimension(1, false);
     lb->setMaxIterations(100);
@@ -319,7 +319,7 @@ void test_load_balancer_ghost(std::shared_ptr<ExecutionConfiguration> exec_conf,
     pdata->initializeFromSnapshot(snap);
 
     auto trigger = std::make_shared<PeriodicTrigger>(1);
-    std::shared_ptr<LoadBalancer> lb(new LB(sysdef, decomposition, trigger));
+    std::shared_ptr<LoadBalancer> lb(new LB(sysdef, trigger));
     lb->setCommunicator(comm);
 
     // migrate atoms and check placement

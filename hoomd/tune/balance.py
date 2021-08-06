@@ -111,9 +111,7 @@ class LoadBalancer(Tuner):
         else:
             cpp_cls = getattr(_hoomd, 'LoadBalancer')
 
-        particle_data = self._simulation.state._cpp_sys_def.getParticleData()
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                particle_data.getDomainDecomposition(),
                                 self.trigger)
 
         super()._attach()
