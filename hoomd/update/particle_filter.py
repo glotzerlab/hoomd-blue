@@ -72,7 +72,8 @@ class FilterUpdater(hoomd.operation.Updater):
 
     @property
     def filters(self):
-        """list[hoomd.filter.ParticleFilter]: filters to update select particles."""
+        """list[hoomd.filter.ParticleFilter]: filters to update select \
+                particles."""
         return self._filters
 
     @filters.setter
