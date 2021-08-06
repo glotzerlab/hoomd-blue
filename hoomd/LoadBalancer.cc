@@ -40,10 +40,17 @@ LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
 
     // default initialize the load balancing based on domain grid
-    const Index3D& di = m_decomposition->getDomainIndexer();
-    m_enable_x = (di.getW() > 1);
-    m_enable_y = (di.getH() > 1);
-    m_enable_z = (di.getD() > 1);
+    if (m_decomposition)
+        {
+        const Index3D& di = m_decomposition->getDomainIndexer();
+        m_enable_x = (di.getW() > 1);
+        m_enable_y = (di.getH() > 1);
+        m_enable_z = (di.getD() > 1);
+        }
+    else
+        {
+        m_enable_x = m_enable_y = m_enable_z = false;
+        }
     }
 
 LoadBalancer::~LoadBalancer()
@@ -60,8 +67,10 @@ LoadBalancer::~LoadBalancer()
 void LoadBalancer::update(uint64_t timestep)
     {
     Updater::update(timestep);
-    // we need a communicator, but don't want to check for it in release builds
-    assert(m_comm);
+
+    // do nothing if this run is not on MPI
+    if (!m_comm)
+        return;
 
     if (m_prof)
         m_prof->push(m_exec_conf, "balance");
