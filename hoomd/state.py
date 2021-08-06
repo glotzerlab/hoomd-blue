@@ -656,14 +656,14 @@ class State:
         """tuple(list[int], list[int], list[int]): Box fractions of the domain \
         split planes in the x, y, and z directions."""
         particle_data = self._cpp_sys_def.getParticleData()
-        decomposition = particle_data.getDomainDecomposition()
 
-        if not hoomd.version.mpi_enabled or decomposition is None:
+        if (not hoomd.version.mpi_enabled
+                or particle_data.getDomainDecomposition() is None):
             return ([], [], [])
         else:
             return tuple([
-                list(decomposition.getCumulativeFractions(dir))[1:-1]
-                for dir in range(3)
+                list(particle_data.getDomainDecomposition()
+                     .getCumulativeFractions(dir))[1:-1] for dir in range(3)
             ])
 
     @property
@@ -671,12 +671,12 @@ class State:
         """tuple(int, int, int): Number of domains in the x, y, and z \
         directions."""
         particle_data = self._cpp_sys_def.getParticleData()
-        decomposition = particle_data.getDomainDecomposition()
 
-        if not hoomd.version.mpi_enabled or decomposition is None:
+        if (not hoomd.version.mpi_enabled
+                or particle_data.getDomainDecomposition() is None):
             return (1, 1, 1)
         else:
             return tuple([
-                len(decomposition.getCumulativeFractions(dir)) - 1
-                for dir in range(3)
+                len(particle_data.getDomainDecomposition()
+                    .getCumulativeFractions(dir)) - 1 for dir in range(3)
             ])
