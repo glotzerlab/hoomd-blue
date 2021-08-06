@@ -563,7 +563,7 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
     else // if no change, it's because things don't match up
         {
         throw std::invalid_argument(
-            "domain decomposition cannot change topology after construction");
+            "Domain decomposition cannot change topology after construction.");
         }
     }
 

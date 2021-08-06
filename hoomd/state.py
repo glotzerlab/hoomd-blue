@@ -54,17 +54,16 @@ def _create_domain_decomposition(device, box, domain_decomposition):
     if device.communicator.num_ranks == 1:
         return None
 
-    if initialize_grid or (not initialize_grid and not initialize_fractions):
-        grid = [v if v is not None else 0 for v in domain_decomposition]
-        result = _hoomd.DomainDecomposition(device._cpp_exec_conf, box.getL(),
-                                            grid[0], grid[1], grid[2], False)
-    elif initialize_fractions:
+    if initialize_fractions:
         fractions = [
             v[:-1] if v is not None else [] for v in domain_decomposition
         ]
         result = _hoomd.DomainDecomposition(device._cpp_exec_conf, box.getL(),
-                                            fractions[0], fractions[1],
-                                            fractions[2])
+                                            *fractions)
+    else:
+        grid = [v if v is not None else 0 for v in domain_decomposition]
+        result = _hoomd.DomainDecomposition(device._cpp_exec_conf, box.getL(),
+                                            *grid, False)
 
     return result
 
