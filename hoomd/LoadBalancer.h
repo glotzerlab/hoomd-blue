@@ -11,10 +11,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_MPI
-
-#ifndef __LOADBALANCER_H__
-#define __LOADBALANCER_H__
+#pragma once
 #include "Trigger.h"
 #include "Tuner.h"
 
@@ -151,12 +148,11 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
     std::shared_ptr<DomainDecomposition> m_decomposition; //!< The domain decomposition to balance
     std::shared_ptr<Trigger> m_trigger;
 
+    #ifdef ENABLE_MPI
     const MPI_Comm m_mpi_comm; //!< MPI communicator for all ranks
 
     //! Computes the maximum imbalance factor
     Scalar getMaxImbalance();
-    Scalar m_max_imbalance;         //!< Maximum imbalance
-    bool m_recompute_max_imbalance; //!< Flag if maximum imbalance needs to be computed
 
     //! Reduce the particle numbers per rank down to one dimension
     bool reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsigned int reduce_root);
@@ -174,7 +170,6 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
                 const std::vector<unsigned int>& N_i,
                 Scalar L_i,
                 Scalar min_domain_frac);
-    bool m_needs_migrate; //!< Flag to signal that migration is necessary
 
     //! Compute the number of particles on each rank after an adjustment
     void computeOwnedParticles();
@@ -199,6 +194,12 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         m_recompute_max_imbalance = true;
         m_needs_recount = false;
         }
+    #endif // ENABLE_MPI
+
+    Scalar m_max_imbalance;         //!< Maximum imbalance
+    bool m_recompute_max_imbalance; //!< Flag if maximum imbalance needs to be computed
+
+    bool m_needs_migrate; //!< Flag to signal that migration is necessary
     bool m_needs_recount; //!< Flag if a particle change needs to be computed
 
     Scalar m_tolerance;     //!< Load imbalance to tolerate
@@ -221,6 +222,3 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
 
 //! Export the LoadBalancer to python
 void export_LoadBalancer(pybind11::module& m);
-
-#endif // __LOADBALANCER_H__
-#endif // ENABLE_MPI

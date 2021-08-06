@@ -7,7 +7,6 @@
     \brief Defines the LoadBalancerGPU class
 */
 
-#ifdef ENABLE_MPI
 #ifdef ENABLE_HIP
 #include "LoadBalancerGPU.h"
 #include "LoadBalancerGPU.cuh"
@@ -44,6 +43,7 @@ LoadBalancerGPU::~LoadBalancerGPU()
         .disconnect<LoadBalancerGPU, &LoadBalancerGPU::slotMaxNumChanged>(this);
     }
 
+#ifdef ENABLE_MPI
 void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts)
     {
     // do nothing if rank doesn't own any particles
@@ -107,6 +107,7 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
         cnts[off_rank[cur_p]]++;
         }
     }
+#endif // ENABLE_MPI
 
 void export_LoadBalancerGPU(py::module& m)
     {
@@ -117,4 +118,3 @@ void export_LoadBalancerGPU(py::module& m)
     }
 
 #endif // ENABLE_HIP
-#endif // ENABLE_MPI

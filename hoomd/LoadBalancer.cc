@@ -7,7 +7,6 @@
     \brief Defines the LoadBalancer class
 */
 
-#ifdef ENABLE_MPI
 #include "LoadBalancer.h"
 #include "Communicator.h"
 
@@ -30,14 +29,20 @@ namespace py = pybind11;
  */
 LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<Trigger> trigger)
-    : Tuner(sysdef, trigger), m_decomposition(sysdef->getParticleData()->getDomainDecomposition()),
-      m_mpi_comm(m_exec_conf->getMPICommunicator()), m_max_imbalance(Scalar(1.0)),
+    : Tuner(sysdef, trigger),
+      #ifdef ENABLE_MPI
+      m_mpi_comm(m_exec_conf->getMPICommunicator()),
+      #endif
+      m_max_imbalance(Scalar(1.0)),
       m_recompute_max_imbalance(true), m_needs_migrate(false), m_needs_recount(false),
       m_tolerance(Scalar(1.05)), m_maxiter(1), m_max_scale(Scalar(0.05)), m_N_own(m_pdata->getN()),
       m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0), m_n_iterations(0),
       m_n_rebalances(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
+
+    #ifdef ENABLE_MPI
+    m_decomposition = sysdef->getParticleData()->getDomainDecomposition();
 
     // default initialize the load balancing based on domain grid
     if (m_decomposition)
@@ -48,6 +53,7 @@ LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
         m_enable_z = (di.getD() > 1);
         }
     else
+    #endif // ENABLE_MPI
         {
         m_enable_x = m_enable_y = m_enable_z = false;
         }
@@ -68,7 +74,8 @@ void LoadBalancer::update(uint64_t timestep)
     {
     Updater::update(timestep);
 
-    // do nothing if this run is not on MPI
+    #ifdef ENABLE_MPI
+    // do nothing if this run is not on MPI with more than 1 rank
     if (!m_comm)
         return;
 
@@ -173,7 +180,10 @@ void LoadBalancer::update(uint64_t timestep)
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
+    #endif // ENABLE_MPI
     }
+
+#ifdef ENABLE_MPI
 
 /*!
  * Computes the imbalance factor I = N / <N> for each rank, and computes the maximum among all
@@ -610,6 +620,8 @@ void LoadBalancer::computeOwnedParticles()
     resetNOwn(N_own);
     }
 
+#endif // ENABLE_MPI
+
 /*!
  * Zero the counters.
  */
@@ -633,4 +645,3 @@ void export_LoadBalancer(py::module& m)
         .def_property("y", &LoadBalancer::getEnableY, &LoadBalancer::setEnableY)
         .def_property("z", &LoadBalancer::getEnableZ, &LoadBalancer::setEnableZ);
     }
-#endif // ENABLE_MPI
