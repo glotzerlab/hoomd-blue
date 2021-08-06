@@ -15,6 +15,7 @@ md.pair
     DPDLJ
     DPDConservative
     Ewald
+    ExpandedMie
     ForceShiftedLJ
     Fourier
     Gauss
@@ -27,6 +28,8 @@ md.pair
     OPP
     ReactionField
     SLJ
+    Table
+    TWF
     Yukawa
     ZBL
 
@@ -41,6 +44,7 @@ md.pair
         DPDLJ,
         DPDConservative,
         Ewald,
+        ExpandedMie,
         ForceShiftedLJ,
         Fourier,
         Gauss,
@@ -53,6 +57,8 @@ md.pair
         OPP,
         ReactionField,
         SLJ,
+        Table,
+        TWF,
         Yukawa,
         ZBL
 

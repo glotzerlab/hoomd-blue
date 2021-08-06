@@ -1,19 +1,19 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander / Anyone is free to add their own pair potentials here
 
 #ifndef __BOND_POTENTIALS__H__
 #define __BOND_POTENTIALS__H__
 
-#include "PotentialBond.h"
-#include "EvaluatorBondHarmonic.h"
 #include "EvaluatorBondFENE.h"
+#include "EvaluatorBondHarmonic.h"
+#include "EvaluatorBondTether.h"
+#include "PotentialBond.h"
 
 #ifdef ENABLE_HIP
-#include "PotentialBondGPU.h"
 #include "AllDriverPotentialBondGPU.cuh"
+#include "PotentialBondGPU.h"
 #endif
 
 /*! \file AllBondPotentials.h
@@ -28,12 +28,17 @@
 typedef PotentialBond<EvaluatorBondHarmonic> PotentialBondHarmonic;
 //! Bond potential force compute for FENE forces
 typedef PotentialBond<EvaluatorBondFENE> PotentialBondFENE;
+//! Bond potential force compute for Tethering forces
+typedef PotentialBond<EvaluatorBondTether> PotentialBondTether;
 
 #ifdef ENABLE_HIP
 //! Bond potential force compute for harmonic forces on the GPU
-typedef PotentialBondGPU< EvaluatorBondHarmonic, gpu_compute_harmonic_forces > PotentialBondHarmonicGPU;
+typedef PotentialBondGPU<EvaluatorBondHarmonic, gpu_compute_harmonic_forces>
+    PotentialBondHarmonicGPU;
 //! Bond potential force compute for FENE forces on the GPU
-typedef PotentialBondGPU< EvaluatorBondFENE, gpu_compute_fene_forces > PotentialBondFENEGPU;
+typedef PotentialBondGPU<EvaluatorBondFENE, gpu_compute_fene_forces> PotentialBondFENEGPU;
+//! Bond potential force compute for Tethering forces on the GPU
+typedef PotentialBondGPU<EvaluatorBondTether, gpu_compute_tether_forces> PotentialBondTetherGPU;
 #endif
 
 #endif // __BOND_POTENTIALS_H__

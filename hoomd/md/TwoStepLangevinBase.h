@@ -22,74 +22,71 @@
 class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
     {
     public:
-        /// Constructs the integration method and associates it with the system
-        TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysdef,
-                            std::shared_ptr<ParticleGroup> group,
-                            std::shared_ptr<Variant> T);
-        virtual ~TwoStepLangevinBase();
+    /// Constructs the integration method and associates it with the system
+    TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysdef,
+                        std::shared_ptr<ParticleGroup> group,
+                        std::shared_ptr<Variant> T);
+    virtual ~TwoStepLangevinBase();
 
-        /** Set a new temperature
-            @param T new temperature to set
-        */
-        void setT(std::shared_ptr<Variant> T)
-            {
-            m_T = T;
-            }
+    /** Set a new temperature
+        @param T new temperature to set
+    */
+    void setT(std::shared_ptr<Variant> T)
+        {
+        m_T = T;
+        }
 
-        /// Get the current temperature variant
-        std::shared_ptr<Variant> getT()
-            {
-            return m_T;
-            }
+    /// Get the current temperature variant
+    std::shared_ptr<Variant> getT()
+        {
+        return m_T;
+        }
 
-        /** Sets gamma for a given particle type
-            @param typ Particle type to set gamma for
-            @param gamma The gamma value to set
-        */
-        void setGamma(const std::string& type_name, Scalar gamma);
+    /** Sets gamma for a given particle type
+        @param typ Particle type to set gamma for
+        @param gamma The gamma value to set
+    */
+    void setGamma(const std::string& type_name, Scalar gamma);
 
-        /// Gets gamma for a given particle type
-        Scalar getGamma(const std::string& type_name);
+    /// Gets gamma for a given particle type
+    Scalar getGamma(const std::string& type_name);
 
-        /** Sets gamma_r for a given particle type
-            @param typ Particle type to set gamma_r
-            @param gamma The gamma_r value to set (a 3-tuple)
-        */
-        void setGammaR(const std::string& type_name, pybind11::tuple v);
+    /** Sets gamma_r for a given particle type
+        @param typ Particle type to set gamma_r
+        @param gamma The gamma_r value to set (a 3-tuple)
+    */
+    void setGammaR(const std::string& type_name, pybind11::tuple v);
 
-        /// Gets gamma_r for a given particle type
-        pybind11::tuple getGammaR(const std::string& type_name);
+    /// Gets gamma_r for a given particle type
+    pybind11::tuple getGammaR(const std::string& type_name);
 
-        /// Sets alpha
-        void setAlpha(pybind11::object alpha);
+    /// Sets alpha
+    void setAlpha(pybind11::object alpha);
 
-        /// Gets alpha
-        pybind11::object getAlpha();
+    /// Gets alpha
+    pybind11::object getAlpha();
 
-        //! Return true if the method is momentum conserving
-        virtual bool isMomentumConserving() const
-            {
-            return false;
-            }
+    //! Return true if the method is momentum conserving
+    virtual bool isMomentumConserving() const
+        {
+        return false;
+        }
 
     protected:
-        /// The Temperature of the Stochastic Bath
-        std::shared_ptr<Variant> m_T;
+    /// The Temperature of the Stochastic Bath
+    std::shared_ptr<Variant> m_T;
 
-        /// flag to enable gamma to be a scaled version of the diameter
-        bool m_use_alpha;
+    /// flag to enable gamma to be a scaled version of the diameter
+    bool m_use_alpha;
 
-        /// Scale factor to apply to diameter to get gamma
-        Scalar m_alpha;
+    /// Scale factor to apply to diameter to get gamma
+    Scalar m_alpha;
 
-        /// List of per type gammas to use when m_use_alpha=false
-        GlobalVector<Scalar> m_gamma;
+    /// List of per type gammas to use when m_use_alpha=false
+    GlobalVector<Scalar> m_gamma;
 
-        /// List of per type gamma_r (for 2D-only rotational noise) to use
-        GlobalVector<Scalar3> m_gamma_r;
-
-        /// Method to be called when number of types changes
-        virtual void slotNumTypesChange();
+    /// List of per type gamma_r (for 2D-only rotational noise) to use
+    GlobalVector<Scalar3> m_gamma_r;
     };
 
 //! Exports the TwoStepLangevinBase class to python

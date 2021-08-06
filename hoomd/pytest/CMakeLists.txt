@@ -5,7 +5,6 @@ set(files __init__.py
           test_box_resize.py
           test_dcd.py
           test_device.py
-          test_example.py
           test_trigger.py
           test_type_parameter_dict.py
           test_typeparam.py

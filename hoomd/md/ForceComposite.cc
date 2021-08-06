@@ -1,13 +1,13 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: jglaser
 
 #include "ForceComposite.h"
 #include "hoomd/VectorMath.h"
 
 #include <map>
+#include <sstream>
 #include <string.h>
 namespace py = pybind11;
 
@@ -16,42 +16,21 @@ namespace py = pybind11;
 */
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
-*/
+ */
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
-        : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false),
-         m_global_max_d(0.0),
-         m_memory_initialized(false),
-         #ifdef ENABLE_MPI
-         m_comm_ghost_layer_connected(false),
-         #endif
-         m_global_max_d_changed(true)
+    : MolecularForceCompute(sysdef), m_bodies_changed(false), m_particles_added_removed(false),
+      m_global_max_d(0.0),
+#ifdef ENABLE_MPI
+      m_comm_ghost_layer_connected(false),
+#endif
+      m_global_max_d_changed(true)
     {
-    // connect to the ParticleData to receive notifications when the number of types changes
-    m_pdata->getNumTypesChangeSignal().connect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
-
-    m_pdata->getGlobalParticleNumberChangeSignal().connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
+    m_pdata->getGlobalParticleNumberChangeSignal()
+        .connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
 
     // connect to box change signal
-    m_pdata->getCompositeParticlesSignal().connect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
-    }
-
-//! Destructor
-ForceComposite::~ForceComposite()
-    {
-    // disconnect from signal in ParticleData;
-    m_pdata->getNumTypesChangeSignal().disconnect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
-    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
-    m_pdata->getCompositeParticlesSignal().disconnect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
-    #ifdef ENABLE_MPI
-    if (m_comm_ghost_layer_connected)
-        m_comm->getExtraGhostLayerWidthRequestSignal().disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
-    #endif
-    }
-
-void ForceComposite::lazyInitMem()
-    {
-    if (m_memory_initialized)
-        return;
+    m_pdata->getCompositeParticlesSignal()
+        .connect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
 
     m_exec_conf->msg->notice(7) << "ForceComposite initialize memory" << std::endl;
 
@@ -85,19 +64,30 @@ void ForceComposite::lazyInitMem()
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
 
     m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
+    }
 
-    m_memory_initialized = true;
+//! Destructor
+ForceComposite::~ForceComposite()
+    {
+    // disconnect from signal in ParticleData;
+    m_pdata->getGlobalParticleNumberChangeSignal()
+        .disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
+    m_pdata->getCompositeParticlesSignal()
+        .disconnect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
+#ifdef ENABLE_MPI
+    if (m_comm_ghost_layer_connected)
+        m_comm->getExtraGhostLayerWidthRequestSignal()
+            .disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+#endif
     }
 
 void ForceComposite::setParam(unsigned int body_typeid,
-    std::vector<unsigned int>& type,
-    std::vector<Scalar3>& pos,
-    std::vector<Scalar4>& orientation,
-    std::vector<Scalar>& charge,
-    std::vector<Scalar>& diameter)
+                              std::vector<unsigned int>& type,
+                              std::vector<Scalar3>& pos,
+                              std::vector<Scalar4>& orientation,
+                              std::vector<Scalar>& charge,
+                              std::vector<Scalar>& diameter)
     {
-    lazyInitMem();
-
     assert(m_body_types.getPitch() >= m_pdata->getNTypes());
     assert(m_body_pos.getPitch() >= m_pdata->getNTypes());
     assert(m_body_orientation.getPitch() >= m_pdata->getNTypes());
@@ -106,27 +96,29 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
     if (body_typeid >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() << "constrain.rigid(): Invalid rigid body type." << std::endl;
-        throw std::runtime_error("Error initializing ForceComposite");
+        throw std::runtime_error("Error initializing ForceComposite: Invalid rigid body type.");
         }
 
     if (type.size() != pos.size() || orientation.size() != pos.size())
         {
-        m_exec_conf->msg->error() << "constrain.rigid(): Constituent particle lists"
-            <<" (position, orientation, type) are of unequal length." << std::endl;
-        throw std::runtime_error("Error initializing ForceComposite");
+        std::ostringstream error_msg;
+        error_msg << "Error initializing ForceComposite: Constituent particle lists"
+                  << " (position, orientation, type) are of unequal length.";
+        throw std::runtime_error(error_msg.str());
         }
     if (charge.size() && charge.size() != pos.size())
         {
-        m_exec_conf->msg->error() << "constrain.rigid(): Charges are non-empty but of different"
-            <<" length than the positions." << std::endl;
-        throw std::runtime_error("Error initializing ForceComposite");
+        std::ostringstream error_msg;
+        error_msg << "Error initializing ForceComposite: Charges are non-empty but of different "
+                  << "length than the positions.";
+        throw std::runtime_error(error_msg.str());
         }
     if (diameter.size() && diameter.size() != pos.size())
         {
-        m_exec_conf->msg->error() << "constrain.rigid(): Diameters are non-empty but of different"
-            <<" length than the positions." << std::endl;
-        throw std::runtime_error("Error initializing ForceComposite");
+        std::ostringstream error_msg;
+        error_msg << "Error initializing ForceComposite: Diameters are non-empty but of different "
+                  << "length than the positions.";
+        throw std::runtime_error(error_msg.str());
         }
 
     bool body_updated = false;
@@ -136,10 +128,16 @@ void ForceComposite::setParam(unsigned int body_typeid,
     // detect if bodies have changed
 
         {
-        ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body_type(m_body_types,
+                                              access_location::host,
+                                              access_mode::read);
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_body_orientation(m_body_orientation,
+                                                access_location::host,
+                                                access_mode::read);
+        ArrayHandle<unsigned int> h_body_len(m_body_len,
+                                             access_location::host,
+                                             access_mode::readwrite);
 
         assert(body_typeid < m_body_len.getNumElements());
         if (type.size() != h_body_len.data[body_typeid])
@@ -153,14 +151,9 @@ void ForceComposite::setParam(unsigned int body_typeid,
             {
             for (unsigned int i = 0; i < type.size(); ++i)
                 {
-                if (type[i] != h_body_type.data[m_body_idx(body_typeid,i)] ||
-                    pos[i].x != h_body_pos.data[m_body_idx(body_typeid,i)].x ||
-                    pos[i].y != h_body_pos.data[m_body_idx(body_typeid,i)].y ||
-                    pos[i].x != h_body_pos.data[m_body_idx(body_typeid,i)].z ||
-                    orientation[i].x != h_body_orientation.data[m_body_idx(body_typeid,i)].x ||
-                    orientation[i].y != h_body_orientation.data[m_body_idx(body_typeid,i)].y ||
-                    orientation[i].z != h_body_orientation.data[m_body_idx(body_typeid,i)].z ||
-                    orientation[i].w != h_body_orientation.data[m_body_idx(body_typeid,i)].w)
+                auto body_index = m_body_idx(body_typeid, i);
+                if (type[i] != h_body_type.data[body_index] || pos[i] != h_body_pos.data[body_index]
+                    || orientation[i] != h_body_orientation.data[body_index])
                     {
                     body_updated = true;
                     }
@@ -179,18 +172,21 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
             m_body_idx = Index2D((unsigned int)m_body_types.getPitch(),
                                  (unsigned int)m_body_types.getHeight());
-
-            // set memory hints
-            lazyInitMem();
             }
         }
 
     if (body_updated)
         {
             {
-            ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_body_type(m_body_types,
+                                                  access_location::host,
+                                                  access_mode::readwrite);
+            ArrayHandle<Scalar3> h_body_pos(m_body_pos,
+                                            access_location::host,
+                                            access_mode::readwrite);
+            ArrayHandle<Scalar4> h_body_orientation(m_body_orientation,
+                                                    access_location::host,
+                                                    access_mode::readwrite);
 
             m_body_charge[body_typeid].resize(type.size());
             m_body_diameter[body_typeid].resize(type.size());
@@ -198,9 +194,9 @@ void ForceComposite::setParam(unsigned int body_typeid,
             // store body data in GlobalArray
             for (unsigned int i = 0; i < type.size(); ++i)
                 {
-                h_body_type.data[m_body_idx(body_typeid,i)] = type[i];
-                h_body_pos.data[m_body_idx(body_typeid,i)] = pos[i];
-                h_body_orientation.data[m_body_idx(body_typeid,i)] = orientation[i];
+                h_body_type.data[m_body_idx(body_typeid, i)] = type[i];
+                h_body_pos.data[m_body_idx(body_typeid, i)] = pos[i];
+                h_body_orientation.data[m_body_idx(body_typeid, i)] = orientation[i];
 
                 m_body_charge[body_typeid][i] = charge[i];
                 m_body_diameter[body_typeid][i] = diameter[i];
@@ -224,13 +220,12 @@ void ForceComposite::setParam(unsigned int body_typeid,
         // indicate that the maximum diameter may have changed
         m_global_max_d_changed = true;
         }
-   }
+    }
 
 Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
     {
-    lazyInitMem();
-
-    m_exec_conf->msg->notice(7) << "ForceComposite: calculating body diameter for type " << m_pdata->getNameByType(body_type) << std::endl;
+    m_exec_conf->msg->notice(7) << "ForceComposite: calculating body diameter for type "
+                                << m_pdata->getNameByType(body_type) << std::endl;
 
     // get maximum pairwise distance
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
@@ -242,8 +237,8 @@ Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
     for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
         {
         // distance to central particle
-        Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
-        Scalar d = sqrt(dot(dr,dr));
+        Scalar3 dr = h_body_pos.data[m_body_idx(body_type, i)];
+        Scalar d = sqrt(dot(dr, dr));
         if (d > d_max)
             {
             d_max = d;
@@ -252,8 +247,9 @@ Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
         // distance to every other particle
         for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
             {
-            dr = h_body_pos.data[m_body_idx(body_type,i)]-h_body_pos.data[m_body_idx(body_type,j)];
-            d = sqrt(dot(dr,dr));
+            dr = h_body_pos.data[m_body_idx(body_type, i)]
+                 - h_body_pos.data[m_body_idx(body_type, j)];
+            d = sqrt(dot(dr, dr));
 
             if (d > d_max)
                 {
@@ -265,48 +261,8 @@ Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
     return d_max;
     }
 
-void ForceComposite::slotNumTypesChange()
-    {
-    //! initial allocation if necessary
-    lazyInitMem();
-
-    unsigned int old_ntypes = (unsigned int)m_body_len.getNumElements();
-    unsigned int new_ntypes = m_pdata->getNTypes();
-
-    size_t height = m_body_pos.getHeight();
-
-    // resize per-type arrays (2D)
-    m_body_types.resize(new_ntypes, height);
-    m_body_pos.resize(new_ntypes, height);
-    m_body_orientation.resize(new_ntypes, height);
-
-    m_body_charge.resize(new_ntypes);
-    m_body_diameter.resize(new_ntypes);
-
-    m_body_idx = Index2D((unsigned int)m_body_pos.getPitch(), (unsigned int)height);
-
-    m_body_len.resize(new_ntypes);
-
-    // reset newly added elements to zero
-    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
-    for (unsigned int i = old_ntypes; i < new_ntypes; ++i)
-        {
-        h_body_len.data[i] = 0;
-        }
-
-    m_d_max.resize(new_ntypes, Scalar(0.0));
-    m_d_max_changed.resize(new_ntypes, false);
-
-    m_body_max_diameter.resize(new_ntypes,0.0);
-
-    //! update memory hints, after re-allocation
-    lazyInitMem();
-    }
-
 Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
     {
-    lazyInitMem();
-
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     if (m_d_max_changed[type])
@@ -316,7 +272,9 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
         assert(m_body_len.getNumElements() > type);
 
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body_type(m_body_types,
+                                              access_location::host,
+                                              access_mode::read);
 
         unsigned int ntypes = m_pdata->getNTypes();
 
@@ -326,7 +284,7 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
             bool is_part_of_body = body_type == type;
             for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                 {
-                if (h_body_type.data[m_body_idx(body_type,i)] == type)
+                if (h_body_type.data[m_body_idx(body_type, i)] == type)
                     {
                     is_part_of_body = true;
                     }
@@ -336,11 +294,12 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
                 {
                 for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                     {
-                    if (body_type != type && h_body_type.data[m_body_idx(body_type,i)] != type) continue;
+                    if (body_type != type && h_body_type.data[m_body_idx(body_type, i)] != type)
+                        continue;
 
                     // distance to central particle
-                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
-                    Scalar d = sqrt(dot(dr,dr));
+                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type, i)];
+                    Scalar d = sqrt(dot(dr, dr));
                     if (d > m_d_max[type])
                         {
                         m_d_max[type] = d;
@@ -351,8 +310,9 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
                         // for non-central particles, distance to every other particle
                         for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
                             {
-                            dr = h_body_pos.data[m_body_idx(body_type,i)]-h_body_pos.data[m_body_idx(body_type,j)];
-                            d = sqrt(dot(dr,dr));
+                            dr = h_body_pos.data[m_body_idx(body_type, i)]
+                                 - h_body_pos.data[m_body_idx(body_type, j)];
+                            d = sqrt(dot(dr, dr));
 
                             if (d > m_d_max[type])
                                 {
@@ -366,365 +326,313 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
 
         m_d_max_changed[type] = false;
 
-        m_exec_conf->msg->notice(7) << "ForceComposite: requesting ghost layer for type "
-            << m_pdata->getNameByType(type) << ": " << m_d_max[type] << std::endl;
+        m_exec_conf->msg->notice(7)
+            << "ForceComposite: requesting ghost layer for type " << m_pdata->getNameByType(type)
+            << ": " << m_d_max[type] << std::endl;
         }
 
     return m_d_max[type];
     }
 
-void ForceComposite::validateRigidBodies(bool create)
+void ForceComposite::validateRigidBodies()
     {
-    lazyInitMem();
-
-    if (m_bodies_changed || m_ptls_added_removed)
+    if (!(m_bodies_changed || m_particles_added_removed))
         {
-        // check validity of rigid body types: no nested rigid bodies
-        unsigned int ntypes = m_pdata->getNTypes();
-        assert(m_body_types.getPitch() >= ntypes);
+        return;
+        }
 
+    // check validity of rigid body types: no nested rigid bodies
+    unsigned int ntypes = m_pdata->getNTypes();
+    assert(m_body_types.getPitch() >= ntypes);
+        {
+        ArrayHandle<unsigned int> h_body_type(m_body_types,
+                                              access_location::host,
+                                              access_mode::read);
+        ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+        for (unsigned int itype = 0; itype < ntypes; ++itype)
             {
-            ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-            for (unsigned int itype = 0; itype < ntypes; ++itype)
+            for (unsigned int j = 0; j < h_body_len.data[itype]; ++j)
                 {
-                for (unsigned int j= 0; j < h_body_len.data[itype]; ++j)
+                assert(h_body_type.data[m_body_idx(itype, j)] <= ntypes);
+                if (h_body_len.data[h_body_type.data[m_body_idx(itype, j)]] != 0)
                     {
-                    assert(h_body_type.data[m_body_idx(itype,j)] <= ntypes);
-                    if (h_body_len.data[h_body_type.data[m_body_idx(itype,j)]] != 0)
-                        {
-                        m_exec_conf->msg->error() << "constrain.rigid(): A rigid body type may not contain constituent particles "
-                            << "that are also rigid bodies!" << std::endl;
-                        throw std::runtime_error("Error initializing ForceComposite");
-                        }
+                    throw std::runtime_error(
+                        "Error initializing ForceComposite: A rigid body type "
+                        "may not contain constituent particles that are also rigid bodies.");
                     }
                 }
             }
+        }
 
-        SnapshotParticleData<Scalar> snap;
+    SnapshotParticleData<Scalar> snap;
 
-        // take a snapshot on rank 0
-        m_pdata->takeSnapshot(snap);
+    // take a snapshot on rank 0
+    m_pdata->takeSnapshot(snap);
 
-        // constituent particles added as rigid body copies
-        unsigned int n_add_ptls = 0;
+    std::vector<unsigned int> molecule_tag;
 
-        // True if we need to remove all constituent particles from the system first
-        bool need_remove_bodies = false;
+    // number of bodies in system
+    unsigned int nbodies = 0;
 
-        if (m_exec_conf->getRank() == 0)
+    // Validate the body tags in the system and assign molecules into molecule tag
+    if (m_exec_conf->getRank() == 0)
+        {
+        // access body data
+        ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body_type(m_body_types,
+                                              access_location::host,
+                                              access_mode::read);
+
+        typedef std::map<unsigned int, unsigned int> map_t;
+        // This will count the length of all molecules (realized rigid bodies) in the system.
+        map_t body_particle_count;
+
+        molecule_tag.resize(snap.size, NO_MOLECULE);
+
+        // count number of constituent particles to add
+        for (unsigned i = 0; i < snap.size; ++i)
             {
-            // access body data
-            ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
+            assert(snap.type[i] < ntypes);
 
-            typedef std::map<unsigned int, unsigned int> map_t;
-            map_t count_body_ptls;
-
-            // count number of constituent particles to add
-            for (unsigned i = 0; i < snap.size; ++i)
+            // If a particle is of a type with a non-zero body definition it should be a central
+            // particle and the body value should equal its particle tag.
+            if (h_body_len.data[snap.type[i]] != 0)
                 {
-                assert(snap.type[i] < ntypes);
-
-                bool is_central_ptl = h_body_len.data[snap.type[i]] != 0;
-
-                if (create)
+                if (snap.body[i] != i)
                     {
-                    if (snap.body[i] < MIN_FLOPPY)
-                        {
-                        if (!is_central_ptl)
-                            {
-                            need_remove_bodies = true;
-                            }
-                        else
-                            {
-                            // wipe out body flag
-                            assert(snap.body[i] == i);
-                            snap.body[i] = NO_BODY;
-                            }
-                        }
+                    throw std::runtime_error(
+                        "Error validating rigid bodies: Particles of types defining rigid bodies "
+                        "must have a body tag identical to their particle tag to be considered a "
+                        "central particle.");
+                    }
 
-                    // for each particle of a body type, add a copy of the constituent particles
-                    n_add_ptls += h_body_len.data[snap.type[i]];
+                // Create a new molecule count for central particle i.
+                body_particle_count.insert(std::make_pair(i, 0));
+                molecule_tag[i] = nbodies++;
+                }
+            // validate constituent particles. MIN_FLOPPY defines the maximum tag for a particle
+            // that is in a rigid body. Tags higher than this can be in a floppy body.
+            else if (snap.body[i] < MIN_FLOPPY)
+                {
+                // check if particle body tag correctly points to the central particle and less than
+                // the number of particles in the system. This first check is to ensure that no
+                // unallocated memory is attempted to be accessed in the second check.
+                if (snap.body[i] >= snap.size || snap.body[snap.body[i]] != snap.body[i])
+                    {
+                    throw std::runtime_error(
+                        "Error validating rigid bodies: Constituent particle body tags must "
+                        "be the tag of their central particles.");
+                    }
+
+                unsigned int central_particle_index = snap.body[i];
+                map_t::iterator it = body_particle_count.find(central_particle_index);
+                // If find returns the end of the map, then the central particle for this
+                // particular composite particle has not been seen yet. Since we are iterating
+                // over the snapshot, this means that the tag for the central particle is higher
+                // than the composite particles which is not allowed.
+                if (it == body_particle_count.end())
+                    {
+                    throw std::runtime_error(
+                        "Error validating rigid bodies: Central particle must have a lower "
+                        "tag than all constituent particles.");
+                    }
+
+                unsigned int current_molecule_size = it->second;
+                unsigned int body_type = snap.type[central_particle_index];
+                if (current_molecule_size == h_body_len.data[body_type])
+                    {
+                    throw std::runtime_error(
+                        "Error validating rigid bodies: Too many constituent particles for "
+                        "rigid body.");
+                    }
+
+                if (h_body_type.data[m_body_idx(body_type, current_molecule_size)] != snap.type[i])
+                    {
+                    throw std::runtime_error(
+                        "Error validating rigid bodies: Constituent particle types must be "
+                        "consistent with the rigid body definition.  Rigid body definition "
+                        "is in order of particle tag.");
+                    }
+                // increase molecule size by one as particle is validated
+                it->second++;
+                // Mark consistent particle in molecule as belonging to its central particle.
+                molecule_tag[i] = molecule_tag[snap.body[i]];
+                }
+            }
+        for (auto it = body_particle_count.begin(); it != body_particle_count.end(); ++it)
+            {
+            const auto central_particle_tag = it->first;
+            const auto molecule_size = it->second;
+            unsigned int central_particle_type = snap.type[central_particle_tag];
+            if (molecule_size != h_body_len.data[central_particle_type])
+                {
+                std::ostringstream error_msg;
+                error_msg << "Error validating rigid bodies: Incomplete rigid body with only "
+                          << molecule_size << " constituent particles "
+                          << "instead of " << h_body_len.data[central_particle_type] << " for body "
+                          << central_particle_tag;
+                throw std::runtime_error(error_msg.str());
+                }
+            }
+        }
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        bcast(molecule_tag, 0, m_exec_conf->getMPICommunicator());
+        bcast(nbodies, 0, m_exec_conf->getMPICommunicator());
+        }
+#endif
+
+    // resize Molecular tag member array
+    m_molecule_tag.resize(molecule_tag.size());
+        {
+        ArrayHandle<unsigned int> h_molecule_tag(m_molecule_tag,
+                                                 access_location::host,
+                                                 access_mode::overwrite);
+        std::copy(molecule_tag.begin(), molecule_tag.end(), h_molecule_tag.data);
+        }
+
+    // store number of molecules in all ranks
+    m_n_molecules_global = nbodies;
+
+    // reset flags
+    m_bodies_changed = false;
+    m_particles_added_removed = false;
+    }
+
+void ForceComposite::createRigidBodies()
+    {
+    SnapshotParticleData<Scalar> snap;
+
+    // take a snapshot on rank 0
+    m_pdata->takeSnapshot(snap);
+    bool remove_existing_bodies = false;
+    unsigned int n_constituent_particles = 0;
+    unsigned int n_free_bodies = 0;
+        {
+        // We restrict the scope of h_body_len to ensure if we remove_existing_bodies or in any way
+        // reallocated m_body_len to a new memory location that we will be forced to reaquire the
+        // handle to the correct new memory location.
+        ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+        for (unsigned int particle_tag = 0; particle_tag < snap.size; ++particle_tag)
+            {
+            // Determine whether rigid bodies exist in the current system via the definitions of
+            // rigid bodies provided (i.e. if a non-zero length definitions was provided. We set
+            // snap.body[i] = NO_BODY to prevent central particles from being removed in
+            // initializeFromSnapshot if we must remove rigid bodies.
+            if (snap.body[particle_tag] != NO_BODY)
+                {
+                if (h_body_len.data[snap.type[particle_tag]] == 0)
+                    {
+                    remove_existing_bodies = true;
                     }
                 else
                     {
-                    // validate constituent particle
-                    if (is_central_ptl)
-                        {
-                        if (snap.body[i] != i)
-                            {
-                            m_exec_conf->msg->error() << "constrain.rigid(): Central particles must have a body tag identical to their contiguous tag." << std::endl;
-                            throw std::runtime_error("Error validating rigid bodies\n");
-                            }
-
-                        count_body_ptls.insert(std::make_pair(i,0));
-                        }
-                    if (snap.body[i] < MIN_FLOPPY)
-                        {
-                        // check if ptl body tag correctly points to the central particle
-                        if (snap.body[i] >= snap.size || snap.body[snap.body[i]] != snap.body[i])
-                            {
-                            m_exec_conf->msg->error() << "constrain.rigid(): Constituent particle body tags must point to the center particle." << std::endl;
-                            throw std::runtime_error("Error validating rigid bodies\n");
-                            }
-
-                        if (! is_central_ptl)
-                            {
-                            unsigned int central_ptl = snap.body[i];
-                            unsigned int body_type = snap.type[central_ptl];
-
-                            map_t::iterator it = count_body_ptls.find(central_ptl);
-                            if (it == count_body_ptls.end())
-                                {
-                                m_exec_conf->msg->error() << "constrain.rigid(): Central particle " << snap.body[i]
-                                    << " does not precede particle with tag " << i << std::endl;
-                                throw std::runtime_error("Error validating rigid bodies\n");
-                                }
-
-                            unsigned int n = it->second;
-                            if (n == h_body_len.data[body_type])
-                                {
-                                m_exec_conf->msg->error() << "constrain.rigid(): Number of constituent particles for body " << snap.body[i] << " exceeds definition"
-                                     << std::endl;
-                                throw std::runtime_error("Error validating rigid bodies\n");
-                                }
-
-                            if (h_body_type.data[m_body_idx(body_type, n)] != snap.type[i])
-                                {
-                                m_exec_conf->msg->error() << "constrain.rigid(): Constituent particle types must be consistent with rigid body parameters." << std::endl;
-                                throw std::runtime_error("Error validating rigid bodies\n");
-                                }
-
-                            // increase count
-                            it->second++;
-                            }
-                        }
+                    n_free_bodies += 1;
                     }
                 }
-
-            if (! create)
+            else
                 {
-                for (map_t::iterator it = count_body_ptls.begin(); it != count_body_ptls.end();++it)
-                    {
-                    unsigned int central_ptl_type = snap.type[it->first];
-                    if (it->second != h_body_len.data[central_ptl_type])
-                        {
-                        m_exec_conf->msg->error() << "constrain.rigid(): Incomplete rigid body with only " << it->second << " constituent particles "
-                            << "instead of " << h_body_len.data[central_ptl_type] << " for body " << it->first << std::endl;
-                        throw std::runtime_error("Error validating rigid bodies\n");
-                        }
-                    }
+                snap.body[particle_tag] = NO_BODY;
                 }
+            // Increase the number of particles we need to add by the number of constituent
+            // particles this rigid body center has based on its type.
+            n_constituent_particles += h_body_len.data[snap.type[particle_tag]];
             }
-
-        #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            bcast(need_remove_bodies, 0, m_exec_conf->getMPICommunicator());
-            bcast(n_add_ptls, 0, m_exec_conf->getMPICommunicator());
-            }
-        #endif
-
-        if (need_remove_bodies)
-            {
-            m_exec_conf->msg->notice(2)
-                << "constrain.rigid(): Removing all particles part of rigid bodies (except central particles)."
-                << "Particle tags may change."
-                << std::endl;
-
-            // re-initialize, removing rigid bodies
-            m_pdata->initializeFromSnapshot(snap, true);
-
-            // update snapshot
-            m_pdata->takeSnapshot(snap);
-            }
-
-        std::vector<unsigned int> molecule_tag;
-
-        // number of bodies in system
-        unsigned int nbodies = 0;
-
-        const BoxDim& global_box = m_pdata->getGlobalBox();
-        SnapshotParticleData<Scalar> snap_out = snap;
-
-        if (create)
-            {
-            if (m_exec_conf->getRank() == 0)
-                {
-                unsigned int old_size = snap.size;
-
-                // resize and reset global molecule table
-                molecule_tag.resize(old_size+n_add_ptls, NO_MOLECULE);
-
-                // access body data
-                ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
-                ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
-                ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-
-                unsigned int snap_idx_out = old_size;
-
-                // create copies
-                for (unsigned i = 0; i < old_size; ++i)
-                    {
-                    assert(snap.type[i] < ntypes);
-
-                    bool is_central_ptl = h_body_len.data[snap.type[i]] != 0;
-
-                    assert(snap.body[i] == NO_BODY);
-
-                    if (is_central_ptl)
-                        {
-                        unsigned int body_type = snap.type[i];
-
-                        unsigned body_tag = i;
-
-                        // set body id to tag of central ptl
-                        snap_out.body[i] = body_tag;
-
-                        // set molecule tag
-                        molecule_tag[i] = nbodies;
-
-                        vec3<Scalar> central_pos(snap.pos[i]);
-                        quat<Scalar> central_orientation(snap.orientation[i]);
-                        int3 central_img = snap.image[i];
-
-                        // insert elements into snapshot
-                        unsigned int n= h_body_len.data[body_type];
-                        snap_out.insert(snap_idx_out, n);
-
-                        for (unsigned int j = 0; j < n; ++j)
-                            {
-                            // set type
-                            snap_out.type[snap_idx_out] = h_body_type.data[m_body_idx(body_type,j)];
-
-                            // set body index on constituent particle
-                            snap_out.body[snap_idx_out] = body_tag;
-
-                            // use contiguous molecule tag
-                            molecule_tag[snap_idx_out] = nbodies;
-
-                            // update position and orientation to ensure particles end up in correct domain
-                            vec3<Scalar> pos(central_pos);
-
-                            pos += rotate(central_orientation, vec3<Scalar>(h_body_pos.data[m_body_idx(body_type,j)]));
-                            quat<Scalar> orientation = central_orientation*quat<Scalar>(h_body_orientation.data[m_body_idx(body_type,j)]);
-
-                            // wrap into box, allowing rigid bodies to span multiple images
-                            int3 img = global_box.getImage(vec_to_scalar3(pos));
-                            int3 negimg = make_int3(-img.x, -img.y, -img.z);
-                            pos = global_box.shift(pos, negimg);
-
-                            snap_out.pos[snap_idx_out] = pos;
-                            snap_out.image[snap_idx_out] = central_img + img;
-                            snap_out.orientation[snap_idx_out] = orientation;
-
-                            // set charge and diameter
-                            snap_out.charge[snap_idx_out] = m_body_charge[body_type][j];
-                            snap_out.diameter[snap_idx_out] = m_body_diameter[body_type][j];
-                            snap_idx_out++;
-                            }
-
-                        nbodies++;
-                        }
-
-                    }
-                }
-
-            m_exec_conf->msg->notice(2) << "constrain.rigid(): Creating " << nbodies << " rigid bodies (adding "
-                << n_add_ptls << " particles)" << std::endl;
-            }
-        else
-            {
-            if (m_exec_conf->getRank() == 0)
-                {
-                molecule_tag.resize(snap.size, NO_MOLECULE);
-
-                typedef std::map<unsigned int, unsigned int> map_t;
-                map_t count_body_ptls;
-
-                // access body data
-                ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
-                ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
-
-                // assign contiguous molecule tags and update constituent particle positions and orientations
-                for (unsigned i = 0; i < snap_out.size; ++i)
-                    {
-                    assert(snap_out.type[i] < ntypes);
-
-                    if (snap_out.body[i] < MIN_FLOPPY)
-                        {
-                        if (snap_out.body[i] == i)
-                            {
-                            // central particle
-                            molecule_tag[i] = nbodies++;
-                            count_body_ptls.insert(std::make_pair(snap_out.body[i],0));
-                            }
-                        else
-                            {
-                            molecule_tag[i] = molecule_tag[snap_out.body[i]];
-
-                            // update position and orientation to ensure particles end up in correct domain
-                            vec3<Scalar> pos(snap_out.pos[snap_out.body[i]]);
-                            quat<Scalar> central_orientation(snap_out.orientation[snap_out.body[i]]);
-                            int3 central_img = snap_out.image[snap_out.body[i]];
-
-                            map_t::iterator it = count_body_ptls.find(snap_out.body[i]);
-                            unsigned int j = it->second;
-                            unsigned int body_type = snap_out.type[snap_out.body[i]];
-                            pos += rotate(central_orientation, vec3<Scalar>(h_body_pos.data[m_body_idx(body_type,j)]));
-                            quat<Scalar> orientation = central_orientation*quat<Scalar>(h_body_orientation.data[m_body_idx(body_type,j)]);
-
-                            // wrap into box, allowing rigid bodies to span multiple images
-                            int3 img = global_box.getImage(vec_to_scalar3(pos));
-                            int3 negimg = make_int3(-img.x, -img.y, -img.z);
-                            pos = global_box.shift(pos, negimg);
-
-                            snap_out.pos[i] = pos;
-                            snap_out.image[i] = central_img + img;
-                            snap_out.orientation[i] = orientation;
-
-                            it->second++;
-                            }
-                        }
-                    }
-                }
-
-           }
-
-        // re-initialize, keeping particles with body != NO_BODY at this time
-        m_pdata->initializeFromSnapshot(snap_out, false);
-
-        #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            bcast(molecule_tag, 0, m_exec_conf->getMPICommunicator());
-            }
-        #endif
-
-        // resize GPU table
-        m_molecule_tag.resize(molecule_tag.size());
-            {
-            // store global molecule information in GlobalArray
-            ArrayHandle<unsigned int> h_molecule_tag(m_molecule_tag, access_location::host, access_mode::overwrite);
-            std::copy(molecule_tag.begin(), molecule_tag.end(), h_molecule_tag.data);
-            }
-
-        // store number of molecules
-        m_n_molecules_global = nbodies;
-
-        #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            bcast(m_n_molecules_global, 0, m_exec_conf->getMPICommunicator());
-            }
-        #endif
-
-        // reset flags
-        m_bodies_changed = false;
-        m_ptls_added_removed = false;
         }
+
+    if (remove_existing_bodies)
+        {
+        m_exec_conf->msg->notice(7)
+            << "ForceComposite reinitialize particle data without rigid bodies" << std::endl;
+        m_pdata->initializeFromSnapshot(snap, true);
+        m_pdata->takeSnapshot(snap);
+        }
+
+    std::vector<unsigned int> molecule_tag;
+    unsigned int n_central_particles = snap.size - n_free_bodies;
+    unsigned int n_without_constituent = snap.size;
+    snap.insert(snap.size, n_constituent_particles);
+
+    if (m_exec_conf->getRank() == 0)
+        {
+        ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body_type(m_body_types,
+                                              access_location::host,
+                                              access_mode::read);
+        molecule_tag.resize(n_central_particles + n_constituent_particles, NO_MOLECULE);
+
+        unsigned int constituent_particle_tag = n_without_constituent;
+        unsigned int central_particle_tag = 0;
+        for (unsigned int particle_tag = 0; particle_tag < n_without_constituent; ++particle_tag)
+            {
+            assert(snap.type[particle_tag] < m_pdata->getNTypes());
+            assert(snap.body[particle_tag] == NO_BODY);
+
+            // If the length of the body definition is zero it must be a free body because all
+            // constituent particles have been removed.
+            if (h_body_len.data[snap.type[particle_tag]] == 0)
+                {
+                continue;
+                }
+            snap.body[central_particle_tag] = central_particle_tag;
+            molecule_tag[central_particle_tag] = central_particle_tag;
+
+            unsigned int body_type = snap.type[central_particle_tag];
+            unsigned int n_body_particles = h_body_len.data[body_type];
+
+            for (unsigned int current_body_index = 0; current_body_index < n_body_particles;
+                 ++current_body_index)
+                {
+                // Update constituent particle snapshot properties from default.
+                // Position and orientation are handled by updateCompositeParticles.
+                snap.type[constituent_particle_tag]
+                    = h_body_type.data[m_body_idx(body_type, current_body_index)];
+                snap.body[constituent_particle_tag] = central_particle_tag;
+                snap.charge[constituent_particle_tag]
+                    = m_body_charge[body_type][current_body_index];
+                snap.diameter[constituent_particle_tag]
+                    = m_body_diameter[body_type][current_body_index];
+                snap.pos[constituent_particle_tag] = snap.pos[central_particle_tag];
+
+                // Since the central particle tags here will be [0, n_central_particles), we know
+                // that the molecule number will be the same as the central particle tag.
+                molecule_tag[constituent_particle_tag] = central_particle_tag;
+
+                ++constituent_particle_tag;
+                }
+            ++central_particle_tag;
+            }
+        }
+
+    // Keep rigid bodies this time when initializing.
+    m_pdata->initializeFromSnapshot(snap, false);
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        bcast(molecule_tag, 0, m_exec_conf->getMPICommunicator());
+        bcast(n_central_particles, 0, m_exec_conf->getMPICommunicator());
+        }
+#endif
+
+    m_molecule_tag.resize(molecule_tag.size());
+        {
+        // store global molecule information in GlobalArray
+        ArrayHandle<unsigned int> h_molecule_tag(m_molecule_tag,
+                                                 access_location::host,
+                                                 access_mode::overwrite);
+        std::copy(molecule_tag.begin(), molecule_tag.end(), h_molecule_tag.data);
+        }
+    m_n_molecules_global = n_central_particles;
+
+    m_bodies_changed = false;
+    m_particles_added_removed = false;
+
+    // Timestep is not currently used by updateCompositeParticles so we can just pass in a dummy
+    // value. TODO this may better just be removed from the signature.
+    updateCompositeParticles(0);
     }
 
 #ifdef ENABLE_MPI
@@ -759,27 +667,50 @@ CommFlags ForceComposite::getRequestedCommFlags(uint64_t timestep)
 //! Compute the forces and torques on the central particle
 void ForceComposite::computeForces(uint64_t timestep)
     {
+    // If no rigid bodies exist return early. This also prevents accessing arrays assuming that this
+    // is non-zero.
+    if (m_n_molecules_global == 0)
+        {
+        return;
+        }
+
     // access local molecule data
     // need to move this on top because of scoping issues
     Index2D molecule_indexer = getMoleculeIndexer();
     unsigned int nmol = molecule_indexer.getH();
 
-    ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(),
+                                                access_location::host,
+                                                access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(),
+                                              access_location::host,
+                                              access_mode::read);
 
     // access particle data
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::read);
 
     // access net force and torque acting on constituent particles
-    ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(),
+                                     access_location::host,
+                                     access_mode::readwrite);
+    ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(),
+                                      access_location::host,
+                                      access_mode::readwrite);
+    ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(),
+                                     access_location::host,
+                                     access_mode::readwrite);
 
-    // access the force and torque array for the central ptl
+    // access the force and torque array for the central particle
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
@@ -789,11 +720,11 @@ void ForceComposite::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     // reset constraint forces and torques
-    memset(h_force.data,0, sizeof(Scalar4)*m_pdata->getN());
-    memset(h_torque.data,0, sizeof(Scalar4)*m_pdata->getN());
-    memset(h_virial.data,0, sizeof(Scalar)*m_virial.getNumElements());
+    memset(h_force.data, 0, sizeof(Scalar4) * m_pdata->getN());
+    memset(h_torque.data, 0, sizeof(Scalar4) * m_pdata->getN());
+    memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
-    unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
+    unsigned int n_particles_local = m_pdata->getN() + m_pdata->getNGhosts();
     size_t net_virial_pitch = m_pdata->getNetVirial().getPitch();
 
     PDataFlags flags = m_pdata->getFlags();
@@ -806,11 +737,9 @@ void ForceComposite::computeForces(uint64_t timestep)
     // loop over all molecules, also incomplete ones
     for (unsigned int ibody = 0; ibody < nmol; ibody++)
         {
-        unsigned int len = h_molecule_length.data[ibody];
-
-        // get central ptl tag from first ptl in molecule
-        assert(len>0);
-        unsigned int first_idx = h_molecule_list.data[molecule_indexer(0,ibody)];
+        // get central particle tag from first particle in molecule
+        assert(h_molecule_length.data[ibody] > 0);
+        unsigned int first_idx = h_molecule_list.data[molecule_indexer(0, ibody)];
 
         assert(first_idx < m_pdata->getN() + m_pdata->getNGhosts());
         unsigned int central_tag = h_body.data[first_idx];
@@ -818,12 +747,13 @@ void ForceComposite::computeForces(uint64_t timestep)
         assert(central_tag <= m_pdata->getMaximumTag());
         unsigned int central_idx = h_rtag.data[central_tag];
 
-        if (central_idx >= nptl_local) continue;
+        if (central_idx >= n_particles_local)
+            continue;
 
-        // the central ptl must be present
+        // the central particle must be present
         assert(central_tag == h_tag.data[first_idx]);
 
-        // central ptl position and orientation
+        // central particle position and orientation
         Scalar4 postype = h_postype.data[central_idx];
         quat<Scalar> orientation(h_orientation.data[central_idx]);
 
@@ -831,32 +761,36 @@ void ForceComposite::computeForces(uint64_t timestep)
         unsigned int type = __scalar_as_int(postype.w);
 
         // sum up forces and torques from constituent particles
-        for (unsigned int jptl = 0; jptl < len; ++jptl)
+        for (unsigned int constituent_index = 0; constituent_index < h_molecule_length.data[ibody];
+             ++constituent_index)
             {
-            unsigned int idxj = h_molecule_list.data[molecule_indexer(jptl,ibody)];
+            unsigned int idxj = h_molecule_list.data[molecule_indexer(constituent_index, ibody)];
             assert(idxj < m_pdata->getN() + m_pdata->getNGhosts());
 
-            assert(idxj == central_idx || jptl > 0);
-            if (idxj == central_idx) continue;
+            assert(idxj == central_idx || constituent_index > 0);
+            if (idxj == central_idx)
+                continue;
 
             // force and torque on particle
             Scalar4 net_force = h_net_force.data[idxj];
             Scalar4 net_torque = h_net_torque.data[idxj];
             vec3<Scalar> f(net_force);
 
-            // zero net energy on constituent ptls to avoid double counting
+            // zero net energy on constituent particles to avoid double counting
             // also zero net force and torque for consistency
-            h_net_force.data[idxj] = make_scalar4(0.0,0.0,0.0,0.0);
-            h_net_torque.data[idxj] = make_scalar4(0.0,0.0,0.0,0.0);
+            h_net_force.data[idxj] = make_scalar4(0.0, 0.0, 0.0, 0.0);
+            h_net_torque.data[idxj] = make_scalar4(0.0, 0.0, 0.0, 0.0);
 
             // only add forces for local central particles
             if (central_idx < m_pdata->getN())
                 {
                 // if the central particle is local, the molecule should be complete
-                if (len != h_body_len.data[type] + 1)
+                if (h_molecule_length.data[ibody] != h_body_len.data[type] + 1)
                     {
-                    m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body tag "
-                                                      << central_tag << " incomplete" << std::endl << std::endl;
+                    m_exec_conf->msg->errorAllRanks()
+                        << "constrain.rigid(): Composite particle with body tag " << central_tag
+                        << " incomplete" << std::endl
+                        << std::endl;
                     throw std::runtime_error("Error computing composite particle forces.\n");
                     }
 
@@ -869,19 +803,20 @@ void ForceComposite::computeForces(uint64_t timestep)
                 h_force.data[central_idx].w += net_force.w;
 
                 // fetch relative position from rigid body definition
-                vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, jptl - 1)]);
+                vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, constituent_index - 1)]);
 
                 // rotate into space frame
                 vec3<Scalar> dr_space = rotate(orientation, dr);
 
                 // torque = r x f
-                vec3<Scalar> delta_torque(cross(dr_space,f));
+                vec3<Scalar> delta_torque(cross(dr_space, f));
                 h_torque.data[central_idx].x += delta_torque.x;
                 h_torque.data[central_idx].y += delta_torque.y;
                 h_torque.data[central_idx].z += delta_torque.z;
 
-                /* from previous rigid body implementation: Access Torque elements from a single particle. Right now I will am assuming that the particle
-                    and rigid body reference frames are the same. Probably have to rotate first.
+                /* from previous rigid body implementation: Access Torque elements from a single
+                   particle. Right now I will am assuming that the particle and rigid body reference
+                   frames are the same. Probably have to rotate first.
                  */
                 h_torque.data[central_idx].x += net_torque.x;
                 h_torque.data[central_idx].y += net_torque.y;
@@ -890,96 +825,126 @@ void ForceComposite::computeForces(uint64_t timestep)
                 if (compute_virial)
                     {
                     // sum up virial
-                    Scalar virialxx = h_net_virial.data[0*net_virial_pitch+idxj];
-                    Scalar virialxy = h_net_virial.data[1*net_virial_pitch+idxj];
-                    Scalar virialxz = h_net_virial.data[2*net_virial_pitch+idxj];
-                    Scalar virialyy = h_net_virial.data[3*net_virial_pitch+idxj];
-                    Scalar virialyz = h_net_virial.data[4*net_virial_pitch+idxj];
-                    Scalar virialzz = h_net_virial.data[5*net_virial_pitch+idxj];
+                    Scalar virialxx = h_net_virial.data[0 * net_virial_pitch + idxj];
+                    Scalar virialxy = h_net_virial.data[1 * net_virial_pitch + idxj];
+                    Scalar virialxz = h_net_virial.data[2 * net_virial_pitch + idxj];
+                    Scalar virialyy = h_net_virial.data[3 * net_virial_pitch + idxj];
+                    Scalar virialyz = h_net_virial.data[4 * net_virial_pitch + idxj];
+                    Scalar virialzz = h_net_virial.data[5 * net_virial_pitch + idxj];
 
                     // subtract intra-body virial prt
-                    h_virial.data[0*m_virial_pitch+central_idx] += virialxx - f.x*dr_space.x;
-                    h_virial.data[1*m_virial_pitch+central_idx] += virialxy - f.x*dr_space.y;
-                    h_virial.data[2*m_virial_pitch+central_idx] += virialxz - f.x*dr_space.z;
-                    h_virial.data[3*m_virial_pitch+central_idx] += virialyy - f.y*dr_space.y;
-                    h_virial.data[4*m_virial_pitch+central_idx] += virialyz - f.y*dr_space.z;
-                    h_virial.data[5*m_virial_pitch+central_idx] += virialzz - f.z*dr_space.z;
+                    h_virial.data[0 * m_virial_pitch + central_idx] += virialxx - f.x * dr_space.x;
+                    h_virial.data[1 * m_virial_pitch + central_idx] += virialxy - f.x * dr_space.y;
+                    h_virial.data[2 * m_virial_pitch + central_idx] += virialxz - f.x * dr_space.z;
+                    h_virial.data[3 * m_virial_pitch + central_idx] += virialyy - f.y * dr_space.y;
+                    h_virial.data[4 * m_virial_pitch + central_idx] += virialyz - f.y * dr_space.z;
+                    h_virial.data[5 * m_virial_pitch + central_idx] += virialzz - f.z * dr_space.z;
                     }
                 }
 
             // zero net virial
-            h_net_virial.data[0*net_virial_pitch+idxj] = 0.0;
-            h_net_virial.data[1*net_virial_pitch+idxj] = 0.0;
-            h_net_virial.data[2*net_virial_pitch+idxj] = 0.0;
-            h_net_virial.data[3*net_virial_pitch+idxj] = 0.0;
-            h_net_virial.data[4*net_virial_pitch+idxj] = 0.0;
-            h_net_virial.data[5*net_virial_pitch+idxj] = 0.0;
+            h_net_virial.data[0 * net_virial_pitch + idxj] = 0.0;
+            h_net_virial.data[1 * net_virial_pitch + idxj] = 0.0;
+            h_net_virial.data[2 * net_virial_pitch + idxj] = 0.0;
+            h_net_virial.data[3 * net_virial_pitch + idxj] = 0.0;
+            h_net_virial.data[4 * net_virial_pitch + idxj] = 0.0;
+            h_net_virial.data[5 * net_virial_pitch + idxj] = 0.0;
             }
         }
     }
 
-/* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of integration on the CPU
-    based on the body center of mass and particle relative position in each body frame.
-*/
+/* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of
+ * integration on the CPU based on the body center of mass and particle relative position in each
+ * body frame.
+ */
 
 void ForceComposite::updateCompositeParticles(uint64_t timestep)
     {
-    // access molecule order (this needs to be on top because of ArrayHandle scope)
-    ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_len(getMoleculeLengths(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_idx(getMoleculeIndex(), access_location::host, access_mode::read);
+    // If no rigid bodies exist return early. This also prevents accessing arrays assuming that this
+    // is non-zero.
+    if (m_n_molecules_global == 0)
+        {
+        return;
+        }
+
+    // access molecule order (this needs to be on top because of ArrayHandle scope) and its
+    // pervasive use across this function.
+    ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(),
+                                               access_location::host,
+                                               access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_len(getMoleculeLengths(),
+                                             access_location::host,
+                                             access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_idx(getMoleculeIndex(),
+                                             access_location::host,
+                                             access_mode::read);
 
     // access the particle data arrays
-    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
-    /*
-    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    */
-
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     // access body positions and orientations
     ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_body_orientation(m_body_orientation,
+                                            access_location::host,
+                                            access_mode::read);
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
     const BoxDim& global_box = m_pdata->getGlobalBox();
 
     // we need to update both local and ghost particles
-    unsigned int nptl = m_pdata->getN() + m_pdata->getNGhosts();
-
-    for (unsigned int iptl = 0; iptl < nptl; iptl++)
+    unsigned int n_particles_local = m_pdata->getN() + m_pdata->getNGhosts();
+    for (unsigned int particle_index = 0; particle_index < n_particles_local; particle_index++)
         {
-        unsigned int central_tag = h_body.data[iptl];
+        unsigned int central_tag = h_body.data[particle_index];
 
+        // Do nothing with floppy bodies, since we don't need to update their positions or
+        // orientations here.
         if (central_tag >= MIN_FLOPPY)
+            {
             continue;
+            }
 
-        // body tag equals tag for central ptl
+        // body tag equals tag for central particle
         assert(central_tag <= m_pdata->getMaximumTag());
         unsigned int central_idx = h_rtag.data[central_tag];
 
-        if (central_idx == NOT_LOCAL && iptl >= m_pdata->getN())
+        // If this is a rigid body center continue, since we do not need to update its position or
+        // orientation (the integrator methods do this).
+        if (particle_index == central_idx)
+            {
             continue;
+            }
+
+        // Continue if central particle is on another rank and current index is a ghost particle
+        // since there is no updating to do.
+        if (central_idx == NOT_LOCAL && particle_index >= m_pdata->getN())
+            {
+            continue;
+            }
 
         if (central_idx == NOT_LOCAL)
             {
-            m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Missing central particle tag " << central_tag
-                                              << "!" << std::endl << std::endl;
-            throw std::runtime_error("Error updating composite particles.\n");
+            std::ostringstream error_msg;
+            error_msg << "Error updating composite particles: Missing central particle tag "
+                      << central_tag << ".";
+            throw std::runtime_error(error_msg.str());
             }
 
-        // central ptl position and orientation
+        // central particle position and orientation
         assert(central_idx <= m_pdata->getN() + m_pdata->getNGhosts());
-
-        // do not overwrite the central ptl
-        if (iptl == central_idx) continue;
 
         Scalar4 postype = h_postype.data[central_idx];
         vec3<Scalar> pos(postype);
@@ -989,15 +954,20 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         unsigned int type = __scalar_as_int(postype.w);
 
         unsigned int body_len = h_body_len.data[type];
-        unsigned int mol_idx = h_molecule_idx.data[iptl];
+        unsigned int mol_idx = h_molecule_idx.data[particle_index];
+        // Checks if the number of local particle in a molecule denoted by
+        // h_molecule_len.data[particle_index] is equal to the number of particles in the rigid body
+        // definition `body_len`. If this is the case for a ghost particle this is fine, otherwise
+        // somehow we are in an invalid state for the body hence the inner condition.
         if (body_len != h_molecule_len.data[mol_idx] - 1)
             {
-            if (iptl < m_pdata->getN())
+            if (particle_index < m_pdata->getN())
                 {
                 // if the molecule is incomplete and has local members, this is an error
-                m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body tag "
-                                                  << central_tag << " incomplete" << std::endl << std::endl;
-                throw std::runtime_error("Error while updating constituent particles.\n");
+                std::ostringstream error_msg;
+                error_msg << "Error while updating constituent particles:"
+                          << "Composite particle with body tag " << central_tag << " incomplete.";
+                throw std::runtime_error(error_msg.str());
                 }
 
             // otherwise we must ignore it
@@ -1007,10 +977,10 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         int3 img = h_image.data[central_idx];
 
         // fetch relative index in body from molecule list
-        assert(h_molecule_order.data[iptl] > 0);
-        unsigned int idx_in_body = h_molecule_order.data[iptl] - 1;
+        assert(h_molecule_order.data[particle_index] > 0);
+        unsigned int idx_in_body = h_molecule_order.data[particle_index] - 1;
 
-        vec3<Scalar> local_pos(h_body_pos.data[m_body_idx(type,idx_in_body)]);
+        vec3<Scalar> local_pos(h_body_pos.data[m_body_idx(type, idx_in_body)]);
         vec3<Scalar> dr_space = rotate(orientation, local_pos);
 
         // update position and orientation
@@ -1018,25 +988,32 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         quat<Scalar> local_orientation(h_body_orientation.data[m_body_idx(type, idx_in_body)]);
 
         updated_pos += dr_space;
-        quat<Scalar> updated_orientation = orientation*local_orientation;
+        quat<Scalar> updated_orientation = orientation * local_orientation;
 
         // this runs before the ForceComputes,
         // wrap into box, allowing rigid bodies to span multiple images
         int3 imgi = box.getImage(vec_to_scalar3(updated_pos));
-        int3 negimgi = make_int3(-imgi.x,-imgi.y,-imgi.z);
+        int3 negimgi = make_int3(-imgi.x, -imgi.y, -imgi.z);
         updated_pos = global_box.shift(updated_pos, negimgi);
 
-        h_postype.data[iptl] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, h_postype.data[iptl].w);
-        h_orientation.data[iptl] = quat_to_scalar4(updated_orientation);
-        h_image.data[iptl] = img+imgi;
+        h_postype.data[particle_index] = make_scalar4(updated_pos.x,
+                                                      updated_pos.y,
+                                                      updated_pos.z,
+                                                      h_postype.data[particle_index].w);
+        h_orientation.data[particle_index] = quat_to_scalar4(updated_orientation);
+        h_image.data[particle_index] = img + imgi;
         }
     }
 
 void export_ForceComposite(py::module& m)
     {
-    py::class_< ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite> >(m, "ForceComposite")
-        .def(py::init< std::shared_ptr<SystemDefinition> >())
-        .def("setParam", &ForceComposite::setParam)
+    py::class_<ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite>>(
+        m,
+        "ForceComposite")
+        .def(py::init<std::shared_ptr<SystemDefinition>>())
+        .def("setBody", &ForceComposite::setBody)
+        .def("getBody", &ForceComposite::getBody)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
-    ;
+        .def("createRigidBodies", &ForceComposite::createRigidBodies)
+        .def("updateCompositeParticles", &ForceComposite::updateCompositeParticles);
     }

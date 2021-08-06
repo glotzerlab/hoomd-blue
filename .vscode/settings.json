@@ -7,7 +7,7 @@
     ],
     "[restructuredtext]": {
         "editor.rulers": [
-            80
+            100
         ]
     },
     "[python]": {
@@ -22,7 +22,7 @@
     },
     "[markdown]": {
         "editor.rulers": [
-            80
+            100
         ]
     },
     "python.linting.flake8Enabled": true,
@@ -51,5 +51,5 @@
     "cSpell.enableFiletypes": [
         "cuda"
     ],
-    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
 }

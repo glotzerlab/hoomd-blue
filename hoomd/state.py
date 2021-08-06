@@ -11,6 +11,7 @@ from hoomd.box import Box
 from hoomd.snapshot import Snapshot
 from hoomd.data import LocalSnapshot, LocalSnapshotGPU
 import hoomd
+import warnings
 
 
 def _create_domain_decomposition(device, box):
@@ -29,12 +30,8 @@ def _create_domain_decomposition(device, box):
         return None
 
     # create a default domain decomposition
-    result = _hoomd.DomainDecomposition(device._cpp_exec_conf,
-                                        box.getL(),
-                                        0,
-                                        0,
-                                        0,
-                                        False)
+    result = _hoomd.DomainDecomposition(device._cpp_exec_conf, box.getL(), 0, 0,
+                                        0, False)
 
     return result
 
@@ -42,34 +39,166 @@ def _create_domain_decomposition(device, box):
 class State:
     """The state of a `hoomd.Simulation` object.
 
-    Provides access (read/write) to a `hoomd.Simulation` object's particle,
-    bond, angle, etc. data. Data access is facilitated through two complementary
-    APIs: *global* and *local* snapshots (note that global does not refer to
-    variable scope here). See `State.snapshot`, `State.cpu_local_snapshot`, and
-    `State.gpu_local_snapshot` for information about these data access patterns.
-    In addition, many commonly used smaller quantities such as the number of
-    particles in a simulation are available directly through `State` object
-    properties.
+    Note:
+        This object cannot be directly instantiated. Use
+        `hoomd.Simulation.create_state_from_gsd` and
+        `hoomd.Simulation.create_state_from_snapshot` to instantiate a `State`
+        object as part of a simulation.
+
+    .. rubric:: Overview
+
+    `State` stores the data that describes the thermodynamic microstate of a
+    `hoomd.Simulation` object. This data consists of the box, particles, bonds,
+    angles, dihedrals, impropers, special pairs, and constraints.
+
+    .. rubric:: Box
+
+    The simulation `box` describes the area in space that contains the particles
+    and the periodic boundary conditions to apply. See `Box` for a full
+    description.
+
+    .. rubric:: Particles
+
+    The state contains `N_particles` particles. Each particle has a position,
+    orientation, type id, body, mass, moment of inertia, charge, diameter,
+    velocity, angular momentum, image, and tag:
+
+    - :math:`\\vec{r}`: position :math:`[\\mathrm{length}]` - x,y,z cartesian
+      coordinates defining the position of the particle in the box
+    - :math:`\\mathbf{q}`: orientation :math:`[\\mathrm{dimensionless}]` - (s,
+      :math:`\\vec{a}`), unit quaternion defining the rotation from the
+      particle's local reference frame to the box reference frame.
+    - :math:`t_\\mathrm{id}`: type id :math:`[\\mathrm{dimensionless}]` -
+      integer in the range ``[0,len(particle_types)``) that identifies the
+      particle's type. `particle_types` maps type ids to names with:
+      ``name = particle_types[t_id]``.
+    - :math:`b_\\mathrm{id}`: body id :math:`[\\mathrm{dimensionless}]` -
+      integer that identifies the particle's rigid body. A value of ``-1``
+      indicates that this particle does not belong to a body. A positive value
+      indicates that the particle belongs to the body :math:`b_\\mathrm{id}`.
+      This particle is the central particle of a body when the body id is equal
+      to the tag :math:`b_\\mathrm{id} = p_\\mathrm{tag}`. (used by
+      `md.constrain.Rigid`)
+    - :math:`m`: mass :math:`[\\mathrm{mass}]` - the particle's mass.
+    - :math:`I`: moment of inertia :math:`[\\mathrm{mass} \\cdot
+      \\mathrm{length}^2]` - :math:`I_{xx}`, :math:`I_{yy}`, :math:`I_{zz}`
+      elements of the diagonal moment of inertia tensor in the particle's local
+      reference frame. The off-diagonal elements are 0.
+    - :math:`q`: charge :math:`[\\mathrm{charge}]`
+    - :math:`d`: diameter :math:`[\\mathrm{length}]` - deprecated in v3.0.0.
+      HOOMD-blue reads and writes particle diameters, but does not use them in
+      any computations. As of the current beta release, diameter is still used
+      in `md.pair.SLJ` and `md.pair.DLVO`.
+    - :math:`\\vec{v}``: velocity :math:`[\\mathrm{velocity}]` - x,y,z
+      components of the particle's velocity in the box's reference frame.
+    - :math:`\\mathbf{P_S}``: angular momentum :math:`[\\mathrm{mass} \\cdot
+      \\mathrm{velocity} \\cdot \\mathrm{length}]` - in a quaternion
+      representation (see note).
+    - :math:`\\vec{n}` : image :math:`[\\mathrm{dimensionless}]` - integers
+      x,y,z that record how many times the particle has crossed each of the
+      periodic box boundaries.
+    - :math:`p_\\mathrm{tag}`` : tag :math:`[\\mathrm{dimensionless}]` -
+      integer that uniquely identifies a given particle. The particles are in
+      tag order when writing and initializing to/from a GSD file or snapshot:
+      :math:`p_\\mathrm{tag,i} = i`. When accessing data in local snapshots,
+      particles may be in any order.
 
     Note:
-        This object should never be directly instantiated by users. There is no
-        way to set a state created outside of a `hoomd.Simulation` object to a
-        simulation. Use `hoomd.Simulation.create_state_from_gsd` and
-        `hoomd.Simulation.create_state_from_snapshot` to instantiate a
-        `State` object.
+        HOOMD stores angular momentum as a quaternion because that is the form
+        used when integrating the equations of motion (see `Kamberaj 2005`_).
+        The angular momentum quaternion :math:`\\mathbf{P_S}` is defined with
+        respect to the orientation quaternion of the particle
+        :math:`\\mathbf{q}` and the vector angular momentum of the particle,
+        lifted into pure imaginary quaternion form :math:`\\mathbf{S}^{(4)}` as:
+
+        .. math::
+
+            \\mathbf{P_S} = 2 \\mathbf{q} \\times \\mathbf{S}^{(4)}
+
+        . Following this, the angular momentum vector :math:`\\vec{S}` in the
+        particle's local reference frame is:
+
+        .. math::
+
+            \\vec{S} = \\frac{1}{2}im(\\mathbf{q}^* \\times \\mathbf{P_S})
+
+    .. rubric:: Bonds
+
+    The state contains `N_bonds` bonds, `N_angles` angles, `N_dihedrals`
+    dihedrals, `N_impropers` impropers, and `N_special_pairs` special pairs.
+    Each of these data structures is similar, differing in the number of
+    particles in the group and what operations use them. Bonds, angles,
+    dihedrals, and impropers contain 2, 3, 4, and 4 particles per group
+    respectively. Bonds specify the toplogy used when computing energies and
+    forces in `md.bond`, angles define the same for `md.angle`, dihedrals for
+    `md.dihedral` and impropers for `md.improper`. These collectively implement
+    bonding potentials used in molecular dynamics force fields. Like bonds,
+    special pairs define connections between two particles, but special pairs
+    are intended to adjust the 1-4 pairwise interactions in some molecular
+    dynamics force fields: see `md.special_pair`. Each bonded group is defined
+    by a type id, the group members, and a tag.
+
+    - :math:`t_\\mathrm{id}`: type id :math:`[\\mathrm{dimensionless}]` -
+      integer in the range ``[0,len(bond_types)``) that identifies the
+      bond's type. `bond_types` maps type ids to names with:
+      ``name = bond_types[t_id]``. Similarly, `angle_types` lists the
+      angle types, `dihedral_types` lists the dihedral types, `improper_types`
+      lists the improper types, and `special_pair_types` lists the special pair
+      types.
+    - group members: a list of integers in the range ``[0,max(p_tag)]`` that
+      defines the tags of the particles in the bond (2), angle (3), dihedral
+      (4), improper (4), or special pair (2).
+    - :math:`b_\\mathrm{tag}`` : tag :math:`[\\mathrm{dimensionless}]` -
+      integer that uniquely identifies a given bond. The bonds are in
+      tag order when writing and initializing to/from a GSD file or snapshot
+      :math:`b_\\mathrm{tag,i} = i`. When accessing data in local snapshots,
+      bonds may be in any order.
+
+    .. rubric:: Constraints
+
+    The state contains `N_constraints` distance constraints between particles.
+    These constraints are enforced by `md.constrain.Distance`. Each distance
+    constraint consists of a distance value and the group members.
+
+    - group members: a list of 2 integers in the range ``[0,max(p_tag)]`` that
+      defines the tags of the particles in the constraint.
+    - :math:`d`: constraint value :math:`[\\mathrm{length}]` - the distance
+      between particles in the constraint.
+
+    .. rubric:: MPI
+
+    When running in serial or on 1 MPI rank, the entire simulation state is
+    stored in that process. When using more than 1 MPI rank, HOOMD-blue employs
+    a domain decomposition approach to split the simulation box an integer
+    number of times in the x, y, and z directions. Each MPI rank stores and
+    operates on the particles local to that rank, those contained within the
+    region defined by the split planes. Each MPI rank communicates with its
+    neighbors to obtain the properties of particles near the boundary between
+    ranks (ghost particles) so that it can compute interactions across the
+    boundary.
+
+    .. rubric:: Accessing Data
+
+    Two complementary APIs provide access to the state data: *local* snapshots
+    that access data directly available on the local MPI rank (including the
+    local and ghost particles) and *global* snapshots that collect the entire
+    state on rank 0. See `State.cpu_local_snapshot`, `State.gpu_local_snapshot`,
+    `State.get_snapshot`, and `State.set_snapshot` for information about
+    these data access patterns.
+
+    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
     """
 
     def __init__(self, simulation, snapshot):
         self._simulation = simulation
         snapshot._broadcast_box()
-        domain_decomp = _create_domain_decomposition(
-            simulation.device,
-            snapshot._cpp_obj._global_box)
+        decomposition = _create_domain_decomposition(
+            simulation.device, snapshot._cpp_obj._global_box)
 
-        if domain_decomp is not None:
+        if decomposition is not None:
             self._cpp_sys_def = _hoomd.SystemDefinition(
                 snapshot._cpp_obj, simulation.device._cpp_exec_conf,
-                domain_decomp)
+                decomposition)
         else:
             self._cpp_sys_def = _hoomd.SystemDefinition(
                 snapshot._cpp_obj, simulation.device._cpp_exec_conf)
@@ -80,94 +209,127 @@ class State:
 
         # self._groups provides a cache of C++ group objects of the form:
         # {type(filter): {filter: C++ group}}
-        # The first layer is to prevent user created filters with poorly implemented
-        # __hash__ and __eq__ from causing cache errors.
+        # The first layer is to prevent user created filters with poorly
+        # implemented __hash__ and __eq__ from causing cache errors.
         self._groups = defaultdict(dict)
 
     @property
     def snapshot(self):
-        r"""hoomd.Snapshot: All data of a simulation's current microstate.
+        """Simulation snapshot.
 
-        `State.snapshot` should be used when all of a simulation's state
-        information is desired in a single object. When accessed, data across
-        all MPI ranks and from GPUs is gathered on the root MPI rank's memory.
-        When accessing data in MPI simulations, it is recommended to use a
-        ``if snapshot.exists:`` conditional to prevent attempting to access data
-        on a non-root rank.
+        .. deprecated:: 3.0.0-beta.8
+            Use `get_snapshot` and `set_snapshot` instead.
+        """
+        warnings.warn("Deprecated, use state.get_snapshot()",
+                      DeprecationWarning)
+        return self.get_snapshot()
 
-        This property can be set to replace the system state with the given
-        `hoomd.Snapshot` object.  Example use cases in which a simulation's
-        state may be reset from a snapshot include Monte Carlo schemes
-        implemented at the Python script level, where the current snapshot is
-        passed to the Monte Carlo simulation before being passed back after
-        running some Monte Carlo steps.
+    @snapshot.setter
+    def snapshot(self, snapshot):
+        warnings.warn("Deprecated, use state.set_snapshot()",
+                      DeprecationWarning)
+        self.set_snapshot(snapshot)
 
-        Warning:
-            Using `State.snapshot` multiple times will gather data across MPI
-            ranks and GPUs every time. If the snapshot is needed for more than
-            one use, it is recommended to store it in a variable.
+    def get_snapshot(self):
+        """Make a copy of the simulation current state.
+
+        `State.get_snapshot` makes a copy of the simulation state and
+        makes it available in a single object. `State.set_snapshot` resets
+        the internal state to that in the given snapshot. Use these methods
+        to implement techniques like hybrid MD/MC or umbrella sampling where
+        entire system configurations need to be reset to a previous one after a
+        rejected move.
 
         Note:
-            Setting or getting a snapshot is an order :math:`O(N_{particles}
-            + N_{bonds} + \ldots)` operation.
+            Data across all MPI ranks and from GPUs is gathered on the root MPI
+            rank's memory. When accessing data in MPI simulations, use a ``if
+            snapshot.communicator.rank == 0:`` conditional to access data arrays
+            only on the root rank.
+
+        Note:
+            `State.get_snapshot` is an order :math:`O(N_{particles} + N_{bonds}
+            + \\ldots)` operation.
+
+        See Also:
+            `set_snapshot`
+
+        Returns:
+            hoomd.Snapshot: The current simulation state
         """
         cpp_snapshot = self._cpp_sys_def.takeSnapshot_double()
         return Snapshot._from_cpp_snapshot(cpp_snapshot,
                                            self._simulation.device.communicator)
 
-    @snapshot.setter
-    def snapshot(self, snapshot):
+    def set_snapshot(self, snapshot):
+        """Restore the state of the simulation from a snapshot.
+
+        Args:
+            snapshot (hoomd.Snapshot): Snapshot of the system from
+              `get_snapshot`
+
+        Warning:
+            `set_snapshot` can only make limited changes to the simulation
+            state. While it can change the number of particles/bonds/etc... or
+            their properties, it cannot change the number or names of the
+            particle/bond/etc.. types.
+
+        Note:
+            `State.set_snapshot` is an order :math:`O(N_{particles} +
+            N_{bonds} + \\ldots)` operation and is very expensive when the
+            simulation device is a GPU.
+
+        See Also:
+            `get_snapshot`
+
+            `Simulation.create_state_from_snapshot`
+        """
         if self._in_context_manager:
             raise RuntimeError(
                 "Cannot set state to new snapshot inside local snapshot.")
         if self._simulation.device.communicator.rank == 0:
-            if len(snapshot.particles.types) != len(self.particle_types):
-                raise RuntimeError(
-                    "Number of particle types must remain the same")
-            if len(snapshot.bonds.types) != len(self.bond_types):
-                raise RuntimeError("Number of bond types must remain the same")
-            if len(snapshot.angles.types) != len(self.angle_types):
-                raise RuntimeError(
-                    "Number of angle types must remain the same")
-            if len(snapshot.dihedrals.types) != len(self.dihedral_types):
-                raise RuntimeError(
-                    "Number of dihedral types must remain the same")
-            if len(snapshot.impropers.types) != len(self.improper_types):
-                raise RuntimeError(
-                    "Number of dihedral types must remain the same")
-            if len(snapshot.pairs.types) != len(self.special_pair_types):
-                raise RuntimeError("Number of pair types must remain the same")
+            if snapshot.particles.types != self.particle_types:
+                raise RuntimeError("Particle types must remain the same")
+            if snapshot.bonds.types != self.bond_types:
+                raise RuntimeError("Bond types must remain the same")
+            if snapshot.angles.types != self.angle_types:
+                raise RuntimeError("Angle types must remain the same")
+            if snapshot.dihedrals.types != self.dihedral_types:
+                raise RuntimeError("Dihedral types must remain the same")
+            if snapshot.impropers.types != self.improper_types:
+                raise RuntimeError("Improper types must remain the same")
+            if snapshot.pairs.types != self.special_pair_types:
+                raise RuntimeError("Pair types must remain the same")
 
         self._cpp_sys_def.initializeFromSnapshot(snapshot._cpp_obj)
 
     @property
     def particle_types(self):
-        """list[str]: List of all particle types in the simulation."""
+        """list[str]: List of all particle types in the simulation state."""
         return self._cpp_sys_def.getParticleData().getTypes()
 
     @property
     def bond_types(self):
-        """list[str]: List of all bond types in the simulation."""
+        """list[str]: List of all bond types in the simulation state."""
         return self._cpp_sys_def.getBondData().getTypes()
 
     @property
     def angle_types(self):
-        """list[str]: List of all angle types in the simulation."""
+        """list[str]: List of all angle types in the simulation state."""
         return self._cpp_sys_def.getAngleData().getTypes()
 
     @property
     def dihedral_types(self):
-        """list[str]: List of all dihedral types in the simulation."""
+        """list[str]: List of all dihedral types in the simulation state."""
         return self._cpp_sys_def.getDihedralData().getTypes()
 
     @property
     def improper_types(self):
-        """list[str]: List of all improper types in the simulation."""
+        """list[str]: List of all improper types in the simulation state."""
         return self._cpp_sys_def.getImproperData().getTypes()
 
     @property
     def special_pair_types(self):
-        """list[str]: List of all special pair types in the simulation."""
+        """list[str]: List of all special pair types in the simulation state."""
         return self._cpp_sys_def.getPairData().getTypes()
 
     @property
@@ -184,71 +346,111 @@ class State:
                     angle_types=self.angle_types,
                     dihedral_types=self.dihedral_types,
                     improper_types=self.improper_types,
-                    special_pair_types=self.special_pair_types
-                    )
+                    special_pair_types=self.special_pair_types)
 
     @property
-    def N_particles(self):
-        """int: The number of particles in the simulation."""
+    def N_particles(self):  # noqa: N802 - allow N in name
+        """int: The number of particles in the simulation state."""
         return self._cpp_sys_def.getParticleData().getNGlobal()
 
     @property
-    def N_bonds(self):
-        """int: The number of bonds in the simulation."""
+    def N_bonds(self):  # noqa: N802 - allow N in name
+        """int: The number of bonds in the simulation state."""
         return self._cpp_sys_def.getBondData().getNGlobal()
 
     @property
-    def N_angles(self):
-        """int: The number of angles in the simulation."""
+    def N_angles(self):  # noqa: N802 - allow N in name
+        """int: The number of angles in the simulation state."""
         return self._cpp_sys_def.getAngleData().getNGlobal()
 
     @property
-    def N_impropers(self):
-        """int: The number of impropers in the simulation."""
+    def N_impropers(self):  # noqa: N802 - allow N in name
+        """int: The number of impropers in the simulation state."""
         return self._cpp_sys_def.getImproperData().getNGlobal()
 
     @property
-    def N_special_pairs(self):
-        """int: The number of special pairs in the simulation."""
+    def N_special_pairs(self):  # noqa: N802 - allow N in name
+        """int: The number of special pairs in the simulation state."""
         return self._cpp_sys_def.getPairData().getNGlobal()
 
     @property
-    def N_dihedrals(self):
-        """int: The number of dihedrals in the simulation."""
+    def N_dihedrals(self):  # noqa: N802 - allow N in name
+        """int: The number of dihedrals in the simulation state."""
         return self._cpp_sys_def.getDihedralData().getNGlobal()
 
     @property
-    def box(self):
-        """hoomd.Box: The current simulation box.
+    def N_constraints(self):  # noqa: N802 - allow N in name
+        """int: The number of constraints in the simulation state."""
+        return self._cpp_sys_def.getConstraintData().getNGlobal()
 
-        Editing the box directly is not allowed. For example
-        ``state.box.scale(1.1)`` would not scale the state's box. To set the
-        state's box to a new box ``state.box = new_box`` must be used.
+    @property
+    def box(self):
+        """hoomd.Box: A copy of the current simulation box.
+
+        Note:
+            The `box` property cannot be set. Call `set_box` to set a new
+            simulation box.
         """
         b = Box._from_cpp(self._cpp_sys_def.getParticleData().getGlobalBox())
         return Box.from_box(b)
 
     @box.setter
     def box(self, value):
+        warnings.warn("Deprecated, use state.set_box()", DeprecationWarning)
+        self.set_box(value)
+
+    def set_box(self, box):
+        """Set a new simulation box.
+
+        Args:
+            box (Box): New simulation box.
+
+        Note:
+            All particles must be inside the new box. `set_box` does not change
+            any particle properties.
+
+        See Also:
+            `hoomd.update.BoxResize.update`
+        """
         if self._in_context_manager:
             raise RuntimeError(
                 "Cannot set system box within local snapshot context manager.")
         try:
-            value = Box.from_box(value)
+            box = Box.from_box(box)
         except Exception:
             raise ValueError('{} is not convertable to hoomd.Box using '
-                             'hoomd.Box.from_box'.format(value))
+                             'hoomd.Box.from_box'.format(box))
 
-        if value.dimensions != self._cpp_sys_def.getNDimensions():
+        if box.dimensions != self._cpp_sys_def.getNDimensions():
             self._simulation.device._cpp_msg.warning(
                 "Box changing dimensions from {} to {}."
-                "".format(self._cpp_sys_def.getNDimensions(),
-                          value.dimensions))
-            self._cpp_sys_def.setNDimensions(value.dimensions)
-        self._cpp_sys_def.getParticleData().setGlobalBox(value._cpp_obj)
+                "".format(self._cpp_sys_def.getNDimensions(), box.dimensions))
+            self._cpp_sys_def.setNDimensions(box.dimensions)
+        self._cpp_sys_def.getParticleData().setGlobalBox(box._cpp_obj)
 
-    def replicate(self):  # noqa: D102
-        raise NotImplementedError
+    def replicate(self, nx, ny, nz=1):
+        """Replicate the state of the system along the periodic box directions.
+
+        Args:
+            nx (int): Number of times to replicate in the x direction.
+            ny (int): Number of times to replicate in the y direction.
+            nz (int): Number of times to replicate in the z direction.
+
+        `replicate` makes the system state ``nx * ny * nz`` times larger. In
+        each of the new periodic box images, it places a copy of the initial
+        state with the particle positions offset to locate them in the image and
+        the bond, angle, dihedral, improper, and pair group tags offset to apply
+        to the copied particles. All other particle properties (mass, typeid,
+        velocity, charge, ...) are copied to the new particles without change.
+
+        After placing the particles, `replicate` expands the simulation box by a
+        factor of ``nx``, ``ny``, and ``nz`` in the direction of the first,
+        second, and third box lattice vectors respectively and adjusts the
+        particle positions to center them in the new box.
+        """
+        snap = self.get_snapshot()
+        snap.replicate(nx, ny, nz)
+        self.set_snapshot(snap)
 
     def _get_group(self, filter_):
         cls = filter_.__class__
@@ -304,7 +506,7 @@ class State:
         The `hoomd.data.LocalSnapshot` data access is mediated through
         `hoomd.array.HOOMDArray` objects. This lets us ensure memory safety when
         directly accessing HOOMD-blue's data. The interface provides zero-copy
-        access (zero-copy is guarenteed on CPU, access may be zero-copy if
+        access (zero-copy is guaranteed on CPU, access may be zero-copy if
         running on GPU).
 
         Changing the data in the buffers exposed by the local snapshot will
@@ -385,7 +587,7 @@ class State:
 
         Args:
             filter (hoomd.filter.ParticleFilter): Particles to modify
-            kT (float): Thermal energy to set (in energy units)
+            kT (float): Thermal energy to set :math:`[\\mathrm{energy}]`
 
         `thermalize_particle_momenta` assigns the selected particle's velocities
         and angular momentum to random values drawn from a Gaussian distribution
@@ -403,12 +605,13 @@ class State:
 
         `thermalize_particle_momenta` assigns random angular momenta to each
         rotational degree of freedom that has a non-zero moment of intertia.
-        Each particle can have 0, 1, 2, or 3 rotational degrees of freedom.
+        Each particle can have 0, 1, 2, or 3 rotational degrees of freedom
+        as determine by its moment of inertia.
 
         .. seealso::
-            `md.methods.NVT.thermalize_extra_dof`
+            `md.methods.NVT.thermalize_thermostat_dof`
 
-            `md.methods.NPT.thermalize_extra_dof`
+            `md.methods.NPT.thermalize_thermostat_and_barostat_dof`
         """
         self._simulation._warn_if_seed_unset()
         group = self._get_group(filter)

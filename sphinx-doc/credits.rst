@@ -4,6 +4,7 @@ Credits
 The following people have contributed to the to HOOMD-blue:
 
 * Aaron Keys, University of Michigan
+* Alain Kadar, University of Michigan
 * Alex Travesset, Iowa State University and Ames Laboratory
 * Alex Yang, Vanderbilt University
 * Alexander Hudson
@@ -42,6 +43,7 @@ The following people have contributed to the to HOOMD-blue:
 * Eric Jankowski, Boise State University
 * Erin Teich, University of Michigan
 * Fengyi Gao, University of Michigan
+* Gabrielle Jones, University of Michigan
 * Geert Kapteijns, University of Amsterdam
 * Greg van Anders, University of Michigan
 * Grey Garrett, University of Michigan
@@ -70,6 +72,7 @@ The following people have contributed to the to HOOMD-blue:
 * Michael Howard, University of Texas
 * Mike Henry, Boise State University
 * Nathan Horst
+* Nipuli Gunaratne, University of Michigan
 * Patrick Lawton, University of Michigan
 * Paul Dodd, University of Michigan
 * Pavani Medapuram Lakshmi Narasimha, University of Minnesota
@@ -90,6 +93,7 @@ The following people have contributed to the to HOOMD-blue:
 * Stephen Thomas, Boise State University
 * Steve Barr, Princeton University
 * Sumedh R. Risbud, Massachusetts Institute of Technology
+* Thi Vo, University of Michigan
 * Tim Moore, University of Michigan
 * Tobias Dwyer, University of Michigan
 * Tommy Waltmann, University of Michigan

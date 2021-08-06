@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement BoxResize."""
+
 from hoomd.operation import Updater
 from hoomd.box import Box
 from hoomd.data.parameterdicts import ParameterDict
@@ -33,8 +39,8 @@ class BoxResize(Updater):
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
         trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
-        filter (hoomd.filter.ParticleFilter): The subset of particle positions to
-            update.
+        filter (hoomd.filter.ParticleFilter): The subset of particle positions
+            to update.
 
     Attributes:
         box1 (hoomd.Box): The box associated with the minimum of the
@@ -47,13 +53,14 @@ class BoxResize(Updater):
         filter (hoomd.filter.ParticleFilter): The subset of particles to
             update.
     """
-    def __init__(self, box1, box2,
-                 variant, trigger, filter=All()):
-        params = ParameterDict(
-            box1=OnlyTypes(Box, preprocess=box_preprocessing),
-            box2=OnlyTypes(Box, preprocess=box_preprocessing),
-            variant=Variant,
-            filter=ParticleFilter)
+
+    def __init__(self, box1, box2, variant, trigger, filter=All()):
+        params = ParameterDict(box1=OnlyTypes(Box,
+                                              preprocess=box_preprocessing),
+                               box2=OnlyTypes(Box,
+                                              preprocess=box_preprocessing),
+                               variant=Variant,
+                               filter=ParticleFilter)
         params['box1'] = box1
         params['box2'] = box2
         params['variant'] = variant
@@ -65,12 +72,8 @@ class BoxResize(Updater):
     def _attach(self):
         group = self._simulation.state._get_group(self.filter)
         self._cpp_obj = _hoomd.BoxResizeUpdater(
-            self._simulation.state._cpp_sys_def,
-            self.box1,
-            self.box2,
-            self.variant,
-            group
-        )
+            self._simulation.state._cpp_sys_def, self.box1, self.box2,
+            self.variant, group)
         super()._attach()
 
     def get_box(self, timestep):
@@ -82,6 +85,7 @@ class BoxResize(Updater):
 
         Returns:
             Box: The box used at the given timestep.
+            `None` before the first call to `Simulation.run`.
         """
         if self._attached:
             timestep = int(timestep)
@@ -102,11 +106,8 @@ class BoxResize(Updater):
                 update.
         """
         group = state._get_group(filter)
-        updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def,
-                                          state.box,
-                                          box,
-                                          Constant(1),
-                                          group)
+        updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def, state.box, box,
+                                          Constant(1), group)
         if state._simulation._system_communicator is not None:
             updater.setCommunicator(state._simulation._system_communicator)
         updater.update(state._simulation.timestep)

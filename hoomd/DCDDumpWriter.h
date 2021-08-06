@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #ifndef __DCDDUMPWRITER_H__
@@ -10,9 +9,9 @@
 #include "Analyzer.h"
 #include "ParticleGroup.h"
 
-#include <string>
-#include <memory>
 #include <fstream>
+#include <memory>
+#include <string>
 
 /*! \file DCDDumpWriter.h
     \brief Declares the DCDDumpWriter class
@@ -40,8 +39,8 @@
     every time analyze() is called. Use it to create a DCD trajectory for loading
     into VMD.
 
-    On the first call to analyze() \a fname is created with a dcd header. If the file already exists,
-    it is overwritten.
+    On the first call to analyze() \a fname is created with a dcd header. If the file already
+   exists, it is overwritten.
 
     Due to a limitation in the DCD format, the time step period between calls to
     analyze() \b must be specified up front. If analyze() detects that this period is
@@ -51,89 +50,88 @@
 class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
     {
     public:
-        //! Construct the writer
-        DCDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
-                      const std::string &fname,
-                      unsigned int period,
-                      std::shared_ptr<ParticleGroup> group,
-                      bool overwrite=false);
+    //! Construct the writer
+    DCDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
+                  const std::string& fname,
+                  unsigned int period,
+                  std::shared_ptr<ParticleGroup> group,
+                  bool overwrite = false);
 
-        //! Destructor
-        ~DCDDumpWriter();
+    //! Destructor
+    ~DCDDumpWriter();
 
-        //! Write out the data for the current timestep
-        void analyze(uint64_t timestep);
+    //! Write out the data for the current timestep
+    void analyze(uint64_t timestep);
 
-        //! Set whether coordinates should be written out wrapped or unwrapped.
-        void setUnwrapFull(bool enable)
-            {
-            m_unwrap_full = enable;
-            }
+    //! Set whether coordinates should be written out wrapped or unwrapped.
+    void setUnwrapFull(bool enable)
+        {
+        m_unwrap_full = enable;
+        }
 
-        bool getUnwrapFull()
-            {
-            return m_unwrap_full;
-            }
+    bool getUnwrapFull()
+        {
+        return m_unwrap_full;
+        }
 
-        //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
-        void setUnwrapRigid(bool enable)
-            {
-            m_unwrap_rigid = enable;
-            }
+    //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
+    void setUnwrapRigid(bool enable)
+        {
+        m_unwrap_rigid = enable;
+        }
 
-        bool getUnwrapRigid()
-            {
-            return m_unwrap_rigid;
-            }
+    bool getUnwrapRigid()
+        {
+        return m_unwrap_rigid;
+        }
 
-        //! Set whether the z-component should be overwritten by the orientation angle
-        void setAngleZ(bool enable)
-            {
-            m_angle = enable;
-            }
+    //! Set whether the z-component should be overwritten by the orientation angle
+    void setAngleZ(bool enable)
+        {
+        m_angle = enable;
+        }
 
-        bool getAngleZ()
-            {
-            return m_angle;
-            }
+    bool getAngleZ()
+        {
+        return m_angle;
+        }
 
-        bool getOverwrite()
-            {
-            return m_overwrite;
-            }
+    bool getOverwrite()
+        {
+        return m_overwrite;
+        }
 
     private:
-        std::string m_fname;                //!< The file name we are writing to
-        uint64_t m_start_timestep;          //!< First time step written to the file
-        unsigned int m_period;              //!< Time step period between writes
-        std::shared_ptr<ParticleGroup> m_group; //!< Group of particles to write to the DCD file
-        unsigned int m_num_frames_written;  //!< Count the number of frames written to the file
-        unsigned int m_last_written_step;   //!< Last timestep written in a a file we are appending to
-        bool m_appending;                   //!< True if this instance is appending to an existing DCD file
-        bool m_unwrap_full;                 //!< True if coordinates should be written out fully unwrapped in the box
-        bool m_unwrap_rigid;                //!< True if rigid bodies should be written out unwrapped
-        bool m_angle;                       //!< True if the z-component should be set to the orientation angle
+    std::string m_fname;                    //!< The file name we are writing to
+    uint64_t m_start_timestep;              //!< First time step written to the file
+    unsigned int m_period;                  //!< Time step period between writes
+    std::shared_ptr<ParticleGroup> m_group; //!< Group of particles to write to the DCD file
+    unsigned int m_num_frames_written;      //!< Count the number of frames written to the file
+    unsigned int m_last_written_step; //!< Last timestep written in a a file we are appending to
+    bool m_appending;    //!< True if this instance is appending to an existing DCD file
+    bool m_unwrap_full;  //!< True if coordinates should be written out fully unwrapped in the box
+    bool m_unwrap_rigid; //!< True if rigid bodies should be written out unwrapped
+    bool m_angle;        //!< True if the z-component should be set to the orientation angle
 
-        bool m_overwrite;                   //!< True if file should be overwritten
-        bool m_is_initialized;              //!< True if file IO has been initialized
-        unsigned int m_nglobal;             //!< Initial number of particles
+    bool m_overwrite;       //!< True if file should be overwritten
+    bool m_is_initialized;  //!< True if file IO has been initialized
+    unsigned int m_nglobal; //!< Initial number of particles
 
-        float *m_staging_buffer;            //!< Buffer for staging particle positions in tag order
-        std::fstream m_file;                //!< The file object
+    float* m_staging_buffer; //!< Buffer for staging particle positions in tag order
+    std::fstream m_file;     //!< The file object
 
-        // helper functions
+    // helper functions
 
-        //! Initializes the file header
-        void write_file_header(std::fstream &file);
-        //! Writes the frame header
-        void write_frame_header(std::fstream &file);
-        //! Writes the particle positions for a frame
-        void write_frame_data(std::fstream &file, const SnapshotParticleData<Scalar>& snapshot);
-        //! Updates the file header
-        void write_updated_header(std::fstream &file, uint64_t timestep);
-        //! Initializes the output file for writing
-        void initFileIO(uint64_t timestep);
-
+    //! Initializes the file header
+    void write_file_header(std::fstream& file);
+    //! Writes the frame header
+    void write_frame_header(std::fstream& file);
+    //! Writes the particle positions for a frame
+    void write_frame_data(std::fstream& file, const SnapshotParticleData<Scalar>& snapshot);
+    //! Updates the file header
+    void write_updated_header(std::fstream& file, uint64_t timestep);
+    //! Initializes the output file for writing
+    void initFileIO(uint64_t timestep);
     };
 
 //! Exports the DCDDumpWriter class to python

@@ -3,6 +3,7 @@ from hoomd.operation import Operation, _TriggeredOperation
 
 
 class DummySimulation:
+
     def __init__(self):
         self.state = DummyState()
         self.operations = DummyOperations()
@@ -11,11 +12,13 @@ class DummySimulation:
 
 
 class DummySystem:
+
     def __init__(self):
         self.dummy_list = []
 
 
 class DummyState:
+
     def __init__(self):
         pass
 
@@ -29,13 +32,14 @@ class DummyOperations:
 
 
 class DummyCppObj:
+
     def __init__(self):
         self._dict = dict()
 
-    def setTypeParam(self, type_, value):
+    def setTypeParam(self, type_, value):  # noqa: N802 - this mimics C++ naming
         self._dict[type_] = value
 
-    def getTypeParam(self, type_):
+    def getTypeParam(self, type_):  # noqa: N802
         return self._dict[type_]
 
     @property
@@ -54,19 +58,30 @@ class DummyCppObj:
     def param2(self, value):
         self._param2 = value
 
-    def setCommunicator(self, communicator):
+    def setCommunicator(self, communicator):  # noqa: N802
         pass
 
-    def notifyDetach(self):
+    def notifyDetach(self):  # noqa: N802
         pass
+
 
 class DummyOperation(Operation):
-    '''Requires that user manually add param_dict and typeparam_dict items.
+    """Requires that user manually add param_dict and typeparam_dict items.
 
     This is for testing purposes.
-    '''
+    """
+    _current_obj_number = 0
+
+    def __init__(self):
+        """Increment object counter to enable equality comparison."""
+        self.id = self._current_obj_number
+        self.__class__._current_obj_number += 1
+
     def _attach(self):
         self._cpp_obj = DummyCppObj()
+
+    def __eq__(self, other):
+        return self.id == other.id
 
 
 class DummyTriggeredOp(_TriggeredOperation):
@@ -78,5 +93,6 @@ class DummyTriggeredOp(_TriggeredOperation):
 
 
 class DummyTrigger(Trigger):
+
     def __call__(self, ts):
         return True

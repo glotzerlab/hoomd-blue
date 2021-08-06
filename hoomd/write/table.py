@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement Table."""
+
 from abc import ABCMeta, abstractmethod
 import copy
 from numbers import Integral
@@ -10,6 +16,7 @@ from hoomd.logging import LoggerCategories, Logger
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.util import dict_flatten
+from hoomd.custom import Action
 
 
 class _OutputWriter(metaclass=ABCMeta):
@@ -152,6 +159,11 @@ class _TableInternal(_InternalAction):
         'improper', 'pair', 'constraint', 'strings'
     ])
 
+    flags = [
+        Action.Flags.ROTATIONAL_KINETIC_ENERGY, Action.Flags.PRESSURE_TENSOR,
+        Action.Flags.EXTERNAL_FIELD_VIRIAL
+    ]
+
     def __init__(self,
                  logger,
                  output=stdout,
@@ -165,11 +177,12 @@ class _TableInternal(_InternalAction):
                                    delimiter=str,
                                    min_column_width=int,
                                    max_header_len=OnlyTypes(int,
-                                                           allow_none=True),
+                                                            allow_none=True),
                                    pretty=bool,
                                    max_precision=int,
-                                   output=OnlyTypes(_OutputWriter,
-                                                    postprocess=_ensure_writable),
+                                   output=OnlyTypes(
+                                       _OutputWriter,
+                                       postprocess=_ensure_writable),
                                    logger=Logger)
 
         param_dict.update(
@@ -186,7 +199,8 @@ class _TableInternal(_InternalAction):
         # internal variables that are not part of the state.
         # Ensure that only scalar and potentially string are set for the logger
         if (LoggerCategories.scalar not in logger.categories
-                or logger.categories & self._invalid_logger_categories !=
+                or logger.categories & self._invalid_logger_categories
+                !=  # noqa: W504 (yapf formats this incorrectly
                 LoggerCategories.NONE):
             raise ValueError(
                 "Given Logger must have the scalar categories set.")
@@ -328,22 +342,22 @@ class Table(_InternalCustomWriter):
         output (``file-like`` object , optional): A file-like object to output
             the data from, defaults to standard out. The object must have write
             and flush methods and a mode attribute.
-        header_sep (:obj:`str`, optional): String to use to separate names in
+        header_sep (`str`, optional): String to use to separate names in
             the logger's namespace, defaults to '.'. For example, if logging the
             total energy of an `hoomd.md.pair.LJ` pair force object, the default
             header would be ``md.pair.LJ.energy`` (assuming that
             ``max_header_len`` is not set).
-        delimiter (:obj:`str`, optional): String used to separate elements in
+        delimiter (`str`, optional): String used to separate elements in
             the space delimitated file, defaults to ' '.
-        pretty (:obj:`bool`, optional): Flags whether to attempt to make output
+        pretty (`bool`, optional): Flags whether to attempt to make output
             prettier and easier to read, defaults to True. To make the ouput
             easier to read, the output will compromise on outputted precision
             for improved readability. In many cases, though the precision will
             still be high with pretty set to ``True``.
-        max_precision (:obj:`int`, optional): If pretty is not set, then this
+        max_precision (`int`, optional): If pretty is not set, then this
             controls the maximum precision to use when outputing numerical
             values, defaults to 10.
-        max_header_len (:obj:`int`, optional): If not None (the default), limit
+        max_header_len (`int`, optional): If not None (the default), limit
             the outputted header names to length ``max_header_len``. When not
             None, names are grabbed from the most specific to the least. For
             example, if set to 7 the namespace 'hoomd.md.pair.LJ.energy' would
@@ -372,7 +386,7 @@ class Table(_InternalCustomWriter):
             output will compromise on outputted precision for improved
             readability. In many cases, though the precision will still be high
             with pretty set to ``True``.
-        max_precision (:obj:`int`, optional): If pretty is not set, then this
+        max_precision (`int`, optional): If pretty is not set, then this
             controls the maximum precision to use when outputing numerical
             values, defaults to 10.
         max_header_len (int): Limits the outputted header names to length

@@ -16,15 +16,10 @@
 mpcd::Sorter::Sorter(std::shared_ptr<mpcd::SystemData> sysdata,
                      unsigned int cur_timestep,
                      unsigned int period)
-    : m_mpcd_sys(sysdata),
-      m_sysdef(m_mpcd_sys->getSystemDefinition()),
-      m_pdata(m_sysdef->getParticleData()),
-      m_exec_conf(m_pdata->getExecConf()),
-      m_mpcd_pdata(m_mpcd_sys->getParticleData()),
-      m_cl(m_mpcd_sys->getCellList()),
-      m_order(m_exec_conf),
-      m_rorder(m_exec_conf),
-      m_period(period)
+    : m_mpcd_sys(sysdata), m_sysdef(m_mpcd_sys->getSystemDefinition()),
+      m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
+      m_mpcd_pdata(m_mpcd_sys->getParticleData()), m_cl(m_mpcd_sys->getCellList()),
+      m_order(m_exec_conf), m_rorder(m_exec_conf), m_period(period)
     {
     assert(m_mpcd_sys);
     m_exec_conf->msg->notice(5) << "Constructing MPCD Sorter" << std::endl;
@@ -44,9 +39,11 @@ mpcd::Sorter::~Sorter()
  */
 void mpcd::Sorter::update(uint64_t timestep)
     {
-    if (!shouldSort(timestep)) return;
+    if (!shouldSort(timestep))
+        return;
 
-    if (m_prof) m_prof->push(m_exec_conf, "MPCD sort");
+    if (m_prof)
+        m_prof->push(m_exec_conf, "MPCD sort");
 
     // resize the sorted order vector to the current number of particles
     m_order.resize(m_mpcd_pdata->getN());
@@ -59,7 +56,8 @@ void mpcd::Sorter::update(uint64_t timestep)
     // trigger the sort signal for ParticleData callbacks using the current sortings
     m_mpcd_pdata->notifySort(timestep, m_order, m_rorder);
 
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
     }
 
 /*!
@@ -71,13 +69,19 @@ void mpcd::Sorter::update(uint64_t timestep)
  */
 void mpcd::Sorter::computeOrder(uint64_t timestep)
     {
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
     // compute the cell list at current timestep, guarantees owned particles are on rank
     m_cl->compute(timestep);
-    if (m_prof) m_prof->push(m_exec_conf,"MPCD sort");
+    if (m_prof)
+        m_prof->push(m_exec_conf, "MPCD sort");
 
-    ArrayHandle<unsigned int> h_cell_list(m_cl->getCellList(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_cell_np(m_cl->getCellSizeArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_cell_list(m_cl->getCellList(),
+                                          access_location::host,
+                                          access_mode::read);
+    ArrayHandle<unsigned int> h_cell_np(m_cl->getCellSizeArray(),
+                                        access_location::host,
+                                        access_mode::read);
     const Index2D& cli = m_cl->getCellListIndexer();
 
     // loop through the cell list to generate the sorting order for MPCD particles
@@ -85,7 +89,7 @@ void mpcd::Sorter::computeOrder(uint64_t timestep)
     ArrayHandle<unsigned int> h_rorder(m_rorder, access_location::host, access_mode::overwrite);
     const unsigned int N_mpcd = m_mpcd_pdata->getN();
     unsigned int cur_p = 0;
-    for (unsigned int idx=0; idx < m_cl->getNCells(); ++idx)
+    for (unsigned int idx = 0; idx < m_cl->getNCells(); ++idx)
         {
         const unsigned int np = h_cell_np.data[idx];
         for (unsigned int offset = 0; offset < np; ++offset)
@@ -117,15 +121,27 @@ void mpcd::Sorter::applyOrder() const
         {
         ArrayHandle<unsigned int> h_order(m_order, access_location::host, access_mode::read);
 
-        ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
+        ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
+        ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(),
+                                        access_location::host,
+                                        access_mode::read);
 
-        ArrayHandle<Scalar4> h_pos_alt(m_mpcd_pdata->getAltPositions(), access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar4> h_vel_alt(m_mpcd_pdata->getAltVelocities(), access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_tag_alt(m_mpcd_pdata->getAltTags(), access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_pos_alt(m_mpcd_pdata->getAltPositions(),
+                                       access_location::host,
+                                       access_mode::overwrite);
+        ArrayHandle<Scalar4> h_vel_alt(m_mpcd_pdata->getAltVelocities(),
+                                       access_location::host,
+                                       access_mode::overwrite);
+        ArrayHandle<unsigned int> h_tag_alt(m_mpcd_pdata->getAltTags(),
+                                            access_location::host,
+                                            access_mode::overwrite);
 
-        for (unsigned int idx=0; idx < m_mpcd_pdata->getN(); ++idx)
+        for (unsigned int idx = 0; idx < m_mpcd_pdata->getN(); ++idx)
             {
             const unsigned int old_idx = h_order.data[idx];
             h_pos_alt.data[idx] = h_pos.data[old_idx];
@@ -175,8 +191,7 @@ bool mpcd::Sorter::shouldSort(uint64_t timestep)
 void mpcd::detail::export_Sorter(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::Sorter, std::shared_ptr<mpcd::Sorter> >(m, "Sorter")
+    py::class_<mpcd::Sorter, std::shared_ptr<mpcd::Sorter>>(m, "Sorter")
         .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>())
-        .def("setPeriod", &mpcd::Sorter::setPeriod)
-        ;
+        .def("setPeriod", &mpcd::Sorter::setPeriod);
     }

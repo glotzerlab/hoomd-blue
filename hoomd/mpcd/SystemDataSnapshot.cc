@@ -19,9 +19,9 @@ void mpcd::SystemDataSnapshot::replicate(unsigned int nx, unsigned int ny, unsig
     // Update global box
     const BoxDim old_box = m_global_box;
     Scalar3 L = m_global_box.getL();
-    L.x *= (Scalar) nx;
-    L.y *= (Scalar) ny;
-    L.z *= (Scalar) nz;
+    L.x *= (Scalar)nx;
+    L.y *= (Scalar)ny;
+    L.z *= (Scalar)nz;
     m_global_box.setL(L);
 
     particles->replicate(nx, ny, nz, old_box, m_global_box);
@@ -34,8 +34,10 @@ void mpcd::detail::export_SystemDataSnapshot(pybind11::module& m)
     {
     namespace py = pybind11;
 
-    py::class_<mpcd::SystemDataSnapshot, std::shared_ptr<mpcd::SystemDataSnapshot> >(m,"SystemDataSnapshot")
-        .def(py::init<std::shared_ptr<::SystemDefinition> >())
+    py::class_<mpcd::SystemDataSnapshot, std::shared_ptr<mpcd::SystemDataSnapshot>>(
+        m,
+        "SystemDataSnapshot")
+        .def(py::init<std::shared_ptr<::SystemDefinition>>())
         .def("replicate", &mpcd::SystemDataSnapshot::replicate)
         .def_readonly("particles", &mpcd::SystemDataSnapshot::particles);
     }

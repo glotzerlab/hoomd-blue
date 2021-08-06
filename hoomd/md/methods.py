@@ -1,19 +1,17 @@
-# coding: utf-8
-
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: joaander / All Developers are free to add commands for new features
-
+"""MD integration methods."""
 
 from hoomd.md import _md
 import hoomd
 from hoomd.md.manifold import Manifold
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.filter import ParticleFilter
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
+from hoomd.filter import ParticleFilter
 from hoomd.variant import Variant
 from collections.abc import Sequence
 
@@ -47,21 +45,23 @@ class MethodRATTLE(Method):
 
     For the equations of motion, see:
 
-    * `S. Paquay and R. Kusters  2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`_
+    * S. Paquay and R. Kusters  2016
+      (`paper link <https://doi.org/10.1016/j.bpj.2016.02.017>`__)
 
     Note:
         Users should use the subclasses and not instantiate `MethodRATTLE`
         directly.
     """
+
     def __init__(self, manifold_constraint, tolerance):
 
-        if manifold_constraint == None and tolerance != 1e-6:
-            raise TypeError("The tolerance for RATTLE integration has been changed but "
-                               "manifold_constraint is not specified!")
-        param_dict = ParameterDict(
-            manifold_constraint = OnlyTypes(Manifold, allow_none=True),
-            tolerance=float(tolerance)
-            )
+        if manifold_constraint is None and tolerance != 1e-6:
+            raise TypeError(
+                "The tolerance for RATTLE integration has been changed but "
+                "manifold_constraint is not specified!")
+        param_dict = ParameterDict(manifold_constraint=OnlyTypes(
+            Manifold, allow_none=True),
+                                   tolerance=float(tolerance))
         param_dict['manifold_constraint'] = manifold_constraint
         # set defaults
         self._param_dict.update(param_dict)
@@ -95,14 +95,14 @@ class NVT(Method):
     r"""NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
-            apply this method.
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which
+            to apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point
-            for the Nosé-Hoover thermostat. (in energy units).
+            for the Nosé-Hoover thermostat :math:`[\mathrm{energy}]`.
 
-        tau (`float`): Coupling constant for the Nosé-Hoover thermostat.
-            (in time units).
+        tau (`float`): Coupling constant for the Nosé-Hoover thermostat
+            :math:`[\mathrm{time}]`.
 
     `NVT` performs constant volume, constant temperature simulations
     using the Nosé-Hoover thermostat, using the MTK equations described in Refs.
@@ -147,10 +147,10 @@ class NVT(Method):
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point
-            for the Nosé-Hoover thermostat. (in energy units).
+            for the Nosé-Hoover thermostat :math:`[\mathrm{energy}]`.
 
-        tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time
-            units).
+        tau (float): Coupling constant for the Nosé-Hoover thermostat
+            :math:`[\mathrm{time}]`.
 
         translational_thermostat_dof (tuple[float, float]): Additional degrees
             of freedom for the translational thermostat (:math:`\xi`,
@@ -164,13 +164,11 @@ class NVT(Method):
     def __init__(self, filter, kT, tau):
 
         # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            kT=Variant,
-            tau=float(tau),
-            translational_thermostat_dof=(float, float),
-            rotational_thermostat_dof=(float, float)
-        )
+        param_dict = ParameterDict(filter=ParticleFilter,
+                                   kT=Variant,
+                                   tau=float(tau),
+                                   translational_thermostat_dof=(float, float),
+                                   rotational_thermostat_dof=(float, float))
         param_dict.update(
             dict(kT=kT,
                  filter=filter,
@@ -192,11 +190,7 @@ class NVT(Method):
         group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo = thermo_cls(cpp_sys_def, group)
-        self._cpp_obj = my_class(cpp_sys_def,
-                                 group,
-                                 thermo,
-                                 self.tau,
-                                 self.kT)
+        self._cpp_obj = my_class(cpp_sys_def, group, thermo, self.tau, self.kT)
         super()._attach()
 
     def thermalize_thermostat_dof(self):
@@ -220,32 +214,36 @@ class NVT(Method):
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatDOF(self._simulation.timestep)
 
-    @hoomd.logging.log
+    @hoomd.logging.log(requires_run=True)
     def thermostat_energy(self):
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
+        """Energy the thermostat contributes to the Hamiltonian \
+        :math:`[\\mathrm{energy}]`."""
+        return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
 
 
 class NPT(Method):
-    R""" NPT Integration via MTK barostat-thermostat.
+    r"""NPT Integration via MTK barostat-thermostat.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
             apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point for the
-            thermostat. (in energy units).
+            thermostat :math:`[\mathrm{energy}]`.
 
-        tau (`float`): Coupling constant for the thermostat (in time units).
+        tau (`float`): Coupling constant for the thermostat
+            :math:`[\mathrm{time}]`.
 
-        S (`list` [ `hoomd.variant.Variant` ] or `float`): Stress components set
-            point for the barostat (in pressure units).  In Voigt notation:
-            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case
-            of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+        S: Stress components set point for the barostat.
+           In Voigt notation:
+           :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
+           :math:`[\mathrm{pressure}]`. In case of isotropic
+           pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+           Accepts: `tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
+           `hoomd.variant.Variant` or `float`.
 
-        tauS (`float`): Coupling constant for the barostat (in time units).
+        tauS (`float`): Coupling constant for the barostat
+           :math:`[\mathrm{time}]`.
 
         couple (`str`): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all", default to "all".
@@ -256,14 +254,14 @@ class NPT(Method):
             rescale corresponding lengths or tilt factors and components of
             particle coordinates and velocities.
 
-        rescale_all (`bool`): if True, rescale all particles, not only those in
-            the group, Default to False.
+        rescale_all (`bool`): if True, rescale all particles, not only those
+            in the group, Default to False.
 
         gamma (`float`): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    `NPT` performs constant pressure, constant temperature simulations, allowing
-    for a fully deformable simulation box.
+    `NPT` performs constant pressure, constant temperature simulations,
+    allowing for a fully deformable simulation box.
 
     The integration method is based on the rigorous Martyna-Tobias-Klein
     equations of motion for NPT. For optimal stability, the update equations
@@ -321,8 +319,10 @@ class NPT(Method):
 
     For the MTK equations of motion, see:
 
-    * `G. J. Martyna, D. J. Tobias, M. L. Klein  1994 <http://dx.doi.org/10.1063/1.467468>`_
-    * `M. E. Tuckerman et. al. 2006 <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`_
+    * G. J. Martyna, D. J. Tobias, M. L. Klein  1994
+      (`paper link <http://dx.doi.org/10.1063/1.467468>`__)
+    * M. E. Tuckerman et. al. 2006
+      (`paper link <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`__)
     * `T. Yu et. al. 2010 <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
     *  Glaser et. al (2013), unpublished
 
@@ -371,18 +371,21 @@ class NPT(Method):
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point for the
-            thermostat. (in energy units).
+            thermostat :math:`[\mathrm{energy}]`.
 
-        tau (float): Coupling constant for the thermostat (in time units).
+        tau (float): Coupling constant for the thermostat
+            :math:`[\mathrm{time}]`.
 
         S (List[hoomd.variant.Variant]): Stress components set
-            point for the barostat (in pressure units).
+            point for the barostat.
             In Voigt notation,
-            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can
-            be reset after method object is created. For example, An isoropic
-            pressure can be set by ``npt.S = 4.``
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
+            :math:`[\mathrm{pressure}]`. Stress can be reset after the method
+            object is created. For example, an isoropic pressure can be set by
+            ``npt.S = 4.``
 
-        tauS (float): Coupling constant for the barostat (in time units).
+        tauS (float): Coupling constant for the barostat
+            :math:`[\mathrm{time}]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all".
@@ -409,24 +412,35 @@ class NPT(Method):
             :math:`\nu_{xy}`, :math:`\nu_{xz}`, :math:`\nu_{yy}`,
             :math:`\nu_{yz}`, :math:`\nu_{zz}`)
     """
-    def __init__(self, filter, kT, tau, S, tauS, couple, box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
 
+    def __init__(self,
+                 filter,
+                 kT,
+                 tau,
+                 S,
+                 tauS,
+                 couple,
+                 box_dof=[True, True, True, False, False, False],
+                 rescale_all=False,
+                 gamma=0.0):
 
         # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            kT=Variant,
-            tau=float(tau),
-            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self._preprocess_stress),
-            tauS=float(tauS),
-            couple=str(couple),
-            box_dof=[bool,]*6,
-            rescale_all=bool(rescale_all),
-            gamma=float(gamma),
-            translational_thermostat_dof=(float, float),
-            rotational_thermostat_dof=(float, float),
-            barostat_dof=(float, float, float, float, float, float)
-            )
+        param_dict = ParameterDict(filter=ParticleFilter,
+                                   kT=Variant,
+                                   tau=float(tau),
+                                   S=OnlyIf(to_type_converter((Variant,) * 6),
+                                            preprocess=self._preprocess_stress),
+                                   tauS=float(tauS),
+                                   couple=str(couple),
+                                   box_dof=[
+                                       bool,
+                                   ] * 6,
+                                   rescale_all=bool(rescale_all),
+                                   gamma=float(gamma),
+                                   translational_thermostat_dof=(float, float),
+                                   rotational_thermostat_dof=(float, float),
+                                   barostat_dof=(float, float, float, float,
+                                                 float, float))
         param_dict.update(
             dict(filter=filter,
                  kT=kT,
@@ -439,7 +453,6 @@ class NPT(Method):
 
         # set defaults
         self._param_dict.update(param_dict)
-
 
     def _attach(self):
         # initialize the reflected c++ class
@@ -457,29 +470,21 @@ class NPT(Method):
 
         thermo_full_step = thermo_cls(cpp_sys_def, thermo_group)
 
-        self._cpp_obj = cpp_cls(cpp_sys_def,
-                                 thermo_group,
-                                 thermo_half_step,
-                                 thermo_full_step,
-                                 self.tau,
-                                 self.tauS,
-                                 self.kT,
-                                 self.S,
-                                 self.couple,
-                                 self.box_dof,
-                                 False)
+        self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_half_step,
+                                thermo_full_step, self.tau, self.tauS, self.kT,
+                                self.S, self.couple, self.box_dof, False)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
 
-    def _preprocess_stress(self,value):
+    def _preprocess_stress(self, value):
         if isinstance(value, Sequence):
             if len(value) != 6:
                 raise ValueError(
                     "Expected a single hoomd.variant.Variant / float or six.")
             return tuple(value)
         else:
-            return (value,value,value,0,0,0)
+            return (value, value, value, 0, 0, 0)
 
     def thermalize_thermostat_and_barostat_dof(self):
         r"""Set the thermostat and barostat momenta to random values.
@@ -499,45 +504,45 @@ class NPT(Method):
         .. seealso:: `State.thermalize_particle_momenta`
         """
         if not self._attached:
-            raise RuntimeError(
-                "Call Simulation.run(0) before"
-                "thermalize_thermostat_and_barostat_dof")
+            raise RuntimeError("Call Simulation.run(0) before"
+                               "thermalize_thermostat_and_barostat_dof")
 
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             self._simulation.timestep)
 
-    @hoomd.logging.log
+    @hoomd.logging.log(requires_run=True)
     def thermostat_energy(self):
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
+        """Energy the thermostat contributes to the Hamiltonian \
+        :math:`[\\mathrm{energy}]`."""
+        return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
 
-    @hoomd.logging.log
+    @hoomd.logging.log(requires_run=True)
     def barostat_energy(self):
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
+        """Energy the barostat contributes to the Hamiltonian \
+        :math:`[\\mathrm{energy}]`."""
+        return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
 
 
 class NPH(Method):
     r"""NPH Integration via MTK barostat-thermostat.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
-        S (`tuple` [ `hoomd.variant.Variant` ] or `float`): Stress components set
-            point for the barostat (in pressure units). Converted to a tuple
-            during NPH instantiation.  In Voigt notation:
-            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case
-            of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+        S: Stress components set point for the barostat.
+           In Voigt notation:
+           :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
+           :math:`[\mathrm{pressure}]`. In case of isotropic pressure P
+           (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+           Accepts: `tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
+           `hoomd.variant.Variant` or `float`.
 
-        tauS (`float`): Coupling constant for the barostat (in time units).
+        tauS (float): Coupling constant for the barostat
+           :math:`[\mathrm{time}]`.
 
-        couple (`str`): Couplings of diagonal elements of the stress tensor,
+        couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all", default to "all".
 
         box_dof(`tuple` [ `bool` ]): Box degrees of freedom with six boolean
@@ -546,10 +551,10 @@ class NPH(Method):
             rescale corresponding lengths or tilt factors and components of
             particle coordinates and velocities.
 
-        rescale_all (`bool`): if True, rescale all particles, not only those in
+        rescale_all (bool): if True, rescale all particles, not only those in
             the group, Default to False.
 
-        gamma (`float`): Dimensionless damping factor for the box degrees of
+        gamma (float): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
     Note:
@@ -580,19 +585,23 @@ class NPH(Method):
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
-        S (tuple[hoomd.variant.Variant, hoomd.variant.Variant, hoomd.variant.Variant, hoomd.variant.Variant, hoomd.variant.Variant, hoomd.variant.Variant]): Stress components set
-            point for the barostat (in pressure units). In Voigt notation,
-            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can
-            be reset after method object is created. For example, An isoropic
+        S (`tuple` [`hoomd.variant.Variant`, ...]): Stress components set
+            point for the barostat totalling 6 components.
+            In Voigt notation,
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
+            :math:`[\mathrm{pressure}]`. Stress can be reset after
+            method object is created. For example, an isoropic
             pressure can be set by ``nph.S = 4.``
 
-        tauS (float): Coupling constant for the barostat (in time units).
+        tauS (float): Coupling constant for the barostat
+            :math:`[\mathrm{time}]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all".
 
-        box_dof(tuple[bool, bool, bool, bool, bool, bool]): Box degrees of freedom
-            with six boolean elements corresponding to x, y, z, xy, xz, yz, each.
+        box_dof(tuple[bool, bool, bool, bool, bool, bool]): Box degrees of
+            freedom with six boolean elements corresponding to x, y, z, xy, xz,
+            yz, each.
 
         rescale_all (bool): if True, rescale all particles, not only those in
             the group.
@@ -615,17 +624,16 @@ class NPH(Method):
                  rescale_all=False,
                  gamma=0.0):
         # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            kT=Variant,
-            S=OnlyIf(to_type_converter((Variant,) * 6),
-                     preprocess=self._preprocess_stress),
-            tauS=float,
-            couple=str,
-            box_dof=(bool,) * 6,
-            rescale_all=bool,
-            gamma=float,
-            barostat_dof=(float,) * 6)
+        param_dict = ParameterDict(filter=ParticleFilter,
+                                   kT=Variant,
+                                   S=OnlyIf(to_type_converter((Variant,) * 6),
+                                            preprocess=self._preprocess_stress),
+                                   tauS=float,
+                                   couple=str,
+                                   box_dof=(bool,) * 6,
+                                   rescale_all=bool,
+                                   gamma=float,
+                                   barostat_dof=(float,) * 6)
 
         param_dict.update(
             dict(filter=filter,
@@ -697,16 +705,15 @@ class NPH(Method):
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             self._simulation.timestep)
 
-    @hoomd.logging.log
+    @hoomd.logging.log(requires_run=True)
     def barostat_energy(self):
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
+        """Energy the barostat contributes to the Hamiltonian \
+        :math:`[\\mathrm{energy}]`."""
+        return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
 
 
 class NVE(MethodRATTLE):
-    R""" NVE Integration via Velocity-Verlet with or without RATTLE
+    r"""NVE Integration via Velocity-Verlet with or without RATTLE.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
@@ -719,8 +726,9 @@ class NVE(MethodRATTLE):
             constraint. Defaults to None.
 
         tolerance (`float`): Defines the tolerated error particles are
-            allowed to deviate from the manifold in terms of the implicit function.
-            This is only used if RATTLE algorithm is triggered. Defaults to 1e-6
+            allowed to deviate from the manifold in terms of the implicit
+            function.  This is only used if RATTLE algorithm is triggered.
+            Defaults to 1e-6
 
     `NVE` performs constant volume, constant energy simulations using
     the standard Velocity-Verlet method. If a manifold constraint is set,
@@ -741,8 +749,10 @@ class NVE(MethodRATTLE):
     Examples of using ``manifold_constraint``::
 
         sphere = hoomd.md.manifold.Sphere(r=10)
-        nve_rattle = hoomd.md.methods.NVE(filter=hoomd.filter.All(),maifold=sphere)
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve_rattle], forces=[lj])
+        nve_rattle = hoomd.md.methods.NVE(
+            filter=hoomd.filter.All(),maifold=sphere)
+        integrator = hoomd.md.Integrator(
+            dt=0.005, methods=[nve_rattle], forces=[lj])
 
 
     Attributes:
@@ -752,16 +762,20 @@ class NVE(MethodRATTLE):
         limit (None or float): Enforce that no particle moves more than a
             distance of a limit in a single time step. Defaults to None
 
-        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint which is
-            used by and as a trigger for the RATTLE algorithm of this method.
-            Defaults to None
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
+            which is used by and as a trigger for the RATTLE algorithm of this
+            method. Defaults to None.
 
-        tolerance (float): Defines the tolerated error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-6
-
+        tolerance (float): Defines the tolerated error particles are allowed to
+            deviate from the manifold in terms of the implicit function.
+            Defaults to 1e-6.
     """
 
-    def __init__(self, filter, limit=None, manifold_constraint=None, tolerance=0.000001):
+    def __init__(self,
+                 filter,
+                 limit=None,
+                 manifold_constraint=None,
+                 tolerance=0.000001):
 
         # store metadata
         param_dict = ParameterDict(
@@ -774,7 +788,7 @@ class NVE(MethodRATTLE):
         # set defaults
         self._param_dict.update(param_dict)
 
-        super().__init__(manifold_constraint,tolerance)
+        super().__init__(manifold_constraint, tolerance)
 
     def _attach(self):
 
@@ -782,53 +796,63 @@ class NVE(MethodRATTLE):
         if self.manifold_constraint is None:
             # initialize the reflected c++ class
             if isinstance(sim.device, hoomd.device.CPU):
-                self._cpp_obj = _md.TwoStepNVE(sim.state._cpp_sys_def,
-                                            sim.state._get_group(self.filter), False)
+                self._cpp_obj = _md.TwoStepNVE(
+                    sim.state._cpp_sys_def, sim.state._get_group(self.filter),
+                    False)
             else:
-                self._cpp_obj = _md.TwoStepNVEGPU(sim.state._cpp_sys_def,
-                                 sim.state._get_group(self.filter))
+                self._cpp_obj = _md.TwoStepNVEGPU(
+                    sim.state._cpp_sys_def, sim.state._get_group(self.filter))
         else:
             self._attach_constraint(sim)
 
             # initialize the reflected c++ class
             if isinstance(sim.device, hoomd.device.CPU):
-                my_class = getattr(_md, 'TwoStepRATTLENVE' + self.manifold_constraint.__class__.__name__)
+                my_class = getattr(
+                    _md, 'TwoStepRATTLENVE'
+                    + self.manifold_constraint.__class__.__name__)
             else:
-                my_class = getattr(_md, 'TwoStepRATTLENVE' + self.manifold_constraint.__class__.__name__ + 'GPU')
+                my_class = getattr(
+                    _md, 'TwoStepRATTLENVE'
+                    + self.manifold_constraint.__class__.__name__ + 'GPU')
 
-            self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
-                                     self._simulation.state._get_group(self.filter),
-                                     self.manifold_constraint._cpp_obj, False, self.tolerance)
+            self._cpp_obj = my_class(
+                self._simulation.state._cpp_sys_def,
+                self._simulation.state._get_group(self.filter),
+                self.manifold_constraint._cpp_obj, False, self.tolerance)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
 
+
 class Langevin(MethodRATTLE):
-    R""" Langevin dynamics with or without RATTLE
+    r"""Langevin dynamics with or without RATTLE.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles to
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
-            simulation (in energy units).
+            simulation :math:`[\mathrm{energy}]`.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the drag
-            coefficient where :math:`d_i` is particle diameter.
+            coefficient where :math:`d_i` is particle diameter
+            :math:`[\mathrm{mass} \cdot
+            \mathrm{length}^{-1} \cdot \mathrm{time}^{-1}]`.
             Defaults to None.
 
         tally_reservoir_energy (`bool`): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
             energy conservation can then be monitored by adding
             ``langevin_reservoir_energy_groupname`` to the logged quantities.
-            Defaults to False.
+            Defaults to False :math:`[\mathrm{energy}]`.
 
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.
 
         tolerance (`float`): Defines the tolerated error particles are allowed
             to deviate from the manifold in terms of the implicit function.
-            This is only used if RATTLE algorithm is triggered. Defaults to 1e-6
+            This is only used if RATTLE algorithm is triggered.
+            Defaults to 1e-6
 
     .. rubric:: Translational degrees of freedom
 
@@ -888,8 +912,9 @@ class Langevin(MethodRATTLE):
     Examples of using ``manifold_constraint``::
 
         sphere = hoomd.md.manifold.Sphere(r=10)
-        langevin_rattle = hoomd.md.methods.Langevin_Rattle(filter=hoomd.filter.All(),
-        kT=0.2, manifold_constraint = sphere, seed=1, alpha=1.0)
+        langevin_rattle = hoomd.md.methods.Langevin(
+            filter=hoomd.filter.All(), kT=0.2, manifold_constraint=sphere,
+            seed=1, alpha=1.0)
 
     Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
 
@@ -898,7 +923,7 @@ class Langevin(MethodRATTLE):
         langevin.gamma_r.default = [1.0,2.0,3.0]
 
         sphere = hoomd.md.manifold.Sphere(r=10)
-        langevin_rattle = hoomd.md.methods.Langevin_Rattle(filter=hoomd.filter.All(),
+        langevin_rattle = hoomd.md.methods.Langevin(filter=hoomd.filter.All(),
         kT=0.2, manifold_constraint = sphere, seed=1, alpha=1.0)
 
     Attributes:
@@ -906,33 +931,41 @@ class Langevin(MethodRATTLE):
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
-            simulation (in energy units).
+            simulation :math:`[\mathrm{energy}]`.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag
-            coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
+            coefficient where :math:`d_i` is particle diameter
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
+            \cdot \mathrm{time}^{-1}]`. Defaults to None.
 
-        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint which is
-            used by and as a trigger for the RATTLE algorithm of this method.
-            Defaults to None
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
+            which is used by and as a trigger for the RATTLE algorithm of this
+            method. Defaults to None.
 
-        tolerance (float): Defines the tolerated error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-6
+        tolerance (float): Defines the tolerated error particles are allowed
+            to deviate from the manifold in terms of the implicit function.
+            Defaults to 1e-6.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
             diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero.
+            parameter is either positive float or zero
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
-        gamma_r (TypeParameter[ ``particle type``, [ `float`, `float` , `float` ]]):
+        gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero.
+            tuple is either positive float or zero
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
     """
 
-    def __init__(self, filter, kT, alpha=None,
-                 tally_reservoir_energy=False, manifold_constraint=None,
+    def __init__(self,
+                 filter,
+                 kT,
+                 alpha=None,
+                 tally_reservoir_energy=False,
+                 manifold_constraint=None,
                  tolerance=0.000001):
 
         # store metadata
@@ -941,23 +974,23 @@ class Langevin(MethodRATTLE):
             kT=Variant,
             alpha=OnlyTypes(float, allow_none=True),
             tally_reservoir_energy=bool(tally_reservoir_energy),
-            )
+        )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
 
-        gamma = TypeParameter('gamma', type_kind='particle_types',
-                              param_dict=TypeParameterDict(1., len_keys=1)
-                              )
+        gamma = TypeParameter('gamma',
+                              type_kind='particle_types',
+                              param_dict=TypeParameterDict(1., len_keys=1))
 
-        gamma_r = TypeParameter('gamma_r', type_kind='particle_types',
+        gamma_r = TypeParameter('gamma_r',
+                                type_kind='particle_types',
                                 param_dict=TypeParameterDict((1., 1., 1.),
-                                                             len_keys=1)
-                                )
+                                                             len_keys=1))
 
-        self._extend_typeparam([gamma,gamma_r])
+        self._extend_typeparam([gamma, gamma_r])
 
-        super().__init__(manifold_constraint,tolerance)
+        super().__init__(manifold_constraint, tolerance)
 
     def _add(self, simulation):
         """Add the operation to a simulation.
@@ -979,44 +1012,50 @@ class Langevin(MethodRATTLE):
                 my_class = _md.TwoStepLangevinGPU
 
             self._cpp_obj = my_class(sim.state._cpp_sys_def,
-                                 sim.state._get_group(self.filter),
-                                 self.kT)
+                                     sim.state._get_group(self.filter), self.kT)
         else:
             self._attach_constraint(sim)
 
             if isinstance(sim.device, hoomd.device.CPU):
-                my_class = getattr(_md, 'TwoStepRATTLELangevin' + self.manifold_constraint.__class__.__name__)
+                my_class = getattr(
+                    _md, 'TwoStepRATTLELangevin'
+                    + self.manifold_constraint.__class__.__name__)
             else:
-                my_class = getattr(_md, 'TwoStepRATTLELangevin' + self.manifold_constraint.__class__.__name__ + 'GPU')
+                my_class = getattr(
+                    _md, 'TwoStepRATTLELangevin'
+                    + self.manifold_constraint.__class__.__name__ + 'GPU')
 
             self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                      sim.state._get_group(self.filter),
-                                     self.manifold_constraint._cpp_obj,
-                                     self.kT, self.tolerance)
+                                     self.manifold_constraint._cpp_obj, self.kT,
+                                     self.tolerance)
 
             # Attach param_dict and typeparam_dict
         super()._attach()
 
+
 class Brownian(MethodRATTLE):
-    R""" Brownian dynamics with and without RATTLE.
+    r"""Brownian dynamics with and without RATTLE.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles to
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
-            simulation (in energy units).
+            simulation :math:`[\mathrm{energy}]`.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the
             drag coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
+            Defaults to None
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
+            \cdot \mathrm{time}^{-1}]`.
 
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.
 
         tolerance (`float`): Defines the toleraated error particles are allowed
-            to deviate from the manifold in terms of the implicit function. This
-            is only used if RATTLE algorithm is triggered. Defaults to 1e-6
+            to deviate from the manifold in terms of the implicit function.
+            This is only used if RATTLE algorithm is triggered. Defaults to 1e-6
 
     `Brownian` integrates particles forward in time according to the overdamped
     Langevin equations of motion, sometimes called Brownian dynamics, or the
@@ -1038,18 +1077,20 @@ class Brownian(MethodRATTLE):
 
     where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
     potentials and constraint forces, :math:`\gamma` is the drag coefficient,
-    :math:`\vec{F}_\mathrm{R}` is a uniform random force, :math:`\vec{v}` is the
-    particle's velocity, and :math:`d` is the dimensionality of the system.
+    :math:`\vec{F}_\mathrm{R}` is a uniform random force, :math:`\vec{v}` is
+    the particle's velocity, and :math:`d` is the dimensionality of the system.
     The magnitude of the random force is chosen via the fluctuation-dissipation
     theorem to be consistent with the specified drag and temperature, :math:`T`.
     When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`. If a
     manifold constraint is set, the RATTLE algorithm is used additionally.
 
-    `Brownian` uses the integrator from `I. Snook, The Langevin and Generalised
-    Langevin Approach to the Dynamics of Atomic, Polymeric and Colloidal Systems
-    , 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,
-    with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a
-    uniform random number distribution.
+    `Brownian` uses the integrator from I. Snook, The Langevin and Generalised
+    Langevin Approach to the Dynamics of Atomic, Polymeric and Colloidal
+    Systems, 2007, section 6.2.5 `link`_, with the exception that
+    :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
+    distribution.
+
+    .. _link: http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6
 
     In Brownian dynamics, particle velocities are completely decoupled from
     positions. At each time step, `Brownian` draws a new velocity
@@ -1082,7 +1123,7 @@ class Brownian(MethodRATTLE):
     Examples of using ``manifold_constraint``::
 
         sphere = hoomd.md.manifold.Sphere(r=10)
-        brownian_rattle = hoomd.md.methods.Brownian_Rattle(filter=hoomd.filter.All(),
+        brownian_rattle = hoomd.md.methods.Brownian(filter=hoomd.filter.All(),
         kT=0.2, manifold_constraint=sphere, seed=1, alpha=1.0)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian_rattle],
         forces=[lj])
@@ -1099,53 +1140,64 @@ class Brownian(MethodRATTLE):
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
-            simulation (in energy units).
+            simulation :math:`[\mathrm{energy}]`.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag
-            coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
+            coefficient where :math:`d_i` is particle diameter
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
+            \cdot \mathrm{time}^{-1}]`. Defaults to None.
 
-        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint which is
-            used by and as a trigger for the RATTLE algorithm of this method.
-            Defaults to None
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
+            which is used by and as a trigger for the RATTLE algorithm of this
+            method. Defaults to None.
 
-        tolerance (float): Defines the tolerated error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-6
+        tolerance (float): Defines the tolerated error particles are allowed to
+            deviate from the manifold in terms of the implicit function.
+            Defaults to 1e-6.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
             diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero.
+            parameter is either positive float or zero
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
-        gamma_r (TypeParameter[ ``particle type``, [ `float`, `float`, `float` ] ]):
+        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`]]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero.
+            tuple is either positive float or zero
+            :math:`[\mathrm{force} \cdot \mathrm{length} \cdot
+            \mathrm{radian}^{-1} \cdot \mathrm{time}^{-1}]`.
     """
 
-    def __init__(self, filter, kT, manifold_constraint=None, tolerance=0.000001, alpha=None):
+    def __init__(self,
+                 filter,
+                 kT,
+                 manifold_constraint=None,
+                 tolerance=0.000001,
+                 alpha=None):
 
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
             kT=Variant,
             alpha=OnlyTypes(float, allow_none=True),
-            )
+        )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
 
-        #set defaults
+        # set defaults
         self._param_dict.update(param_dict)
 
-        gamma = TypeParameter('gamma', type_kind='particle_types',
-                              param_dict=TypeParameterDict(1., len_keys=1)
-                              )
+        gamma = TypeParameter('gamma',
+                              type_kind='particle_types',
+                              param_dict=TypeParameterDict(1., len_keys=1))
 
-        gamma_r = TypeParameter('gamma_r', type_kind='particle_types',
-                                param_dict=TypeParameterDict((1., 1., 1.), len_keys=1)
-                                )
-        self._extend_typeparam([gamma,gamma_r])
+        gamma_r = TypeParameter('gamma_r',
+                                type_kind='particle_types',
+                                param_dict=TypeParameterDict((1., 1., 1.),
+                                                             len_keys=1))
+        self._extend_typeparam([gamma, gamma_r])
 
-        super().__init__(manifold_constraint,tolerance)
+        super().__init__(manifold_constraint, tolerance)
 
     def _add(self, simulation):
         """Add the operation to a simulation.
@@ -1166,21 +1218,25 @@ class Brownian(MethodRATTLE):
                                               sim.state._get_group(self.filter),
                                               self.kT)
             else:
-                self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
-                                                 sim.state._get_group(self.filter),
-                                                 self.kT)
+                self._cpp_obj = _md.TwoStepBDGPU(
+                    sim.state._cpp_sys_def, sim.state._get_group(self.filter),
+                    self.kT)
         else:
             self._attach_constraint(sim)
 
             if isinstance(sim.device, hoomd.device.CPU):
-                my_class = getattr(_md, 'TwoStepRATTLEBD' + self.manifold_constraint.__class__.__name__)
+                my_class = getattr(
+                    _md, 'TwoStepRATTLEBD'
+                    + self.manifold_constraint.__class__.__name__)
             else:
-                my_class = getattr(_md, 'TwoStepRATTLEBD' + self.manifold_constraint.__class__.__name__ + 'GPU')
+                my_class = getattr(
+                    _md, 'TwoStepRATTLEBD'
+                    + self.manifold_constraint.__class__.__name__ + 'GPU')
 
             self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                      sim.state._get_group(self.filter),
-                                     self.manifold_constraint._cpp_obj,
-                                     self.kT, self.tolerance)
+                                     self.manifold_constraint._cpp_obj, self.kT,
+                                     self.tolerance)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -1194,12 +1250,13 @@ class Berendsen(Method):
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
-            simulation (in energy units).
+            simulation. :math:`[energy]`
 
-        tau (`float`): Time constant of thermostat. (in time units)
+        tau (`float`): Time constant of thermostat. :math:`[time]`
 
-    :py:class:`Berendsen` rescales the velocities of all particles on each time step. The rescaling is performed so that
-    the difference in the current temperature from the set point decays exponentially:
+    :py:class:`Berendsen` rescales the velocities of all particles on each time
+    step. The rescaling is performed so that the difference in the current
+    temperature from the set point decays exponentially:
     `Berendsen et. al. 1984 <http://dx.doi.org/10.1063/1.448118>`_.
 
     .. math::
@@ -1214,9 +1271,10 @@ class Berendsen(Method):
 
         Examples::
 
-        berendsen = hoomd.md.methods.Berendsen(filter=hoomd.filter.All(), kT=0.2,
-        tau=10.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[berendsen], forces=[lj])
+            berendsen = hoomd.md.methods.Berendsen(
+                filter=hoomd.filter.All(), kT=0.2, tau=10.0)
+            integrator = hoomd.md.Integrator(
+                dt=0.001, methods=[berendsen], forces=[lj])
 
 
     Attributes:
@@ -1224,17 +1282,16 @@ class Berendsen(Method):
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
-            simulation (in energy units).
+            simulation. :math:`[energy]`
 
-        tau (float): Time constant of thermostat. (in time units)
+        tau (float): Time constant of thermostat. :math:`[time]`
     """
 
     def __init__(self, filter, kT, tau):
         # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            kT=Variant,
-            tau=float(tau))
+        param_dict = ParameterDict(filter=ParticleFilter,
+                                   kT=Variant,
+                                   tau=float(tau))
         param_dict.update(dict(filter=filter, kT=kT))
 
         # set defaults
@@ -1245,7 +1302,9 @@ class Berendsen(Method):
         # Error out in MPI simulations
         if hoomd.version.mpi_enabled:
             if sim.device._comm.num_ranks > 1:
-                raise RuntimeError("hoomd.md.methods.Berendsen is not supported in multi-processor simulations.")
+                raise RuntimeError(
+                    "hoomd.md.methods.Berendsen is not supported in "
+                    "multi-processor simulations.")
 
         group = sim.state._get_group(self.filter)
         if isinstance(sim.device, hoomd.device.CPU):
@@ -1254,9 +1313,7 @@ class Berendsen(Method):
         else:
             cpp_method = _md.TwoStepBerendsenGPU
             thermo_cls = _md.ComputeThermoGPU
-        self._cpp_obj = cpp_method(sim.state._cpp_sys_def,
-                                   group,
+        self._cpp_obj = cpp_method(sim.state._cpp_sys_def, group,
                                    thermo_cls(sim.state._cpp_sys_def, group),
-                                   self.tau,
-                                   self.kT)
+                                   self.tau, self.kT)
         super()._attach()

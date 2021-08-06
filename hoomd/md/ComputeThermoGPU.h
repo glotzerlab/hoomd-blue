@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "ComputeThermo.h"
@@ -26,20 +25,22 @@
 class PYBIND11_EXPORT ComputeThermoGPU : public ComputeThermo
     {
     public:
-        //! Constructs the compute
-        ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<ParticleGroup> group);
-        virtual ~ComputeThermoGPU();
+    //! Constructs the compute
+    ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<ParticleGroup> group);
+    virtual ~ComputeThermoGPU();
 
     protected:
-        GlobalVector<Scalar4> m_scratch;  //!< Scratch space for partial sums
-        GlobalVector<Scalar> m_scratch_pressure_tensor; //!< Scratch space for pressure tensor partial sums
-        GlobalVector<Scalar> m_scratch_rot; //!< Scratch space for rotational kinetic energy partial sums
-        unsigned int m_block_size;   //!< Block size executed
-        hipEvent_t m_event;         //!< CUDA event for synchronization
+    GlobalVector<Scalar4> m_scratch; //!< Scratch space for partial sums
+    GlobalVector<Scalar>
+        m_scratch_pressure_tensor; //!< Scratch space for pressure tensor partial sums
+    GlobalVector<Scalar>
+        m_scratch_rot;         //!< Scratch space for rotational kinetic energy partial sums
+    unsigned int m_block_size; //!< Block size executed
+    hipEvent_t m_event;        //!< CUDA event for synchronization
 
-        //! Does the actual computation
-        virtual void computeProperties();
+    //! Does the actual computation
+    virtual void computeProperties();
     };
 
 //! Exports the ComputeThermoGPU class to python

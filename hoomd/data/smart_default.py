@@ -1,16 +1,19 @@
+"""Implements intelligent and nested defaults for TypeParameters."""
+
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from itertools import repeat, cycle
 from inspect import isclass
-from hoomd.util import is_iterable
+from hoomd.util import _is_iterable
 from hoomd.data.typeconverter import RequiredArg
 
 
-class NoDefault:
+class _NoDefault:
     pass
 
 
-class SmartDefault(ABC):
+class _SmartDefault(ABC):
+
     @abstractmethod
     def __init__(self, *args, **kwargs):
         pass
@@ -24,14 +27,16 @@ class SmartDefault(ABC):
         pass
 
 
-class SmartDefaultSequence(SmartDefault):
+class _SmartDefaultSequence(_SmartDefault):
+
     def __init__(self, sequence, default):
-        if is_iterable(default):
+        if _is_iterable(default):
             dft_iter = cycle(default)
         else:
             dft_iter = repeat(default)
-        self.default = [toDefault(item, dft)
-                        for item, dft in zip(sequence, dft_iter)]
+        self.default = [
+            _to_default(item, dft) for item, dft in zip(sequence, dft_iter)
+        ]
 
     def __call__(self, sequence):
         if sequence is None:
@@ -40,7 +45,7 @@ class SmartDefaultSequence(SmartDefault):
             new_sequence = []
             if len(self.default) == 1:
                 for v, d in zip(sequence, self):
-                    if isinstance(d, SmartDefault):
+                    if isinstance(d, _SmartDefault):
                         new_sequence.append(d(v))
                     else:
                         new_sequence.append(v)
@@ -48,12 +53,12 @@ class SmartDefaultSequence(SmartDefault):
                 given_length = len(sequence)
                 for i, d in enumerate(self):
                     if i < given_length:
-                        if isinstance(d, SmartDefault):
+                        if isinstance(d, _SmartDefault):
                             new_sequence.append(d(sequence[i]))
                         else:
                             new_sequence.append(sequence[i])
                     else:
-                        if isinstance(d, SmartDefault):
+                        if isinstance(d, _SmartDefault):
                             new_sequence.append(d.to_base())
                         else:
                             new_sequence.append(d)
@@ -66,17 +71,18 @@ class SmartDefaultSequence(SmartDefault):
             yield from self.default
 
     def to_base(self):
-        return [fromDefault(item) for item in self.default]
+        return [_from_default(item) for item in self.default]
 
 
-class SmartDefaultFixedLengthSequence(SmartDefault):
+class _SmartDefaultFixedLengthSequence(_SmartDefault):
+
     def __init__(self, sequence, default):
-        if is_iterable(default):
+        if _is_iterable(default):
             dft_iter = cycle(default)
         else:
             dft_iter = repeat(default)
-        self.default = tuple([toDefault(item, dft)
-                              for item, dft in zip(sequence, dft_iter)])
+        self.default = tuple(
+            [_to_default(item, dft) for item, dft in zip(sequence, dft_iter)])
 
     def __call__(self, sequence):
         if sequence is None:
@@ -86,12 +92,12 @@ class SmartDefaultFixedLengthSequence(SmartDefault):
             given_length = len(sequence)
             for i, d in enumerate(self):
                 if i < given_length:
-                    if isinstance(d, SmartDefault):
+                    if isinstance(d, _SmartDefault):
                         new_sequence.append(d(sequence[i]))
                     else:
                         new_sequence.append(sequence[i])
                 else:
-                    if isinstance(d, SmartDefault):
+                    if isinstance(d, _SmartDefault):
                         new_sequence.append(d.to_base())
                     else:
                         new_sequence.append(d)
@@ -101,17 +107,22 @@ class SmartDefaultFixedLengthSequence(SmartDefault):
         yield from self.default
 
     def to_base(self):
-        return tuple([fromDefault(v) for v in self])
+        return tuple([_from_default(v) for v in self])
 
 
-class SmartDefaultMapping(SmartDefault):
+class _SmartDefaultMapping(_SmartDefault):
+
     def __init__(self, mapping, defaults):
-        if defaults is NoDefault:
-            self.default = {key: toDefault(value, NoDefault)
-                            for key, value in mapping.items()}
+        if defaults is _NoDefault:
+            self.default = {
+                key: _to_default(value, _NoDefault)
+                for key, value in mapping.items()
+            }
         else:
-            self.default = {key: toDefault(value, defaults.get(key, NoDefault))
-                            for key, value in mapping.items()}
+            self.default = {
+                key: _to_default(value, defaults.get(key, _NoDefault))
+                for key, value in mapping.items()
+            }
 
     def __call__(self, mapping):
         if mapping is None:
@@ -120,12 +131,12 @@ class SmartDefaultMapping(SmartDefault):
             new_mapping = dict()
             for key, sdft in self.default.items():
                 if key in mapping:
-                    if isinstance(sdft, SmartDefault):
+                    if isinstance(sdft, _SmartDefault):
                         new_mapping[key] = sdft(mapping[key])
                     else:
                         new_mapping[key] = mapping[key]
                 else:
-                    if isinstance(sdft, SmartDefault):
+                    if isinstance(sdft, _SmartDefault):
                         new_mapping[key] = sdft(None)
                     else:
                         new_mapping[key] = sdft
@@ -144,55 +155,57 @@ class SmartDefaultMapping(SmartDefault):
         return value in self.default
 
     def to_base(self):
-        return {key: fromDefault(value) for key, value in self.default.items()}
+        return {
+            key: _from_default(value) for key, value in self.default.items()
+        }
 
 
-def toDefault(value, defaults=NoDefault):
+def _to_default(value, defaults=_NoDefault):
     if isinstance(value, tuple):
-        if defaults is NoDefault or is_iterable(defaults):
-            return SmartDefaultFixedLengthSequence(value, defaults)
+        if defaults is _NoDefault or _is_iterable(defaults):
+            return _SmartDefaultFixedLengthSequence(value, defaults)
         else:
             return defaults
-    if is_iterable(value):
-        if defaults is NoDefault or is_iterable(defaults):
-            return SmartDefaultSequence(value, defaults)
+    if _is_iterable(value):
+        if defaults is _NoDefault or _is_iterable(defaults):
+            return _SmartDefaultSequence(value, defaults)
         else:
             return defaults
     elif isinstance(value, Mapping):
-        if defaults is NoDefault or isinstance(defaults, Mapping):
-            return SmartDefaultMapping(value, defaults)
+        if defaults is _NoDefault or isinstance(defaults, Mapping):
+            return _SmartDefaultMapping(value, defaults)
         else:
             return defaults
     elif isclass(value) or callable(value):
-        return RequiredArg if defaults is NoDefault else defaults
+        return RequiredArg if defaults is _NoDefault else defaults
     else:
-        return value if defaults is NoDefault else defaults
+        return value if defaults is _NoDefault else defaults
 
 
-def fromDefault(value):
-    if isinstance(value, SmartDefault):
+def _from_default(value):
+    if isinstance(value, _SmartDefault):
         return value.to_base()
     else:
         return value
 
 
-def to_base_defaults(value, _defaults=NoDefault):
+def _to_base_defaults(value, _defaults=_NoDefault):
     if isinstance(value, Mapping):
         new_default = dict()
         # if _defaults exists use those values over value
-        if _defaults is not NoDefault:
+        if _defaults is not _NoDefault:
             if isinstance(_defaults, Mapping):
                 for key, dft in value.items():
-                    sub_explicit_default = _defaults.get(key, NoDefault)
-                    new_default[key] = to_base_defaults(
+                    sub_explicit_default = _defaults.get(key, _NoDefault)
+                    new_default[key] = _to_base_defaults(
                         dft, sub_explicit_default)
             else:
                 return None
         else:
             for key, value in value.items():
-                new_default[key] = to_base_defaults(value)
+                new_default[key] = _to_base_defaults(value)
         return new_default
     elif isclass(value) or callable(value):
-        return RequiredArg if _defaults is NoDefault else _defaults
+        return RequiredArg if _defaults is _NoDefault else _defaults
     else:
-        return value if _defaults is NoDefault else _defaults
+        return value if _defaults is _NoDefault else _defaults

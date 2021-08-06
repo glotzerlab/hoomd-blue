@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 #include "ForceCompute.h"
 
@@ -27,22 +26,21 @@
 class PYBIND11_EXPORT ForceConstraint : public ForceCompute
     {
     public:
-        //! Constructs the compute
-        ForceConstraint(std::shared_ptr<SystemDefinition> sysdef);
+    //! Constructs the compute
+    ForceConstraint(std::shared_ptr<SystemDefinition> sysdef);
 
-        //! Return the number of DOF removed from a group by this constraint
-        /*! The base class ForceConstraint returns 0, derived classes should override
-            @param query The group over which to compute the removed degrees of freedom
-        */
-        virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
-            {
-            return 0;
-            }
+    //! Return the number of DOF removed from a group by this constraint
+    /*! The base class ForceConstraint returns 0, derived classes should override
+        @param query The group over which to compute the removed degrees of freedom
+    */
+    virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
+        {
+        return 0;
+        }
 
     protected:
-
-        //! Compute the forces
-        virtual void computeForces(uint64_t timestep);
+    //! Compute the forces
+    virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the ForceConstraint to python

@@ -11,7 +11,6 @@ from hoomd.state import State
 from hoomd.snapshot import Snapshot
 from hoomd.operations import Operations
 import hoomd
-import json
 
 TIMESTEP_MAX = 2**64 - 1
 SEED_MAX = 2**16 - 1
@@ -92,7 +91,7 @@ class Simulation(metaclass=Loggable):
         unique identifying values as needed to sample uncorrelated values:
         ``random_value = f(seed, timestep, ...)``
         """
-        if self.state is None or self._seed is None:
+        if self._state is None or self._seed is None:
             return self._seed
         else:
             return self._state._cpp_sys_def.getSeed()
@@ -161,13 +160,12 @@ class Simulation(metaclass=Loggable):
             frame (int): Index of the frame to read from the file. Negative
                 values index back from the last frame in the file.
         """
-        if self.state is not None:
+        if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
-        filename = _hoomd.mpi_bcast_str(filename,
-                                        self.device._cpp_exec_conf)
+        filename = _hoomd.mpi_bcast_str(filename, self.device._cpp_exec_conf)
         # Grab snapshot and timestep
-        reader = _hoomd.GSDReader(self.device._cpp_exec_conf,
-                                  filename, abs(frame), frame < 0)
+        reader = _hoomd.GSDReader(self.device._cpp_exec_conf, filename,
+                                  abs(frame), frame < 0)
         snapshot = Snapshot._from_cpp_snapshot(reader.getSnapshot(),
                                                self.device.communicator)
 
@@ -179,7 +177,7 @@ class Simulation(metaclass=Loggable):
         self._init_system(step)
 
     def create_state_from_snapshot(self, snapshot):
-        """Create the simulations state from a `Snapshot`.
+        """Create the simulation state from a `Snapshot`.
 
         Args:
             snapshot (Snapshot or gsd.hoomd.Snapshot): Snapshot to initialize
@@ -189,8 +187,13 @@ class Simulation(metaclass=Loggable):
 
         When `timestep` is `None` before calling, `create_state_from_snapshot`
         sets `timestep` to 0.
+
+        See Also:
+            `State.get_snapshot`
+
+            `State.set_snapshot`
         """
-        if self.state is not None:
+        if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
 
         if isinstance(snapshot, Snapshot):
@@ -198,14 +201,12 @@ class Simulation(metaclass=Loggable):
             self._state = State(self, snapshot)
         elif _match_class_path(snapshot, 'gsd.hoomd.Snapshot'):
             # snapshot is gsd.hoomd.Snapshot
-            snapshot = Snapshot.from_gsd_snapshot(
-                    snapshot, self._device.communicator
-                    )
+            snapshot = Snapshot.from_gsd_snapshot(snapshot,
+                                                  self._device.communicator)
             self._state = State(self, snapshot)
         else:
             raise TypeError(
-                "Snapshot must be a hoomd.Snapshot or gsd.hoomd.Snapshot."
-            )
+                "Snapshot must be a hoomd.Snapshot or gsd.hoomd.Snapshot.")
 
         step = 0
         if self.timestep is not None:
@@ -260,7 +261,7 @@ class Simulation(metaclass=Loggable):
             The start time and step are reset at the beginning of each call to
             `run`.
         """
-        if self.state is None:
+        if self._state is None:
             return None
         else:
             return self._cpp_sys.getLastTPS()
@@ -276,7 +277,7 @@ class Simulation(metaclass=Loggable):
         Note:
             `walltime` resets to 0 at the beginning of each call to `run`.
         """
-        if self.state is None:
+        if self._state is None:
             return 0
         else:
             return self._cpp_sys.walltime
@@ -288,7 +289,7 @@ class Simulation(metaclass=Loggable):
         `final_timestep` is the timestep on which the currently executing `run`
         will complete.
         """
-        if self.state is None:
+        if self._state is None:
             return self.timestep
         else:
             return self._cpp_sys.final_timestep
@@ -367,12 +368,13 @@ class Simulation(metaclass=Loggable):
                     if writer.trigger(timestep):
                         writer.write(timestep)
 
-        This order of operations ensures that writers (such as `hoomd.dump.GSD`)
-        capture the final output of the last step of the run loop. For example,
-        a writer with a trigger ``hoomd.trigger.Periodic(period=100, phase=0)``
-        active during a ``run(500)`` would write on steps 100, 200, 300, 400,
-        and 500. Set ``write_at_start=True`` on the first
-        call to `run` to also obtain output at step 0.
+        This order of operations ensures that writers (such as
+        `hoomd.write.GSD`) capture the final output of the last step of the run
+        loop. For example, a writer with a trigger
+        ``hoomd.trigger.Periodic(period=100, phase=0)`` active during a
+        ``run(500)`` would write on steps 100, 200, 300, 400, and 500. Set
+        ``write_at_start=True`` on the first call to `run` to also obtain output
+        at step 0.
 
         Warning:
             Using ``write_at_start=True`` in subsequent
@@ -393,83 +395,6 @@ class Simulation(metaclass=Loggable):
                              f"{TIMESTEP_MAX-1}]")
 
         self._cpp_sys.run(steps_int, write_at_start)
-
-    def write_debug_data(self, filename):
-        """Write debug data to a JSON file.
-
-        Args:
-            filename (str): Name of file to write.
-
-        The debug data file contains useful information for others to help you
-        troubleshoot issues.
-
-        Note:
-            The file format and particular data written to this file may change
-            from version to version.
-
-        Warning:
-            The specified file name will be overwritten.
-        """
-        debug_data = {}
-        debug_data['hoomd_module'] = str(hoomd)
-        debug_data['version'] = dict(
-            compile_date=hoomd.version.compile_date,
-            compile_flags=hoomd.version.compile_flags,
-            cxx_compiler=hoomd.version.cxx_compiler,
-            git_branch=hoomd.version.git_branch,
-            git_sha1=hoomd.version.git_sha1,
-            gpu_api_version=hoomd.version.gpu_api_version,
-            gpu_enabled=hoomd.version.gpu_enabled,
-            gpu_platform=hoomd.version.gpu_platform,
-            install_dir=hoomd.version.install_dir,
-            mpi_enabled=hoomd.version.mpi_enabled,
-            source_dir=hoomd.version.source_dir,
-            tbb_enabled=hoomd.version.tbb_enabled,)
-
-        reasons = hoomd.device.GPU.get_unavailable_device_reasons()
-
-        debug_data['device'] = dict(
-            msg_file=self.device.msg_file,
-            notice_level=self.device.notice_level,
-            devices=self.device.devices,
-            num_cpu_threads=self.device.num_cpu_threads,
-            gpu_available_devices=hoomd.device.GPU.get_available_devices(),
-            gpu_unavailable_device_reasons=reasons)
-
-        debug_data['communicator'] = dict(
-            num_ranks=self.device.communicator.num_ranks,
-            partition=self.device.communicator.partition)
-
-        # TODO: Domain decomposition
-
-        if self.state is not None:
-            debug_data['state'] = dict(
-                types=self.state.types,
-                N_particles=self.state.N_particles,
-                N_bonds=self.state.N_bonds,
-                N_angles=self.state.N_angles,
-                N_impropers=self.state.N_impropers,
-                N_special_pairs=self.state.N_special_pairs,
-                N_dihedrals=self.state.N_dihedrals,
-                box=repr(self.state.box))
-
-        # save all loggable quantities from operations and their child computes
-        logger = hoomd.logging.Logger(only_default=False)
-        logger += self
-
-        for op in self.operations:
-            logger.add(op)
-
-            for child in op._children:
-                logger.add(child)
-
-        log = logger.log()
-        log_values = hoomd.util.dict_map(log, lambda v: v[0])
-        debug_data['operations'] = log_values
-
-        if self.device.communicator.rank == 0:
-            with open(filename, 'w') as f:
-                json.dump(debug_data, f, default=lambda v: str(v), indent=4)
 
 
 def _match_class_path(obj, *matches):

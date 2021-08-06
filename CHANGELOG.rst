@@ -4,8 +4,100 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.6 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.8 (2021-08-03)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- Consistent documentation of parameter dimensions and units reference documentation.
+- ``md.update.ReversePerturbationFlow`` - implementation of ``mueller_plathe_flow`` from v2.
+- ``md.pair.ExpandedMie`` - Mie potential where ``r`` is replaced with ``r - delta``.
+- ``md.pair.Table`` - Pair potential evaluated using the given tabulated values.
+- ``md.constrain.Distance`` - fix distances between pairs of particles.
+- ``hpmc.compute.SDF`` - compute the pressure of convex hard particle systems.
+- ``Snapshot.wrap()`` - wrap snapshot particles back into the box.
+- Support gcc11.
+- ``md.bond.Tether`` - A bond with minimum and maximum lengths.
+- ``State.get_snapshot`` and ``State.set_snapshot`` - methods to access the global snapshot.
+- ``State.set_box`` set a new simulation box without modifying particle properties.
+- ``md.long_range.pppm.make_pppm_coulomb_forces`` - Long range electrostatics evaluated by PPPM.
+- ``md.long_range.pppm.Coulomb`` - The reciprocal part of PPPM electrostatics.
+- ``md.force.ActiveOnManifold`` - Active forces constrained to manifolds.
+
+*Changed*
+
+- Improved documentation.
+- [breaking] Constructor arguments that set a default value per type or pair of types now have
+  default in their name (e.g. ``r_cut`` to ``default_r_cut`` for pair potentials and ``a`` to
+  ``default_a`` for HPMC integrators).
+- [developer] Support git worktree checkouts.
+- [breaking] Rename ``nrank`` to ``ranks_per_partition`` in ``Communicator``.
+- rowan is now an optional dependency when running unit tests.
+- ``Snapshot`` and ``Box`` methods that make in-place modifications return the object.
+
+*Fixed*
+
+- Bug where ``ThermdynamicQuantities.volume`` returned 0 in 2D simulations.
+- Update neighbor list exclusions after the number of particles changes.
+- Test failures with the CMake option ``BUILD_MD=off``.
+- ``write.Table`` can now display MD pressures.
+
+*Deprecated*
+
+- ``State.snapshot`` - use ``get_snapshot`` and ``set_snapshot``.
+- The ability to set boxes with the property ``State.box`` - use ``set_box``.
+
+*Removed*
+
+- [breaking] ``Simulation.write_debug_data``.
+- [breaking] ``shared_msg_file`` option to ``Device``. ``msg_file`` now has the same behavior as
+  ``shared_msg_file``.
+- [developers] C++ and Python implementations of ``constraint_ellipsoid``, from ``hoomd.md.update``
+  and ``sphere`` and ``oneD`` from ``hoomd.md.constrain``.
+- [developers] Doxygen configuration files.
+
+
+v3.0.0-beta.7 (2021-06-16)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``md.constrain.Rigid`` - Rigid body constraints.
+- ``dem_built``, ``hpmc_built``, ``md_built``, and ``mpcd_built`` to ``hoomd.version`` - flags that
+  indicate when optional submodules have been built.
+- ``GPU.compute_capability`` property.
+- [developers] pre-commit enforced style guidelines for the codebase.
+- [developers] Validation tests for MD Lennard-Jones simulations.
+- [developers] Unit tests for bond, angle, and dihedral potentials.
+
+*Changed*
+
+- Improved documentation on compiling HOOMD.
+- Operations raise a ``DataAccessError`` when accessing properties that are not available because
+  ``Simulation.run`` has not been called.
+- ``TypeConversionError`` is now in the ``hoomd.error`` package.
+- ``from_gsd_snapshot`` only accesses the GSD snapshot on MPI rank 0.
+
+*Fixed*
+
+- Some broken references in the documentation.
+- Missing documentation for ``md.pair.TWF``.
+- Inconsistent documentation in ``md.pair``.
+- Correctly identify GPUs by ID in ``GPU.devices``.
+- Don't initialize contexts on extra GPUs on MPI ranks.
+- Support 2D inputs in ``from_gsd_snapshot``.
+
+*Deprecated*
+
+- ``Snapshot.exists`` - use ``Snapshot.communicator.rank == 0`` instead.
+
+*Removed*
+
+- [developers] C++ implementations of ``rescale_temp`` and ``enforce2d``.
+- [developers] Unused methods of ``Integrator``.
+
+v3.0.0-beta.6 (2021-05-17)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
@@ -16,6 +108,8 @@ v3.0.0-beta.6 (not yet released)
 - Manifold constraints using RATTLE with ``md.methods.NVE``, ``md.methods.Langevin`` and
   ``md.methods.Brownian``
   - Supporting sphere, ellipsoid, plane, cylinder, gyroid, diamond, and primitive manifolds.
+- ``md.compute.HarmonicAveragedThermodynamicQuantities`` - More accurate thermodynamic quantities
+  for crystals
 
 *Changed*
 
@@ -274,6 +368,14 @@ functionality.
 
 v2.x
 ----
+
+v2.9.7 (2021-08-03)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support CUDA 11.5. A bug in CUDA 11.4 may result in the error
+  `__global__ function call is not configure` when running HOOMD.
 
 v2.9.6 (2021-03-16)
 ^^^^^^^^^^^^^^^^^^^

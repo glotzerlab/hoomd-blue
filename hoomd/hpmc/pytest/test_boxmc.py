@@ -10,8 +10,7 @@ import pytest
 import numpy as np
 
 valid_constructor_args = [
-    dict(trigger=hoomd.trigger.Periodic(10),
-         betaP=hoomd.variant.Constant(10)),
+    dict(trigger=hoomd.trigger.Periodic(10), betaP=hoomd.variant.Constant(10)),
     dict(trigger=hoomd.trigger.After(100),
          betaP=hoomd.variant.Ramp(1, 5, 0, 100)),
     dict(trigger=hoomd.trigger.Before(100),
@@ -185,7 +184,7 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     initial_box = sim.state.box
 
     sim.operations.updaters.append(boxmc)
-    mc = hoomd.hpmc.integrate.Sphere(d=0.05)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
@@ -219,7 +218,7 @@ def test_disk_compression(betaP, box_move, simulation_factory,
     initial_box = sim.state.box
 
     sim.operations.updaters.append(boxmc)
-    mc = hoomd.hpmc.integrate.Sphere(d=0.05)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
@@ -243,7 +242,6 @@ def test_disk_compression(betaP, box_move, simulation_factory,
 def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
                   counter_attrs):
     """Test that BoxMC counters count corectly."""
-
     boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(3))
     # check result when box object is unattached
     for v in counter_attrs.values():
@@ -254,7 +252,7 @@ def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
     sim = simulation_factory(snap)
 
     sim.operations.updaters.append(boxmc)
-    mc = hoomd.hpmc.integrate.Sphere(d=0.05)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 

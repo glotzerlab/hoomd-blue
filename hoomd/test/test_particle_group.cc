@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
@@ -10,20 +9,17 @@
     \ingroup unit_tests
 */
 
-
 #include <iostream>
 
-#include "hoomd/ParticleData.h"
 #include "hoomd/Initializers.h"
+#include "hoomd/ParticleData.h"
 #include "hoomd/ParticleGroup.h"
 
 using namespace std;
 
-
 #include "upp11_config.h"
 
 HOOMD_UP_MAIN();
-
 
 //! initializes the particle data used by the tests
 std::shared_ptr<SystemDefinition> create_sysdef()
@@ -34,60 +30,95 @@ std::shared_ptr<SystemDefinition> create_sysdef()
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // set the types
-    // currently, the position is only set on the first 3 particles, intended for use in the total and center of mass
-    // tests. Later, other particles will be added to test the new particle data selectors
-    {
-    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<int3> h_image(pdata->getImages(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::readwrite);
+    // currently, the position is only set on the first 3 particles, intended for use in the total
+    // and center of mass tests. Later, other particles will be added to test the new particle data
+    // selectors
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+        ArrayHandle<int3> h_image(pdata->getImages(),
+                                  access_location::host,
+                                  access_mode::readwrite);
+        ArrayHandle<unsigned int> h_body(pdata->getBodies(),
+                                         access_location::host,
+                                         access_mode::readwrite);
 
-    h_pos.data[0].w = __int_as_scalar(0);
-    h_pos.data[0].x = Scalar(0.0); h_pos.data[0].y = Scalar(0.0); h_pos.data[0].z = Scalar(0.0);
-    h_image.data[0].x = 0; h_image.data[0].y = 0; h_image.data[0].z = 0;
-    h_vel.data[0].w = Scalar(1.0); //mass
-    h_body.data[0] = 0;
+        h_pos.data[0].w = __int_as_scalar(0);
+        h_pos.data[0].x = Scalar(0.0);
+        h_pos.data[0].y = Scalar(0.0);
+        h_pos.data[0].z = Scalar(0.0);
+        h_image.data[0].x = 0;
+        h_image.data[0].y = 0;
+        h_image.data[0].z = 0;
+        h_vel.data[0].w = Scalar(1.0); // mass
+        h_body.data[0] = 0;
 
-    h_pos.data[1].w = __int_as_scalar(2);
-    h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = Scalar(2.0); h_pos.data[1].z = Scalar(3.0);
-    h_image.data[1].x = 1; h_image.data[1].y = -1; h_image.data[1].z = 2;
-    h_vel.data[1].w = Scalar(2.0);
-    h_body.data[1] = 0;
+        h_pos.data[1].w = __int_as_scalar(2);
+        h_pos.data[1].x = Scalar(1.0);
+        h_pos.data[1].y = Scalar(2.0);
+        h_pos.data[1].z = Scalar(3.0);
+        h_image.data[1].x = 1;
+        h_image.data[1].y = -1;
+        h_image.data[1].z = 2;
+        h_vel.data[1].w = Scalar(2.0);
+        h_body.data[1] = 0;
 
-    h_pos.data[2].w = __int_as_scalar(0);
-    h_pos.data[2].x = Scalar(-1.0); h_pos.data[2].y = Scalar(-2.0); h_pos.data[2].z = Scalar(-3.0);
-    h_image.data[2].x = 0; h_image.data[2].y = 0; h_image.data[2].z = 0;
-    h_vel.data[2].w = Scalar(5.0);
-    h_body.data[2] = 1;
+        h_pos.data[2].w = __int_as_scalar(0);
+        h_pos.data[2].x = Scalar(-1.0);
+        h_pos.data[2].y = Scalar(-2.0);
+        h_pos.data[2].z = Scalar(-3.0);
+        h_image.data[2].x = 0;
+        h_image.data[2].y = 0;
+        h_image.data[2].z = 0;
+        h_vel.data[2].w = Scalar(5.0);
+        h_body.data[2] = 1;
 
-    h_pos.data[3].w = __int_as_scalar(1);
-    h_pos.data[3].x = Scalar(-4.0); h_pos.data[3].y = Scalar(-4.0); h_pos.data[3].z = Scalar(-4.0);
-    h_body.data[3] = 1;
+        h_pos.data[3].w = __int_as_scalar(1);
+        h_pos.data[3].x = Scalar(-4.0);
+        h_pos.data[3].y = Scalar(-4.0);
+        h_pos.data[3].z = Scalar(-4.0);
+        h_body.data[3] = 1;
 
-    h_pos.data[4].w = __int_as_scalar(3);
-    h_pos.data[4].x = Scalar(-3.5); h_pos.data[4].y = Scalar(-4.5); h_pos.data[4].z = Scalar(-5.0);
+        h_pos.data[4].w = __int_as_scalar(3);
+        h_pos.data[4].x = Scalar(-3.5);
+        h_pos.data[4].y = Scalar(-4.5);
+        h_pos.data[4].z = Scalar(-5.0);
 
-    h_pos.data[5].w = __int_as_scalar(0);
-    h_pos.data[5].x = Scalar(-5.0); h_pos.data[5].y = Scalar(-4.5); h_pos.data[5].z = Scalar(-3.5);
+        h_pos.data[5].w = __int_as_scalar(0);
+        h_pos.data[5].x = Scalar(-5.0);
+        h_pos.data[5].y = Scalar(-4.5);
+        h_pos.data[5].z = Scalar(-3.5);
 
-    h_pos.data[6].w = __int_as_scalar(1);
-    h_pos.data[6].x = Scalar(4.0); h_pos.data[6].y = Scalar(4.0); h_pos.data[6].z = Scalar(4.0);
+        h_pos.data[6].w = __int_as_scalar(1);
+        h_pos.data[6].x = Scalar(4.0);
+        h_pos.data[6].y = Scalar(4.0);
+        h_pos.data[6].z = Scalar(4.0);
 
-    h_pos.data[7].w = __int_as_scalar(2);
-    h_pos.data[7].x = Scalar(3.5); h_pos.data[7].y = Scalar(4.5); h_pos.data[7].z = Scalar(-5.0);
+        h_pos.data[7].w = __int_as_scalar(2);
+        h_pos.data[7].x = Scalar(3.5);
+        h_pos.data[7].y = Scalar(4.5);
+        h_pos.data[7].z = Scalar(-5.0);
 
-    h_pos.data[8].w = __int_as_scalar(0);
-    h_pos.data[8].x = Scalar(5.0); h_pos.data[8].y = Scalar(4.5); h_pos.data[8].z = Scalar(3.5);
+        h_pos.data[8].w = __int_as_scalar(0);
+        h_pos.data[8].x = Scalar(5.0);
+        h_pos.data[8].y = Scalar(4.5);
+        h_pos.data[8].z = Scalar(3.5);
 
-    h_pos.data[9].w = __int_as_scalar(3);
-    h_pos.data[9].x = Scalar(5.0); h_pos.data[9].y = Scalar(5.0); h_pos.data[9].z = Scalar(5.0);
-    }
+        h_pos.data[9].w = __int_as_scalar(3);
+        h_pos.data[9].x = Scalar(5.0);
+        h_pos.data[9].y = Scalar(5.0);
+        h_pos.data[9].z = Scalar(5.0);
+        }
 
     return sysdef;
     }
 
 //! Checks that ParticleGroup can successfully initialize
-UP_TEST( ParticleGroup_basic_test )
+UP_TEST(ParticleGroup_basic_test)
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
@@ -102,7 +133,7 @@ UP_TEST( ParticleGroup_basic_test )
     }
 
 //! Test copy and equals operators
-UP_TEST( ParticleGroup_copy_test )
+UP_TEST(ParticleGroup_copy_test)
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
@@ -147,12 +178,13 @@ UP_TEST( ParticleGroup_copy_test )
     }
 
 //! Checks that ParticleGroup can successfully handle particle resorts
-UP_TEST( ParticleGroup_sort_test )
+UP_TEST(ParticleGroup_sort_test)
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    std::shared_ptr<ParticleFilter> selector04(new ParticleFilterTags(std::vector<unsigned int>({0,1,2,3,4})));
+    std::shared_ptr<ParticleFilter> selector04(
+        new ParticleFilterTags(std::vector<unsigned int>({0, 1, 2, 3, 4})));
     ParticleGroup tags04(sysdef, selector04);
     // verify the initial set
     CHECK_EQUAL_UINT(tags04.getNumMembers(), 5);
@@ -172,33 +204,37 @@ UP_TEST( ParticleGroup_sort_test )
         }
 
     // resort the particles
-    {
-    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::readwrite);
+        {
+        ArrayHandle<unsigned int> h_tag(pdata->getTags(),
+                                        access_location::host,
+                                        access_mode::readwrite);
+        ArrayHandle<unsigned int> h_rtag(pdata->getRTags(),
+                                         access_location::host,
+                                         access_mode::readwrite);
 
-    // set the types
-    h_tag.data[0] = 9;
-    h_tag.data[1] = 8;
-    h_tag.data[2] = 7;
-    h_tag.data[3] = 6;
-    h_tag.data[4] = 5;
-    h_tag.data[5] = 4;
-    h_tag.data[6] = 3;
-    h_tag.data[7] = 2;
-    h_tag.data[8] = 1;
-    h_tag.data[9] = 0;
+        // set the types
+        h_tag.data[0] = 9;
+        h_tag.data[1] = 8;
+        h_tag.data[2] = 7;
+        h_tag.data[3] = 6;
+        h_tag.data[4] = 5;
+        h_tag.data[5] = 4;
+        h_tag.data[6] = 3;
+        h_tag.data[7] = 2;
+        h_tag.data[8] = 1;
+        h_tag.data[9] = 0;
 
-    h_rtag.data[0] = 9;
-    h_rtag.data[1] = 8;
-    h_rtag.data[2] = 7;
-    h_rtag.data[3] = 6;
-    h_rtag.data[4] = 5;
-    h_rtag.data[5] = 4;
-    h_rtag.data[6] = 3;
-    h_rtag.data[7] = 2;
-    h_rtag.data[8] = 1;
-    h_rtag.data[9] = 0;
-    }
+        h_rtag.data[0] = 9;
+        h_rtag.data[1] = 8;
+        h_rtag.data[2] = 7;
+        h_rtag.data[3] = 6;
+        h_rtag.data[4] = 5;
+        h_rtag.data[5] = 4;
+        h_rtag.data[6] = 3;
+        h_rtag.data[7] = 2;
+        h_rtag.data[8] = 1;
+        h_rtag.data[9] = 0;
+        }
 
     pdata->notifyParticleSort();
 
@@ -211,20 +247,22 @@ UP_TEST( ParticleGroup_sort_test )
         // indices are in sorted order (tags 0-4 are particles 9-5)
         CHECK_EQUAL_UINT(tags04.getMemberIndex(i), i + 5);
         }
-    {
-    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::readwrite);
-    for (unsigned int i = 0; i < pdata->getN(); i++)
         {
-        if (h_tag.data[i] <= 4)
-            UP_ASSERT(tags04.isMember(i));
-        else
-            UP_ASSERT(!tags04.isMember(i));
+        ArrayHandle<unsigned int> h_tag(pdata->getTags(),
+                                        access_location::host,
+                                        access_mode::readwrite);
+        for (unsigned int i = 0; i < pdata->getN(); i++)
+            {
+            if (h_tag.data[i] <= 4)
+                UP_ASSERT(tags04.isMember(i));
+            else
+                UP_ASSERT(!tags04.isMember(i));
+            }
         }
-    }
     }
 
 //! Checks that ParticleGroup can initialize by particle type
-UP_TEST( ParticleGroup_type_test )
+UP_TEST(ParticleGroup_type_test)
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
@@ -274,7 +312,7 @@ UP_TEST( ParticleGroup_type_test )
     }
 
 //! Checks that ParticleGroup can initialize to the empty set
-UP_TEST( ParticleGroup_empty_test )
+UP_TEST(ParticleGroup_empty_test)
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
@@ -287,7 +325,7 @@ UP_TEST( ParticleGroup_empty_test )
     }
 
 //! Checks that ParticleGroup can initialize by particle body
-UP_TEST( ParticleGroup_body_test )
+UP_TEST(ParticleGroup_body_test)
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
@@ -314,13 +352,14 @@ UP_TEST( ParticleGroup_body_test )
     }
 
 //! Checks that ParticleGroup can initialize by particle tag
-UP_TEST( ParticleGroup_tag_test )
+UP_TEST(ParticleGroup_tag_test)
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group of tags 0-4 and check it
-    std::shared_ptr<ParticleFilter> selector04(new ParticleFilterTags(std::vector<unsigned int>({0,1,2,3,4})));
+    std::shared_ptr<ParticleFilter> selector04(
+        new ParticleFilterTags(std::vector<unsigned int>({0, 1, 2, 3, 4})));
     ParticleGroup tags05(sysdef, selector04);
     CHECK_EQUAL_UINT(tags05.getNumMembers(), 5);
     CHECK_EQUAL_UINT(tags05.getIndexArray().getNumElements(), 5);
@@ -331,7 +370,8 @@ UP_TEST( ParticleGroup_tag_test )
     CHECK_EQUAL_UINT(tags05.getMemberTag(4), 4);
 
     // create a group of tags 5-9 and check it
-    std::shared_ptr<ParticleFilter> selector59(new ParticleFilterTags(std::vector<unsigned int>({5,6,7,8,9})));
+    std::shared_ptr<ParticleFilter> selector59(
+        new ParticleFilterTags(std::vector<unsigned int>({5, 6, 7, 8, 9})));
     ParticleGroup tags59(sysdef, selector59);
     CHECK_EQUAL_UINT(tags59.getNumMembers(), 5);
     CHECK_EQUAL_UINT(tags59.getIndexArray().getNumElements(), 5);
@@ -343,22 +383,22 @@ UP_TEST( ParticleGroup_tag_test )
     }
 
 //! Checks that ParticleGroup can initialize by cuboid
-UP_TEST( ParticleGroup_cuboid_test )
+UP_TEST(ParticleGroup_cuboid_test)
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group containing only particle 0
-    std::shared_ptr<ParticleFilter> selector0(new ParticleFilterCuboid(make_scalar3(-0.5, -0.5, -0.5),
-                                                                           make_scalar3( 0.5,  0.5,  0.5)));
+    std::shared_ptr<ParticleFilter> selector0(
+        new ParticleFilterCuboid(make_scalar3(-0.5, -0.5, -0.5), make_scalar3(0.5, 0.5, 0.5)));
     ParticleGroup tags0(sysdef, selector0);
     CHECK_EQUAL_UINT(tags0.getNumMembers(), 1);
     CHECK_EQUAL_UINT(tags0.getIndexArray().getNumElements(), 1);
     CHECK_EQUAL_UINT(tags0.getMemberTag(0), 0);
 
     // create a group containing particles 0 and 1
-    std::shared_ptr<ParticleFilter> selector1(new ParticleFilterCuboid(make_scalar3(-0.5, -0.5, -0.5),
-                                                                           make_scalar3( 1.5,  2.5,  3.5)));
+    std::shared_ptr<ParticleFilter> selector1(
+        new ParticleFilterCuboid(make_scalar3(-0.5, -0.5, -0.5), make_scalar3(1.5, 2.5, 3.5)));
     ParticleGroup tags1(sysdef, selector1);
     CHECK_EQUAL_UINT(tags1.getNumMembers(), 2);
     CHECK_EQUAL_UINT(tags1.getIndexArray().getNumElements(), 2);
@@ -366,8 +406,8 @@ UP_TEST( ParticleGroup_cuboid_test )
     CHECK_EQUAL_UINT(tags1.getMemberTag(1), 1);
 
     // create a group containing particles 0, 1 and 2
-    std::shared_ptr<ParticleFilter> selector2(new ParticleFilterCuboid(make_scalar3(-1.5, -2.5, -3.5),
-                                                                           make_scalar3( 1.5,  2.5,  3.5)));
+    std::shared_ptr<ParticleFilter> selector2(
+        new ParticleFilterCuboid(make_scalar3(-1.5, -2.5, -3.5), make_scalar3(1.5, 2.5, 3.5)));
     ParticleGroup tags2(sysdef, selector2);
     CHECK_EQUAL_UINT(tags2.getNumMembers(), 3);
     CHECK_EQUAL_UINT(tags2.getIndexArray().getNumElements(), 3);
@@ -377,13 +417,14 @@ UP_TEST( ParticleGroup_cuboid_test )
     }
 
 //! Checks that the ParticleGroup boolean operation work correctly
-UP_TEST( ParticleGroup_boolean_tests)
+UP_TEST(ParticleGroup_boolean_tests)
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group of tags 0-4
-    std::shared_ptr<ParticleFilter> selector04(new ParticleFilterTags(std::vector<unsigned int>({0,1,2,3,4})));
+    std::shared_ptr<ParticleFilter> selector04(
+        new ParticleFilterTags(std::vector<unsigned int>({0, 1, 2, 3, 4})));
     std::shared_ptr<ParticleGroup> tags04(new ParticleGroup(sysdef, selector04));
 
     // create a group of type 0
@@ -403,7 +444,8 @@ UP_TEST( ParticleGroup_boolean_tests)
     CHECK_EQUAL_UINT(union_group->getMemberTag(6), 8);
 
     // make a intersection group and test it
-    std::shared_ptr<ParticleGroup> intersection_group = ParticleGroup::groupIntersection(type0, tags04);
+    std::shared_ptr<ParticleGroup> intersection_group
+        = ParticleGroup::groupIntersection(type0, tags04);
     CHECK_EQUAL_UINT(intersection_group->getNumMembers(), 2);
     CHECK_EQUAL_UINT(intersection_group->getIndexArray().getNumElements(), 2);
     CHECK_EQUAL_UINT(intersection_group->getMemberTag(0), 0);
@@ -411,41 +453,53 @@ UP_TEST( ParticleGroup_boolean_tests)
     }
 
 //! Checks that the ParticleGroup::getTotalMass works correctly
-UP_TEST( ParticleGroup_total_mass_tests)
+UP_TEST(ParticleGroup_total_mass_tests)
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    ParticleGroup group1(sysdef, std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0}))));
+    ParticleGroup group1(
+        sysdef,
+        std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0}))));
     MY_CHECK_CLOSE(group1.getTotalMass(), 1.0, tol);
 
-    ParticleGroup group2(sysdef, std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0, 1}))));
+    ParticleGroup group2(
+        sysdef,
+        std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0, 1}))));
     MY_CHECK_CLOSE(group2.getTotalMass(), 3.0, tol);
 
-    ParticleGroup group3(sysdef, std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0,1,2}))));
+    ParticleGroup group3(sysdef,
+                         std::shared_ptr<ParticleFilter>(
+                             new ParticleFilterTags(std::vector<unsigned int>({0, 1, 2}))));
     MY_CHECK_CLOSE(group3.getTotalMass(), 8.0, tol);
     }
 
 //! Checks that the ParticleGroup::getCenterOfMass works correctly
-UP_TEST( ParticleGroup_center_of_mass_tests)
+UP_TEST(ParticleGroup_center_of_mass_tests)
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     Scalar3 com;
-    ParticleGroup group1(sysdef, std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0}))));
+    ParticleGroup group1(
+        sysdef,
+        std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0}))));
     com = group1.getCenterOfMass();
     MY_CHECK_SMALL(com.x, tol_small);
     MY_CHECK_SMALL(com.y, tol_small);
     MY_CHECK_SMALL(com.z, tol_small);
 
-    ParticleGroup group2(sysdef, std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0,1}))));
+    ParticleGroup group2(
+        sysdef,
+        std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0, 1}))));
     com = group2.getCenterOfMass();
     MY_CHECK_CLOSE(com.x, 7.3333333333, tol);
     MY_CHECK_CLOSE(com.y, -5.3333333333, tol);
     MY_CHECK_CLOSE(com.z, 15.333333333, tol);
 
-    ParticleGroup group3(sysdef, std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0,1,2}))));
+    ParticleGroup group3(sysdef,
+                         std::shared_ptr<ParticleFilter>(
+                             new ParticleFilterTags(std::vector<unsigned int>({0, 1, 2}))));
     com = group3.getCenterOfMass();
     MY_CHECK_CLOSE(com.x, 2.125, tol);
     MY_CHECK_CLOSE(com.y, -3.25, tol);

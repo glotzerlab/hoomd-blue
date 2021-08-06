@@ -84,31 +84,31 @@ env:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v2.2.3
+      uses: actions/upload-artifact@v2.2.4
       with:
-        name: build-${{ join(matrix.config, '_') }}
+        name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v2.2.3
+      uses: actions/upload-artifact@v2.2.4
       with:
-        name: install-${{ join(matrix.config, '_') }}
+        name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
         retention-days: 7
 <% endset %>
 <% set download_build_steps %>
     - name: Download build
-      uses: actions/download-artifact@v2.0.9
+      uses: actions/download-artifact@v2.0.10
       with:
-        name: build-${{ join(matrix.config, '_') }}
+        name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
       run: << tar_command >> -xvf build.tar
 <% endset %>
 <% set download_install_steps %>
     - name: Download install
-      uses: actions/download-artifact@v2.0.9
+      uses: actions/download-artifact@v2.0.10
       with:
-        name: install-${{ join(matrix.config, '_') }}
+        name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
       run: << tar_command >> -xvf install.tar
 <% endset %>
@@ -121,7 +121,7 @@ env:
       run: << invoke_pytest_serial >> << pytest_options >>
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: << invoke_pytest_mpi >> << pytest_options >> || cat pytest.out.1
+      run: << invoke_pytest_mpi >> << pytest_options >> || (( cat pytest.out.1 && exit 1 ))
     - name: Run pytest (serial without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') }}
       run: << invoke_pytest_serial >> << pytest_options >> -m cupy_optional
@@ -129,7 +129,7 @@ env:
         _HOOMD_DISALLOW_CUPY_: 1
     - name: Run pytest (mpi without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') && contains(matrix.config, 'mpi') }}
-      run: << invoke_pytest_mpi >> << pytest_options >> -m cupy_optional || cat pytest.out.1
+      run: << invoke_pytest_mpi >> << pytest_options >> -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
       env:
         _HOOMD_DISALLOW_CUPY_: 1
 <% endset %>
@@ -149,7 +149,12 @@ env:
       run: << invoke_pytest_serial >> << pytest_options >> << pytest_validate_options >>
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: << invoke_pytest_mpi >> << pytest_options >> << pytest_validate_options >> || cat pytest.out.1
+      run: << invoke_pytest_mpi >> << pytest_options >> << pytest_validate_options >> || (( cat pytest.out.1 && exit 1 ))
+<% endset %>
+<% set prepare_steps %>
+    steps:
+    - name: Clean workspace
+      run: rm -rf ./*
 <% endset %>
 <% block jobs %>
 # Use multiple jobs to reduce the amount of time spent on GPU runners. Use GitHub Hosted runners for
@@ -163,47 +168,49 @@ env:
 jobs:
   build:
 << job(name='Build', use_gpu_runners=False, configurations=unit_test_configurations) >>
-    steps:
+    env:
+      CXXFLAGS: '-Werror'
+<< prepare_steps >>
 << build_steps >>
 << upload_steps >>
 
   pytest:
 << job(name='Run pytest', use_gpu_runners=True, configurations=unit_test_configurations, needs='build') >>
-    steps:
+<< prepare_steps >>
 << download_install_steps >>
 << pytest_steps >>
 
   ctest:
 << job(name='Run ctest', use_gpu_runners=True, configurations=unit_test_configurations, needs='build') >>
-    steps:
+<< prepare_steps >>
 << download_build_steps >>
 << ctest_steps >>
 
   validate:
 << job(name='Validate', use_gpu_runners=True, configurations=validate_configurations, needs='build') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
-    steps:
+<< prepare_steps >>
 << download_install_steps >>
 << pytest_validate_steps >>
 
   build_release:
 << job(name='Build', use_gpu_runners=False, configurations=release_test_configurations) >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
-    steps:
+<< prepare_steps >>
 << build_steps >>
 << upload_steps >>
 
   pytest_release:
 << job(name='Run pytest', use_gpu_runners=True, configurations=release_test_configurations, needs='build_release') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
-    steps:
+<< prepare_steps >>
 << download_install_steps >>
 << pytest_steps >>
 
   ctest_release:
 << job(name='Run ctest', use_gpu_runners=True, configurations=release_test_configurations, needs='build_release') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
-    steps:
+<< prepare_steps >>
 << download_build_steps >>
 << ctest_steps >>
 
