@@ -152,7 +152,13 @@ template<unsigned int ndim> class EvaluatorPairALJ
         /*! \param ptr Pointer to load data to (will be incremented)
          *  \param available_bytes Size of remaining shared memory allocation
          */
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const { }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
+            {
+            }
+
+        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
+            {
+            }
 
 #ifndef __HIPCC__
         //! Shape constructor

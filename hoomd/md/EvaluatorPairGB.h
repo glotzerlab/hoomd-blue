@@ -105,7 +105,13 @@ class EvaluatorPairGB
         /*! \param ptr Pointer to load data to (will be incremented)
             \param available_bytes Size of remaining shared memory allocation
         */
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const { }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
+            {
+            }
+
+        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
+            {
+            }
 
         HOSTDEVICE shape_type() { }
 
@@ -142,7 +148,12 @@ class EvaluatorPairGB
         {
         }
 
-    DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const
+    DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
+        {
+        // No-op for this struct since it contains no arrays
+        }
+
+    DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
         {
         // No-op for this struct since it contains no arrays
         }
