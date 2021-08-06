@@ -79,9 +79,9 @@ class EvaluatorPairDipole
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     struct shape_type
@@ -92,13 +92,9 @@ class EvaluatorPairDipole
         /*! \param ptr Pointer to load data to (will be incremented)
             \param available_bytes Size of remaining shared memory allocation
         */
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
-            {
-            }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
-            {
-            }
+        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
         HOSTDEVICE shape_type() : mu {0, 0, 0} { }
 

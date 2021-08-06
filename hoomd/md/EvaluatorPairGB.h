@@ -93,9 +93,9 @@ class EvaluatorPairGB
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     // Nullary structure required by AnisoPotentialPair.
@@ -105,13 +105,9 @@ class EvaluatorPairGB
         /*! \param ptr Pointer to load data to (will be incremented)
             \param available_bytes Size of remaining shared memory allocation
         */
-        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
-            {
-            }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
-            {
-            }
+        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
         HOSTDEVICE shape_type() { }
 
