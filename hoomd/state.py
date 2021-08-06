@@ -38,13 +38,13 @@ def _create_domain_decomposition(device, box, domain_decomposition):
                 initialize_grid = True
             elif isinstance(v, collections.abc.Sequence):
                 if not math.isclose(sum(v), 1.0, rel_tol=1e-6):
-                    raise ValueError("sum of rank fractions must be 1.0")
+                    raise ValueError("Rank fractions must sum to 1.0.")
                 initialize_fractions = True
             else:
-                raise TypeError("invalid type in domain_decomposition")
+                raise TypeError("Invalid type in domain_decomposition.")
 
     if initialize_grid and initialize_fractions:
-        raise ValueError("domain_decomposition mixes ints and sequences")
+        raise ValueError("Domain decomposition mixes integers and sequences.")
 
     if not hoomd.version.mpi_enabled:
         return None
@@ -652,18 +652,18 @@ class State:
 
     @property
     def domain_decomposition_split_fractions(self):
-        """tuple(list[int], list[int], list[int]): Box fractions of the domain \
-        split planes in the x, y, and z directions."""
+        """tuple(list[float], list[float], list[float]): Box fractions of the \
+        domain split planes in the x, y, and z directions."""
         particle_data = self._cpp_sys_def.getParticleData()
 
         if (not hoomd.version.mpi_enabled
                 or particle_data.getDomainDecomposition() is None):
             return ([], [], [])
-        else:
-            return tuple([
-                list(particle_data.getDomainDecomposition()
-                     .getCumulativeFractions(dir))[1:-1] for dir in range(3)
-            ])
+
+        return tuple([
+            list(particle_data.getDomainDecomposition().getCumulativeFractions(
+                dir))[1:-1] for dir in range(3)
+        ])
 
     @property
     def domain_decomposition(self):
@@ -674,8 +674,8 @@ class State:
         if (not hoomd.version.mpi_enabled
                 or particle_data.getDomainDecomposition() is None):
             return (1, 1, 1)
-        else:
-            return tuple([
-                len(particle_data.getDomainDecomposition()
-                    .getCumulativeFractions(dir)) - 1 for dir in range(3)
-            ])
+
+        return tuple([
+            len(particle_data.getDomainDecomposition().getCumulativeFractions(
+                dir)) - 1 for dir in range(3)
+        ])

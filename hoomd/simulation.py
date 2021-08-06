@@ -166,17 +166,19 @@ class Simulation(metaclass=Loggable):
             domain_decomposition (tuple): Choose how to distribute the state
                 across MPI ranks with domain decomposition. Provide a tuple
                 of 3 integers indicating the number of evenly spaced domains in
-                the x, y, and z directions. Provide a tuple of 3 lists of floats
-                to set the fraction of the simulation box to include in each
-                domain. The sum of each list of floats must be 1.0.
+                the x, y, and z directions (e.g. ``(8,4,2)``). Provide a tuple
+                of 3 lists of floats to set the fraction of the simulation box
+                to include in each domain. The sum of each list of floats must
+                be 1.0 (e.g. ``([0.25, 0.75], [0.2, 0.8], [1.0])``).
 
         Note:
             Set any or all of the ``domain_decomposition`` tuple elements to
             `None` and `create_state_from_gsd` will select a value that
-            minimizes the surface area between the domains. The domains are
-            spaced evenly along each automatically selected direction. The
-            default value of ``(None, None, None)`` will automatically select
-            the number of domains in all directions.
+            minimizes the surface area between the domains (e.g.
+            ``(2,None,None)``). The domains are spaced evenly along each
+            automatically selected direction. The default value of ``(None,
+            None, None)`` will automatically select the number of domains in all
+            directions.
         """
         if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
@@ -207,9 +209,10 @@ class Simulation(metaclass=Loggable):
             domain_decomposition (tuple): Choose how to distribute the state
                 across MPI ranks with domain decomposition. Provide a tuple
                 of 3 integers indicating the number of evenly spaced domains in
-                the x, y, and z directions. Provide a tuple of 3 lists of floats
-                to set the fraction of the simulation box to include in each
-                domain. The sum of each list of floats must be 1.0.
+                the x, y, and z directions (e.g. ``(8,4,2)``). Provide a tuple
+                of 3 lists of floats to set the fraction of the simulation box
+                to include in each domain. The sum of each list of floats must
+                be 1.0 (e.g. ``([0.25, 0.75], [0.2, 0.8], [1.0])``).
 
         When `timestep` is `None` before calling, `create_state_from_snapshot`
         sets `timestep` to 0.
@@ -217,10 +220,11 @@ class Simulation(metaclass=Loggable):
         Note:
             Set any or all of the ``domain_decomposition`` tuple elements to
             `None` and `create_state_from_gsd` will select a value that
-            minimizes the surface area between the domains. The domains are
-            spaced evenly along each automatically selected direction. The
-            default value of ``(None, None, None)`` will automatically select
-            the number of domains in all directions.
+            minimizes the surface area between the domains (e.g.
+            ``(2,None,None)``). The domains are spaced evenly along each
+            automatically selected direction. The default value of ``(None,
+            None, None)`` will automatically select the number of domains in all
+            directions.
 
         See Also:
             `State.get_snapshot`

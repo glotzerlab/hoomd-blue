@@ -63,7 +63,7 @@ def simulation_factory(device):
             if isinstance(tuner, hoomd.tune.ParticleSorter):
                 tuner.grid = 8
 
-        if (snapshot is not None):
+        if snapshot is not None:
             if domain_decomposition is None:
                 sim.create_state_from_snapshot(snapshot)
             else:
