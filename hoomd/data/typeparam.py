@@ -11,8 +11,8 @@ from hoomd.data.parameterdicts import AttachedTypeParameterDict
 class TypeParameter(MutableMapping):
     """Implement a type based mutable mapping.
 
-    *Implements the* `collections.abc.MutableMapping` *interface*
-    *(*``__delitem__`` *is disallowed).*
+    *Implements the* `collections.abc.MutableMapping` *interface
+    (* ``__delitem__`` *is disallowed).*
 
     `TypeParameter` instances extend the base Python mapping interface with
     smart defaults, value/key validation/processing, and advanced indexing. The
