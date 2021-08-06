@@ -16,7 +16,7 @@ class RemoveDrift(Updater):
 
     Args:
         reference_positions ((*N_particles*, 3) `numpy.ndarray` of
-            ``numpy.float64``): the reference positions of the
+            `float`): the reference positions of the
             lattice :math:`[\mathrm{length}]`.
         trigger (`hoomd.trigger.Trigger`): Select the timesteps to remove drift.
 
