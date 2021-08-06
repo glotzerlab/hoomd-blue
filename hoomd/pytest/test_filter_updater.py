@@ -57,10 +57,19 @@ def test_attaching(simulation, filter_updater):
     assert filter_updater._attached
 
 
-def assert_group_match(filter_, state):
-    filter_tags = filter_(state)
-    group_tags = state._get_group(filter_).member_tags
-    assert set(filter_tags) == set(group_tags)
+def assert_group_match(filter_, state, mpi=False):
+    filter_tags = set(filter_(state))
+    group_tags = set(state._get_group(filter_).member_tags)
+    # On MPI simulations, the group tags won't exactly match since they include
+    # particles from every rank, so two checks are necessary. One that no
+    # particles in the filters tags are not in the groups tags (below), and that
+    # all local tags in group tags are in filter tags (2nd check).
+    assert filter_tags - group_tags == set()
+    if not mpi:
+        return
+    NOT_LOCAL = 4294967295
+    with state.cpu_local_snapshot as snapshot:
+        np.all(snapshot.particles.rtag[group_tags - filter_tags] == NOT_LOCAL)
 
 
 def test_updating(simulation, filter_updater, filter_list):
