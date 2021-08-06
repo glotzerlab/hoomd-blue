@@ -769,7 +769,6 @@ class NVE(MethodRATTLE):
         tolerance (float): Defines the tolerated error particles are allowed to
             deviate from the manifold in terms of the implicit function.
             Defaults to 1e-6.
-
     """
 
     def __init__(self,

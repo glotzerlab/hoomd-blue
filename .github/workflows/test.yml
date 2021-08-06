@@ -50,12 +50,12 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ubuntu-latest
     container:
-      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2021.07-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
         - {config: [clang11_py39, mpi, tbb, jit], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc11_py39], runner: ubuntu-latest, docker_options: '' }
         - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
@@ -100,13 +100,13 @@ jobs:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v2.2.3
+      uses: actions/upload-artifact@v2.2.4
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v2.2.3
+      uses: actions/upload-artifact@v2.2.4
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
@@ -118,13 +118,13 @@ jobs:
     needs: build
     runs-on: ${{ matrix.runner }}
     container:
-      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2021.07-${{ matrix.config[0] }}
       options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
         - {config: [clang11_py39, mpi, tbb, jit], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc11_py39], runner: ubuntu-latest, docker_options: '' }
         - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
@@ -133,7 +133,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Download install
-      uses: actions/download-artifact@v2.0.9
+      uses: actions/download-artifact@v2.0.10
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -161,13 +161,13 @@ jobs:
     needs: build
     runs-on: ${{ matrix.runner }}
     container:
-      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2021.07-${{ matrix.config[0] }}
       options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
         - {config: [clang11_py39, mpi, tbb, jit], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc11_py39], runner: ubuntu-latest, docker_options: '' }
         - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
@@ -176,7 +176,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Download build
-      uses: actions/download-artifact@v2.0.9
+      uses: actions/download-artifact@v2.0.10
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
@@ -197,13 +197,13 @@ jobs:
     needs: build
     runs-on: ${{ matrix.runner }}
     container:
-      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2021.07-${{ matrix.config[0] }}
       options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
         - {config: [clang11_py39, mpi, tbb, jit], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc11_py39], runner: ubuntu-latest, docker_options: '' }
         - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
@@ -213,7 +213,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Download install
-      uses: actions/download-artifact@v2.0.9
+      uses: actions/download-artifact@v2.0.10
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -231,10 +231,11 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ubuntu-latest
     container:
-      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2021.07-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
+        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
         - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [clang10_py38, jit], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
@@ -286,13 +287,13 @@ jobs:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v2.2.3
+      uses: actions/upload-artifact@v2.2.4
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v2.2.3
+      uses: actions/upload-artifact@v2.2.4
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
@@ -304,11 +305,12 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.runner }}
     container:
-      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2021.07-${{ matrix.config[0] }}
       options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
+        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
         - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [clang10_py38, jit], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
@@ -326,7 +328,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Download install
-      uses: actions/download-artifact@v2.0.9
+      uses: actions/download-artifact@v2.0.10
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -354,11 +356,12 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.runner }}
     container:
-      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2021.07-${{ matrix.config[0] }}
       options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
+        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
         - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [clang10_py38, jit], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
@@ -376,7 +379,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Download build
-      uses: actions/download-artifact@v2.0.9
+      uses: actions/download-artifact@v2.0.10
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build

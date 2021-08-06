@@ -62,9 +62,8 @@ void Integrator::removeHalfStepHook()
  */
 void Integrator::setDeltaT(Scalar deltaT)
     {
-    if (m_deltaT <= 0.0)
-        m_exec_conf->msg->warning()
-            << "integrate.*: A timestep of less than 0.0 was specified" << endl;
+    if (m_deltaT < 0.0)
+        throw std::domain_error("delta_t must be positive");
 
     for (auto& force : m_forces)
         {
@@ -883,6 +882,17 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
 void Integrator::update(uint64_t timestep)
     {
     Updater::update(timestep);
+
+    // ensure that the force computes know the current step size
+    for (auto& force : m_forces)
+        {
+        force->setDeltaT(m_deltaT);
+        }
+
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        constraint_force->setDeltaT(m_deltaT);
+        }
     }
 
 /** prepRun() is to be called at the very beginning of each run, before any analyzers are called,

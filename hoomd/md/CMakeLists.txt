@@ -6,10 +6,7 @@ set(_md_sources module-md.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
-                   ConstraintEllipsoid.cc
-                   ConstraintSphere.cc
                    CosineSqAngleForceCompute.cc
-                   OneDConstraint.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
@@ -47,6 +44,9 @@ set(_md_sources module-md.cc
 
 set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceCompute.h
+                ActiveForceConstraintCompute.h
+                ActiveForceConstraintComputeGPU.h
+		ActiveForceConstraintComputeGPU.cuh
                 AllAnisoPairPotentials.h
                 AllBondPotentials.h
                 AllExternalPotentials.h
@@ -68,19 +68,13 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMA.h
                 ComputeThermoTypes.h
                 ComputeThermoHMATypes.h
-                ConstraintEllipsoidGPU.h
-                ConstraintEllipsoid.h
-                ConstraintSphereGPU.h
-                ConstraintSphere.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
+                EvaluatorBondTether.h
                 EvaluatorSpecialPairLJ.h
                 EvaluatorSpecialPairCoulomb.h
-                EvaluatorConstraintEllipsoid.h
-                EvaluatorConstraint.h
-                EvaluatorConstraintSphere.h
                 EvaluatorExternalElectricField.h
                 EvaluatorExternalPeriodic.h
 		EvaluatorPairALJ.h
@@ -199,9 +193,6 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            CommunicatorGridGPU.cc
                            ComputeThermoGPU.cc
                            ComputeThermoHMAGPU.cc
-                           ConstraintEllipsoidGPU.cc
-                           ConstraintSphereGPU.cc
-                           OneDConstraintGPU.cc
                            FIREEnergyMinimizerGPU.cc
                            ForceCompositeGPU.cc
                            ForceDistanceConstraintGPU.cc
@@ -258,9 +249,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       ZBLDriverPotentialPairGPU.cu
                       BondTablePotentialGPU.cu
                       CommunicatorGridGPU.cu
-                      ConstraintEllipsoidGPU.cu
-                      ConstraintSphereGPU.cu
-                      OneDConstraintGPU.cu
                       DriverTersoffGPU.cu
                       FIREEnergyMinimizerGPU.cu
                       ForceCompositeGPU.cu
@@ -281,20 +269,27 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepBDGPU.cu
                       TwoStepBerendsenGPU.cu
                       TwoStepLangevinGPU.cu
-		      TwoStepRATTLELangevinGPU.cu
+                      TwoStepRATTLELangevinGPU.cu
                       TwoStepNPTMTKGPU.cu
                       TwoStepNVEGPU.cu
-		      TwoStepRATTLENVEGPU.cu
+                      TwoStepRATTLENVEGPU.cu
                       TwoStepNVTMTKGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
-		      all_kernels_diamond_manifold.cu
-		      all_kernels_ellipsoid_manifold.cu
-		      all_kernels_gyroid_manifold.cu
-		      all_kernels_primitive_manifold.cu
-		      all_kernels_sphere_manifold.cu
-		      all_kernels_xyplane_manifold.cu
-		      all_kernels_zcylinder_manifold.cu
+                      all_kernels_diamond_manifold.cu
+                      all_kernels_ellipsoid_manifold.cu
+                      all_kernels_gyroid_manifold.cu
+                      all_kernels_primitive_manifold.cu
+                      all_kernels_sphere_manifold.cu
+                      all_kernels_xyplane_manifold.cu
+                      all_kernels_zcylinder_manifold.cu
+                      all_kernels_active_diamond_manifold.cu
+                      all_kernels_active_ellipsoid_manifold.cu
+                      all_kernels_active_gyroid_manifold.cu
+                      all_kernels_active_primitive_manifold.cu
+                      all_kernels_active_sphere_manifold.cu
+                      all_kernels_active_xyplane_manifold.cu
+                      all_kernels_active_zcylinder_manifold.cu
                       )
 
 if (ENABLE_HIP)
@@ -334,7 +329,6 @@ install(TARGETS _md EXPORT HOOMDTargets
 set(files __init__.py
           angle.py
           bond.py
-          charge.py
           compute.py
           constrain.py
           dihedral.py
@@ -362,6 +356,7 @@ install(FILES ${_md_headers}
        )
 
 add_subdirectory(pair)
+add_subdirectory(long_range)
 add_subdirectory(external)
 
 if (BUILD_TESTING)

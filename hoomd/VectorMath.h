@@ -34,10 +34,6 @@
    easier. These include basic element-wise addition, subtraction, division, and multiplication (and
    += -= *= /=), and similarly division, and multiplication by scalars, and negation. The dot and
    cross product are also defined.
-
-    \note Operations like normalize, length, etc... are purposefully **NOT** defined. These hide a
-   sqrt. In high performance code, it is good for the programmer to have to explicitly call
-   expensive operations.
 */
 template<class Real> struct vec3
     {
@@ -372,6 +368,17 @@ template<class Real> DEVICE inline vec3<Real> cross(const vec3<Real>& a, const v
     return vec3<Real>(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
     }
 
+/// Normalize the vector
+/*! \param a Vector
+
+    \returns A normal vector in the direction of *a*.
+*/
+template<class Real> DEVICE inline vec3<Real> normalize(const vec3<Real>& a)
+    {
+    Real inverse_norm = fast::rsqrt(dot(a, a));
+    return a * inverse_norm;
+    }
+
 //! Convenience function for converting a vec3 to a Scalar3
 DEVICE inline Scalar3 vec_to_scalar3(const vec3<Scalar>& a)
     {
@@ -386,7 +393,7 @@ DEVICE inline Scalar4 vec_to_scalar4(const vec3<Scalar>& a, Scalar w)
 
 /////////////////////////////// vec2 ///////////////////////////////////
 
-//! 3 element vector
+//! 2 element vector
 /*! \tparam Real Data type of the components
 
     vec2 defines a simple 2 element vector. The components are available publicly as .x and .y.
@@ -394,10 +401,6 @@ DEVICE inline Scalar4 vec_to_scalar4(const vec3<Scalar>& a, Scalar w)
    easier. These include basic element-wise addition, subtraction, division, and multiplication (and
    += -= *= /=), and similarly division, and multiplication by scalars, and negation. The dot
    product is also defined.
-
-    \note Operations like normalize, length, etc... are purposefully **NOT** defined. These hide a
-   sqrt. In high performance code, it is good for the programmer to have to explicitly call
-   expensive operations.
 */
 template<class Real> struct vec2
     {
@@ -660,6 +663,17 @@ template<class Real> DEVICE inline vec2<Real> perp(const vec2<Real>& a)
 template<class Real> DEVICE inline Real perpdot(const vec2<Real>& a, const vec2<Real>& b)
     {
     return dot(perp(a), b);
+    }
+
+/// Normalize the vector
+/*! \param a Vector
+
+    \returns A normal vector in the direction of *a*.
+*/
+template<class Real> DEVICE inline vec2<Real> normalize(const vec2<Real>& a)
+    {
+    Real inverse_norm = fast::rsqrt(dot(a, a));
+    return a * inverse_norm;
     }
 
 template<class Real> struct rotmat3;

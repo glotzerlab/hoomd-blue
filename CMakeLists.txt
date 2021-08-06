@@ -14,7 +14,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "3.0.0-beta.7")
+set(HOOMD_VERSION_RAW "3.0.0-beta.8")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -85,21 +85,6 @@ OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
 SET(ENABLE_HIP ${ENABLE_GPU})
 
 option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
-
-# Optionally enable documentation build
-OPTION(ENABLE_DOXYGEN "Enables building of documentation with doxygen" OFF)
-if (ENABLE_DOXYGEN)
-    find_package(Doxygen)
-    if (DOXYGEN_FOUND)
-        # get the doxygen version
-        exec_program(${DOXYGEN_EXECUTABLE} ${HOOMD_SOURCE_DIR} ARGS --version OUTPUT_VARIABLE DOXYGEN_VERSION)
-
-        if (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
-        else (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
-            message(STATUS "Doxygen version less than 1.8.5, documentation may not build correctly")
-        endif (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
-    endif ()
-endif ()
 
 # Components
 option(BUILD_MD "Build the md package" on)
@@ -200,12 +185,6 @@ endif (BUILD_TESTING OR BUILD_VALIDATION)
 ################################
 ## Process subdirectories
 add_subdirectory (hoomd)
-
-###############################
-## include documentation directories
-if (ENABLE_DOXYGEN)
-    add_subdirectory (doc)
-endif (ENABLE_DOXYGEN)
 
 ###############################
 ## install cmake config files

@@ -141,7 +141,8 @@ class BoxMC(Updater):
 
         Note:
             The counts are reset to 0 at the start of each call to
-            `hoomd.Simulation.run`.
+            `hoomd.Simulation.run`. Before the first call to `Simulation.run`,
+            `counter` is `None`.
         """
         if not self._attached:
             return None
@@ -152,7 +153,7 @@ class BoxMC(Updater):
     def volume_moves(self):
         """tuple[int, int]: The accepted and rejected volume and length moves.
 
-        (0, 0) when not attached.
+        (0, 0) before the first call to `Simulation.run`.
         """
         counter = self.counter
         if counter is None:
@@ -168,7 +169,7 @@ class BoxMC(Updater):
     def shear_moves(self):
         """tuple[int, int]: The accepted and rejected shear moves.
 
-        (0, 0) when not attached.
+        (0, 0) before the first call to `Simulation.run`.
         """
         counter = self.counter
         if counter is None:
@@ -180,7 +181,7 @@ class BoxMC(Updater):
     def aspect_moves(self):
         """tuple[int, int]: The accepted and rejected aspect moves.
 
-        (0, 0) when not attached.
+        (0, 0) before the first call to `Simulation.run`.
         """
         counter = self.counter
         if counter is None:
@@ -354,8 +355,9 @@ class MuVT(Updater):
 
     Gibbs ensemble simulations are also supported, where particles and volumeare
     swapped between two or more boxes.  Every box correspond to one MPI
-    partition, and can therefore run on multiple ranks. See ``hoomd.comm`` and
-    the --nrank command line option for how to split a MPI task into partitions.
+    partition, and can therefore run on multiple ranks. Use the
+    ``ranks_per_partition`` argument of `hoomd.communicator.Communicator` to
+    enable partitioned simulations.
 
     Note:
         Multiple Gibbs ensembles are also supported in a single parallel job,

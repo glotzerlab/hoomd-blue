@@ -226,101 +226,6 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
-
-    //! Method to be called when number of types changes
-    void slotNumTypesChange()
-        {
-        // if the number of types is different, build a new indexer and reallocate memory
-        Index2D new_type_pair_idx = Index2D(m_pdata->getNTypes());
-
-        // allocate new parameter arrays
-        GlobalArray<Scalar> new_rcutsq(new_type_pair_idx.getNumElements(), m_exec_conf);
-        GlobalArray<Scalar> new_r_cut_nlist(new_type_pair_idx.getNumElements(), m_exec_conf);
-        GlobalArray<Scalar> new_ronsq(new_type_pair_idx.getNumElements(), m_exec_conf);
-        std::vector<param_type, managed_allocator<param_type>> new_params(
-            static_cast<size_t>(new_type_pair_idx.getNumElements()),
-            param_type(),
-            managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
-
-            {
-            // copy existing data into them
-            ArrayHandle<Scalar> h_new_rcutsq(new_rcutsq,
-                                             access_location::host,
-                                             access_mode::overwrite);
-            ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar> h_new_r_cut_nlist(new_r_cut_nlist,
-                                                  access_location::host,
-                                                  access_mode::overwrite);
-            ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
-                                              access_location::host,
-                                              access_mode::overwrite);
-            ArrayHandle<Scalar> h_new_ronsq(new_ronsq,
-                                            access_location::host,
-                                            access_mode::overwrite);
-            for (unsigned int i = 0; i < new_type_pair_idx.getW(); i++)
-                {
-                for (unsigned int j = 0; j < new_type_pair_idx.getH(); j++)
-                    {
-                    h_new_rcutsq.data[new_type_pair_idx(i, j)] = h_rcutsq.data[m_typpair_idx(i, j)];
-                    h_new_r_cut_nlist.data[new_type_pair_idx(i, j)]
-                        = h_r_cut_nlist.data[m_typpair_idx(i, j)];
-                    new_params[new_type_pair_idx(i, j)] = m_params[m_typpair_idx(i, j)];
-                    }
-                }
-            }
-
-        // swap the new arrays in
-        m_rcutsq.swap(new_rcutsq);
-        m_params.swap(new_params);
-
-        // except for the r_cut_nlist which the nlist also refers to, copy the new data over
-        *m_r_cut_nlist = new_r_cut_nlist;
-
-        // set the new type pair indexer
-        m_typpair_idx = new_type_pair_idx;
-
-        // resize the shape params
-        m_shape_params.resize(m_pdata->getNTypes());
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-        if (m_pdata->getExecConf()->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-            {
-            cudaMemAdvise(m_rcutsq.get(),
-                          m_rcutsq.getNumElements() * sizeof(Scalar),
-                          cudaMemAdviseSetReadMostly,
-                          0);
-            cudaMemAdvise(m_params.data(),
-                          m_params.size() * sizeof(param_type),
-                          cudaMemAdviseSetReadMostly,
-                          0);
-            cudaMemAdvise(m_shape_params.data(),
-                          m_shape_params.size() * sizeof(param_type),
-                          cudaMemAdviseSetReadMostly,
-                          0);
-
-            // prefetch
-            auto& gpu_map = m_exec_conf->getGPUIds();
-
-            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-                {
-                // prefetch data on all GPUs
-                cudaMemPrefetchAsync(m_rcutsq.get(),
-                                     sizeof(Scalar) * m_rcutsq.getNumElements(),
-                                     gpu_map[idev]);
-                cudaMemPrefetchAsync(m_params.data(),
-                                     sizeof(param_type) * m_params.size(),
-                                     gpu_map[idev]);
-                cudaMemPrefetchAsync(m_shape_params.data(),
-                                     sizeof(param_type) * m_shape_params.size(),
-                                     gpu_map[idev]);
-                }
-            CHECK_CUDA_ERROR();
-            }
-#endif
-
-        // notify the neighbor list that we have changed r_cut values
-        m_nlist->notifyRCutMatrixChange();
-        }
     };
 
 template<class aniso_evaluator>
@@ -414,23 +319,12 @@ AnisoPotentialPair<aniso_evaluator>::AnisoPotentialPair(std::shared_ptr<SystemDe
 
     // initialize name
     m_prof_name = std::string("Aniso_Pair ") + aniso_evaluator::getName();
-
-    // connect to the ParticleData to receive notifications when the maximum number of particles
-    // changes
-    m_pdata->getNumTypesChangeSignal()
-        .template connect<AnisoPotentialPair<aniso_evaluator>,
-                          &AnisoPotentialPair<aniso_evaluator>::slotNumTypesChange>(this);
     }
 
 template<class aniso_evaluator> AnisoPotentialPair<aniso_evaluator>::~AnisoPotentialPair()
     {
     m_exec_conf->msg->notice(5) << "Destroying AnisoPotentialPair<" << aniso_evaluator::getName()
                                 << ">" << std::endl;
-
-    // disconnect from type change signal
-    m_pdata->getNumTypesChangeSignal()
-        .template disconnect<AnisoPotentialPair<aniso_evaluator>,
-                             &AnisoPotentialPair<aniso_evaluator>::slotNumTypesChange>(this);
 
     if (m_attached)
         {

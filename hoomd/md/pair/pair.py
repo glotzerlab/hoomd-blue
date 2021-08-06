@@ -491,7 +491,9 @@ class Ewald(Pair):
                             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
-    The Ewald potential is designed to be used in conjunction with PPPM.
+    Call `md.long_range.pppm.make_pppm_coulomb_forces` to create an instance
+    of `Ewald` and `md.long_range.pppm.Coulomb` that together implement the PPPM
+    method for electrostatics.
 
     See `Pair` for details on how forces are calculated. Note Ewald does not
     support energy shifting or smoothing.

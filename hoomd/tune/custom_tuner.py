@@ -26,9 +26,26 @@ class _TunerProperty:
 
 
 class CustomTuner(CustomOperation, _TunerProperty, Tuner):
-    """Tuner wrapper for `hoomd.custom.Action` objects.
+    """User-defined tuner.
 
-    For usage see `hoomd.custom.CustomOperation`.
+    Args:
+        action (hoomd.custom.Action): The action to call.
+        trigger (hoomd.trigger.Trigger): Select the timesteps to call the
+          action.
+
+    `CustomTuner` is a `hoomd.operation.Tuner` that wraps a user-defined
+    `hoomd.custom.Action` object so the action can be added to a
+    `hoomd.Operations` instance for use with `hoomd.Simulation` objects.
+
+    Tuners modify the parameters of other operations to improve performance.
+    Tuners may read the system state, but not modify it.
+
+    See Also:
+        The base class `hoomd.custom.CustomOperation`.
+
+        `hoomd.update.CustomUpdater`
+
+        `hoomd.write.CustomWriter`
     """
     _cpp_list_name = 'tuners'
     _cpp_class_name = 'PythonTuner'
