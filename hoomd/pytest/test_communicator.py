@@ -2,10 +2,10 @@ import hoomd
 import pytest
 try:
     from mpi4py import MPI
+    mpi4py_available = True
 except ImportError:
     mpi4py_available = False
-else:
-    mpi4py_available = True
+
 
 skip_mpi4py = pytest.mark.skipif(not mpi4py_available,
                                  reason='mpi4py could not be imported.')
