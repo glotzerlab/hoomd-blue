@@ -11,16 +11,41 @@ from hoomd.box import Box
 from hoomd.snapshot import Snapshot
 from hoomd.data import LocalSnapshot, LocalSnapshotGPU
 import hoomd
+import math
 import warnings
+import collections.abc
 
 
-def _create_domain_decomposition(device, box):
-    """Create a default domain decomposition.
+def _create_domain_decomposition(device, box, domain_decomposition):
+    """Create the domain decomposition.
 
-    This method is a quick hack to get basic MPI simulations working with
-    the new API. We will need to consider designing an appropriate user-facing
-    API to set the domain decomposition.
+    Args:
+        device (Device): The simulation's device
+        box: The C++ global box object for the state being initialized
+        domain_decomposition: See Simulation.create_state_from_* for a
+          description.
     """
+    if (not isinstance(domain_decomposition, collections.abc.Sequence)
+            or len(domain_decomposition) != 3):
+        raise TypeError("domain_decomposition must be a length 3 sequence")
+
+    initialize_grid = False
+    initialize_fractions = False
+
+    for v in domain_decomposition:
+        if v is not None:
+            if isinstance(v, int):
+                initialize_grid = True
+            elif isinstance(v, collections.abc.Sequence):
+                if not math.isclose(sum(v), 1.0, rel_tol=1e-6):
+                    raise ValueError("Rank fractions must sum to 1.0.")
+                initialize_fractions = True
+            else:
+                raise TypeError("Invalid type in domain_decomposition.")
+
+    if initialize_grid and initialize_fractions:
+        raise ValueError("Domain decomposition mixes integers and sequences.")
+
     if not hoomd.version.mpi_enabled:
         return None
 
@@ -29,9 +54,16 @@ def _create_domain_decomposition(device, box):
     if device.communicator.num_ranks == 1:
         return None
 
-    # create a default domain decomposition
-    result = _hoomd.DomainDecomposition(device._cpp_exec_conf, box.getL(), 0, 0,
-                                        0, False)
+    if initialize_fractions:
+        fractions = [
+            v[:-1] if v is not None else [] for v in domain_decomposition
+        ]
+        result = _hoomd.DomainDecomposition(device._cpp_exec_conf, box.getL(),
+                                            *fractions)
+    else:
+        grid = [v if v is not None else 0 for v in domain_decomposition]
+        result = _hoomd.DomainDecomposition(device._cpp_exec_conf, box.getL(),
+                                            *grid, False)
 
     return result
 
@@ -189,11 +221,12 @@ class State:
     .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
     """
 
-    def __init__(self, simulation, snapshot):
+    def __init__(self, simulation, snapshot, domain_decomposition):
         self._simulation = simulation
         snapshot._broadcast_box()
         decomposition = _create_domain_decomposition(
-            simulation.device, snapshot._cpp_obj._global_box)
+            simulation.device, snapshot._cpp_obj._global_box,
+            domain_decomposition)
 
         if decomposition is not None:
             self._cpp_sys_def = _hoomd.SystemDefinition(
@@ -616,3 +649,33 @@ class State:
         self._simulation._warn_if_seed_unset()
         group = self._get_group(filter)
         group.thermalizeParticleMomenta(kT, self._simulation.timestep)
+
+    @property
+    def domain_decomposition_split_fractions(self):
+        """tuple(list[float], list[float], list[float]): Box fractions of the \
+        domain split planes in the x, y, and z directions."""
+        particle_data = self._cpp_sys_def.getParticleData()
+
+        if (not hoomd.version.mpi_enabled
+                or particle_data.getDomainDecomposition() is None):
+            return ([], [], [])
+
+        return tuple([
+            list(particle_data.getDomainDecomposition().getCumulativeFractions(
+                dir))[1:-1] for dir in range(3)
+        ])
+
+    @property
+    def domain_decomposition(self):
+        """tuple(int, int, int): Number of domains in the x, y, and z \
+        directions."""
+        particle_data = self._cpp_sys_def.getParticleData()
+
+        if (not hoomd.version.mpi_enabled
+                or particle_data.getDomainDecomposition() is None):
+            return (1, 1, 1)
+
+        return tuple([
+            len(particle_data.getDomainDecomposition().getCumulativeFractions(
+                dir)) - 1 for dir in range(3)
+        ])
