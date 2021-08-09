@@ -24,7 +24,7 @@ class DummyState:
 
     @property
     def particle_types(self):
-        return ['A', 'B']
+        return ["A", "B", "C"]
 
 
 class DummyOperations:
