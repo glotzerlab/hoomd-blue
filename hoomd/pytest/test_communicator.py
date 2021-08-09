@@ -6,7 +6,6 @@ try:
 except ImportError:
     mpi4py_available = False
 
-
 skip_mpi4py = pytest.mark.skipif(not mpi4py_available,
                                  reason='mpi4py could not be imported.')
 
