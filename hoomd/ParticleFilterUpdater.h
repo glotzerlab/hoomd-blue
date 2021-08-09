@@ -16,8 +16,7 @@
 #include "ParticleGroup.h"
 #include "Updater.h"
 
-#ifndef __PARTICLEFILTERUPDATER_H__
-#define __PARTICLEFILTERUPDATER_H__
+#pragma once
 
 /// Recomputes ParticleGroups of associated filters.
 /** The updater takes in a vector of particle filters updates ParticleGroups for each ParticleFilter
@@ -49,4 +48,3 @@ class PYBIND11_EXPORT ParticleFilterUpdater : public Updater
 
 /// Export the BoxResizeUpdater to python
 void export_ParticleFilterUpdater(pybind11::module& m);
-#endif
