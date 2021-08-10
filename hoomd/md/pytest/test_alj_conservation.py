@@ -1,149 +1,115 @@
-import unittest
-
 import numpy as np
-import numpy.testing as npt
-import tempfile
+import pytest
 
 import hoomd
 from hoomd import md
 
 
-class TestALJ(unittest.TestCase):
+@pytest.mark.validation
+def test_conservation(simulation_factory, lattice_snapshot_factory):
+    # For test, use a unit area hexagon.
+    coxeter = pytest.importorskip("coxeter",
+                                  "coxeter is required for this test.")
 
-    def test_conservation(self):
-        # Initialize context
-        hoomd.context.initialize()
+    particle_vertices = np.array([[6.20403239e-01, 0.00000000e+00],
+                                  [3.10201620e-01, 5.37284966e-01],
+                                  [-3.10201620e-01, 5.37284966e-01],
+                                  [-6.20403239e-01, 7.59774841e-17],
+                                  [-3.10201620e-01, -5.37284966e-01],
+                                  [3.10201620e-01, -5.37284966e-01]])
+    hexagon = coxeter.shape.ConvexPolygon(particle_vertices)
 
-        polygon_type = "Polygon"
-        # For test, use a unit area hexagon.
-        particle_vertices = np.array([[6.20403239e-01, 0.00000000e+00],
-                                      [3.10201620e-01, 5.37284966e-01],
-                                      [-3.10201620e-01, 5.37284966e-01],
-                                      [-6.20403239e-01, 7.59774841e-17],
-                                      [-3.10201620e-01, -5.37284966e-01],
-                                      [3.10201620e-01, -5.37284966e-01]])
-        poly_area = 1
-        num_sides = len(particle_vertices)
+    circumcircle_diameter = 2 * hexagon.circumcircle_radius
 
-        circumsphere_radius = particle_vertices[0, 0]
-        circumsphere_diameter = 2 * circumsphere_radius
-        side_length = np.linalg.norm(particle_vertices[1]
-                                     - particle_vertices[2])
-        insphere_diameter = 2 * (side_length / (2 * np.tan(np.pi / num_sides)))
+    # Just initialize in a simple cubic lattice.
+    sim = simulation_factory(
+        lattice_snapshot_factory(a=4 * circumcircle_diameter,
+                                 n=10,
+                                 dimensions=2))
 
-        # Just initialize in a simple cubic lattice.
-        system = hoomd.init.create_lattice(hoomd.lattice.sq(
-            circumsphere_diameter * 2, type_name=polygon_type),
-                                           n=10)
+    # Initialize moments of inertia since original simulation was HPMC.
+    mass = hexagon.area
+    # https://math.stackexchange.com/questions/2004798/moment-of-inertia-for-a-n-sided-regular-polygon # noqa
+    moment_inertia = ((mass * circumcircle_diameter**2 / 6) *
+                      (1 + 2 * np.cos(np.pi / hexagon.num_vertices)**2))
+    with sim.state.cpu_local_snapshot as snapshot:
+        snapshot.particles.mass[:] = mass
+        snapshot.particles.moment_inertia[:] = np.array([0, 0, moment_inertia])
+        # Not sure if this should be incircle or circumcircle;
+        # probably doesn't matter based on current usage, but may
+        # matter in the future for the potential if it's modified
+        # to actually use diameter.
+        snapshot.particles.diameter[:] = circumcircle_diameter
+    kT = 0.3
+    sim.state.thermalize_particles(kT, 43)
 
-        # Initialize moments of inertia since original simulation was
-        # HPMC.
-        mass = poly_area
-        # https://math.stackexchange.com/questions/2004798/moment-of-inertia-for-a-n-sided-regular-polygon # noqa
-        moment_inertia = (mass * circumsphere_diameter**2
-                          / 6) * (1 + 2 * np.cos(np.pi / num_sides)**2)
-        for p in system.particles:
-            p.mass = mass
-            p.moment_inertia = [0, 0, moment_inertia]
-            # Not sure if this should be insphere or circumsphere;
-            # probably doesn't matter based on current usage, but may
-            # matter in the future for the potential if it's modified
-            # to actually use diameter.
-            p.diameter = circumsphere_diameter
+    # Create box resize updater
+    packing_fraction = 0.4
+    final_area = hexagon.area * sim.state.N_particles / packing_fraction
+    L_final = np.sqrt(final_area)
+    final_box = hoomd.box.square(L_final)
 
-        nl = md.nlist.cell()
+    n_compression_start = 1e4
+    n_compression_end = 1e5
+    n_compression_total = n_compression_end - n_compression_start
+    n_total = 1e6
 
-        packing_fraction = 0.4
-        L_current = system.box.Lx
-        final_area = poly_area * len(system.particles) / packing_fraction
-        L_final = np.sqrt(final_area)
+    box_resize = hoomd.update.BoxResize(
+        box1=sim.state.box,
+        box2=final_box,
+        trigger=int(n_compression_total / 10000),
+        variant=hoomd.variant.Ramp(0, 1, n_compression_start,
+                                   n_compression_total),
+        scale_particles=hoomd.filter.All())
+    sim.operations += box_resize
 
-        n_comp_start = 1e4
-        n_comp_end = 1e5
-        n_comp = n_comp_end - n_comp_start
-        n_total = 1e6
+    # Define forces and methods
+    r_cut_scale = 1.3
+    kernel_scale = 2 * (1 / np.cos(np.pi / hexagon.num_vertices))
+    incircle_diameter = hexagon.incircle_radius
+    r_cut_set = incircle_diameter * kernel_scale * r_cut_scale
 
-        hoomd.update.box_resize(L=hoomd.variant.linear_interp([
-            (n_comp_start, L_current), (n_comp_end, L_final)
-        ]),
-                                period=n_comp / 10000,
-                                scale_particles=True)
+    alj = md.pair.aniso.ALJ(default_r_cut=r_cut_set, nlist=md.nlist.Cell())
 
-        # Define ALJ potential
-        alpha = 0  # Make it WCA-only (no attraction)
-        eps_att = 1.0
-        r_cut_scale = 1.3
-        # insphere_radius = circumsphere_radius*cos(180/n)
-        # kernel_scale = circumsphere_radius/insphere_radius
-        # I thought this would be enough, but looks like you need quite
-        # a bit larger of a cutoff, so I just multiply the kernel_scale
-        # by 2.
-        kernel_scale = 2 * (1 / np.cos(np.pi / num_sides))
-        r_cut_set = insphere_diameter * kernel_scale * r_cut_scale
+    alj.shape["A"] = {
+        "vertices": hexagon.vertices,
+        "faces": [],
+        "rounding_radius": 0
+    }
 
-        alj = md.pair.alj(r_cut=r_cut_set, nlist=nl)
-        alj.shape[polygon_type] = list(particle_vertices)
-        alj.pair_coeff.set(polygon_type,
-                           polygon_type,
-                           epsilon=eps_att,
-                           sigma_i=insphere_diameter,
-                           sigma_j=insphere_diameter,
-                           alpha=alpha)
+    alpha = 0  # Make it WCA-only (no attraction)
+    eps_att = 1.0
+    alj.params[("A", "A")] = {
+        "epsilon": eps_att,
+        "sigma_i": incircle_diameter,
+        "sigma_j": incircle_diameter,
+        "alpha": alpha
+    }
 
-        # Set up the system
-        dt = 1e-4
-        kT = 0.3
-        md.integrate.mode_standard(dt=dt, aniso=True)
-        group = hoomd.group.all()
-        integrator = md.integrate.nve(group=group)
-        integrator.randomize_velocities(kT, 43)
+    integrator = md.Integrator(dt=1e-4, aniso=True)
+    nve = md.methods.NVE(filter=hoomd.filter.All())
+    integrator.methods.append(nve)
 
-        dump_steps = 1000
+    # Compress box
+    sim.run(n_compression_end)
 
-        tmp_gsd = tempfile.mkstemp(suffix='.test.gsd')
-        gsd_file = tmp_gsd[1]
-        tmp_log = tempfile.mkstemp(suffix='.test.log')
-        log_file = tmp_log[1]
+    thermo = md.compute.ThermodynamicQuantities(hoomd.filter.All())
+    sim.operations += thermo
 
-        hoomd.analyze.log(filename=log_file,
-                          quantities=['potential_energy', 'kinetic_energy'],
-                          period=dump_steps,
-                          phase=0,
-                          overwrite=True)
-        gsd = hoomd.dump.gsd(filename=gsd_file,
-                             period=dump_steps,
-                             phase=0,
-                             group=group,
-                             overwrite=True)
-        gsd.dump_shape(alj)
+    # Reset velocities after the compression, and equilibriate
+    sim.state.thermalize_particles(kT, 43)
+    velocities = []
+    total_energies = []
+    while sim.timestep < n_total:
+        sim.run(1_000)
+        with sim.state.cpu_local_snapshot as snapshot:
+            velocities.append(np.array(snapshot.particles.velocity, copy=True))
+            total_energies.append(thermo.kinetic_energy
+                                  + thermo.potential_energy)
 
-        hoomd.run(n_comp + n_comp_start)
+    # Ensure energy conservation up to the 4 digit per-particle.
+    assert np.std(total_energies) / sim.state.N_particles < 1e-4
 
-        # Add quick test of shape.
-        npt.assert_allclose(alj.get_type_shapes()[0]['vertices'],
-                            particle_vertices, 1e-5)
-
-        # Reset velocities after the compression.
-        integrator.randomize_velocities(kT, 44)
-        hoomd.run_upto(n_total)
-
-        log_data = np.genfromtxt(log_file, names=True)
-        equilibrated_data = log_data[log_data['timestep'] >= n_comp_end]
-        total_energy = equilibrated_data[
-            'potential_energy'] + equilibrated_data['kinetic_energy']
-
-        # Ensure energy conservation up to the 4 digit per-particle.
-        self.assertLess(np.std(total_energy) / len(system.particles), 1e-4)
-
-        # Test momentum conservation.
-        velocities = []
-        with gsd.hoomd.open(gsd_file, 'rb') as traj:
-            for frame in traj:
-                velocities.append(frame.particles.velocity)
-        velocities = np.asarray(velocities)
-        self.assertLess(
-            np.std(np.linalg.norm(np.sum(velocities, axis=1), axis=-1)), 1e-6)
-
-
-if __name__ == "__main__":
-    unittest.main(argv=['test.py', '-v'])
+    # Test momentum conservation.
+    velocities = np.asarray(velocities)
+    assert np.std(np.linalg.norm(np.sum(velocities, axis=1), axis=-1)) < 1e-6
