@@ -7,6 +7,7 @@ set(files __init__.py
           test_communicator.py
           test_dcd.py
           test_device.py
+          test_filter_updater.py
           test_trigger.py
           test_type_parameter_dict.py
           test_typeparam.py

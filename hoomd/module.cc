@@ -25,6 +25,7 @@
 #include "LoadBalancer.h"
 #include "Messenger.h"
 #include "ParticleData.h"
+#include "ParticleFilterUpdater.h"
 #include "Profiler.h"
 #include "PythonAnalyzer.h"
 #include "PythonLocalDataAccess.h"
@@ -300,6 +301,7 @@ PYBIND11_MODULE(_hoomd, m)
     // filters and groups
     export_ParticleFilters(m);
     export_ParticleGroup(m);
+    export_ParticleFilterUpdater(m);
 
     // trigger
     export_Trigger(m);
