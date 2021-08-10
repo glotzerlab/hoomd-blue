@@ -306,10 +306,10 @@ class ALJ(AnisotropicPair):
         * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
             not to include the attractive component of the interaction (see
             above for details).
-        * ``contact_sigma_i`` (`float`, **optional**) - the contact sphere
-            radius of the first type. Defaults to :math:`0.15 \sigma_i`.
-        * ``contact_sigma_j`` (`float`, **optional**) - the contact sphere
-            radius of the second type. Defaults to :math:`0.15 \sigma_j`.
+        * ``contact_ratio_i`` (`float`, **optional**) - the ratio of the contact
+            sphere radius of the first type with ``sigma_i``. Defaults to 0.15.
+        * ``contact_sigma_j`` (`float`, **optional**) - the ratio of the contact
+            sphere radius of the second type with ``sigma_j``. Defaults to 0.15.
 
         Type: `TypeParameter` [`tuple` [``particle_types``, ``particle_types``],
         `dict`]
