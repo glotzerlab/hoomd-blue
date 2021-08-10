@@ -410,7 +410,8 @@ class ALJ(AnisotropicPair):
 
         self._extend_typeparam((params, shape))
 
-    def get_ordered_vertices(self, vertices, return_faces=True):
+    @staticmethod
+    def get_ordered_vertices(vertices, return_faces=True):
         """Compute vertices and faces of a convex hull of given vertices.
 
         Args:
