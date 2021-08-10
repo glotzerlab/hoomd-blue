@@ -385,8 +385,8 @@ class ALJ(AnisotropicPair):
     # parameter in C++, so use an instance level attribute instead that is
     # created in _attach based on the dimension of the associated simulation.
 
-    def __init__(self, nlist, r_cut=None, mode='none'):
-        super().__init__(nlist, r_cut, mode)
+    def __init__(self, nlist, default_r_cut=None, mode='none'):
+        super().__init__(nlist, default_r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(
