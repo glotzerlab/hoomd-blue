@@ -247,7 +247,20 @@ def _valid_params(particle_types=['A', 'B']):
     return valid_params_list
 
 
-@pytest.mark.parametrize('pair_potential_spec', _valid_params())
+class PotentialId:
+
+    def __init__(self):
+        self.cls_dict = {}
+
+    def __call__(self, obj):
+        self.cls_dict.setdefault(obj.cls, 0)
+        self.cls_dict[obj.cls] += 1
+        return f"{obj.cls.__name__}-{self.cls_dict[obj.cls]}"
+
+
+@pytest.mark.parametrize('pair_potential_spec',
+                         _valid_params(),
+                         ids=PotentialId())
 def test_setting_params_and_shape(make_two_particle_simulation,
                                   pair_potential_spec):
     pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(),
@@ -299,7 +312,7 @@ def _aniso_forces_and_energies():
     return fet_list
 
 
-@pytest.fixture(scope="function", params=_valid_params())
+@pytest.fixture(scope="function", params=_valid_params(), ids=PotentialId())
 def pair_potential(request):
     spec = request.param
     pair_potential = spec.cls(nlist=md.nlist.Cell(), default_r_cut=2.5)
