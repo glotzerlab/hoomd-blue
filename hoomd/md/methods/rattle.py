@@ -83,8 +83,9 @@ class NVE(MethodRATTLE):
 
         tolerance (`float`): Defines the tolerated error particles are
             allowed to deviate from the manifold in terms of the implicit
-            function.  This is only used if RATTLE algorithm is triggered.
-            Defaults to 1e-6
+            function.
+            The units of tolerance match that of the selected manifold's
+            implicit function. Defaults to 1e-6
 
     `NVE` performs constant volume, constant energy simulations as described
     in `hoomd.md.methods.NVE`. In addition the particles are constrained to a
@@ -112,7 +113,8 @@ class NVE(MethodRATTLE):
 
         tolerance (float): Defines the tolerated error particles are allowed to
             deviate from the manifold in terms of the implicit function.
-            Defaults to 1e-6.
+            The units of tolerance match that of the selected manifold's
+            implicit function. Defaults to 1e-6
 
     """
 
@@ -185,8 +187,8 @@ class Langevin(MethodRATTLE):
 
         tolerance (`float`): Defines the tolerated error particles are allowed
             to deviate from the manifold in terms of the implicit function.
-            This is only used if RATTLE algorithm is triggered.
-            Defaults to 1e-6
+            The units of tolerance match that of the selected manifold's
+            implicit function. Defaults to 1e-6
 
     .. rubric:: Translational degrees of freedom
 
@@ -231,7 +233,8 @@ class Langevin(MethodRATTLE):
 
         tolerance (float): Defines the tolerated error particles are allowed
             to deviate from the manifold in terms of the implicit function.
-            Defaults to 1e-6.
+            The units of tolerance match that of the selected manifold's
+            implicit function. Defaults to 1e-6
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
@@ -333,7 +336,8 @@ class Brownian(MethodRATTLE):
 
         tolerance (`float`): Defines the toleraated error particles are allowed
             to deviate from the manifold in terms of the implicit function.
-            This is only used if RATTLE algorithm is triggered. Defaults to 1e-6
+            The units of tolerance match that of the selected manifold's
+            implicit function. Defaults to 1e-6
 
     `Brownian` uses the same integrator as `hoomd.md.methods.Brownian`, which
     follows the overdamped Langevin equations of motion with the additional
@@ -370,7 +374,8 @@ class Brownian(MethodRATTLE):
 
         tolerance (float): Defines the tolerated error particles are allowed to
             deviate from the manifold in terms of the implicit function.
-            Defaults to 1e-6.
+            The units of tolerance match that of the selected manifold's
+            implicit function. Defaults to 1e-6
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
