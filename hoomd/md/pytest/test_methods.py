@@ -177,22 +177,76 @@ def test_attributes_attached(simulation_factory, two_particle_snapshot_factory,
     check_instance_attrs(method, method_base_params.changed_params, True)
 
 
-def test_rattle_attributes(method_base_params):
+def _manifold_base_params():
+    manifold_base_params_list = []
+    # Start with valid parameters to get the keys and placeholder values
+
+    cylinder_setup_params = {'r': 5}
+    manifold_base_params_list.extend([
+        paramtuple(cylinder_setup_params, {}, {}, {},
+                   hoomd.md.manifold.Cylinder)
+    ])
+
+    diamond_setup_params = {'N': (1, 1, 1)}
+    manifold_base_params_list.extend([
+        paramtuple(diamond_setup_params, {}, {}, {}, hoomd.md.manifold.Diamond)
+    ])
+
+    ellipsoid_setup_params = {'a': 3.3, 'b': 5, 'c': 4.1}
+
+    manifold_base_params_list.extend([
+        paramtuple(ellipsoid_setup_params, {}, {}, {},
+                   hoomd.md.manifold.Ellipsoid)
+    ])
+
+    gyroid_setup_params = {'N': (1, 2, 1)}
+
+    manifold_base_params_list.extend(
+        [paramtuple(gyroid_setup_params, {}, {}, {}, hoomd.md.manifold.Gyroid)])
+
+    primitive_setup_params = {'N': (1, 1, 1)}
+
+    manifold_base_params_list.extend([
+        paramtuple(primitive_setup_params, {}, {}, {},
+                   hoomd.md.manifold.Primitive)
+    ])
+
+    sphere_setup_params = {'r': 5}
+
+    manifold_base_params_list.extend(
+        [paramtuple(sphere_setup_params, {}, {}, {}, hoomd.md.manifold.Sphere)])
+
+    xyplane_setup_params = {}
+
+    manifold_base_params_list.extend(
+        [paramtuple(xyplane_setup_params, {}, {}, {}, hoomd.md.manifold.Plane)])
+
+    return manifold_base_params_list
+
+
+@pytest.fixture(scope="function",
+                params=_manifold_base_params(),
+                ids=(lambda x: x[4].__name__))
+def manifold_base_params(request):
+    return deepcopy(request.param)
+
+
+def test_rattle_attributes(method_base_params, manifold_base_params):
     if method_base_params.rattle_method is None:
         pytest.skip("RATTLE method is not implemented for this method")
 
     all_ = hoomd.filter.All()
-    gyroid = hoomd.md.manifold.Gyroid(N=1)
+    manifold = manifold_base_params.method(**manifold_base_params.setup_params)
     method = method_base_params.rattle_method(**method_base_params.setup_params,
                                               filter=all_,
-                                              manifold_constraint=gyroid)
-    assert method.manifold_constraint == gyroid
+                                              manifold_constraint=manifold)
+    assert method.manifold_constraint == manifold
     assert method.tolerance == 1e-6
 
     sphere = hoomd.md.manifold.Sphere(r=10)
     with pytest.raises(AttributeError):
         method.manifold_constraint = sphere
-    assert method.manifold_constraint == gyroid
+    assert method.manifold_constraint == manifold
 
     method.tolerance = 1e-5
     assert method.tolerance == 1e-5
@@ -200,23 +254,23 @@ def test_rattle_attributes(method_base_params):
 
 def test_rattle_attributes_attached(simulation_factory,
                                     two_particle_snapshot_factory,
-                                    method_base_params):
+                                    method_base_params, manifold_base_params):
 
     if method_base_params.rattle_method is None:
         pytest.skip("RATTLE integrator is not implemented for this method")
 
     all_ = hoomd.filter.All()
-    gyroid = hoomd.md.manifold.Gyroid(N=1)
+    manifold = manifold_base_params.method(**manifold_base_params.setup_params)
     method = method_base_params.rattle_method(**method_base_params.setup_params,
                                               filter=all_,
-                                              manifold_constraint=gyroid)
+                                              manifold_constraint=manifold)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
     sim.run(0)
 
     assert method.filter is all_
-    assert method.manifold_constraint == gyroid
+    assert method.manifold_constraint == manifold
     assert method.tolerance == 1e-6
 
     check_instance_attrs(method, method_base_params.setup_params)
@@ -231,7 +285,7 @@ def test_rattle_attributes_attached(simulation_factory,
     with pytest.raises(AttributeError):
         # manifold cannot be set after scheduling
         method.manifold_constraint = sphere
-    assert method.manifold_constraint == gyroid
+    assert method.manifold_constraint == manifold
 
     method.tolerance = 1e-5
     assert method.tolerance == 1e-5
