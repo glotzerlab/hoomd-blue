@@ -244,6 +244,42 @@ def _valid_params(particle_types=['A', 'B']):
         make_aniso_spec(
             md.pair.aniso.GayBerne,
             to_type_parameter_dicts(particle_types, gay_berne_arg_dict)))
+
+    shape_vertices = [
+        # octahedron
+        [(0.5, 0, 0), (-0.5, 0, 0), (0, 0.5, 0), (0, -0.5, 0), (0, 0, 0.5),
+         (0, 0, -0.5)],
+        # cube
+        [(0.5, -0.5, -0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5), (-0.5, 0.5, 0.5),
+         (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5), (0.5, -0.5, 0.5),
+         (-0.5, -0.5, -0.5)]
+    ]
+
+    alj_arg_dict = {
+        'params': ({
+            'epsilon': [0.5, 1.1, 0.147],
+            'sigma_i': [0.4, 0.12, 0.3],
+            'sigma_j': [4., 1.2, 0.3],
+            'alpha': [0, 1, 3],
+            'contact_ratio_i': [0.15, 0.3, 0.145],
+            'contact_ratio_j': [0.15, 0.3, 0.145],
+            'average_simplices': [True, False, True]
+        }, 2),
+        'shape': ({
+            "vertices":
+                shape_vertices,
+            "rounding_radii": [(0.1, 0.01, 0.15), (0.0, 0.0, 0.0),
+                               (0.01, 0.1, 2.0)],
+            "faces": [
+                md.pair.aniso.ALJ.get_ordered_vertices(vertices)[1]
+                for vertices in shape_vertices
+            ]
+        }, 1)
+    }
+
+    valid_params_list.append(
+        make_aniso_spec(md.pair.aniso.ALJ,
+                        to_type_parameter_dicts(particle_types, alj_arg_dict)))
     return valid_params_list
 
 
@@ -324,7 +360,7 @@ def pair_potential(request):
 def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
     snap = lattice_snapshot_factory(particle_types=['A', 'B'],
                                     n=7,
-                                    a=1.7,
+                                    a=2.0,
                                     r=0.01)
     if snap.communicator.rank == 0:
         snap.particles.typeid[:] = np.random.randint(0,
