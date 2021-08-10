@@ -37,6 +37,11 @@ def _equivalent_data_structures(struct_1, struct_2):
             for value_1, value_2 in zip(struct_1, struct_2))
     if isinstance(struct_1, Number):
         return math.isclose(struct_1, struct_2)
+    return False
+
+
+def assert_equivalent_data_structures(struct_1, struct_2):
+    assert _equivalent_data_structures(struct_1, struct_2)
 
 
 def make_langevin_integrator(force):
@@ -117,16 +122,14 @@ def test_rcut(make_two_particle_simulation, r_cut):
     assert gay_berne.r_cut[('A', 'A')] == new_r_cut
 
     expected_r_cut = {('A', 'A'): new_r_cut}
-    assert _equivalent_data_structures(gay_berne.r_cut.to_dict(),
-                                       expected_r_cut)
+    assert_equivalent_data_structures(gay_berne.r_cut.to_dict(), expected_r_cut)
 
     gay_berne.params[('A', 'A')] = {'epsilon': 1, 'lpar': 0.5, 'lperp': 1.0}
     sim = make_two_particle_simulation(dimensions=3, d=.5, force=gay_berne)
 
     # Check after attaching
     sim.run(0)
-    assert _equivalent_data_structures(gay_berne.r_cut.to_dict(),
-                                       expected_r_cut)
+    assert_equivalent_data_structures(gay_berne.r_cut.to_dict(), expected_r_cut)
 
 
 @pytest.mark.parametrize("r_cut", [-1., 'foo', None])
@@ -251,7 +254,7 @@ def test_setting_params_and_shape(make_two_particle_simulation,
                                              default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
-        assert _equivalent_data_structures(value, getattr(pair_potential, key))
+        assert_equivalent_data_structures(value, getattr(pair_potential, key))
 
     sim = make_two_particle_simulation(types=['A', 'B'],
                                        dimensions=3,
@@ -259,7 +262,7 @@ def test_setting_params_and_shape(make_two_particle_simulation,
                                        force=pair_potential)
     sim.run(0)
     for key, value in pair_potential_spec.type_parameters.items():
-        assert _equivalent_data_structures(value, getattr(pair_potential, key))
+        assert_equivalent_data_structures(value, getattr(pair_potential, key))
 
 
 def _aniso_forces_and_energies():
@@ -386,7 +389,7 @@ def test_pickling(make_two_particle_simulation, pair_potential_spec):
                                              default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
-        assert _equivalent_data_structures(value, getattr(pair_potential, key))
+        assert_equivalent_data_structures(value, getattr(pair_potential, key))
 
     sim = make_two_particle_simulation(types=['A', 'B'],
                                        dimensions=3,
