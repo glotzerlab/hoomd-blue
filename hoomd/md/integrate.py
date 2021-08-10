@@ -171,15 +171,8 @@ class Integrator(_DynamicIntegrator):
 
     Classes of the following modules can be used as elements in `methods`:
 
-    - `hoomd.md.methods.Brownian`
-    - `hoomd.md.methods.Langevin`
-    - `hoomd.md.methods.NVE`
-    - `hoomd.md.methods.NVT`
-    - `hoomd.md.methods.NPT`
-
-    - `hoomd.md.methods.rattle.Brownian`
-    - `hoomd.md.methods.rattle.Langevin`
-    - `hoomd.md.methods.rattle.NVE`
+    - `hoomd.md.methods`
+    - `hoomd.md.methods.rattle`
 
     The classes of following modules can be used as elements in `forces`
 
