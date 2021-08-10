@@ -6,6 +6,7 @@
 
 from collections.abc import Sequence
 import json
+from numbers import Number
 
 from hoomd import md
 from hoomd.md.pair.pair import Pair
@@ -448,7 +449,7 @@ class ALJ(AnisotropicPair):
     def _to_three_tuple(value):
         if isinstance(value, Sequence):
             return value
-        if isinstance(value, float):
+        if isinstance(value, Number):
             return (value, value, value)
         else:
             raise ValueError(f"Expected a float or tuple object got {value}")
