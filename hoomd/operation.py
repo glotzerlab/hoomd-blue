@@ -12,7 +12,7 @@ from copy import copy
 from hoomd.trigger import Trigger
 from hoomd.logging import Loggable
 from hoomd.data.parameterdicts import ParameterDict
-
+from hoomd.error import MutabilityError
 
 class _HOOMDGetSetAttrBase:
     """Provides the use of `ParameterDicts` and `TypeParameterDicts` as attrs.
@@ -34,7 +34,7 @@ class _HOOMDGetSetAttrBase:
     _reserved_default_attrs = dict(_param_dict=ParameterDict,
                                    _typeparam_dict=dict)
     _override_setattr = set()
-
+    print('class')
     def __getattr__(self, attr):
         if attr in self._reserved_default_attrs.keys():
             default = self._reserved_default_attrs[attr]
@@ -76,13 +76,14 @@ class _HOOMDGetSetAttrBase:
         old_value = self._param_dict[attr]
         self._param_dict[attr] = value
         new_value = self._param_dict[attr]
+        print('pre attach')
         if self._attached:
+            print('attached')
             try:
                 setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
                 self._param_dict[attr] = old_value
-                raise AttributeError("{} cannot be set after cpp"
-                                     " initialization".format(attr))
+                raise MutabilityError
 
     def _setattr_typeparam(self, attr, value):
         """Hook for setting an attribute in `_typeparam_dict`."""
@@ -201,20 +202,18 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
             return self._param_dict[attr]
 
     def _setattr_param(self, attr, value):
+        """Hook for setting an attribute in `_param_dict`."""
         old_value = self._param_dict[attr]
-        # Triggers the validation checks and type expansions
         self._param_dict[attr] = value
+        new_value = self._param_dict[attr]
+        print('pre attach')
         if self._attached:
-            # new_value passed all checks and is of the right type
-            new_value = self._param_dict[attr]
+            print('attached')
             try:
                 setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
-                # if the parameter cannot be altered, we set it
-                # back to the original value in the dictionary
                 self._param_dict[attr] = old_value
-                raise AttributeError("{} cannot be set after cpp"
-                                     " initialization".format(attr))
+                raise MutabilityError(attr)
 
     def __eq__(self, other):
         other_keys = other.__dict__.keys()
