@@ -17,5 +17,5 @@ hoomd.error
     :synopsis: HOOMD errors
     :members: DataAccessError,
               TypeConversionError
-              AttributeSetError
+              MutabilityError
     :no-inherited-members:
