@@ -28,6 +28,8 @@ types of particle simulations.
   Send messages to the **HOOMD-blue** user community.
 - [HOOMD-blue website](https://glotzerlab.engin.umich.edu/hoomd-blue/):
   Additional information and publications.
+- [HOOMD-blue benchmark scripts](https://github.com/glotzerlab/hoomd-benchmarks):
+  Scripts to evaluate the performance of HOOMD-blue simulations.
 
 ## Example scripts
 
