@@ -347,31 +347,31 @@ class Active(Force):
     :py:class:`Active` specifies that an active force should be added to all
     particles.  Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where
     :math:`v_0` is the active velocity. In 2D :math:`\hat{p}_i = (\cos \theta_i,
-    \sin \theta_i)` is the active force vector for particle :math:`i` and the
-    diffusion of the active force vector follows :math:`\delta \theta / \delta t
-    = \sqrt{2 D_r / \delta t} \Gamma`, where :math:`D_r` is the rotational
-    diffusion constant, and the gamma function is a unit-variance random
-    variable, whose components are uncorrelated in time, space, and between
-    particles.  In 3D, :math:`\hat{p}_i` is a unit vector in 3D space, and
-    diffusion follows :math:`\delta \hat{p}_i / \delta t = \sqrt{2 D_r / \delta
-    t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)`, where
-    :math:`\hat{p}_r` is an uncorrelated random unit vector. The persistence
-    length of an active particle's path is :math:`v_0 / D_r`. The rotational
-    diffusion is applied to the orientation vector/quaternion of each particle.
-    This implies that both the active force and the active torque vectors in
-    the particle frame stay constant during the simulation. Hence, the active
-    forces in the system frame are composed of the forces in particle frame
-    and the current orientation of the particle.
+    \sin \theta_i)` is the active force vector for particle :math:`i`.  The
+    active force and the active torque vectors in the particle frame stay
+    constant during the simulation. Hence, the active forces in the system frame
+    are composed of the forces in particle frame and the current orientation of
+    the particle.
+
+    Note:
+        To introduce rotational diffusion to the active vectors, use
+        `Active.create_diffusion_updater`.
+
+        .. seealso::
+
+            hoomd.md.update.ActiveRotationalDiffusion
 
     Examples::
 
-
         all = filter.All()
         active = hoomd.md.force.Active(
-            filter=hoomd.filter.All(), rotation_diff=0.01
+            filter=hoomd.filter.All()
             )
         active.active_force['A','B'] = (1,0,0)
         active.active_torque['A','B'] = (0,0,0)
+        rotational_diffusion_updater = active.create_diffusion_updater(
+            trigger=10)
+        sim.operations += rotational_diffusion
     """
 
     def __init__(self, filter):
@@ -419,6 +419,24 @@ class Active(Force):
 
         # Attach param_dict and typeparam_dict
         super()._attach()
+
+    def create_diffusion_updater(self, trigger, rotational_diffusion=0.1):
+        """Create a rotational diffusion updater for this active force.
+
+        Args:
+            trigger (hoomd.trigger.Trigger): Select the timesteps to update
+                rotational diffusion.
+            active_force (hoomd.md.force.Active): The active force associated
+                with the updater. This is not settable after construction.
+            rotational_diffusion (hoomd.variant.Variant, optional): The
+                rotational diffusion as a function of time.
+
+        Returns:
+            hoomd.md.update.ActiveRotationalDiffusion
+                The rotational diffusion updater.
+        """
+        return hoomd.md.update.ActiveRotationalDiffusion(
+            trigger, self, rotational_diffusion)
 
 
 class ActiveOnManifold(Force):

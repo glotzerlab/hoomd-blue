@@ -22,6 +22,11 @@
 #ifndef __ACTIVEFORCECOMPUTE_H__
 #define __ACTIVEFORCECOMPUTE_H__
 
+// Forward declaration is necessary to avoid circular includes between this and
+// ActiveRotationalDiffusionUpdater.h while making ActiveRotationalDiffusionUpdater a friend class
+// of ActiveForceCompute.
+class ActiveRotationalDiffusionUpdater;
+
 //! Adds an active force to a number of particles
 /*! \ingroup computes
  */
@@ -76,6 +81,12 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         m_t_activeVec; //! active torque unit vectors and magnitudes for each particle type
 
     uint64_t last_computed;
+
+    private:
+    // Allow ActiveRotationalDiffusionUpdater to access internal methods and members of
+    // ActiveForceCompute classes/subclasses. This is necessary to allow
+    // ActiveRotationalDiffusionUpdater to call rotationalDiffusion.
+    friend class ActiveRotationalDiffusionUpdater;
     };
 
 //! Exports the ActiveForceComputeClass to python
