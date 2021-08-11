@@ -46,6 +46,8 @@ template<class T, class Array> class GPUVectorBase : public Array
     GPUVectorBase(const GPUVectorBase& from);
     //! = operator
     GPUVectorBase& operator=(const GPUVectorBase& rhs);
+    //! Move assignment operator
+    GPUVectorBase& operator=(GPUVectorBase&& other);
 
     //! swap this GPUVectorBase with another
     inline void swap(GPUVectorBase& from);
@@ -221,6 +223,19 @@ GPUVectorBase<T, Array>& GPUVectorBase<T, Array>::operator=(const GPUVectorBase&
         m_size = rhs.m_size;
         // invoke base class operator
         Array::operator=(rhs);
+        }
+
+    return *this;
+    }
+
+template<class T, class Array>
+GPUVectorBase<T, Array>& GPUVectorBase<T, Array>::operator=(GPUVectorBase&& other)
+    {
+    if (this != &other)
+        {
+        m_size = std::move(other.m_size);
+        // invoke move assignment for the base class
+        Array::operator=(std::move(other));
         }
 
     return *this;

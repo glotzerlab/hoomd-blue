@@ -410,5 +410,32 @@ UP_TEST(GPUVector_basic_tests)
     UP_ASSERT_EQUAL((unsigned int)vec[7], (unsigned int)678);
     UP_ASSERT_EQUAL((unsigned int)vec[8], (unsigned int)987);
     UP_ASSERT_EQUAL((unsigned int)vec[9], (unsigned int)890);
+
+    // test assignment operator
+    GPUVector<unsigned int> v;
+    v = vec;
+    UP_ASSERT_EQUAL(v.size(), static_cast<unsigned int>(10));
+    UP_ASSERT_EQUAL((unsigned int)v[0], (unsigned int)234);
+    UP_ASSERT_EQUAL((unsigned int)v[1], (unsigned int)123);
+    UP_ASSERT_EQUAL((unsigned int)v[2], (unsigned int)654);
+    UP_ASSERT_EQUAL((unsigned int)v[3], (unsigned int)789);
+    UP_ASSERT_EQUAL((unsigned int)v[4], (unsigned int)321);
+    UP_ASSERT_EQUAL((unsigned int)v[5], (unsigned int)432);
+    UP_ASSERT_EQUAL((unsigned int)v[6], (unsigned int)543);
+    UP_ASSERT_EQUAL((unsigned int)v[7], (unsigned int)678);
+    UP_ASSERT_EQUAL((unsigned int)v[8], (unsigned int)987);
+    UP_ASSERT_EQUAL((unsigned int)v[9], (unsigned int)890);
+    UP_ASSERT(static_cast<bool>(v.getExecutionConfiguration()));
+
+    // test move assignment
+    v = GPUVector<unsigned int>(5, 2,
+            std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
+    UP_ASSERT_EQUAL(v.size(), static_cast<unsigned int>(5));
+    UP_ASSERT_EQUAL((unsigned int)v[0], (unsigned int)2);
+    UP_ASSERT_EQUAL((unsigned int)v[1], (unsigned int)2);
+    UP_ASSERT_EQUAL((unsigned int)v[2], (unsigned int)2);
+    UP_ASSERT_EQUAL((unsigned int)v[3], (unsigned int)2);
+    UP_ASSERT_EQUAL((unsigned int)v[4], (unsigned int)2);
+
     }
 #endif
