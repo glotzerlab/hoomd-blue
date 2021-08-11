@@ -374,11 +374,10 @@ class Active(Force):
         active.active_torque['A','B'] = (0,0,0)
     """
 
-    def __init__(self, filter, rotation_diff=0.1):
+    def __init__(self, filter):
         # store metadata
-        param_dict = ParameterDict(filter=ParticleFilter,
-                                   rotation_diff=float(rotation_diff))
-        param_dict.update(dict(rotation_diff=rotation_diff, filter=filter))
+        param_dict = ParameterDict(filter=ParticleFilter)
+        param_dict["filter"] = filter
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -416,8 +415,7 @@ class Active(Force):
             my_class = _md.ActiveForceComputeGPU
 
         self._cpp_obj = my_class(sim.state._cpp_sys_def,
-                                 sim.state._get_group(self.filter),
-                                 self.rotation_diff)
+                                 sim.state._get_group(self.filter))
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -466,16 +464,15 @@ class ActiveOnManifold(Force):
         active.active_torque['A','B'] = (0,0,0)
     """
 
-    def __init__(self, filter, manifold_constraint, rotation_diff=0.1):
+    def __init__(self, filter, manifold_constraint):
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
-                                   rotation_diff=float(rotation_diff),
                                    manifold_constraint=OnlyTypes(
                                        Manifold, allow_none=False))
-        param_dict.update(
-            dict(rotation_diff=rotation_diff,
-                 filter=filter,
-                 manifold_constraint=manifold_constraint))
+        param_dict.update({
+            "filter": filter,
+            "manifold_constraint": manifold_constraint
+        })
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -539,7 +536,6 @@ class ActiveOnManifold(Force):
 
         self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter),
-                                 self.rotation_diff,
                                  self.manifold_constraint._cpp_obj)
 
         # Attach param_dict and typeparam_dict

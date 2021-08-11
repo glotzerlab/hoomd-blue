@@ -30,7 +30,6 @@ class PYBIND11_EXPORT ActiveForceConstraintCompute : public ActiveForceCompute
     //! Constructs the compute
     ActiveForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<ParticleGroup> group,
-                                 Scalar rotation_diff,
                                  Manifold manifold);
     //
     //! Destructor
@@ -41,7 +40,7 @@ class PYBIND11_EXPORT ActiveForceConstraintCompute : public ActiveForceCompute
     virtual void computeForces(uint64_t timestep);
 
     //! Orientational diffusion for spherical particles
-    virtual void rotationalDiffusion(uint64_t timestep);
+    virtual void rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep);
 
     //! Set constraints if particles confined to a surface
     virtual void setConstraint();
@@ -65,9 +64,8 @@ template<class Manifold>
 ActiveForceConstraintCompute<Manifold>::ActiveForceConstraintCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<ParticleGroup> group,
-    Scalar rotation_diff,
     Manifold manifold)
-    : ActiveForceCompute(sysdef, group, rotation_diff), m_manifold(manifold), m_box_changed(true)
+    : ActiveForceCompute(sysdef, group), m_manifold(manifold), m_box_changed(true)
     {
     m_pdata->getBoxChangeSignal()
         .template connect<ActiveForceConstraintCompute<Manifold>,
@@ -88,7 +86,7 @@ template<class Manifold> ActiveForceConstraintCompute<Manifold>::~ActiveForceCon
     \param timestep Current timestep
 */
 template<class Manifold>
-void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timestep)
+void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -101,6 +99,7 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timest
     assert(h_orientation.data != NULL);
     assert(h_tag.data != NULL);
 
+    const auto rotation_constant = slow::sqrt(2.0 * rotational_diffusion * m_deltaT);
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
         unsigned int idx = m_group->getMemberIndex(i);
@@ -115,7 +114,7 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timest
 
         vec3<Scalar> norm = normalize(vec3<Scalar>(m_manifold.derivative(current_pos)));
 
-        Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
+        Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotation_constant)(rng);
 
         quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(norm, delta_theta);
 
@@ -192,8 +191,6 @@ void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
 
     if (last_computed != timestep)
         {
-        m_rotationConst = slow::sqrt(2.0 * m_rotationDiff * m_deltaT);
-
         if (m_box_changed)
             {
             if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
@@ -207,10 +204,6 @@ void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
 
         setConstraint(); // apply manifold constraints to active particles active force vectors
 
-        if (m_rotationDiff != 0)
-            {
-            rotationalDiffusion(timestep); // apply rotational diffusion to active particles
-            }
         setForces(); // set forces for particles
         }
 
@@ -231,7 +224,6 @@ void export_ActiveForceConstraintCompute(pybind11::module& m, const std::string&
                      std::shared_ptr<ActiveForceConstraintCompute<Manifold>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            Scalar,
                             Manifold>());
     }
 

@@ -23,8 +23,7 @@ using namespace std;
    rotation_diff rotational diffusion constant for all particles.
 */
 ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                             std::shared_ptr<ParticleGroup> group,
-                                             Scalar rotation_diff)
+                                             std::shared_ptr<ParticleGroup> group)
     : ActiveForceCompute(sysdef, group, rotation_diff)
     {
     if (!m_exec_conf->isCUDAEnabled())
@@ -127,7 +126,7 @@ void ActiveForceComputeGPU::setForces()
  * force vector does not change
     \param timestep Current timestep
 */
-void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
+void ActiveForceComputeGPU::rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
@@ -145,6 +144,9 @@ void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
     bool is2D = (m_sysdef->getNDimensions() == 2);
     unsigned int group_size = m_group->getNumMembers();
 
+
+    const auto rotation_constant = slow::sqrt(2.0 * rotational_diffusion * m_deltaT);
+
     // perform the update on the GPU
     m_tuner_diffusion->begin();
 
@@ -155,7 +157,7 @@ void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
                                                   d_orientation.data,
                                                   d_f_actVec.data,
                                                   is2D,
-                                                  m_rotationConst,
+                                                  rotation_constant,
                                                   timestep,
                                                   m_sysdef->getSeed(),
                                                   m_tuner_diffusion->getParam());
@@ -171,5 +173,5 @@ void export_ActiveForceComputeGPU(py::module& m)
     py::class_<ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU>>(
         m,
         "ActiveForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar>());
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }

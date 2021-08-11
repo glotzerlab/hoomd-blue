@@ -200,7 +200,7 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForc
     \param timestep Current timestep
 */
 template<class Manifold>
-void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t timestep)
+void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
@@ -221,6 +221,7 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t tim
     bool is2D = (this->m_sysdef->getNDimensions() == 2);
     unsigned int group_size = this->m_group->getNumMembers();
 
+    const auto rotation_constant = slow::sqrt(2.0 * rotational_diffusion * m_deltaT);
     // perform the update on the GPU
     this->m_tuner_diffusion->begin();
 
@@ -232,7 +233,7 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t tim
         d_orientation.data,
         this->m_manifold,
         is2D,
-        this->m_rotationConst,
+        rotation_constant,
         timestep,
         this->m_sysdef->getSeed(),
         this->m_tuner_diffusion->getParam());

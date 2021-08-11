@@ -18,9 +18,9 @@ using namespace hoomd;
 /*! \param rotation_diff rotational diffusion constant for all particles.
  */
 ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                                       std::shared_ptr<ParticleGroup> group,
-                                       Scalar rotation_diff)
-    : ForceCompute(sysdef), m_group(group), m_rotationDiff(rotation_diff)
+                                       std::shared_ptr<ParticleGroup> group)
+
+    : ForceCompute(sysdef), m_group(group)
     {
     // allocate memory for the per-type active_force storage and initialize them to (1.0,0,0)
     GlobalVector<Scalar4> tmp_f_activeVec(m_pdata->getNTypes(), m_exec_conf);
@@ -231,7 +231,7 @@ void ActiveForceCompute::setForces()
  * relative to the force vector is preserved
     \param timestep Current timestep
 */
-void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
+void ActiveForceCompute::rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
@@ -246,6 +246,7 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
     assert(h_orientation.data != NULL);
     assert(h_tag.data != NULL);
 
+    const auto rotation_constant = slow::sqrt(2.0 * rotational_diffusion * m_deltaT);
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
         unsigned int idx = m_group->getMemberIndex(i);
@@ -263,7 +264,7 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
 
             if (m_sysdef->getNDimensions() == 2) // 2D
                 {
-                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
+                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotation_constant)(rng);
 
                 vec3<Scalar> b(0, 0, 1.0);
                 quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(b, delta_theta);
@@ -288,7 +289,7 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
                 Scalar aux_vec_mag = slow::rsqrt(dot(aux_vec, aux_vec));
                 aux_vec *= aux_vec_mag;
 
-                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
+                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotation_constant)(rng);
                 quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(aux_vec, delta_theta);
 
                 quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
@@ -308,14 +309,7 @@ void ActiveForceCompute::computeForces(uint64_t timestep)
 
     if (last_computed != timestep)
         {
-        m_rotationConst = slow::sqrt(2.0 * m_rotationDiff * m_deltaT);
-
         last_computed = timestep;
-
-        if (m_rotationDiff != 0)
-            {
-            rotationalDiffusion(timestep); // apply rotational diffusion to active particles
-            }
         setForces(); // set forces for particles
         }
 
@@ -333,9 +327,7 @@ void export_ActiveForceCompute(pybind11::module& m)
     pybind11::class_<ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute>>(
         m,
         "ActiveForceCompute")
-        .def(pybind11::
-                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar>())
-        .def_property("rotation_diff", &ActiveForceCompute::getRdiff, &ActiveForceCompute::setRdiff)
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
         .def("setActiveForce", &ActiveForceCompute::setActiveForce)
         .def("getActiveForce", &ActiveForceCompute::getActiveForce)
         .def("setActiveTorque", &ActiveForceCompute::setActiveTorque)
