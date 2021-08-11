@@ -4,6 +4,15 @@
 
 """HOOMD Errors."""
 
+class MutabilityError(AttributeError):
+    """Raised when user attempts to set an attribute after a simulation
+    has been run."""
+    def __init__(self, attribute_name):
+        self.attribute_name = attribute_name
+
+    def __str__(self):
+        return (f'The attribute {self.attribute_name} is immutable after '
+                'simulation has been run.')
 
 class DataAccessError(RuntimeError):
     """Raised when data is inaccessible until the simulation is run."""
