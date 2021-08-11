@@ -41,7 +41,6 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
     reset();
     }
 
-
 /*
  * Update the size of the memory buffers to store the partial sums, if needed.
  */
@@ -66,7 +65,6 @@ void FIREEnergyMinimizerGPU::resizePartialSumArrays()
         m_partial_sum3.resize(num_blocks);
         }
     }
-
 
 /*! \param timesteps is the iteration number
  */

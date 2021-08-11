@@ -480,22 +480,21 @@ void export_FIREEnergyMinimizer(py::module& m)
         .def("reset", &FIREEnergyMinimizer::reset)
         .def("hasConverged", &FIREEnergyMinimizer::hasConverged)
         .def("getEnergy", &FIREEnergyMinimizer::getEnergy)
-        .def_property("min_steps_adapt", &FIREEnergyMinimizer::getNmin,
-                                         &FIREEnergyMinimizer::setNmin)
-        .def_property("finc_dt", &FIREEnergyMinimizer::getFinc,
-                                 &FIREEnergyMinimizer::setFinc)
-        .def_property("fdec_dt", &FIREEnergyMinimizer::getFdec,
-                                 &FIREEnergyMinimizer::setFdec)
-        .def_property("alpha_start", &FIREEnergyMinimizer::getAlphaStart,
-                                     &FIREEnergyMinimizer::setAlphaStart)
-        .def_property("fdec_alpha", &FIREEnergyMinimizer::getFalpha,
-                                    &FIREEnergyMinimizer::setFalpha)
-        .def_property("force_tol", &FIREEnergyMinimizer::getFtol,
-                                   &FIREEnergyMinimizer::setFtol)
-        .def_property("angmom_tol", &FIREEnergyMinimizer::getWtol,
-                                    &FIREEnergyMinimizer::setWtol)
-        .def_property("energy_tol", &FIREEnergyMinimizer::getEtol,
-                                    &FIREEnergyMinimizer::setEtol)
-        .def_property("min_steps_conv", &FIREEnergyMinimizer::getMinSteps,
-                                        &FIREEnergyMinimizer::setMinSteps);
+        .def_property("min_steps_adapt",
+                      &FIREEnergyMinimizer::getNmin,
+                      &FIREEnergyMinimizer::setNmin)
+        .def_property("finc_dt", &FIREEnergyMinimizer::getFinc, &FIREEnergyMinimizer::setFinc)
+        .def_property("fdec_dt", &FIREEnergyMinimizer::getFdec, &FIREEnergyMinimizer::setFdec)
+        .def_property("alpha_start",
+                      &FIREEnergyMinimizer::getAlphaStart,
+                      &FIREEnergyMinimizer::setAlphaStart)
+        .def_property("fdec_alpha",
+                      &FIREEnergyMinimizer::getFalpha,
+                      &FIREEnergyMinimizer::setFalpha)
+        .def_property("force_tol", &FIREEnergyMinimizer::getFtol, &FIREEnergyMinimizer::setFtol)
+        .def_property("angmom_tol", &FIREEnergyMinimizer::getWtol, &FIREEnergyMinimizer::setWtol)
+        .def_property("energy_tol", &FIREEnergyMinimizer::getEtol, &FIREEnergyMinimizer::setEtol)
+        .def_property("min_steps_conv",
+                      &FIREEnergyMinimizer::getMinSteps,
+                      &FIREEnergyMinimizer::setMinSteps);
     }
