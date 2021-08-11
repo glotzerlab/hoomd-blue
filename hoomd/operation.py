@@ -76,9 +76,7 @@ class _HOOMDGetSetAttrBase:
         old_value = self._param_dict[attr]
         self._param_dict[attr] = value
         new_value = self._param_dict[attr]
-        print('pre attach')
         if self._attached:
-            print('attached')
             try:
                 setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
@@ -206,9 +204,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         old_value = self._param_dict[attr]
         self._param_dict[attr] = value
         new_value = self._param_dict[attr]
-        print('pre attach')
         if self._attached:
-            print('attached')
             try:
                 setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
