@@ -7,6 +7,8 @@
 # Maintainer: joaander / All Developers are free to add commands for new
 # features
 
+"""Energy minimizer."""
+
 import hoomd
 
 from hoomd.data.parameterdicts import ParameterDict
@@ -16,29 +18,32 @@ from hoomd.md.integrate import _DynamicIntegrator, _preprocess_aniso
 
 
 class FIRE(_DynamicIntegrator):
-    R""" Energy Minimizer (FIRE).
+    """Energy Minimizer (FIRE).
 
     Args:
         dt (float):
             This is the maximum step size the minimizer is permitted to use.
-            Consider the stability of the system when setting. (in time units)
+            Consider the stability of the system when setting.
+            math:`[\\mathrm{time}]`
         min_steps_adapt (int):
             Number of steps energy change is negative before allowing
-            :math:`\alpha` and :math:`\delta t` to adapt.
+            :math:`\\alpha` and :math:`\\delta t` to adapt.
         finc_dt (float):
-            Factor to increase :math:`\delta t` by
+            Factor to increase :math:`\\delta t` by
         fdec_dt (float):
-            Factor to decrease :math:`\delta t` by
+            Factor to decrease :math:`\\delta t` by
         alpha_start (float):
-            Initial (and maximum) :math:`\alpha`
+            Initial (and maximum) :math:`\\alpha`
         fdec_alpha (float):
-            Factor to decrease :math:`\alpha t` by
+            Factor to decrease :math:`\\alpha t` by
         force_tol (float):
-            force convergence criteria (in units of force over mass)
+            force convergence criteria
+            math:`[\\mathrm{force} / \\mathrm{mass}]`
         angmom_tol (float):
-            angular momentum convergence criteria (in units of angular momentum)
+            angular momentum convergence criteria
+            math:`[\\mathrm{energy} * \\mathrm{time}]`
         energy_tol (float):
-            energy convergence criteria (in energy units)
+            energy convergence criteria math:`[\\mathrm{energy}]`
         min_steps_conv (int):
             A minimum number of attempts before convergence criteria are
             considered
@@ -51,33 +56,34 @@ class FIRE(_DynamicIntegrator):
     .. versionadded:: 2.1
     .. versionchanged:: 2.2
 
-    :py:class:`mode_minimize_fire` uses the Fast Inertial Relaxation Engine
-    (FIRE) algorithm to minimize the energy for a group of particles while
-    keeping all other particles fixed.  This method is published in `Bitzek, et.
-    al., PRL, 2006 <http://dx.doi.org/10.1103/PhysRevLett.97.170201>`_.
+    `minimize.FIRE` uses the Fast Inertial Relaxation Engine (FIRE) algorithm
+    to minimize the energy for a group of particles while keeping all other
+    particles fixed.  This method is published in `Bitzek, et. al., PRL, 2006
+    <http://dx.doi.org/10.1103/PhysRevLett.97.170201>`_.
 
-    At each time step, :math:`\delta t`, the algorithm uses the NVE Integrator
+    At each time step, :math:`\\delta t`, the algorithm uses the NVE Integrator
     to generate a x, v, and F, and then adjusts v according to
 
     .. math::
 
-        \vec{v} = (1-\alpha)\vec{v} + \alpha \hat{F}|\vec{v}|
+        \\vec{v} = (1-\\alpha)\\vec{v} + \\alpha \\hat{F}|\\vec{v}|
 
-    where :math:`\alpha` and :math:`\delta t` are dynamically adaptive
+    where :math:`\\alpha` and :math:`\\delta t` are dynamically adaptive
     quantities.  While a current search has been lowering the energy of system
-    for more than :math:`N_{min}` steps, :math:`\alpha`  is decreased by
-    :math:`\alpha \rightarrow \alpha f_{alpha}` and :math:`\delta t` is
-    increased by :math:`\delta t \rightarrow max(\delta t \cdot f_{inc}, \
-    \delta t_{max})`. If the energy of the system increases (or stays the same),
-    the velocity of the particles is set to 0, :math:`\alpha \rightarrow \
-    \alpha_{start}` and :math:`\delta t \rightarrow \delta t \cdot f_{dec}`.
-    Convergence is determined by both the force per particle and the change in
-    energy per particle dropping below *ftol* and *Etol*, respectively or
+    for more than :math:`N_{min}` steps, :math:`\\alpha` is decreased by
+    :math:`\\alpha \\rightarrow \\alpha fdec_{\\alpha}` and :math:`\\delta t`
+    is increased by :math:`\\delta t \\rightarrow max(\\delta t \\cdot
+    finc_{dt}, \\ \\delta t_{max})`. If the energy of the system increases (or
+    stays the same), the velocity of the particles is set to 0, :math:`\\alpha
+    \\rightarrow \\ \\alpha_{start}` and :math:`\\delta t \\rightarrow \\delta t
+    \\cdot fdec_{\\alpha}`. Convergence is determined by both the force per
+    particle and the change in energy per particle dropping below *angmom_tol*
+    and *energy_tol*, respectively or
 
     .. math::
 
-        \frac{\sum |F|}{N*\sqrt{N_{dof}}} <ftol \;\; and \;\ \Delta \frac{\sum
-        |E|}{N} < Etol
+        \\frac{\\sum |F|}{N*\\sqrt{N_{dof}}} < angmom_{tol} \\;\\; and \\;\\
+        \\Delta \\frac{\\sum|E|}{N} < energy_{tol}
 
     where N is the number of particles the minimization is acting over (i.e.
     the group size) Either of the two criterion can be effectively turned off
@@ -89,17 +95,21 @@ class FIRE(_DynamicIntegrator):
 
     Examples::
 
-        fire=integrate.mode_minimize_fire(dt=0.05, ftol=1e-2, Etol=1e-7)
-        nve=integrate.nve(group=group.all())
+        fire = md.minimize.FIRE(dt=0.05)
+        fire.force_tol = 1e-2
+        fire.energy_tol = 1e-7
+        fire.methods.append(methods.NVE(filter.All()))
+        sim.operations.integrator = fire
         while not(fire.has_converged()):
-           run(100)
+           sim.run(100)
 
     Examples::
 
-        fire=integrate.mode_minimize_fire(dt=0.05, ftol=1e-2, Etol=1e-7)
-        nph=integrate.nph(group=group.all(),P=0.0,gamma=.5)
+        fire = md.minimize.FIRE(dt=0.05)
+        fire.methods.append(methods.NPH(filter.All(), P=0.0, gamma=.5))
+        sim.operations.integrator = fire
         while not(fire.has_converged()):
-           run(100)
+           sim.run(100)
 
     Note:
         The algorithm requires a base integrator to update the particle
@@ -109,12 +119,12 @@ class FIRE(_DynamicIntegrator):
         quantity).
 
     Note:
-        As a default setting, the algorithm will start with a :math:`\delta t =
-        \frac{1}{10} \delta t_{max}` and attempts at least 10 search steps. In
-        practice, it was found that this prevents the simulation from making too
-        aggressive a first step, but also from quitting before having found a
-        good search direction. The minimum number of attempts can be set by the
-        user.
+        As a default setting, the algorithm will start with a :math:`\\delta t
+        = \\frac{1}{10} \\delta t_{max}` and attempts at least 10 search steps.
+        In practice, it was found that this prevents the simulation from making
+        too aggressive a first step, but also from quitting before having found
+        a good search direction. The minimum number of attempts can be set by
+        the user.
 
     """
     _cpp_class_name = "FIREEnergyMinimizer"
@@ -134,16 +144,15 @@ class FIRE(_DynamicIntegrator):
                 dt=float(dt),
                 aniso=OnlyFrom(['true', 'false', 'auto'],
                                preprocess=_preprocess_aniso),
-                min_steps_adapt=int,  # TODO find a way force positive integers
+                min_steps_adapt=int,  # TODO force positive integers
                 finc_dt=float,
                 fdec_dt=float,
-                alpha_start=
-                float,  # TODO find a way to prevent user from resetting this value
+                alpha_start=float,  # TODO prevent user from resetting value
                 fdec_alpha=float,
                 force_tol=float,
                 angmom_tol=float,
                 energy_tol=float,
-                min_steps_conv=int,  # TODO find a way to force positive integers
+                min_steps_conv=int,  # TODO force positive integers
                 _defaults={
                     "aniso": "auto",
                     "min_steps_adapt": 5,

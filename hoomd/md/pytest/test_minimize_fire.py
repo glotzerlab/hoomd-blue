@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 import hoomd
 from hoomd import md
@@ -74,7 +73,7 @@ def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
 
 
 def test_run_minimization(lattice_snapshot_factory, simulation_factory):
-    """ Run a short minimization simulation. """
+    """Run a short minimization simulation."""
     snap = lattice_snapshot_factory(a=0.9, n=5)
     sim = simulation_factory(snap)
 

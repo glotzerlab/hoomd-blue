@@ -7,4 +7,6 @@
 # Maintainer: joaander / All Developers are free to add commands for new
 # features
 
+"""Energy minimizer for molecular dynamics."""
+
 from hoomd.md.minimize.fire import FIRE
