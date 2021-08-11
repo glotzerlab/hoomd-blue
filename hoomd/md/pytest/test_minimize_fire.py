@@ -82,8 +82,6 @@ def test_run_minimization(lattice_snapshot_factory, simulation_factory):
     nve = md.methods.NVE(hoomd.filter.All())
 
     fire = md.minimize.FIRE(dt=0.0025)
-    fire.force_tol = 1e-5
-    fire.energy_tol = 1e-10
 
     sim.operations.integrator = fire
     fire.methods.append(nve)
