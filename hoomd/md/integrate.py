@@ -208,16 +208,16 @@ class Integrator(_DynamicIntegrator):
     Attributes:
         dt (float): Integrator time step size :math:`[\\mathrm{time}]`.
 
-        methods (List[hoomd.md.methods.Method]): List of integration methods.
+        methods (list[hoomd.md.methods.Method]): List of integration methods.
             Each integration method can be applied to only a specific subset of
             particles.
 
-        forces (List[hoomd.md.force.Force]): List of forces applied to
+        forces (list[hoomd.md.force.Force]): List of forces applied to
             the particles in the system. All the forces are summed together.
 
         aniso (str): Whether rotational degrees of freedom are integrated.
 
-        constraints (List[hoomd.md.constrain.Constraint]): List of
+        constraints (list[hoomd.md.constrain.Constraint]): List of
             constraint forces applied to the particles in the system.
 
         rigid (hoomd.md.constrain.Rigid): The rigid body definition for the

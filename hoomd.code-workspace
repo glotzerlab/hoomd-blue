@@ -141,6 +141,8 @@
             "uint",
             "unmap",
             "verts",
+            "virial",
+            "virials",
             "yapf"
         ]
     }

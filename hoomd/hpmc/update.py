@@ -141,7 +141,8 @@ class BoxMC(Updater):
 
         Note:
             The counts are reset to 0 at the start of each call to
-            `hoomd.Simulation.run`.
+            `hoomd.Simulation.run`. Before the first call to `Simulation.run`,
+            `counter` is `None`.
         """
         if not self._attached:
             return None
@@ -152,7 +153,7 @@ class BoxMC(Updater):
     def volume_moves(self):
         """tuple[int, int]: The accepted and rejected volume and length moves.
 
-        (0, 0) when not attached.
+        (0, 0) before the first call to `Simulation.run`.
         """
         counter = self.counter
         if counter is None:
@@ -168,7 +169,7 @@ class BoxMC(Updater):
     def shear_moves(self):
         """tuple[int, int]: The accepted and rejected shear moves.
 
-        (0, 0) when not attached.
+        (0, 0) before the first call to `Simulation.run`.
         """
         counter = self.counter
         if counter is None:
@@ -180,7 +181,7 @@ class BoxMC(Updater):
     def aspect_moves(self):
         """tuple[int, int]: The accepted and rejected aspect moves.
 
-        (0, 0) when not attached.
+        (0, 0) before the first call to `Simulation.run`.
         """
         counter = self.counter
         if counter is None:

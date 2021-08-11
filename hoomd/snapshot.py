@@ -113,41 +113,41 @@ class Snapshot:
             particles.types (list[str]):
                 Names of the particle types.
 
-            particles.position ((*N*, 3) `numpy.ndarray` of ``numpy.float32``):
+            particles.position ((*N*, 3) `numpy.ndarray` of `float`):
                 Particle position :math:`[\\mathrm{length}]`.
 
             particles.orientation ((*N*, 4) `numpy.ndarray` of \
-                ``numpy.float32``):
+                `float`):
                 Particle orientation.
 
-            particles.typeid ((*N*, ) `numpy.ndarray` of ``numpy.uint32``):
+            particles.typeid ((*N*, ) `numpy.ndarray` of ``uint32``):
                 Particle type id.
 
-            particles.mass ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
+            particles.mass ((*N*, ) `numpy.ndarray` of `float`):
                 Particle mass :math:`[\\mathrm{mass}]`.
 
-            particles.charge ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
+            particles.charge ((*N*, ) `numpy.ndarray` of `float`):
                 Particle charge :math:`[\\mathrm{charge}]`.
 
-            particles.diameter ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
+            particles.diameter ((*N*, ) `numpy.ndarray` of `float`):
                 Particle diameter :math:`[\\mathrm{length}]`.
 
-            particles.body ((*N*, ) `numpy.ndarray` of ``numpy.int32``):
+            particles.body ((*N*, ) `numpy.ndarray` of ``int32``):
                 Particle body.
 
             particles.moment_inertia ((*N*, 3) `numpy.ndarray` of \
-                ``numpy.float32``):
+                `float`):
                 Particle moment of inertia :math:`[\\mathrm{mass} \\cdot
                 \\mathrm{length}^2]`.
 
-            particles.velocity ((*N*, 3) `numpy.ndarray` of ``numpy.float32``):
+            particles.velocity ((*N*, 3) `numpy.ndarray` of `float`):
                 Particle velocity :math:`[\\mathrm{velocity}]`.
 
-            particles.angmom ((*N*, 4) `numpy.ndarray` of ``numpy.float32``):
+            particles.angmom ((*N*, 4) `numpy.ndarray` of `float`):
                 Particle angular momentum :math:`[\\mathrm{mass} \\cdot
                 \\mathrm{velocity} \\cdot \\mathrm{length}]`.
 
-            particles.image ((*N*, 3) `numpy.ndarray` of ``numpy.int32``):
+            particles.image ((*N*, 3) `numpy.ndarray` of ``int32``):
                 Particle image.
 
         Note:
@@ -167,10 +167,10 @@ class Snapshot:
 
             bonds.types (list[str]): Names of the bond types
 
-            bonds.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+            bonds.typeid ((*N*,) `numpy.ndarray` of ``uint32``):
                 Bond type id.
 
-            bonds.group ((*N*, 2) `numpy.ndarray` of ``numpy.uint32``):
+            bonds.group ((*N*, 2) `numpy.ndarray` of ``uint32``):
                 Tags of the particles in the bond.
 
         Note:
@@ -190,10 +190,10 @@ class Snapshot:
 
             angles.types (list[str]): Names of the angle types
 
-            angles.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+            angles.typeid ((*N*,) `numpy.ndarray` of ``uint32``):
                 Angle type id.
 
-            angles.group ((*N*, 3) `numpy.ndarray` of ``numpy.uint32``):
+            angles.group ((*N*, 3) `numpy.ndarray` of ``uint32``):
                 Tags of the particles in the angle.
 
         Note:
@@ -213,10 +213,10 @@ class Snapshot:
 
             dihedrals.types (list[str]): Names of the dihedral types
 
-            dihedrals.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+            dihedrals.typeid ((*N*,) `numpy.ndarray` of ``uint32``):
                 Dihedral type id.
 
-            dihedrals.group ((*N*, 4) `numpy.ndarray` of ``numpy.uint32``):
+            dihedrals.group ((*N*, 4) `numpy.ndarray` of ``uint32``):
                 Tags of the particles in the dihedral.
 
         Note:
@@ -236,10 +236,10 @@ class Snapshot:
 
             impropers.types (list[str]): Names of the improper types
 
-            impropers.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+            impropers.typeid ((*N*,) `numpy.ndarray` of ``uint32``):
                 Improper type id.
 
-            impropers.group ((*N*, 4) `numpy.ndarray` of ``numpy.uint32``):
+            impropers.group ((*N*, 4) `numpy.ndarray` of ``uint32``):
                 Tags of the particles in the improper.
 
         Note:
@@ -259,10 +259,10 @@ class Snapshot:
 
             pairs.types (list[str]): Names of the special pair types
 
-            pairs.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+            pairs.typeid ((*N*,) `numpy.ndarray` of ``uint32``):
                 Special pair type id.
 
-            pairs.group ((*N*, 2) `numpy.ndarray` of ``numpy.uint32``):
+            pairs.group ((*N*, 2) `numpy.ndarray` of ``uint32``):
                 Tags of the particles in the special pair.
 
         Note:
@@ -280,10 +280,10 @@ class Snapshot:
         Attributes:
             constraints.N (int): Number of constraints.
 
-            constraints.value ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
+            constraints.value ((*N*, ) `numpy.ndarray` of `float`):
                 Constraint length.
 
-            constraints.group ((*N*, *2*) `numpy.ndarray` of ``numpy.uint32``):
+            constraints.group ((*N*, *2*) `numpy.ndarray` of ``uint32``):
                 Tags of the particles in the constraint.
 
         Note:

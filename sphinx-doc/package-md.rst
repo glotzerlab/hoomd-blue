@@ -1,5 +1,5 @@
-md
-====
+hoomd.md
+========
 
 .. rubric:: Details
 

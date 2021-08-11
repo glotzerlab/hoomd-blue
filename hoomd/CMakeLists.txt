@@ -84,6 +84,7 @@ set(_hoomd_sources Analyzer.cc
                    MPIConfiguration.cc
                    ParticleData.cc
                    ParticleGroup.cc
+                   ParticleFilterUpdater.cc
                    Profiler.cc
                    PythonLocalDataAccess.cc
                    PythonAnalyzer.cc
@@ -175,6 +176,7 @@ set(_hoomd_headers
     ParticleData.h
     ParticleGroup.cuh
     ParticleGroup.h
+    ParticleFilterUpdater.h
     Profiler.h
     PythonLocalDataAccess.h
     PythonUpdater.h

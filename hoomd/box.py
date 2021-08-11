@@ -247,7 +247,7 @@ class Box:
     # Length based properties
     @property
     def L(self):  # noqa: N802 - allow function name
-        """(3) `numpy.ndarray` of `float`: The box lengths, ``[Lx, Ly, Lz]`` \
+        """(3, ) `numpy.ndarray` of `float`: The box lengths, ``[Lx, Ly, Lz]`` \
         :math:`[\\mathrm{length}]`.
 
         Can be set with a float which sets all lengths, or a length 3 vector.
@@ -300,7 +300,7 @@ class Box:
     # Box tilt based properties
     @property
     def tilts(self):
-        """(3) `numpy.ndarray` of `float`: The box tilts, ``[xy, xz, yz]``.
+        """(3, ) `numpy.ndarray` of `float`: The box tilts, ``[xy, xz, yz]``.
 
         Can be set using one tilt for all axes or three tilts. If the box is 2D
         ``xz`` and ``yz`` will automatically be set to zero.
@@ -348,7 +348,8 @@ class Box:
     # Misc. properties
     @property
     def periodic(self):
-        """(3) `numpy.ndarray` of `bool`: The periodicity of each dimension."""
+        """(3, ) `numpy.ndarray` of `bool`: The periodicity of each \
+        dimension."""
         return _vec3_to_array(self._cpp_obj.getPeriodic(), bool)
 
     @property
@@ -416,7 +417,7 @@ class Box:
         modified.
 
         Args:
-            s (float or Sequence[float]): scale factors in each dimension. If a
+            s (float or list[float]): scale factors in each dimension. If a
                 single float is given then scale all dimensions by s; otherwise,
                 s must be a sequence of 3 values used to scale each dimension.
 
