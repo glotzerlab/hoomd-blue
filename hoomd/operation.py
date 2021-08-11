@@ -34,7 +34,6 @@ class _HOOMDGetSetAttrBase:
     _reserved_default_attrs = dict(_param_dict=ParameterDict,
                                    _typeparam_dict=dict)
     _override_setattr = set()
-    print('class')
     def __getattr__(self, attr):
         if attr in self._reserved_default_attrs.keys():
             default = self._reserved_default_attrs[attr]
