@@ -97,17 +97,6 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         */
     virtual void computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream);
 
-    //! Method to be called when number of types changes
-    virtual void slotNumTypesChange()
-        {
-        PatchEnergyJITUnion::slotNumTypesChange();
-        unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
-        m_d_union_params.resize(ntypes);
-
-        // update device side pointer
-        m_gpu_factory.setUnionParamsPtr(&m_d_union_params.front());
-        }
-
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
         \param period period (approximate) in time steps when returning occurs

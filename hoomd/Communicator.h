@@ -689,23 +689,6 @@ class PYBIND11_EXPORT Communicator
     GroupCommunicator<PairData> m_pair_comm; //!< Communication helper for special pairs
     friend class GroupCommunicator<PairData>;
 
-    //! Reallocate the ghost layer width arrays when number of types change
-    void slotNumTypesChanged()
-        {
-        // skip the reallocation if the number of types does not change
-        // this keeps old parameters when restoring a snapshot
-        // it will result in invalid coefficients if the snapshot has a different type id -> name
-        // mapping
-        if (m_pdata->getNTypes() == m_r_ghost.getNumElements())
-            return;
-
-        GlobalArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
-        m_r_ghost.swap(r_ghost);
-
-        GlobalArray<Scalar> r_ghost_body(m_pdata->getNTypes(), m_exec_conf);
-        m_r_ghost_body.swap(r_ghost_body);
-        }
-
     //! Helper function to initialize adjacency arrays
     void initializeNeighborArrays();
 

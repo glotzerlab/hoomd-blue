@@ -12,11 +12,9 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_MPI
 #ifdef ENABLE_HIP
 
-#ifndef __LOADBALANCERGPU_H__
-#define __LOADBALANCERGPU_H__
+#pragma once
 
 #include "Autotuner.h"
 #include "GPUFlags.h"
@@ -30,9 +28,7 @@ class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
     {
     public:
     //! Constructor
-    LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
-                    std::shared_ptr<DomainDecomposition> decomposition,
-                    std::shared_ptr<Trigger> trigger);
+    LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
 
     //! Destructor
     virtual ~LoadBalancerGPU();
@@ -57,9 +53,11 @@ class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
         }
 
     protected:
+#ifdef ENABLE_MPI
     //! Count the number of particles that have gone off either edge of the rank along a dimension
     //! on the GPU
     virtual void countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts);
+#endif
 
     private:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size counting particles
@@ -69,7 +67,4 @@ class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
 //! Export the LoadBalancerGPU to python
 void export_LoadBalancerGPU(pybind11::module& m);
 
-#endif // __LOADBALANCERGPU_H__
-
 #endif // ENABLE_HIP
-#endif // ENABLE_MPI

@@ -83,9 +83,13 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "BD step 1");
 
-    if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
+    if (this->m_box_changed)
         {
-        throw std::runtime_error("Parts of the manifold are outside the box");
+        if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
+            {
+            throw std::runtime_error("Parts of the manifold are outside the box");
+            }
+        this->m_box_changed = false;
         }
 
     // access all the needed data

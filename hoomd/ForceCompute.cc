@@ -208,7 +208,7 @@ ForceCompute::~ForceCompute()
 Scalar ForceCompute::calcEnergySum()
     {
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
-    double pe_total = 0.0;
+    double pe_total = m_external_energy;
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         pe_total += (double)h_force.data[i].w;
@@ -668,6 +668,8 @@ void export_ForceCompute(py::module& m)
         .def("getTorque", &ForceCompute::getTorque)
         .def("getVirial", &ForceCompute::getVirial)
         .def("getEnergy", &ForceCompute::getEnergy)
+        .def("getExternalEnergy", &ForceCompute::getExternalEnergy)
+        .def("getExternalVirial", &ForceCompute::getExternalVirial)
         .def("calcEnergySum", &ForceCompute::calcEnergySum)
         .def("getEnergies", &ForceCompute::getEnergiesPython)
         .def("getForces", &ForceCompute::getForcesPython)

@@ -1,6 +1,7 @@
 set(files __init__.py
           box_resize.py
           custom_updater.py
+          particle_filter.py
    )
 
 install(FILES ${files}
