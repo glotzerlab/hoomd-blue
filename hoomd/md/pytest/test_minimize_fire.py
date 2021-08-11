@@ -74,6 +74,7 @@ def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
 
 
 def test_run_minimization(lattice_snapshot_factory, simulation_factory):
+    """ Run a short minimization simulation. """
     snap = lattice_snapshot_factory(a=0.9, n=5)
     sim = simulation_factory(snap)
 
@@ -82,12 +83,22 @@ def test_run_minimization(lattice_snapshot_factory, simulation_factory):
     nve = md.methods.NVE(hoomd.filter.All())
 
     fire = md.minimize.FIRE(dt=0.0025)
+    fire.min_steps_conv = 3
 
     sim.operations.integrator = fire
     fire.methods.append(nve)
-    sim.run(10)
+    sim.run(0)
+
+    initial_energy = fire.get_energy()
+    steps_to_converge = 0
+    while not fire.has_converged():
+        sim.run(1)
+        steps_to_converge += 1
+
+    assert initial_energy >= fire.get_energy()
+    assert steps_to_converge >= fire.min_steps_conv
+
+    fire.reset()
 
     # TODO I would also like to see a test where the md integrator and fire
     # are switched out during a short run, because that is a common use case
-
-    # TODO might also need a pickling test
