@@ -177,6 +177,28 @@ def test_attributes_attached(simulation_factory, two_particle_snapshot_factory,
     check_instance_attrs(method, method_base_params.changed_params, True)
 
 
+def test_detached(simulation_factory, two_particle_snapshot_factory,
+                  method_base_params):
+
+    all_ = hoomd.filter.All()
+    method = method_base_params.method(**method_base_params.setup_params,
+                                       filter=all_)
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
+    sim.run(5)
+
+    sim.operations.integrator.methods.remove(method)
+
+    assert len(sim.operations.integrator.methods) == 0
+
+    sim.operations.integrator.methods.append(hoomd.md.methods.NVE(all_))
+
+    assert len(sim.operations.integrator.methods) == 1
+
+    sim.run(5)
+
+
 def _manifold_base_params():
     manifold_base_params_list = []
     # Start with valid parameters to get the keys and placeholder values
@@ -291,6 +313,34 @@ def test_rattle_attributes_attached(simulation_factory,
     assert method.tolerance == 1e-5
 
     check_instance_attrs(method, method_base_params.changed_params, True)
+
+
+def test_rattle_detached(simulation_factory, two_particle_snapshot_factory,
+                         method_base_params, manifold_base_params):
+
+    if method_base_params.rattle_method is None:
+        pytest.skip("RATTLE integrator is not implemented for this method")
+
+    all_ = hoomd.filter.All()
+    manifold = manifold_base_params.method(**manifold_base_params.setup_params)
+    method = method_base_params.rattle_method(**method_base_params.setup_params,
+                                              filter=all_,
+                                              manifold_constraint=manifold)
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
+    sim.run(5)
+
+    sim.operations.integrator.methods.remove(method)
+
+    assert len(sim.operations.integrator.methods) == 0
+
+    sim.operations.integrator.methods.append(
+        hoomd.md.methods.rattle.NVE(filter=all_, manifold_constraint=manifold))
+
+    assert len(sim.operations.integrator.methods) == 1
+
+    sim.run(5)
 
 
 def test_nph_attributes_attached_3d(simulation_factory,
