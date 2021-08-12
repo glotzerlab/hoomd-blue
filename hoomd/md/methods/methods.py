@@ -24,6 +24,15 @@ class Method(_HOOMDBaseObject):
         Users should use the subclasses and not instantiate `Method` directly.
     """
 
+    def _detach(self):
+        if self._attached:
+            self._unapply_typeparam_dict()
+            self._update_param_dict()
+
+            self._cpp_obj = None
+            self._notify_disconnect(self._simulation)
+        return self
+
 
 class NVT(Method):
     r"""NVT Integration via the Nosé-Hoover thermostat.
