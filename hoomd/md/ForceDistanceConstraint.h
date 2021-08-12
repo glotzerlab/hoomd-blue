@@ -55,6 +55,12 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
         m_rel_tol = rel_tol;
         }
 
+    /// Get the tolerance
+    Scalar getRelativeTolerance()
+        {
+        return m_rel_tol;
+        }
+
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     virtual CommFlags getRequestedCommFlags(uint64_t timestep);

@@ -10,10 +10,11 @@ hoomd.update
 
     BoxResize
     CustomUpdater
+    FilterUpdater
 
 .. rubric:: Details
 
 .. automodule:: hoomd.update
     :synopsis: Modify the system state periodically.
-    :members: BoxResize, CustomUpdater
+    :members: BoxResize, CustomUpdater, FilterUpdater
     :imported-members:

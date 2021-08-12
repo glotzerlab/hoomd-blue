@@ -85,6 +85,7 @@ class BoxResize(Updater):
 
         Returns:
             Box: The box used at the given timestep.
+            `None` before the first call to `Simulation.run`.
         """
         if self._attached:
             timestep = int(timestep)

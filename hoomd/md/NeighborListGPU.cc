@@ -185,7 +185,7 @@ void NeighborListGPU::filterNlist()
 //! Update the exclusion list on the GPU
 void NeighborListGPU::updateExListIdx()
     {
-    assert(!m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     if (m_prof)
         m_prof->push(m_exec_conf, "update-ex");

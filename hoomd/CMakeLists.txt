@@ -84,13 +84,13 @@ set(_hoomd_sources Analyzer.cc
                    MPIConfiguration.cc
                    ParticleData.cc
                    ParticleGroup.cc
+                   ParticleFilterUpdater.cc
                    Profiler.cc
                    PythonLocalDataAccess.cc
                    PythonAnalyzer.cc
                    PythonTuner.cc
                    PythonUpdater.cc
                    SFCPackTuner.cc
-                   SignalHandler.cc
                    SnapshotSystemData.cc
                    System.cc
                    SystemDefinition.cc
@@ -175,6 +175,7 @@ set(_hoomd_headers
     ParticleData.h
     ParticleGroup.cuh
     ParticleGroup.h
+    ParticleFilterUpdater.h
     Profiler.h
     PythonLocalDataAccess.h
     PythonUpdater.h
@@ -185,7 +186,6 @@ set(_hoomd_headers
     SFCPackTunerGPU.h
     SFCPackTuner.h
     SharedSignal.h
-    SignalHandler.h
     SnapshotSystemData.h
     SystemDefinition.h
     System.h

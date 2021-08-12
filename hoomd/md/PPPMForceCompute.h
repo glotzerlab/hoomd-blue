@@ -50,6 +50,37 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
     //! Get sum of squares of charges
     Scalar getQ2Sum();
 
+    /// Get the grid resolution
+    pybind11::tuple getResolution()
+        {
+        pybind11::list val;
+        val.append(m_global_dim.x);
+        val.append(m_global_dim.y);
+        val.append(m_global_dim.z);
+
+        return pybind11::tuple(val);
+        }
+
+    unsigned int getOrder()
+        {
+        return m_order;
+        }
+
+    Scalar getKappa()
+        {
+        return m_kappa;
+        }
+
+    Scalar getRCut()
+        {
+        return m_rcut;
+        }
+
+    Scalar getAlpha()
+        {
+        return m_alpha;
+        }
+
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     /*! \param timestep Current time step
