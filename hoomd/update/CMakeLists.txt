@@ -1,5 +1,6 @@
 set(files __init__.py
           box_resize.py
+          remove_drift.py
           custom_updater.py
           particle_filter.py
    )

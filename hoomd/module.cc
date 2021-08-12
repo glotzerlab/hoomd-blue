@@ -38,6 +38,7 @@
 #include "Trigger.h"
 #include "Tuner.h"
 #include "Updater.h"
+#include "UpdaterRemoveDrift.h"
 #include "Variant.h"
 
 // ParticleFilter objects
@@ -276,6 +277,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_PythonUpdater(m);
     export_Integrator(m);
     export_BoxResizeUpdater(m);
+    export_UpdaterRemoveDrift(m);
 
     // tuners
     export_Tuner(m);
