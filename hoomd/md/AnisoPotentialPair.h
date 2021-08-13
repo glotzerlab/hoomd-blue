@@ -215,7 +215,7 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     std::vector<param_type, managed_allocator<param_type>>
         m_params; //!< Pair parameters per type pair
     std::vector<shape_type, managed_allocator<shape_type>>
-        m_shape_params;      //!< Pair shapeeters per type pair
+        m_shape_params;      //!< Shape paramters per type
     std::string m_prof_name; //!< Cached profiler name
 
     /// Track whether we have attached to the Simulation object
