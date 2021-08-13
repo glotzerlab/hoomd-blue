@@ -256,42 +256,46 @@ class GayBerne(AnisotropicPair):
 class ALJ(AnisotropicPair):
     r"""Anistropic LJ potential.
 
-    Args:
-        r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
-        average_simplices (bool): Whether or not to perform simplex averaging
-            (see below for more details).
+    The potential is described and introduced in the paper
+    `Ramasubramani, V.  et. al. 2020`_.
 
-    :py:class:`alj` computes the LJ potential between anisotropic particles.
+    .. _Ramasubramani, V.  et. al. 2020: https://doi.org/10.1063/5.0019735
+
+
+    Args:
+        nlist (hoomd.md.Nlist): Neighbor list
+        default_r_cut (float): Default cutoff radius (in distance units).
+        mode (`str`, optional) : the energy shifting mode, defaults to "none".
+
+    `ALJ` computes the Lennard-Jones potential between anisotropic particles.
     The anisotropy is implemented as a composite of two interactions, a
     center-center component and a component of interaction measured at the
     closest point of contact between the two particles. The potential supports
-    both standard LJ interactions as well as repulsive-only WCA interactions.
-    This behavior is controlled using the :code:`alpha` parameter, which can
-    take on the following values:
+    both standard Lennard-Jones interactions as well as repulsive-only
+    Weeks-Chandler-Anderson (WCA) interactions.  This behavior is controlled
+    using the ``alpha`` parameter, which can take on the following values:
 
-    * :code:`0`:
+    * 0:
       All interactions are WCA (no attraction).
 
-    * :code:`1`:
+    * 1:
       Center-center interactions include attraction,
       contact-contact interactions are solely repulsive.
 
-    * :code:`2`:
+    * 2:
       Center-center interactions are solely repulsive,
       contact-contact interactions include attraction.
 
-    * :code:`3`:
+    * 3:
       All interactions include attractive and repulsive components.
 
     For polytopes, computing interactions using a single contact point leads to
     significant instabilities in the torques because the contact point can jump
     from one end of a face to another in an arbitrarily small time interval. To
-    ameliorate this, the alj potential performs a local averaging over all the
+    ameliorate this, the ALJ potential performs a local averaging over all the
     features associated with the closest simplices on two polytopes. This
-    averaging can be turned off by setting the ``average_simplices`` argument
-    to ``False``.
+    averaging can be turned off by setting the ``average_simplices`` key for the
+    type pair to ``False``.
 
     .. py:attribute:: params
 
@@ -310,6 +314,9 @@ class ALJ(AnisotropicPair):
             sphere radius of the first type with ``sigma_i``. Defaults to 0.15.
         * ``contact_sigma_j`` (`float`, **optional**) - the ratio of the contact
             sphere radius of the second type with ``sigma_j``. Defaults to 0.15.
+        * ``average_simplices`` (`bool`, **optional**) - Whether to average over
+            simplices. Defaults to ``True``. See class documentation for more
+            information.
 
         Type: `TypeParameter` [`tuple` [``particle_types``, ``particle_types``],
         `dict`]
@@ -342,8 +349,8 @@ class ALJ(AnisotropicPair):
 
     Example::
 
-        nl = nlist.Cell()
-        alj = pair.ALJ(nl, r_cut=2.5)
+        nl = hoomd.md.nlist.Cell()
+        alj = hoomd.md.pair.aniso.ALJ(nl, r_cut=2.5)
 
         cube_verts = [(-0.5, -0.5, -0.5),
                       (-0.5, -0.5, 0.5),
