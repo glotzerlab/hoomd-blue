@@ -177,8 +177,8 @@ def test_attributes_attached(simulation_factory, two_particle_snapshot_factory,
     check_instance_attrs(method, method_base_params.changed_params, True)
 
 
-def test_detached(simulation_factory, two_particle_snapshot_factory,
-                  method_base_params):
+def test_switch_methods(simulation_factory, two_particle_snapshot_factory,
+                        method_base_params):
 
     all_ = hoomd.filter.All()
     method = method_base_params.method(**method_base_params.setup_params,
@@ -315,8 +315,9 @@ def test_rattle_attributes_attached(simulation_factory,
     check_instance_attrs(method, method_base_params.changed_params, True)
 
 
-def test_rattle_detached(simulation_factory, two_particle_snapshot_factory,
-                         method_base_params, manifold_base_params):
+def test_rattle_switch_methods(simulation_factory,
+                               two_particle_snapshot_factory,
+                               method_base_params, manifold_base_params):
 
     if method_base_params.rattle_method is None:
         pytest.skip("RATTLE integrator is not implemented for this method")
