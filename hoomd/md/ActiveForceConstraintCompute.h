@@ -86,7 +86,8 @@ template<class Manifold> ActiveForceConstraintCompute<Manifold>::~ActiveForceCon
     \param timestep Current timestep
 */
 template<class Manifold>
-void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep)
+void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(Scalar rotational_diffusion,
+                                                                 uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);

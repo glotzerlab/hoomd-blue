@@ -34,8 +34,8 @@ class PYBIND11_EXPORT ActiveRotationalDiffusionUpdater : public Updater
     public:
     /// Constructor
     ActiveRotationalDiffusionUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                               std::shared_ptr<Variant> rotational_diffusion,
-                               std::shared_ptr<ActiveForceCompute> active_force);
+                                     std::shared_ptr<Variant> rotational_diffusion,
+                                     std::shared_ptr<ActiveForceCompute> active_force);
 
     /// Destructor
     virtual ~ActiveRotationalDiffusionUpdater();
@@ -56,8 +56,10 @@ class PYBIND11_EXPORT ActiveRotationalDiffusionUpdater : public Updater
     virtual void update(uint64_t timestep);
 
     private:
-    std::shared_ptr<Variant> m_rotational_diffusion;     //!< Variant that determines the current rotational diffusion
-    std::shared_ptr<ActiveForceCompute> m_active_force; //!< Active force to call rotationalDiffusion on
+    std::shared_ptr<Variant>
+        m_rotational_diffusion; //!< Variant that determines the current rotational diffusion
+    std::shared_ptr<ActiveForceCompute>
+        m_active_force; //!< Active force to call rotationalDiffusion on
     };
 
 /// Export the ActiveRotationalDiffusionUpdater to python

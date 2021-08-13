@@ -144,7 +144,6 @@ void ActiveForceComputeGPU::rotationalDiffusion(Scalar rotational_diffusion, uin
     bool is2D = (m_sysdef->getNDimensions() == 2);
     unsigned int group_size = m_group->getNumMembers();
 
-
     const auto rotation_constant = slow::sqrt(2.0 * rotational_diffusion * m_deltaT);
 
     // perform the update on the GPU

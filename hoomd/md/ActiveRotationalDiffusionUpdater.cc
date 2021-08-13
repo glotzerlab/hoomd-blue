@@ -15,11 +15,12 @@ namespace py = pybind11;
 /*! \param sysdef System definition
  *  \param rotational_diffusion The diffusion across time
  *  \param group the particles to diffusion rotation on
-*/
+ */
 
-ActiveRotationalDiffusionUpdater::ActiveRotationalDiffusionUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                                   std::shared_ptr<Variant> rotational_diffusion,
-                                   std::shared_ptr<ActiveForceCompute> active_force)
+ActiveRotationalDiffusionUpdater::ActiveRotationalDiffusionUpdater(
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<Variant> rotational_diffusion,
+    std::shared_ptr<ActiveForceCompute> active_force)
     : Updater(sysdef), m_rotational_diffusion(rotational_diffusion), m_active_force(active_force)
     {
     assert(m_pdata);
@@ -43,9 +44,15 @@ void ActiveRotationalDiffusionUpdater::update(uint64_t timestep)
 
 void export_ActiveRotationalDiffusionUpdater(py::module& m)
     {
-    py::class_<ActiveRotationalDiffusionUpdater, Updater, std::shared_ptr<ActiveRotationalDiffusionUpdater>>(m, "ActiveRotationalDiffusionUpdater")
+    py::class_<ActiveRotationalDiffusionUpdater,
+               Updater,
+               std::shared_ptr<ActiveRotationalDiffusionUpdater>>(
+        m,
+        "ActiveRotationalDiffusionUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<Variant>,
                             std::shared_ptr<ActiveForceCompute>>())
-        .def_property("rotational_diffusion", &ActiveRotationalDiffusionUpdater::getRotationalDiffusion, &ActiveRotationalDiffusionUpdater::setRotationalDiffusion);
+        .def_property("rotational_diffusion",
+                      &ActiveRotationalDiffusionUpdater::getRotationalDiffusion,
+                      &ActiveRotationalDiffusionUpdater::setRotationalDiffusion);
     }

@@ -200,7 +200,8 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForc
     \param timestep Current timestep
 */
 template<class Manifold>
-void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep)
+void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(Scalar rotational_diffusion,
+                                                                    uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
