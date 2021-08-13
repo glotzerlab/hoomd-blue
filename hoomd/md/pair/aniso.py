@@ -396,24 +396,23 @@ class ALJ(AnisotropicPair):
         super().__init__(nlist, default_r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(
-                epsilon=float,
-                sigma_i=float,
-                sigma_j=float,
-                alpha=int,
-                contact_ratio_i=0.15,
-                contact_ratio_j=0.15,
-                average_simplices=True,
-                len_keys=2))  # Allen -I do not what to set this to.
+            TypeParameterDict(epsilon=float,
+                              sigma_i=float,
+                              sigma_j=float,
+                              alpha=int,
+                              contact_ratio_i=0.15,
+                              contact_ratio_j=0.15,
+                              average_simplices=True,
+                              len_keys=2))
 
         shape = TypeParameter(
             'shape', 'particle_types',
-            TypeParameterDict(
-                vertices=[(float, float, float)],
-                faces=[[int]],
-                rounding_radii=OnlyIf(to_type_converter((float, float, float)),
-                                      preprocess=self._to_three_tuple),
-                len_keys=1))  # Allen -I do not what to set this to.
+            TypeParameterDict(vertices=[(float, float, float)],
+                              faces=[[int]],
+                              rounding_radii=OnlyIf(
+                                  to_type_converter((float, float, float)),
+                                  preprocess=self._to_three_tuple),
+                              len_keys=1))
 
         self._extend_typeparam((params, shape))
 
