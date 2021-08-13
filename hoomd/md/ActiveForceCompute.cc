@@ -339,5 +339,6 @@ void export_ActiveForceCompute(pybind11::module& m)
         .def("setActiveForce", &ActiveForceCompute::setActiveForce)
         .def("getActiveForce", &ActiveForceCompute::getActiveForce)
         .def("setActiveTorque", &ActiveForceCompute::setActiveTorque)
-        .def("getActiveTorque", &ActiveForceCompute::getActiveTorque);
+        .def("getActiveTorque", &ActiveForceCompute::getActiveTorque)
+        .def_property_readonly("filter", [](ActiveForceCompute& force){ return force.getGroup()->getFilter();});
     }

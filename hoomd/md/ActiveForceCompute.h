@@ -68,6 +68,11 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     /// Gets active torque vector for a given particle type
     pybind11::tuple getActiveTorque(const std::string& type_name);
 
+    std::shared_ptr<ParticleGroup>& getGroup()
+        {
+        return m_group;
+        }
+
     protected:
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
