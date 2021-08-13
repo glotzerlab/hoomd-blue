@@ -30,8 +30,9 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
     # Initialize moments of inertia since original simulation was HPMC.
     mass = hexagon.area
     # https://math.stackexchange.com/questions/2004798/moment-of-inertia-for-a-n-sided-regular-polygon # noqa
-    moment_inertia = ((mass * circumcircle_diameter**2 / 6) *
-                      (1 + 2 * np.cos(np.pi / hexagon.num_vertices)**2))
+    moment_inertia = (mass * circumcircle_diameter**2 / 6)
+    moment_inertia *= (1 + 2 * np.cos(np.pi / hexagon.num_vertices)**2)
+
     with sim.state.cpu_local_snapshot as snapshot:
         snapshot.particles.mass[:] = mass
         snapshot.particles.moment_inertia[:] = np.array([0, 0, moment_inertia])
