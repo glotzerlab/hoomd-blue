@@ -110,53 +110,59 @@ class _DependencyRelation:
     object that use this class may not deal directly with dependencies.
 
     Note:
+        This only handles one way dependencies. Circular dependencies are out of
+        scope for now.
+
+    Note:
+        This class expects that the ``_dependents`` and ``_dependencies`` are
+        available.
+
+    Note:
         We could be more specific in the inheritance of this class to only use
         it when the class needs to deal with a dependency.
     """
 
-    def __init__(self):
-        self._dependents = []
-        self._dependencies = []
-
     def _add_dependent(self, obj):
         """Adds a dependent to the object's dependent list."""
-        if obj not in self._dependencies:
+        if obj not in self._dependents:
             self._dependents.append(obj)
             obj._dependencies.append(self)
 
-    def _notify_disconnect(self, *args, **kwargs):
+    def _add_dependency(self, obj):
+        """Adds a dependency to the object's dependency list."""
+        if obj not in self._dependencies:
+            obj._dependents.append(self)
+            self._dependencies.append(obj)
+
+    def _notify_disconnect(self):
         """Notify that an object is being removed from all relationships.
 
         Notifies dependent object that it is being removed, and removes itself
-        from its dependencies' list of dependents. Uses ``args`` and
-        ``kwargs`` to allow flexibility in what information is given to
-        dependents from dependencies.
+        from its dependencies' list of dependents. By default the method passes
+        itself to all dependents' ``_handle_removed_dependency`` methods.
 
         Note:
-            This implementation does require that all dependents take in the
-            same information, or at least that the passed ``args`` and
-            ``kwargs`` can be used for all dependents'
-            ``_handle_removed_dependency`` method.
+            If more information is needed to pass to _handle_removed_dependency,
+            then overwrite this method.
         """
         for dependent in self._dependents:
-            dependent.handle_detached_dependency(self, *args, **kwargs)
+            dependent._handle_removed_dependency(self)
         self._dependents = []
         for dependency in self._dependencies:
             dependency._remove_dependent(self)
         self._dependencies = []
 
-    def _handle_removed_dependency(self, obj, *args, **kwargs):
+    def _handle_removed_dependency(self, obj):
         """Handles having a dependency removed.
 
-        Must be implemented by objects that have dependencies. Uses ``args`` and
-        ``kwargs`` to allow flexibility in what information is given to
-        dependents from dependencies.
+        Default behavior does nothing. Overwrite to enable handling detaching of
+        dependencies.
         """
         pass
 
     def _remove_dependent(self, obj):
         """Removes a dependent from the list of dependencies."""
-        self._dependencies.remove(obj)
+        self._dependents.remove(obj)
 
 
 class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
@@ -189,8 +195,8 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     }
 
     _skip_for_equality = {
-        '_cpp_obj', '_dependent_list', '_param_dict', '_typeparam_dict',
-        '_simulation'
+        '_cpp_obj', '_dependents', '_dependencies', '_param_dict',
+        '_typeparam_dict', '_simulation'
     }
     _remove_for_pickling = ('_simulation', '_cpp_obj')
 
@@ -230,10 +236,14 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         if self._attached:
             self._unapply_typeparam_dict()
             self._update_param_dict()
-            self._cpp_obj.notifyDetach()
+            if hasattr(self._cpp_obj, "notifyDetach"):
+                self._cpp_obj.notifyDetach()
 
             self._cpp_obj = None
-            self._notify_disconnect(self._simulation)
+            # _detach should always be followed by _remove or at the vary least
+            # removed from the simulation, meaning all dependencies within the
+            # simulation need to be resolved here and not `_remove`.
+            self._notify_disconnect()
             return self
 
     def _attach(self):
