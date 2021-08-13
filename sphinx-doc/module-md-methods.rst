@@ -8,6 +8,7 @@ md.methods
 .. autosummary::
     :nosignatures:
 
+    Method
     Brownian
     Langevin
     NPH

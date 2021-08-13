@@ -8,6 +8,7 @@ md.methods.rattle
 .. autosummary::
     :nosignatures:
 
+    MethodRATTLE
     Brownian
     Langevin
     NVE
