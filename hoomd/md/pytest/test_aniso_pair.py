@@ -281,7 +281,7 @@ def _valid_params(particle_types=['A', 'B']):
                 ]
             }, 1)
         }
-    except ModuleNotFoundError:
+    except RuntimeError:
         return valid_params_list
 
     else:
