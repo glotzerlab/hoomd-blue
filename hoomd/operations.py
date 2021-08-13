@@ -266,7 +266,6 @@ class Operations(Collection):
             if op is not None:
                 op._attach()
         if old_ref is not None:
-            old_ref._notify_disconnect(self._simulation)
             old_ref._detach()
             old_ref._remove()
 
