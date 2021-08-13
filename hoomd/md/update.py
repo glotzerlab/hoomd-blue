@@ -263,6 +263,7 @@ class ActiveRotationalDiffusion(Updater):
                                    active_force=hoomd.md.force.Active)
         param_dict["rotational_diffusion"] = rotational_diffusion
         param_dict["active_force"] = active_force
+        self._add_dependency(active_force)
         self._param_dict.update(param_dict)
 
     def _add(self, simulation):
@@ -289,6 +290,11 @@ class ActiveRotationalDiffusion(Updater):
             self._simulation.state._cpp_sys_def, self.rotational_diffusion,
             self.active_force._cpp_obj)
         # No need to call super
+
+    def _handle_removed_dependency(self, active_force):
+        raise SimulationDefinitionError(
+            "The active force this updater is dependent on is being removed. "
+            "Remove this updater first to avoid error.")
 
     def _getattr_param(self, attr):
         if attr == "active_force":
