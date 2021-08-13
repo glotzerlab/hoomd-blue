@@ -12,9 +12,15 @@
 import hoomd
 
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom
+from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
 from hoomd.md import _md
 from hoomd.md.integrate import _DynamicIntegrator, _preprocess_aniso
+
+
+def _raise_if_nonpositive(value):
+    if value <= 0:
+        raise ValueError("This value cannot be negative")
+    return value
 
 
 class FIRE(_DynamicIntegrator):
@@ -144,15 +150,17 @@ class FIRE(_DynamicIntegrator):
                 dt=float(dt),
                 aniso=OnlyFrom(['true', 'false', 'auto'],
                                preprocess=_preprocess_aniso),
-                min_steps_adapt=int,  # TODO force positive integers
+                min_steps_adapt=OnlyTypes(int,
+                                          preprocess=_raise_if_nonpositive),
                 finc_dt=float,
                 fdec_dt=float,
-                alpha_start=float,  # TODO prevent user from resetting value
+                alpha_start=float,
                 fdec_alpha=float,
                 force_tol=float,
                 angmom_tol=float,
                 energy_tol=float,
-                min_steps_conv=int,  # TODO force positive integers
+                min_steps_conv=OnlyTypes(int,
+                                         preprocess=_raise_if_nonpositive),
                 _defaults={
                     "aniso": "auto",
                     "min_steps_adapt": 5,

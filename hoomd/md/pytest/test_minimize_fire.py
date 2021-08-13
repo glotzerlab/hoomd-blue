@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import hoomd
 from hoomd import md
@@ -40,6 +41,16 @@ def _set_and_check_new_params(fire):
     return new_params
 
 
+def _assert_error_if_nonpositive(fire):
+    """Make sure error is raised if properties set to nonpositive values."""
+    negative_value = -np.random.randint(0, 26)
+    with pytest.raises(ValueError):
+        fire.min_steps_adapt = negative_value
+
+    with pytest.raises(ValueError):
+        fire.min_steps_conv = negative_value
+
+
 def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
     """Assert we can get/set params when not attached and when attached."""
     fire = md.minimize.FIRE(dt=0.01)
@@ -60,6 +71,8 @@ def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
 
     new_params = _set_and_check_new_params(fire)
 
+    _assert_error_if_nonpositive(fire)
+
     # attach to simulation
     snap = two_particle_snapshot_factory(d=2.34)
     sim = simulation_factory(snap)
@@ -70,6 +83,8 @@ def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
     _assert_correct_params(fire, new_params)
 
     _set_and_check_new_params(fire)
+
+    _assert_error_if_nonpositive(fire)
 
 
 def test_run_minimization(lattice_snapshot_factory, simulation_factory):
@@ -99,5 +114,4 @@ def test_run_minimization(lattice_snapshot_factory, simulation_factory):
 
     fire.reset()
 
-    # TODO I would also like to see a test where the md integrator and fire
-    # are switched out during a short run, because that is a common use case
+    # TODO maybe a pickling test
