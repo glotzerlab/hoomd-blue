@@ -414,6 +414,11 @@ class ALJ(AnisotropicPair):
     def get_ordered_vertices(vertices, return_faces=True):
         """Compute vertices and faces of a convex hull of given vertices.
 
+        Warning:
+            This method requires the ``coxeter`` package which is available on
+            PyPi and conda-forge by that name, and can be found on GitHub under
+            ``glotzerlab/coxeter``.
+
         Args:
             vertices (:math:`(N_v, 3)` numpy.ndarray of float): The vertices to
                 take the convex hull of and get ordered vertices and faces from.
@@ -431,7 +436,7 @@ class ALJ(AnisotropicPair):
             import coxeter
         except ImportError as error:
             raise RuntimeError(
-                "Method requires coxeter as a dependency") from error
+                "Method requires coxeter as a dependency.") from error
 
         shape = coxeter.shapes.ConvexPolyhedron(vertices)
 
