@@ -2,12 +2,12 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Implement MoveSize."""
+"""Implement VolumeMoveSize."""
 
 from hoomd.custom import _InternalAction
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-#from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, OnlyIf,
+from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, OnlyIf,
                                       to_type_converter)
 from hoomd.tune import _InternalCustomTuner
 from hoomd.tune.attr_tuner import (_TuneDefinition, SolverStep, ScaleSolver,
@@ -92,7 +92,7 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
 
 
 class _InternalMoveSize(_InternalAction):
-    """Internal class for the MoveSize tuner."""
+    """Internal class for the box volume tuner."""
     _min_move_size = 1e-7
 
     def __init__(self,
@@ -245,7 +245,7 @@ class VolumeMoveSize(_InternalCustomTuner):
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
             the tuner.
         moves (list[str]): A list of types of moves to tune. Available options
-            are 'a' and 'd'.
+            are 'delta'.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
         solver (`hoomd.tune.SolverStep`): A solver that tunes move sizes to
@@ -253,10 +253,7 @@ class VolumeMoveSize(_InternalCustomTuner):
         types (list[str]): A list of string particle types to tune the move
             size for, defaults to None which upon attaching will tune all types
             in the system currently.
-        max_volume_move (float): The maximum value of a translational move
-            size to attempt.
-        max_rotation_move (float): The maximum value of a rotational move size
-            to attempt.
+        max_volume_move (float): The maximum volume move size to attempt.
 
     Attributes:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
@@ -270,10 +267,8 @@ class VolumeMoveSize(_InternalCustomTuner):
         types (list[str]): A list of string particle
             types to tune the move size for, defaults to None which upon
             attaching will tune all types in the system currently.
-        max_volume_move (float): The maximum value of a translational move
+        max_volume_move (float): The maximum value of a volume move
             size to attempt.
-        max_rotation_move (float): The maximum value of a rotational move size
-            to attempt.
 
     Note:
         Limiting the maximum move sizes can lead to the inability to converge to
@@ -308,10 +303,8 @@ class VolumeMoveSize(_InternalCustomTuner):
             types (list[str]): A list of string particle types to tune the
                 move size for, defaults to None which upon attaching will tune
                 all types in the system currently.
-            max_volume_move (float): The maximum value of a translational
+            max_volume_move (float): The maximum value of a volume
                 move size to attempt.
-            max_rotation_move (float): The maximum value of a rotational move
-                size to attempt.
             max_scale (float): Maximum scale factor.
             gamma (float): The value of gamma to pass through to
                 `hoomd.tune.ScaleSolver`. Controls the size of corrections to
@@ -350,11 +343,8 @@ class VolumeMoveSize(_InternalCustomTuner):
             types (list[str]): A list of string
                 particle types to tune the move size for, defaults to None which
                 upon attaching will tune all types in the system currently.
-            max_volume_move (float): The maximum value of a translational
+            max_volume_move (float): The maximum value of a volume
                 move size to attempt, defaults to ``None`` which represents no
-                maximum move size.
-            max_rotation_move (float): The maximum value of a rotational move
-                size to attempt, defaults to ``None`` which represents no
                 maximum move size.
             gamma (float): The value of gamma to pass through
                 to `hoomd.tune.SecantSolver`. Controls the size of corrections

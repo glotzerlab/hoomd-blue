@@ -1,5 +1,6 @@
 set(files __init__.py
           move_size.py
+	  volume_move_size.py
           )
 
 install(FILES ${files}
