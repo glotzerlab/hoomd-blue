@@ -95,12 +95,13 @@ class _InternalMoveSize(_InternalAction):
     """Internal class for the box volume tuner."""
     _min_move_size = 1e-7
 
-    def __init__(self,
-                 moves,
-                 target,
-                 solver,
-                 max_volume_move=None,
-                 ):
+    def __init__(
+        self,
+        moves,
+        target,
+        solver,
+        max_volume_move=None,
+    ):
         # A flag for knowing when to update the maximum move sizes
         self._update_move_sizes = False
 
@@ -116,24 +117,25 @@ class _InternalMoveSize(_InternalAction):
         self._is_attached = False
 
         # set up maximum trial move sizes
-#        t_moves = TypeParameteh(
-#            'max_volume_move', 'particle_type',
-#            TypeParameterDict(OnlyTypes(float,
-#                                        postprocess=self._flag_move_size_update,
-#                                        allow_none=True),
-#                              len_keys=1))
-#        self._typeparam_dict = {
-#            'max_volume_move': t_moves,
-#        }
+        #        t_moves = TypeParameteh(
+        #            'max_volume_move', 'particle_type',
+        #            TypeParameterDict(OnlyTypes(float,
+        #                                        postprocess=self._flag_move_size_update,
+        #                                        allow_none=True),
+        #                              len_keys=1))
+        #        self._typeparam_dict = {
+        #            'max_volume_move': t_moves,
+        #        }
 
         # This is a bit complicated because we are having to ensure that we keep
         # the list of tunables and the solver updated with the changes to
         # attributes. However, these are simply forwarding a change along.
-        param_dict = ParameterDict(
-            moves=OnlyIf([OnlyFrom(['delta'])],
-                         postprocess=self._update_moves),
-            target=OnlyTypes(float, postprocess=self._target_postprocess),
-            solver=SolverStep)
+        param_dict = ParameterDict(moves=OnlyIf([OnlyFrom(['delta'])],
+                                                postprocess=self._update_moves),
+                                   target=OnlyTypes(
+                                       float,
+                                       postprocess=self._target_postprocess),
+                                   solver=SolverStep)
 
         self._param_dict.update(param_dict)
         self.target = target
@@ -363,5 +365,4 @@ class VolumeMoveSize(_InternalCustomTuner):
             frequently.
         """
         solver = SecantSolver(gamma, tol)
-        return cls(trigger, moves, target, solver, types, max_volume_move
-                   )
+        return cls(trigger, moves, target, solver, types, max_volume_move)
