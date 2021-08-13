@@ -62,6 +62,13 @@ class _DynamicIntegrator(BaseIntegrator):
             self.rigid._attach()
             self._cpp_obj.rigid = self.rigid._cpp_obj
 
+    def _detach(self):
+        self._forces._unsync()
+        self._methods._unsync()
+        self._constraints._unsync()
+        if self.rigid is not None:
+            self.rigid._detach()
+
     def _add(self, simulation):
         super()._add(simulation)
         if self.rigid is not None:
