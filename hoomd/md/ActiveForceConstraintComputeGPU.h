@@ -36,7 +36,6 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU
     //! Constructs the compute
     ActiveForceConstraintComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                     std::shared_ptr<ParticleGroup> group,
-                                    Scalar rotation_diff,
                                     Manifold manifold);
 
     //! Set autotuner parameters
@@ -89,9 +88,8 @@ template<class Manifold>
 ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<ParticleGroup> group,
-    Scalar rotation_diff,
     Manifold manifold)
-    : ActiveForceConstraintCompute<Manifold>(sysdef, group, rotation_diff, manifold)
+    : ActiveForceConstraintCompute<Manifold>(sysdef, group, manifold)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
@@ -292,7 +290,6 @@ void export_ActiveForceConstraintComputeGPU(py::module& m, const std::string& na
                std::shared_ptr<ActiveForceConstraintComputeGPU<Manifold>>>(m, name.c_str())
         .def(py::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
-                      Scalar,
                       Manifold>());
     }
 #endif
