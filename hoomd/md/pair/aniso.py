@@ -51,7 +51,7 @@ class AnisotropicPair(Pair):
         self._add_typeparam(tp_r_cut)
 
     def _return_type_shapes(self):
-        type_shapes = self.cpp_force.getTypeShapesPy()
+        type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
@@ -465,3 +465,14 @@ class ALJ(AnisotropicPair):
             return (value, value, value)
         else:
             raise ValueError(f"Expected a float or tuple object got {value}")
+
+    @log(category="object", requires_run=True)
+    def type_shapes(self):
+        """list[ `dict`[ `str`, ``any``]]: The shape specification for use \
+                with GSD files for visualization.
+
+        This is not meant to be used for access to shape information in Python.
+        See the attribute ``shape`` for programatic assess. Use this property to
+        log shape for visualization and storage through the GSD file type.
+        """
+        return self._return_type_shapes()
