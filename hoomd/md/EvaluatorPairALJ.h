@@ -247,51 +247,12 @@ template<unsigned int ndim> class EvaluatorPairALJ
            \param managed
            Whether or not the shape params are managed on the host, forwarded through to underlying
            arrays for migration to the GPU as needed.
+
+           TODO: This constructor does not validate that 3D structures have faces set, since
+           shape_type does not know the dimension of the composing class.
          */
         shape_type(pybind11::dict shape, bool managed) : has_rounding(false)
             {
-            // Unpack the list[list] of vertices into a ManagedArray.
-            auto vertices = shape["vertices"].cast<pybind11::list>();
-            unsigned int N = static_cast<unsigned int>(len(vertices));
-            verts = ManagedArray<vec3<Scalar>>(N, managed);
-            for (unsigned int i = 0; i < N; ++i)
-                {
-                pybind11::list vertices_tmp = pybind11::cast<pybind11::list>(vertices[i]);
-                verts[i] = vec3<Scalar>(pybind11::cast<Scalar>(vertices_tmp[0]),
-                                        pybind11::cast<Scalar>(vertices_tmp[1]),
-                                        pybind11::cast<Scalar>(vertices_tmp[2]));
-                }
-
-            // Since we don't know the total number of face indices a priori (we
-            // only have access to the top-level list), we first construct the face
-            // offsets array and simultaneously compute the total number of faces.
-            // Then, we allocate the faces array and loop a second time to store
-            // those indices linearly.
-            auto faces_ = shape["faces"].cast<pybind11::list>();
-            N = static_cast<unsigned int>(len(faces_));
-            face_offsets = ManagedArray<unsigned int>(N, managed);
-            face_offsets[0] = 0;
-            for (unsigned int i = 0; i < (N - 1); ++i)
-                {
-                pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[i]);
-                face_offsets[i + 1] = face_offsets[i] + static_cast<unsigned int>(len(faces_tmp));
-                }
-            pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[N - 1]);
-            const unsigned int total_face_indices
-                = face_offsets[N - 1] + static_cast<unsigned int>(len(faces_tmp));
-
-            faces = ManagedArray<unsigned int>(total_face_indices, managed);
-            unsigned int counter = 0;
-            for (unsigned int i = 0; i < N; ++i)
-                {
-                pybind11::list face_tmp = pybind11::cast<pybind11::list>(faces_[i]);
-                for (unsigned int j = 0; j < len(face_tmp); ++j)
-                    {
-                    faces[counter] = pybind11::cast<unsigned int>(face_tmp[j]);
-                    ++counter;
-                    }
-                }
-
             // Store the rounding radii.
             auto rr = shape["rounding_radii"].cast<pybind11::tuple>();
             rounding_radii.x = pybind11::cast<Scalar>(rr[0]);
@@ -300,6 +261,70 @@ template<unsigned int ndim> class EvaluatorPairALJ
             if (rounding_radii.x > 0 || rounding_radii.y > 0 || rounding_radii.z > 0)
                 {
                 has_rounding = true;
+                }
+
+            // Check to see if vertices and faces are empty. If so then, the shape is an ellipsoid,
+            // and we don't need to iterate over polytope based attributes.
+            const auto vertices = shape["vertices"].cast<pybind11::list>();
+            const auto N_vertices = static_cast<unsigned int>(len(vertices));
+            verts = ManagedArray<vec3<Scalar>>(N_vertices, managed);
+
+            const auto faces_ = shape["faces"].cast<pybind11::list>();
+            const auto N_faces = static_cast<unsigned int>(len(faces_));
+            face_offsets = ManagedArray<unsigned int>(N_faces, managed);
+
+            // Simulating an ellipsoid just return
+            if (N_vertices == 0 && N_faces == 0)
+                {
+                faces = ManagedArray<unsigned int>(0, managed);
+                return;
+                }
+
+            if (N_vertices == 0)
+                {
+                throw std::runtime_error("Cannot have empty vertices list.");
+                }
+
+            // Unpack the list[list] of vertices into a ManagedArray.
+            for (unsigned int i = 0; i < N_vertices; ++i)
+                {
+                pybind11::list vertices_tmp = pybind11::cast<pybind11::list>(vertices[i]);
+                verts[i] = vec3<Scalar>(pybind11::cast<Scalar>(vertices_tmp[0]),
+                                        pybind11::cast<Scalar>(vertices_tmp[1]),
+                                        pybind11::cast<Scalar>(vertices_tmp[2]));
+                }
+
+            // If no faces exist i.e. 2D then we make an empty array and return.
+            if (N_faces == 0)
+                {
+                faces = ManagedArray<unsigned int>(0, managed);
+                return;
+                }
+
+            // Since we don't know the total number of face indices a priori (we only have access to
+            // the top-level list), we first construct the face offsets array.  Then, we allocate
+            // the faces array and loop a second time to store those indices linearly.
+            face_offsets[0] = 0;
+
+            for (unsigned int i = 0; i < (N_faces - 1); ++i)
+                {
+                pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[i]);
+                face_offsets[i + 1] = face_offsets[i] + static_cast<unsigned int>(len(faces_tmp));
+                }
+            pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[N_faces - 1]);
+            const unsigned int total_face_indices
+                = face_offsets[N_faces - 1] + static_cast<unsigned int>(len(faces_tmp));
+
+            faces = ManagedArray<unsigned int>(total_face_indices, managed);
+            unsigned int counter = 0;
+            for (unsigned int i = 0; i < N_faces; ++i)
+                {
+                pybind11::list face_tmp = pybind11::cast<pybind11::list>(faces_[i]);
+                for (unsigned int j = 0; j < len(face_tmp); ++j)
+                    {
+                    faces[counter] = pybind11::cast<unsigned int>(face_tmp[j]);
+                    ++counter;
+                    }
                 }
             }
 
@@ -1354,7 +1379,7 @@ template<> std::string EvaluatorPairALJ<2>::getShapeSpec() const
     std::ostringstream shapedef;
     const ManagedArray<vec3<Scalar>>& verts(shape_i->verts); //! Shape vertices.
     const unsigned int N = verts.size();
-    if (N == 1)
+    if (N == 0)
         {
         shapedef << "{\"type\": \"Ellipsoid\", \"a\": "
                  << shape_i->rounding_radii.x + (_params.contact_sigma_i / 2)
@@ -1391,7 +1416,7 @@ template<> std::string EvaluatorPairALJ<3>::getShapeSpec() const
     std::ostringstream shapedef;
     const ManagedArray<vec3<Scalar>>& verts(shape_i->verts);
     const unsigned int N = verts.size();
-    if (N == 1)
+    if (N == 0)
         {
         shapedef << "{\"type\": \"Ellipsoid\", \"a\": "
                  << shape_i->rounding_radii.x + (_params.contact_sigma_i / 2)
