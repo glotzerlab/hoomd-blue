@@ -457,3 +457,41 @@ def test_pickling(make_two_particle_simulation, pair_potential_spec):
     pickling_check(pair_potential)
     sim.run(0)
     pickling_check(pair_potential)
+
+
+_base_expected_loggable = {
+    "forces": {
+        "category": hoomd.logging.LoggerCategories["particle"],
+        "default": True
+    },
+    "torques": {
+        "category": hoomd.logging.LoggerCategories["particle"],
+        "default": True
+    },
+    "virials": {
+        "category": hoomd.logging.LoggerCategories["particle"],
+        "default": True
+    },
+    "energies": {
+        "category": hoomd.logging.LoggerCategories["particle"],
+        "default": True
+    },
+    "energy": {
+        "category": hoomd.logging.LoggerCategories["scalar"],
+        "default": True
+    }
+}
+
+
+@pytest.mark.parametrize(
+    "cls,log_check_params",
+    ((cls, log_check_params) for cls, log_check_params in zip((
+        md.pair.aniso.GayBerne, md.pair.aniso.Dipole,
+        md.pair.aniso.ALJ), (_base_expected_loggable, _base_expected_loggable, {
+            **_base_expected_loggable, "type_shapes": {
+                "category": hoomd.logging.LoggerCategories["object"],
+                "default": True
+            }
+        }))))
+def test_logging(cls, log_check_params):
+    hoomd.conftest.logging_check(cls, ("md", "pair", "aniso"), log_check_params)
