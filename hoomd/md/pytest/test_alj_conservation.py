@@ -5,11 +5,9 @@ import hoomd
 from hoomd import md
 
 
-@pytest.mark.validation
 def test_conservation(simulation_factory, lattice_snapshot_factory):
     # For test, use a unit area hexagon.
-    coxeter = pytest.importorskip("coxeter",
-                                  "coxeter is required for this test.")
+    coxeter = pytest.importorskip("coxeter")
 
     particle_vertices = np.array([[6.20403239e-01, 0.00000000e+00],
                                   [3.10201620e-01, 5.37284966e-01],
@@ -17,7 +15,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
                                   [-6.20403239e-01, 7.59774841e-17],
                                   [-3.10201620e-01, -5.37284966e-01],
                                   [3.10201620e-01, -5.37284966e-01]])
-    hexagon = coxeter.shape.ConvexPolygon(particle_vertices)
+    hexagon = coxeter.shapes.ConvexPolygon(particle_vertices)
 
     circumcircle_diameter = 2 * hexagon.circumcircle_radius
 
@@ -26,6 +24,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
         lattice_snapshot_factory(a=4 * circumcircle_diameter,
                                  n=10,
                                  dimensions=2))
+    sim.seed = 123
 
     # Initialize moments of inertia since original simulation was HPMC.
     mass = hexagon.area
@@ -35,25 +34,26 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
 
     with sim.state.cpu_local_snapshot as snapshot:
         snapshot.particles.mass[:] = mass
-        snapshot.particles.moment_inertia[:] = np.array([0, 0, moment_inertia])
+        snapshot.particles.moment_of_inertia[:] = np.array(
+            [0, 0, moment_inertia])
         # Not sure if this should be incircle or circumcircle;
         # probably doesn't matter based on current usage, but may
         # matter in the future for the potential if it's modified
         # to actually use diameter.
         snapshot.particles.diameter[:] = circumcircle_diameter
     kT = 0.3
-    sim.state.thermalize_particles(kT, 43)
+    sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT)
 
     # Create box resize updater
     packing_fraction = 0.4
     final_area = hexagon.area * sim.state.N_particles / packing_fraction
     L_final = np.sqrt(final_area)
-    final_box = hoomd.box.square(L_final)
+    final_box = hoomd.Box.square(L_final)
 
-    n_compression_start = 1e4
-    n_compression_end = 1e5
+    n_compression_start = int(1e4)
+    n_compression_end = int(1e5)
     n_compression_total = n_compression_end - n_compression_start
-    n_total = 1e6
+    n_total = int(1e6)
 
     box_resize = hoomd.update.BoxResize(
         box1=sim.state.box,
@@ -61,7 +61,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
         trigger=int(n_compression_total / 10000),
         variant=hoomd.variant.Ramp(0, 1, n_compression_start,
                                    n_compression_total),
-        scale_particles=hoomd.filter.All())
+        filter=hoomd.filter.All())
     sim.operations += box_resize
 
     # Define forces and methods
@@ -98,7 +98,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
     sim.operations += thermo
 
     # Reset velocities after the compression, and equilibriate
-    sim.state.thermalize_particles(kT, 43)
+    sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT)
     velocities = []
     total_energies = []
     while sim.timestep < n_total:
