@@ -265,14 +265,16 @@ class _InternalMoveSize(_InternalAction):
 class MoveSize(_InternalCustomTuner):
     """Tunes HPMCIntegrator move sizes to targeted acceptance rate.
 
-    For most common creation of a `MoveSize` tuner see `MoveSize.secant_solver`
-    and `MoveSize.scale_solver` respectively.
+    Direct instantiation of this class requires a `hoomd.tune.SolverStep` that
+    determines how move sizes are updated. This class also provides class
+    methods to create a `MoveSize` tuner with built-in solvers; see
+    `MoveSize.secant_solver` and `MoveSize.scale_solver`.
 
     Args:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
             the tuner.
         moves (list[str]): A list of types of moves to tune. Available options
-            are 'a' and 'd'.
+            are ``'a'`` and ``'d'``.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
         solver (`hoomd.tune.SolverStep`): A solver that tunes move sizes to
@@ -289,7 +291,7 @@ class MoveSize(_InternalCustomTuner):
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
             the tuner.
         moves (list[str]): A list of types of moves to tune. Available options
-            are 'a' and 'd'.
+            are ``'a'`` and ``'d'``.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
         solver (hoomd.tune.SolverStep): A solver that tunes move sizes to
@@ -372,7 +374,7 @@ class MoveSize(_InternalCustomTuner):
             trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
                 run the tuner.
             moves (list[str]): A list of types of moves to tune. Available
-                options are 'a' and 'd'.
+                options are ``'a'`` and ``'d'``.
             target (float): The acceptance rate for trial moves that is desired.
                 The value should be between 0 and 1.
             types (list[str]): A list of string particle types to tune the
@@ -392,6 +394,12 @@ class MoveSize(_InternalCustomTuner):
                 considered tuned. The tolerance should not be too much lower
                 than the default of 0.01 as acceptance rates can vary
                 significantly at typical tuning rates.
+
+        Note:
+            Increasing ``gamma`` towards 1 does not necessarily speed up
+            convergence and can slow it down. In addition, large values of
+            ``gamma`` can make the solver unstable, especially when tuning
+            frequently.
         """
         solver = ScaleSolver(max_scale, gamma, 'negative', tol)
         return cls(trigger, moves, target, solver, types, max_translation_move,
@@ -417,7 +425,7 @@ class MoveSize(_InternalCustomTuner):
             trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
                 run the tuner.
             moves (list[str]): A list of types of moves to tune. Available
-                options are 'a' and 'd'.
+                options are ``'a'`` and ``'d'``.
             target (float): The acceptance rate for trial moves that is desired.
                 The value should be between 0 and 1.
             types (list[str]): A list of string
@@ -441,8 +449,8 @@ class MoveSize(_InternalCustomTuner):
 
         Note:
             Increasing ``gamma`` towards 1 does not necessarily speed up
-            convergence and can slow it done. In addition, large values of
-            ``gamma`` can make the solver unstable especially when tuning
+            convergence and can slow it down. In addition, large values of
+            ``gamma`` can make the solver unstable, especially when tuning
             frequently.
         """
         solver = SecantSolver(gamma, tol)

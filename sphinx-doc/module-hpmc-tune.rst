@@ -16,7 +16,7 @@ hpmc.tune
     :synopsis: Tuners for HPMC.
     :members:
 
-    .. autoclass:: MoveSize(trigger, moves, target, solver, types=None, max_move_size=None)
+    .. autoclass:: MoveSize
         :members: secant_solver, scale_solver
 
         .. method:: tuned()
