@@ -263,8 +263,8 @@ class ALJ(AnisotropicPair):
 
 
     Args:
-        nlist (hoomd.md.Nlist): Neighbor list
-        default_r_cut (float): Default cutoff radius (in distance units).
+        nlist (hoomd.md.nlist.NList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[length]`.
         mode (`str`, optional) : the energy shifting mode, defaults to "none".
 
     `ALJ` computes the Lennard-Jones potential between anisotropic particles.
@@ -301,25 +301,25 @@ class ALJ(AnisotropicPair):
 
         The ALJ potential parameters. The dictionary has the following keys:
 
-        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
-            :math:`[energy]`
+        * ``epsilon`` (`float`, **required**) - base energy scale
+          :math:`\varepsilon` :math:`[energy]`.
         * ``sigma_i`` (`float`, **required**) - the insphere radius of the first
-            particle type.
-        * ``sigma_j`` (`float, **required**) - the insphere radius of the second
-            particle type.
+          particle type, :math:`[length]`.
+        * ``sigma_j`` (`float`, **required**) - the insphere radius of the
+          second particle type, :math:`[length]`.
         * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
-            not to include the attractive component of the interaction (see
-            above for details).
+          not to include the attractive component of the interaction (see
+          above for details).
         * ``contact_ratio_i`` (`float`, **optional**) - the ratio of the contact
-            sphere radius of the first type with ``sigma_i``. Defaults to 0.15.
-        * ``contact_sigma_j`` (`float`, **optional**) - the ratio of the contact
-            sphere radius of the second type with ``sigma_j``. Defaults to 0.15.
+          sphere radius of the first type with ``sigma_i``. Defaults to 0.15.
+        * ``contact_ratio_j`` (`float`, **optional**) - the ratio of the contact
+          sphere radius of the second type with ``sigma_j``. Defaults to 0.15.
         * ``average_simplices`` (`bool`, **optional**) - Whether to average over
-            simplices. Defaults to ``True``. See class documentation for more
-            information.
+          simplices. Defaults to ``True``. See class documentation for more
+          information.
 
-        Type: `TypeParameter` [`tuple` [``particle_types``, ``particle_types``],
-        `dict`]
+        Type: `hoomd.data.typeparam.TypeParameter` [`tuple` [``particle_types``,
+        ``particle_types``], `dict`]
 
     .. py:attribute:: shape
 
@@ -327,18 +327,18 @@ class ALJ(AnisotropicPair):
         type.
 
         * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
-            **required**) - The
-            vertices of a convex polytope in 2 or 3 dimensions. The third
-            dimension in 2D is ignored.
-        * ``rounding` radii` (`tuple` [`float`, `float`, `float`] or `float`,
-            **required**) - The semimajor axes of a rounding ellipsoid. If a
-            single value is specified, the rounding ellipsoid is a sphere.
+          **required**) - The vertices of a convex polytope in 2 or 3
+          dimensions. The third dimension in 2D is ignored.
+        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
+          **required**) - The semimajor axes of a rounding ellipsoid. If a
+          single value is specified, the rounding ellipsoid is a sphere.
         * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
-            polyhedron specified as a list of list of integers.  The vertices
-            must be ordered (see :meth:`~.get_ordered_vertices` for more
-            information).
+          polyhedron specified as a list of list of integers.  The vertices
+          must be ordered (see `get_ordered_vertices` for more information).
 
-    Specifying only ``rounding radii`` creates an ellipsoid, while specifying
+        Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
+
+    Specifying only ``rounding_radii`` creates an ellipsoid, while specifying
     only ``vertices`` creates a convex polytope (set ``vertices`` and ``faces``
     to empty list to create the ellipsoid). To automate the computation of
     faces, the convenience class method `get_ordered_vertices` can be used.
@@ -430,13 +430,16 @@ class ALJ(AnisotropicPair):
                 take the convex hull of and get ordered vertices and faces from.
             return_faces (`bool`, optional): Whether to return faces as a list
                 of list of int which index into the returned vertices. Defaults
-                to ``True``.
+                to ``True``. If ``False`` only vertices are returned and the
+                return type is not a tuple.
 
         Returns:
-            vertices (:math:`(N_v, 3)` numpy.ndarray of float): The vertices of
-                the convex hull.
-            faces (`list` [`list` [`int`]]): The indices into the vertices of
-                vertices defining the faces.
+            tuple: A tuple containing:
+
+                * ``vertices`` (:math:`(N_v, 3)` `numpy.ndarray` of `float`) -
+                  The vertices of the convex hull.
+                * ``faces`` (`list` [`list` [`int`]]) - The indices into the
+                  vertices of vertices defining the faces.
         """
         try:
             import coxeter
@@ -468,7 +471,7 @@ class ALJ(AnisotropicPair):
 
     @log(category="object", requires_run=True)
     def type_shapes(self):
-        """list[ `dict`[ `str`, ``any``]]: The shape specification for use \
+        """`list` [`dict` [`str`, ``any``]]: The shape specification for use \
                 with GSD files for visualization.
 
         This is not meant to be used for access to shape information in Python.
