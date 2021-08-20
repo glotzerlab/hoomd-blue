@@ -220,7 +220,7 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(Scalar rotat
     bool is2D = (this->m_sysdef->getNDimensions() == 2);
     unsigned int group_size = this->m_group->getNumMembers();
 
-    const auto rotation_constant = slow::sqrt(2.0 * rotational_diffusion * m_deltaT);
+    const auto rotation_constant = slow::sqrt(2.0 * rotational_diffusion * this->m_deltaT);
     // perform the update on the GPU
     this->m_tuner_diffusion->begin();
 
