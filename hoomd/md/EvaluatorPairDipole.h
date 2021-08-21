@@ -56,7 +56,7 @@ class EvaluatorPairDipole
         */
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
         HOSTDEVICE param_type() : A(0), kappa(0) { }
 
@@ -94,7 +94,7 @@ class EvaluatorPairDipole
         */
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
         HOSTDEVICE shape_type() : mu {0, 0, 0} { }
 
@@ -137,16 +137,6 @@ class EvaluatorPairDipole
         : dr(_dr), rcutsq(_rcutsq), q_i(0), q_j(0), quat_i(_quat_i),
           quat_j(_quat_j), mu_i {0, 0, 0}, mu_j {0, 0, 0}, A(_params.A), kappa(_params.kappa)
         {
-        }
-
-    DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
-        {
-        // No-op for this struct since it contains no arrays
-        }
-
-    DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
-        {
-        // No-op for this struct since it contains no arrays
         }
 
     //! uses diameter

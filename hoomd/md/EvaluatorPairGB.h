@@ -55,7 +55,7 @@ class EvaluatorPairGB
         */
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
@@ -107,7 +107,7 @@ class EvaluatorPairGB
         */
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
         HOSTDEVICE shape_type() { }
 
@@ -142,16 +142,6 @@ class EvaluatorPairGB
         : dr(_dr), rcutsq(_rcutsq), qi(_qi), qj(_qj), epsilon(_params.epsilon),
           lperp(_params.lperp), lpar(_params.lpar)
         {
-        }
-
-    DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
-        {
-        // No-op for this struct since it contains no arrays
-        }
-
-    DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
-        {
-        // No-op for this struct since it contains no arrays
         }
 
     //! uses diameter

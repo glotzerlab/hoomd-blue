@@ -154,7 +154,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
          */
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifndef __HIPCC__
         //! Shape constructor
@@ -380,7 +380,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
             face_offsets.load_shared(ptr, available_bytes);
             }
 
-        DEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
             {
             verts.allocate_shared(ptr, available_bytes);
             faces.allocate_shared(ptr, available_bytes);
