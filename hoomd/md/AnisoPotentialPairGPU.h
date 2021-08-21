@@ -249,6 +249,7 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::setParams(
     {
     AnisoPotentialPair<evaluator>::setParams(typ1, typ2, param);
     this->m_params[this->m_typpair_idx(typ1, typ2)].set_memory_hint();
+    this->m_params[this->m_typpair_idx(typ2, typ1)].set_memory_hint();
     }
 
 template<class evaluator,
