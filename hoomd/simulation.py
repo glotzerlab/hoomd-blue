@@ -373,7 +373,7 @@ class Simulation(metaclass=Loggable):
 
             write_at_start (bool): When `True`, writers
                with triggers that evaluate `True` for the initial step will be
-               exected before the time step loop.
+               executed before the time step loop.
 
         Note:
             Initialize the simulation's state before calling `run`.
