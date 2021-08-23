@@ -76,16 +76,16 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
     //! Set the fractional increase in the timestep upon a valid search direction
     void setFinc(Scalar finc);
 
-    //! get the fractional increase in the timestep
+    //! get the fractional increase in the timestep upon a valid search direction
     Scalar getFinc()
         {
         return m_finc;
         }
 
-    //! Set the fractional increase in the timestep upon a valid search direction
+    //! Set the fractional decrease in the timestep upon system energy increasing
     void setFdec(Scalar fdec);
 
-    //! Set the fractional increase in the timestep upon a valid search direction
+    //! Get the fractional decrease in the timestep upon system energy increasing
     Scalar getFdec()
         {
         return m_fdec;
