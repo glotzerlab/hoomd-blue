@@ -154,8 +154,7 @@ class FIRE(_DynamicIntegrator):
                 force_tol=float,
                 angmom_tol=float,
                 energy_tol=float,
-                min_steps_conv=OnlyTypes(int,
-                                         preprocess=_raise_if_nonpositive),
+                min_steps_conv=OnlyTypes(int, preprocess=_raise_if_nonpositive),
                 _defaults={
                     "aniso": "auto",
                     "min_steps_adapt": 5,
