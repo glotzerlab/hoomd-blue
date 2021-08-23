@@ -96,7 +96,7 @@ def test_run_minimization(lattice_snapshot_factory, simulation_factory):
     lj.params[('A', 'A')] = dict(sigma=1.0, epsilon=1.0)
     nve = md.methods.NVE(hoomd.filter.All())
 
-    fire = md.minimize.FIRE(dt=0.0025)
+    fire = md.minimize.FIRE(dt=0.0025, methods=[nve], forces=[lj])
     fire.min_steps_conv = 3
 
     sim.operations.integrator = fire
