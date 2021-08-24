@@ -104,11 +104,8 @@ class EvaluatorPairCosineSquared
         // this constructor facilitates unit testing
         param_type(Scalar sigma, Scalar epsilon, bool managed = false)
             {
-            sigma = sigma;
-            epsilon = epsilon;
             wca1 = epsilon * pow(sigma, 12.0);
             wca2 = epsilon * pow(sigma, 6.0);
-            wca = wca;
             }
 
         pybind11::dict asDict()
