@@ -30,30 +30,30 @@
 
      EvaluatorPairCosineSquared is a low level computation class that computes the Cosine Squared
     pair potential V(r). As defined in Cooke and Deserno, Journal of Chemical Physics 123, 224710,
-    2005 (https://doi.org/10.1063/1.2135785). 
-    
-     The potential consists of an attractive Cosine Squared potential, optionally combined with a 
+    2005 (https://doi.org/10.1063/1.2135785).
+
+     The potential consists of an attractive Cosine Squared potential, optionally combined with a
     repulsive Weeks-Chandler-Anderson potential. The WCA potential is on by default and defined by
     the mode parameter in the Python class.
 
      <b> Cosine Squared specifics </b>
-    
+
     EvaluatorPairCosineSquared evaluates the function:
 
     r < sigma and wca is set to true
-        \f[ V_{\mathrm{CosSq}}(r) = \varepsilon \left[ \left(\frac{\sigma}{r} \right)^{12} - 
+        \f[ V_{\mathrm{CosSq}}(r) = \varepsilon \left[ \left(\frac{\sigma}{r} \right)^{12} -
                 2 \left(\frac{\sigma}{r} \right)^{6} \right]]
-        \f[ -\frac{1}{r} \frac{\partial V_{\mathrm{CosSq}}}{\partial r} = 12 \varepsilon 
+        \f[ -\frac{1}{r} \frac{\partial V_{\mathrm{CosSq}}}{\partial r} = 12 \varepsilon
                 \left[\sigma^{12} \cdot r^{-14} - \sigma^{6} \cdot r^{-8} \right]]
     r < sigma and wca is set to false
         \f[ V_{\mathrm{CosSq}}(r) = -\varepsilon]
         \f[ -\frac{1}{r}\frac{\partial V_{\mathrm{CosSq}}(r)}{\partial r} = 0]
 
     sigma < r < r_cut
-        \f[ V_{\mathrm{CosSq}}(r) = -\varepsilon 
+        \f[ V_{\mathrm{CosSq}}(r) = -\varepsilon
                 cos^{2} \left[ \frac{\pi(r - \sigma)}{2(r_{c} - \sigma)} \right]]
-        \f[ -\frac{1}{r} \frac{\partial \mathrm{V_{CosSq}}}{\partial r} = 
-                -\varepsilon \frac{\pi}{2(r_{c} - \sigma)} 
+        \f[ -\frac{1}{r} \frac{\partial \mathrm{V_{CosSq}}}{\partial r} =
+                -\varepsilon \frac{\pi}{2(r_{c} - \sigma)}
                 sin \left[ \frac{\pi(r - \sigma)}{r_{c} - \sigma} \right]]
 
     r >= r_cut
@@ -63,7 +63,7 @@
      Similar to the LJ potential wca parameters are defined as
     - \a wca1 = epsilon * pow(sigma, 12)
     - \a wca2 = epsilon * pow(sigma, 6)
-   
+
 */
 class EvaluatorPairCosineSquared
     {
@@ -130,7 +130,7 @@ class EvaluatorPairCosineSquared
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairCosineSquared(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), wca1(_params.wca1), wca2(_params.wca2), 
+        : rsq(_rsq), rcutsq(_rcutsq), wca1(_params.wca1), wca2(_params.wca2),
         sigma(_params.sigma), epsilon(_params.epsilon), wca(_params.wca)
         {
         }
@@ -191,7 +191,7 @@ class EvaluatorPairCosineSquared
                 return true;
                 }
             }
-        else if (rsq < rcutsq) 
+        else if (rsq < rcutsq)
             {
             Scalar rinv = fast::rsqrt(rsq);
             Scalar r = Scalar(1.0) / rinv;
@@ -208,7 +208,7 @@ class EvaluatorPairCosineSquared
 
             force_divr = -piwcinv * epsilon * rinv * sinres;
             pair_eng = -epsilon * cossquared;
-            
+
             return true;
             }
         else

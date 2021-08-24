@@ -617,6 +617,7 @@ class Table(Pair):
                 len_keys=2))
         self._add_typeparam(params)
 
+
 class Morse(Pair):
     r"""Morse pair potential.
 
@@ -1880,6 +1881,7 @@ class TWF(Pair):
                               len_keys=2))
         self._add_typeparam(params)
 
+
 class CosineSquared(Pair):
     r"""Cosine Squared pair potential..
 
@@ -1888,12 +1890,12 @@ class CosineSquared(Pair):
         default_r_cut (float): Default cutoff radius (in distance units).
         default_r_on (float): Default turn-on radius (in distance units).
 
-    `CosineSquared` specifies a potential that was introduced by `Cooke and 
-    Deserno in 2005`_ for Coarse-grained simulations of membranes. A 
-    Weeks-Chandler-Anderson (WCA) repulsion potential is by default included in the 
-    potential. This can be switched off by the option *wca*. The potential 
+    `CosineSquared` specifies a potential that was introduced by `Cooke and
+    Deserno in 2005`_ for Coarse-grained simulations of membranes. A
+    Weeks-Chandler-Anderson (WCA) repulsion potential is by default included in the
+    potential. This can be switched off by the option *wca*. The potential
     has the following form:
-    
+
     .. _Cooke and Deserno in 2005:
        https://dx.doi.org/10.1063/1.2135785
 
@@ -1903,7 +1905,7 @@ class CosineSquared(Pair):
 
         \begin{eqnarray*}
         V_{\mathrm{CosSq}}(r)
-        = & \varepsilon \left[ \left(\frac{\sigma}{r} \right)^{12} - 
+        = & \varepsilon \left[ \left(\frac{\sigma}{r} \right)^{12} -
         2\left(\frac{\sigma}{r} \right)^{6} \right] \quad & r < \sigma \\
         = & -\varepsilon cos^{2} \left[ \frac{\pi(r - \sigma)}{2(r_{cut} - \sigma)} \right]
         \quad & \sigma < r < r_{cut} \\
@@ -1953,9 +1955,5 @@ class CosineSquared(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode='none')
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(
-                sigma=float,
-                epsilon=float,
-                wca=True,
-                len_keys=2))
+            TypeParameterDict(sigma=float, epsilon=float, wca=True, len_keys=2))
         self._add_typeparam(params)
