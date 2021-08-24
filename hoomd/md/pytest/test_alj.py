@@ -122,7 +122,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
 def test_type_shapes(simulation_factory, two_particle_snapshot_factory):
     pytest.importorskip("coxeter")
     alj = md.pair.aniso.ALJ(md.nlist.Cell())
-    sim = simulation_factory(two_particle_snapshot_factory())
+    sim = simulation_factory(two_particle_snapshot_factory(d=2.0))
     sim.operations.integrator = md.Integrator(0.005, forces=[alj])
 
     alj.r_cut.default = 2.5
@@ -182,7 +182,7 @@ def test_type_shapes(simulation_factory, two_particle_snapshot_factory):
 
     alj = copy.deepcopy(alj)
 
-    sim = simulation_factory(two_particle_snapshot_factory(dimensions=2))
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=2, d=2))
     sim.operations.integrator = md.Integrator(0.005, forces=[alj])
     square = [(0.5, 0, 0), (-0.5, 0, 0), (-0.5, -0.5, 0), (0.5, 0.5, 0)]
     alj.shape["A"] = {
