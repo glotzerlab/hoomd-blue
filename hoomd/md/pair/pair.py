@@ -617,7 +617,6 @@ class Table(Pair):
                 len_keys=2))
         self._add_typeparam(params)
 
-
 class Morse(Pair):
     r"""Morse pair potential.
 
@@ -1879,4 +1878,84 @@ class TWF(Pair):
                               sigma=float,
                               alpha=float,
                               len_keys=2))
+        self._add_typeparam(params)
+
+class CosineSquared(Pair):
+    r"""Cosine Squared pair potential..
+
+    Args:
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list.
+        default_r_cut (float): Default cutoff radius (in distance units).
+        default_r_on (float): Default turn-on radius (in distance units).
+
+    `CosineSquared` specifies a potential that was introduced by `Cooke and 
+    Deserno in 2005`_ for Coarse-grained simulations of membranes. A 
+    Weeks-Chandler-Anderson (WCA) repulsion potential is by default included in the 
+    potential. This can be switched off by the option *wca*. The potential 
+    has the following form:
+    
+    .. _Cooke and Deserno in 2005:
+       https://dx.doi.org/10.1063/1.2135785
+
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{CosSq}}(r)
+        = & \varepsilon \left[ \left(\frac{\sigma}{r} \right)^{12} - 
+        2\left(\frac{\sigma}{r} \right)^{6} \right] \quad & r < \sigma \\
+        = & -\varepsilon cos^{2} \left[ \frac{\pi(r - \sigma)}{2(r_{cut} - \sigma)} \right]
+        \quad & \sigma < r < r_{cut} \\
+        = & 0 \quad & r \geq r_{cut}
+        \end{eqnarray*}
+
+    if *wca* is set to False the following formula is evaluated instead:
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{CosSq}}(r)
+        = & -\varepsilon \quad & r < \sigma \\
+        = & -\varepsilon cos^{2} \left[ \frac{\pi(r - \sigma)}{2(r_{cut} - \sigma)} \right]
+        \quad & \sigma < r < r_{cut} \\
+        = & 0 \quad & r \geq r_{cut}
+        \end{eqnarray*}
+
+    See `Pair` for details on how forces are calculated and the available
+    energy shifting and smoothing modes.
+
+    .. py:attribute:: params
+
+        The LJ potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[energy]`
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` :math:`[length]`
+        * ``wca`` (`bool`, **optional**) -
+          use WCA-repulsion (*default*: True)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    Example::
+
+        nl = nlist.Cell()
+        cossq = hoomd.md.pair.CosineSquared(nl, default_r_cut=3.0)
+        cossq.params[('A', 'A')] = {'sigma': 1.0, 'epsilon': 1.0}
+        cossq.r_cut[('A', 'A')] = 3.0
+    """
+    _cpp_class_name = "PotentialPairCosineSquared"
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
+        super().__init__(nlist, default_r_cut, default_r_on, mode='none')
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(
+                sigma=float,
+                epsilon=float,
+                wca=True,
+                len_keys=2))
         self._add_typeparam(params)

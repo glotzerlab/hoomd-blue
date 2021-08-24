@@ -11,6 +11,7 @@
 #define __ALL_DRIVER_POTENTIAL_PAIR_GPU_CUH__
 
 #include "EvaluatorPairBuckingham.h"
+#include "EvaluatorPairCosineSquared.h"
 #include "EvaluatorPairDLVO.h"
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairDPDThermo.h"
@@ -144,6 +145,11 @@ gpu_compute_opp_forces(const pair_args_t& pair_args, const EvaluatorPairOPP::par
 hipError_t __attribute__((visibility("default")))
 gpu_compute_table_forces(const pair_args_t& pair_args,
                          const EvaluatorPairTable::param_type* d_params);
+
+//! Compute Cosine Squared pair potential forces on the GPU with PairEvaluatorFourier
+hipError_t __attribute__((visibility("default")))
+gpu_compute_cossq_forces(const pair_args_t& pair_args,
+                           const EvaluatorCosineSquared::param_type* d_params);
 
 //! Compute oscillating pair potential forces on the GPU with EvaluatorPairOPP
 hipError_t __attribute__((visibility("default")))
