@@ -365,7 +365,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
     export_PotentialPairGPU<PotentialPairTableGPU, PotentialPairTable>(m, "PotentialPairTableGPU");
     export_PotentialPairGPU<PotentialPairCosineSquaredGPU, PotentialPairCosineSquared>(
-        m, 
+        m,
         "PotentialPairCosineSquaredGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD>(
         m,
