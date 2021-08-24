@@ -15,19 +15,21 @@ using namespace std;
 MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
                                            std::shared_ptr<ParticleGroup> group,
                                            std::shared_ptr<Variant> flow_target,
-                                           const flow_enum::Direction slab_direction,
-                                           const flow_enum::Direction flow_direction,
+                                           std::string slab_direction_str,
+                                           std::string flow_direction_str,
                                            const unsigned int N_slabs,
                                            const unsigned int min_slab,
-                                           const unsigned int max_slab)
+                                           const unsigned int max_slab,
+                                           Scalar flow_epsilon)
     : MuellerPlatheFlow(sysdef,
                         group,
                         flow_target,
-                        slab_direction,
-                        flow_direction,
+                        slab_direction_str,
+                        flow_direction_str,
                         N_slabs,
                         min_slab,
-                        max_slab)
+                        max_slab,
+                        flow_epsilon)
     {
     m_exec_conf->msg->notice(5) << "Constructing MuellerPlatheFlowGPU " << endl;
     if (!m_exec_conf->isCUDAEnabled())
@@ -52,12 +54,12 @@ MuellerPlatheFlowGPU::~MuellerPlatheFlowGPU(void)
     m_exec_conf->msg->notice(5) << "Destroying MuellerPlatheFlowGPU " << endl;
     }
 
-void MuellerPlatheFlowGPU::search_min_max_velocity(void)
+void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
     {
     const unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-    if (!this->has_max_slab() and !this->has_min_slab())
+    if (!this->hasMaxSlab() and !this->hasMinSlab())
         return;
     if (m_prof)
         m_prof->push("MuellerPlatheFlowGPU::search");
@@ -88,13 +90,13 @@ void MuellerPlatheFlowGPU::search_min_max_velocity(void)
                                 d_rtag.data,
                                 d_group_members.data,
                                 gl_box,
-                                this->get_N_slabs(),
-                                this->get_max_slab(),
-                                this->get_min_slab(),
+                                this->getNSlabs(),
+                                this->getMaxSlab(),
+                                this->getMinSlab(),
                                 &m_last_max_vel,
                                 &m_last_min_vel,
-                                this->has_max_slab(),
-                                this->has_min_slab(),
+                                this->hasMaxSlab(),
+                                this->hasMinSlab(),
                                 m_tuner->getParam(),
                                 m_flow_direction,
                                 m_slab_direction);
@@ -106,7 +108,7 @@ void MuellerPlatheFlowGPU::search_min_max_velocity(void)
         m_prof->pop();
     }
 
-void MuellerPlatheFlowGPU::update_min_max_velocity(void)
+void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
     {
     if (m_prof)
         m_prof->push("MuellerPlatheFlowGPU::update");
@@ -140,10 +142,11 @@ void export_MuellerPlatheFlowGPU(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<Variant>,
-                      const flow_enum::Direction,
-                      const flow_enum::Direction,
+                      std::string,
+                      std::string,
                       const unsigned int,
                       const unsigned int,
-                      const unsigned int>());
+                      const unsigned int,
+                      Scalar>());
     }
 #endif // ENABLE_HIP

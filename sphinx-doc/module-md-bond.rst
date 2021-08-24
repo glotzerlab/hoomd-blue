@@ -11,6 +11,7 @@ md.bond
     Bond
     FENE
     Harmonic
+    Tether
 
 .. rubric:: Details
 
@@ -18,6 +19,7 @@ md.bond
     :synopsis: Bond potentials.
     :members: Bond,
               FENE,
-              Harmonic
+              Harmonic,
+              Tether
     :no-inherited-members:
     :show-inheritance:

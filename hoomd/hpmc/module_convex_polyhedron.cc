@@ -6,7 +6,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
-#include "AnalyzerSDF.h"
+#include "ComputeSDF.h"
 #include "ShapeConvexPolyhedron.h"
 #include "ShapeUnion.h"
 
@@ -19,7 +19,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -39,7 +38,7 @@ void export_convex_polyhedron(py::module& m)
     {
     export_IntegratorHPMCMono<ShapeConvexPolyhedron>(m, "IntegratorHPMCMonoConvexPolyhedron");
     export_ComputeFreeVolume<ShapeConvexPolyhedron>(m, "ComputeFreeVolumeConvexPolyhedron");
-    export_AnalyzerSDF<ShapeConvexPolyhedron>(m, "AnalyzerSDFConvexPolyhedron");
+    export_ComputeSDF<ShapeConvexPolyhedron>(m, "ComputeSDFConvexPolyhedron");
     export_UpdaterMuVT<ShapeConvexPolyhedron>(m, "UpdaterMuVTConvexPolyhedron");
     export_UpdaterClusters<ShapeConvexPolyhedron>(m, "UpdaterClustersConvexPolyhedron");
 
@@ -47,7 +46,6 @@ void export_convex_polyhedron(py::module& m)
     export_LatticeField<ShapeConvexPolyhedron>(m, "ExternalFieldLatticeConvexPolyhedron");
     export_ExternalFieldComposite<ShapeConvexPolyhedron>(m,
                                                          "ExternalFieldCompositeConvexPolyhedron");
-    export_RemoveDriftUpdater<ShapeConvexPolyhedron>(m, "RemoveDriftUpdaterConvexPolyhedron");
     export_ExternalFieldWall<ShapeConvexPolyhedron>(m, "WallConvexPolyhedron");
     export_UpdaterExternalFieldWall<ShapeConvexPolyhedron>(
         m,

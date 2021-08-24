@@ -44,10 +44,7 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepL
                     std::shared_ptr<Variant> T,
                     Scalar tolerance = 0.000001);
 
-    virtual ~TwoStepRATTLEBD()
-        {
-        m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLEBD" << endl;
-        }
+    virtual ~TwoStepRATTLEBD();
 
     //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);
@@ -81,11 +78,18 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepL
         };
 
     protected:
+    //! Helper function to be called when box changes
+    void setBoxChange()
+        {
+        m_box_changed = true;
+        }
+
     Manifold m_manifold; //!< The manifold used for the RATTLE constraint
     bool m_noiseless_t;
     bool m_noiseless_r;
     Scalar m_tolerance; //!< The tolerance value of the RATTLE algorithm, setting the tolerance to
                         //!< the manifold
+    bool m_box_changed;
     };
 
 /*! \file TwoStepRATTLEBD.h
@@ -109,14 +113,26 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
                                            std::shared_ptr<Variant> T,
                                            Scalar tolerance)
     : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold), m_noiseless_t(false),
-      m_noiseless_r(false), m_tolerance(tolerance)
+      m_noiseless_r(false), m_tolerance(tolerance), m_box_changed(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
+
+    m_pdata->getBoxChangeSignal()
+        .template connect<TwoStepRATTLEBD<Manifold>, &TwoStepRATTLEBD<Manifold>::setBoxChange>(
+            this);
 
     if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
         {
         throw std::runtime_error("Parts of the manifold are outside the box");
         }
+    }
+
+template<class Manifold> TwoStepRATTLEBD<Manifold>::~TwoStepRATTLEBD()
+    {
+    m_pdata->getBoxChangeSignal()
+        .template disconnect<TwoStepRATTLEBD<Manifold>, &TwoStepRATTLEBD<Manifold>::setBoxChange>(
+            this);
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLEBD" << endl;
     }
 
 /*! \param timestep Current time step
@@ -169,9 +185,13 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
 
     const BoxDim& box = m_pdata->getBox();
 
-    if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+    if (m_box_changed)
         {
-        throw std::runtime_error("Parts of the manifold are outside the box");
+        if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+            {
+            throw std::runtime_error("Parts of the manifold are outside the box");
+            }
+        m_box_changed = false;
         }
 
     uint16_t seed = m_sysdef->getSeed();

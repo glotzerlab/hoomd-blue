@@ -70,7 +70,7 @@ Install prerequisites
 
 **General requirements:**
 
-- C++14 capable compiler (tested with ``gcc`` 7, 8, 9, 10 / ``clang`` 6, 7, 8, 9, 10, 11)
+- C++14 capable compiler (tested with ``gcc`` 7, 8, 9, 10, 11 / ``clang`` 6, 7, 8, 9, 10, 11)
 - Python >= 3.6
 - NumPy >= 1.7
 - pybind11 >= 2.2
@@ -219,7 +219,6 @@ Other option changes take effect at any time:
 - ``CMAKE_INSTALL_PREFIX`` - Directory to install **HOOMD-blue**. Defaults to the root path of the
   found Python executable.
 - ``ENABLE_GPU`` - When enabled, compiled GPU accelerated computations (default: ``off``).
-- ``ENABLE_DOXYGEN`` - When enabled, generate developer documentation (default: ``off``).
 - ``SINGLE_PRECISION`` - Controls precision (default: ``off``).
 
   - When set to ``on``, all calculations are performed in single precision.

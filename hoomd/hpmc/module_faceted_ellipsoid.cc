@@ -6,7 +6,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
-#include "AnalyzerSDF.h"
+#include "ComputeSDF.h"
 #include "ShapeFacetedEllipsoid.h"
 
 #include "ExternalCallback.h"
@@ -18,7 +18,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -38,7 +37,7 @@ void export_faceted_ellipsoid(py::module& m)
     {
     export_IntegratorHPMCMono<ShapeFacetedEllipsoid>(m, "IntegratorHPMCMonoFacetedEllipsoid");
     export_ComputeFreeVolume<ShapeFacetedEllipsoid>(m, "ComputeFreeVolumeFacetedEllipsoid");
-    export_AnalyzerSDF<ShapeFacetedEllipsoid>(m, "AnalyzerSDFFacetedEllipsoid");
+    export_ComputeSDF<ShapeFacetedEllipsoid>(m, "ComputeSDFFacetedEllipsoid");
     export_UpdaterMuVT<ShapeFacetedEllipsoid>(m, "UpdaterMuVTFacetedEllipsoid");
     export_UpdaterClusters<ShapeFacetedEllipsoid>(m, "UpdaterClustersFacetedEllipsoid");
 
@@ -46,7 +45,6 @@ void export_faceted_ellipsoid(py::module& m)
     export_LatticeField<ShapeFacetedEllipsoid>(m, "ExternalFieldLatticeFacetedEllipsoid");
     export_ExternalFieldComposite<ShapeFacetedEllipsoid>(m,
                                                          "ExternalFieldCompositeFacetedEllipsoid");
-    export_RemoveDriftUpdater<ShapeFacetedEllipsoid>(m, "RemoveDriftUpdaterFacetedEllipsoid");
     export_ExternalFieldWall<ShapeFacetedEllipsoid>(m, "WallFacetedEllipsoid");
     export_UpdaterExternalFieldWall<ShapeFacetedEllipsoid>(
         m,

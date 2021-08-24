@@ -376,12 +376,12 @@ class NPT(Method):
         tau (float): Coupling constant for the thermostat
             :math:`[\mathrm{time}]`.
 
-        S (List[hoomd.variant.Variant]): Stress components set
+        S (list[hoomd.variant.Variant]): Stress components set
             point for the barostat.
             In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
             :math:`[\mathrm{pressure}]`. Stress can be reset after the method
-            object is created. For example, an isoropic pressure can be set by
+            object is created. For example, an isotropic pressure can be set by
             ``npt.S = 4.``
 
         tauS (float): Coupling constant for the barostat
@@ -390,7 +390,7 @@ class NPT(Method):
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all".
 
-        box_dof(List[bool]): Box degrees of freedom with six boolean elements
+        box_dof(list[bool]): Box degrees of freedom with six boolean elements
             corresponding to x, y, z, xy, xz, yz, each.
 
         rescale_all (bool): if True, rescale all particles, not only those in
@@ -769,7 +769,6 @@ class NVE(MethodRATTLE):
         tolerance (float): Defines the tolerated error particles are allowed to
             deviate from the manifold in terms of the implicit function.
             Defaults to 1e-6.
-
     """
 
     def __init__(self,

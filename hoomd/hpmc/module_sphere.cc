@@ -6,7 +6,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
-#include "AnalyzerSDF.h"
+#include "ComputeSDF.h"
 #include "ShapeSphere.h"
 #include "ShapeUnion.h"
 
@@ -19,8 +19,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
-
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
@@ -39,14 +37,13 @@ void export_sphere(py::module& m)
     {
     export_IntegratorHPMCMono<ShapeSphere>(m, "IntegratorHPMCMonoSphere");
     export_ComputeFreeVolume<ShapeSphere>(m, "ComputeFreeVolumeSphere");
-    export_AnalyzerSDF<ShapeSphere>(m, "AnalyzerSDFSphere");
+    export_ComputeSDF<ShapeSphere>(m, "ComputeSDFSphere");
     export_UpdaterMuVT<ShapeSphere>(m, "UpdaterMuVTSphere");
     export_UpdaterClusters<ShapeSphere>(m, "UpdaterClustersSphere");
 
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
     export_LatticeField<ShapeSphere>(m, "ExternalFieldLatticeSphere");
     export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");
-    export_RemoveDriftUpdater<ShapeSphere>(m, "RemoveDriftUpdaterSphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
     export_UpdaterExternalFieldWall<ShapeSphere>(m, "UpdaterExternalFieldWallSphere");
     export_ExternalCallback<ShapeSphere>(m, "ExternalCallbackSphere");

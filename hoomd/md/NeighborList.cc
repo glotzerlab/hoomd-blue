@@ -52,7 +52,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_rebuild_check_delay = 0;
     m_exclusions_set = false;
 
-    m_need_reallocate_exlist = false;
+    m_n_particles_changed = false;
 
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
@@ -198,7 +198,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     TAG_ALLOCATION(m_ex_list_idx);
 
     // reset exclusions
-    clearExclusions();
+    resizeAndClearExclusions();
 
     m_ex_list_indexer = Index2D((unsigned int)m_ex_list_idx.getPitch(), 1);
     m_ex_list_indexer_tag = Index2D((unsigned int)m_ex_list_tag.getPitch(), 1);
@@ -209,9 +209,6 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     // connect to max particle change to resize neighborlist arrays
     m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborList, &NeighborList::reallocate>(
         this);
-
-    // connect to type change to resize type data arrays
-    m_pdata->getNumTypesChangeSignal().connect<NeighborList, &NeighborList::reallocateTypes>(this);
 
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
@@ -258,69 +255,6 @@ void NeighborList::reallocate()
     forceUpdate();
     }
 
-void NeighborList::reallocateTypes()
-    {
-    m_typpair_idx = Index2D(m_pdata->getNTypes());
-    m_r_cut.resize(m_typpair_idx.getNumElements());
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        cudaMemAdvise(m_r_cut.get(),
-                      m_r_cut.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    m_rcut_max.resize(m_pdata->getNTypes());
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        // store in host memory for faster access from CPU
-        cudaMemAdvise(m_rcut_max.get(),
-                      m_rcut_max.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    m_r_listsq.resize(m_typpair_idx.getNumElements());
-    unsigned int old_ntypes = (unsigned int)m_Nmax.getNumElements();
-    m_Nmax.resize(m_pdata->getNTypes());
-
-    // flood Nmax with 4s initially
-        {
-        ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::readwrite);
-        for (unsigned int i = old_ntypes; i < m_pdata->getNTypes(); ++i)
-            {
-            h_Nmax.data[i] = 4;
-            }
-        }
-
-    m_conditions.resize(m_pdata->getNTypes());
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        // store in host memory for faster access from CPU
-        cudaMemAdvise(m_conditions.get(),
-                      m_conditions.getNumElements() * sizeof(unsigned int),
-                      cudaMemAdviseSetPreferredLocation,
-                      cudaCpuDeviceId);
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    resetConditions();
-
-    notifyRCutMatrixChange();
-    forceUpdate();
-    }
-
 NeighborList::~NeighborList()
     {
     m_exec_conf->msg->notice(5) << "Destroying Neighborlist" << endl;
@@ -340,9 +274,6 @@ NeighborList::~NeighborList()
             .disconnect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
         }
 #endif
-
-    m_pdata->getNumTypesChangeSignal().disconnect<NeighborList, &NeighborList::reallocateTypes>(
-        this);
 
     getRCutChangeSignal().disconnect<NeighborList, &NeighborList::slotRCutChange>(this);
     }
@@ -365,6 +296,18 @@ void NeighborList::compute(uint64_t timestep)
 
     if (m_prof)
         m_prof->push("Neighbor");
+
+    // when the number of particles in the system changes, rebuild the exclusion list
+    if (m_n_particles_changed)
+        {
+        resizeAndClearExclusions();
+        for (const std::string& exclusion : m_exclusions)
+            {
+            setSingleExclusion(exclusion);
+            }
+
+        m_n_particles_changed = false;
+        }
 
     // take care of some updates if things have changed since construction
     if (m_force_update)
@@ -615,7 +558,7 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     assert(tag1 <= m_pdata->getMaximumTag());
     assert(tag2 <= m_pdata->getMaximumTag());
 
-    assert(!m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     m_exclusions_set = true;
 
@@ -672,10 +615,10 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 
 /*! \post No particles are excluded from the neighbor list
  */
-void NeighborList::clearExclusions()
+void NeighborList::resizeAndClearExclusions()
     {
     // reallocate list of exclusions per tag if necessary
-    if (m_need_reallocate_exlist)
+    if (m_n_particles_changed)
         {
         m_n_ex_tag.resize(m_pdata->getRTags().size());
 
@@ -687,8 +630,6 @@ void NeighborList::clearExclusions()
             m_ex_list_indexer_tag = Index2D((unsigned int)m_ex_list_tag.getPitch(),
                                             (unsigned int)m_ex_list_tag.getHeight());
             }
-
-        m_need_reallocate_exlist = false;
         }
 
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
@@ -724,7 +665,7 @@ unsigned int NeighborList::getNumExclusions(unsigned int size)
 
 void NeighborList::setExclusions(pybind11::list exclusions)
     {
-    clearExclusions();
+    resizeAndClearExclusions();
     setFilterBody(false);
     m_exclusions = set<std::string>();
     for (auto exclusion : exclusions)
@@ -795,7 +736,7 @@ void NeighborList::countExclusions()
     unsigned int excluded_count[MAX_COUNT_EXCLUDED + 2];
     unsigned int num_excluded, max_num_excluded;
 
-    assert(!m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
 
@@ -1031,7 +972,7 @@ void NeighborList::addExclusionsFromPairs()
 */
 bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     {
-    assert(!m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     assert(tag1 <= m_pdata->getMaximumTag());
     assert(tag2 <= m_pdata->getMaximumTag());
@@ -1486,7 +1427,7 @@ void NeighborList::buildNlist(uint64_t timestep)
  */
 void NeighborList::updateExListIdx()
     {
-    assert(!m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     if (m_prof)
         m_prof->push("update-ex");
@@ -1838,7 +1779,6 @@ void export_NeighborList(py::module& m)
         .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
         .def("getNumExclusions", &NeighborList::getNumExclusions)
-        .def("wantExclusions", &NeighborList::wantExclusions)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &NeighborList::setCommunicator)
 #endif

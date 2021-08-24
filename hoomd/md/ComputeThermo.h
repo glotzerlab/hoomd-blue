@@ -323,7 +323,8 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
     /// Get the box volume (or area in 2D)
     const Scalar getVolume()
         {
-        return m_sysdef->getParticleData()->getGlobalBox().getVolume();
+        bool two_d = m_sysdef->getNDimensions() == 2;
+        return m_sysdef->getParticleData()->getGlobalBox().getVolume(two_d);
         }
 
     protected:

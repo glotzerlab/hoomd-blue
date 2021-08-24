@@ -340,56 +340,11 @@ class PYBIND11_EXPORT NeighborList : public Compute
         return m_exclusions_set;
         }
 
-    bool wantExclusions()
-        {
-        return m_need_reallocate_exlist;
-        }
-
     //! Gives an estimate of the number of nearest neighbors per particle
     virtual Scalar estimateNNeigh();
 
-    // @}
-    //! \name Handle exclusions
-    // @{
-
     //! Exclude a pair of particles from being added to the neighbor list
     void addExclusion(unsigned int tag1, unsigned int tag2);
-
-    //! Clear all existing exclusions
-    void clearExclusions();
-
-    //! Collect some statistics on exclusions.
-    void countExclusions();
-
-    //! Get number of exclusions involving n particles
-    /*! \param n Size of the exclusion
-     * \returns Number of excluded particles
-     */
-    unsigned int getNumExclusions(unsigned int size);
-
-    //! Add an exclusion for every bond in the ParticleData
-    void addExclusionsFromBonds();
-
-    //! Add exclusions from angles
-    void addExclusionsFromAngles();
-
-    //! Add exclusions from dihedrals
-    void addExclusionsFromDihedrals();
-
-    //! Add an exclusion for every bond in the ConstraintData
-    void addExclusionsFromConstraints();
-
-    //! Add an exclusion for every pair in the ParticleData
-    void addExclusionsFromPairs();
-
-    //! Test if an exclusion has been made
-    bool isExcluded(unsigned int tag1, unsigned int tag2);
-
-    //! Add an exclusion for every 1,3 pair
-    void addOneThreeExclusionsFromTopology();
-
-    //! Add an exclusion for every 1,4 pair
-    void addOneFourExclusionsFromTopology();
 
     //! Enable/disable body filtering
     virtual void setFilterBody(bool filter_body)
@@ -404,6 +359,15 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
         forceUpdate();
         }
+
+    //! Collect some statistics on exclusions.
+    void countExclusions();
+
+    //! Get number of exclusions involving n particles
+    /*! \param n Size of the exclusion
+     * \returns Number of excluded particles
+     */
+    unsigned int getNumExclusions(unsigned int size);
 
     //! Test if body filtering is set
     virtual bool getFilterBody()
@@ -565,7 +529,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
     Index2D m_ex_list_indexer;               //!< Indexer for accessing the exclusion list
     Index2D m_ex_list_indexer_tag;           //!< Indexer for accessing the by-tag exclusion list
     bool m_exclusions_set;                   //!< True if any exclusions have been set
-    bool m_need_reallocate_exlist; //!< True if global exclusion list needs to be reallocated
+    bool m_n_particles_changed; //!< True if global exclusion list needs to be reallocated
 
     //! Return true if we are supposed to do a distance check in this time step
     bool shouldCheckDistance(uint64_t timestep);
@@ -653,9 +617,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
     //! Reallocate internal neighbor list data structures
     void reallocate();
 
-    //! Reallocate internal data structures that depend on types
-    void reallocateTypes();
-
     //! Check the status of the conditions
     bool checkConditions();
 
@@ -668,8 +629,35 @@ class PYBIND11_EXPORT NeighborList : public Compute
     //! Method to be called when the global particle number changes
     void slotGlobalParticleNumberChange()
         {
-        m_need_reallocate_exlist = true;
+        m_n_particles_changed = true;
         }
+
+    //! Clear all existing exclusions
+    void resizeAndClearExclusions();
+
+    //! Add an exclusion for every bond in the ParticleData
+    void addExclusionsFromBonds();
+
+    //! Add exclusions from angles
+    void addExclusionsFromAngles();
+
+    //! Add exclusions from dihedrals
+    void addExclusionsFromDihedrals();
+
+    //! Add an exclusion for every bond in the ConstraintData
+    void addExclusionsFromConstraints();
+
+    //! Add an exclusion for every pair in the ParticleData
+    void addExclusionsFromPairs();
+
+    //! Test if an exclusion has been made
+    bool isExcluded(unsigned int tag1, unsigned int tag2);
+
+    //! Add an exclusion for every 1,3 pair
+    void addOneThreeExclusionsFromTopology();
+
+    //! Add an exclusion for every 1,4 pair
+    void addOneFourExclusionsFromTopology();
 
 #ifdef ENABLE_HIP
     GPUPartition m_last_gpu_partition; //!< The partition at the time of the last memory hints

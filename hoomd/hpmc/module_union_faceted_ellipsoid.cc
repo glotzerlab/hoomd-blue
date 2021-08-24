@@ -2,8 +2,8 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
-#include "AnalyzerSDF.h"
 #include "ComputeFreeVolume.h"
+#include "ComputeSDF.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
@@ -18,7 +18,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -43,8 +42,7 @@ void export_union_faceted_ellipsoid(py::module& m)
     export_ComputeFreeVolume<ShapeUnion<ShapeFacetedEllipsoid>>(
         m,
         "ComputeFreeVolumeFacetedEllipsoidUnion");
-    // export_AnalyzerSDF< ShapeUnion<ShapeFacetedEllipsoid> >(m,
-    // "AnalyzerSDFFacetedEllipsoidUnion");
+    export_ComputeSDF<ShapeUnion<ShapeFacetedEllipsoid>>(m, "ComputeSDFFacetedEllipsoidUnion");
     export_UpdaterMuVT<ShapeUnion<ShapeFacetedEllipsoid>>(m, "UpdaterMuVTFacetedEllipsoidUnion");
     export_UpdaterClusters<ShapeUnion<ShapeFacetedEllipsoid>>(
         m,
@@ -59,9 +57,6 @@ void export_union_faceted_ellipsoid(py::module& m)
     export_ExternalFieldComposite<ShapeUnion<ShapeFacetedEllipsoid>>(
         m,
         "ExternalFieldCompositeFacetedEllipsoidUnion");
-    export_RemoveDriftUpdater<ShapeUnion<ShapeFacetedEllipsoid>>(
-        m,
-        "RemoveDriftUpdaterFacetedEllipsoidUnion");
     export_ExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid>>(m, "WallFacetedEllipsoidUnion");
     export_UpdaterExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid>>(
         m,

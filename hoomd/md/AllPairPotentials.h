@@ -11,6 +11,7 @@
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairDPDThermo.h"
 #include "EvaluatorPairEwald.h"
+#include "EvaluatorPairExpandedMie.h"
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairGauss.h"
@@ -24,6 +25,7 @@
 #include "EvaluatorPairReactionField.h"
 #include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairTWF.h"
+#include "EvaluatorPairTable.h"
 #include "EvaluatorPairYukawa.h"
 #include "EvaluatorPairZBL.h"
 #include "PotentialPair.h"
@@ -68,10 +70,12 @@ typedef PotentialPairDPDThermo<EvaluatorPairDPDThermo> PotentialPairDPDThermoDPD
 typedef PotentialPair<EvaluatorPairDPDLJThermo> PotentialPairDPDLJ;
 //! Pair potential force compute for dpd thermostat and LJ conservative forces
 typedef PotentialPairDPDThermo<EvaluatorPairDPDLJThermo> PotentialPairDPDLJThermoDPD;
-//! Pair potential force compute for force shifted LJ on the GPU
+//! Pair potential force compute for force shifted LJ
 typedef PotentialPair<EvaluatorPairForceShiftedLJ> PotentialPairForceShiftedLJ;
 //! Pair potential force compute for Mie potential
 typedef PotentialPair<EvaluatorPairMie> PotentialPairMie;
+//! Pair potential force compute for Expanded Mie potential
+typedef PotentialPair<EvaluatorPairExpandedMie> PotentialPairExpandedMie;
 //! Pair potential force compute for ReactionField potential
 typedef PotentialPair<EvaluatorPairReactionField> PotentialPairReactionField;
 //! Pair potential force compute for Buckingham forces
@@ -89,6 +93,8 @@ typedef PotentialPair<EvaluatorPairOPP> PotentialPairOPP;
 /// Pair potential force compute for Ten wolde and Frenkels globular protein
 /// model
 typedef PotentialPair<EvaluatorPairTWF> PotentialPairTWF;
+/// Tabulateed pair potential
+typedef PotentialPair<EvaluatorPairTable> PotentialPairTable;
 
 #ifdef ENABLE_HIP
 //! Pair potential force compute for lj forces on the GPU
@@ -123,6 +129,9 @@ typedef PotentialPairGPU<EvaluatorPairForceShiftedLJ, gpu_compute_force_shifted_
     PotentialPairForceShiftedLJGPU;
 //! Pair potential force compute for Mie potential
 typedef PotentialPairGPU<EvaluatorPairMie, gpu_compute_mie_forces> PotentialPairMieGPU;
+//! Pair potential force compute for shifted Mie potential on the GPU
+typedef PotentialPairGPU<EvaluatorPairExpandedMie, gpu_compute_expanded_mie_forces>
+    PotentialPairExpandedMieGPU;
 //! Pair potential force compute for reaction field forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairReactionField, gpu_compute_reaction_field_forces>
     PotentialPairReactionFieldGPU;
@@ -139,7 +148,8 @@ typedef PotentialPairGPU<EvaluatorPairDLVO, gpu_compute_dlvo_forces> PotentialPa
 typedef PotentialPairGPU<EvaluatorPairFourier, gpu_compute_fourier_forces> PotentialPairFourierGPU;
 //! Pair potential force compute for oscillating pair potential
 typedef PotentialPairGPU<EvaluatorPairOPP, gpu_compute_opp_forces> PotentialPairOPPGPU;
-
+//! Pair potential force compute for Table pair potential on the GPU
+typedef PotentialPairGPU<EvaluatorPairTable, gpu_compute_table_forces> PotentialPairTableGPU;
 /// Pair potential force compute for Ten wolde and Frenkels globular protein
 /// model
 typedef PotentialPairGPU<EvaluatorPairTWF, gpu_compute_twf_forces> PotentialPairTWFGPU;

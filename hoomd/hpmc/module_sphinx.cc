@@ -6,7 +6,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
-#include "AnalyzerSDF.h"
+#include "ComputeSDF.h"
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
 
@@ -19,7 +19,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -39,14 +38,13 @@ void export_sphinx(py::module& m)
     {
     export_IntegratorHPMCMono<ShapeSphinx>(m, "IntegratorHPMCMonoSphinx");
     export_ComputeFreeVolume<ShapeSphinx>(m, "ComputeFreeVolumeSphinx");
-    export_AnalyzerSDF<ShapeSphinx>(m, "AnalyzerSDFSphinx");
+    export_ComputeSDF<ShapeSphinx>(m, "ComputeSDFSphinx");
     export_UpdaterMuVT<ShapeSphinx>(m, "UpdaterMuVTSphinx");
     export_UpdaterClusters<ShapeSphinx>(m, "UpdaterClustersSphinx");
 
     export_ExternalFieldInterface<ShapeSphinx>(m, "ExternalFieldSphinx");
     export_LatticeField<ShapeSphinx>(m, "ExternalFieldLatticeSphinx");
     export_ExternalFieldComposite<ShapeSphinx>(m, "ExternalFieldCompositeSphinx");
-    export_RemoveDriftUpdater<ShapeSphinx>(m, "RemoveDriftUpdaterSphinx");
     export_ExternalFieldWall<ShapeSphinx>(m, "WallSphinx");
     export_UpdaterExternalFieldWall<ShapeSphinx>(m, "UpdaterExternalFieldWallSphinx");
     export_ExternalCallback<ShapeSphinx>(m, "ExternalCallbackSphinx");
