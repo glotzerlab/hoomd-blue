@@ -78,17 +78,14 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLENVE : public Integra
         return result;
         }
 
-    void setZeroForce(pybind11::object zero_force)
+    void setZeroForce(bool zero_force)
         {
-        m_zero_force = pybind11::cast<bool>(zero_force);
+        m_zero_force = zero_force;
         }
 
-    pybind11::object getZeroForce()
+    bool getZeroForce()
         {
-        pybind11::object result;
-        result = pybind11::cast(m_zero_force);
-
-        return result;
+        return m_zero_force;
         }
 
     //! Performs the first step of the integration
