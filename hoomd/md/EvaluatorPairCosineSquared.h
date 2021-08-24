@@ -40,20 +40,22 @@
     
     EvaluatorPairCosineSquared evaluates the function:
 
-    r < sigma and wca = True
+    r < sigma and wca is set to true
         \f[ V_{\mathrm{CosSq}}(r) = \varepsilon \left[ \left(\frac{\sigma}{r} \right)^{12} - 
                 2 \left(\frac{\sigma}{r} \right)^{6} \right]]
         \f[ -\frac{1}{r} \frac{\partial V_{\mathrm{CosSq}}}{\partial r} = 12 \varepsilon 
                 \left[\sigma^{12} \cdot r^{-14} - \sigma^{6} \cdot r^{-8} \right]]
-    r < sigma and wca = False
+    r < sigma and wca is set to false
         \f[ V_{\mathrm{CosSq}}(r) = -\varepsilon]
         \f[ -\frac{1}{r}\frac{\partial V_{\mathrm{CosSq}}(r)}{\partial r} = 0]
+
     sigma < r < r_cut
         \f[ V_{\mathrm{CosSq}}(r) = -\varepsilon 
                 cos^{2} \left[ \frac{\pi(r - \sigma)}{2(r_{c} - \sigma)} \right]]
         \f[ -\frac{1}{r} \frac{\partial \mathrm{V_{CosSq}}}{\partial r} = 
                 -\varepsilon \frac{\pi}{2(r_{c} - \sigma)} 
                 sin \left[ \frac{\pi(r - \sigma)}{r_{c} - \sigma} \right]]
+
     r >= r_cut
         \f[ V_{\mathrm{CosSq}}(r) = 0]
         \f[ -\frac{1}{r} \frac{\partial \mathrm{V_{CosSq}}}{\partial r} = 0]
