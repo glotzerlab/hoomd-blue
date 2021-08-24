@@ -154,7 +154,7 @@ typedef PotentialPairGPU<EvaluatorPairOPP, gpu_compute_opp_forces> PotentialPair
 //! Pair potential force compute for Table pair potential on the GPU
 typedef PotentialPairGPU<EvaluatorPairTable, gpu_compute_table_forces> PotentialPairTableGPU;
 //! Pair potential force compute for Cosine Squared pair potential on the GPU
-typedef PotentialPairGPU<EvaluatorPairCosineSquared, gpu_compute_cosinesquared_forces> 
+typedef PotentialPairGPU<EvaluatorPairCosineSquared, gpu_compute_cosinesquared_forces>
     PotentialPairCosineSquaredGPU;
 /// Pair potential force compute for Ten wolde and Frenkels globular protein
 /// model
