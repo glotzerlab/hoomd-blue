@@ -682,8 +682,12 @@ template<class Manifold> void export_TwoStepRATTLENVE(py::module& m, const std::
                       Manifold,
                       bool,
                       Scalar>())
-        .def_property("limit", &TwoStepRATTLENVE<Manifold>::getLimit, &TwoStepRATTLENVE<Manifold>::setLimit)
-        .def_property("zero_force", &TwoStepRATTLENVE<Manifold>::getZeroForce, &TwoStepRATTLENVE<Manifold>::setZeroForce)
+        .def_property("limit",
+                      &TwoStepRATTLENVE<Manifold>::getLimit,
+                      &TwoStepRATTLENVE<Manifold>::setLimit)
+        .def_property("zero_force",
+                      &TwoStepRATTLENVE<Manifold>::getZeroForce,
+                      &TwoStepRATTLENVE<Manifold>::setZeroForce)
         .def_property("tolerance",
                       &TwoStepRATTLENVE<Manifold>::getTolerance,
                       &TwoStepRATTLENVE<Manifold>::setTolerance);
