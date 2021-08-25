@@ -246,7 +246,7 @@ class NPT(Method):
            :math:`[\mathrm{time}]`.
 
         couple (`str`): Couplings of diagonal elements of the stress tensor,
-            can be "none", "xy", "xz","yz", or "all", default to "all".
+            can be "none", "xy", "xz","yz", or "xyz".
 
         box_dof(`list` [ `bool` ]): Box degrees of freedom with six boolean
             elements corresponding to x, y, z, xy, xz, yz, each. Default to
@@ -285,10 +285,7 @@ class NPT(Method):
     - xy (*Lx* and *Ly* are coupled)
     - xz (*Lx* and *Lz* are coupled)
     - yz (*Ly* and *Lz* are coupled)
-    - all (*Lx* and *Ly* (and *Lz* if 3D) are coupled)
-
-    The default coupling is **all**, i.e. the ratios between all box lengths
-    stay constant.
+    - xyz (*Lx*, *Ly*, and *Lz* are coupled)
 
     Degrees of freedom of the box specify which lengths and tilt factors of the
     box should be updated, and how particle coordinates and velocities should be
@@ -354,7 +351,7 @@ class NPT(Method):
     Examples::
 
         npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65,
-        tauS = 1.2, S=2.0)
+        tauS = 1.2, S=2.0, couple="xyz")
         # orthorhombic symmetry
         npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65,
         tauS = 1.2, S=2.0, couple="none")
@@ -388,7 +385,7 @@ class NPT(Method):
             :math:`[\mathrm{time}]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
-            can be "none", "xy", "xz","yz", or "all".
+            can be "none", "xy", "xz","yz", or "xyz".
 
         box_dof(list[bool]): Box degrees of freedom with six boolean elements
             corresponding to x, y, z, xy, xz, yz, each.
