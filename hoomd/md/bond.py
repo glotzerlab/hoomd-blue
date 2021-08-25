@@ -95,9 +95,9 @@ class FENE(Bond):
         \begin{eqnarray*}
         V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r -
                                  \Delta} \right)^{12} - \left( \frac{\sigma}{r -
-                                 \Delta} \right)^{6} \right]  + \varepsilon
+                                 \Delta} \right)^{6} \right]  + \varepsilon;
                                & r-\Delta < 2^{\frac{1}{6}}\sigma\\
-                             = & 0
+                             = & 0;
                                & r-\Delta \ge 2^{\frac{1}{6}}\sigma
         \end{eqnarray*}
 
@@ -163,11 +163,11 @@ class table(force._force):  # noqa - Will be renamed when updated for v3
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F}(\vec{r})     = & 0
+        \vec{F}(\vec{r})     = & 0;
                                & r < r_{\mathrm{min}} \\
-                             = & F_{\mathrm{user}}(r)\hat{r}
+                             = & F_{\mathrm{user}}(r)\hat{r};
                                & r < r_{\mathrm{max}} \\
-                             = & 0
+                             = & 0;
                                & r \ge r_{\mathrm{max}} \\
                              \\
         V(r)       = & 0                    & r < r_{\mathrm{min}} \\
@@ -407,18 +407,18 @@ class Tether(Bond):
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{att}}(r)  = & k_b \frac{exp(1/(l_{c0}-r)}{l_{max}-r}
+        V_{\mathrm{att}}(r)  = & k_b \frac{exp(1/(l_{c0}-r)}{l_{max}-r};
                                 & r > l_{c0}\\
-                                = & 0
+                                = & 0;
                                 & r \leq l_{c0}
         \end{eqnarray*}
 
     .. math::
 
         \begin{eqnarray*}
-        V_{\mathrm{rep}}(r)  = & k_b \frac{exp(1/(r-l_{c1})}{r-l_{min}}
+        V_{\mathrm{rep}}(r)  = & k_b \frac{exp(1/(r-l_{c1})}{r-l_{min}};
                                 & r < l_{c1}\\
-                                = & 0
+                                = & 0;
                                 & r \ge l_{c1}
         \end{eqnarray*}
 
