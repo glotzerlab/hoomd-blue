@@ -46,8 +46,7 @@ class Harmonic(Bond):
 
         V(r) = \frac{1}{2} k \left( r - r_0 \right)^2
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other
-    in the bond.
+    where :math:`r` is the distance from one particle to the other in the bond.
 
     Attributes:
         params (TypeParameter[``bond type``, dict]):
@@ -85,9 +84,9 @@ class FENE(Bond):
         V(r) = - \frac{1}{2} k r_0^2 \ln \left( 1 - \left( \frac{r -
                \Delta}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other
-    in the bond, :math:`\Delta = (d_i + d_j)/2 - 1`, :math:`d_i` is the diameter
-    of particle :math:`i`, and
+    where :math:`r` is the distance from one particle to the other in the bond,
+    :math:`\Delta = (d_i + d_j)/2 - 1`, :math:`d_i` is the diameter of particle
+    :math:`i`, and
 
     .. math::
         :nowrap:
@@ -175,11 +174,11 @@ class table(force._force):  # noqa - Will be renamed when updated for v3
                    = & 0                    & r \ge r_{\mathrm{max}} \\
         \end{eqnarray*}
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other
-    in the bond.  Care should be taken to define the range of the bond so that
-    it is not possible for the distance between two bonded particles to be
-    outside the specified range.  On the CPU, this will throw an error.  On the
-    GPU, this will throw an error if GPU error checking is enabled.
+    where :math:`r` is the distance from one particle to the other in the bond.
+    Care should be taken to define the range of the bond so that it is not
+    possible for the distance between two bonded particles to be outside the
+    specified range. On the CPU, this will throw an error. On the GPU, this
+    will throw an error if GPU error checking is enabled.
 
     :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)` are evaluated
     on *width* grid points between :math:`r_{\mathrm{min}}` and
@@ -389,19 +388,18 @@ class Tether(Bond):
     :py:class:`Tether` specifies a Tethering potential energy between two
     particles in each defined bond.
 
-    The tethered network is described in Refs.
-    `Gompper, G. & Kroll, D. M. in Statistical Mechanics of Membranes and
-    Surfaces 2nd edn (eds Nelson, D. R. et al.) 359-426 (World Scientific, 2004)
-    <https://www.worldscientific.com/worldscibooks/10.1142/5473>`_ and `Noguchi
-    , H. & Gompper, G., Phys. Rev. E 72 011901 (2005)
-    <https://link.aps.org/doi/10.1103/PhysRevE.72.011901>`_.
+    The tethered network is described in Refs. `Gompper, G. & Kroll, D. M.
+    Statistical Mechanics of Membranes and Surfaces 2nd edn (eds Nelson, D. R.
+    et al.) 359-426 (World Scientific, 2004)
+    <https://www.worldscientific.com/worldscibooks/10.1142/5473>`__ and
+    `Noguchi, H. & Gompper, G., Phys. Rev. E 72 011901 (2005)
+    <https://link.aps.org/doi/10.1103/PhysRevE.72.011901>`__.
 
     .. math::
 
         V(r) = V_{\mathrm{att}}(r) + V_{\mathrm{rep}}(r)
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other
-    in the bond.
+    where :math:`r` is the distance from one particle to the other in the bond.
 
     .. math::
         :nowrap:
