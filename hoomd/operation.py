@@ -30,6 +30,10 @@ class _HOOMDGetSetAttrBase:
         _param_dict (ParameterDict): The `ParameterDict` for the class/instance.
         _typeparam_dict (dict[str, TypeParameter]): A dict of all the
             TypeParameters for the class/instance.
+        _skip_for_equality (set[str]): The attribute names to not use for
+        equality checks. This will not effect attributes that exist due to
+        ``__getattr__`` such as those from ``_param_dict`` or
+        ``_typeparam_dict``.
     """
     _reserved_default_attrs = dict(_param_dict=ParameterDict,
                                    _typeparam_dict=dict)
