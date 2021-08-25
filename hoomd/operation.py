@@ -35,6 +35,8 @@ class _HOOMDGetSetAttrBase:
                                    _typeparam_dict=dict)
     _override_setattr = set()
 
+    _skip_for_equality = set()
+
     def __getattr__(self, attr):
         if attr in self._reserved_default_attrs.keys():
             default = self._reserved_default_attrs[attr]
@@ -94,12 +96,16 @@ class _HOOMDGetSetAttrBase:
                              "with types as keys.".format(attr))
 
     def __eq__(self, other):
-        if not isinstance(other, _HOOMDGetSetAttrBase):
-            return NotImplemented
-        return (self._param_dict == other._param_dict and all(
-            set(self._typeparam_dict.keys()) == set(other._typeparam_dict.keys(
-            )) and self._typeparam_dict[k] == other._typeparam_dict[k]
-            for k in self._typeparam_dict))
+        other_keys = other.__dict__.keys()
+        for attr in self.__dict__:
+            if attr in self._skip_for_equality:
+                continue
+            print(f"attr={attr}, {self.__dict__[attr]}, {other.__dict__[attr]}",
+                  self.__dict__[attr] == other.__dict__[attr])
+            if (attr not in other_keys
+                    or self.__dict__[attr] != other.__dict__[attr]):
+                return False
+        return True
 
 
 class _DependencyRelation:
@@ -188,10 +194,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         '_dependencies': list
     }
 
-    _skip_for_equality = {
-        '_cpp_obj', '_dependent_list', '_param_dict', '_typeparam_dict',
-        '_simulation'
-    }
+    _skip_for_equality = {'_cpp_obj', '_dependent_list', '_simulation'}
     _remove_for_pickling = ('_simulation', '_cpp_obj')
 
     def _getattr_param(self, attr):
@@ -215,16 +218,6 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
                 self._param_dict[attr] = old_value
                 raise AttributeError("{} cannot be set after cpp"
                                      " initialization".format(attr))
-
-    def __eq__(self, other):
-        other_keys = other.__dict__.keys()
-        for key in self.__dict__.keys():
-            if key in self._skip_for_equality:
-                continue
-            elif (key not in other_keys
-                  or self.__dict__[key] != other.__dict__[key]):
-                return False
-        return super().__eq__(other)
 
     def _detach(self):
         if self._attached:
