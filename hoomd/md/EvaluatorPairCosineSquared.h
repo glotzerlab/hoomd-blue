@@ -128,8 +128,8 @@ class EvaluatorPairCosineSquared
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairCosineSquared(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), wca1(_params.wca1), wca2(_params.wca2),
-        sigma(_params.sigma), epsilon(_params.epsilon), wca(_params.wca)
+        : rsq(_rsq), rcutsq(_rcutsq), wca1(_params.wca1), wca2(_params.wca2), sigma(_params.sigma),
+        epsilon(_params.epsilon), wca(_params.wca)
         {
         }
 
@@ -165,8 +165,6 @@ class EvaluatorPairCosineSquared
     */
     DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
         {
-        // compute the force divided by r in force_divr
-
         // Use sigmasq to check case to prevent r, r_cut calculation if rsq < sigmasq
         Scalar sigmasq = sigma * sigma;
 
@@ -229,11 +227,11 @@ class EvaluatorPairCosineSquared
 #endif
 
     protected:
-    Scalar rsq;    //!< Stored rsq from the constructor
-    Scalar rcutsq; //!< Stored rcutsq from the constructor
-    Scalar wca1; //!< parameters passed to the constructor
-    Scalar wca2; //!< parameters passed to the constructor
-    Scalar sigma; //!< parameters passed to the constructor
+    Scalar rsq;     //!< Stored rsq from the constructor
+    Scalar rcutsq;  //!< Stored rcutsq from the constructor
+    Scalar wca1;    //!< parameters passed to the constructor
+    Scalar wca2;    //!< parameters passed to the constructor
+    Scalar sigma;   //!< parameters passed to the constructor
     Scalar epsilon; //!< parameters passed to the constructor
     bool wca;
     };
