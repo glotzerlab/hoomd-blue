@@ -2,20 +2,20 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Dihedral potentials.
+r"""Dihedral potentials.
 
 Dihedrals add forces between specified quadruplets of particles and used to
 model rotation about chemical bonds.
 
 By themselves, dihedrals that have been specified in an input file do nothing.
-Only when you specify an dihedral force (i.e. dihedral.harmonic), are forces
+Only when you specify an dihedral force (e.g. `dihedral.Harmonic`), are forces
 actually calculated between the listed particles.
 
 Important: There are multiple conventions pertaining to the dihedral angle (phi)
 in the literature. HOOMD utilizes the convention shown in the following figure,
 where vectors are defined from the central particles to the outer particles.
-These vectors correspond to a stretched state (phi=180 deg) when they are
-anti-parallel and a compact state (phi=0 deg) when they are parallel.
+These vectors correspond to a stretched state (:math:`\phi = 180` degrees) when they are
+anti-parallel and a compact state (:math:`\phi = 0`) when they are parallel.
 
 .. image:: dihedral-angle-definition.png
     :width: 400 px
@@ -67,21 +67,21 @@ class Harmonic(Dihedral):
 
     .. math::
 
-        V(r) = \frac{1}{2}k \left( 1 + d \cos\left(n * \phi(r) - \phi_0 \right)
+        V(\phi) = \frac{1}{2}k \left( 1 + d \cos\left(n \phi - \phi_0 \right)
                \right)
 
-    where :math:`\phi` is angle between two sides of the dihedral.
+    where :math:`\phi` is the angle between two sides of the dihedral.
 
     Attributes:
         params (`TypeParameter` [``dihedral type``, `dict`]):
             The parameter of the harmonic bonds for each dihedral type. The
             dictionary has the following keys:
 
-            * ``k`` (`float`, **required**) - potential constant
+            * ``k`` (`float`, **required**) - potential constant :math:`k`
               :math:`[\mathrm{energy}]`
-            * ``d`` (`float`, **required**) - sign factor
-            * ``n`` (`int`, **required**) - angle multiplicity factor
-            * ``phi0`` (`float`, **required**) - phase shift
+            * ``d`` (`float`, **required**) - sign factor :math:`d`
+            * ``n`` (`int`, **required**) - angle multiplicity factor :math:`n`
+            * ``phi0`` (`float`, **required**) - phase shift :math:`\phi_0`
               :math:`[\mathrm{radians}]`
 
     Examples::
@@ -322,17 +322,17 @@ class OPLS(Dihedral):
 
     .. math::
 
-        V(r) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) +
-               \frac{1}{2}k_2 \left( 1 - \cos\left(2 \phi \right) \right)
-               + \frac{1}{2}k_3 \left( 1 + \cos\left(3 \phi \right) \right) +
-               \frac{1}{2}k_4 \left( 1 - \cos\left(4 \phi \right) \right)
+        V(\phi) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) +
+                  \frac{1}{2}k_2 \left( 1 - \cos\left(2 \phi \right) \right) +
+                  \frac{1}{2}k_3 \left( 1 + \cos\left(3 \phi \right) \right) +
+                  \frac{1}{2}k_4 \left( 1 - \cos\left(4 \phi \right) \right)
 
     where :math:`\phi` is the angle between two sides of the dihedral and
     :math:`k_n` are the force coefficients in the Fourier series (in energy
     units).
 
     Attributes:
-        params (TypeParameter[``dihedral type``, dict]):
+        params (`TypeParameter` [``dihedral type``, `dict`]):
             The parameter of the OPLS bonds for each particle type.
             The dictionary has the following keys:
 
