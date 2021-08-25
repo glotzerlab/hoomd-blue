@@ -185,6 +185,8 @@ class Pair(force.Force):
                                    "different simulation.".format(type(self)))
         if not self.nlist._attached:
             self.nlist._attach()
+        # We don't need to worry about the neighbor list shifting once attached
+        # making this safe.
         self._add_dependency(self.nlist)
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
