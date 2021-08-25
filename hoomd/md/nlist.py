@@ -108,6 +108,16 @@ class NList(_HOOMDBaseObject):
         """
         return self._cpp_obj.getSmallestRebuild()
 
+    def _remove_dependent(self, obj):
+        print("Removing dependent...")
+        super()._remove_dependent(obj)
+        if len(self._dependents) == 0:
+            if self._attached:
+                self._detach()
+                self._remove()
+            if self._added:
+                self._remove()
+
     # TODO need to add tuning Updater for NList
 
 
