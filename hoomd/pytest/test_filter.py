@@ -70,19 +70,19 @@ def test_type_filter(make_filter_snapshot, simulation_factory, type_indices):
     assert A_filter(sim.state) == list(range(N))
     assert B_filter(sim.state) == []
 
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         set_types(s, range(N), particle_types, "B")
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert A_filter(sim.state) == []
     assert B_filter(sim.state) == list(range(N))
 
     A_indices, B_indices = type_indices
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         set_types(s, A_indices, particle_types, "A")
         set_types(s, B_indices, particle_types, "B")
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert A_filter(sim.state) == A_indices
     assert B_filter(sim.state) == B_indices
     assert AB_filter(sim.state) == list(range(N))
@@ -129,12 +129,12 @@ def test_intersection(make_filter_snapshot, simulation_factory, set_indices):
     filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
     sim = simulation_factory(filter_snapshot)
     A_indices, B_indices, C_indices = set_indices
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         set_types(s, A_indices, particle_types, "A")
         set_types(s, B_indices, particle_types, "B")
         set_types(s, C_indices, particle_types, "C")
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
 
     for type_combo in combinations(particle_types, 2):
         combo_filter = Type(type_combo)
@@ -154,12 +154,12 @@ def test_union(make_filter_snapshot, simulation_factory, set_indices):
     filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
     sim = simulation_factory(filter_snapshot)
     A_indices, B_indices, C_indices = set_indices
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         set_types(s, A_indices, particle_types, "A")
         set_types(s, B_indices, particle_types, "B")
         set_types(s, C_indices, particle_types, "C")
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
 
     for type_combo in combinations(particle_types, 2):
         filter1 = Type([type_combo[0]])
@@ -175,12 +175,12 @@ def test_difference(make_filter_snapshot, simulation_factory, set_indices):
     filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
     sim = simulation_factory(filter_snapshot)
     A_indices, B_indices, C_indices = set_indices
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         set_types(s, A_indices, particle_types, "A")
         set_types(s, B_indices, particle_types, "B")
         set_types(s, C_indices, particle_types, "C")
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
 
     for type_combo in combinations(particle_types, 2):
         combo_filter = Type(type_combo)

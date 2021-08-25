@@ -169,7 +169,7 @@ def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
     sim = simulation_factory(
         lattice_snapshot_factory(n=snap_params[0],
                                  particle_types=snap_params[1]))
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     snapshot_dict = {}
     snapshot_dict[0] = snap
 
@@ -179,7 +179,7 @@ def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
     box = sim.state.box
     for step in range(1, nsteps):
         particle_type = np.random.choice(snap_params[1])
-        snap = update_positions(sim.state.snapshot)
+        snap = update_positions(sim.state.get_snapshot())
         set_types(snap, random_inds(snap_params[0]), snap_params[1],
                   particle_type)
 
@@ -194,7 +194,7 @@ def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
         sim.create_state_from_gsd(filename, frame=step)
         assert box == sim.state.box
 
-        assert_equivalent_snapshots(snap, sim.state.snapshot)
+        assert_equivalent_snapshots(snap, sim.state.get_snapshot())
 
 
 @skip_gsd
@@ -205,13 +205,13 @@ def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
     sim = simulation_factory(
         lattice_snapshot_factory(n=snap_params[0],
                                  particle_types=snap_params[1]))
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     snap = make_gsd_snapshot(snap)
     gsd_snapshot_list = [snap]
     box = sim.state.box
     for _ in range(1, nsteps):
         particle_type = np.random.choice(snap_params[1])
-        snap = update_positions(sim.state.snapshot)
+        snap = update_positions(sim.state.get_snapshot())
         set_types(snap, random_inds(snap_params[0]), snap_params[1],
                   particle_type)
         snap = make_gsd_snapshot(snap)
@@ -221,7 +221,7 @@ def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
         sim = hoomd.Simulation(device)
         sim.create_state_from_snapshot(snap)
         assert box == sim.state.box
-        assert_equivalent_snapshots(snap, sim.state.snapshot)
+        assert_equivalent_snapshots(snap, sim.state.get_snapshot())
 
 
 def test_writer_order(simulation_factory, two_particle_snapshot_factory):

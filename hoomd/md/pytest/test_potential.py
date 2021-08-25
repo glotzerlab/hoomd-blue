@@ -714,9 +714,9 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
     sim.operations.integrator = integrator
     sim.operations._schedule()
-    old_snap = sim.state.snapshot
+    old_snap = sim.state.get_snapshot()
     sim.run(2)
-    new_snap = sim.state.snapshot
+    new_snap = sim.state.get_snapshot()
     if new_snap.communicator.rank == 0:
         assert not np.allclose(new_snap.particles.position,
                                old_snap.particles.position)
@@ -757,11 +757,11 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     if energies is not None:
         E_r = sum(energies)
 
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         snap.particles.position[0] = [0, 0, .1]
         snap.particles.position[1] = [0, 0, r_cut + .1]
-    sim.state.snapshot = snap
+    sim.state.set_snapshot(snap)
     energies = sim.operations.integrator.forces[0].energies
     if energies is not None:
         E_rcut = sum(energies)
@@ -777,11 +777,11 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
     sim.run(0)
 
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         snap.particles.position[0] = [0, 0, .1]
         snap.particles.position[1] = [0, 0, r + .1]
-    sim.state.snapshot = snap
+    sim.state.set_snapshot(snap)
 
     energies = sim.operations.integrator.forces[0].energies
     if energies is not None:
@@ -816,14 +816,14 @@ def _calculate_force(sim):
     """
     dr = 1e-6
 
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         initial_pos = np.array(snap.particles.position)
         snap.particles.position[1, 0] = initial_pos[1, 0] - dr
 
-    sim.state.snapshot = snap
+    sim.state.set_snapshot(snap)
     E0 = sim.operations.integrator.forces[0].energies
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         pos = snap.particles.position
         r0 = pos[0] - pos[1]
@@ -832,21 +832,21 @@ def _calculate_force(sim):
 
         snap.particles.position[1, 0] = initial_pos[1, 0] + dr
 
-    sim.state.snapshot = snap
+    sim.state.set_snapshot(snap)
     E1 = sim.operations.integrator.forces[0].energies
 
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         pos = snap.particles.position
         mag_r1 = np.linalg.norm(pos[0] - pos[1])
         Fa = -1 * ((sum(E1) - sum(E0)) / (mag_r1 - mag_r0)) * direction
         Fb = -Fa
 
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         snap.particles.position[1] = initial_pos[1]
-    sim.state.snapshot = snap
-    if sim.state.snapshot.communicator.rank == 0:
+    sim.state.set_snapshot(snap)
+    if sim.state.get_snapshot().communicator.rank == 0:
         return Fa, Fb
     else:
         return 0, 0  # return dummy values if not on rank 1
@@ -879,11 +879,11 @@ def test_force_energy_relationship(simulation_factory,
     sim.operations.integrator = integrator
     sim.run(0)
     for pair in valid_params.pair_potential_params:
-        snap = sim.state.snapshot
+        snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             snap.particles.typeid[0] = particle_types.index(pair[0])
             snap.particles.typeid[1] = particle_types.index(pair[1])
-        sim.state.snapshot = snap
+        sim.state.set_snapshot(snap)
 
         calculated_forces = _calculate_force(sim)
         sim_forces = sim.operations.integrator.forces[0].forces
@@ -984,11 +984,11 @@ def test_force_energy_accuracy(simulation_factory,
     for i in range(len(particle_distances)):
         d = particle_distances[i]
         r = np.array([0, 0, d]) / d
-        snap = sim.state.snapshot
+        snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             snap.particles.position[0] = [0, 0, .1]
             snap.particles.position[1] = [0, 0, d + .1]
-        sim.state.snapshot = snap
+        sim.state.set_snapshot(snap)
         sim_energies = sim.operations.integrator.forces[0].energies
         sim_forces = sim.operations.integrator.forces[0].forces
         if sim_energies is not None:
