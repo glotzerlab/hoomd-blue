@@ -438,7 +438,7 @@ class TestLocalSnapshots:
                                    global_property):
         section_name, prop_name, prop_dict = global_property
         sim = base_simulation()
-        snapshot = sim.state.snapshot
+        snapshot = sim.state.get_snapshot()
 
         mpi_comm = MPI.COMM_WORLD
 
@@ -485,7 +485,7 @@ class TestLocalSnapshots:
         for lcl_snapshot_attr in self.get_snapshot_attr(sim):
             with getattr(sim.state, lcl_snapshot_attr):
                 with pytest.raises(RuntimeError):
-                    sim.state.snapshot = base_snapshot
+                    sim.state.set_snapshot(base_snapshot)
 
     @pytest.fixture
     def base_simulation(self, simulation_factory, base_snapshot):
