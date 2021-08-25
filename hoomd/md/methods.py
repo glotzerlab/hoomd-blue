@@ -286,12 +286,6 @@ class NPT(Method):
     - xz (*Lx* and *Lz* are coupled)
     - yz (*Ly* and *Lz* are coupled)
     - xyz (*Lx*, *Ly*, and *Lz* are coupled)
-<<<<<<< HEAD
-=======
-
-    There is no default coupling option because the dimensionality of the system
-    is not known at the time the `NPT` object is constructed.
->>>>>>> 432661f60df1fef43517d1a51a4984d7d9429584
 
     Degrees of freedom of the box specify which lengths and tilt factors of the
     box should be updated, and how particle coordinates and velocities should be
