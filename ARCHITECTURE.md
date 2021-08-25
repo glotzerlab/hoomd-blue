@@ -193,19 +193,21 @@ written in Python. See the examples in `hoomd/write/table.py` and
 By default all Python subclasses of `hoomd.operation._HOOMDBaseObject` support
 pickling. This is to facilitate restartability and reproducibility of
 simulations. For understanding what *pickling* and Python's supported magic
-methods regarding is see https://docs.python.org/3/library/pickle.html. In
+methods regarding it are see https://docs.python.org/3/library/pickle.html. In
 general we prefer using `__getstate__` and `__setstate__` if possible to make
 class's picklable.  For the implementation of the default pickling support for
 `hoomd.operation._HOOMDBaseObject` see the class's `__getstate__` method.
 *Notice* that we do not implement a generic `__setstate__`. We rely on Python's
 default generally which is somewhat equivalent to `self.__dict__ =
-self.__getstate__()`. Added a custom `__setstate__` method is fine if necessary
+self.__getstate__()`. Adding a custom `__setstate__` method is fine if necessary
 (see [hoomd/write/table.py](hoomd/write/table.py)).  However, using `__reduce__`
 is an appropriate alternative if is significantly reduces code complexity or has
 demonstrable advantages; see [hoomd/filter/set\_.py](hoomd/filter/set_.py) for
 an example of this approach.  _Note_ that `__reduce__` requires that a function
 be able to fully recreate the current state of the object (this means that often
-times the constructor will not work).
+times the constructor will not work). Also, note `_HOOMDBaseObject`'s support a
+class attribute `_remove_for_pickling` that allows attributes to be removed
+before pickling (such as `_cpp_obj`).
 
 **Testing**
 
@@ -232,6 +234,8 @@ are added in version "y", then a `__setstate__` method needs to be added if
 `__getstate__` and `__setstate__` is the pickling method used for the object.
 This `__setstate__` needs to add a default attribute value if one is not
 provided in the `dict` given to `__setstate__`. If `__reduce__` was used for
-pickling, the any new arguments to constructor must have defaults via semantic
-versioning and no changes should be needed to support pickling. The removal of
+pickling, if a function other than the constructor is used to reinstantiate the
+object then any necessary changes should be made (if the constructor is used
+then any new arguments to constructor must have defaults via semantic
+versioning and no changes should be needed to support pickling). The removal of
 internal attributes should not cause problems as well.
