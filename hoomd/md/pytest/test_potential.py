@@ -52,6 +52,9 @@ def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 def test_rcut(simulation_factory, two_particle_snapshot_factory):
     lj = md.pair.LJ(nlist=md.nlist.Cell(), default_r_cut=2.5)
     assert lj.r_cut.default == 2.5
+    # ensure 0 is a valid value for r_cut
+    lj.r_cut[("A", "A")] = 0.0
+    lj.r_cut[("A", "A")] = 2.5
 
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     with pytest.raises(TypeConversionError):

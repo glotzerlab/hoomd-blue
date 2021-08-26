@@ -11,8 +11,7 @@ from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 import numpy as np
-from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, positive_real,
-                                      nonnegative_real)
+from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, nonnegative_real)
 
 validate_nlist = OnlyTypes(NList)
 
@@ -126,8 +125,9 @@ class Pair(force.Force):
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
         self._nlist = validate_nlist(nlist)
-        tp_r_cut = TypeParameter('r_cut', 'particle_types',
-                                 TypeParameterDict(positive_real, len_keys=2))
+        tp_r_cut = TypeParameter(
+            'r_cut', 'particle_types',
+            TypeParameterDict(nonnegative_real, len_keys=2))
         if default_r_cut is not None:
             tp_r_cut.default = default_r_cut
         tp_r_on = TypeParameter('r_on', 'particle_types',
