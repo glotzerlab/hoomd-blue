@@ -104,8 +104,6 @@ class _HOOMDGetSetAttrBase:
         for attr in self.__dict__:
             if attr in self._skip_for_equality:
                 continue
-            print(f"attr={attr}, {self.__dict__[attr]}, {other.__dict__[attr]}",
-                  self.__dict__[attr] == other.__dict__[attr])
             if (attr not in other_keys
                     or self.__dict__[attr] != other.__dict__[attr]):
                 return False
