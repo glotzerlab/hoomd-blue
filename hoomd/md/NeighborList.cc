@@ -346,7 +346,7 @@ void NeighborList::compute(uint64_t timestep)
     if (m_prof)
         m_prof->push("Neighbor");
 
-    // when the number of particles in the system changes, rebuild the exclusion list
+    // when the number of particles or bonds in the system changes, rebuild the exclusion list
     if (m_n_particles_changed || m_topology_changed)
         {
         resizeAndClearExclusions();
