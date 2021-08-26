@@ -1905,10 +1905,10 @@ class CosineSquared(Pair):
 
         \begin{eqnarray*}
         V_{\mathrm{CosSq}}(r)
-        = & \varepsilon \left[ \left(\frac{\sigma}{r} \right)^{12} - 
+        = & \varepsilon \left[ \left(\frac{\sigma}{r} \right)^{12} -
         2\left(\frac{\sigma}{r} \right)^{6} \right] \quad & r < \sigma \\
-        = & -\varepsilon cos^{2} 
-        \left[\frac{\pi(r - \sigma)}{2(r_{cut} - \sigma)}\right] 
+        = & -\varepsilon cos^{2}
+        \left[\frac{\pi(r - \sigma)}{2(r_{cut} - \sigma)}\right]
         \quad & \sigma < r < r_{cut} \\
         = & 0 \quad & r \geq r_{cut}
         \end{eqnarray*}
@@ -1921,7 +1921,7 @@ class CosineSquared(Pair):
         \begin{eqnarray*}
         V_{\mathrm{CosSq}}(r)
         = & -\varepsilon \quad & r < \sigma \\
-        = & -\varepsilon cos^{2} 
+        = & -\varepsilon cos^{2}
         \left[\frac{\pi(r - \sigma)}{2(r_{cut} - \sigma)} \right]
         \quad & \sigma < r < r_{cut} \\
         = & 0 \quad & r \geq r_{cut}
@@ -1957,9 +1957,5 @@ class CosineSquared(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode='none')
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(
-                sigma=float,
-                epsilon=float,
-                wca=True,
-                len_keys=2))
+            TypeParameterDict(sigma=float, epsilon=float, wca=True, len_keys=2))
         self._add_typeparam(params)
