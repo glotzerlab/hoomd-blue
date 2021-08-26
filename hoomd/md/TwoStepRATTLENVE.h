@@ -51,25 +51,41 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLENVE : public Integra
     virtual ~TwoStepRATTLENVE();
 
     //! Sets the movement limit
-    void setLimit(Scalar limit)
+    void setLimit(pybind11::object limit)
         {
-        m_limit = true;
-        m_limit_val = limit;
+        if (limit.is_none())
+            {
+            m_limit = false;
+            }
+        else
+            {
+            m_limit = true;
+            m_limit_val = pybind11::cast<Scalar>(limit);
+            }
         }
 
-    //! Removes the limit
-    void removeLimit()
+    pybind11::object getLimit()
         {
-        m_limit = false;
+        pybind11::object result;
+        if (m_limit)
+            {
+            result = pybind11::cast(m_limit_val);
+            }
+        else
+            {
+            result = pybind11::none();
+            }
+        return result;
         }
 
-    //! Sets the zero force option
-    /*! \param zero_force Set to true to specify that the integration with a zero net force on each
-       of the particles in the group
-    */
     void setZeroForce(bool zero_force)
         {
         m_zero_force = zero_force;
+        }
+
+    bool getZeroForce()
+        {
+        return m_zero_force;
         }
 
     //! Performs the first step of the integration
@@ -666,9 +682,12 @@ template<class Manifold> void export_TwoStepRATTLENVE(py::module& m, const std::
                       Manifold,
                       bool,
                       Scalar>())
-        .def("setLimit", &TwoStepRATTLENVE<Manifold>::setLimit)
-        .def("removeLimit", &TwoStepRATTLENVE<Manifold>::removeLimit)
-        .def("setZeroForce", &TwoStepRATTLENVE<Manifold>::setZeroForce)
+        .def_property("limit",
+                      &TwoStepRATTLENVE<Manifold>::getLimit,
+                      &TwoStepRATTLENVE<Manifold>::setLimit)
+        .def_property("zero_force",
+                      &TwoStepRATTLENVE<Manifold>::getZeroForce,
+                      &TwoStepRATTLENVE<Manifold>::setZeroForce)
         .def_property("tolerance",
                       &TwoStepRATTLENVE<Manifold>::getTolerance,
                       &TwoStepRATTLENVE<Manifold>::setTolerance);
