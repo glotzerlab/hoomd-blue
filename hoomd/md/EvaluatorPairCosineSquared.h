@@ -202,7 +202,7 @@ class EvaluatorPairCosineSquared
             Scalar cossquared = cosres * cosres;
             Scalar sinres = fast::sin(sinterm);
 
-            force_divr = -piwcinv * epsilon * rinv * sinres;
+            force_divr = -Scalar(0.5) * piwcinv * epsilon * rinv * sinres;
             pair_eng = -epsilon * cossquared;
 
             return true;
