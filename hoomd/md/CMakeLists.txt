@@ -78,6 +78,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorExternalElectricField.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairBuckingham.h
+                EvaluatorPairCosineSquared.h
                 EvaluatorPairDipole.h
                 EvaluatorPairDPDLJThermo.h
                 EvaluatorPairDPDThermo.h
@@ -239,6 +240,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       OPPDriverPotentialPairGPU.cu
                       TableDriverPotentialPairGPU.cu
                       TWFDriverPotentialPairGPU.cu
+                      CosineSquaredDriverPotentialPairGPU.cu
                       FourierDriverPotentialPairGPU.cu
                       PairLJ1208DriverPotentialPairGPU.cu
                       PairLJ0804DriverPotentialPairGPU.cu
