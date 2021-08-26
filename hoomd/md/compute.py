@@ -104,10 +104,11 @@ class ThermodynamicQuantities(_Thermo):
 
           .. math::
 
-              P_{ij} = \\left[  \\sum_{k \\in \\mathrm{filter}} m_k \\vec{v}_{k,i} \\cdot
-              \\vec{v}_{k,j} + \\sum_{k \\in \\mathrm{filter}} \\sum_{l} \\frac{1}{2}
-              \\left(\\vec{r}_{kl,i} \\cdot \\vec{F}_{kl,j} + \\vec{r}_{kl,j} \\cdot
-              \\vec{F}_{kl, i} \\right) \\right]/V
+              P_{ij} = \\left[\\sum_{k \\in \\mathrm{filter}} m_k
+              \\vec{v}_{k,i} \\cdot \\vec{v}_{k,j} + \\sum_{k \\in
+              \\mathrm{filter}} \\sum_{l} \\frac{1}{2} \\left(\\vec{r}_{kl,i}
+              \\cdot \\vec{F}_{kl,j} + \\vec{r}_{kl,j} \\cdot \\vec{F}_{kl,i}
+              \\right) \\right]/V
 
         where :math:`V` is the total simulation box volume (or area in 2D).
         """

@@ -14,8 +14,9 @@ actually calculated between the listed particles.
 Important: There are multiple conventions pertaining to the dihedral angle (phi)
 in the literature. HOOMD utilizes the convention shown in the following figure,
 where vectors are defined from the central particles to the outer particles.
-These vectors correspond to a stretched state (:math:`\phi = 180` degrees) when they are
-anti-parallel and a compact state (:math:`\phi = 0`) when they are parallel.
+These vectors correspond to a stretched state (:math:`\phi = 180` degrees) when
+they are anti-parallel and a compact state (:math:`\phi = 0`) when they are
+parallel.
 
 .. image:: dihedral-angle-definition.png
     :width: 400 px
