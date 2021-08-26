@@ -334,7 +334,7 @@ class Brownian(MethodRATTLE):
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
 
-        tolerance (`float`): Defines the toleraated error particles are allowed
+        tolerance (`float`): Defines the tolerated error particles are allowed
             to deviate from the manifold in terms of the implicit function.
             The units of tolerance match that of the selected manifold's
             implicit function. Defaults to 1e-6
