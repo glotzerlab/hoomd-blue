@@ -531,10 +531,10 @@ class PYBIND11_EXPORT NeighborList : public Compute
     bool m_exclusions_set;                   //!< True if any exclusions have been set
 
     /// True if the number of particles has changed.
-    bool m_n_particles_changed=false;
+    bool m_n_particles_changed = false;
 
     /// True if the number of bonds/angles/dihedrals/impropers/pairs has changed.
-    bool m_topology_changed=false;
+    bool m_topology_changed = false;
 
     //! Return true if we are supposed to do a distance check in this time step
     bool shouldCheckDistance(uint64_t timestep);
