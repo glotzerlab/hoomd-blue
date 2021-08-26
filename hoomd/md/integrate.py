@@ -176,13 +176,10 @@ class Integrator(_DynamicIntegrator):
             rigid bodies in the simulation.
 
 
-    The following classes can be used as elements in `methods`
+    Classes of the following modules can be used as elements in `methods`:
 
-    - `hoomd.md.methods.Brownian`
-    - `hoomd.md.methods.Langevin`
-    - `hoomd.md.methods.NVE`
-    - `hoomd.md.methods.NVT`
-    - `hoomd.md.methods.NPT`
+    - `hoomd.md.methods`
+    - `hoomd.md.methods.rattle`
 
     The classes of following modules can be used as elements in `forces`
 
@@ -200,6 +197,7 @@ class Integrator(_DynamicIntegrator):
     The classes of the following module can be used as elements in `constraints`
 
     - `hoomd.md.constrain`
+
 
     Examples::
 

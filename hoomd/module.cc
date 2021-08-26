@@ -25,6 +25,7 @@
 #include "LoadBalancer.h"
 #include "Messenger.h"
 #include "ParticleData.h"
+#include "ParticleFilterUpdater.h"
 #include "Profiler.h"
 #include "PythonAnalyzer.h"
 #include "PythonLocalDataAccess.h"
@@ -37,6 +38,7 @@
 #include "Trigger.h"
 #include "Tuner.h"
 #include "Updater.h"
+#include "UpdaterRemoveDrift.h"
 #include "Variant.h"
 
 // ParticleFilter objects
@@ -275,6 +277,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_PythonUpdater(m);
     export_Integrator(m);
     export_BoxResizeUpdater(m);
+    export_UpdaterRemoveDrift(m);
 
     // tuners
     export_Tuner(m);
@@ -300,6 +303,7 @@ PYBIND11_MODULE(_hoomd, m)
     // filters and groups
     export_ParticleFilters(m);
     export_ParticleGroup(m);
+    export_ParticleFilterUpdater(m);
 
     // trigger
     export_Trigger(m);

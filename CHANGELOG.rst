@@ -4,6 +4,34 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.9 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``Communicator.num_partitions`` - the number of partitions in the communicator.
+- ``domain_decomposition`` argument to ``State`` factory methods - set the parameters of the MPI
+  domain decomposition
+- ``State.domain_decomposition`` - number of domains in the x, y, and z directions in the domain
+  decomposition.
+- ``State.domain_decomposition_split_fractions`` - the fractional positions of the split planes in
+  the domain decomposition.
+- ``hoomd.update.FilterUpdater`` - an updater that evaluates the particles associated with a
+  `hoomd.filter.ParticleFilter` instance.
+
+*Changed*
+
+- Improved documentation.
+
+*Fixed*
+
+- ``TypeParameter`` can now set multiple parameters after calling ``hoomd.Simulation.run``.
+- ``tune.LoadBalancer`` can now be used in a simulation.
+
+*Deprecated*
+
+*Removed*
+
 v3.0.0-beta.8 (2021-08-03)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
