@@ -64,7 +64,7 @@ class Periodic(Field):
             :math:`[\\mathrm{energy}]`.
         * ``i`` (`int`, **required**) - :math:`\\vec{b}_i`, :math:`i=0, 1, 2`, \
             is the simulation box's reciprocal lattice vector in the :math:`i` \
-            direction :math:`[\\mathrm{length}^{-1}]`.
+            direction :math:`[\\mathrm{dimensionless}]`.
         * ``w`` (`float`, **required**) - The interface width :math:`w` \
             relative to the distance :math:`2\\pi/|\\mathbf{b_i}|` between \
             planes in the :math:`i`-direction :math:`[\\mathrm{dimensionless}]`.
