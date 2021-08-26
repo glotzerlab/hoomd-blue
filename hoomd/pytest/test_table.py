@@ -198,6 +198,27 @@ def test_only_string_and_scalar_quantities(device):
         hoomd.write.Table(1, logger, output)
 
 
+def test_eq(device, logger):
+    output = StringIO("")
+    table_writer = hoomd.write.Table(1, logger, output)
+    table_writer_copy = hoomd.write.Table(1, logger, output)
+    assert table_writer == table_writer_copy
+    # Test that _comm doesn't matter for __eq__
+    table_writer._comm = device.communicator
+    assert table_writer == table_writer_copy
+    # Test that trigger does matter
+    table_writer_copy.trigger = 10
+    assert table_writer != table_writer_copy
+    # Test that output does matter
+    new_output = StringIO("")
+    table_writer_copy = hoomd.write.Table(1, logger, new_output)
+    assert table_writer != table_writer_copy
+    # Test that logger matters for equality
+    table_writer_copy = hoomd.write.Table(1, hoomd.logging.Logger(["scalar"]),
+                                          output)
+    assert table_writer != table_writer_copy
+
+
 def test_pickling(simulation_factory, two_particle_snapshot_factory, logger):
     sim = simulation_factory(two_particle_snapshot_factory())
     table = hoomd.write.Table(1, logger)
