@@ -6,7 +6,7 @@
 
 A `Variant` object represents a scalar function of the time step. Some
 **Operations** accept `Variant` values for certain parameters, such as the
-``kT`` parameter to `NVT`.
+``kT`` parameter to `hoomd.md.methods.NVT`.
 """
 
 from hoomd import _hoomd
