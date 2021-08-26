@@ -44,6 +44,8 @@ template<class T, class Array> class GPUVectorBase : public Array
 
     //! Copy constructor
     GPUVectorBase(const GPUVectorBase& from);
+    //! Move constructor
+    GPUVectorBase(GPUVectorBase&& other);
     //! = operator
     GPUVectorBase& operator=(const GPUVectorBase& rhs);
     //! Move assignment operator
@@ -213,6 +215,12 @@ GPUVectorBase<T, Array>::GPUVectorBase(unsigned int size,
 template<class T, class Array>
 GPUVectorBase<T, Array>::GPUVectorBase(const GPUVectorBase& from) : Array(from), m_size(from.m_size)
     {
+    }
+
+template<class T, class Array>
+GPUVectorBase<T, Array>::GPUVectorBase(GPUVectorBase&& other): Array(std::move(other))
+    {
+    m_size = std::move(other.m_size);
     }
 
 template<class T, class Array>
