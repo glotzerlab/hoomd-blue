@@ -478,8 +478,8 @@ void export_FIREEnergyMinimizer(py::module& m)
         "FIREEnergyMinimizer")
         .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("reset", &FIREEnergyMinimizer::reset)
-        .def("hasConverged", &FIREEnergyMinimizer::hasConverged)
-        .def("getEnergy", &FIREEnergyMinimizer::getEnergy)
+        .def_property_readonly("converged", &FIREEnergyMinimizer::hasConverged)
+        .def_property_readonly("energy", &FIREEnergyMinimizer::getEnergy)
         .def_property("min_steps_adapt",
                       &FIREEnergyMinimizer::getNmin,
                       &FIREEnergyMinimizer::setNmin)

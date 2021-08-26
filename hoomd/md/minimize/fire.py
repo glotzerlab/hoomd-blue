@@ -13,6 +13,7 @@ import hoomd
 
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
+from hoomd.logging import log
 from hoomd.md import _md
 from hoomd.md.integrate import _DynamicIntegrator, _preprocess_aniso
 
@@ -176,17 +177,15 @@ class FIRE(_DynamicIntegrator):
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def, self.dt)
         super()._attach()
 
-    def get_energy(self):
-        """Returns the energy after the last iteration of the minimizer."""
-        return self._cpp_obj.getEnergy()
+    @log(requires_run=True)
+    def energy(self):
+        """float: Get the energy after the last iteration of the minimizer."""
+        return self._cpp_obj.energy
 
-    def has_converged(self):
-        """Test if the energy minimizer has converged.
-
-        Returns:
-            True when the minimizer has converged. Otherwise, return False.
-        """
-        return self._cpp_obj.hasConverged()
+    @log(default=False, category='object')
+    def converged(self):
+        """bool: True when the minimizer has converged, else False."""
+        return self._cpp_obj.converged
 
     def reset(self):
         """Reset the minimizer to its initial state."""

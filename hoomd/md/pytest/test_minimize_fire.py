@@ -89,7 +89,7 @@ def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
 
 def test_run_minimization(lattice_snapshot_factory, simulation_factory):
     """Run a short minimization simulation."""
-    snap = lattice_snapshot_factory(a=0.9, n=5)
+    snap = lattice_snapshot_factory(a=1.5, n=5)
     sim = simulation_factory(snap)
 
     lj = md.pair.LJ(default_r_cut=2.5, nlist=md.nlist.Cell())
@@ -100,16 +100,15 @@ def test_run_minimization(lattice_snapshot_factory, simulation_factory):
     fire.min_steps_conv = 3
 
     sim.operations.integrator = fire
-    fire.methods.append(nve)
     sim.run(0)
 
-    initial_energy = fire.get_energy()
+    initial_energy = fire.energy
     steps_to_converge = 0
-    while not fire.has_converged():
+    while not fire.converged:
         sim.run(1)
         steps_to_converge += 1
 
-    assert initial_energy >= fire.get_energy()
+    assert initial_energy >= fire.energy
     assert steps_to_converge >= fire.min_steps_conv
 
     fire.reset()
