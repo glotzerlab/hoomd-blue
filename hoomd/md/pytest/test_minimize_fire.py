@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import hoomd
+from hoomd.conftest import pickling_check
 from hoomd import md
 
 
@@ -89,28 +90,18 @@ def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
 
 def test_run_minimization(lattice_snapshot_factory, simulation_factory):
     """Run a short minimization simulation."""
+
+
+def test_pickling(lattice_snapshot_factory, simulation_factory):
+    """Assert the minimizer can be pickled when attached/unattached."""
     snap = lattice_snapshot_factory(a=1.5, n=5)
     sim = simulation_factory(snap)
 
-    lj = md.pair.LJ(default_r_cut=2.5, nlist=md.nlist.Cell())
-    lj.params[('A', 'A')] = dict(sigma=1.0, epsilon=1.0)
     nve = md.methods.NVE(hoomd.filter.All())
 
-    fire = md.minimize.FIRE(dt=0.0025, methods=[nve], forces=[lj])
-    fire.min_steps_conv = 3
+    fire = md.minimize.FIRE(dt=0.0025, methods=[nve])
 
+    pickling_check(fire)
     sim.operations.integrator = fire
     sim.run(0)
-
-    initial_energy = fire.energy
-    steps_to_converge = 0
-    while not fire.converged:
-        sim.run(1)
-        steps_to_converge += 1
-
-    assert initial_energy >= fire.energy
-    assert steps_to_converge >= fire.min_steps_conv
-
-    fire.reset()
-
-    # TODO maybe a pickling test
+    pickling_check(fire)
