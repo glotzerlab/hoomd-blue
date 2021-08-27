@@ -355,7 +355,7 @@ class Active(Force):
 
     Note:
         To introduce rotational diffusion to the particle orientations, use
-        `Active.create_diffusion_updater`.
+        `create_diffusion_updater`.
 
         .. seealso::
 
