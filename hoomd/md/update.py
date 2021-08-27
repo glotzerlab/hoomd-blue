@@ -219,8 +219,9 @@ class ReversePerturbationFlow(Updater):
 class ActiveRotationalDiffusion(Updater):
     r"""Updater to introduce rotational diffusion with an active force.
 
-    This updater works directly with an `hoomd.md.force.Active` instance to
-    update rotational diffusion for simulations with active forces.
+    This updater works directly with an `hoomd.md.force.Active` or
+    `hoomd.md.force.ActiveOnManifold` instance to update rotational diffusion
+    for simulations with active forces.
 
 
     The diffusion of the updater  follows :math:`\delta \theta / \delta t =
@@ -233,7 +234,8 @@ class ActiveRotationalDiffusion(Updater):
     where :math:`\hat{p}_r` is an uncorrelated random unit vector. The
     persistence length of an active particle's path is :math:`v_0 / D_r`.
     The rotational diffusion is applied to the orientation vector/quaternion
-    of each particle.
+    of each particle. When used with `hoomd.md.force.ActiveOnManifold`,
+    rotational diffusion is performed tangent plane of the manifold.
 
     Tip:
         Use `hoomd.md.force.Active.create_diffusion_updater` to construct
