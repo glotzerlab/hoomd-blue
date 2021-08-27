@@ -138,10 +138,13 @@ def test_update(active_force, local_simulation_factory):
     active_force.active_torque.default = (0., 0., 0.)
     rd_updater = hoomd.md.update.ActiveRotationalDiffusion(1, active_force, 0.1)
     sim = local_simulation_factory(active_force, rd_updater)
-    old_orientations = sim.state.get_snapshot().particles.orientation
-    sim.run(10)
-    new_orientations = sim.state.get_snapshot().particles.orientation
+    snapshot = sim.state.get_snapshot()
     if sim.device.communicator.rank == 0:
+        old_orientations = snapshot.particles.orientation
+    sim.run(10)
+    snapshot = sim.state.get_snapshot()
+    if sim.device.communicator.rank == 0:
+        new_orientations = snapshot.particles.orientation
         assert not np.allclose(old_orientations, new_orientations)
 
 
