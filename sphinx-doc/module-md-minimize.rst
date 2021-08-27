@@ -1,5 +1,5 @@
-md.methods
---------------
+md.minimize
+-----------
 
 .. rubric:: Overview
 

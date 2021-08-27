@@ -79,13 +79,13 @@ class FIRE(_DynamicIntegrator):
     stays the same), the velocity of the particles is set to 0, :math:`\\alpha
     \\rightarrow \\ \\alpha_{start}` and :math:`\\delta t \\rightarrow \\delta t
     \\cdot fdec_{\\alpha}`. Convergence is determined by both the force per
-    particle and the change in energy per particle dropping below *angmom_tol*
-    and *energy_tol*, respectively or
+    particle and the change in energy per particle dropping below `angmom_tol`
+    and `energy_tol`, respectively or
 
     .. math::
 
-        \\frac{\\sum |F|}{N*\\sqrt{N_{dof}}} < angmom_{tol} \\;\\; and \\;\\
-        \\Delta \\frac{\\sum|E|}{N} < energy_{tol}
+        \\frac{\\sum |F|}{N*\\sqrt{N_{dof}}} < `angmom_{tol}` \\;\\; and \\;\\
+        \\Delta \\frac{\\sum|E|}{N} < `energy_{tol}`
 
     where N is the number of particles the minimization is acting over (i.e.
     the group size) Either of the two criterion can be effectively turned off
