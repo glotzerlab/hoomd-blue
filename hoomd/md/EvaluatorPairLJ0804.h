@@ -69,8 +69,8 @@ class EvaluatorPairLJ0804
             {
             auto sigma(v["sigma"].cast<Scalar>());
             auto epsilon(v["epsilon"].cast<Scalar>());
-            lj1 = 4.0 * epsilon * fast::pow(sigma, 8.0);
-            lj2 = 4.0 * epsilon * fast::pow(sigma, 4.0);
+            lj1 = 4.0 * epsilon * fast::pow(sigma, static_cast<Scalar>(8.0));
+            lj2 = 4.0 * epsilon * fast::pow(sigma, static_cast<Scalar>(4.0));
             }
 
         pybind11::dict asDict()
