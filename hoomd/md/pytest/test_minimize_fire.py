@@ -105,3 +105,30 @@ def test_pickling(lattice_snapshot_factory, simulation_factory):
     sim.operations.integrator = fire
     sim.run(0)
     pickling_check(fire)
+
+
+def _try_attach_to_fire(sim, method, should_error=False):
+    """Try attaching the given method to FIRE."""
+    fire = md.minimize.FIRE(dt=0.0025)
+    sim.operations.integrator = fire
+    fire.methods.append(method)
+    if should_error:
+        print(method.__class__.__name__)
+        with pytest.raises(RuntimeError):
+            sim.run(0)
+    else:
+        sim.run(0)
+
+
+def test_validate_methods(lattice_snapshot_factory, simulation_factory):
+    """Make sure only certain methods can be attached to FIRE."""
+    snap = lattice_snapshot_factory(a=1.5, n=5)
+
+    nve = md.methods.NVE(hoomd.filter.All())
+    nph = md.methods.NPH(hoomd.filter.All(), S=1, tauS=1, couple='none')
+    brownian = md.methods.Brownian(hoomd.filter.All(), kT=1)
+    methods = [(nve, False), (nph, False), (brownian, True)]
+    for method, should_error in methods:
+        sim = simulation_factory(snap)
+        _try_attach_to_fire(sim, method, should_error)
+

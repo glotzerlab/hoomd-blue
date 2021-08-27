@@ -102,7 +102,7 @@ class FIRE(_DynamicIntegrator):
         fire.energy_tol = 1e-7
         fire.methods.append(methods.NVE(filter.All()))
         sim.operations.integrator = fire
-        while not(fire.has_converged()):
+        while not(fire.converged):
            sim.run(100)
 
     Examples::
@@ -110,12 +110,12 @@ class FIRE(_DynamicIntegrator):
         fire = md.minimize.FIRE(dt=0.05)
         fire.methods.append(methods.NPH(filter.All(), P=0.0, gamma=.5))
         sim.operations.integrator = fire
-        while not(fire.has_converged()):
+        while not(fire.converged):
            sim.run(100)
 
     Note:
-        The algorithm requires a base integrator to update the particle
-        position and velocities. Usually this will be either NVE (to minimize
+        The algorithm requires an integration method to update the particle
+        position and velocities. This should either be either NVE (to minimize
         energy) or NPH (to minimize energy and relax the box). The quantity
         minimized is in any case the energy (not the enthalpy or any other
         quantity).
@@ -169,7 +169,17 @@ class FIRE(_DynamicIntegrator):
                     "min_steps_conv": 10
                 }))
 
+    def _validate_methods(self):
+        """Ensure that only NVE/NPH integration methods are used."""
+        for method in self.methods:
+            method_name = method.__class__.__name__
+            if method_name not in ["NVE", "NPH"]:
+                raise RuntimeError("{} integration method not compatible with "
+                                   "FIRE energy minimizer".format(method_name))
+
     def _attach(self):
+        self._validate_methods()
+
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
         else:
