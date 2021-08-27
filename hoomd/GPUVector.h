@@ -218,7 +218,7 @@ GPUVectorBase<T, Array>::GPUVectorBase(const GPUVectorBase& from) : Array(from),
     }
 
 template<class T, class Array>
-GPUVectorBase<T, Array>::GPUVectorBase(GPUVectorBase&& other): Array(std::move(other))
+GPUVectorBase<T, Array>::GPUVectorBase(GPUVectorBase&& other) : Array(std::move(other))
     {
     m_size = std::move(other.m_size);
     }
