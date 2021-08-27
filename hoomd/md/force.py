@@ -439,7 +439,7 @@ class Active(Force):
             trigger, self, rotational_diffusion)
 
 
-class ActiveOnManifold(Force):
+class ActiveOnManifold(Active):
     r"""Active force on a manifold.
 
     Attributes:
@@ -484,28 +484,11 @@ class ActiveOnManifold(Force):
 
     def __init__(self, filter, manifold_constraint):
         # store metadata
-        param_dict = ParameterDict(filter=ParticleFilter,
-                                   manifold_constraint=OnlyTypes(
-                                       Manifold, allow_none=False))
-        param_dict.update({
-            "filter": filter,
-            "manifold_constraint": manifold_constraint
-        })
-        # set defaults
+        super().__init__(filter)
+        param_dict = ParameterDict(
+            manifold_constraint=OnlyTypes(Manifold, allow_none=False))
+        param_dict["manifold_constraint"] = manifold_constraint
         self._param_dict.update(param_dict)
-
-        active_force = TypeParameter(
-            "active_force",
-            type_kind="particle_types",
-            param_dict=TypeParameterDict((1.0, 0.0, 0.0), len_keys=1),
-        )
-        active_torque = TypeParameter(
-            "active_torque",
-            type_kind="particle_types",
-            param_dict=TypeParameterDict((0.0, 0.0, 0.0), len_keys=1),
-        )
-
-        self._extend_typeparam([active_force, active_torque])
 
     def _getattr_param(self, attr):
         if self._attached:
@@ -521,19 +504,6 @@ class ActiveOnManifold(Force):
             raise AttributeError(
                 "Cannot set manifold_constraint after construction.")
         super()._setattr_param(attr, value)
-
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        Active forces use RNGs. Warn the user if they did not set the seed.
-        """
-        if simulation is not None:
-            simulation._warn_if_seed_unset()
-
-        if self.manifold_constraint is not None:
-            self.manifold_constraint._add(simulation)
-
-        super()._add(simulation)
 
     def _attach(self):
 
