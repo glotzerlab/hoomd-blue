@@ -113,6 +113,8 @@ def test_run_minimization(lattice_snapshot_factory, simulation_factory):
     assert steps_to_converge >= fire.min_steps_conv
 
     fire.reset()
+
+
 def test_pickling(lattice_snapshot_factory, simulation_factory):
     """Assert the minimizer can be pickled when attached/unattached."""
     snap = lattice_snapshot_factory(a=1.5, n=5)
