@@ -329,20 +329,9 @@ class constant(Force):  # noqa - this will be renamed when it is ported to v3
 class Active(Force):
     r"""Active force.
 
-    Attributes:
+    Args:
         filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
             active forces.
-        rotation_diff (float): rotational diffusion constant, :math:`D_r`, for
-            all particles in the group
-            :math:`[\mathrm{radian}^{2} \cdot \mathrm{time}^{-1}]`.
-        active_force (tuple): active force vector in reference to the
-            orientation of a particle :math:`[\mathrm{force}]`.
-            It is defined per particle type and stays constant during
-            the simulation.
-        active_torque (tuple): active torque vector in reference to the
-            orientation of a particle :math:`[\mathrm{force} \cdot
-            \mathrm{length}]`. It is defined per particle type and stays
-            constant during the simulation.
 
     :py:class:`Active` specifies that an active force should be added to all
     particles.  Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where
@@ -372,6 +361,28 @@ class Active(Force):
         rotational_diffusion_updater = active.create_diffusion_updater(
             trigger=10)
         sim.operations += rotational_diffusion_updater
+
+    Attributes:
+        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
+            active forces.
+
+    .. py:attribute:: active_force
+
+        active force vector in reference to the orientation of a particle
+        :math:`[\mathrm{force}]`.  It is defined per particle type and stays
+        constant during the simulation.
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float`]]
+
+    .. py:attribute:: active_torque
+
+        active torque vector in reference to the orientation of a particle
+        :math:`[\mathrm{force} \cdot \mathrm{length}]`. It is defined per
+        particle type and stays constant during the simulation.
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float`]]
     """
 
     def __init__(self, filter):
@@ -432,7 +443,7 @@ class Active(Force):
                 rotational diffusion as a function of time or a constant.
 
         Returns:
-            hoomd.md.update.ActiveRotationalDiffusion
+            hoomd.md.update.ActiveRotationalDiffusion:
                 The rotational diffusion updater.
         """
         return hoomd.md.update.ActiveRotationalDiffusion(
@@ -442,22 +453,10 @@ class Active(Force):
 class ActiveOnManifold(Active):
     r"""Active force on a manifold.
 
-    Attributes:
-        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
-            active forces.
-        manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
-            constraint.
-        rotation_diff (float): rotational diffusion constant, :math:`D_r`, for
-            all particles in the group
-            :math:`[\mathrm{radian}^{2} \cdot \mathrm{time}^{-1}]`.
-        active_force (tuple): active force vector in reference to the
-            orientation of a particle :math:`[\mathrm{force}]`.
-            It is defined per particle type and stays constant during
-            the simulation.
-        active_torque (tuple): active torque vector in reference to the
-            orientation of a particle :math:`[\mathrm{force} \cdot
-            \mathrm{length}]`. It is defined per particle type and stays
-            constant during the simulation.
+    Args:
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+            apply active forces.
+        manifold_constraint (`hoomd.md.manifold.Manifold`): Manifold constraint.
 
     :py:class:`ActiveOnManifold` specifies that a constrained active force
     should be added to all particles similar to :py:class:`Active`. The
@@ -471,7 +470,6 @@ class ActiveOnManifold(Active):
 
     Examples::
 
-
         all = filter.All()
         sphere = hoomd.md.manifold.Sphere(r=10)
         active = hoomd.md.force.ActiveOnManifold(
@@ -480,6 +478,29 @@ class ActiveOnManifold(Active):
             )
         active.active_force['A','B'] = (1,0,0)
         active.active_torque['A','B'] = (0,0,0)
+
+    Attributes:
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+            apply active forces.
+        manifold_constraint (`hoomd.md.manifold.Manifold`): Manifold constraint.
+
+    .. py:attribute:: active_force
+
+        active force vector in reference to the orientation of a particle
+        :math:`[\mathrm{force}]`.  It is defined per particle type and stays
+        constant during the simulation.
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float`]]
+
+    .. py:attribute:: active_torque
+
+        active torque vector in reference to the orientation of a particle
+        :math:`[\mathrm{force} \cdot \mathrm{length}]`. It is defined per
+        particle type and stays constant during the simulation.
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float`]]
     """
 
     def __init__(self, filter, manifold_constraint):
