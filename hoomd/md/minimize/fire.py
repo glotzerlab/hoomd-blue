@@ -108,7 +108,8 @@ class FIRE(_DynamicIntegrator):
     Examples::
 
         fire = md.minimize.FIRE(dt=0.05)
-        fire.methods.append(methods.NPH(filter.All(), P=0.0, gamma=.5))
+        fire.methods.append(methods.NPH(filter.All(), S=1, tauS=1,
+                                        couple='none'))
         sim.operations.integrator = fire
         while not(fire.converged):
            sim.run(100)
