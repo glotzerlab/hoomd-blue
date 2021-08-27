@@ -513,16 +513,12 @@ class ActiveOnManifold(Active):
         if not self.manifold_constraint._attached:
             self.manifold_constraint._attach()
 
-        if isinstance(sim.device, hoomd.device.CPU):
-            my_class = getattr(
-                _md, 'ActiveForceConstraintCompute'
-                + self.manifold_constraint.__class__.__name__)
-        else:
-            my_class = getattr(
-                _md, 'ActiveForceConstraintCompute'
-                + self.manifold_constraint.__class__.__name__ + 'GPU')
-
-        self._cpp_obj = my_class(sim.state._cpp_sys_def,
+        base_class_str = 'ActiveForceConstraintCompute'
+        base_class_str += self.manifold_constraint.__class__.__name__
+        if isinstance(sim.device, hoomd.device.GPU):
+            base_class_str += "GPU"
+        self._cpp_obj = getattr(
+            _md, base_class_str)(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj)
 
