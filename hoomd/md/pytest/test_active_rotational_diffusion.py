@@ -5,8 +5,26 @@ import hoomd
 import hoomd.conftest
 
 
-def test_construction():
-    active_force = hoomd.md.force.Active(hoomd.filter.All())
+@pytest.fixture(
+    params=[
+        (hoomd.md.force.Active, {
+            "filter": hoomd.filter.All()
+        }),
+        (
+            hoomd.md.force.ActiveOnManifold,
+            {
+                "filter": hoomd.filter.All(),
+                # this is the shift used by two_particle_snapshot_factory
+                "manifold_constraint": hoomd.md.manifold.Plane(shift=0.1)
+            })
+    ],
+    ids=lambda x: x[0].__name__)
+def active_force(request):
+    cls, kwargs = request.param
+    yield cls(**kwargs)
+
+
+def test_construction(active_force):
     rd_updater = hoomd.md.update.ActiveRotationalDiffusion(
         10, active_force, 0.1)
 
@@ -42,8 +60,7 @@ def check_setting(active_force, rd_updater):
     assert rd_updater.rotational_diffusion == power_variant
 
 
-def test_setting():
-    active_force = hoomd.md.force.Active(hoomd.filter.All())
+def test_setting(active_force):
     rd_updater = hoomd.md.update.ActiveRotationalDiffusion(
         10, active_force, 0.1)
     check_setting(active_force, rd_updater)
@@ -51,11 +68,22 @@ def test_setting():
 
 @pytest.fixture(scope="function")
 def local_simulation_factory(simulation_factory, two_particle_snapshot_factory):
+    """Creates simulation with state initialized.
+
+    Note:
+        The positions of the particles correspond correctly to the xy plane
+        manifold used for tests. Do not change positions unless sure that the
+        manifold tests with running simulation will not error.
+    """
 
     def sim_constructor(active_force=None, rd_updater=None):
         sim = simulation_factory(two_particle_snapshot_factory())
-        sim.operations.integrator = hoomd.md.Integrator(
-            0.005, methods=[hoomd.md.methods.NVE(hoomd.filter.All())])
+        if isinstance(active_force, hoomd.md.force.Active):
+            method = hoomd.md.methods.NVE(hoomd.filter.All())
+        else:
+            method = hoomd.md.methods.rattle.NVE(hoomd.filter.All(),
+                                                 hoomd.md.manifold.Plane(0.1))
+        sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
         if active_force is not None:
             sim.operations.integrator.forces.append(active_force)
         if rd_updater is not None:
@@ -66,8 +94,7 @@ def local_simulation_factory(simulation_factory, two_particle_snapshot_factory):
     return sim_constructor
 
 
-def test_attaching(local_simulation_factory):
-    active_force = hoomd.md.force.Active(hoomd.filter.All())
+def test_attaching(active_force, local_simulation_factory):
     rd_updater = hoomd.md.update.ActiveRotationalDiffusion(
         10, active_force, 0.1)
     sim = local_simulation_factory(active_force, rd_updater)
@@ -88,7 +115,6 @@ def test_attaching(local_simulation_factory):
     sim.operations.remove(rd_updater)
     sim.operations.integrator.forces.clear()
 
-    print(hasattr(active_force, "_simulation"))
     # ActiveRotationalDiffusion should error when active force is not attached
     sim.operations += rd_updater
     with pytest.raises(hoomd.error.SimulationDefinitionError):
@@ -106,8 +132,7 @@ def test_attaching(local_simulation_factory):
         sim.run(0)
 
 
-def test_update(local_simulation_factory):
-    active_force = hoomd.md.force.Active(hoomd.filter.All())
+def test_update(active_force, local_simulation_factory):
     active_force.active_force.default = (1., 0., 0.)
     # Set torque to zero so no angular momentum exists to change orientations.
     active_force.active_torque.default = (0., 0., 0.)
@@ -120,8 +145,7 @@ def test_update(local_simulation_factory):
         assert not np.allclose(old_orientations, new_orientations)
 
 
-def test_pickling(local_simulation_factory):
-    active_force = hoomd.md.force.Active(hoomd.filter.All())
+def test_pickling(active_force, local_simulation_factory):
     # don't add the rd_updater since operation_pickling_check will deal with
     # that.
     sim = local_simulation_factory(active_force)
