@@ -124,10 +124,14 @@ def test_validate_methods(lattice_snapshot_factory, simulation_factory):
     """Make sure only certain methods can be attached to FIRE."""
     snap = lattice_snapshot_factory(a=1.5, n=5)
 
-    nve = md.methods.NVE(hoomd.filter.All())
+    surface = md.manifold.Diamond(5)
+    nve = md.methods.rattle.NVE(hoomd.filter.All(), surface)
     nph = md.methods.NPH(hoomd.filter.All(), S=1, tauS=1, couple='none')
     brownian = md.methods.Brownian(hoomd.filter.All(), kT=1)
-    methods = [(nve, False), (nph, False), (brownian, True)]
+    rattle_brownian = md.methods.rattle.Brownian(hoomd.filter.All(), 1, surface)
+
+    methods = [(nve, False), (nph, False), (brownian, True),
+               (rattle_brownian, True)]
     for method, should_error in methods:
         sim = simulation_factory(snap)
         _try_attach_to_fire(sim, method, should_error)
