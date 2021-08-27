@@ -420,7 +420,7 @@ class Active(Force):
         # Attach param_dict and typeparam_dict
         super()._attach()
 
-    def create_diffusion_updater(self, trigger, rotational_diffusion=0.1):
+    def create_diffusion_updater(self, trigger, rotational_diffusion):
         """Create a rotational diffusion updater for this active force.
 
         Args:
@@ -428,8 +428,8 @@ class Active(Force):
                 rotational diffusion.
             active_force (hoomd.md.force.Active): The active force associated
                 with the updater. This is not settable after construction.
-            rotational_diffusion (hoomd.variant.Variant, optional): The
-                rotational diffusion as a function of time.
+            rotational_diffusion (hoomd.variant.Variant or float): The
+                rotational diffusion as a function of time or a constant.
 
         Returns:
             hoomd.md.update.ActiveRotationalDiffusion
