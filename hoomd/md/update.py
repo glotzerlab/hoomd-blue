@@ -235,10 +235,9 @@ class ActiveRotationalDiffusion(Updater):
     The rotational diffusion is applied to the orientation vector/quaternion
     of each particle.
 
-    Note:
-        The method `hoomd.md.force.Active.create_diffusion_updater` is
-        the recommended way to construct a `ActiveRotationalDiffusion` force
-        object.
+    Tip:
+        Use `hoomd.md.force.Active.create_diffusion_updater` to construct
+        a `ActiveRotationalDiffusion` instance.
 
     Args:
         trigger (hoomd.trigger.Trigger): Select the timesteps to update

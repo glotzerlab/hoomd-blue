@@ -354,12 +354,12 @@ class Active(Force):
     the particle.
 
     Note:
-        To introduce rotational diffusion to the active vectors, use
+        To introduce rotational diffusion to the particle orientations, use
         `Active.create_diffusion_updater`.
 
         .. seealso::
 
-            hoomd.md.update.ActiveRotationalDiffusion
+            `hoomd.md.update.ActiveRotationalDiffusion`
 
     Examples::
 
@@ -371,7 +371,7 @@ class Active(Force):
         active.active_torque['A','B'] = (0,0,0)
         rotational_diffusion_updater = active.create_diffusion_updater(
             trigger=10)
-        sim.operations += rotational_diffusion
+        sim.operations += rotational_diffusion_updater
     """
 
     def __init__(self, filter):
