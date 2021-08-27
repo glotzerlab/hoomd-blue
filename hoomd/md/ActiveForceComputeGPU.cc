@@ -64,8 +64,6 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
 
             t_activeVec.data[i] = old_t_activeVec.data[i];
             }
-
-        last_computed = 10;
         }
 
     m_f_activeVec.swap(tmp_f_activeVec);

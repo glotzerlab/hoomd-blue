@@ -80,8 +80,6 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     GlobalVector<Scalar4>
         m_t_activeVec; //! active torque unit vectors and magnitudes for each particle type
 
-    uint64_t last_computed;
-
     private:
     // Allow ActiveRotationalDiffusionUpdater to access internal methods and members of
     // ActiveForceCompute classes/subclasses. This is necessary to allow

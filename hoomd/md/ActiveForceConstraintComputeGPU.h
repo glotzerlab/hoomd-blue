@@ -130,8 +130,6 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
 
             t_activeVec.data[i] = old_t_activeVec.data[i];
             }
-
-        this->last_computed = 10;
         }
 
     this->m_f_activeVec.swap(tmp_f_activeVec);

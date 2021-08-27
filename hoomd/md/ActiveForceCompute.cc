@@ -307,11 +307,7 @@ void ActiveForceCompute::computeForces(uint64_t timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "ActiveForceCompute");
 
-    if (last_computed != timestep)
-        {
-        last_computed = timestep;
-        setForces(); // set forces for particles
-        }
+    setForces(); // set forces for particles
 
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAErrorCheckingEnabled())

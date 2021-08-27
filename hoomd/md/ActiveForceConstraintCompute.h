@@ -190,23 +190,18 @@ void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "ActiveForceConstraintCompute");
 
-    if (last_computed != timestep)
+    if (m_box_changed)
         {
-        if (m_box_changed)
+        if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
             {
-            if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
-                {
-                throw std::runtime_error("Parts of the manifold are outside the box");
-                }
-            m_box_changed = false;
+            throw std::runtime_error("Parts of the manifold are outside the box");
             }
-
-        last_computed = timestep;
-
-        setConstraint(); // apply manifold constraints to active particles active force vectors
-
-        setForces(); // set forces for particles
+        m_box_changed = false;
         }
+
+    setConstraint(); // apply manifold constraints to active particles active force vectors
+
+    setForces(); // set forces for particles
 
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
