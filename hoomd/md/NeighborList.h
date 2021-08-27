@@ -529,7 +529,12 @@ class PYBIND11_EXPORT NeighborList : public Compute
     Index2D m_ex_list_indexer;               //!< Indexer for accessing the exclusion list
     Index2D m_ex_list_indexer_tag;           //!< Indexer for accessing the by-tag exclusion list
     bool m_exclusions_set;                   //!< True if any exclusions have been set
-    bool m_n_particles_changed; //!< True if global exclusion list needs to be reallocated
+
+    /// True if the number of particles has changed.
+    bool m_n_particles_changed = false;
+
+    /// True if the number of bonds/angles/dihedrals/impropers/pairs has changed.
+    bool m_topology_changed = false;
 
     //! Return true if we are supposed to do a distance check in this time step
     bool shouldCheckDistance(uint64_t timestep);
@@ -630,6 +635,12 @@ class PYBIND11_EXPORT NeighborList : public Compute
     void slotGlobalParticleNumberChange()
         {
         m_n_particles_changed = true;
+        }
+
+    //! Method to be called when the global bond/angle/dihedral/improper/pair number changes
+    void slotGlobalTopologyNumberChange()
+        {
+        m_topology_changed = true;
         }
 
     //! Clear all existing exclusions

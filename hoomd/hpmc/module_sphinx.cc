@@ -19,7 +19,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -46,7 +45,6 @@ void export_sphinx(py::module& m)
     export_ExternalFieldInterface<ShapeSphinx>(m, "ExternalFieldSphinx");
     export_LatticeField<ShapeSphinx>(m, "ExternalFieldLatticeSphinx");
     export_ExternalFieldComposite<ShapeSphinx>(m, "ExternalFieldCompositeSphinx");
-    export_RemoveDriftUpdater<ShapeSphinx>(m, "RemoveDriftUpdaterSphinx");
     export_ExternalFieldWall<ShapeSphinx>(m, "WallSphinx");
     export_UpdaterExternalFieldWall<ShapeSphinx>(m, "UpdaterExternalFieldWallSphinx");
     export_ExternalCallback<ShapeSphinx>(m, "ExternalCallbackSphinx");
