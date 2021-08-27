@@ -131,4 +131,3 @@ def test_validate_methods(lattice_snapshot_factory, simulation_factory):
     for method, should_error in methods:
         sim = simulation_factory(snap)
         _try_attach_to_fire(sim, method, should_error)
-
