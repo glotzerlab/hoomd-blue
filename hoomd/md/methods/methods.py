@@ -79,6 +79,11 @@ class NVT(Method):
 
         `NVT` integrates rotational degrees of freedom.
 
+    Note:
+        The NVT integrator is reversible. In addition to negating velocities
+        and angular momenta, the thermostat degrees of freedom must also be
+        negated.
+
     Examples::
 
         nvt=hoomd.md.methods.NVT(filter=hoomd.filter.All(), kT=1.0, tau=0.5)
@@ -291,6 +296,11 @@ class NPT(Method):
         recommended value for `tauS` is ``1000 * dt``, where ``dt`` is the
         length of the time step.
 
+    Note:
+        The NPT integrator is symplectic and reversible. In addition to
+        negating velocities and angular momenta, the thermostat and barostat
+        degrees of freedom must also be negated.
+
     Examples::
 
         npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65,
@@ -444,7 +454,7 @@ class NPT(Method):
         .. seealso:: `State.thermalize_particle_momenta`
         """
         if not self._attached:
-            raise RuntimeError("Call Simulation.run(0) before"
+            raise RuntimeError("Call Simulation.run(0) before "
                                "thermalize_thermostat_and_barostat_dof")
 
         self._simulation._warn_if_seed_unset()
@@ -504,6 +514,11 @@ class NPH(Method):
         large `tauS` would take long time to equilibrate. In most of systems,
         recommended value for `tauS` is ``1000 * dt``, where ``dt`` is the
         length of the time step.
+
+    Note:
+        The NPH integrator is symplectic and reversible. In addition to
+        negating velocities and angular momenta, the barostat degrees of
+        freedom must also be negated.
 
     Examples::
 
@@ -638,7 +653,7 @@ class NPH(Method):
         .. seealso:: `State.thermalize_particle_momenta`
         """
         if not self._attached:
-            raise RuntimeError("Call Simulation.run(0) before"
+            raise RuntimeError("Call Simulation.run(0) before "
                                "thermalize_thermostat_and_barostat_dof")
 
         self._simulation._warn_if_seed_unset()
@@ -671,6 +686,10 @@ class NVE(Method):
 
     .. todo::
         Update when zero momentum updater is added.
+
+    Note:
+        The NVE integrator is symplectic and reversible. Velocities and angular
+        momenta must be negated.
 
     Examples::
 
@@ -783,6 +802,9 @@ class Langevin(Method):
     Warning:
         When restarting a simulation, the energy of the reservoir will be reset
         to zero.
+
+    Note:
+        The Langevin integrator is not reversible.
 
     Examples::
 
@@ -943,6 +965,9 @@ class Brownian(Method):
        directly, with independent values for each particle type in the
        system.
 
+    Note:
+        The Brownian integrator is not reversible.
+
     Examples::
 
         brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
@@ -1059,13 +1084,15 @@ class Berendsen(Method):
     .. attention::
         :py:class:`Berendsen` does not integrate rotational degrees of freedom.
 
-        Examples::
+    Note:
+        The Berendsen integrator is not reversible.
 
-            berendsen = hoomd.md.methods.Berendsen(
-                filter=hoomd.filter.All(), kT=0.2, tau=10.0)
-            integrator = hoomd.md.Integrator(
-                dt=0.001, methods=[berendsen], forces=[lj])
+    Examples::
 
+        berendsen = hoomd.md.methods.Berendsen(
+            filter=hoomd.filter.All(), kT=0.2, tau=10.0)
+        integrator = hoomd.md.Integrator(
+            dt=0.001, methods=[berendsen], forces=[lj])
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles to
