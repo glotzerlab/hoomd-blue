@@ -1164,7 +1164,7 @@ class OverdampedViscous(Method):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[odv],
         forces=[lj])
 
-    Examples of using ``gamma`` pr ``gamma_r`` on drag coefficient::
+    Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
 
         odv = hoomd.md.methods.Brownian(filter=hoomd.filter.All())
         odv.gamma.default = 2.0
@@ -1233,14 +1233,14 @@ class OverdampedViscous(Method):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
                                           sim.state._get_group(self.filter),
                                           1.0,
-                                          False,
-                                          False)
+                                          True,
+                                          True)
         else:
             self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
                                              sim.state._get_group(self.filter),
                                              1.0,
-                                             False,
-                                             False)
+                                             True,
+                                             True)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
