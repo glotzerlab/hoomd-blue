@@ -1022,11 +1022,15 @@ class Brownian(Method):
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
                                           sim.state._get_group(self.filter),
-                                          self.kT)
+                                          self.kT,
+                                          False,
+                                          False)
         else:
             self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
                                              sim.state._get_group(self.filter),
-                                             self.kT)
+                                             self.kT,
+                                             False,
+                                             False)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
