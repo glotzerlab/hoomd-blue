@@ -45,11 +45,12 @@ def _method_base_params():
     overdamped_viscous_changed_params = {'alpha': 0.125}
 
     method_base_params_list.extend([
-        paramtuple(overdamped_viscous_setup_params, overdamped_viscous_extra_params,
-                   overdamped_viscous_changed_params, hoomd.md.methods.rattle.OverdampedViscous,
+        paramtuple(overdamped_viscous_setup_params,
+                   overdamped_viscous_extra_params,
+                   overdamped_viscous_changed_params,
+                   hoomd.md.methods.rattle.OverdampedViscous,
                    hoomd.md.methods.OverdampedViscous)
     ])
-
 
     constant_s = [
         hoomd.variant.Constant(1.0),
