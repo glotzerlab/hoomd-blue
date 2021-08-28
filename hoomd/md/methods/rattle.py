@@ -448,9 +448,7 @@ class Brownian(MethodRATTLE):
         self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj, self.kT,
-                                 False,
-                                 False,
-                                 self.tolerance)
+                                 False, False, self.tolerance)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -526,6 +524,7 @@ class OverdampedViscous(MethodRATTLE):
             :math:`[\mathrm{force} \cdot \mathrm{length} \cdot
             \mathrm{radian}^{-1} \cdot \mathrm{time}^{-1}]`.
     """
+
     def __init__(self,
                  filter,
                  manifold_constraint,
@@ -580,9 +579,7 @@ class OverdampedViscous(MethodRATTLE):
         self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj,
-                                 hoomd.variant.Constant(1.0),
-                                 True,
-                                 True,
+                                 hoomd.variant.Constant(1.0), True, True,
                                  self.tolerance)
 
         # Attach param_dict and typeparam_dict
