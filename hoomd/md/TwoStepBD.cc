@@ -23,8 +23,10 @@ using namespace std;
 */
 TwoStepBD::TwoStepBD(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<ParticleGroup> group,
-                     std::shared_ptr<Variant> T)
-    : TwoStepLangevinBase(sysdef, group, T), m_noiseless_t(false), m_noiseless_r(false)
+                     std::shared_ptr<Variant> T,
+                     bool noiseless_t,
+                     bool noiseless_r)
+    : TwoStepLangevinBase(sysdef, group, T), m_noiseless_t(noiseless_t), m_noiseless_r(noiseless_r)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBD" << endl;
     }
@@ -241,5 +243,7 @@ void export_TwoStepBD(py::module& m)
     py::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD>>(m, "TwoStepBD")
         .def(py::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>>());
+                      std::shared_ptr<Variant>,
+                      bool,
+                      bool>());
     }
