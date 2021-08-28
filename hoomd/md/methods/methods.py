@@ -1232,13 +1232,13 @@ class OverdampedViscous(Method):
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
                                           sim.state._get_group(self.filter),
-                                          1.0,
+                                          hoomd.variant.Constant(1.0),
                                           True,
                                           True)
         else:
             self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
                                              sim.state._get_group(self.filter),
-                                             1.0,
+                                             hoomd.variant.Constant(1.0),
                                              True,
                                              True)
 

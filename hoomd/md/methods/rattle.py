@@ -456,7 +456,7 @@ class Brownian(MethodRATTLE):
         super()._attach()
 
 
-class OverdampedViscous(Method):
+class OverdampedViscous(MethodRATTLE):
     r"""Overdamped viscous dynamics with RATTLE constraint.
 
     Args:
@@ -526,8 +526,12 @@ class OverdampedViscous(Method):
             :math:`[\mathrm{force} \cdot \mathrm{length} \cdot
             \mathrm{radian}^{-1} \cdot \mathrm{time}^{-1}]`.
     """
-
-# store metadata
+    def __init__(self,
+                 filter,
+                 manifold_constraint,
+                 tolerance=0.000001,
+                 alpha=None):
+        # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
             alpha=OnlyTypes(float, allow_none=True),
@@ -576,7 +580,7 @@ class OverdampedViscous(Method):
         self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj,
-                                 1.0,
+                                 hoomd.variant.Constant(1.0),
                                  True,
                                  True,
                                  self.tolerance)
