@@ -42,6 +42,8 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepL
                     std::shared_ptr<ParticleGroup> group,
                     Manifold manifold,
                     std::shared_ptr<Variant> T,
+                    bool noiseless_t,
+                    bool noiseless_r,
                     Scalar tolerance = 0.000001);
 
     virtual ~TwoStepRATTLEBD();
@@ -111,9 +113,11 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
                                            std::shared_ptr<ParticleGroup> group,
                                            Manifold manifold,
                                            std::shared_ptr<Variant> T,
+                                           bool noiseless_t,
+                                           bool noiseless_r,
                                            Scalar tolerance)
-    : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold), m_noiseless_t(false),
-      m_noiseless_r(false), m_tolerance(tolerance), m_box_changed(false)
+    : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold), m_noiseless_t(noiseless_t),
+      m_noiseless_r(noiseless_r), m_tolerance(tolerance), m_box_changed(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
 
@@ -538,6 +542,8 @@ template<class Manifold> void export_TwoStepRATTLEBD(py::module& m, const std::s
                       std::shared_ptr<ParticleGroup>,
                       Manifold,
                       std::shared_ptr<Variant>,
+                      bool,
+                      bool,
                       Scalar>())
         .def_property("tolerance",
                       &TwoStepRATTLEBD<Manifold>::getTolerance,
