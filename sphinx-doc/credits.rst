@@ -82,6 +82,7 @@ The following people have contributed to the to HOOMD-blue:
 * Philipp Mertmann, Ruhr University Bochum
 * Philipp Schönhöfer, University of Michigan
 * Rastko Sknepnek, Northwestern
+* Raymond Asare, University of Michigan
 * Richmond Newman, University of Michigan
 * Roman Bystryi, Joint Institute for High Temperatures of RAS
 * Ross Smith, University of Michigan

@@ -80,17 +80,14 @@ void TwoStepNVE::setLimit(pybind11::object limit)
         }
     }
 
-pybind11::object TwoStepNVE::getZeroForce()
+bool TwoStepNVE::getZeroForce()
     {
-    pybind11::object result;
-    result = pybind11::cast(m_zero_force);
-
-    return result;
+    return m_zero_force;
     }
 
-void TwoStepNVE::setZeroForce(pybind11::object zero_force)
+void TwoStepNVE::setZeroForce(bool zero_force)
     {
-    m_zero_force = pybind11::cast<bool>(zero_force);
+    m_zero_force = zero_force;
     }
 
 /*! \param timestep Current time step
