@@ -1125,7 +1125,7 @@ class OverdampedViscous(Method):
     `OverdampedViscous` integrates particles forward in time following
     Newtonian in the overdamped limit where there is no intertial term.
     (in the limit that the mass :math:`m` goes to 0).
-    
+
 
     .. math::
 
