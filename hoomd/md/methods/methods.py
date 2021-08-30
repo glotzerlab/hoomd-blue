@@ -1150,6 +1150,10 @@ class OverdampedViscous(Method):
        directly, with independent values for each particle type in the
        system.
 
+    Tip:
+        `OverdampedViscous` can be used to simulate systems of athermal active
+        matter, such as athermal Active Brownian Particles.
+
     Examples::
 
         odv = hoomd.md.methods.Brownian(filter=hoomd.filter.All())
