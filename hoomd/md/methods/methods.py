@@ -1139,8 +1139,6 @@ class OverdampedViscous(Method):
     :math:`\vec{v}` is the particle's velocity, and :math:`d` is the dimensionality
     of the system.
 
-    Overdamped viscous dynamics neglects the acceleration term in the equation of motion.
-
     You can specify :math:`\gamma` in two ways:
 
     1. Specify :math:`\alpha` which scales the particle diameter to
