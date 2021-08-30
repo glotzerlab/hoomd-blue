@@ -56,6 +56,9 @@ objects/operations.
   connected to a `Simulation`.
 - unattached: An object's data resides in pure Python and may be or not be
   added.
+- detach: The transition from attached to unattached.
+- sync: The process of making a C++ container match a corresponding Python
+  container. See the section on `SyncedList` for a concrete example.
 - type parameter: An attribute that must be specified for all types or groups of
   types of a set length.
 
@@ -65,17 +68,20 @@ to address cases where customization is necessary, or changes are required. The
 first aspect of the data model discussed is that of most HOOMD operations or
 related classes.
 
-- `Operation`
+- `_HOOMDGetSetAttrBase`
+- `_DependencyRelation`
     - `_HOOMDBaseObject`
-        - `_HOOMDGetSetAttrBase`
-        - `_DependencyRelation`
+        - `Operation`
 
 #### `_DependencyRelation`
 
 `_DependencyRelation` helps define a dependent dependency relationship between
-two objects. The class inherited by `_HOOMDBaseObject` to handle dependent
-relationships between operations in Python. This feature has yet to be used to
-much extent.  See `hoomd/operation.py` for the source code.
+two objects. The class is inherited by `_HOOMDBaseObject` to handle dependent
+relationships between operations in Python. The class defines *dependents* and
+*dependencies* of an object whose removal from a simulation (detaching) can be
+handled by overwriting specific methods defined in `_DependencyRelation` in
+`hoomd/operation.py`. See the interface of neighbor lists to pair potentials as
+an example of this in `hoomd/md/nlist.py` and `hoomd/md/pair/pair.py`.
 
 #### `_HOOMDGetSetAttrBase`
 
@@ -88,6 +94,10 @@ specifying object attributes in Python. The class provides a multitude of hooks
 to enable custom attribute querying and setting when necessary. See
 `hoomd/operation.py` for the source code and the sections on `TypeParameter`'s
 and `ParameterDict`'s for more information.
+
+**Note**: This class allows the use of `ParameterDict` and `TypeParameter`
+(described below) instances without C++ syncing or attaching. Internal custom
+actions use this see `hoomd/custom/custom_action.py` for more information.
 
 #### `_HOOMDBaseObject`
 
@@ -114,7 +124,12 @@ These can be/are used by `_HOOMDBaseObject` subclasses as well as others.
 validated and processed values. Each instance of `ParameterDict` has its own
 specification defining the validation logic for its keys. `_HOOMDBaseObject`
 subclasses automatically sync the `ParameterDict` instance in the `_param_dict`
-attribute.
+attribute. This requires that all `ParameterDict` keys be available as
+properties of the C++ object using the pybind11 property implementation
+(https://pybind11.readthedocs.io/en/stable/classes.html#instance-and-static-fields).
+Properties can be read-only which means they will never be set through
+`ParameterDict`, but can be through the C++ class constructor. Attempting to set
+such a property after attaching will result in an exception being thrown.
 
 This class should be used to define all attributes shared with C++ member
 variables that are on a per-object basis (i.e. not per type). Examples of
@@ -144,6 +159,13 @@ independent logic and can be found in `hoomd/data/typeparam.py`.
 `TypeParameter` instances. See the methods
 `hoomd.operation._HOOMDBaseObject._append_typeparm` and
 `hoomd.operation._HOOMDBaseObject._extend_typeparm` for more information.
+
+This class automatically handles attaching and providing the C++ class the
+necessary information through a setter interface (retrieving data is similar).
+The name of the setter/getter is the camel cased version of the name given to
+the `TypeParameter` (e.g. if the type parameter is named `shape_def` then the
+methods are `getShapeDef` and `setShapeDef`). These setters and getters need to
+be exposed by the internal C++ class `obj._cpp_obj` instance.
 
 #### `SyncedList`
 
