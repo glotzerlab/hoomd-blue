@@ -1139,9 +1139,6 @@ class OverdampedViscous(Method):
     :math:`\vec{v}` is the particle's velocity, and :math:`d` is the dimensionality
     of the system.
 
-    `OverdampedViscous` uses the same internal integrator as `Brownian`, except the random
-    force is turned off
-
     Overdamped viscous dynamics neglects the acceleration term in the equation of motion.
 
     You can specify :math:`\gamma` in two ways:
