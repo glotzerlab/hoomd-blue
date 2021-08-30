@@ -51,7 +51,7 @@ def triplet_snapshot_factory(device):
         theta_rad = theta_deg * (np.pi / 180)
         s = hoomd.Snapshot(device.communicator)
         N = 3
-        if s.exists:
+        if s.communicator.rank == 0:
             box = [L, L, L, 0, 0, 0]
             if dimensions == 2:
                 box[2] = 0

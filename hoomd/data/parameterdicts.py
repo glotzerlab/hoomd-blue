@@ -269,9 +269,16 @@ class _ValidatedDefaultDict(MutableMapping):
     def __eq__(self, other):
         if not isinstance(other, _ValidatedDefaultDict):
             return NotImplemented
-        return (self.default == other.default
-                and set(self.keys()) == set(other.keys())
-                and np.all(self[key] == other[key] for key in self.keys()))
+        if self.default != other.default:
+            return False
+        if set(self.keys()) != set(other.keys()):
+            return False
+        if isinstance(self.default, dict):
+            return all(
+                np.all(self[type_][key] == other[type_][key])
+                for type_ in self
+                for key in self[type_])
+        return all(np.all(self[type_] == other[type_]) for type_ in self)
 
     @property
     def default(self):
@@ -492,7 +499,7 @@ class ParameterDict(MutableMapping):
         if not isinstance(other, ParameterDict):
             return NotImplemented
         return (set(self.keys()) == set(other.keys()) and np.all(
-            np.all(self[key] == other[key]) for key in self.keys()))
+            [np.all(self[key] == other[key]) for key in self.keys()]))
 
     def update(self, other):
         """Add keys and values to the dictionary."""

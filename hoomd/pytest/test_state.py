@@ -150,7 +150,7 @@ def test_get_snapshot(simulation_factory, snap):
     sim = simulation_factory()
     sim.create_state_from_snapshot(snap)
 
-    snap2 = sim.state.snapshot
+    snap2 = sim.state.get_snapshot()
     assert_snapshots_equal(snap, snap2)
 
 
@@ -167,9 +167,9 @@ def test_modify_snapshot(simulation_factory, snap):
         snap.pairs.N = snap.pairs.N // 4
         snap.constraints.N = snap.constraints.N // 4
 
-    sim.state.snapshot = snap
+    sim.state.set_snapshot(snap)
 
-    snap2 = sim.state.snapshot
+    snap2 = sim.state.get_snapshot()
     assert_snapshots_equal(snap, snap2)
 
 
@@ -179,7 +179,7 @@ def test_thermalize_particle_velocity(simulation_factory,
     sim = simulation_factory(snap)
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
 
-    snapshot = sim.state.snapshot
+    snapshot = sim.state.get_snapshot()
     if snapshot.communicator.rank == 0:
         v = snapshot.particles.velocity[:]
         m = snapshot.particles.mass[:]
@@ -206,7 +206,7 @@ def test_thermalize_angular_momentum(simulation_factory,
     sim = simulation_factory(snap)
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
 
-    snapshot = sim.state.snapshot
+    snapshot = sim.state.get_snapshot()
     if snapshot.communicator.rank == 0:
         # Note: this conversion assumes that all particles have (1, 0, 0, 0)
         # orientations.

@@ -324,10 +324,28 @@ def logging_check(cls, expected_namespace, expected_loggables):
         check_loggable(cls, name, properties)
 
 
+def equality_check(a, b):
+    """Check equality between to instances of _HOOMDBaseObject."""
+    if not isinstance(a, hoomd.operation._HOOMDGetSetAttrBase):
+        return a == b
+    if type(a) != type(b):
+        return False
+    b_keys = b.__dict__.keys()
+    for attr in a.__dict__:
+        if attr in a._skip_for_equality:
+            continue
+        if isinstance(a.__dict__[attr], hoomd.operation._HOOMDGetSetAttrBase):
+            if not equality_check(a.__dict__[attr], b.__dict__[attr]):
+                return False
+        elif (attr not in b_keys or a.__dict__[attr] != b.__dict__[attr]):
+            return False
+    return True
+
+
 def pickling_check(instance):
     """Test that an instance can be pickled and unpickled."""
     pkled_instance = pickle.loads(pickle.dumps(instance))
-    assert instance == pkled_instance
+    assert equality_check(instance, pkled_instance)
 
 
 def operation_pickling_check(instance, sim):
