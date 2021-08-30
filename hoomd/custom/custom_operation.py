@@ -45,7 +45,7 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         """C++ Class to use for attaching."""
         raise NotImplementedError
 
-    def __init__(self, action, trigger=1):
+    def __init__(self, trigger, action):
         if not isinstance(action, Action):
             raise ValueError("action must be a subclass of "
                              "hoomd.custom_action.custom.Action.")
@@ -157,7 +157,7 @@ class _InternalCustomOperation(CustomOperation,
         pass
 
     def __init__(self, trigger, *args, **kwargs):
-        super().__init__(self._internal_class(*args, **kwargs), trigger)
+        super().__init__(trigger, self._internal_class(*args, **kwargs))
         self._export_dict = {
             key: value.update_cls(self.__class__)
             for key, value in self._export_dict.items()
