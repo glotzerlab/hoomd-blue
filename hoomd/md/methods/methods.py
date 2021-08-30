@@ -1152,8 +1152,6 @@ class OverdampedViscous(Method):
     Examples::
 
         odv = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[odv],
-        forces=[lj])
 
     Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
 
