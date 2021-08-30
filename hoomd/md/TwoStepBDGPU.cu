@@ -162,16 +162,28 @@ extern "C" __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
         // into place
         box.wrap(postype, image);
 
-        // draw a new random velocity for particle j
-        Scalar mass = vel.w;
-        Scalar sigma = fast::sqrt(T / mass);
-        NormalDistribution<Scalar> normal(sigma);
-        vel.x = normal(rng);
-        vel.y = normal(rng);
-        if (D > 2)
-            vel.z = normal(rng);
+        if (d_noiseless_t)
+            {
+            vel.x = net_force.x / gamma;
+            vel.y = net_force.y / gamma;
+            if (D > 2)
+                vel.z = net_force.z / gamma;
+            else
+                vel.z = 0;
+            }
         else
-            vel.z = 0;
+            {
+            // draw a new random velocity for particle j
+            Scalar mass = vel.w;
+            Scalar sigma = fast::sqrt(T / mass);
+            NormalDistribution<Scalar> normal(sigma);
+            vel.x = normal(rng);
+            vel.y = normal(rng);
+            if (D > 2)
+                vel.z = normal(rng);
+            else
+                vel.z = 0;
+            }
 
         // write out data
         d_pos[idx] = postype;
@@ -234,10 +246,20 @@ extern "C" __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 d_orientation[idx] = quat_to_scalar4(q);
 
-                // draw a new random ang_mom for particle j in body frame
-                p_vec.x = NormalDistribution<Scalar>(fast::sqrt(T * I.x))(rng);
-                p_vec.y = NormalDistribution<Scalar>(fast::sqrt(T * I.y))(rng);
-                p_vec.z = NormalDistribution<Scalar>(fast::sqrt(T * I.z))(rng);
+                if (d_noiseless_r)
+                    {
+                    p_vec.x = t.x / gamma_r.x;
+                    p_vec.y = t.y / gamma_r.y;
+                    p_vec.z = t.z / gamma_r.z;
+                    }
+                else
+                    {
+                    // draw a new random ang_mom for particle j in body frame
+                    p_vec.x = NormalDistribution<Scalar>(fast::sqrt(T * I.x))(rng);
+                    p_vec.y = NormalDistribution<Scalar>(fast::sqrt(T * I.y))(rng);
+                    p_vec.z = NormalDistribution<Scalar>(fast::sqrt(T * I.z))(rng);
+                    }
+
                 if (x_zero)
                     p_vec.x = 0;
                 if (y_zero)
