@@ -1122,27 +1122,22 @@ class OverdampedViscous(Method):
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
 
-    `OverdampedViscous` integrates particles forward in time on the Brownian,
-    or diffusive, timescale with a drag force but no random force.
+    `OverdampedViscous` integrates particles forward in time following
+    Newtonian in the overdamped limit where there is no intertial term.
+    (in the limit that the mass :math:`m` goes to 0).
+
 
     .. math::
 
-        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C}}{\gamma}
+        \frac{d\vec{r}}{dt} = \vec{v}
 
-        \langle \vec{v}(t) \rangle = 0
-
-        \langle |\vec{v}(t)|^2 \rangle = d k T / m
+        \vec{v(t)} = \frac{\vec{F}_\mathrm{C}}{\gamma}
 
 
     where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
-    potentials and constraint forces, :math:`\gamma` is the drag coefficient,
+    potentials, :math:`\gamma` is the drag coefficient,
     :math:`\vec{v}` is the particle's velocity, and :math:`d` is the dimensionality
     of the system.
-
-    `OverdampedViscous` uses the same internal integrator as `Brownian`, except the random
-    force is turned off
-
-    Overdamped viscous dynamics neglects the acceleration term in the equation of motion.
 
     You can specify :math:`\gamma` in two ways:
 
@@ -1157,8 +1152,6 @@ class OverdampedViscous(Method):
     Examples::
 
         odv = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[odv],
-        forces=[lj])
 
     Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
 
@@ -1228,7 +1221,7 @@ class OverdampedViscous(Method):
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
                                           sim.state._get_group(self.filter),
-                                          hoomd.variant.Constant(1.0), True,
+                                          hoomd.variant.Constant(0.0), True,
                                           True)
         else:
             self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
