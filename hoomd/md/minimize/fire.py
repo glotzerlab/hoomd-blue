@@ -84,7 +84,7 @@ class FIRE(_DynamicIntegrator):
 
     .. math::
 
-        \\frac{\\sum |F|}{N*\\sqrt{N_{dof}}} < \\mathrm{\\textm{angmom_tol}}
+        \\frac{\\sum |F|}{N*\\sqrt{N_{dof}}} < \\mathrm{\\text{angmom_tol}}
         \\;\\; and \\;\\ \\Delta \\frac{\\sum|E|}{N} <
         \\mathrm{\\text{energy_tol}}
 
