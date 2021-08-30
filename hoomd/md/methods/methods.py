@@ -1122,8 +1122,10 @@ class OverdampedViscous(Method):
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
 
-    `OverdampedViscous` integrates particles forward in time on the Brownian,
-    or diffusive, timescale with a drag force but no random force.
+    `OverdampedViscous` integrates particles forward in time following
+    Newtonian in the overdamped limit where there is no intertial term.
+    (in the limit that the mass :math:`m` goes to 0).
+    
 
     .. math::
 
