@@ -15,6 +15,7 @@ md.methods
     NPT
     NVE
     NVT
+    OverdampedViscous
 
 
 .. rubric:: Details
@@ -27,7 +28,8 @@ md.methods
               NPH,
               NPT,
               NVE,
-              NVT
+              NVT,
+              OverdampedViscous
 
 .. rubric:: Modules
 
