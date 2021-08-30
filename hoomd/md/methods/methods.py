@@ -1136,14 +1136,15 @@ class OverdampedViscous(Method):
 
     where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
     potentials, :math:`\gamma` is the drag coefficient,
-    :math:`\vec{v}` is the particle's velocity, and :math:`d` is the dimensionality
-    of the system.
+    :math:`\vec{v}` is the particle's velocity, and :math:`d` is the
+    dimensionality of the system.
 
     You can specify :math:`\gamma` in two ways:
 
     1. Specify :math:`\alpha` which scales the particle diameter to
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are mass /
-       distance / time.
+       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are
+       :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
+       \cdot \mathrm{time}^{-1}]`.
     2. After the method object is created, specify the attribute ``gamma``
        and ``gamma_r`` for rotational damping or random torque to assign them
        directly, with independent values for each particle type in the
