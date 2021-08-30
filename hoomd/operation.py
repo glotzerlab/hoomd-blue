@@ -31,9 +31,9 @@ class _HOOMDGetSetAttrBase:
         _typeparam_dict (dict[str, TypeParameter]): A dict of all the
             TypeParameters for the class/instance.
         _skip_for_equality (set[str]): The attribute names to not use for
-        equality checks. This will not effect attributes that exist due to
-        ``__getattr__`` such as those from ``_param_dict`` or
-        ``_typeparam_dict``.
+            equality checks used during tests. This will not effect attributes
+            that exist due to ``__getattr__`` such as those from ``_param_dict``
+            or ``_typeparam_dict``.
     """
     _reserved_default_attrs = dict(_param_dict=ParameterDict,
                                    _typeparam_dict=dict)
@@ -98,16 +98,6 @@ class _HOOMDGetSetAttrBase:
         except TypeError:
             raise ValueError("To set {}, you must use a dictionary "
                              "with types as keys.".format(attr))
-
-    def __eq__(self, other):
-        other_keys = other.__dict__.keys()
-        for attr in self.__dict__:
-            if attr in self._skip_for_equality:
-                continue
-            if (attr not in other_keys
-                    or self.__dict__[attr] != other.__dict__[attr]):
-                return False
-        return True
 
 
 class _DependencyRelation:
