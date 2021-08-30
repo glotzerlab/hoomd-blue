@@ -1129,11 +1129,9 @@ class OverdampedViscous(Method):
 
     .. math::
 
-        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C}}{\gamma}
+        \frac{d\vec{r}}{dt} = \vec{v}
 
-        \langle \vec{v}(t) \rangle = 0
-
-        \langle |\vec{v}(t)|^2 \rangle = d k T / m
+        \vec{v(t)} = \frac{\vec{F}_\mathrm{C}}{\gamma}
 
 
     where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
