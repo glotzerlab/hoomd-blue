@@ -1137,7 +1137,7 @@ class OverdampedViscous(Method):
 
 
     where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
-    potentials and constraint forces, :math:`\gamma` is the drag coefficient,
+    potentials, :math:`\gamma` is the drag coefficient,
     :math:`\vec{v}` is the particle's velocity, and :math:`d` is the dimensionality
     of the system.
 
