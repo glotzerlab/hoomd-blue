@@ -84,9 +84,9 @@ class FIRE(_DynamicIntegrator):
 
     .. math::
 
-        \\frac{\\sum |F|}{N*\\sqrt{N_{dof}}} < \\text{\\mathrm{angmom_tol}}
+        \\frac{\\sum |F|}{N*\\sqrt{N_{dof}}} < \\mathrm{\\textm{angmom_tol}}
         \\;\\; and \\;\\ \\Delta \\frac{\\sum|E|}{N} <
-        \\text{\\mathrm{energy_tol}}
+        \\mathrm{\\text{energy_tol}}
 
     where N is the number of particles the minimization is acting over (i.e.
     the group size) Either of the two criterion can be effectively turned off
