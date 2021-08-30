@@ -51,13 +51,13 @@ objects/operations.
 ### Base Data Model
 
 #### Definitions
-- added: An object is associated with a simulation
+- added: An object is associated with a `Simulation`.
 - attached: An object has its corresponding C++ class instantiated and is
-  connected to a simulation
+  connected to a `Simulation`.
 - unattached: An object's data resides in pure Python and may be or not be
   added.
 - type parameter: An attribute that must be specified for all types or groups of
-  types of a set length
+  types of a set length.
 
 In Python, many base classes exist to facilitate code reuse. This leads to very
 lean user facing classes, but requires more fundamental understanding of the model
@@ -110,15 +110,15 @@ These can be/are used by `_HOOMDBaseObject` subclasses as well as others.
 
 #### `ParameterDict`
 
-`ParameterDict` provide a mapping (`dict`) interface from attribute names to
+`ParameterDict` provides a mapping (`dict`) interface from attribute names to
 validated and processed values. Each instance of `ParameterDict` has its own
 specification defining the validation logic for its keys. `_HOOMDBaseObject`
 subclasses automatically sync the `ParameterDict` instance in the `_param_dict`
 attribute.
 
 This class should be used to define all attributes shared with C++ member
-variables that are on a per-object basis (i.e. not per type). A good example of
-this class can be seen in many HOOMD classes, but a good example is
+variables that are on a per-object basis (i.e. not per type). Examples of
+this can be seen in many HOOMD classes.  One good example is
 `hoomd.md.update.ReversePerturbationFlow`.
 
 #### `TypeParameterDict` and `AttachedTypeParameterDict`
