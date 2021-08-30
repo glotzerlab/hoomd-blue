@@ -57,6 +57,7 @@ objects/operations.
 - unattached: An object's data resides in pure Python and may be or not be
   added.
 - detach: The transition from attached to unattached.
+- removed: The removal of an unattached object from a `Simulation`.
 - sync: The process of making a C++ container match a corresponding Python
   container. See the section on `SyncedList` for a concrete example.
 - type parameter: An attribute that must be specified for all types or groups of
@@ -106,7 +107,9 @@ provide dependency handling, validated and processed attribute setting,
 pickling, and pybind11 C++ class syncing in an automated and structured way.
 Most methods unique to or customized from base classes revolve around allowing
 `_param_dict` and `_typeparam_dict` to sync to and from C++ when attached and
-not when unattached. See `hoomd/operation.py` for source code.
+not when unattached. See `hoomd/operation.py` for source code. The `_add`,
+`_attach`, `_remove`, and `_detach` methods handle the process of adding,
+attaching, detaching, and removal.
 
 ### Attribute Validation and Defaults
 
