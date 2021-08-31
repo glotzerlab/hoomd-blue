@@ -17,6 +17,10 @@ from hoomd.md.manifold import Manifold
 import numpy
 
 
+class _force:  # noqa - This will be removed eventually. Needed to build docs.
+    pass
+
+
 class Force(_HOOMDBaseObject):
     """Defines a force in HOOMD-blue.
 
@@ -113,7 +117,7 @@ class Force(_HOOMDBaseObject):
         return numpy.array(virial, dtype=numpy.float64)
 
 
-class _constant(Force):  # noqa - this will be renamed when it is ported to v3
+class constant(Force):  # noqa - this will be renamed when it is ported to v3
     R"""Constant force.
 
     Args:
