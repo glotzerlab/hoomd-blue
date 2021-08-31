@@ -133,11 +133,15 @@ class _DynamicIntegrator(BaseIntegrator):
         if self._added:
             if old_rigid is not None:
                 old_rigid._remove()
-            self.rigid._add(self._simulation)
+            if self.rigid is not None:
+                self.rigid._add(self._simulation)
 
         if self._attached:
-            self.rigid._attach()
-            self._cpp_obj.rigid = value._cpp_obj
+            if self.rigid is not None:
+                self.rigid._attach()
+                self._cpp_obj.rigid = value._cpp_obj
+            else:
+                self._cpp_obj.rigid = None
 
 
 class Integrator(_DynamicIntegrator):
