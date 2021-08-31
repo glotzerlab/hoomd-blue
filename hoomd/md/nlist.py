@@ -114,6 +114,7 @@ class NList(_HOOMDBaseObject):
             if self._attached:
                 self._detach()
                 self._remove()
+                return
             if self._added:
                 self._remove()
 
