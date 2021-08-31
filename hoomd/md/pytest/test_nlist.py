@@ -98,19 +98,20 @@ def test_simple_simulation(nlist_params, simulation_factory,
     sim.run(2)
 
 
-def test_auto_detach_simulation(simulation_factory, lattice_snapshot_factory):
+def test_auto_detach_simulation(simulation_factory,
+                                two_particle_snapshot_factory):
     nlist = Cell()
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
     lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
     lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
     lj.params[('B', 'B')] = dict(epsilon=1, sigma=1)
-    lj_2 = cp.copy(lj)
+    lj_2 = cp.deepcopy(lj)
     lj_2.nlist = nlist
     integrator = hoomd.md.Integrator(0.005, forces=[lj, lj_2])
     integrator.methods.append(
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
 
-    sim = simulation_factory(lattice_snapshot_factory(n=10))
+    sim = simulation_factory(two_particle_snapshot_factory(d=2.0))
     sim.operations.integrator = integrator
     sim.run(0)
     del integrator.forces[1]
@@ -118,4 +119,4 @@ def test_auto_detach_simulation(simulation_factory, lattice_snapshot_factory):
     assert hasattr(nlist, "_cpp_obj")
     del integrator.forces[0]
     assert not nlist._attached
-    assert not hasattr(nlist, "_cpp_obj")
+    assert nlist._cpp_obj is None
