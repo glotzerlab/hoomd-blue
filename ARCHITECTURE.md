@@ -45,9 +45,6 @@ developers (where they are not feel free to add documentation or request it).
 Thus, this section will not go over individual functions or methods in detail
 except where necessary.
 
-_TODO_: Add the basic inheritance and features of HOOMD-blue Python
-objects/operations.
-
 ### Base Data Model
 
 #### Definitions
