@@ -368,7 +368,7 @@ class Active(Force):
 
     .. py:attribute:: active_force
 
-        active force vector in reference to the orientation of a particle
+        Active force vector in the local reference frame of the particle
         :math:`[\mathrm{force}]`.  It is defined per particle type and stays
         constant during the simulation.
 
@@ -377,7 +377,7 @@ class Active(Force):
 
     .. py:attribute:: active_torque
 
-        active torque vector in reference to the orientation of a particle
+        Active torque vector in the local reference frame of the particle
         :math:`[\mathrm{force} \cdot \mathrm{length}]`. It is defined per
         particle type and stays constant during the simulation.
 
@@ -437,8 +437,6 @@ class Active(Force):
         Args:
             trigger (hoomd.trigger.Trigger): Select the timesteps to update
                 rotational diffusion.
-            active_force (hoomd.md.force.Active): The active force associated
-                with the updater. This is not settable after construction.
             rotational_diffusion (hoomd.variant.Variant or float): The
                 rotational diffusion as a function of time or a constant.
 
@@ -486,7 +484,7 @@ class ActiveOnManifold(Active):
 
     .. py:attribute:: active_force
 
-        active force vector in reference to the orientation of a particle
+        Active force vector in the local reference frame of the particle
         :math:`[\mathrm{force}]`.  It is defined per particle type and stays
         constant during the simulation.
 
@@ -495,7 +493,7 @@ class ActiveOnManifold(Active):
 
     .. py:attribute:: active_torque
 
-        active torque vector in reference to the orientation of a particle
+        Active torque vector in local reference frame of the particle
         :math:`[\mathrm{force} \cdot \mathrm{length}]`. It is defined per
         particle type and stays constant during the simulation.
 

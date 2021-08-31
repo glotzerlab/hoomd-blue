@@ -233,9 +233,9 @@ class ActiveRotationalDiffusion(Updater):
     \delta t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)`,
     where :math:`\hat{p}_r` is an uncorrelated random unit vector. The
     persistence length of an active particle's path is :math:`v_0 / D_r`.
-    The rotational diffusion is applied to the orientation vector/quaternion
+    The rotational diffusion is applied to the orientation quaternion
     of each particle. When used with `hoomd.md.force.ActiveOnManifold`,
-    rotational diffusion is performed tangent plane of the manifold.
+    rotational diffusion is performed in the tangent plane of the manifold.
 
     Tip:
         Use `hoomd.md.force.Active.create_diffusion_updater` to construct
