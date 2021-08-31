@@ -11,11 +11,11 @@ from hoomd.operation import Writer
 class _WriterProperty:
 
     @property
-    def analyzer(self):
+    def writer(self):
         return self._action
 
-    @analyzer.setter
-    def analyzer(self, analyzer):
+    @writer.setter
+    def writer(self, analyzer):
         if isinstance(analyzer, Action):
             self._action = analyzer
         else:
