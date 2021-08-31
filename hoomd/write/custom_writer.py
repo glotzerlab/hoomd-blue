@@ -52,3 +52,7 @@ class CustomWriter(CustomOperation, _WriterProperty, Writer):
 class _InternalCustomWriter(_InternalCustomOperation, Writer):
     _cpp_list_name = 'analyzers'
     _cpp_class_name = 'PythonAnalyzer'
+    _operation_func = "write"
+
+    def write(self, timestep):
+        return self._action.act(timestep)

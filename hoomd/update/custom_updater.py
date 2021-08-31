@@ -51,3 +51,7 @@ class CustomUpdater(CustomOperation, _UpdaterProperty, Updater):
 class _InternalCustomUpdater(_InternalCustomOperation, Updater):
     _cpp_list_name = 'updaters'
     _cpp_class_name = 'PythonUpdater'
+    _operation_func = "update"
+
+    def update(self, timestep):
+        return self._action.act(timestep)
