@@ -49,6 +49,6 @@ class CustomWriter(CustomOperation, _WriterProperty, Writer):
     _cpp_class_name = 'PythonAnalyzer'
 
 
-class _InternalCustomWriter(_InternalCustomOperation, _WriterProperty, Writer):
+class _InternalCustomWriter(_InternalCustomOperation, Writer):
     _cpp_list_name = 'analyzers'
     _cpp_class_name = 'PythonAnalyzer'

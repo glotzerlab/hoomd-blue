@@ -57,7 +57,7 @@ class CustomTuner(CustomOperation, _TunerProperty, Tuner):
         Operation._attach(self)
 
 
-class _InternalCustomTuner(_InternalCustomOperation, _TunerProperty, Tuner):
+class _InternalCustomTuner(_InternalCustomOperation, Tuner):
     _cpp_list_name = 'tuners'
     _cpp_class_name = 'PythonTuner'
 
