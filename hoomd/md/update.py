@@ -219,10 +219,18 @@ class ReversePerturbationFlow(Updater):
 class ActiveRotationalDiffusion(Updater):
     r"""Updater to introduce rotational diffusion with an active force.
 
+    Args:
+        trigger (hoomd.trigger.Trigger): Select the timesteps to update
+            rotational diffusion.
+        active_force (hoomd.md.force.Active): The active force associated with
+            the updater can be any subclass of the class
+            `hoomd.md.force.Active`.
+        rotational_diffusion (hoomd.variant.Variant): The rotational diffusion
+            as a function of time.
+
     This updater works directly with an `hoomd.md.force.Active` or
     `hoomd.md.force.ActiveOnManifold` instance to update rotational diffusion
     for simulations with active forces.
-
 
     The diffusion of the updater  follows :math:`\delta \theta / \delta t =
     \sqrt{2 D_r / \delta t} \Gamma`, where :math:`D_r` is the rotational
@@ -240,14 +248,6 @@ class ActiveRotationalDiffusion(Updater):
     Tip:
         Use `hoomd.md.force.Active.create_diffusion_updater` to construct
         a `ActiveRotationalDiffusion` instance.
-
-    Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps to update
-            rotational diffusion.
-        active_force (hoomd.md.force.Active): The active force associated with
-            the updater.
-        rotational_diffusion (hoomd.variant.Variant): The rotational diffusion
-            as a function of time.
 
     Attributes:
         trigger (hoomd.trigger.Trigger): Select the timesteps to update
