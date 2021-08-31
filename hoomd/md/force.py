@@ -329,14 +329,14 @@ class Active(Force):
         filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
             active forces.
 
-    :py:class:`Active` specifies that an active force should be added to all
-    particles.  Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where
-    :math:`v_0` is the active velocity. In 2D :math:`\hat{p}_i = (\cos \theta_i,
-    \sin \theta_i)` is the active force vector for particle :math:`i`.  The
-    active force and the active torque vectors in the particle frame stay
-    constant during the simulation. Hence, the active forces in the system frame
-    are composed of the forces in particle frame and the current orientation of
-    the particle.
+    :py:class:`Active` specifies that an active force should be added to
+    particles selected by the filter.  particles.  Obeys :math:`\delta {\bf r}_i
+    = \delta t v_0 \hat{p}_i`, where :math:`v_0` is the active velocity. In 2D
+    :math:`\hat{p}_i = (\cos \theta_i, \sin \theta_i)` is the active force
+    vector for particle :math:`i`.  The active force and the active torque
+    vectors in the particle frame stay constant during the simulation. Hence,
+    the active forces in the system frame are composed of the forces in particle
+    frame and the current orientation of the particle.
 
     Note:
         To introduce rotational diffusion to the particle orientations, use
@@ -348,7 +348,7 @@ class Active(Force):
 
     Examples::
 
-        all = filter.All()
+        all = hoomd.filter.All()
         active = hoomd.md.force.Active(
             filter=hoomd.filter.All()
             )
@@ -453,10 +453,10 @@ class ActiveOnManifold(Active):
         manifold_constraint (`hoomd.md.manifold.Manifold`): Manifold constraint.
 
     :py:class:`ActiveOnManifold` specifies that a constrained active force
-    should be added to all particles similar to :py:class:`Active`. The
-    active force vector :math:`\hat{p}_i` is restricted to the local tangent
-    plane of the manifold constraint at point :math:`{\bf r}_i`. For more
-    information see :py:class:`Active`.
+    should be added to particles selected by the filter similar to
+    :py:class:`Active`. The active force vector :math:`\hat{p}_i` is restricted
+    to the local tangent plane of the manifold constraint at point :math:`{\bf
+    r}_i`. For more information see :py:class:`Active`.
 
     Hint:
         Use `ActiveOnManifold` with a `md.methods.rattle` integration method
