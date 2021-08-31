@@ -24,7 +24,7 @@ def test_write(simulation_factory, two_particle_snapshot_factory, tmp_path):
     sim.operations.add(dcd_dump)
     positions = []
 
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         position1 = np.asarray(snap.particles.position[0])
         position2 = np.asarray(snap.particles.position[1])

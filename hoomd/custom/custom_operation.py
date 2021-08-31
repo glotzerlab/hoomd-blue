@@ -145,7 +145,7 @@ class _InternalCustomOperation(CustomOperation,
 
     def __getattr__(self, attr):
         if attr in self._disallowed_attrs:
-            raise AttributeError("{} object {} has not attribute {}.".format(
+            raise AttributeError("{} object {} has no attribute {}.".format(
                 type(self), self, attr))
         else:
             return super().__getattr__(attr)
@@ -162,3 +162,7 @@ class _InternalCustomOperation(CustomOperation,
             key: value.update_cls(self.__class__)
             for key, value in self._export_dict.items()
         }
+
+    @property
+    def action(self):
+        raise AttributeError(f"Object {self} has no attribute 'action'.")
