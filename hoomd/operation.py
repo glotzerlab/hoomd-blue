@@ -8,6 +8,7 @@
 # Triggered objects should inherit from _TriggeredOperation.
 
 from copy import copy
+import itertools
 
 from hoomd.trigger import Trigger
 from hoomd.logging import Loggable
@@ -98,6 +99,12 @@ class _HOOMDGetSetAttrBase:
         except TypeError:
             raise ValueError("To set {}, you must use a dictionary "
                              "with types as keys.".format(attr))
+
+    def __dir__(self):
+        """Expose all attributes for dynamic querying in notebooks and IDEs."""
+        return super().__dir__() + [
+            k for k in itertools.chain(self._param_dict, self._typeparam_dict)
+        ]
 
 
 class _DependencyRelation:
