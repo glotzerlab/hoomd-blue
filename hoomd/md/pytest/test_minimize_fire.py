@@ -127,16 +127,16 @@ def test_pickling(lattice_snapshot_factory, simulation_factory):
     operation_pickling_check(fire, sim)
 
 
-def _try_attach_to_fire(sim, method, should_error=False):
-    """Try attaching the given method to FIRE."""
+def _try_add_to_fire(sim, method, should_error=False):
+    """Try adding method to FIRE's method list."""
     fire = md.minimize.FIRE(dt=0.0025)
     sim.operations.integrator = fire
-    fire.methods.append(method)
     if should_error:
-        with pytest.raises(RuntimeError):
-            sim.run(0)
+        with pytest.raises(ValueError):
+            fire.methods.append(method)
     else:
-        sim.run(0)
+        fire.methods.append(method)
+    sim.run(0)
 
 
 def test_validate_methods(lattice_snapshot_factory, simulation_factory):
@@ -153,4 +153,4 @@ def test_validate_methods(lattice_snapshot_factory, simulation_factory):
                (rattle_brownian, True)]
     for method, should_error in methods:
         sim = simulation_factory(snap)
-        _try_attach_to_fire(sim, method, should_error)
+        _try_add_to_fire(sim, method, should_error)

@@ -12,6 +12,7 @@
 import hoomd
 
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data import syncedlist
 from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
 from hoomd.logging import log
 from hoomd.md import _md
@@ -171,17 +172,21 @@ class FIRE(_DynamicIntegrator):
                     "min_steps_conv": 10
                 }))
 
-    def _validate_methods(self):
-        """Ensure that only NVE/NPH integration methods are used."""
-        for method in self.methods:
-            method_name = method.__class__.__name__
-            if method_name not in ["NVE", "NPH"]:
-                raise RuntimeError("{} integration method not compatible with "
-                                   "FIRE energy minimizer".format(method_name))
+        # have to remove methods from old syncedlist so new syncedlist doesn't
+        # think members are attached to multiple syncedlists
+        self._methods.clear()
+
+        methods_list = syncedlist.SyncedList(
+            OnlyTypes((hoomd.md.methods.NVE,
+                       hoomd.md.methods.NPH,
+                       hoomd.md.methods.rattle.NVE
+                       )),
+            syncedlist._PartialGetAttr("_cpp_obj"),
+            iterable=methods
+        )
+        self._methods = methods_list
 
     def _attach(self):
-        self._validate_methods()
-
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
         else:
