@@ -1029,9 +1029,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 unsigned int snap_idx = (unsigned int)(it - snapshot.pos.begin());
 
                 // if requested, do not initialize constituent particles of bodies
-                if (ignore_bodies
-                        && snapshot.body[snap_idx] < MIN_FLOPPY
-                        && snapshot.body[snap_idx] != snap_idx)
+                if (ignore_bodies && snapshot.body[snap_idx] < MIN_FLOPPY
+                    && snapshot.body[snap_idx] != snap_idx)
                     {
                     continue;
                     }
