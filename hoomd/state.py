@@ -12,7 +12,6 @@ from hoomd.snapshot import Snapshot
 from hoomd.data import LocalSnapshot, LocalSnapshotGPU
 import hoomd
 import math
-import warnings
 import collections.abc
 
 

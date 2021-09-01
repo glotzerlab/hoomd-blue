@@ -6,7 +6,6 @@
 
 import hoomd
 from hoomd import _hoomd
-import warnings
 
 
 class _ConfigurationData:
