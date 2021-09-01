@@ -10,12 +10,13 @@ hoomd.error
 
     DataAccessError
     TypeConversionError
+    MutabilityError
 
 .. rubric:: Details
 
 .. automodule:: hoomd.error
     :synopsis: HOOMD errors
     :members: DataAccessError,
-              TypeConversionError
+              TypeConversionError,
               MutabilityError
     :no-inherited-members:
