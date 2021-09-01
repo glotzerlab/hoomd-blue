@@ -387,7 +387,9 @@ def test_operations_setting(simulation_factory, lattice_snapshot_factory):
                                         logger=hoomd.logging.Logger(['scalar']))
     check_operation_setting(sim, sim.operations, new_operations)
 
-def test_mutability_error(simulation_factory, two_particle_snapshot_factory, tmp_path):
+
+def test_mutability_error(simulation_factory, two_particle_snapshot_factory,
+                          tmp_path):
     filt = hoomd.filter.All()
     sim = simulation_factory(two_particle_snapshot_factory())
     trig = hoomd.trigger.Periodic(1)
@@ -399,4 +401,3 @@ def test_mutability_error(simulation_factory, two_particle_snapshot_factory, tmp
 
     with pytest.raises(MutabilityError):
         GSD_dump.filter = filt
-

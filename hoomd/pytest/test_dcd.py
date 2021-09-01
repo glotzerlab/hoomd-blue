@@ -4,6 +4,7 @@ import pytest
 import numpy as np
 from hoomd.error import MutabilityError
 
+
 def test_attach(simulation_factory, two_particle_snapshot_factory, tmp_path):
     filename = tmp_path / "temporary_test_file.dcd"
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -47,10 +48,12 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory, tmp_path):
     dcd_dump = hoomd.write.DCD(filename, hoomd.trigger.Periodic(1))
     operation_pickling_check(dcd_dump, sim)
 
-def test_mutability_error(simulation_factory, two_particle_snapshot_factory, tmp_path):
+
+def test_mutability_error(simulation_factory, two_particle_snapshot_factory,
+                          tmp_path):
     sim = simulation_factory(two_particle_snapshot_factory())
     trig = hoomd.trigger.Periodic(1)
-    
+
     filename = tmp_path / "temporary_test_file.dcd"
     dcd_dump = hoomd.write.DCD(filename, trig)
     sim.operations.add(dcd_dump)
