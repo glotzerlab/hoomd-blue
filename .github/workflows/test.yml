@@ -398,10 +398,10 @@ jobs:
   # This job is used to provide a single requirement for branch merge conditions. GitHub considers
   # the check passing even if it is skipped, so this job raises errors when required jobs were not
   # run.
-  tests_complete:
+  unit_tests_complete:
     name: Unit test
     needs: [pytest, ctest, validate]
-    if: ${{ always() && github.event_name == 'pull_request' }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
 
     steps:
