@@ -230,15 +230,24 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
             }
         Scalar deltaT_gamma = m_deltaT / gamma;
 
-        // draw a new random velocity for particle j
-        Scalar mass = h_vel.data[j].w;
-        Scalar sigma1 = fast::sqrt(currentTemp / mass);
-        NormalDistribution<Scalar> norm(sigma1);
-
         Scalar3 vec_rand;
-        vec_rand.x = norm(rng);
-        vec_rand.y = norm(rng);
-        vec_rand.z = norm(rng);
+        if (m_noiseless_t)
+            {
+            vec_rand.x = h_net_force.data[j].x / gamma;
+            vec_rand.y = h_net_force.data[j].x / gamma;
+            vec_rand.z = h_net_force.data[j].x / gamma;
+            }
+        else
+            {
+            // draw a new random velocity for particle j
+            Scalar mass = h_vel.data[j].w;
+            Scalar sigma1 = fast::sqrt(currentTemp / mass);
+            NormalDistribution<Scalar> norm(sigma1);
+
+            vec_rand.x = norm(rng);
+            vec_rand.y = norm(rng);
+            vec_rand.z = norm(rng);
+            }
 
         Scalar3 next_pos;
         next_pos.x = h_pos.data[j].x;
@@ -353,10 +362,20 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 h_orientation.data[j] = quat_to_scalar4(q);
 
-                // draw a new random ang_mom for particle j in body frame
-                p_vec.x = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.x))(rng);
-                p_vec.y = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.y))(rng);
-                p_vec.z = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.z))(rng);
+                if (m_noiseless_r)
+                    {
+                    p_vec.x = t.x / gamma_r.x;
+                    p_vec.y = t.y / gamma_r.y;
+                    p_vec.z = t.z / gamma_r.z;
+                    }
+                else
+                    {
+                    // draw a new random ang_mom for particle j in body frame
+                    p_vec.x = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.x))(rng);
+                    p_vec.y = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.y))(rng);
+                    p_vec.z = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.z))(rng);
+                    }
+
                 if (x_zero)
                     p_vec.x = 0;
                 if (y_zero)
