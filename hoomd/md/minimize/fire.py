@@ -196,7 +196,7 @@ class FIRE(_DynamicIntegrator):
         """float: Get the energy after the last iteration of the minimizer."""
         return self._cpp_obj.energy
 
-    @log(default=False, category='object')
+    @log(default=False)
     def converged(self):
         """bool: True when the minimizer has converged, else False."""
         return self._cpp_obj.converged
