@@ -18,15 +18,25 @@ v3.0.0-beta.9 (not yet released)
   the domain decomposition.
 - ``hoomd.update.FilterUpdater`` - an updater that evaluates the particles associated with a
   `hoomd.filter.ParticleFilter` instance.
+- ``hoomd.update.RemoveDrift`` - Remove the average drift from a system restrained on a lattice.
+- Developer documentation for HOOMD-blue's Python object data model in ``ARCHITECTURE.md``.
 
 *Changed*
 
 - Improved documentation.
+- [breaking] Moved ``manifold_constrant`` to separate integration method classes in
+  ``hoomd.md.methods.rattle``.
+- [breaking] Moved `trigger` to first argument position in `hoomd.update.BoxResize`,
+  `hoomd.write.DCD`, and `hoomd.write.GSD`.
 
 *Fixed*
 
-- ``TypeParameter`` can now set multiple parameters after calling ``hoomd.Simulation.run``.
-- ``tune.LoadBalancer`` can now be used in a simulation.
+- ``TypeParameter`` can set multiple parameters after calling ``hoomd.Simulation.run``.
+- ``tune.LoadBalancer`` can be used in a simulation.
+- ``hoomd.md.pair.Pair`` ``r_cut`` type parameter can be set to 0.
+- MD integration methods can be removed from the integrator's method list.
+- Neighborlist exclusions update when the number of bonds change.
+- Errors related to equality checks between HOOMD operations.
 
 *Deprecated*
 
