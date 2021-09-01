@@ -177,13 +177,10 @@ class FIRE(_DynamicIntegrator):
         self._methods.clear()
 
         methods_list = syncedlist.SyncedList(
-            OnlyTypes((hoomd.md.methods.NVE,
-                       hoomd.md.methods.NPH,
-                       hoomd.md.methods.rattle.NVE
-                       )),
+            OnlyTypes((hoomd.md.methods.NVE, hoomd.md.methods.NPH,
+                       hoomd.md.methods.rattle.NVE)),
             syncedlist._PartialGetAttr("_cpp_obj"),
-            iterable=methods
-        )
+            iterable=methods)
         self._methods = methods_list
 
     def _attach(self):
