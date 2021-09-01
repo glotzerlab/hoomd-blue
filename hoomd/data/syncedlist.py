@@ -42,6 +42,16 @@ def identity(obj):
     return obj
 
 
+class _SimulationPlaceHolder:
+    """Used to ensure objects are not added to two locations at once."""
+
+    def __init__(self, obj):
+        self._id = id(obj)
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and self._id == other._id
+
+
 class SyncedList(MutableSequence):
     """Provides syncing and validation for a Python and C++ list.
 
@@ -93,7 +103,7 @@ class SyncedList(MutableSequence):
             self._validate = validation
 
         self._to_synced_list_conversion = to_synced_list
-        self._simulation = None
+        self._simulation = _SimulationPlaceHolder(self)
         self._list = []
         if iterable is not None:
             for it in iterable:
@@ -243,7 +253,7 @@ class SyncedList(MutableSequence):
         if self._attach_members:
             for item in self:
                 self._detach_value(item)
-        del self._simulation
+        self._simulation = _SimulationPlaceHolder(self)
         del self._synced_list
 
     def __getstate__(self):

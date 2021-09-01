@@ -188,6 +188,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     """
     _reserved_default_attrs = {
         **_HOOMDGetSetAttrBase._reserved_default_attrs, '_cpp_obj': None,
+        '_simulation': None,
         '_dependents': list,
         '_dependencies': list
     }
@@ -249,11 +250,15 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         self._simulation = simulation
 
     def _remove(self):
-        del self._simulation
+        # _remove should always be follow _detach if attached meaning
+        # dependencies handled here will handle both detaching and adding
+        # dependencies.
+        self._notify_disconnect()
+        self._simulation = None
 
     @property
     def _added(self):
-        return hasattr(self, '_simulation')
+        return self._simulation is not None
 
     def _apply_param_dict(self):
         for attr, value in self._param_dict.items():
