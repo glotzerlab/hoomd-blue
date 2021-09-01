@@ -251,7 +251,9 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         # Since objects can be added without being attached, we need to call
         # _notify_disconnect on both _remove and _detach. The method should be
         # do nothing after being called onces so being called twice is not a
-        # concern.
+        # concern. I should note that if
+        # `hoomd.operations.Operations._unschedule` is called this is
+        # invalidated, but as that is not public facing this should be fine.
         self._notify_disconnect()
         self._simulation = None
 
