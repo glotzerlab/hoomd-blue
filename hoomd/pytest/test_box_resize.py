@@ -5,6 +5,7 @@ import hoomd
 from hoomd.conftest import operation_pickling_check
 from hoomd.error import MutabilityError
 
+
 @pytest.fixture(scope="function")
 def rng():
     return np.random.default_rng(42)
