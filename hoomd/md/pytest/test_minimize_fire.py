@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import hoomd
-from hoomd.conftest import operation_pickling_check, pickling_check
+from hoomd.conftest import operation_pickling_check
 from hoomd import md
 
 
