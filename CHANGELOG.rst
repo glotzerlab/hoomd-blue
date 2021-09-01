@@ -26,7 +26,7 @@ v3.0.0-beta.9 (not yet released)
 - Improved documentation.
 - [breaking] Moved ``manifold_constrant`` to separate integration method classes in
   ``hoomd.md.methods.rattle``.
-- [breaking] Moved `trigger` to first argument position in `hoomd.update.BoxResize`,
+- [breaking] Moved ``trigger`` to first argument position in `hoomd.update.BoxResize`,
   `hoomd.write.DCD`, and `hoomd.write.GSD`.
 
 *Fixed*
