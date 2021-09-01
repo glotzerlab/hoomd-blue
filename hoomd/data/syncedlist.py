@@ -172,7 +172,7 @@ class SyncedList(MutableSequence):
 
     @property
     def _synced(self):
-        """Has a cpp_list object means that we are currently syncing."""
+        """Has a _synced_list object means that we are currently syncing."""
         return hasattr(self, "_synced_list")
 
     def _handle_int(self, integer):
