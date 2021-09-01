@@ -226,12 +226,10 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
             self._update_param_dict()
             if hasattr(self._cpp_obj, "notifyDetach"):
                 self._cpp_obj.notifyDetach()
-
-            self._cpp_obj = None
-            # _detach should always be followed by _remove or at the vary least
-            # removed from the simulation, meaning all dependencies within the
-            # simulation need to be resolved here and not `_remove`.
+            # In case the C++ object is necessary for proper disconnect
+            # notification we call _notify_disconnect here as well.
             self._notify_disconnect()
+            self._cpp_obj = None
             return self
 
     def _attach(self):
@@ -250,9 +248,10 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         self._simulation = simulation
 
     def _remove(self):
-        # _remove should always be follow _detach if attached meaning
-        # dependencies handled here will handle both detaching and adding
-        # dependencies.
+        # Since objects can be added without being attached, we need to call
+        # _notify_disconnect on both _remove and _detach. The method should be
+        # do nothing after being called onces so being called twice is not a
+        # concern.
         self._notify_disconnect()
         self._simulation = None
 
