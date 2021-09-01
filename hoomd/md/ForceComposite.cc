@@ -518,9 +518,12 @@ void ForceComposite::createRigidBodies()
         for (unsigned int particle_tag = 0; particle_tag < snap.size; ++particle_tag)
             {
             // Determine whether rigid bodies exist in the current system via the definitions of
-            // rigid bodies provided (i.e. if a non-zero length definitions was provided. We set
+            // rigid bodies provided (i.e. if a non-zero length definition was provided. We set
             // snap.body[i] = NO_BODY to prevent central particles from being removed in
             // initializeFromSnapshot if we must remove rigid bodies.
+            //
+            // Note that the body value is NO_BODY by default meaning that free particles will not
+            // be removed if remove_existing_bodies is true only existing bodies that have been set.
             if (snap.body[particle_tag] != NO_BODY)
                 {
                 if (h_body_len.data[snap.type[particle_tag]] == 0)
