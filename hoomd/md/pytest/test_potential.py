@@ -997,6 +997,64 @@ def test_force_energy_accuracy(simulation_factory,
             assert isclose(sim_forces[0], -forces_and_energies.forces[i] * r)
 
 
+def populate_sim(sim):
+    """Add an integrator for the following tests."""
+    sim.operations.integrator = md.Integrator(
+        dt=0.005, methods=[md.methods.NVE(hoomd.filter.All())])
+    return sim
+
+
+def test_setting_to_new_sim(simulation_factory, two_particle_snapshot_factory):
+    """Test that pair force can only below to one integrator."""
+    sim1 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
+    sim2 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
+
+    nlist = md.nlist.Cell()
+    lj = md.pair.LJ(nlist, default_r_cut=1.1)
+    lj.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
+    sim1.operations.integrator.forces.append(lj)
+
+    # Test cannot add to new integrator
+    with pytest.raises(RuntimeError):
+        sim2.operations.integrator.forces.append(lj)
+
+    # Ensure that removing and appending works
+    sim1.operations.integrator.forces.remove(lj)
+    sim2.operations.integrator.forces.append(lj)
+    sim2.run(0)
+    # Ensure that when attached cannot add to new integrator
+    with pytest.raises(RuntimeError):
+        sim1.operations.integrator.forces.append(lj)
+
+    # Test that correct removal with a necessary nlist copy properly warns but
+    # does not error.
+    lj2 = md.pair.LJ(nlist, default_r_cut=1.1)
+    lj2.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
+    sim2.operations.integrator.forces.append(lj2)
+    sim2.operations.integrator.forces.remove(lj)
+    with pytest.warns(RuntimeWarning):
+        sim1.operations.integrator.forces.append(lj)
+
+
+def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
+    """Test neighbor list cannot be spread between multiple simulations."""
+    sim1 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
+    sim2 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
+
+    nlist = md.nlist.Cell()
+    lj = md.pair.LJ(nlist, default_r_cut=1.1)
+    lj.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
+    lj2 = deepcopy(lj)
+    sim1.operations.integrator.forces.append(lj)
+    sim2.operations.integrator.forces.append(lj2)
+    with pytest.raises(RuntimeError):
+        lj2.nlist = nlist
+    sim2.operations.integrator.forces.remove(lj2)
+    lj2.nlist = nlist
+    with pytest.raises(RuntimeError):
+        sim2.operations.integrator.forces.append(lj2)
+
+
 # Test logging
 @pytest.mark.parametrize(
     'cls, expected_namespace, expected_loggables',
