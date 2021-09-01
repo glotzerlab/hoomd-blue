@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import operation_pickling_check, pickling_check
 from hoomd import md
 
 
@@ -124,10 +124,7 @@ def test_pickling(lattice_snapshot_factory, simulation_factory):
 
     fire = md.minimize.FIRE(dt=0.0025, methods=[nve])
 
-    pickling_check(fire)
-    sim.operations.integrator = fire
-    sim.run(0)
-    pickling_check(fire)
+    operation_pickling_check(fire, sim)
 
 
 def _try_attach_to_fire(sim, method, should_error=False):
