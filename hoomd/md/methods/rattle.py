@@ -475,8 +475,9 @@ class OverdampedViscous(MethodRATTLE):
             The units of tolerance match that of the selected manifold's
             implicit function. Defaults to 1e-6
 
-    `OverdampedViscous` uses the same integrator as `hoomd.md.methods.OverdampedViscous`,
-    with the additional force term :math:`- \lambda \vec{F}_\mathrm{M}`. The force
+    `OverdampedViscous` uses the same integrator as
+    `hoomd.md.methods.OverdampedViscous`, with the additional force term
+    :math:`- \lambda \vec{F}_\mathrm{M}`. The force
     :math:`\vec{F}_\mathrm{M}` keeps the particles on the manifold constraint,
     where the Lagrange multiplier :math:`\lambda` is calculated via the RATTLE
     algorithm. For more details about overdamped viscous dynamics see
