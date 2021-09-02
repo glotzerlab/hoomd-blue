@@ -23,15 +23,7 @@ class Method(_HOOMDBaseObject):
     Note:
         Users should use the subclasses and not instantiate `Method` directly.
     """
-
-    def _detach(self):
-        if self._attached:
-            self._unapply_typeparam_dict()
-            self._update_param_dict()
-
-            self._cpp_obj = None
-            self._notify_disconnect(self._simulation)
-        return self
+    pass
 
 
 class NVT(Method):
@@ -852,7 +844,7 @@ class Langevin(Method):
 
         Langevin uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -1011,7 +1003,7 @@ class Brownian(Method):
 
         Brownian uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)

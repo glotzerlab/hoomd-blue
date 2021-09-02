@@ -4,6 +4,9 @@
 
 """Pair potentials."""
 
+import copy
+import warnings
+
 import hoomd
 from hoomd.md import _md
 from hoomd.md import force
@@ -175,6 +178,35 @@ class Pair(force.Force):
         # above and raise an error if they occur.
         return self._cpp_obj.computeEnergyBetweenSets(tags1, tags2)
 
+    def _add(self, simulation):
+        # if nlist was associated with multiple pair forces and is still
+        # attached, we need to deepcopy existing nlist.
+        nlist = self._nlist
+        if (not self._attached and nlist._attached
+                and nlist._simulation != simulation):
+            warnings.warn(
+                f"{self} object is creating a new equivalent neighbor list."
+                f" This is happending since the force is moving to a new "
+                f"simulation. To supress the warning explicitly set new nlist.",
+                RuntimeWarning)
+            self._nlist = copy.deepcopy(nlist)
+        # We need to check if the force is added since if it is not then this is
+        # being called by a SyncedList object and a disagreement between the
+        # simulation and nlist._simulation is an error. If the force is added
+        # then the nlist is compatible. We cannot just check the nlist's _added
+        # property because _add is also called when the SyncedList is synced.
+        elif (not self._added and nlist._added
+              and nlist._simulation != simulation):
+            raise RuntimeError(
+                f"NeighborList associated with {self} is associated with "
+                f"another simulation.")
+        super()._add(simulation)
+        # this ideopotent given the above check.
+        self._nlist._add(simulation)
+        # This is ideopotent, but we need to ensure that if we change
+        # neighbor list when not attached we handle correctly.
+        self._add_dependency(self._nlist)
+
     def _attach(self):
         # create the c++ mirror class
         if not self._nlist._added:
@@ -207,8 +239,14 @@ class Pair(force.Force):
     def nlist(self, value):
         if self._attached:
             raise RuntimeError("nlist cannot be set after scheduling.")
-        else:
-            self._nlist = validate_nlist(value)
+        nlist = validate_nlist(value)
+        if self._added:
+            if nlist._added and self._simulation != nlist._simulation:
+                raise RuntimeError(
+                    "Neighbor lists and forces must belong to the same "
+                    "simulation or SyncedList.")
+            self._nlist._add(self._simulation)
+        self._nlist = nlist
 
     @property
     def _children(self):
@@ -775,7 +813,7 @@ class DPD(Pair):
 
         DPD uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -959,7 +997,7 @@ class DPDLJ(Pair):
 
         DPDLJ uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
