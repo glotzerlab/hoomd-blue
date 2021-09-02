@@ -36,7 +36,6 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU
     //! Constructs the compute
     ActiveForceConstraintComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                     std::shared_ptr<ParticleGroup> group,
-                                    Scalar rotation_diff,
                                     Manifold manifold);
 
     //! Set autotuner parameters
@@ -63,7 +62,7 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU
     virtual void setForces();
 
     //! Orientational diffusion for spherical particles
-    virtual void rotationalDiffusion(uint64_t timestep);
+    virtual void rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep);
 
     //! Set constraints if particles confined to a surface
     virtual void setConstraint();
@@ -89,9 +88,8 @@ template<class Manifold>
 ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<ParticleGroup> group,
-    Scalar rotation_diff,
     Manifold manifold)
-    : ActiveForceConstraintCompute<Manifold>(sysdef, group, rotation_diff, manifold)
+    : ActiveForceConstraintCompute<Manifold>(sysdef, group, manifold)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
@@ -132,8 +130,6 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
 
             t_activeVec.data[i] = old_t_activeVec.data[i];
             }
-
-        this->last_computed = 10;
         }
 
     this->m_f_activeVec.swap(tmp_f_activeVec);
@@ -200,7 +196,8 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForc
     \param timestep Current timestep
 */
 template<class Manifold>
-void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t timestep)
+void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(Scalar rotational_diffusion,
+                                                                    uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
@@ -221,6 +218,7 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t tim
     bool is2D = (this->m_sysdef->getNDimensions() == 2);
     unsigned int group_size = this->m_group->getNumMembers();
 
+    const auto rotation_constant = slow::sqrt(2.0 * rotational_diffusion * this->m_deltaT);
     // perform the update on the GPU
     this->m_tuner_diffusion->begin();
 
@@ -232,7 +230,7 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t tim
         d_orientation.data,
         this->m_manifold,
         is2D,
-        this->m_rotationConst,
+        rotation_constant,
         timestep,
         this->m_sysdef->getSeed(),
         this->m_tuner_diffusion->getParam());
@@ -290,7 +288,6 @@ void export_ActiveForceConstraintComputeGPU(py::module& m, const std::string& na
                std::shared_ptr<ActiveForceConstraintComputeGPU<Manifold>>>(m, name.c_str())
         .def(py::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
-                      Scalar,
                       Manifold>());
     }
 #endif

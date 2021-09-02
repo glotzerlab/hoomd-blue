@@ -372,7 +372,7 @@ class _TriggeredOperation(Operation):
             for key in self._param_dict:
                 if key == 'trigger':
                     continue
-                self._param_dict[key] = getattr(self._cpp_obj, key)
+                self._param_dict[key] = getattr(self, key)
 
 
 class Updater(_TriggeredOperation):

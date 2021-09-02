@@ -12,7 +12,6 @@ from hoomd.snapshot import Snapshot
 from hoomd.data import LocalSnapshot, LocalSnapshotGPU
 import hoomd
 import math
-import warnings
 import collections.abc
 
 
@@ -246,23 +245,6 @@ class State:
         # implemented __hash__ and __eq__ from causing cache errors.
         self._groups = defaultdict(dict)
 
-    @property
-    def snapshot(self):
-        """Simulation snapshot.
-
-        .. deprecated:: 3.0.0-beta.8
-            Use `get_snapshot` and `set_snapshot` instead.
-        """
-        warnings.warn("Deprecated, use state.get_snapshot()",
-                      DeprecationWarning)
-        return self.get_snapshot()
-
-    @snapshot.setter
-    def snapshot(self, snapshot):
-        warnings.warn("Deprecated, use state.set_snapshot()",
-                      DeprecationWarning)
-        self.set_snapshot(snapshot)
-
     def get_snapshot(self):
         """Make a copy of the simulation current state.
 
@@ -426,11 +408,6 @@ class State:
         """
         b = Box._from_cpp(self._cpp_sys_def.getParticleData().getGlobalBox())
         return Box.from_box(b)
-
-    @box.setter
-    def box(self, value):
-        warnings.warn("Deprecated, use state.set_box()", DeprecationWarning)
-        self.set_box(value)
 
     def set_box(self, box):
         """Set a new simulation box.
