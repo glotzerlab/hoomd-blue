@@ -82,7 +82,7 @@ class _HOOMDGetSetAttrBase:
                 setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
                 self._param_dict[attr] = old_value
-                raise MutabilityError
+                raise MutabilityError(attr)
 
     def _setattr_typeparam(self, attr, value):
         """Hook for setting an attribute in `_typeparam_dict`."""
