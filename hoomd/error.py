@@ -20,3 +20,8 @@ class DataAccessError(RuntimeError):
 class TypeConversionError(ValueError):
     """Error when validatimg TypeConverter subclasses fails."""
     pass
+
+
+class SimulationDefinitionError(RuntimeError):
+    """Error in definition of simulation internal state."""
+    pass

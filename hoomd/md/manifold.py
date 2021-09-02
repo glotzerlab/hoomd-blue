@@ -37,7 +37,6 @@ class Manifold(_HOOMDBaseObject):
 
     def _attach(self):
         self._apply_param_dict()
-        self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
     @staticmethod
     def _preprocess_unitcell(value):

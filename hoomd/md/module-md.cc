@@ -5,6 +5,7 @@
 
 #include "ActiveForceCompute.h"
 #include "ActiveForceConstraintCompute.h"
+#include "ActiveRotationalDiffusionUpdater.h"
 #include "AllAnisoPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "AllExternalPotentials.h"
@@ -239,6 +240,7 @@ PYBIND11_MODULE(_md, m)
     export_ActiveForceConstraintCompute<ManifoldPrimitive>(m,
                                                            "ActiveForceConstraintComputePrimitive");
     export_ActiveForceConstraintCompute<ManifoldSphere>(m, "ActiveForceConstraintComputeSphere");
+    export_ActiveRotationalDiffusionUpdater(m);
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
     export_HarmonicAngleForceCompute(m);
