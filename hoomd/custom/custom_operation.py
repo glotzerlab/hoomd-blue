@@ -5,6 +5,7 @@
 """Implement CustomOperation."""
 
 from abc import abstractmethod
+import itertools
 
 from hoomd.operation import _TriggeredOperation
 from hoomd.data.parameterdicts import ParameterDict
@@ -158,11 +159,30 @@ class _InternalCustomOperation(CustomOperation,
 
     def __init__(self, trigger, *args, **kwargs):
         super().__init__(trigger, self._internal_class(*args, **kwargs))
+        # handle pass through logging
         self._export_dict = {
             key: value.update_cls(self.__class__)
             for key, value in self._export_dict.items()
         }
+        # Wrap action act method with operation appropriate one.
+        wrapping_method = getattr(self, self._operation_func).__func__
+        setattr(wrapping_method, "__doc__", self._action.act.__doc__)
 
     @property
     def action(self):
         raise AttributeError(f"Object {self} has no attribute 'action'.")
+
+    def __dir__(self):
+        """Expose all attributes for dynamic querying in notebooks and IDEs."""
+        list_ = super().__dir__()
+        act = self._action
+        action_list = [
+            k for k in itertools.chain(act._param_dict, act._typeparam_dict)
+        ]
+        list_.remove("action")
+        list_.remove("act")
+        return list_ + action_list
+
+    @property
+    def act(self):
+        raise AttributeError(f"Object {self} has no attribute 'act'.")

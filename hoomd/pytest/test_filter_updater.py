@@ -53,7 +53,7 @@ def test_attaching(simulation, filter_updater):
     simulation.run(0)
     assert trigger == filter_updater.trigger
     assert filters == filter_updater.filters
-    assert hasattr(filter_updater, "_cpp_obj")
+    assert filter_updater._cpp_obj is not None
     assert filter_updater._attached
 
 

@@ -68,6 +68,12 @@ class _DynamicIntegrator(BaseIntegrator):
         self._constraints._unsync()
         if self.rigid is not None:
             self.rigid._detach()
+        super()._detach()
+
+    def _remove(self):
+        if self.rigid is not None:
+            self.rigid._remove()
+        super()._remove()
 
     def _add(self, simulation):
         super()._add(simulation)

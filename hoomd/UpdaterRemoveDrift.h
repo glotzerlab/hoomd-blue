@@ -61,7 +61,7 @@ class UpdaterRemoveDrift : public Updater
         }
 
     //! Get reference positions as a (N_particles, 3) numpy array
-    pybind11::array_t<double> getReferencePositions() const
+    pybind11::array_t<Scalar> getReferencePositions() const
         {
         std::vector<size_t> dims(2);
         dims[0] = this->m_ref_positions.size();
@@ -69,7 +69,7 @@ class UpdaterRemoveDrift : public Updater
         // the cast from vec3<Scalar>* to Scalar* is safe since vec3 is tightly packed without any
         // padding. This also makes a copy so, modifications of this array do not effect the
         // original reference positions.
-        const auto reference_array = pybind11::array_t<double>(
+        const auto reference_array = pybind11::array_t<Scalar>(
             dims,
             reinterpret_cast<const Scalar*>(this->m_ref_positions.data()));
         // This is necessary to expose the array in a read only fashion through C++
