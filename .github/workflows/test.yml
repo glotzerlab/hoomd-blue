@@ -401,17 +401,20 @@ jobs:
   unit_tests_complete:
     name: Unit test
     needs: [pytest, ctest, validate]
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') && github.event_name == 'pull_request' }}
+    if: ${{ always() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Error if pytest did not succeed
         if: needs.pytest.result != 'success'
-        run: exit 1
+        run: echo "::error ::pytest tests failed." && exit 1
       - name: Error if ctest did not succeed
         if: needs.ctest.result != 'success'
-        run: exit 1
+        run: echo "::error ::ctest tests failed." && exit 1
+      - name: Warn if validate did not run
+        if: needs.validate.result == 'skipped'
+        run: echo "::warning ::Skipped validation tests." && exit 1
       - name: Error if validate did not succeed
         if: needs.validate.result != 'success'
-        run: exit 1
+        run: echo "::error ::Validation tests failed." && exit 1
       - run: echo "Done!"
