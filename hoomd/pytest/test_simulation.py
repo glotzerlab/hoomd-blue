@@ -399,7 +399,7 @@ def test_mutability_error(simulation_factory, two_particle_snapshot_factory,
     trig = hoomd.trigger.Periodic(1)
 
     filename = tmp_path / "temporary_test_file.gsd"
-    GSD_dump = hoomd.write.GSD(filename, trig)
+    GSD_dump = hoomd.write.GSD(filename=filename, trigger=trig)
     sim.operations.add(GSD_dump)
     sim.run(0)
 

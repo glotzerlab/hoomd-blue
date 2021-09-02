@@ -58,7 +58,7 @@ def test_mutability_error(simulation_factory, two_particle_snapshot_factory,
     trig = hoomd.trigger.Periodic(1)
 
     filename = tmp_path / "temporary_test_file.dcd"
-    dcd_dump = hoomd.write.DCD(filename, trig)
+    dcd_dump = hoomd.write.DCD(filename=filename, trigger=trig)
     sim.operations.add(dcd_dump)
     sim.run(0)
 

@@ -248,7 +248,7 @@ def test_mutability_error(simulation_factory, two_particle_snapshot_factory):
                                     variant=var,
                                     trigger=trig)
     sim.operations.add(box_op)
-    assert len(sim.operations.computes) == 1
+    assert len(sim.operations.updaters) == 1
     sim.run(0)
 
     with pytest.raises(MutabilityError):
