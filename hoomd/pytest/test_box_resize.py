@@ -243,7 +243,10 @@ def test_mutability_error(simulation_factory, two_particle_snapshot_factory):
     box1 = hoomd.Box.cube(L=10)
     box2 = hoomd.Box.cube(L=12)
     var = hoomd.variant.Ramp(10, 12, 0, 100)
-    box_op = hoomd.update.BoxResize(box1=box1, box2=box2, variant=var, trigger=trig)
+    box_op = hoomd.update.BoxResize(box1=box1,
+                                    box2=box2,
+                                    variant=var,
+                                    trigger=trig)
     sim.operations.add(box_op)
     assert len(sim.operations.computes) == 1
     sim.run(0)
