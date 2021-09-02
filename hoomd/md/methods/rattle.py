@@ -287,7 +287,7 @@ class Langevin(MethodRATTLE):
 
         Langevin uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -426,7 +426,7 @@ class Brownian(MethodRATTLE):
 
         Brownian uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -448,6 +448,138 @@ class Brownian(MethodRATTLE):
         self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj, self.kT,
+                                 False, False, self.tolerance)
+
+        # Attach param_dict and typeparam_dict
+        super()._attach()
+
+
+class OverdampedViscous(MethodRATTLE):
+    r"""Overdamped viscous dynamics with RATTLE constraint.
+
+    Args:
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
+            apply this method to.
+
+        manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
+            constraint.
+
+        alpha (`float`): When set, use :math:`\alpha d_i` for the
+            drag coefficient where :math:`d_i` is particle diameter.
+            Defaults to None
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
+            \cdot \mathrm{time}^{-1}]`.
+
+        tolerance (`float`): Defines the tolerated error particles are allowed
+            to deviate from the manifold in terms of the implicit function.
+            The units of tolerance match that of the selected manifold's
+            implicit function. Defaults to 1e-6
+
+    `OverdampedViscous` uses the same integrator as
+    `hoomd.md.methods.OverdampedViscous`, with the additional force term
+    :math:`- \lambda \vec{F}_\mathrm{M}`. The force
+    :math:`\vec{F}_\mathrm{M}` keeps the particles on the manifold constraint,
+    where the Lagrange multiplier :math:`\lambda` is calculated via the RATTLE
+    algorithm. For more details about overdamped viscous dynamics see
+    `hoomd.md.methods.OverdampedViscous`.
+
+    Examples of using ``manifold_constraint``::
+
+        sphere = hoomd.md.manifold.Sphere(r=10)
+        odv_rattle = hoomd.md.methods.rattle.OverdampedViscous(
+            filter=hoomd.filter.All(), manifold_constraint=sphere, seed=1,
+            alpha=1.0)
+        integrator = hoomd.md.Integrator(
+            dt=0.001, methods=[odv_rattle], forces=[lj])
+
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
+            apply this method to.
+
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
+            which is used by and as a trigger for the RATTLE algorithm of this
+            method.
+
+        alpha (float): When set, use :math:`\alpha d_i` for the drag
+            coefficient where :math:`d_i` is particle diameter
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
+            \cdot \mathrm{time}^{-1}]`. Defaults to None.
+
+        tolerance (float): Defines the tolerated error particles are allowed to
+            deviate from the manifold in terms of the implicit function.
+            The units of tolerance match that of the selected manifold's
+            implicit function. Defaults to 1e-6
+
+        gamma (TypeParameter[ ``particle type``, `float` ]): The drag
+            coefficient can be directly set instead of the ratio of particle
+            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
+            parameter is either positive float or zero
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`]]):
+            The rotational drag coefficient can be set. The type of ``gamma_r``
+            parameter is a tuple of three float. The type of each element of
+            tuple is either positive float or zero
+            :math:`[\mathrm{force} \cdot \mathrm{length} \cdot
+            \mathrm{radian}^{-1} \cdot \mathrm{time}^{-1}]`.
+    """
+
+    def __init__(self,
+                 filter,
+                 manifold_constraint,
+                 tolerance=0.000001,
+                 alpha=None):
+        # store metadata
+        param_dict = ParameterDict(
+            filter=ParticleFilter,
+            alpha=OnlyTypes(float, allow_none=True),
+        )
+        param_dict.update(dict(alpha=alpha, filter=filter))
+
+        # set defaults
+        self._param_dict.update(param_dict)
+
+        gamma = TypeParameter('gamma',
+                              type_kind='particle_types',
+                              param_dict=TypeParameterDict(1., len_keys=1))
+
+        gamma_r = TypeParameter('gamma_r',
+                                type_kind='particle_types',
+                                param_dict=TypeParameterDict((1., 1., 1.),
+                                                             len_keys=1))
+        self._extend_typeparam([gamma, gamma_r])
+
+        super().__init__(manifold_constraint, tolerance)
+
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        OverdampedViscous uses RNGs. Warn the user if they did not set the seed.
+        """
+        if isinstance(simulation, hoomd.Simulation):
+            simulation._warn_if_seed_unset()
+
+        super()._add(simulation)
+
+    def _attach(self):
+
+        sim = self._simulation
+        self._attach_constraint(sim)
+
+        if isinstance(sim.device, hoomd.device.CPU):
+            my_class = getattr(
+                _md,
+                'TwoStepRATTLEBD' + self.manifold_constraint.__class__.__name__)
+        else:
+            my_class = getattr(
+                _md, 'TwoStepRATTLEBD'
+                + self.manifold_constraint.__class__.__name__ + 'GPU')
+
+        self._cpp_obj = my_class(sim.state._cpp_sys_def,
+                                 sim.state._get_group(self.filter),
+                                 self.manifold_constraint._cpp_obj,
+                                 hoomd.variant.Constant(0.0), True, True,
                                  self.tolerance)
 
         # Attach param_dict and typeparam_dict

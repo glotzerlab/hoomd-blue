@@ -23,15 +23,7 @@ class Method(_HOOMDBaseObject):
     Note:
         Users should use the subclasses and not instantiate `Method` directly.
     """
-
-    def _detach(self):
-        if self._attached:
-            self._unapply_typeparam_dict()
-            self._update_param_dict()
-
-            self._cpp_obj = None
-            self._notify_disconnect(self._simulation)
-        return self
+    pass
 
 
 class NVT(Method):
@@ -852,7 +844,7 @@ class Langevin(Method):
 
         Langevin uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -1011,7 +1003,7 @@ class Brownian(Method):
 
         Brownian uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -1022,11 +1014,11 @@ class Brownian(Method):
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
                                           sim.state._get_group(self.filter),
-                                          self.kT)
+                                          self.kT, False, False)
         else:
             self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
                                              sim.state._get_group(self.filter),
-                                             self.kT)
+                                             self.kT, False, False)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -1106,4 +1098,129 @@ class Berendsen(Method):
         self._cpp_obj = cpp_method(sim.state._cpp_sys_def, group,
                                    thermo_cls(sim.state._cpp_sys_def, group),
                                    self.tau, self.kT)
+        super()._attach()
+
+
+class OverdampedViscous(Method):
+    r"""Overdamped viscous dynamics.
+
+    Args:
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
+            apply this method to.
+
+        alpha (`float`): When set, use :math:`\alpha d_i` for the
+            drag coefficient where :math:`d_i` is particle diameter.
+            Defaults to None
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
+            \cdot \mathrm{time}^{-1}]`.
+
+    `OverdampedViscous` integrates particles forward in time following
+    Newtonian in the overdamped limit where there is no intertial term.
+    (in the limit that the mass :math:`m` goes to 0).
+
+
+    .. math::
+
+        \frac{d\vec{r}}{dt} = \vec{v}
+
+        \vec{v(t)} = \frac{\vec{F}_\mathrm{C}}{\gamma}
+
+
+    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
+    potentials, :math:`\gamma` is the drag coefficient,
+    :math:`\vec{v}` is the particle's velocity, and :math:`d` is the
+    dimensionality of the system.
+
+    You can specify :math:`\gamma` in two ways:
+
+    1. Specify :math:`\alpha` which scales the particle diameter to
+       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are
+       :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
+       \cdot \mathrm{time}^{-1}]`.
+    2. After the method object is created, specify the attribute ``gamma``
+       and ``gamma_r`` for rotational damping or random torque to assign them
+       directly, with independent values for each particle type in the
+       system.
+
+    Tip:
+        `OverdampedViscous` can be used to simulate systems of athermal active
+        matter, such as athermal Active Brownian Particles.
+
+    Examples::
+
+        odv = hoomd.md.methods.Brownian(filter=hoomd.filter.All())
+        odv.gamma.default = 2.0
+        odv.gamma_r.default = [1.0, 2.0, 3.0]
+
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
+            apply this method to.
+
+        alpha (float): When set, use :math:`\alpha d_i` for the drag
+            coefficient where :math:`d_i` is particle diameter
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
+            \cdot \mathrm{time}^{-1}]`. Defaults to None.
+
+        gamma (TypeParameter[ ``particle type``, `float` ]): The drag
+            coefficient can be directly set instead of the ratio of particle
+            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
+            parameter is either positive float or zero
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`]]):
+            The rotational drag coefficient can be set. The type of ``gamma_r``
+            parameter is a tuple of three float. The type of each element of
+            tuple is either positive float or zero
+            :math:`[\mathrm{force} \cdot \mathrm{length} \cdot
+            \mathrm{radian}^{-1} \cdot \mathrm{time}^{-1}]`.
+    """
+
+    def __init__(self, filter, alpha=None):
+
+        # store metadata
+        param_dict = ParameterDict(
+            filter=ParticleFilter,
+            alpha=OnlyTypes(float, allow_none=True),
+        )
+        param_dict.update(dict(alpha=alpha, filter=filter))
+
+        # set defaults
+        self._param_dict.update(param_dict)
+
+        gamma = TypeParameter('gamma',
+                              type_kind='particle_types',
+                              param_dict=TypeParameterDict(1., len_keys=1))
+
+        gamma_r = TypeParameter('gamma_r',
+                                type_kind='particle_types',
+                                param_dict=TypeParameterDict((1., 1., 1.),
+                                                             len_keys=1))
+        self._extend_typeparam([gamma, gamma_r])
+
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        OverdampedViscous uses RNGs. Warn the user if they did not set the seed.
+        """
+        if isinstance(simulation, hoomd.Simulation):
+            simulation._warn_if_seed_unset()
+
+        super()._add(simulation)
+
+    def _attach(self):
+
+        sim = self._simulation
+        if isinstance(sim.device, hoomd.device.CPU):
+            self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
+                                          sim.state._get_group(self.filter),
+                                          hoomd.variant.Constant(0.0), True,
+                                          True)
+        else:
+            self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
+                                             sim.state._get_group(self.filter),
+                                             hoomd.variant.Constant(1.0), True,
+                                             True)
+
+        # Attach param_dict and typeparam_dict
         super()._attach()

@@ -514,9 +514,9 @@ class wallpotential(external.field.Field):
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F}  = & -\nabla V(r) & 0 \le r < r_{\mathrm{cut}} \\
-                 = & 0 & r \ge r_{\mathrm{cut}} \\
-                 = & 0 & r < 0
+        \vec{F}  = & -\nabla V(r); & 0 \le r < r_{\mathrm{cut}} \\
+                 = & 0; & r \ge r_{\mathrm{cut}} \\
+                 = & 0; & r < 0
         \end{eqnarray*}
 
     For inside=False (open) half-spaces:
@@ -525,9 +525,9 @@ class wallpotential(external.field.Field):
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F}  = & -\nabla V(r) & 0 < r < r_{\mathrm{cut}} \\
-                 = & 0 & r \ge r_{\mathrm{cut}} \\
-                 = & 0 & r \le 0
+        \vec{F}  = & -\nabla V(r); & 0 < r < r_{\mathrm{cut}} \\
+                 = & 0; & r \ge r_{\mathrm{cut}} \\
+                 = & 0; & r \le 0
         \end{eqnarray*}
 
     .. rubric: Extrapolated Mode:
@@ -545,8 +545,8 @@ class wallpotential(external.field.Field):
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{extrap}}(r) =& V(r) &, r > r_{\rm extrap} \\
-             =& V(r_{\rm extrap}) + (r_{\rm extrap}-r)\vec{F}(r_{\rm extrap}) \cdot \vec{n}&, r \le r_{\rm extrap}
+        V_{\mathrm{extrap}}(r) =& V(r); & r > r_{\rm extrap} \\
+             =& V(r_{\rm extrap}) + (r_{\rm extrap}-r)\vec{F}(r_{\rm extrap}) \cdot \vec{n}; & r \le r_{\rm extrap}
         \end{eqnarray*}
 
     where :math:`\vec{n}` is the normal into the active half-space.
@@ -556,8 +556,8 @@ class wallpotential(external.field.Field):
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F}(r) =& \vec{F}_{\rm pair}(r) &, r > r_{\rm extrap} \\
-                =& \vec{F}_{\rm pair}(r_{\rm extrap}) &, r \le r_{\rm extrap}
+        \vec{F}(r) =& \vec{F}_{\rm pair}(r); & r > r_{\rm extrap} \\
+                =& \vec{F}_{\rm pair}(r_{\rm extrap}); & r \le r_{\rm extrap}
         \end{eqnarray*}
 
     where :math:`\vec{F}_{\rm pair}` is given by the gradient of the pair force
@@ -566,8 +566,8 @@ class wallpotential(external.field.Field):
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F}_{\rm pair}(r) =& -\nabla V_{\rm pair}(r) &, r < r_{\rm cut} \\
-                           =& 0 &, r \ge r_{\mathrm{cut}}
+        \vec{F}_{\rm pair}(r) =& -\nabla V_{\rm pair}(r); & r < r_{\rm cut} \\
+                           =& 0; & r \ge r_{\mathrm{cut}}
         \end{eqnarray*}
 
     In other words, if :math:`r_{\rm extrap}` is chosen so that the pair force would point into the active half-space,

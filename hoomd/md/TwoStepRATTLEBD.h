@@ -42,6 +42,8 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepL
                     std::shared_ptr<ParticleGroup> group,
                     Manifold manifold,
                     std::shared_ptr<Variant> T,
+                    bool noiseless_t,
+                    bool noiseless_r,
                     Scalar tolerance = 0.000001);
 
     virtual ~TwoStepRATTLEBD();
@@ -111,9 +113,11 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
                                            std::shared_ptr<ParticleGroup> group,
                                            Manifold manifold,
                                            std::shared_ptr<Variant> T,
+                                           bool noiseless_t,
+                                           bool noiseless_r,
                                            Scalar tolerance)
-    : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold), m_noiseless_t(false),
-      m_noiseless_r(false), m_tolerance(tolerance), m_box_changed(false)
+    : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold), m_noiseless_t(noiseless_t),
+      m_noiseless_r(noiseless_r), m_tolerance(tolerance), m_box_changed(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
 
@@ -226,15 +230,24 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
             }
         Scalar deltaT_gamma = m_deltaT / gamma;
 
-        // draw a new random velocity for particle j
-        Scalar mass = h_vel.data[j].w;
-        Scalar sigma1 = fast::sqrt(currentTemp / mass);
-        NormalDistribution<Scalar> norm(sigma1);
-
         Scalar3 vec_rand;
-        vec_rand.x = norm(rng);
-        vec_rand.y = norm(rng);
-        vec_rand.z = norm(rng);
+        if (m_noiseless_t)
+            {
+            vec_rand.x = h_net_force.data[j].x / gamma;
+            vec_rand.y = h_net_force.data[j].x / gamma;
+            vec_rand.z = h_net_force.data[j].x / gamma;
+            }
+        else
+            {
+            // draw a new random velocity for particle j
+            Scalar mass = h_vel.data[j].w;
+            Scalar sigma1 = fast::sqrt(currentTemp / mass);
+            NormalDistribution<Scalar> norm(sigma1);
+
+            vec_rand.x = norm(rng);
+            vec_rand.y = norm(rng);
+            vec_rand.z = norm(rng);
+            }
 
         Scalar3 next_pos;
         next_pos.x = h_pos.data[j].x;
@@ -349,10 +362,20 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 h_orientation.data[j] = quat_to_scalar4(q);
 
-                // draw a new random ang_mom for particle j in body frame
-                p_vec.x = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.x))(rng);
-                p_vec.y = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.y))(rng);
-                p_vec.z = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.z))(rng);
+                if (m_noiseless_r)
+                    {
+                    p_vec.x = t.x / gamma_r.x;
+                    p_vec.y = t.y / gamma_r.y;
+                    p_vec.z = t.z / gamma_r.z;
+                    }
+                else
+                    {
+                    // draw a new random ang_mom for particle j in body frame
+                    p_vec.x = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.x))(rng);
+                    p_vec.y = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.y))(rng);
+                    p_vec.z = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.z))(rng);
+                    }
+
                 if (x_zero)
                     p_vec.x = 0;
                 if (y_zero)
@@ -538,6 +561,8 @@ template<class Manifold> void export_TwoStepRATTLEBD(py::module& m, const std::s
                       std::shared_ptr<ParticleGroup>,
                       Manifold,
                       std::shared_ptr<Variant>,
+                      bool,
+                      bool,
                       Scalar>())
         .def_property("tolerance",
                       &TwoStepRATTLEBD<Manifold>::getTolerance,
