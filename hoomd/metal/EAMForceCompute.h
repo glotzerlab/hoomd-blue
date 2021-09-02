@@ -90,14 +90,6 @@ class EAMForceCompute : public ForceCompute
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
 
-    //! Method to be called when number of types changes
-    virtual void slotNumTypesChange()
-        {
-        m_exec_conf->msg->error() << "Changing the number of types is unsupported for pair.eam"
-                                  << std::endl;
-        throw std::runtime_error("Unsupported feature");
-        }
-
     //! cubic interpolation
     virtual void interpolation(int num_all,
                                int num_per,

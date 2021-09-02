@@ -902,12 +902,6 @@ class PYBIND11_EXPORT ParticleData
     //! Notify listeners that ghost particles have been removed
     void notifyGhostParticlesRemoved();
 
-    //! Connects a function to be called every time the number of types changes
-    Nano::Signal<void()>& getNumTypesChangeSignal()
-        {
-        return m_num_types_signal;
-        }
-
     //! Connects a function to be called every time the maximum diameter of composite particles is
     //! needed
     /*! The signal slot returns the maximum diameter
@@ -1249,14 +1243,6 @@ class PYBIND11_EXPORT ParticleData
     //! Return the nth active global tag
     unsigned int getNthTag(unsigned int n);
 
-    //! Add particle types
-    /*! \param Name of type to add
-     *
-     * Adds the name to the list of types and
-     * returns the id of the newly added type
-     */
-    unsigned int addType(const std::string& type_name);
-
     //! Translate the box origin
     /*! \param a vector to apply in the translation
      */
@@ -1310,8 +1296,6 @@ class PYBIND11_EXPORT ParticleData
                                                            //!< particles are removed
     Nano::Signal<void()> m_global_particle_num_signal; //!< Signal that is triggered when the global
                                                        //!< number of particles changes
-    Nano::Signal<void()>
-        m_num_types_signal; //!< Signal that is triggered when the number of types changes
     Nano::Signal<Scalar()>
         m_composite_particles_signal; //!< Signal that is triggered when the maximum diameter of a
                                       //!< composite particle is needed

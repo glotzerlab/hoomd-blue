@@ -175,14 +175,19 @@ class SDF(Compute):
 
     @log(category='sequence', requires_run=True)
     def sdf(self):
-        """:math:`s[i]` - The scale distribution function \
-        :math:`[\\mathrm{probability\\ density}]`."""
+        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[i]` - The scale \
+        distribution function :math:`[\\mathrm{probability\\ density}]`.
+
+        Attention:
+            In MPI parallel execution, the array is available on rank 0 only.
+            `sdf` is `None` on ranks >= 1.
+        """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.sdf
 
     @log(requires_run=True)
     def betaP(self):  # noqa: N802 - allow function name
-        """Beta times pressure in NVT simulations \
+        """float: Beta times pressure in NVT simulations \
         :math:`\\left[ \\mathrm{length}^{-d} \\right]`.
 
         Use a polynomial curve fit of degree 5 to estimate
@@ -193,6 +198,10 @@ class SDF(Compute):
 
         where :math:`d` is the dimensionality of the system, :math:`\\rho` is
         the number density, and :math:`\\beta = \\frac{1}{kT}`.
+
+        Attention:
+            In MPI parallel execution, `betaP` is available on rank 0 only.
+            `betaP` is `None` on ranks >= 1.
         """
         if not numpy.isnan(self.sdf).all():
             # get the values to fit

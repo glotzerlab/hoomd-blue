@@ -19,7 +19,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -46,7 +45,6 @@ void export_ellipsoid(py::module& m)
     export_ExternalFieldInterface<ShapeEllipsoid>(m, "ExternalFieldEllipsoid");
     export_LatticeField<ShapeEllipsoid>(m, "ExternalFieldLatticeEllipsoid");
     export_ExternalFieldComposite<ShapeEllipsoid>(m, "ExternalFieldCompositeEllipsoid");
-    export_RemoveDriftUpdater<ShapeEllipsoid>(m, "RemoveDriftUpdaterEllipsoid");
     export_ExternalFieldWall<ShapeEllipsoid>(m, "WallEllipsoid");
     export_UpdaterExternalFieldWall<ShapeEllipsoid>(m, "UpdaterExternalFieldWallEllipsoid");
     export_ExternalCallback<ShapeEllipsoid>(m, "ExternalCallbackEllipsoid");

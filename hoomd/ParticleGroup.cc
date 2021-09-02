@@ -908,5 +908,6 @@ void export_ParticleGroup(py::module& m)
         .def("getTranslationalDOF", &ParticleGroup::getTranslationalDOF)
         .def("setRotationalDOF", &ParticleGroup::setRotationalDOF)
         .def("getRotationalDOF", &ParticleGroup::getRotationalDOF)
-        .def("thermalizeParticleMomenta", &ParticleGroup::thermalizeParticleMomenta);
+        .def("thermalizeParticleMomenta", &ParticleGroup::thermalizeParticleMomenta)
+        .def_property_readonly("member_tags", &ParticleGroup::getMemberTags);
     }

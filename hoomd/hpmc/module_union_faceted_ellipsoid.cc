@@ -18,7 +18,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -58,9 +57,6 @@ void export_union_faceted_ellipsoid(py::module& m)
     export_ExternalFieldComposite<ShapeUnion<ShapeFacetedEllipsoid>>(
         m,
         "ExternalFieldCompositeFacetedEllipsoidUnion");
-    export_RemoveDriftUpdater<ShapeUnion<ShapeFacetedEllipsoid>>(
-        m,
-        "RemoveDriftUpdaterFacetedEllipsoidUnion");
     export_ExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid>>(m, "WallFacetedEllipsoidUnion");
     export_UpdaterExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid>>(
         m,

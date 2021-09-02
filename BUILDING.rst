@@ -219,7 +219,6 @@ Other option changes take effect at any time:
 - ``CMAKE_INSTALL_PREFIX`` - Directory to install **HOOMD-blue**. Defaults to the root path of the
   found Python executable.
 - ``ENABLE_GPU`` - When enabled, compiled GPU accelerated computations (default: ``off``).
-- ``ENABLE_DOXYGEN`` - When enabled, generate developer documentation (default: ``off``).
 - ``SINGLE_PRECISION`` - Controls precision (default: ``off``).
 
   - When set to ``on``, all calculations are performed in single precision.

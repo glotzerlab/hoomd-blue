@@ -4,6 +4,7 @@
 // Maintainer: joaander
 
 #include "ActiveForceCompute.h"
+#include "hoomd/Autotuner.h"
 
 /*! \file ActiveForceComputeGPU.h
     \brief Declares a class for computing active forces on the GPU
@@ -27,23 +28,30 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     //! Constructs the compute
     ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<ParticleGroup> group,
-                          Scalar rotation_diff,
-                          Scalar3 P,
-                          Scalar rx,
-                          Scalar ry,
-                          Scalar rz);
+                          Scalar rotation_diff);
+
+    //! Set autotuner parameters
+    /*! \param enable Enable/disable autotuning
+        \param period period (approximate) in time steps when returning occurs
+    */
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        ActiveForceCompute::setAutotunerParams(enable, period);
+        m_tuner_force->setPeriod(period);
+        m_tuner_force->setEnabled(enable);
+        m_tuner_diffusion->setPeriod(period);
+        m_tuner_diffusion->setEnabled(enable);
+        }
 
     protected:
-    unsigned int m_block_size; //!< block size to execute on the GPU
+    std::unique_ptr<Autotuner> m_tuner_force;     //!< Autotuner for block size (force kernel)
+    std::unique_ptr<Autotuner> m_tuner_diffusion; //!< Autotuner for block size (diff kernel)
 
     //! Set forces for particles
     virtual void setForces();
 
     //! Orientational diffusion for spherical particles
     virtual void rotationalDiffusion(uint64_t timestep);
-
-    //! Set constraints if particles confined to a surface
-    virtual void setConstraint();
     };
 
 //! Exports the ActiveForceComputeGPU Class to python

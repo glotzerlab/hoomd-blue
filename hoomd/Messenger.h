@@ -251,18 +251,6 @@ class PYBIND11_EXPORT Messenger
     //! Reopen the python streams if sys.stdout/err changes
     void reopenPythonIfNeeded();
 
-#ifdef ENABLE_MPI
-    //! Request logging of notices, warning and errors into shared log file
-    /*! \param fname The filenam
-     */
-    void setSharedFile(const std::string& fname)
-        {
-        m_shared_filename = fname;
-
-        openSharedFile();
-        }
-#endif
-
     //! Open stdout and stderr again, closing any open file
     void openStd();
 
@@ -289,13 +277,6 @@ class PYBIND11_EXPORT Messenger
     pybind11::module m_sys;      //!< sys module
     pybind11::object m_pystdout; //!< Currently bound python sys.stdout
     pybind11::object m_pystderr; //!< Currently bound python sys.stderr
-
-#ifdef ENABLE_MPI
-    std::string m_shared_filename; //!< Filename of shared log file
-
-    //! Open a shared file for error, warning, and notice streams
-    void openSharedFile();
-#endif
     };
 
 //! Exports Messenger to python

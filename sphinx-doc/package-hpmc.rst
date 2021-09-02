@@ -1,5 +1,5 @@
-hpmc
-====
+hoomd.hpmc
+==========
 
 .. rubric:: Details
 

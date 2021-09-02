@@ -441,9 +441,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
             return m_image_hkl;
             }
 
-        //! Method to be called when number of types changes
-        virtual void slotNumTypesChange();
-
         void invalidateAABBTree(){ m_aabb_tree_invalid = true; }
 
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
@@ -650,88 +647,6 @@ void IntegratorHPMCMono<Shape>::resetStats()
     ArrayHandle<hpmc_implicit_counters_t> h_counters(m_implicit_count, access_location::host, access_mode::read);
     for (unsigned int i = 0; i < m_depletant_idx.getNumElements(); ++i)
         m_implicit_count_run_start[i] = h_counters.data[i];
-    }
-
-template <class Shape>
-void IntegratorHPMCMono<Shape>::slotNumTypesChange()
-    {
-    // re-allocate the parameter storage, setting the managed flag on new members
-    m_params.resize(m_pdata->getNTypes(), param_type());
-
-    // skip the reallocation if the number of types does not change
-    // this keeps old potential coefficients when restoring a snapshot
-    // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
-    if (m_pdata->getNTypes() == m_overlap_idx.getW())
-        return;
-
-    // re-allocate overlap interaction matrix
-    Index2D old_overlap_idx = m_overlap_idx;
-    m_overlap_idx = Index2D(m_pdata->getNTypes());
-
-    GlobalArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
-
-        {
-        ArrayHandle<unsigned int> h_old_overlaps(m_overlaps, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_overlaps(overlaps, access_location::host, access_mode::overwrite);
-
-        for(unsigned int i = 0; i < m_overlap_idx.getNumElements(); i++)
-            {
-            h_overlaps.data[i] = 1; // Assume we want to check overlaps.
-            }
-
-        // copy over old overlap check flags (this assumes the number of types is greater or equal to the old number of types)
-        for (unsigned int i = 0; i < old_overlap_idx.getW(); ++i)
-            {
-            for (unsigned int j = 0; j < old_overlap_idx.getH(); ++j)
-                {
-                h_overlaps.data[m_overlap_idx(i,j)] = h_old_overlaps.data[old_overlap_idx(i,j)];
-                }
-            }
-        }
-
-    m_overlaps.swap(overlaps);
-
-    // depletant fugacities
-    Index2D depletant_idx(this->m_pdata->getNTypes());
-    GlobalVector<Scalar> fugacity(depletant_idx.getNumElements(),0.0, this->m_exec_conf);
-    GlobalVector<unsigned int> ntrial(depletant_idx.getNumElements(), 0, this->m_exec_conf);
-
-    // copy over old fugacities (this assumes the number of types is greater or equal to the old number of types)
-    for (unsigned int i = 0; i < m_depletant_idx.getW(); ++i)
-        {
-        for (unsigned int j = 0; j < m_depletant_idx.getH(); ++j)
-            {
-            fugacity[depletant_idx(i,j)] = (Scalar) m_fugacity[m_depletant_idx(i,j)];
-            ntrial[depletant_idx(i,j)] = (unsigned int) m_ntrial[m_depletant_idx(i,j)];
-            }
-        }
-    m_fugacity = fugacity;
-    m_ntrial = ntrial;
-
-    // depletant related counters
-    GlobalArray<hpmc_implicit_counters_t> implicit_count(depletant_idx.getNumElements(), this->m_exec_conf);
-
-        {
-        ArrayHandle<hpmc_implicit_counters_t> h_old_implicit_count(m_implicit_count, access_location::host, access_mode::read);
-        ArrayHandle<hpmc_implicit_counters_t> h_implicit_count(implicit_count, access_location::host, access_mode::readwrite);
-
-        for (unsigned int i = 0; i < depletant_idx.getW(); ++i)
-            {
-            for (unsigned int j = 0; j < depletant_idx.getH(); ++j)
-                {
-                h_implicit_count.data[depletant_idx(i,j)] = h_old_implicit_count.data[m_depletant_idx(i,j)];
-                }
-            }
-        }
-    m_implicit_count.swap(implicit_count);
-
-    m_depletant_idx = depletant_idx;
-
-    m_implicit_count_run_start.resize(m_depletant_idx.getNumElements());
-    m_implicit_count_step_start.resize(m_depletant_idx.getNumElements());
-
-    // call parent class method
-    IntegratorHPMC::slotNumTypesChange();
     }
 
 template <class Shape>

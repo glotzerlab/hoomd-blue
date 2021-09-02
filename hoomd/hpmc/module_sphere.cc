@@ -19,8 +19,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
-
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
@@ -46,7 +44,6 @@ void export_sphere(py::module& m)
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
     export_LatticeField<ShapeSphere>(m, "ExternalFieldLatticeSphere");
     export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");
-    export_RemoveDriftUpdater<ShapeSphere>(m, "RemoveDriftUpdaterSphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
     export_UpdaterExternalFieldWall<ShapeSphere>(m, "UpdaterExternalFieldWallSphere");
     export_ExternalCallback<ShapeSphere>(m, "ExternalCallbackSphere");

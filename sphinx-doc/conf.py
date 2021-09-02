@@ -28,7 +28,7 @@ napoleon_include_special_with_doc = True
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
     'gsd': ('https://gsd.readthedocs.io/en/stable/', None)
 }
 autodoc_docstring_signature = True
@@ -56,8 +56,8 @@ project = 'HOOMD-blue'
 copyright = '2009-2021 The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.0.0-beta.7'
-release = '3.0.0-beta.7'
+version = '3.0.0-beta.8'
+release = '3.0.0-beta.8'
 
 language = None
 

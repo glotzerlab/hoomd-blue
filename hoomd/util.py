@@ -10,7 +10,12 @@ from copy import deepcopy
 
 
 def _to_camel_case(string):
-    """Switch from snake to camelcase strict."""
+    """Switch from snake to camelcase strict.
+
+    Note:
+        This currently capitalizes the first word which is not correct
+        camelcase.
+    """
     return string.replace('_', ' ').title().replace(' ', '')
 
 

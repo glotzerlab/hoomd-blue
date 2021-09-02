@@ -87,9 +87,6 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
 
     /// List of per type gamma_r (for 2D-only rotational noise) to use
     GlobalVector<Scalar3> m_gamma_r;
-
-    /// Method to be called when number of types changes
-    virtual void slotNumTypesChange();
     };
 
 //! Exports the TwoStepLangevinBase class to python

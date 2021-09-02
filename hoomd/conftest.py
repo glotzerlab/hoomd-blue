@@ -55,7 +55,7 @@ def simulation_factory(device):
     TODO: duck type this to allow it to create state from GSD files as well
     """
 
-    def make_simulation(snapshot=None):
+    def make_simulation(snapshot=None, domain_decomposition=None):
         sim = Simulation(device)
 
         # reduce sorter grid to avoid Hilbert curve overhead in unit tests
@@ -63,8 +63,11 @@ def simulation_factory(device):
             if isinstance(tuner, hoomd.tune.ParticleSorter):
                 tuner.grid = 8
 
-        if (snapshot is not None):
-            sim.create_state_from_snapshot(snapshot)
+        if snapshot is not None:
+            if domain_decomposition is None:
+                sim.create_state_from_snapshot(snapshot)
+            else:
+                sim.create_state_from_snapshot(snapshot, domain_decomposition)
         return sim
 
     return make_simulation
@@ -321,10 +324,28 @@ def logging_check(cls, expected_namespace, expected_loggables):
         check_loggable(cls, name, properties)
 
 
+def equality_check(a, b):
+    """Check equality between to instances of _HOOMDBaseObject."""
+    if not isinstance(a, hoomd.operation._HOOMDGetSetAttrBase):
+        return a == b
+    if type(a) != type(b):
+        return False
+    b_keys = b.__dict__.keys()
+    for attr in a.__dict__:
+        if attr in a._skip_for_equality:
+            continue
+        if isinstance(a.__dict__[attr], hoomd.operation._HOOMDGetSetAttrBase):
+            if not equality_check(a.__dict__[attr], b.__dict__[attr]):
+                return False
+        elif (attr not in b_keys or a.__dict__[attr] != b.__dict__[attr]):
+            return False
+    return True
+
+
 def pickling_check(instance):
     """Test that an instance can be pickled and unpickled."""
     pkled_instance = pickle.loads(pickle.dumps(instance))
-    assert instance == pkled_instance
+    assert equality_check(instance, pkled_instance)
 
 
 def operation_pickling_check(instance, sim):

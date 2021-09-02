@@ -121,61 +121,6 @@ template<class evaluator> class PotentialTersoff : public ForceCompute
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
-
-    //! Method to be called when number of types changes
-    virtual void slotNumTypesChange()
-        {
-        // skip the reallocation if the number of types does not change
-        // this keeps old potential coefficients when restoring a snapshot
-        // it will result in invalid coefficients if the snapshot has a different type id -> name
-        // mapping
-        if (m_pdata->getNTypes() == m_typpair_idx.getW())
-            return;
-
-        Index2D new_typpair_idx(m_pdata->getNTypes());
-
-        // create new arrays
-        GPUArray<Scalar> new_rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
-        GlobalArray<Scalar> new_r_cut_nlist(m_typpair_idx.getNumElements(), m_exec_conf);
-        GPUArray<param_type> new_params(m_typpair_idx.getNumElements(), m_exec_conf);
-
-        // grab the new arrays
-        ArrayHandle<Scalar> h_new_rcutsq(new_rcutsq, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar> h_new_r_cut_nlist(new_r_cut_nlist,
-                                              access_location::host,
-                                              access_mode::overwrite);
-        ArrayHandle<param_type> h_new_params(new_params,
-                                             access_location::host,
-                                             access_mode::overwrite);
-
-        // grab the old arrays
-        ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist, access_location::host, access_mode::read);
-        ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-
-        // populate the new arrays with the old array's data
-        unsigned int newW = std::min(new_typpair_idx.getW(), m_typpair_idx.getW());
-        unsigned int newH = std::min(new_typpair_idx.getH(), m_typpair_idx.getH());
-        for (unsigned int i = 0; i < newW; ++i)
-            {
-            for (unsigned int j = 0; j < newH; ++j)
-                {
-                unsigned int newIdx = new_typpair_idx(i, j);
-                unsigned int oldIdx = m_typpair_idx(i, j);
-                h_new_rcutsq.data[newIdx] = h_rcutsq.data[oldIdx];
-                h_new_r_cut_nlist.data[newIdx] = h_r_cut_nlist.data[oldIdx];
-                h_new_params.data[newIdx] = h_params.data[oldIdx];
-                }
-            }
-
-        // swap the pointers
-        m_rcutsq.swap(new_rcutsq);
-        m_params.swap(new_params);
-        *m_r_cut_nlist = new_r_cut_nlist;
-
-        // notify the nlist that things have changed
-        m_nlist->notifyRCutMatrixChange();
-        }
     };
 
 /*! \param sysdef System to compute forces on
@@ -202,20 +147,11 @@ PotentialTersoff<evaluator>::PotentialTersoff(std::shared_ptr<SystemDefinition> 
 
     // initialize name
     m_prof_name = std::string("Triplet ") + evaluator::getName();
-
-    // connect to the ParticleData to receive notifications when the maximum number of particles
-    // changes
-    m_pdata->getNumTypesChangeSignal()
-        .template connect<PotentialTersoff<evaluator>,
-                          &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
     }
 
 template<class evaluator> PotentialTersoff<evaluator>::~PotentialTersoff()
     {
     this->m_exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << std::endl;
-    m_pdata->getNumTypesChangeSignal()
-        .template disconnect<PotentialTersoff<evaluator>,
-                             &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
     if (m_attached)
         {
         m_nlist->removeRCutMatrix(m_r_cut_nlist);

@@ -157,13 +157,9 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         m_max_num_changed = true;
         }
 
-    //! Notification of a change in the number of types
-    void slotNumTypesChanged()
-        {
-        m_type_changed = true;
-        }
+    /// set to true when the type data has been allocated
+    bool m_types_allocated;
 
-    bool m_type_changed;      //!< Flag if types changed
     bool m_box_changed;       //!< Flag if box changed
     bool m_max_num_changed;   //!< Flag if max number of particles changed
     unsigned int m_max_types; //!< Previous number of types

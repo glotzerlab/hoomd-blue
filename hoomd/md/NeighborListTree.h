@@ -70,16 +70,12 @@ class PYBIND11_EXPORT NeighborListTree : public NeighborList
         m_remap_particles = true;
         }
 
-    //! Notification of a number of types change
-    void slotNumTypesChanged()
-        {
-        m_type_changed = true;
-        }
-
     bool m_box_changed;     //!< Flag if box size has changed
     bool m_max_num_changed; //!< Flag if the particle arrays need to be resized
     bool m_remap_particles; //!< Flag if the particles need to remapped (triggered by sort)
-    bool m_type_changed;    //!< Flag if the number of types has changed
+
+    /// set to true when the type data has been allocated
+    bool m_types_allocated;
 
     // we use stl vectors here because these tree data structures should *never* be
     // accessed on the GPU, they were optimized for the CPU with SIMD support

@@ -18,7 +18,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -46,7 +45,6 @@ void export_union_sphere(py::module& m)
     export_ExternalFieldInterface<ShapeUnion<ShapeSphere>>(m, "ExternalFieldSphereUnion");
     export_LatticeField<ShapeUnion<ShapeSphere>>(m, "ExternalFieldLatticeSphereUnion");
     export_ExternalFieldComposite<ShapeUnion<ShapeSphere>>(m, "ExternalFieldCompositeSphereUnion");
-    export_RemoveDriftUpdater<ShapeUnion<ShapeSphere>>(m, "RemoveDriftUpdaterSphereUnion");
     export_ExternalFieldWall<ShapeUnion<ShapeSphere>>(m, "WallSphereUnion");
     export_UpdaterExternalFieldWall<ShapeUnion<ShapeSphere>>(m,
                                                              "UpdaterExternalFieldWallSphereUnion");

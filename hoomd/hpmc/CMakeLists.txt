@@ -91,7 +91,6 @@ set(_hpmc_headers
     UpdaterExternalFieldWall.h
     UpdaterMuVT.h
     UpdaterQuickCompress.h
-    UpdaterRemoveDrift.h
     XenoCollide2D.h
     XenoCollide3D.h
     )

@@ -16,6 +16,7 @@ from hoomd.logging import LoggerCategories, Logger
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.util import dict_flatten
+from hoomd.custom import Action
 
 
 class _OutputWriter(metaclass=ABCMeta):
@@ -143,6 +144,15 @@ class _Formatter:
         else:
             return self._str_format.format(value, width=column_width)
 
+    def __eq__(self, other):
+        if not isinstance(other, _Formatter):
+            return NotImplemented
+        return (self.pretty == other.pretty
+                and self.precision == other.precision
+                and self.max_decimals_pretty == other.max_decimals_pretty
+                and self._num_format == other._num_format
+                and self._str_format == other._str_format)
+
 
 class _TableInternal(_InternalAction):
     """Implements the logic for a simple text based logger backend.
@@ -157,6 +167,13 @@ class _TableInternal(_InternalAction):
         'sequence', 'object', 'particle', 'bond', 'angle', 'dihedral',
         'improper', 'pair', 'constraint', 'strings'
     ])
+
+    flags = [
+        Action.Flags.ROTATIONAL_KINETIC_ENERGY, Action.Flags.PRESSURE_TENSOR,
+        Action.Flags.EXTERNAL_FIELD_VIRIAL
+    ]
+
+    _skip_for_equality = {"_comm"}
 
     def __init__(self,
                  logger,

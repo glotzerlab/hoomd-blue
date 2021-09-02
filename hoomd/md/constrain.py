@@ -91,7 +91,7 @@ class Distance(Constraint):
 
     Note:
         `tolerance` sets the tolerance to detect constraint violations and
-        issue warning message. It does not influence the computation of the
+        issue a warning message. It does not influence the computation of the
         constraint force.
 
     Attributes:
@@ -175,7 +175,7 @@ class Rigid(Constraint):
     .. rubric:: Thermodynamic quantities of bodies
 
     HOOMD computes thermodynamic quantities (temperature, kinetic energy,
-    etc...) appropriately when there are rigid bodies present in the system.
+    etc.) appropriately when there are rigid bodies present in the system.
     When it does so, it ignores all constituent particles and computes the
     translational and rotational energies of the central particles, which
     represent the whole body.
@@ -204,12 +204,12 @@ class Rigid(Constraint):
         - ``positions`` (list[tuple[float, float, float]]): List of relative
           positions of constituent particles
         - ``orientations`` (list[tuple[float, float, float, float]]): List of
-          orientations (as quaterions) of constituent particles
+          orientations (as quaternions) of constituent particles
         - ``charge`` (list[float]): List of charges of constituent particles
         - ``diameters`` (list[float]): List of diameters of constituent
           particles
 
-        Type: `TypeParameter[``particle_type``, `dict`]
+        Type: `TypeParameter` [``particle_type``, `dict`]
 
     .. caution::
         The constituent particle type must exist.
@@ -262,7 +262,7 @@ class Rigid(Constraint):
         R"""Create rigid bodies from central particles in state.
 
         Args:
-            state (hoomd.State): the state to add rigid bodies too.
+            state (hoomd.State): The state in which to create rigid bodies.
         """
         if self._attached:
             raise RuntimeError(

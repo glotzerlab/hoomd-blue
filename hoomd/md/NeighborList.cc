@@ -210,11 +210,32 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborList, &NeighborList::reallocate>(
         this);
 
-    // connect to type change to resize type data arrays
-    m_pdata->getNumTypesChangeSignal().connect<NeighborList, &NeighborList::reallocateTypes>(this);
-
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
+
+    m_sysdef->getBondData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getAngleData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getDihedralData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getImproperData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getConstraintData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getPairData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
 
     // connect locally to the rcut changing signal
     getRCutChangeSignal().connect<NeighborList, &NeighborList::slotRCutChange>(this);
@@ -258,69 +279,6 @@ void NeighborList::reallocate()
     forceUpdate();
     }
 
-void NeighborList::reallocateTypes()
-    {
-    m_typpair_idx = Index2D(m_pdata->getNTypes());
-    m_r_cut.resize(m_typpair_idx.getNumElements());
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        cudaMemAdvise(m_r_cut.get(),
-                      m_r_cut.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    m_rcut_max.resize(m_pdata->getNTypes());
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        // store in host memory for faster access from CPU
-        cudaMemAdvise(m_rcut_max.get(),
-                      m_rcut_max.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    m_r_listsq.resize(m_typpair_idx.getNumElements());
-    unsigned int old_ntypes = (unsigned int)m_Nmax.getNumElements();
-    m_Nmax.resize(m_pdata->getNTypes());
-
-    // flood Nmax with 4s initially
-        {
-        ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::readwrite);
-        for (unsigned int i = old_ntypes; i < m_pdata->getNTypes(); ++i)
-            {
-            h_Nmax.data[i] = 4;
-            }
-        }
-
-    m_conditions.resize(m_pdata->getNTypes());
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        // store in host memory for faster access from CPU
-        cudaMemAdvise(m_conditions.get(),
-                      m_conditions.getNumElements() * sizeof(unsigned int),
-                      cudaMemAdviseSetPreferredLocation,
-                      cudaCpuDeviceId);
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    resetConditions();
-
-    notifyRCutMatrixChange();
-    forceUpdate();
-    }
-
 NeighborList::~NeighborList()
     {
     m_exec_conf->msg->notice(5) << "Destroying Neighborlist" << endl;
@@ -330,6 +288,31 @@ NeighborList::~NeighborList()
         this);
     m_pdata->getGlobalParticleNumberChangeSignal()
         .disconnect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
+
+    m_sysdef->getBondData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getAngleData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getDihedralData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getImproperData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getConstraintData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getPairData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
 #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -340,9 +323,6 @@ NeighborList::~NeighborList()
             .disconnect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
         }
 #endif
-
-    m_pdata->getNumTypesChangeSignal().disconnect<NeighborList, &NeighborList::reallocateTypes>(
-        this);
 
     getRCutChangeSignal().disconnect<NeighborList, &NeighborList::slotRCutChange>(this);
     }
@@ -366,8 +346,8 @@ void NeighborList::compute(uint64_t timestep)
     if (m_prof)
         m_prof->push("Neighbor");
 
-    // when the number of particles in the system changes, rebuild the exclusion list
-    if (m_n_particles_changed)
+    // when the number of particles or bonds in the system changes, rebuild the exclusion list
+    if (m_n_particles_changed || m_topology_changed)
         {
         resizeAndClearExclusions();
         for (const std::string& exclusion : m_exclusions)
@@ -376,6 +356,7 @@ void NeighborList::compute(uint64_t timestep)
             }
 
         m_n_particles_changed = false;
+        m_topology_changed = false;
         }
 
     // take care of some updates if things have changed since construction
