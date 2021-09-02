@@ -22,7 +22,9 @@ class PYBIND11_EXPORT TwoStepBD : public TwoStepLangevinBase
     /// Constructs the integration method and associates it with the system
     TwoStepBD(std::shared_ptr<SystemDefinition> sysdef,
               std::shared_ptr<ParticleGroup> group,
-              std::shared_ptr<Variant> T);
+              std::shared_ptr<Variant> T,
+              bool noiseless_t,
+              bool noiseless_r);
 
     virtual ~TwoStepBD();
 

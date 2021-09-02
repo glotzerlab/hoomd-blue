@@ -38,7 +38,7 @@ class Angle(Force):
 class Harmonic(Angle):
     r"""Harmonic angle potential.
 
-    The command angle.harmonic specifies a harmonic potential energy between
+    :py:class:`Harmonic` specifies a harmonic potential energy between
     every triplet of particles with an angle specified between them.
 
     .. math::
@@ -52,10 +52,10 @@ class Harmonic(Angle):
             The parameter of the harmonic bonds for each particle type.
             The dictionary has the following keys:
 
-            * ``k`` (`float`, **required**) - potential constant
+            * ``k`` (`float`, **required**) - potential constant :math:`k`
               :math:`[\mathrm{energy} \cdot \mathrm{radians}^{-2}]`
 
-            * ``t0`` (`float`, **required**) - rest angle
+            * ``t0`` (`float`, **required**) - rest angle :math:`\theta_0`
               :math:`[\mathrm{radians}]`
 
     Examples::
@@ -77,7 +77,7 @@ class Harmonic(Angle):
 class Cosinesq(Angle):
     r"""Cosine squared angle potential.
 
-    The command angle.cosinesq specifies a cosine squared potential energy
+    :py:class:`Cosinesq` specifies a cosine squared potential energy
     between every triplet of particles with an angle specified between them.
 
     .. math::
@@ -94,8 +94,8 @@ class Cosinesq(Angle):
             The parameter of the harmonic bonds for each particle type.
             The dictionary has the following keys:
 
-            * ``k`` (`float`, **required**) - potential constant
-              :math:`[\mathrm{energy} \cdot \mathrm{radians}^{-2}]`
+            * ``k`` (`float`, **required**) - potential constant :math:`k`
+              :math:`[\mathrm{energy}]`
 
             * ``t0`` (`float`, **required**) - rest angle :math:`\theta_0`
               :math:`[\mathrm{radians}]`

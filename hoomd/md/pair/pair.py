@@ -4,6 +4,9 @@
 
 """Pair potentials."""
 
+import copy
+import warnings
+
 import hoomd
 from hoomd.md import _md
 from hoomd.md import force
@@ -33,8 +36,8 @@ class Pair(force.Force):
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
-                  = & 0           & r \ge r_{\mathrm{cut}} \\
+        \vec{F}  = & -\nabla V(r); & r < r_{\mathrm{cut}} \\
+                  = & 0;           & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     where :math:`\vec{r}` is the vector pointing from one particle to the other
@@ -44,12 +47,12 @@ class Pair(force.Force):
         :nowrap:
 
         \begin{eqnarray*}
-        V(r)  = & V_{\mathrm{pair}}(r) & \mathrm{mode\ is\ no\_shift} \\
-              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}})
+        V(r)  = & V_{\mathrm{pair}}(r); & \mathrm{mode\ is\ no\_shift} \\
+              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}});
               & \mathrm{mode\ is\ shift} \\
-              = & S(r) \cdot V_{\mathrm{pair}}(r) & \mathrm{mode\ is\
+              = & S(r) \cdot V_{\mathrm{pair}}(r); & \mathrm{mode\ is\
               xplor\ and\ } r_{\mathrm{on}} < r_{\mathrm{cut}} \\
-              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}})
+              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}});
               & \mathrm{mode\ is\ xplor\ and\ } r_{\mathrm{on}} \ge
               r_{\mathrm{cut}}
         \end{eqnarray*}
@@ -60,13 +63,13 @@ class Pair(force.Force):
         :nowrap:
 
         \begin{eqnarray*}
-        S(r) = & 1 & r < r_{\mathrm{on}} \\
+        S(r) = & 1; & r < r_{\mathrm{on}} \\
              = & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot
              (r_{\mathrm{cut}}^2 + 2r^2 -
              3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 -
-             r_{\mathrm{on}}^2)^3}
+             r_{\mathrm{on}}^2)^3};
                & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
-             = & 0 & r > r_{\mathrm{cut}} \\
+             = & 0; & r > r_{\mathrm{cut}} \\
          \end{eqnarray*}
 
     and :math:`V_{\mathrm{pair}}(r)` is the specific pair potential chosen by
@@ -175,6 +178,35 @@ class Pair(force.Force):
         # above and raise an error if they occur.
         return self._cpp_obj.computeEnergyBetweenSets(tags1, tags2)
 
+    def _add(self, simulation):
+        # if nlist was associated with multiple pair forces and is still
+        # attached, we need to deepcopy existing nlist.
+        nlist = self._nlist
+        if (not self._attached and nlist._attached
+                and nlist._simulation != simulation):
+            warnings.warn(
+                f"{self} object is creating a new equivalent neighbor list."
+                f" This is happending since the force is moving to a new "
+                f"simulation. To supress the warning explicitly set new nlist.",
+                RuntimeWarning)
+            self._nlist = copy.deepcopy(nlist)
+        # We need to check if the force is added since if it is not then this is
+        # being called by a SyncedList object and a disagreement between the
+        # simulation and nlist._simulation is an error. If the force is added
+        # then the nlist is compatible. We cannot just check the nlist's _added
+        # property because _add is also called when the SyncedList is synced.
+        elif (not self._added and nlist._added
+              and nlist._simulation != simulation):
+            raise RuntimeError(
+                f"NeighborList associated with {self} is associated with "
+                f"another simulation.")
+        super()._add(simulation)
+        # this ideopotent given the above check.
+        self._nlist._add(simulation)
+        # This is ideopotent, but we need to ensure that if we change
+        # neighbor list when not attached we handle correctly.
+        self._add_dependency(self._nlist)
+
     def _attach(self):
         # create the c++ mirror class
         if not self._nlist._added:
@@ -207,8 +239,14 @@ class Pair(force.Force):
     def nlist(self, value):
         if self._attached:
             raise RuntimeError("nlist cannot be set after scheduling.")
-        else:
-            self._nlist = validate_nlist(value)
+        nlist = validate_nlist(value)
+        if self._added:
+            if nlist._added and self._simulation != nlist._simulation:
+                raise RuntimeError(
+                    "Neighbor lists and forces must belong to the same "
+                    "simulation or SyncedList.")
+            self._nlist._add(self._simulation)
+        self._nlist = nlist
 
     @property
     def _children(self):
@@ -233,8 +271,8 @@ class LJ(Pair):
         \begin{eqnarray*}
         V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left(
         \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r}
-        \right)^{6} \right] & r < r_{\mathrm{cut}} \\
-        = & 0 & r \ge r_{\mathrm{cut}} \\
+        \right)^{6} \right]; & r < r_{\mathrm{cut}} \\
+        = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
@@ -286,9 +324,9 @@ class Gauss(Pair):
 
         \begin{eqnarray*}
         V_{\mathrm{gauss}}(r)  = & \varepsilon \exp \left[ -\frac{1}{2}
-                                  \left( \frac{r}{\sigma} \right)^2 \right]
+                                  \left( \frac{r}{\sigma} \right)^2 \right];
                                   & r < r_{\mathrm{cut}} \\
-                                 = & 0 & r \ge r_{\mathrm{cut}} \\
+                                 = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
@@ -344,9 +382,9 @@ class SLJ(Pair):
         V_{\mathrm{SLJ}}(r)  = & 4 \varepsilon \left[ \left(
                                 \frac{\sigma}{r - \Delta} \right)^{12} -
                                 \left( \frac{\sigma}{r - \Delta}
-                                \right)^{6} \right] & r < (r_{\mathrm{cut}}
+                                \right)^{6} \right]; & r < (r_{\mathrm{cut}}
                                 + \Delta) \\
-                             = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
+                             = & 0; & r \ge (r_{\mathrm{cut}} + \Delta) \\
         \end{eqnarray*}
 
     where :math:`\Delta = (d_i + d_j)/2 - 1` and :math:`d_i` is the diameter of
@@ -429,8 +467,8 @@ class Yukawa(Pair):
 
         \begin{eqnarray*}
           V_{\mathrm{yukawa}}(r) = & \varepsilon \frac{ \exp \left(
-          -\kappa r \right) }{r} & r < r_{\mathrm{cut}} \\
-                                  = & 0 & r \ge r_{\mathrm{cut}} \\
+          -\kappa r \right) }{r}; & r < r_{\mathrm{cut}} \\
+                                  = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
@@ -486,9 +524,9 @@ class Ewald(Pair):
                                     \exp(\alpha r) \\
                                     + \mathrm{erfc}\left(\kappa r -
                                     \frac{\alpha}{2 \kappa}\right)
-                                    \exp(-\alpha r)\right]
+                                    \exp(-\alpha r)\right];
                                     & r < r_{\mathrm{cut}} \\
-                            = & 0 & r \ge r_{\mathrm{cut}} \\
+                            = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     Call `md.long_range.pppm.make_pppm_coulomb_forces` to create an instance
@@ -551,10 +589,10 @@ class Table(Pair):
         :nowrap:
 
         \\begin{eqnarray*}
-        \\vec{F}(\\vec{r}) = & 0 & r < r_{\\mathrm{min}} \\\\
-                           = & F(r)\\hat{r}
+        \\vec{F}(\\vec{r}) = & 0; & r < r_{\\mathrm{min}} \\\\
+                           = & F(r)\\hat{r};
                              & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
-                           = & 0 & r \\ge r_{\\mathrm{max}} \\\\
+                           = & 0; & r \\ge r_{\\mathrm{max}} \\\\
         \\end{eqnarray*}
 
     and the potential :math:`V(r)` is:
@@ -563,10 +601,10 @@ class Table(Pair):
         :nowrap:
 
         \\begin{eqnarray*}
-        V(r) = & 0 & r < r_{\\mathrm{min}} \\\\
-             = & V(r)
+        V(r) = & 0; & r < r_{\\mathrm{min}} \\\\
+             = & V(r);
                & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
-             = & 0 & r \\ge r_{\\mathrm{max}} \\\\
+             = & 0; & r \\ge r_{\\mathrm{max}} \\\\
         \\end{eqnarray*}
 
     where :math:`\\vec{r}` is the vector pointing from one particle to the other
@@ -636,8 +674,8 @@ class Morse(Pair):
         \begin{eqnarray*}
         V_{\mathrm{morse}}(r) = & D_0 \left[ \exp \left(-2\alpha\left(
             r-r_0\right)\right) -2\exp \left(-\alpha\left(r-r_0\right)
-            \right) \right] & r < r_{\mathrm{cut}} \\
-            = & 0 & r \ge r_{\mathrm{cut}} \\
+            \right) \right]; & r < r_{\mathrm{cut}} \\
+            = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
@@ -713,9 +751,9 @@ class DPD(Pair):
         :nowrap:
 
         \begin{eqnarray*}
-        w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right)
+        w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right);
         & r < r_{\mathrm{cut}} \\
-                  = & 0 & r \ge r_{\mathrm{cut}} \\
+                  = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     where :math:`\hat r_{ij}` is a normalized vector from particle i to
@@ -775,7 +813,7 @@ class DPD(Pair):
 
         DPD uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -800,9 +838,9 @@ class DPDConservative(Pair):
         \begin{eqnarray*}
         V_{\mathrm{DPD-C}}(r) = & A \cdot \left( r_{\mathrm{cut}} - r
           \right) - \frac{1}{2} \cdot \frac{A}{r_{\mathrm{cut}}} \cdot
-          \left(r_{\mathrm{cut}}^2 - r^2 \right)
+          \left(r_{\mathrm{cut}}^2 - r^2 \right);
           & r < r_{\mathrm{cut}} \\
-                              = & 0 & r \ge r_{\mathrm{cut}} \\
+                              = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
 
@@ -881,18 +919,18 @@ class DPDLJ(Pair):
         \begin{eqnarray*}
         V_{\mathrm{LJ}}(r) = & 4 \varepsilon \left[ \left(
             \frac{\sigma}{r} \right)^{12} -
-             \left( \frac{\sigma}{r} \right)^{6} \right]
+             \left( \frac{\sigma}{r} \right)^{6} \right];
             & r < r_{\mathrm{cut}} \\
-                            = & 0 & r \ge r_{\mathrm{cut}} \\
+                            = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     .. math::
         :nowrap:
 
         \begin{eqnarray*}
-        w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right)
+        w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right);
             & r < r_{\mathrm{cut}} \\
-                  = & 0 & r \ge r_{\mathrm{cut}} \\
+                  = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     where :math:`\hat r_{ij}` is a normalized vector from particle i to
@@ -959,7 +997,7 @@ class DPDLJ(Pair):
 
         DPDLJ uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -991,8 +1029,8 @@ class ForceShiftedLJ(Pair):
         \begin{eqnarray*}
         V(r) = & 4 \varepsilon \left[ \left( \frac{\sigma}{r}
           \right)^{12} - \left( \frac{\sigma}{r} \right)^{6}
-          \right] + \Delta V(r) & r < r_{\mathrm{cut}}\\
-             = & 0 & r \ge r_{\mathrm{cut}} \\
+          \right] + \Delta V(r); & r < r_{\mathrm{cut}}\\
+             = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     .. math::
@@ -1052,9 +1090,9 @@ class Moliere(Pair):
           = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.35 \exp
           \left( -0.3 \frac{r_{ij}}{a_F} \right) + \\
           0.55 \exp \left( -1.2 \frac{r_{ij}}{a_F} \right) + 0.10 \exp
-          \left( -6.0 \frac{r_{ij}}{a_F} \right) \right]
+          \left( -6.0 \frac{r_{ij}}{a_F} \right) \right];
           & r < r_{\mathrm{cut}} \\
-          = & 0 & r > r_{\mathrm{cut}} \\
+          = & 0; & r > r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     Where each parameter is defined as:
@@ -1134,9 +1172,9 @@ class ZBL(Pair):
           \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) \\
           + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) \\
           + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) \\
-          + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right],
+          + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right];
           & r < r_{\mathrm{cut}} \\
-          = & 0, & r > r_{\mathrm{cut}} \\
+          = & 0; & r > r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     Where each parameter is defined as:
@@ -1213,8 +1251,8 @@ class Mie(Pair):
           = & \left( \frac{n}{n-m} \right) {\left( \frac{n}{m}
           \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left(
           \frac{\sigma}{r} \right)^{n} - \left( \frac{\sigma}{r}
-          \right)^{m} \right] & r < r_{\mathrm{cut}} \\
-          = & 0 & r \ge r_{\mathrm{cut}} \\
+          \right)^{m} \right]; & r < r_{\mathrm{cut}} \\
+          = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
@@ -1282,8 +1320,8 @@ class ExpandedMie(Pair):
           \\right)}^{\\frac{m}{n-m}} \\varepsilon \\left[ \\left(
           \\frac{\\sigma}{r-\\Delta} \\right)^{n} - \\left( \\frac
           {\\sigma}{r-\\Delta}
-          \\right)^{m} \\right] & r < r_{\\mathrm{cut}} \\\\
-          = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
+          \\right)^{m} \\right]; & r < r_{\\mathrm{cut}} \\\\
+          = & 0; & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available energy
@@ -1438,9 +1476,9 @@ class DLVO(Pair):
             + \log \left(
             \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1-a_2)^2} \right) \right]
             & \\
-            & + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))}
+            & + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))};
             & r < (r_{\mathrm{cut}} + \Delta) \\
-            = & 0 & r \ge (r_{\mathrm{cut}} + \Delta)
+            = & 0; & r \ge (r_{\mathrm{cut}} + \Delta)
         \end{eqnarray*}
 
     where :math:`a_i` is the radius of particle :math:`i`, :math:`\Delta = (d_i
@@ -1518,8 +1556,8 @@ class Buckingham(Pair):
 
         \begin{eqnarray*}
         V_{\mathrm{Buckingham}}(r) = & A \exp\left(-\frac{r}{\rho}\right)
-          - \frac{C}{r^6} & r < r_{\mathrm{cut}} \\
-          = & 0 & r \ge r_{\mathrm{cut}} \\
+          - \frac{C}{r^6}; & r < r_{\mathrm{cut}} \\
+          = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
@@ -1574,9 +1612,9 @@ class LJ1208(Pair):
         \begin{eqnarray*}
         V_{\mathrm{LJ}}(r)
           = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-          \left( \frac{\sigma}{r} \right)^{8} \right]
+          \left( \frac{\sigma}{r} \right)^{8} \right];
           & r < r_{\mathrm{cut}} \\
-          = & 0 & r \ge r_{\mathrm{cut}} \\
+          = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
@@ -1629,9 +1667,9 @@ class LJ0804(Pair):
         \begin{eqnarray*}
         V_{\mathrm{LJ}}(r)
           = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{8} -
-          \left( \frac{\sigma}{r} \right)^{4} \right]
+          \left( \frac{\sigma}{r} \right)^{4} \right];
           & r < r_{\mathrm{cut}} \\
-          = & 0 & r \ge r_{\mathrm{cut}} \\
+          = & 0: & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
@@ -1686,9 +1724,9 @@ class Fourier(Pair):
         V_{\mathrm{Fourier}}(r)
           = & \frac{1}{r^{12}} + \frac{1}{r^2}\sum_{n=1}^4
           [a_n cos(\frac{n \pi r}{r_{cut}}) +
-          b_n sin(\frac{n \pi r}{r_{cut}})]
+          b_n sin(\frac{n \pi r}{r_{cut}})];
           & r < r_{\mathrm{cut}}  \\
-          = & 0 & r \ge r_{\mathrm{cut}} \\
+          = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
         where:

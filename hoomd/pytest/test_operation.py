@@ -88,11 +88,12 @@ def test_setattr(full_op):
 
 def test_adding(full_op):
     assert not full_op._added
-    full_op._add(None)
+    # need a non-None dummy simulation 1 works
+    full_op._add(1)
     assert full_op._added
-    assert full_op._simulation is None
+    assert full_op._simulation == 1
     full_op._remove()
-    assert not hasattr(full_op, '_simulation')
+    assert full_op._simulation is None
 
 
 def test_apply_typeparam_dict(full_op):
@@ -121,7 +122,7 @@ def test_apply_param_dict(full_op):
 def attached(full_op):
     cp = deepcopy(full_op)
     op = test_apply_param_dict(test_apply_typeparam_dict(cp))
-    op._add(None)
+    op._add(1)
     return op
 
 

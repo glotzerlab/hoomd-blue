@@ -60,9 +60,9 @@ class LJ(SpecialPair):
         \begin{eqnarray*}
         V_{\mathrm{LJ}}(r)  = & 4 \varepsilon
             \left[ \left( \frac{\sigma}{r} \right)^{12} -
-                   \left( \frac{\sigma}{r} \right)^{6} \right]
+                   \left( \frac{\sigma}{r} \right)^{6} \right];
                               & r < r_{\mathrm{cut}} \\
-                            = & 0 & r \ge r_{\mathrm{cut}} \\
+                            = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     where :math:`\vec{r}` is the vector pointing from one particle to the other
@@ -122,9 +122,9 @@ class Coulomb(SpecialPair):
 
         \begin{eqnarray*}
         V_{\mathrm{Coulomb}}(r)  = & \alpha \cdot
-                                     \left[ \frac{q_{a}q_{b}}{r} \right]
+                                     \left[ \frac{q_{a}q_{b}}{r} \right];
                                    & r < r_{\mathrm{cut}} \\
-                                 = & 0 & r \ge r_{\mathrm{cut}} \\
+                                 = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     where :math:`\vec{r}` is the vector pointing from one particle to the other

@@ -20,8 +20,10 @@ using namespace std;
 */
 TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
-                           std::shared_ptr<Variant> T)
-    : TwoStepBD(sysdef, group, T)
+                           std::shared_ptr<Variant> T,
+                           bool noiseless_t,
+                           bool noiseless_r)
+    : TwoStepBD(sysdef, group, T, noiseless_t, noiseless_r)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -166,5 +168,7 @@ void export_TwoStepBDGPU(py::module& m)
     py::class_<TwoStepBDGPU, TwoStepBD, std::shared_ptr<TwoStepBDGPU>>(m, "TwoStepBDGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>>());
+                      std::shared_ptr<Variant>,
+                      bool,
+                      bool>());
     }

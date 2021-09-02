@@ -165,7 +165,8 @@ def test_setitem(synced_list, op_list):
 
     # Check when attached
     sync_list = []
-    synced_list._sync(None, sync_list)
+    # need a non-None dummy simulation 1 works
+    synced_list._sync(1, sync_list)
     new_op = DummyOperation()
     old_op = synced_list[1]
     synced_list[1] = new_op

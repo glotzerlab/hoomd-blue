@@ -12,6 +12,7 @@ md.methods.rattle
     Brownian
     Langevin
     NVE
+    OverdampedViscous
 
 .. rubric:: Details
 
@@ -20,4 +21,5 @@ md.methods.rattle
     :members: MethodRATTLE,
         Brownian,
         Langevin,
-        NVE
+        NVE,
+        OverdampedViscous

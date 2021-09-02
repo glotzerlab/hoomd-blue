@@ -11,11 +11,11 @@ from hoomd.operation import Writer
 class _WriterProperty:
 
     @property
-    def analyzer(self):
+    def writer(self):
         return self._action
 
-    @analyzer.setter
-    def analyzer(self, analyzer):
+    @writer.setter
+    def writer(self, analyzer):
         if isinstance(analyzer, Action):
             self._action = analyzer
         else:
@@ -49,6 +49,10 @@ class CustomWriter(CustomOperation, _WriterProperty, Writer):
     _cpp_class_name = 'PythonAnalyzer'
 
 
-class _InternalCustomWriter(_InternalCustomOperation, _WriterProperty, Writer):
+class _InternalCustomWriter(_InternalCustomOperation, Writer):
     _cpp_list_name = 'analyzers'
     _cpp_class_name = 'PythonAnalyzer'
+    _operation_func = "write"
+
+    def write(self, timestep):
+        return self._action.act(timestep)
