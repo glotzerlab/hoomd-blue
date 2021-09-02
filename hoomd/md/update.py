@@ -267,14 +267,6 @@ class ActiveRotationalDiffusion(Updater):
         self._add_dependency(active_force)
         self._param_dict.update(param_dict)
 
-    def _add(self, simulation):
-        if (self.active_force._added
-                and self.active_force._simulation is not simulation):
-            raise SimulationDefinitionError(
-                "Active force for ActiveRotationalDiffusion object belongs to"
-                "another simulation.")
-        super()._add(simulation)
-
     def _attach(self):
         # Since integrators are attached first, if the active force is not
         # attached then the active force is not a part of the simulation, and we
