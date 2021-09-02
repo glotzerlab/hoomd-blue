@@ -19,7 +19,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -46,7 +45,6 @@ void export_convex_polygon(py::module& m)
     export_ExternalFieldInterface<ShapeConvexPolygon>(m, "ExternalFieldConvexPolygon");
     export_LatticeField<ShapeConvexPolygon>(m, "ExternalFieldLatticeConvexPolygon");
     export_ExternalFieldComposite<ShapeConvexPolygon>(m, "ExternalFieldCompositeConvexPolygon");
-    export_RemoveDriftUpdater<ShapeConvexPolygon>(m, "RemoveDriftUpdaterConvexPolygon");
     // export_ExternalFieldWall<ShapeConvexPolygon>(m, "WallConvexPolygon");
     // export_UpdaterExternalFieldWall<ShapeConvexPolygon>(m,
     // "UpdaterExternalFieldWallConvexPolygon");

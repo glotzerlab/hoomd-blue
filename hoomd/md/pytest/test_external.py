@@ -120,10 +120,11 @@ def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
         sim.run(10)
 
         # test energies
-        new_snap = sim.state.snapshot
+        new_snap = sim.state.get_snapshot()
         forces = sim.operations.integrator.forces[0].forces
         energies = sim.operations.integrator.forces[0].energies
         if new_snap.communicator.rank == 0:
             expected_forces, expected_energies = evaluator(new_snap, param)
             np.testing.assert_allclose(expected_forces, forces)
-            np.testing.assert_allclose(expected_energies, energies)
+            # set atol as the energies are very close to 0
+            np.testing.assert_allclose(expected_energies, energies, atol=1e-5)

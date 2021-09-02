@@ -48,31 +48,44 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLENVE : public Integra
                      bool skip_restart,
                      Scalar tolerance);
 
-    virtual ~TwoStepRATTLENVE()
-        {
-        m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLENVE" << endl;
-        }
+    virtual ~TwoStepRATTLENVE();
 
     //! Sets the movement limit
-    void setLimit(Scalar limit)
+    void setLimit(pybind11::object limit)
         {
-        m_limit = true;
-        m_limit_val = limit;
+        if (limit.is_none())
+            {
+            m_limit = false;
+            }
+        else
+            {
+            m_limit = true;
+            m_limit_val = pybind11::cast<Scalar>(limit);
+            }
         }
 
-    //! Removes the limit
-    void removeLimit()
+    pybind11::object getLimit()
         {
-        m_limit = false;
+        pybind11::object result;
+        if (m_limit)
+            {
+            result = pybind11::cast(m_limit_val);
+            }
+        else
+            {
+            result = pybind11::none();
+            }
+        return result;
         }
 
-    //! Sets the zero force option
-    /*! \param zero_force Set to true to specify that the integration with a zero net force on each
-       of the particles in the group
-    */
     void setZeroForce(bool zero_force)
         {
         m_zero_force = zero_force;
+        }
+
+    bool getZeroForce()
+        {
+        return m_zero_force;
         }
 
     //! Performs the first step of the integration
@@ -107,12 +120,19 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLENVE : public Integra
         };
 
     protected:
+    //! Helper function to be called when box changes
+    void setBoxChange()
+        {
+        m_box_changed = true;
+        }
+
     Manifold m_manifold; //!< The manifold used for the RATTLE constraint
     bool m_limit;        //!< True if we should limit the distance a particle moves in one step
     Scalar m_limit_val;  //!< The maximum distance a particle is to move in one step
     Scalar m_tolerance;  //!< The tolerance value of the RATTLE algorithm, setting the tolerance to
                          //!< the manifold
     bool m_zero_force;   //!< True if the integration step should ignore computed forces
+    bool m_box_changed;
     };
 
 /*! \file TwoStepRATTLENVE.h
@@ -132,9 +152,13 @@ TwoStepRATTLENVE<Manifold>::TwoStepRATTLENVE(std::shared_ptr<SystemDefinition> s
                                              bool skip_restart,
                                              Scalar tolerance)
     : IntegrationMethodTwoStep(sysdef, group), m_manifold(manifold), m_limit(false),
-      m_limit_val(1.0), m_tolerance(tolerance), m_zero_force(false)
+      m_limit_val(1.0), m_tolerance(tolerance), m_zero_force(false), m_box_changed(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLENVE" << endl;
+
+    m_pdata->getBoxChangeSignal()
+        .template connect<TwoStepRATTLENVE<Manifold>, &TwoStepRATTLENVE<Manifold>::setBoxChange>(
+            this);
 
     if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
         {
@@ -157,6 +181,14 @@ TwoStepRATTLENVE<Manifold>::TwoStepRATTLENVE(std::shared_ptr<SystemDefinition> s
 
         setIntegratorVariables(v);
         }
+    }
+
+template<class Manifold> TwoStepRATTLENVE<Manifold>::~TwoStepRATTLENVE()
+    {
+    m_pdata->getBoxChangeSignal()
+        .template disconnect<TwoStepRATTLENVE<Manifold>, &TwoStepRATTLENVE<Manifold>::setBoxChange>(
+            this);
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLENVE" << endl;
     }
 
 /*! \param timestep Current time step
@@ -183,9 +215,13 @@ template<class Manifold> void TwoStepRATTLENVE<Manifold>::integrateStepOne(uint6
 
     const BoxDim& box = m_pdata->getBox();
 
-    if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+    if (m_box_changed)
         {
-        throw std::runtime_error("Parts of the manifold are outside the box");
+        if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+            {
+            throw std::runtime_error("Parts of the manifold are outside the box");
+            }
+        m_box_changed = false;
         }
 
     // perform the first half step of the RATTLE algorithm applied on velocity verlet
@@ -646,9 +682,12 @@ template<class Manifold> void export_TwoStepRATTLENVE(py::module& m, const std::
                       Manifold,
                       bool,
                       Scalar>())
-        .def("setLimit", &TwoStepRATTLENVE<Manifold>::setLimit)
-        .def("removeLimit", &TwoStepRATTLENVE<Manifold>::removeLimit)
-        .def("setZeroForce", &TwoStepRATTLENVE<Manifold>::setZeroForce)
+        .def_property("limit",
+                      &TwoStepRATTLENVE<Manifold>::getLimit,
+                      &TwoStepRATTLENVE<Manifold>::setLimit)
+        .def_property("zero_force",
+                      &TwoStepRATTLENVE<Manifold>::getZeroForce,
+                      &TwoStepRATTLENVE<Manifold>::setZeroForce)
         .def_property("tolerance",
                       &TwoStepRATTLENVE<Manifold>::getTolerance,
                       &TwoStepRATTLENVE<Manifold>::setTolerance);

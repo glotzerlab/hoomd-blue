@@ -11,7 +11,6 @@ When an updater is specified, it acts on the particle system each time step it
 is triggered to change its state.
 """
 
-from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
 from hoomd.operation import Updater
@@ -44,93 +43,6 @@ class ZeroMomentum(Updater):
         self._cpp_obj = _md.ZeroMomentumUpdater(
             self._simulation.state._cpp_sys_def)
         super()._attach()
-
-
-class constraint_ellipsoid:  # noqa: N801 (this will be removed)
-    """Constrain particles to the surface of a ellipsoid.
-
-    Args:
-        group (``hoomd.group``): Group for which the update will be set
-        P (tuple): (x,y,z) tuple indicating the position of the center of the
-            ellipsoid (in distance units).
-        rx (float): radius of an ellipsoid in the X direction (in distance
-            units).
-        ry (float): radius of an ellipsoid in the Y direction (in distance
-            units).
-        rz (float): radius of an ellipsoid in the Z direction (in distance
-            units).
-        r (float): radius of a sphere (in distance units), such that r=rx=ry=rz.
-
-    `constraint_ellipsoid` specifies that all particles are constrained to the
-    surface of an ellipsoid. Each time step particles are projected onto the
-    surface of the ellipsoid. Method from:
-    http://www.geometrictools.com/Documentation/\
-            DistancePointEllipseEllipsoid.pdf
-
-    .. attention::
-        For the algorithm to work, we must have :math:`rx >= rz,~ry >= rz,~rz >
-        0`.
-
-    Note:
-        This method does not properly conserve virial coefficients.
-
-    Note:
-        random thermal forces from the integrator are applied in 3D not 2D,
-        therefore they aren't fully accurate.  Suggested use is therefore only
-        for T=0.
-
-    Examples::
-
-        update.constraint_ellipsoid(P=(-1,5,0), r=9)
-        update.constraint_ellipsoid(rx=7, ry=5, rz=3)
-
-    """
-
-    def __init__(self, group, r=None, rx=None, ry=None, rz=None, P=(0, 0, 0)):
-        period = 1
-
-        # Error out in MPI simulations
-        if (hoomd.version.mpi_enabled):
-            if hoomd.context.current.system_definition.getParticleData(
-            ).getDomainDecomposition():
-                hoomd.context.current.device.cpp_msg.error(
-                    "constrain.ellipsoid is not supported in multi-processor "
-                    "simulations.\n\n")
-                raise RuntimeError("Error initializing updater.")
-
-        # Error out if no radii are set
-        if (r is None and rx is None and ry is None and rz is None):
-            hoomd.context.current.device.cpp_msg.error(
-                "no radii were defined in update.constraint_ellipsoid.\n\n")
-            raise RuntimeError("Error initializing updater.")
-
-        # initialize the base class
-        # _updater.__init__(self)
-
-        # Set parameters
-        P = _hoomd.make_scalar3(P[0], P[1], P[2])
-        if (r is not None):
-            rx = ry = rz = r
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_updater = _md.ConstraintEllipsoid(
-                hoomd.context.current.system_definition, group.cpp_group, P, rx,
-                ry, rz)
-        else:
-            self.cpp_updater = _md.ConstraintEllipsoidGPU(
-                hoomd.context.current.system_definition, group.cpp_group, P, rx,
-                ry, rz)
-
-        self.setupUpdater(period)
-
-        # store metadata
-        self.group = group
-        self.P = P
-        self.rx = rx
-        self.ry = ry
-        self.rz = rz
-        self.metadata_fields = ['group', 'P', 'rx', 'ry', 'rz']
 
 
 class ReversePerturbationFlow(Updater):

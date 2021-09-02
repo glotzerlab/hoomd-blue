@@ -66,13 +66,13 @@ def test_after_attaching(valid_args, simulation_factory,
 
     sim.run(10)
     if not np.isnan(sdf.sdf).all():
-        assert sim.state.snapshot.communicator.rank == 0
+        assert sim.device.communicator.rank == 0
         assert isinstance(sdf.sdf, np.ndarray)
         assert len(sdf.sdf) > 0
         assert isinstance(sdf.betaP, float)
         assert not np.isclose(sdf.betaP, 0)
     else:
-        assert sim.state.snapshot.communicator.rank > 0
+        assert sim.device.communicator.rank > 0
         assert sdf.betaP is None
 
 
@@ -187,7 +187,7 @@ def test_values(simulation_factory, lattice_snapshot_factory):
     sim.run(6000)
 
     sdf_data = np.asarray(sdf_log.data)
-    if sim.state.snapshot.communicator.rank == 0:
+    if sim.device.communicator.rank == 0:
         # skip the first frame in averaging, then check that all values are
         # within 3 error bars of the reference avg. This seems sufficient to get
         # good test results even with different seeds or GPU runs

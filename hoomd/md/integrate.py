@@ -169,13 +169,10 @@ class Integrator(_DynamicIntegrator):
             rigid bodies in the simulation.
 
 
-    The following classes can be used as elements in `methods`
+    Classes of the following modules can be used as elements in `methods`:
 
-    - `hoomd.md.methods.Brownian`
-    - `hoomd.md.methods.Langevin`
-    - `hoomd.md.methods.NVE`
-    - `hoomd.md.methods.NVT`
-    - `hoomd.md.methods.NPT`
+    - `hoomd.md.methods`
+    - `hoomd.md.methods.rattle`
 
     The classes of following modules can be used as elements in `forces`
 
@@ -194,6 +191,7 @@ class Integrator(_DynamicIntegrator):
 
     - `hoomd.md.constrain`
 
+
     Examples::
 
         nlist = hoomd.md.nlist.Cell()
@@ -208,16 +206,16 @@ class Integrator(_DynamicIntegrator):
     Attributes:
         dt (float): Integrator time step size :math:`[\\mathrm{time}]`.
 
-        methods (List[hoomd.md.methods.Method]): List of integration methods.
+        methods (list[hoomd.md.methods.Method]): List of integration methods.
             Each integration method can be applied to only a specific subset of
             particles.
 
-        forces (List[hoomd.md.force.Force]): List of forces applied to
+        forces (list[hoomd.md.force.Force]): List of forces applied to
             the particles in the system. All the forces are summed together.
 
         aniso (str): Whether rotational degrees of freedom are integrated.
 
-        constraints (List[hoomd.md.constrain.Constraint]): List of
+        constraints (list[hoomd.md.constrain.Constraint]): List of
             constraint forces applied to the particles in the system.
 
         rigid (hoomd.md.constrain.Rigid): The rigid body definition for the

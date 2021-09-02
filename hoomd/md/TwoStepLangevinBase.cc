@@ -52,42 +52,11 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma_r.size(); i++)
         h_gamma_r.data[i] = make_scalar3(1.0, 1.0, 1.0);
-
-    // connect to the ParticleData to receive notifications when the maximum number of particles
-    // changes
-    m_pdata->getNumTypesChangeSignal()
-        .connect<TwoStepLangevinBase, &TwoStepLangevinBase::slotNumTypesChange>(this);
     }
 
 TwoStepLangevinBase::~TwoStepLangevinBase()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepLangevinBase" << endl;
-    m_pdata->getNumTypesChangeSignal()
-        .disconnect<TwoStepLangevinBase, &TwoStepLangevinBase::slotNumTypesChange>(this);
-    }
-
-void TwoStepLangevinBase::slotNumTypesChange()
-    {
-    // skip the reallocation if the number of types does not change
-    // this keeps old parameters when restoring a snapshot
-    // it will result in invalid coefficients if the snapshot has a different type id -> name
-    // mapping
-    if (m_pdata->getNTypes() == m_gamma.size())
-        return;
-
-    // re-allocate memory for the per-type gamma storage and initialize them to 1.0
-    unsigned int old_ntypes = (unsigned int)m_gamma.size();
-    m_gamma.resize(m_pdata->getNTypes());
-    m_gamma_r.resize(m_pdata->getNTypes());
-
-    ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
-
-    for (unsigned int i = old_ntypes; i < m_gamma.size(); i++)
-        {
-        h_gamma.data[i] = Scalar(1.0);
-        h_gamma_r.data[i] = make_scalar3(1.0, 1.0, 1.0);
-        }
     }
 
 void TwoStepLangevinBase::setGamma(const std::string& type_name, Scalar gamma)

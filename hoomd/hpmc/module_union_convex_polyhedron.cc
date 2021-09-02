@@ -18,7 +18,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -60,9 +59,6 @@ void export_union_convex_polyhedron(py::module& m)
     export_ExternalFieldComposite<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
         "ExternalFieldCompositeConvexPolyhedronUnion");
-    export_RemoveDriftUpdater<ShapeUnion<ShapeSpheropolyhedron>>(
-        m,
-        "RemoveDriftUpdaterConvexPolyhedronUnion");
     export_ExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron>>(m, "WallConvexPolyhedronUnion");
     export_UpdaterExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron>>(
         m,

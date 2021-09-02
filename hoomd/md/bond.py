@@ -381,3 +381,86 @@ class table(force._force):  # noqa - Will be renamed when updated for v3
                             rmin=rmin_table,
                             rmax=rmax_table,
                             coeff=dict(V=V_table, F=F_table, width=self.width))
+
+
+class Tether(Bond):
+    r"""Tethering bond potential.
+
+    :py:class:`Tether` specifies a Tethering potential energy between two
+    particles in each defined bond.
+
+    The tethered network is described in Refs.
+    `Gompper, G. & Kroll, D. M. in Statistical Mechanics of Membranes and
+    Surfaces 2nd edn (eds Nelson, D. R. et al.) 359-426 (World Scientific, 2004)
+    <https://www.worldscientific.com/worldscibooks/10.1142/5473>`_ and `Noguchi
+    , H. & Gompper, G., Phys. Rev. E 72 011901 (2005)
+    <https://link.aps.org/doi/10.1103/PhysRevE.72.011901>`_.
+
+    .. math::
+
+        V(r) = V_{\mathrm{att}}(r) + V_{\mathrm{rep}}(r)
+
+    where :math:`\vec{r}` is the vector pointing from one particle to the other
+    in the bond.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{att}}(r)  = & k_b \frac{exp(1/(l_{c0}-r)}{l_{max}-r}
+                                & r > l_{c0}\\
+                                = & 0
+                                & r \leq l_{c0}
+        \end{eqnarray*}
+
+    .. math::
+
+        \begin{eqnarray*}
+        V_{\mathrm{rep}}(r)  = & k_b \frac{exp(1/(r-l_{c1})}{r-l_{min}}
+                                & r < l_{c1}\\
+                                = & 0
+                                & r \ge l_{c1}
+        \end{eqnarray*}
+
+    .. math::
+        l_{min} < l_{c1} < l_{c0} < l_{max}
+
+
+    Attributes:
+        params (TypeParameter[``bond type``, dict]):
+            The parameter of the Tethering potential bonds.
+            The dictionary has the following keys:
+
+            * ``k_b`` (`float`, **required**) - bond stiffness
+              :math:`[\mathrm{energy}]`
+
+            * ``l_min`` (`float`, **required**) - minimum bond length
+              :math:`[\mathrm{length}]`
+
+            * ``l_c1`` (`float`, **required**) - cutoff distance of repulsive
+              part :math:`[\mathrm{length}]`
+
+            * ``l_c0`` (`float`, **required**) - cutoff distance of attractive
+              part :math:`[\mathrm{length}]`
+
+            * ``l_max`` (`float`, **required**) - maximum bond length
+              :math:`[\mathrm{length}]`
+
+    Examples::
+
+        bond_potential = bond.Tether()
+        bond_potential.params['tether'] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
+                                               l_c0=1.8, l_max=2.1)
+    """
+    _cpp_class_name = "PotentialBondTether"
+
+    def __init__(self):
+        params = TypeParameter(
+            "params", "bond_types",
+            TypeParameterDict(k_b=float,
+                              l_min=float,
+                              l_c1=float,
+                              l_c0=float,
+                              l_max=float,
+                              len_keys=1))
+        self._add_typeparam(params)

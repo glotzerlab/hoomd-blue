@@ -8,7 +8,6 @@
 */
 
 #include "System.h"
-#include "SignalHandler.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
@@ -86,7 +85,6 @@ void System::setCommunicator(std::shared_ptr<Communicator> comm)
 
 void System::run(uint64_t nsteps, bool write_at_start)
     {
-    ScopedSignalHandler signal_handler;
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
 
@@ -164,13 +162,10 @@ void System::run(uint64_t nsteps, bool write_at_start)
 
         updateTPS();
 
-        // quit if Ctrl-C was pressed
-        if (g_sigint_recvd)
+        // propagate Python exceptions related to signals
+        if (PyErr_CheckSignals() != 0)
             {
-            g_sigint_recvd = 0;
-            PyErr_SetString(PyExc_KeyboardInterrupt, "");
-            throw pybind11::error_already_set();
-            return;
+            throw py::error_already_set();
             }
         }
 

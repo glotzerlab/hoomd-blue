@@ -99,6 +99,7 @@ def test_apply_typeparam_dict(full_op):
     """Tests _apply_typeparam_dict and by necessity getattr."""
     full_op.type_param['A'] = dict(bar='world')
     full_op.type_param['B'] = dict(bar='hello')
+    full_op.type_param['C'] = dict(bar='hello world')
     cpp_obj = DummyCppObj()
     full_op._cpp_obj = cpp_obj
     full_op._apply_typeparam_dict(cpp_obj, DummySimulation())
