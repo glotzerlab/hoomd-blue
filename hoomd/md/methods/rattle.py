@@ -487,10 +487,10 @@ class OverdampedViscous(MethodRATTLE):
 
         sphere = hoomd.md.manifold.Sphere(r=10)
         odv_rattle = hoomd.md.methods.rattle.OverdampedViscous(
-        filter=hoomd.filter.All(), manifold_constraint=sphere,
-        seed=1, alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[odv_rattle],
-        forces=[lj])
+            filter=hoomd.filter.All(), manifold_constraint=sphere, seed=1,
+            alpha=1.0)
+        integrator = hoomd.md.Integrator(
+            dt=0.001, methods=[odv_rattle], forces=[lj])
 
 
     Attributes:
