@@ -37,6 +37,8 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoSt
                        std::shared_ptr<ParticleGroup> group,
                        Manifold manifold,
                        std::shared_ptr<Variant> T,
+                       bool noiseless_t,
+                       bool noiseless_r,
                        Scalar tolerance);
 
     virtual ~TwoStepRATTLEBDGPU() {};
@@ -64,8 +66,10 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
                                                  std::shared_ptr<ParticleGroup> group,
                                                  Manifold manifold,
                                                  std::shared_ptr<Variant> T,
+                                                 bool noiseless_t,
+                                                 bool noiseless_r,
                                                  Scalar tolerance)
-    : TwoStepRATTLEBD<Manifold>(sysdef, group, manifold, T, tolerance)
+    : TwoStepRATTLEBD<Manifold>(sysdef, group, manifold, T, noiseless_t, noiseless_r, tolerance)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
@@ -288,6 +292,8 @@ template<class Manifold> void export_TwoStepRATTLEBDGPU(py::module& m, const std
                       std::shared_ptr<ParticleGroup>,
                       Manifold,
                       std::shared_ptr<Variant>,
+                      bool,
+                      bool,
                       Scalar>());
     }
 #endif // ENABLE_HIP

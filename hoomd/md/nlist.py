@@ -82,12 +82,6 @@ class NList(_HOOMDBaseObject):
             :math:`[\mathrm{length}]`.
     """
 
-    _remove_for_pickling = _HOOMDBaseObject._remove_for_pickling + (
-        '_cpp_cell',)
-    _skip_for_equality = _HOOMDBaseObject._skip_for_equality | {
-        '_cpp_cell',
-    }
-
     def __init__(self, buffer, exclusions, rebuild_check_delay, diameter_shift,
                  check_dist, max_diameter):
 
@@ -113,6 +107,16 @@ class NList(_HOOMDBaseObject):
         list rebuilds during the previous `Simulation.run`.
         """
         return self._cpp_obj.getSmallestRebuild()
+
+    def _remove_dependent(self, obj):
+        super()._remove_dependent(obj)
+        if len(self._dependents) == 0:
+            if self._attached:
+                self._detach()
+                self._remove()
+                return
+            if self._added:
+                self._remove()
 
     # TODO need to add tuning Updater for NList
 

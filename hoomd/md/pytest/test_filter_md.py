@@ -127,7 +127,7 @@ def test_custom_filter(make_filter_snapshot, simulation_factory):
     langevin = md.methods.Langevin(charge_filter, 1.0)
     sim.operations += md.Integrator(0.005, methods=[langevin])
     sim.run(100)
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         assert not np.allclose(snap.particles.position[negative_charge_ind],
                                original_positions)

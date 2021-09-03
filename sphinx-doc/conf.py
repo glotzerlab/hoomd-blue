@@ -28,7 +28,7 @@ napoleon_include_special_with_doc = True
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
     'gsd': ('https://gsd.readthedocs.io/en/stable/', None)
 }
 autodoc_docstring_signature = True

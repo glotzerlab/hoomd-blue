@@ -23,7 +23,8 @@ md.force
     .. autoclass:: Active
         :show-inheritance:
         :no-inherited-members:
+        :members: create_diffusion_updater
 
     .. autoclass:: ActiveOnManifold
         :show-inheritance:
-        :no-inherited-members:
+        :members: create_diffusion_updater

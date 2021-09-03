@@ -4,15 +4,11 @@ from hoomd.conftest import pickling_check
 
 
 def test_attributes():
-    active = hoomd.md.force.Active(filter=hoomd.filter.All(),
-                                   rotation_diff=0.01)
+    active = hoomd.md.force.Active(filter=hoomd.filter.All())
 
-    assert active.rotation_diff == 0.01
     assert active.active_force['A'] == (1.0, 0.0, 0.0)
     assert active.active_torque['A'] == (0.0, 0.0, 0.0)
 
-    active.rotation_diff = 0.1
-    assert active.rotation_diff == 0.1
     active.active_force['A'] = (0.5, 0.0, 0.0)
     assert active.active_force['A'] == (0.5, 0.0, 0.0)
     active.active_force['A'] = (0.0, 0.0, 1.0)
@@ -22,16 +18,12 @@ def test_attributes():
 def test_attributes_constraints():
     plane = hoomd.md.manifold.Plane()
     active = hoomd.md.force.ActiveOnManifold(filter=hoomd.filter.All(),
-                                             rotation_diff=0.01,
                                              manifold_constraint=plane)
 
-    assert active.rotation_diff == 0.01
     assert active.active_force['A'] == (1.0, 0.0, 0.0)
     assert active.active_torque['A'] == (0.0, 0.0, 0.0)
     assert active.manifold_constraint == plane
 
-    active.rotation_diff = 0.1
-    assert active.rotation_diff == 0.1
     active.active_force['A'] = (0.5, 0.0, 0.0)
     assert active.active_force['A'] == (0.5, 0.0, 0.0)
     active.active_force['A'] = (0.0, 0.0, 1.0)
@@ -44,8 +36,7 @@ def test_attributes_constraints():
 
 
 def test_attach(simulation_factory, two_particle_snapshot_factory):
-    active = hoomd.md.force.Active(filter=hoomd.filter.All(),
-                                   rotation_diff=0.01)
+    active = hoomd.md.force.Active(filter=hoomd.filter.All())
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=8))
     integrator = hoomd.md.Integrator(.05)
@@ -55,12 +46,9 @@ def test_attach(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
     sim.run(0)
 
-    assert active.rotation_diff == 0.01
     assert active.active_force['A'] == (1.0, 0.0, 0.0)
     assert active.active_torque['A'] == (0.0, 0.0, 0.0)
 
-    active.rotation_diff = 0.1
-    assert active.rotation_diff == 0.1
     active.active_force['A'] = (0.5, 0.0, 0.0)
     assert active.active_force['A'] == (0.5, 0.0, 0.0)
     active.active_force['A'] = (0.0, 0.0, 1.0)
@@ -70,7 +58,6 @@ def test_attach(simulation_factory, two_particle_snapshot_factory):
 def test_attach_manifold(simulation_factory, two_particle_snapshot_factory):
     plane = hoomd.md.manifold.Plane()
     active = hoomd.md.force.ActiveOnManifold(filter=hoomd.filter.All(),
-                                             rotation_diff=0.01,
                                              manifold_constraint=plane)
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=8))
@@ -81,13 +68,10 @@ def test_attach_manifold(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
     sim.run(0)
 
-    assert active.rotation_diff == 0.01
     assert active.active_force['A'] == (1.0, 0.0, 0.0)
     assert active.active_torque['A'] == (0.0, 0.0, 0.0)
     assert active.manifold_constraint == plane
 
-    active.rotation_diff = 0.1
-    assert active.rotation_diff == 0.1
     active.active_force['A'] = (0.5, 0.0, 0.0)
     assert active.active_force['A'] == (0.5, 0.0, 0.0)
     active.active_force['A'] = (0.0, 0.0, 1.0)
@@ -100,8 +84,7 @@ def test_attach_manifold(simulation_factory, two_particle_snapshot_factory):
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
-    active = hoomd.md.force.Active(filter=hoomd.filter.All(),
-                                   rotation_diff=0.01)
+    active = hoomd.md.force.Active(filter=hoomd.filter.All())
     pickling_check(active)
     integrator = hoomd.md.Integrator(
         .05,
@@ -116,7 +99,6 @@ def test_pickling_constraint(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
     active = hoomd.md.force.ActiveOnManifold(
         filter=hoomd.filter.All(),
-        rotation_diff=0.01,
         manifold_constraint=hoomd.md.manifold.Plane())
     pickling_check(active)
     integrator = hoomd.md.Integrator(

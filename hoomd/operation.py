@@ -8,6 +8,7 @@
 # Triggered objects should inherit from _TriggeredOperation.
 
 from copy import copy
+import itertools
 
 from hoomd.trigger import Trigger
 from hoomd.logging import Loggable
@@ -30,10 +31,16 @@ class _HOOMDGetSetAttrBase:
         _param_dict (ParameterDict): The `ParameterDict` for the class/instance.
         _typeparam_dict (dict[str, TypeParameter]): A dict of all the
             TypeParameters for the class/instance.
+        _skip_for_equality (set[str]): The attribute names to not use for
+            equality checks used during tests. This will not effect attributes
+            that exist due to ``__getattr__`` such as those from ``_param_dict``
+            or ``_typeparam_dict``.
     """
     _reserved_default_attrs = dict(_param_dict=ParameterDict,
                                    _typeparam_dict=dict)
     _override_setattr = set()
+
+    _skip_for_equality = set()
 
     def __getattr__(self, attr):
         if attr in self._reserved_default_attrs.keys():
@@ -93,13 +100,11 @@ class _HOOMDGetSetAttrBase:
             raise ValueError("To set {}, you must use a dictionary "
                              "with types as keys.".format(attr))
 
-    def __eq__(self, other):
-        if not isinstance(other, _HOOMDGetSetAttrBase):
-            return NotImplemented
-        return (self._param_dict == other._param_dict and all(
-            set(self._typeparam_dict.keys()) == set(other._typeparam_dict.keys(
-            )) and self._typeparam_dict[k] == other._typeparam_dict[k]
-            for k in self._typeparam_dict))
+    def __dir__(self):
+        """Expose all attributes for dynamic querying in notebooks and IDEs."""
+        return super().__dir__() + [
+            k for k in itertools.chain(self._param_dict, self._typeparam_dict)
+        ]
 
 
 class _DependencyRelation:
@@ -110,53 +115,59 @@ class _DependencyRelation:
     object that use this class may not deal directly with dependencies.
 
     Note:
+        This only handles one way dependencies. Circular dependencies are out of
+        scope for now.
+
+    Note:
+        This class expects that the ``_dependents`` and ``_dependencies`` are
+        available.
+
+    Note:
         We could be more specific in the inheritance of this class to only use
         it when the class needs to deal with a dependency.
     """
 
-    def __init__(self):
-        self._dependents = []
-        self._dependencies = []
-
     def _add_dependent(self, obj):
         """Adds a dependent to the object's dependent list."""
-        if obj not in self._dependencies:
+        if obj not in self._dependents:
             self._dependents.append(obj)
             obj._dependencies.append(self)
 
-    def _notify_disconnect(self, *args, **kwargs):
+    def _add_dependency(self, obj):
+        """Adds a dependency to the object's dependency list."""
+        if obj not in self._dependencies:
+            obj._dependents.append(self)
+            self._dependencies.append(obj)
+
+    def _notify_disconnect(self):
         """Notify that an object is being removed from all relationships.
 
         Notifies dependent object that it is being removed, and removes itself
-        from its dependencies' list of dependents. Uses ``args`` and
-        ``kwargs`` to allow flexibility in what information is given to
-        dependents from dependencies.
+        from its dependencies' list of dependents. By default the method passes
+        itself to all dependents' ``_handle_removed_dependency`` methods.
 
         Note:
-            This implementation does require that all dependents take in the
-            same information, or at least that the passed ``args`` and
-            ``kwargs`` can be used for all dependents'
-            ``_handle_removed_dependency`` method.
+            If more information is needed to pass to _handle_removed_dependency,
+            then overwrite this method.
         """
         for dependent in self._dependents:
-            dependent.handle_detached_dependency(self, *args, **kwargs)
+            dependent._handle_removed_dependency(self)
         self._dependents = []
         for dependency in self._dependencies:
             dependency._remove_dependent(self)
         self._dependencies = []
 
-    def _handle_removed_dependency(self, obj, *args, **kwargs):
+    def _handle_removed_dependency(self, obj):
         """Handles having a dependency removed.
 
-        Must be implemented by objects that have dependencies. Uses ``args`` and
-        ``kwargs`` to allow flexibility in what information is given to
-        dependents from dependencies.
+        Default behavior does nothing. Overwrite to enable handling detaching of
+        dependencies.
         """
         pass
 
     def _remove_dependent(self, obj):
         """Removes a dependent from the list of dependencies."""
-        self._dependencies.remove(obj)
+        self._dependents.remove(obj)
 
 
 class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
@@ -184,13 +195,13 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     """
     _reserved_default_attrs = {
         **_HOOMDGetSetAttrBase._reserved_default_attrs, '_cpp_obj': None,
+        '_simulation': None,
         '_dependents': list,
         '_dependencies': list
     }
 
     _skip_for_equality = {
-        '_cpp_obj', '_dependent_list', '_param_dict', '_typeparam_dict',
-        '_simulation'
+        '_cpp_obj', '_dependents', '_dependencies', '_simulation'
     }
     _remove_for_pickling = ('_simulation', '_cpp_obj')
 
@@ -216,24 +227,16 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
                 raise AttributeError("{} cannot be set after cpp"
                                      " initialization".format(attr))
 
-    def __eq__(self, other):
-        other_keys = other.__dict__.keys()
-        for key in self.__dict__.keys():
-            if key in self._skip_for_equality:
-                continue
-            elif (key not in other_keys
-                  or self.__dict__[key] != other.__dict__[key]):
-                return False
-        return super().__eq__(other)
-
     def _detach(self):
         if self._attached:
             self._unapply_typeparam_dict()
             self._update_param_dict()
-            self._cpp_obj.notifyDetach()
-
+            if hasattr(self._cpp_obj, "notifyDetach"):
+                self._cpp_obj.notifyDetach()
+            # In case the C++ object is necessary for proper disconnect
+            # notification we call _notify_disconnect here as well.
+            self._notify_disconnect()
             self._cpp_obj = None
-            self._notify_disconnect(self._simulation)
             return self
 
     def _attach(self):
@@ -252,11 +255,18 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         self._simulation = simulation
 
     def _remove(self):
-        del self._simulation
+        # Since objects can be added without being attached, we need to call
+        # _notify_disconnect on both _remove and _detach. The method should be
+        # do nothing after being called onces so being called twice is not a
+        # concern. I should note that if
+        # `hoomd.operations.Operations._unschedule` is called this is
+        # invalidated, but as that is not public facing this should be fine.
+        self._notify_disconnect()
+        self._simulation = None
 
     @property
     def _added(self):
-        return hasattr(self, '_simulation')
+        return self._simulation is not None
 
     def _apply_param_dict(self):
         for attr, value in self._param_dict.items():
@@ -362,7 +372,7 @@ class _TriggeredOperation(Operation):
             for key in self._param_dict:
                 if key == 'trigger':
                     continue
-                self._param_dict[key] = getattr(self._cpp_obj, key)
+                self._param_dict[key] = getattr(self, key)
 
 
 class Updater(_TriggeredOperation):

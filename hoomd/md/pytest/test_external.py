@@ -120,7 +120,7 @@ def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
         sim.run(10)
 
         # test energies
-        new_snap = sim.state.snapshot
+        new_snap = sim.state.get_snapshot()
         forces = sim.operations.integrator.forces[0].forces
         energies = sim.operations.integrator.forces[0].energies
         if new_snap.communicator.rank == 0:

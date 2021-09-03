@@ -122,7 +122,7 @@ def check_bodies(snapshot, definition):
 
 @skip_rowan
 def test_create_bodies(simulation_factory, two_particle_snapshot_factory,
-                       valid_body_definition):
+                       lattice_snapshot_factory, valid_body_definition):
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
 
@@ -132,9 +132,48 @@ def test_create_bodies(simulation_factory, two_particle_snapshot_factory,
     sim = simulation_factory(initial_snapshot)
 
     rigid.create_bodies(sim.state)
-    snapshot = sim.state.snapshot
+    snapshot = sim.state.get_snapshot()
     if snapshot.communicator.rank == 0:
         check_bodies(snapshot, valid_body_definition)
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005, rigid=rigid)
+    # Ensure validate bodies passes
+    sim.run(0)
+
+    # Second test with more general testing
+    # detach rigid
+    sim.operations.integrator.rigid = None
+
+    initial_snapshot = lattice_snapshot_factory(n=10)
+    if initial_snapshot.communicator.rank == 0:
+        initial_snapshot.particles.types = ["C", "A", "B"]
+        # Grab the middle particles and a random one to ensure that particle
+        # type ordering with respect to particle tag does not matter for
+        # create_bodies.
+        initial_snapshot.particles.typeid[100:800] = 1
+        initial_snapshot.particles.typeid[55] = 1
+
+    sim = simulation_factory(initial_snapshot)
+    rigid.create_bodies(sim.state)
+    snapshot = sim.state.get_snapshot()
+    if snapshot.communicator.rank == 0:
+        # Check central particles
+        central_tags = np.empty(701, dtype=int)
+        central_tags[0] = 55
+        central_tags[1:] = np.arange(100, 800)
+        print
+        assert np.all(snapshot.particles.body[central_tags] == central_tags)
+        # Check free bodies
+        assert np.all(snapshot.particles.body[:55] == -1)
+        assert np.all(snapshot.particles.body[56:100] == -1)
+        assert np.all(snapshot.particles.body[800:1000] == -1)
+        # Check constituent_particles
+        assert np.all(
+            snapshot.particles.body[1000:] == np.repeat(central_tags, 4))
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005, rigid=rigid)
+    # Ensure validate bodies passes
+    sim.run(0)
 
 
 def test_attaching(simulation_factory, two_particle_snapshot_factory,
@@ -205,7 +244,7 @@ def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
     rigid.create_bodies(sim.state)
     sim.operations += integrator
     sim.run(5)
-    snapshot = sim.state.snapshot
+    snapshot = sim.state.get_snapshot()
     if sim.device.communicator.rank == 0:
         check_bodies(snapshot, valid_body_definition)
 
