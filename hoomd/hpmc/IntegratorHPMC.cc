@@ -235,8 +235,6 @@ void export_IntegratorHPMC(py::module& m)
         .def("getMPS", &IntegratorHPMC::getMPS)
         .def("getCounters", &IntegratorHPMC::getCounters)
         .def("communicate", &IntegratorHPMC::communicate)
-        .def("slotNumTypesChange", &IntegratorHPMC::slotNumTypesChange)
-        .def("disablePatchEnergyLogOnly", &IntegratorHPMC::disablePatchEnergyLogOnly)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &IntegratorHPMC::setCommunicator)
 #endif
