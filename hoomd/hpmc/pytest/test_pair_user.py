@@ -21,8 +21,8 @@ valid_constructor_args = [
 ]
 
 # setable attributes before attach for CPPPotential objects
-valid_attrs = [('r_cut', 1.4), ('code', 'return -1;'),
-               ('llvm_ir', 'code.ll'), ('clang_exec', 'clang')]
+valid_attrs = [('r_cut', 1.4), ('code', 'return -1;'), ('llvm_ir', 'code.ll'),
+               ('clang_exec', 'clang')]
 
 # setable attributes after attach for CPPPotential objects
 valid_attrs_after_attach = [('r_cut', 1.3)]
