@@ -130,14 +130,11 @@ class CPPExternalField(_HOOMDBaseObject):
                                 self._llvm_ir)
         super()._attach()
 
-    @log
+    @log(requires_run=True)
     def energy(self):
         """float: Total field energy of the system in the current state.
 
         Returns `None` when the patch object and integrator are not attached.
         """
-        if self._attached:
-            timestep = self._simulation.timestep
-            return self._cpp_obj.computeEnergy(timestep)
-        else:
-            return None
+        timestep = self._simulation.timestep
+        return self._cpp_obj.computeEnergy(timestep)
