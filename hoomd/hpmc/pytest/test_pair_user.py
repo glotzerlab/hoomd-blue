@@ -13,23 +13,23 @@ llvm_disabled = not hoomd.version.llvm_enabled
 
 valid_constructor_args = [
     dict(r_cut=3,
-         array_size=2,
+         param_array=[0, 1],
          code='return -1;',
-         llvm_ir_file="code.ll",
+         llvm_ir="code.ll",
          clang_exec='/usr/bin/clang'),
-    dict(r_cut=2, array_size=4, code='return -1;'),
+    dict(r_cut=2, param_array=[1, 2, 3, 4], code='return -1;'),
 ]
 
 # setable attributes before attach for CPPPotential objects
 valid_attrs = [('r_cut', 1.4), ('code', 'return -1;'),
-               ('llvm_ir_file', 'code.ll'), ('clang_exec', 'clang')]
+               ('llvm_ir', 'code.ll'), ('clang_exec', 'clang')]
 
 # setable attributes after attach for CPPPotential objects
 valid_attrs_after_attach = [('r_cut', 1.3)]
 
 # attributes that cannot be set after object is attached
 attr_error = [('array_size', 1.1), ('code', 'return -1.0;'),
-              ('llvm_ir_file', 'test.ll'), ('clang_exec', '/usr/bin/clang')]
+              ('llvm_ir', 'test.ll'), ('clang_exec', '/usr/bin/clang')]
 
 positions_orientations_result = [
     ([(0, 0, 0), (1, 0, 0)], [(1, 0, 0, 0), (1, 0, 0, 0)], -1),
@@ -47,12 +47,21 @@ def test_valid_construction_cpp_potential(device, constructor_args):
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        assert getattr(patch, attr) == value
+        if attr == 'code':
+            attr = '_code'
+        elif attr == 'llvm_ir':
+            attr = '_cpu_llvm_ir'
+        elif attr == 'clang_exec':
+            continue
+        try:
+            assert getattr(patch, attr) == value
+        except ValueError:
+            assert all(getattr(patch, attr) == value)
 
 
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-@pytest.mark.skipif(llvm_disabled)
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_valid_construction_and_attach_cpp_potential(
         device, simulation_factory, two_particle_snapshot_factory,
         constructor_args):
@@ -87,7 +96,7 @@ def test_valid_setattr_cpp_potential(device, attr, value):
 
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs_after_attach)
-@pytest.mark.skipif(llvm_disabled)
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_valid_setattr_attached_cpp_potential(device, attr, value,
                                               simulation_factory,
                                               two_particle_snapshot_factory):
@@ -112,7 +121,7 @@ def test_valid_setattr_attached_cpp_potential(device, attr, value,
 
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,val", attr_error)
-@pytest.mark.skipif(llvm_disabled)
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
                                         two_particle_snapshot_factory):
     """Test that CPPPotential raises AttributeError if we
@@ -121,7 +130,7 @@ def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
 
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2,
                                               code='return 0;',
-                                              llvm_ir_file='code.ll')
+                                              llvm_ir='code.ll')
 
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
@@ -138,7 +147,7 @@ def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
 @pytest.mark.serial
 @pytest.mark.parametrize("positions,orientations,result",
                          positions_orientations_result)
-@pytest.mark.skipif(llvm_disabled)
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_cpp_potential(device, positions, orientations, result,
                        simulation_factory, two_particle_snapshot_factory):
     """Test that CPPPotential computes the correct."""
@@ -188,7 +197,7 @@ def test_cpp_potential(device, positions, orientations, result,
 
 @pytest.mark.serial
 @pytest.mark.parametrize("cls", [hoomd.hpmc.pair.user.CPPPotential])
-@pytest.mark.skipif(llvm_disabled)
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_alpha_iso(device, cls, simulation_factory,
                    two_particle_snapshot_factory):
     """Test that: i) changes to the alpha_iso array reflect on the energy

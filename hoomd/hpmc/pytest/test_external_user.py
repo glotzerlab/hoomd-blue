@@ -51,7 +51,7 @@ def test_valid_construction_cpp_external(device, constructor_args):
 @pytest.mark.cpu
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-@pytest.mark.skipif(llvm_disabled)
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_valid_construction_and_attach_cpp_external(
         device, simulation_factory, two_particle_snapshot_factory,
         constructor_args):
@@ -88,7 +88,7 @@ def test_valid_setattr_cpp_external(device, attr, value):
 @pytest.mark.cpu
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,val", attr_error)
-@pytest.mark.skipif(llvm_disabled)
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
                                        two_particle_snapshot_factory):
     """Test that CPPExternalField raises AttributeError if we
@@ -112,7 +112,7 @@ def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
 @pytest.mark.cpu
 @pytest.mark.serial
 @pytest.mark.parametrize("orientations,charge, result", electric_field_params)
-@pytest.mark.skipif(llvm_disabled)
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_electric_field(device, orientations, charge, result,
                         simulation_factory, two_particle_snapshot_factory):
     """Test that CPPExternalField computes the correct energies for static
@@ -146,7 +146,7 @@ def test_electric_field(device, orientations, charge, result,
 
 @pytest.mark.cpu
 @pytest.mark.serial
-@pytest.mark.skipif(llvm_disabled)
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_gravity(device, simulation_factory, lattice_snapshot_factory):
     """ This test simulates a sedimentation experiment by using an elongated
         box in the z-dimension and adding an effective gravitational

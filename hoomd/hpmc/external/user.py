@@ -78,7 +78,8 @@ class CPPExternalField(_HOOMDBaseObject):
     }
 
     def __init__(self, code, clang_exec='clang'):
-        self._llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_(code))
+        code_to_llvm = self._wrap_cpu_code(code)
+        self._llvm_ir = _compile.to_llvm_ir(code_to_llvm, clang_exec)
         self._code = code
 
     def _wrap_cpu_code(self, code):

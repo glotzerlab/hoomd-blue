@@ -273,9 +273,9 @@ class Array(_HelpValidate):
                 "Inconsistent ndim and shape arguments for type spec.")
 
     def _validate(self, arr):
-        if not isinstance(arr, ndarray):
+        if not isinstance(arr, np.ndarray):
             try:
-                arr = array(arr)
+                arr = np.array(arr)
             except Exception:
                 raise ValueError("Expected a NumPy array.")
         if not isinstance(arr.dtype, self.dtype):
