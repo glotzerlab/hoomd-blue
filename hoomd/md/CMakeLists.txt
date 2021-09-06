@@ -2,6 +2,7 @@
 
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc
+                   ActiveRotationalDiffusionUpdater.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
@@ -47,6 +48,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceConstraintCompute.h
                 ActiveForceConstraintComputeGPU.h
                 ActiveForceConstraintComputeGPU.cuh
+                ActiveRotationalDiffusionUpdater.h
                 AllAnisoPairPotentials.h
                 AllBondPotentials.h
                 AllExternalPotentials.h

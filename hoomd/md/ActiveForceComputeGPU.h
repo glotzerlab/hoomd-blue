@@ -27,8 +27,7 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     public:
     //! Constructs the compute
     ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                          std::shared_ptr<ParticleGroup> group,
-                          Scalar rotation_diff);
+                          std::shared_ptr<ParticleGroup> group);
 
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
@@ -51,7 +50,7 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     virtual void setForces();
 
     //! Orientational diffusion for spherical particles
-    virtual void rotationalDiffusion(uint64_t timestep);
+    virtual void rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep);
     };
 
 //! Exports the ActiveForceComputeGPU Class to python

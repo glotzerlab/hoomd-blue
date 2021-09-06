@@ -518,9 +518,12 @@ void ForceComposite::createRigidBodies()
         for (unsigned int particle_tag = 0; particle_tag < snap.size; ++particle_tag)
             {
             // Determine whether rigid bodies exist in the current system via the definitions of
-            // rigid bodies provided (i.e. if a non-zero length definitions was provided. We set
+            // rigid bodies provided (i.e. if a non-zero length definition was provided. We set
             // snap.body[i] = NO_BODY to prevent central particles from being removed in
             // initializeFromSnapshot if we must remove rigid bodies.
+            //
+            // Note that the body value is NO_BODY by default meaning that free particles will not
+            // be removed if remove_existing_bodies is true only existing bodies that have been set.
             if (snap.body[particle_tag] != NO_BODY)
                 {
                 if (h_body_len.data[snap.type[particle_tag]] == 0)
@@ -564,7 +567,6 @@ void ForceComposite::createRigidBodies()
         molecule_tag.resize(n_central_particles + n_constituent_particles, NO_MOLECULE);
 
         unsigned int constituent_particle_tag = n_without_constituent;
-        unsigned int central_particle_tag = 0;
         for (unsigned int particle_tag = 0; particle_tag < n_without_constituent; ++particle_tag)
             {
             assert(snap.type[particle_tag] < m_pdata->getNTypes());
@@ -576,10 +578,10 @@ void ForceComposite::createRigidBodies()
                 {
                 continue;
                 }
-            snap.body[central_particle_tag] = central_particle_tag;
-            molecule_tag[central_particle_tag] = central_particle_tag;
+            snap.body[particle_tag] = particle_tag;
+            molecule_tag[particle_tag] = particle_tag;
 
-            unsigned int body_type = snap.type[central_particle_tag];
+            unsigned int body_type = snap.type[particle_tag];
             unsigned int n_body_particles = h_body_len.data[body_type];
 
             for (unsigned int current_body_index = 0; current_body_index < n_body_particles;
@@ -589,20 +591,19 @@ void ForceComposite::createRigidBodies()
                 // Position and orientation are handled by updateCompositeParticles.
                 snap.type[constituent_particle_tag]
                     = h_body_type.data[m_body_idx(body_type, current_body_index)];
-                snap.body[constituent_particle_tag] = central_particle_tag;
+                snap.body[constituent_particle_tag] = particle_tag;
                 snap.charge[constituent_particle_tag]
                     = m_body_charge[body_type][current_body_index];
                 snap.diameter[constituent_particle_tag]
                     = m_body_diameter[body_type][current_body_index];
-                snap.pos[constituent_particle_tag] = snap.pos[central_particle_tag];
+                snap.pos[constituent_particle_tag] = snap.pos[particle_tag];
 
                 // Since the central particle tags here will be [0, n_central_particles), we know
                 // that the molecule number will be the same as the central particle tag.
-                molecule_tag[constituent_particle_tag] = central_particle_tag;
+                molecule_tag[constituent_particle_tag] = particle_tag;
 
                 ++constituent_particle_tag;
                 }
-            ++central_particle_tag;
             }
         }
 

@@ -68,7 +68,7 @@ _particle_data = dict(
               new_value=np.linspace(1, 20, Np, dtype=np.uint32),
               shape=(Np,)),
     # typeid is a signed integer in C++ despite always being nonnegative
-    typeid=dict(np_type=np.signedinteger,
+    typeid=dict(np_type=np.int32,
                 value=[0, 0, 0, 1, 1],
                 new_value=[1, 1, 1, 0, 0],
                 shape=(Np,)),
@@ -84,13 +84,13 @@ _particle_data = dict(
                   value=[5, 2, 3, 2, 5],
                   new_value=[2, 1, 0.5, 1, 2],
                   shape=(Np,)),
-    image=dict(np_type=np.signedinteger,
+    image=dict(np_type=np.int32,
                value=np.linspace(-10, 20, Np * 3,
-                                 dtype=np.signedinteger).reshape(Np, 3),
+                                 dtype=np.int32).reshape(Np, 3),
                new_value=np.linspace(-20, 10, Np * 3,
-                                     dtype=np.signedinteger).reshape(Np, 3),
+                                     dtype=np.int32).reshape(Np, 3),
                shape=(Np, 3)),
-    tag=dict(np_type=np.unsignedinteger, value=None, shape=(Np,)),
+    tag=dict(np_type=np.uint32, value=None, shape=(Np,)),
     _types=['p1', 'p2'])
 
 _particle_local_data = dict(

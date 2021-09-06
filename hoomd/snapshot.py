@@ -6,7 +6,6 @@
 
 import hoomd
 from hoomd import _hoomd
-import warnings
 
 
 class _ConfigurationData:
@@ -77,17 +76,6 @@ class Snapshot:
             self.communicator = communicator
 
         self._cpp_obj = _hoomd.SnapshotSystemData_double()
-
-    @property
-    def exists(self):
-        """bool: True when the MPI rank is 0.
-
-        .. deprecated:: 3.0.0-beta.7
-            Use ``snapshot.communicator.rank == 0`` instead.
-        """
-        warnings.warn("Deprecated, use snapshot.communicator.rank == 0",
-                      DeprecationWarning)
-        return self.communicator.rank == 0
 
     @property
     def configuration(self):

@@ -263,6 +263,22 @@ class Rigid(Constraint):
 
         Args:
             state (hoomd.State): The state in which to create rigid bodies.
+
+        This method will remove any existing constituent particles (defined as
+        having a valid body flag without a central particle definition in the
+        rigid `body` attribute).
+
+        Note:
+            This method will change any exiting body tags.
+
+        Tip:
+            If planning on using this function, initialize the `hoomd.State`
+            with free and central particles without worrying about the body
+            tag. Existing body values or constituent particles in the state
+            won't cause errors, but the method does not need it.
+
+        Warning:
+            This method must be called before its associated simulation is run.
         """
         if self._attached:
             raise RuntimeError(

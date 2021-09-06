@@ -8,6 +8,7 @@ md.update
 .. autosummary::
     :nosignatures:
 
+    ActiveRotationalDiffusion
     ReversePerturbationFlow
     ZeroMomentum
 
@@ -16,5 +17,6 @@ md.update
 
 .. automodule:: hoomd.md.update
     :synopsis: Updaters.
-    :members: ReversePerturbationFlow,
+    :members: ActiveRotationalDiffusion,
+              ReversePerturbationFlow,
               ZeroMomentum
