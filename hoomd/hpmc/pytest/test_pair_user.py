@@ -8,6 +8,9 @@ import hoomd
 import pytest
 import numpy as np
 
+# check if llvm_enabled
+llvm_disabled = not hoomd.version.llvm_enabled
+
 valid_constructor_args = [
     dict(r_cut=3,
          array_size=2,
@@ -49,6 +52,7 @@ def test_valid_construction_cpp_potential(device, constructor_args):
 
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
+@pytest.mark.skipif(llvm_disabled)
 def test_valid_construction_and_attach_cpp_potential(
         device, simulation_factory, two_particle_snapshot_factory,
         constructor_args):
@@ -83,6 +87,7 @@ def test_valid_setattr_cpp_potential(device, attr, value):
 
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs_after_attach)
+@pytest.mark.skipif(llvm_disabled)
 def test_valid_setattr_attached_cpp_potential(device, attr, value,
                                               simulation_factory,
                                               two_particle_snapshot_factory):
@@ -107,6 +112,7 @@ def test_valid_setattr_attached_cpp_potential(device, attr, value,
 
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,val", attr_error)
+@pytest.mark.skipif(llvm_disabled)
 def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
                                         two_particle_snapshot_factory):
     """Test that CPPPotential raises AttributeError if we
@@ -132,6 +138,7 @@ def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
 @pytest.mark.serial
 @pytest.mark.parametrize("positions,orientations,result",
                          positions_orientations_result)
+@pytest.mark.skipif(llvm_disabled)
 def test_cpp_potential(device, positions, orientations, result,
                        simulation_factory, two_particle_snapshot_factory):
     """Test that CPPPotential computes the correct."""
@@ -181,6 +188,7 @@ def test_cpp_potential(device, positions, orientations, result,
 
 @pytest.mark.serial
 @pytest.mark.parametrize("cls", [hoomd.hpmc.pair.user.CPPPotential])
+@pytest.mark.skipif(llvm_disabled)
 def test_alpha_iso(device, cls, simulation_factory,
                    two_particle_snapshot_factory):
     """Test that: i) changes to the alpha_iso array reflect on the energy
