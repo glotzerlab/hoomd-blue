@@ -23,7 +23,9 @@ namespace py = pybind11;
 
 //! Names of bonded groups
 char name_bond_data[] = "bond";
+char name_meshbond_data[] = "meshbond";
 char name_angle_data[] = "angle";
+char name_triangle_data[] = "triangle";
 char name_dihedral_data[] = "dihedral";
 char name_improper_data[] = "improper";
 char name_constraint_data[] = "constraint";
@@ -1461,8 +1463,20 @@ template void export_BondedGroupData<BondData, Bond>(py::module& m,
                                                      std::string snapshot_name,
                                                      bool export_struct);
 
+template class PYBIND11_EXPORT BondedGroupData<4, MeshBond, name_meshbond_data>;
+template void export_BondedGroupData<MeshBondData, MeshBond>(py::module& m,
+                                                     std::string name,
+                                                     std::string snapshot_name,
+                                                     bool export_struct);
+
 template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
 template void export_BondedGroupData<AngleData, Angle>(py::module& m,
+                                                       std::string name,
+                                                       std::string snapshot_name,
+                                                       bool export_struct);
+
+template class PYBIND11_EXPORT BondedGroupData<7, Triangle, name_triangle_data>;
+template void export_BondedGroupData<TriangleData, Triangle>(py::module& m,
                                                        std::string name,
                                                        std::string snapshot_name,
                                                        bool export_struct);
