@@ -20,6 +20,10 @@ v3.0.0-beta.9 (not yet released)
   `hoomd.filter.ParticleFilter` instance.
 - ``hoomd.update.RemoveDrift`` - Remove the average drift from a system restrained on a lattice.
 - Developer documentation for HOOMD-blue's Python object data model in ``ARCHITECTURE.md``.
+- Autocomplete support for interactive notebooks.
+- ``hoomd.md.methods.OverdampedViscous`` - Overdamped integrator with a drag force but no random
+  force .
+- ``MutabilityError`` exception when setting read-only operation parameters.
 
 *Changed*
 
@@ -28,6 +32,11 @@ v3.0.0-beta.9 (not yet released)
   ``hoomd.md.methods.rattle``.
 - [breaking] Moved ``trigger`` to first argument position in `hoomd.update.BoxResize`,
   `hoomd.write.DCD`, and `hoomd.write.GSD`.
+- [breaking] ``hoomd.data.LocalSnapshot`` particle data API now matches ``Snapshot``. Changes to
+  angular momentum, moment of intertia, and rigid body id attributes.
+- ``hoomd.write.CustomWriter`` now exposes action through the ``writer`` attribute.
+- [breaking] Active force rotational diffusion is managed by
+  ``hoomd.md.update.ActiveRotationalDiffusion``.
 
 *Fixed*
 
@@ -37,10 +46,17 @@ v3.0.0-beta.9 (not yet released)
 - MD integration methods can be removed from the integrator's method list.
 - Neighborlist exclusions update when the number of bonds change.
 - Errors related to equality checks between HOOMD operations.
+- The integrator can be removed from a simulation after running.
+- ``hoomd.md.constrain.Rigid.create_bodies`` method correctly assigns the body attribute.
+- Setting rigid attribute of a MD integrator to ``None`` is allowed.
 
 *Deprecated*
 
 *Removed*
+
+- ``Snapshot.exists`` - use ``snapshot.communicator.rank == 0``
+- ``State.snapshot`` - use ``get_snapshot`` and ``set_snapshot``
+-   The ``State.box`` property setter - use ``State.set_box``
 
 v3.0.0-beta.8 (2021-08-03)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
