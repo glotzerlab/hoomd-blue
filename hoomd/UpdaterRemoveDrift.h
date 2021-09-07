@@ -42,7 +42,7 @@ class UpdaterRemoveDrift : public Updater
             {
             throw std::runtime_error("The array must be of shape (N_particles, 3).");
             }
-        const double* rawdata = static_cast<const double*>(ref_pos.request().ptr);
+        const double* rawdata = static_cast<const double*>(ref_pos.data());
         m_ref_positions.resize(m_pdata->getNGlobal());
         for (size_t i = 0; i < N_particles; i++)
             {
