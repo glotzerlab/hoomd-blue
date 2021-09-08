@@ -9,15 +9,11 @@
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
-#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 3 \
-    || (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9)
 #include "llvm/ExecutionEngine/Orc/OrcABISupport.h"
-#else
-#include "llvm/ExecutionEngine/Orc/OrcArchitectureSupport.h"
-#endif
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/Support/DynamicLibrary.h"
+#include "llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
 
 #include "llvm/Support/raw_os_ostream.h"
 
@@ -43,20 +39,15 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
         return;
         }
 
-#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 3 \
-    || (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9)
     llvm::LLVMContext Context;
-#else
-    llvm::LLVMContext& Context = llvm::getGlobalContext();
-#endif
     llvm::SMDiagnostic Err;
 
     // Read the input IR data
     llvm::StringRef ir_str(llvm_ir);
     std::unique_ptr<llvm::MemoryBuffer> ir_membuf = llvm::MemoryBuffer::getMemBuffer(ir_str);
-    std::unique_ptr<llvm::Module> Mod = llvm::parseIR(*ir_membuf, Err, Context);
+    std::unique_ptr<llvm::Module> module = llvm::parseIR(*ir_membuf, Err, Context);
 
-    if (!Mod)
+    if (!module)
         {
         // if the module didn't load, report an error
         Err.print("EvalFactory", llvm_err);
@@ -66,10 +57,23 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
         }
 
     // Build the JIT
-    m_jit = std::unique_ptr<llvm::orc::KaleidoscopeJIT>(new llvm::orc::KaleidoscopeJIT());
+    auto JTMB = llvm::orc::JITTargetMachineBuilder::detectHost();
+
+    // if (!JTMB)
+    //     throw std::runtime_error("Error initializing JITTargetMachineBuilder");
+
+    auto DL = JTMB->getDefaultDataLayoutForTarget();
+    // if (!DL)
+    //     throw std::runtime_error("Error initializing DataLayout");
+
+    m_jit = std::unique_ptr<llvm::orc::KaleidoscopeJIT>(new llvm::orc::KaleidoscopeJIT(std::move(*JTMB), std::move(*DL)));
+
+    // make a thread safe module
+    llvm::orc::ThreadSafeContext tsc;
+    llvm::orc::ThreadSafeModule tsm(std::move(module), tsc);
 
     // Add the module, look up main and run it.
-    m_jit->addModule(std::move(Mod));
+    m_jit->addModule(std::move(tsm));
 
     auto eval = m_jit->findSymbol("eval");
 
@@ -95,15 +99,9 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
         return;
         }
 
-#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 5
-    m_eval = (EvalFnPtr)(long unsigned int)(cantFail(eval.getAddress()));
-    m_alpha = (float**)(cantFail(alpha.getAddress()));
-    m_alpha_union = (float**)(cantFail(alpha_union.getAddress()));
-#else
-    m_eval = (EvalFnPtr)eval.getAddress();
-    m_alpha = (float**)alpha.getAddress();
-    m_alpha_union = (float**)alpha_union.getAddress();
-#endif
+    m_eval = (EvalFnPtr)(long unsigned int)(eval->getAddress());
+    m_alpha = (float**)(alpha->getAddress());
+    m_alpha_union = (float**)(alpha_union->getAddress());
 
     llvm_err.flush();
     }
