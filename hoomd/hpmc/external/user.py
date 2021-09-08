@@ -81,6 +81,7 @@ class CPPExternalField(_HOOMDBaseObject):
         code_to_llvm = self._wrap_cpu_code(code)
         self._llvm_ir = _compile.to_llvm_ir(code_to_llvm, clang_exec)
         self._code = code
+        self._clang_exec = clang_exec
 
     def _wrap_cpu_code(self, code):
         r"""Helper function to wrap the provided code into a function

@@ -35,6 +35,7 @@ electric_field_params = [
       (0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2)], -3, -6),
 ]
 
+attr_translator = {'code': '_code', 'clang_exec': '_clang_exec'}
 
 @pytest.mark.cpu
 @pytest.mark.serial
@@ -45,6 +46,7 @@ def test_valid_construction_cpp_external(device, constructor_args):
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
+        attr = attr_translator.get(attr, attr)
         assert getattr(ext, attr) == value
 
 
@@ -60,17 +62,18 @@ def test_valid_construction_and_attach_cpp_external(
     ext = hoomd.hpmc.external.user.CPPExternalField(**constructor_args)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
+    mc.field = ext
 
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
-    sim.operations += ext
 
     # create C++ mirror classes and set parameters
     sim.run(0)
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
+        attr = attr_translator.get(attr, attr)
         assert getattr(ext, attr) == value
 
 
@@ -96,14 +99,15 @@ def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
     """
 
     ext = hoomd.hpmc.external.user.CPPExternalField(code='return 0;')
-
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
+    mc.field = ext
+
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
-    sim.operations += ext
     sim.run(0)
+
     # try to reset when attached
     with pytest.raises(AttributeError):
         setattr(ext, attr, val)
@@ -132,9 +136,9 @@ def test_electric_field(device, orientations, charge, result,
     ext = hoomd.hpmc.external.user.CPPExternalField(code=electric_field)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0, orientable=True)
+    mc.field = ext
 
     sim.operations.integrator = mc
-    sim.operations += ext
     with sim.state.cpu_local_snapshot as data:
         data.particles.orientation[0, :] = orientations[0]
         data.particles.orientation[1, :] = orientations[1]
@@ -157,25 +161,28 @@ def test_gravity(device, simulation_factory, lattice_snapshot_factory):
     """
 
     sim = simulation_factory(lattice_snapshot_factory(a=1.1, n=5))
-    mc = hoomd.hpmc.integrate.Sphere(d=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.01)
     mc.shape['A'] = dict(diameter=1)
 
     # expand box and add gravity field
     old_box = sim.state.box
-    sim.state.box = hoomd.Box(Lx=1.5 * old_box.Lx,
-                              Ly=1.5 * old_box.Ly,
-                              Lz=20 * old_box.Lz)
+    new_box = hoomd.Box(
+            Lx=1.5 * old_box.Lx,
+            Ly=1.5 * old_box.Ly,
+            Lz=20 * old_box.Lz
+    )
+    sim.state.set_box(new_box)
     ext = hoomd.hpmc.external.user.CPPExternalField(
-        code="return 1000*(r_i.z + box.getL().z/2);")
-
-    old_avg_z = np.mean(sim.state.snapshot.particles.position[:, 2])
-
+        code="return 1000*r_i.z;")
+    mc.field = ext
     sim.operations.integrator = mc
-    sim.operations += ext
 
+    old_avg_z = np.mean(sim.state.get_snapshot().particles.position[:, 2])
     sim.run(0)
     old_energy = ext.energy
+
     sim.run(6e3)
 
-    assert np.mean(sim.state.snapshot.particles.position[:, 2]) < old_avg_z
+    new_avg_z = np.mean(sim.state.get_snapshot().particles.position[:, 2])
+    assert new_avg_z < old_avg_z
     assert ext.energy < old_energy
