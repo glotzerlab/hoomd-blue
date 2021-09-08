@@ -50,15 +50,14 @@ valid_constructor_args = [
 ]
 
 # setable attributes before attach for CPPPotential objects
-valid_attrs = [('r_cut', 1.4), ('code', 'return -1;'),
-               ('llvm_ir', return0_ir), ('clang_exec', 'clang')]
+valid_attrs = [('r_cut', 1.4), ('code', 'return -1;'), ('llvm_ir', return0_ir),
+               ('clang_exec', 'clang')]
 
 # setable attributes after attach for CPPPotential objects
 valid_attrs_after_attach = [('r_cut', 1.3)]
 
 # attributes that cannot be set after object is attached
-attr_error = [('code', 'return -1.0;'),
-              ('clang_exec', '/usr/bin/clang')]
+attr_error = [('code', 'return -1.0;'), ('clang_exec', '/usr/bin/clang')]
 
 positions_orientations_result = [
     ([(0, 0, 0), (1, 0, 0)], [(1, 0, 0, 0), (1, 0, 0, 0)], -1),
@@ -68,6 +67,7 @@ positions_orientations_result = [
 ]
 
 attr_translator = {'code': '_code', 'llvm_ir': '_cpu_llvm_ir'}
+
 
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -233,7 +233,7 @@ def test_cpp_potential(device, positions, orientations, result,
 @pytest.mark.parametrize("cls", [hoomd.hpmc.pair.user.CPPPotential])
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_param_array(device, cls, simulation_factory,
-                   two_particle_snapshot_factory):
+                     two_particle_snapshot_factory):
     """Test that: i) changes to the param_array reflect on the energy
        caltulation, ii) that it can be accessed from CPPPotential and CPPUnionPotential
        objects and iii) that the energy computed from both classes agree.

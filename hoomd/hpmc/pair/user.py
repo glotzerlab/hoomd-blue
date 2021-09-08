@@ -93,12 +93,13 @@ class CPPPotentialBase(_HOOMDBaseObject):
             self._cpu_llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
                                                     clang_exec)
         self._code = code
-        param_dict = ParameterDict(r_cut=float,
-                                   param_array=hoomd.data.typeconverter.Array(
-                                       dtype=np.float32, ndim=1),
-                                   code=str,
-                                   clang_exec=str,
-                                   )
+        param_dict = ParameterDict(
+            r_cut=float,
+            param_array=hoomd.data.typeconverter.Array(dtype=np.float32,
+                                                       ndim=1),
+            code=str,
+            clang_exec=str,
+        )
         param_dict['r_cut'] = r_cut
         param_dict['code'] = code
         param_dict['clang_exec'] = clang_exec
