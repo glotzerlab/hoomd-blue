@@ -244,7 +244,8 @@ class CPPPotential(CPPPotentialBase):
                 gpu_settings["includes"], gpu_settings["cuda_devrt_lib_path"],
                 gpu_settings["max_arch"])
         else:  # running on cpu
-            if self._param_dict['llvm_ir'] == ''
+            # if llvm_ir == '', then no IR was provided and we need to compile
+            if self._param_dict['llvm_ir'] == '':
                 llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
                                                         clang_exec)
             else:
