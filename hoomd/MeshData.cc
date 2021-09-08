@@ -38,6 +38,8 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
     {
     triangle_data
         = std::shared_ptr<TriangleData>(new TriangleData(pdata, n_triangle_types));
+    m_meshtriangle_data
+        = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(pdata, n_triangle_types));
     }
 
 /*! Evaluates the snapshot and initializes the respective *Data classes using
@@ -104,5 +106,6 @@ void export_MeshData(py::module& m)
         .def("takeSnapshot_float", &MeshData::takeSnapshot<float>)
         .def("takeSnapshot_double", &MeshData::takeSnapshot<double>)
         .def("initializeFromSnapshot", &MeshData::initializeFromSnapshot<float>)
-        .def("initializeFromSnapshot", &MeshData::initializeFromSnapshot<double>);
+        .def("initializeFromSnapshot", &MeshData::initializeFromSnapshot<double>)
+        .def("getTriangleData", &MeshData::getTriangleData);
     }

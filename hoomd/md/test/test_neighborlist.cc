@@ -33,7 +33,7 @@ template<class NL> void neighborlist_basic_tests(std::shared_ptr<ExecutionConfig
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 2 particles in a huge box
     std::shared_ptr<SystemDefinition> sysdef_2(
-        new SystemDefinition(2, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(2, BoxDim(25.0), 1, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
         {
@@ -128,7 +128,7 @@ template<class NL> void neighborlist_basic_tests(std::shared_ptr<ExecutionConfig
     // build a 6 particle system with particles across each boundary
 
     std::shared_ptr<SystemDefinition> sysdef_6(
-        new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
         {
@@ -328,7 +328,7 @@ template<class NL>
 void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SystemDefinition> sysdef_3(
-        new SystemDefinition(3, BoxDim(40.0, 40.0, 60.0), 2, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(3, BoxDim(40.0, 40.0, 60.0), 2, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     // check that pair cutoffs are set independently
         {
@@ -455,7 +455,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
     // bumping over this do this with size 18 so that NeighborListGPU is forced to use kernel call
     // with multiple levels at m_bin_size = 4
     std::shared_ptr<SystemDefinition> sysdef_18(
-        new SystemDefinition(18, BoxDim(40.0, 40.0, 40.0), 2, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(18, BoxDim(40.0, 40.0, 40.0), 2, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_18 = sysdef_18->getParticleData();
         {
         ArrayHandle<Scalar4> h_pos(pdata_18->getPositions(),
@@ -655,7 +655,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
 template<class NL> void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SystemDefinition> sysdef_6(
-        new SystemDefinition(6, BoxDim(40.0, 40.0, 40.0), 8, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(6, BoxDim(40.0, 40.0, 40.0), 8, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     // test 1: 4 types, but missing two in the middle
         {
@@ -833,7 +833,7 @@ template<class NL>
 void neighborlist_exclusion_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SystemDefinition> sysdef_6(
-        new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     // lets make this test simple: put all 6 particles on top of each other and
@@ -941,7 +941,7 @@ template<class NL>
 void neighborlist_body_filter_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SystemDefinition> sysdef_6(
-        new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     // lets make this test simple: put all 6 particles on top of each other and
@@ -1061,7 +1061,7 @@ void neighborlist_diameter_shift_tests(std::shared_ptr<ExecutionConfiguration> e
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 3 particles in a huge box
     std::shared_ptr<SystemDefinition> sysdef_3(
-        new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
         {
@@ -1167,7 +1167,7 @@ void neighborlist_diameter_shift_periodic_tests(std::shared_ptr<ExecutionConfigu
     /////////////////////////////////////////////////////////
     // 3 particles in a huge box, close to boundaries
     std::shared_ptr<SystemDefinition> sysdef_3(
-        new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
         {
@@ -1420,7 +1420,7 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
     {
     // Initialize a system of 3 particles each having a distinct type
     std::shared_ptr<SystemDefinition> sysdef_3(
-        new SystemDefinition(3, BoxDim(25.0), 3, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(3, BoxDim(25.0), 3, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     // put the particles on top of each other, the worst case scenario for inclusion / exclusion
@@ -1556,7 +1556,7 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
 template<class NL> void neighborlist_2d_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     auto sysdef
-        = std::make_shared<SystemDefinition>(2, BoxDim(10.0, 10.0, 0.01), 1, 0, 0, 0, 0, exec_conf);
+        = std::make_shared<SystemDefinition>(2, BoxDim(10.0, 10.0, 0.01), 1, 0, 0, 0, 0, 0, exec_conf);
     sysdef->setNDimensions(2);
     auto pdata = sysdef->getParticleData();
 

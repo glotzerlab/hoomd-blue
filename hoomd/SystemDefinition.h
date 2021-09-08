@@ -13,6 +13,7 @@
 
 #include "BondedGroupData.h"
 #include "IntegratorData.h"
+#include "MeshData.h"
 #include "ParticleData.h"
 
 #include <memory>
@@ -81,6 +82,7 @@ class PYBIND11_EXPORT SystemDefinition
                      unsigned int n_angle_types = 0,
                      unsigned int n_dihedral_types = 0,
                      unsigned int n_improper_types = 0,
+                     unsigned int n_triangle_types = 0,
                      std::shared_ptr<ExecutionConfiguration> exec_conf
                      = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
                      std::shared_ptr<DomainDecomposition> decomposition
@@ -144,10 +146,20 @@ class PYBIND11_EXPORT SystemDefinition
         {
         return m_dihedral_data;
         }
-    //! Access the improper data defined for the simulation
+    //h Access the improper data defined for the simulation
     std::shared_ptr<ImproperData> getImproperData()
         {
         return m_improper_data;
+        }
+    //! Access the triangle data defined for the simulation
+    std::shared_ptr<TriangleData> getTriangleData()
+        {
+        return m_mesh_data.getTriangleData();
+        }
+    //! Access the triangle data defined for the simulation
+     MeshData getMeshData()
+        {
+        return m_mesh_data;
         }
 
     //! Access the constraint data defined for the simulation
@@ -186,6 +198,7 @@ class PYBIND11_EXPORT SystemDefinition
     std::shared_ptr<ConstraintData> m_constraint_data; //!< Improper data for the system
     std::shared_ptr<IntegratorData> m_integrator_data; //!< Integrator data for the system
     std::shared_ptr<PairData> m_pair_data;             //!< Special pairs data for the system
+    MeshData m_mesh_data;                              //!< Mesh data for the system
     };
 
 //! Exports SystemDefinition to python

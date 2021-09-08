@@ -43,7 +43,7 @@ void periodic_force_particle_test(periodicforce_creator periodic_creator,
 
     // periodic boundary conditions will be handled in another test
     std::shared_ptr<SystemDefinition> sysdef_3(
-        new SystemDefinition(3, BoxDim(5.0), 2, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(3, BoxDim(5.0), 2, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     pdata_3->setPosition(0, make_scalar3(1.7, 0.0, 0.0));

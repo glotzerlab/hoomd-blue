@@ -1482,7 +1482,7 @@ template void export_BondedGroupData<TriangleData, Angle>(py::module& m,
                                                        std::string snapshot_name,
                                                        bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<6, MeshTriangle, name_triangle_data>;
+template class PYBIND11_EXPORT BondedGroupData<6, MeshTriangle, name_meshtriangle_data>;
 template void export_BondedGroupData<MeshTriangleData, MeshTriangle>(py::module& m,
                                                        std::string name,
                                                        std::string snapshot_name,

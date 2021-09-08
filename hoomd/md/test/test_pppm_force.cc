@@ -50,7 +50,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator,
     // The box lengths and grid points are different in each direction
 
     std::shared_ptr<SystemDefinition> sysdef_2(
-        new SystemDefinition(2, BoxDim(6.0, 10.0, 14.0), 1, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(2, BoxDim(6.0, 10.0, 14.0), 1, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
@@ -137,7 +137,7 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator,
     // set up triclinic box
     Scalar tilt(0.5);
     std::shared_ptr<SystemDefinition> sysdef_2(
-        new SystemDefinition(2, BoxDim(10.0, tilt, tilt, tilt), 1, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(2, BoxDim(10.0, tilt, tilt, tilt), 1, 0, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
