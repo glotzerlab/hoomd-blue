@@ -5,7 +5,8 @@
 import hoomd
 from hoomd import _compile
 from hoomd.hpmc import integrate
-from hoomd.hpmc import _jit
+if hoomd.version.llvm_enabled:
+    from hoomd.hpmc import _jit
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
