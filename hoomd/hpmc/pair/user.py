@@ -88,21 +88,20 @@ class CPPPotentialBase(_HOOMDBaseObject):
                  llvm_ir=None,
                  clang_exec='clang',
                  param_array=None):
-        if llvm_ir is not None:
-            self._cpu_llvm_ir = llvm_ir
-        else:
-            self._cpu_llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
-                                                    clang_exec)
         self._code = code
+        self._clang_exec = clang_exec
         param_dict = ParameterDict(r_cut=float,
                                    param_array=hoomd.data.typeconverter.Array(
                                        dtype=np.float32, ndim=1),
                                    code=str,
-                                   clang_exec=str,
+                                   llvm_ir=str,
                                    )
         param_dict['r_cut'] = r_cut
         param_dict['code'] = code
-        param_dict['clang_exec'] = clang_exec
+        if llvm_ir is None:
+            param_dict['llvm_ir'] = ''
+        else:
+            param_dict['llvm_ir'] = llvm_ir
         if param_array is None:
             param_dict['param_array'] = np.array([])
         else:
@@ -239,6 +238,7 @@ class CPPPotential(CPPPotentialBase):
 
         device = self._simulation.device
         cpp_sys_def = self._simulation.state._cpp_sys_def
+
         if isinstance(device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             gpu_code = self._wrap_gpu_code(self._code)
@@ -248,10 +248,15 @@ class CPPPotential(CPPPotentialBase):
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"], gpu_settings["cuda_devrt_lib_path"],
                 gpu_settings["max_arch"])
-        else:
+        else:  # running on cpu
+            if self._param_dict['llvm_ir'] == ''
+                llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
+                                                        clang_exec)
+            else:
+                llvm_ir = self._param_dict['llvm_ir']
             self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def,
                                                 device._cpp_exec_conf,
-                                                self._cpu_llvm_ir, self.r_cut,
+                                                llvm_ir, self.r_cut,
                                                 self.param_array)
         # attach patch object to the integrator
         super()._attach()
