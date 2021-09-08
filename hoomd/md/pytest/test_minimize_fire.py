@@ -90,7 +90,7 @@ def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
 
 def test_run_minimization(lattice_snapshot_factory, simulation_factory):
     """Run a short minimization simulation."""
-    snap = lattice_snapshot_factory(a=1.5, n=5)
+    snap = lattice_snapshot_factory(a=1.5, n=8)
     sim = simulation_factory(snap)
 
     lj = md.pair.LJ(default_r_cut=2.5, nlist=md.nlist.Cell())
