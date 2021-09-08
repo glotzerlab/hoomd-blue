@@ -911,46 +911,54 @@ typedef BondedGroupData<3, Angle, name_angle_data> AngleData;
  */
 extern char name_triangle_data[];
 
+//! Definition of ImproperData
+typedef BondedGroupData<3, Angle, name_triangle_data> TriangleData;
+
+
+/*
+ * MeshTriangleData
+ */
+extern char name_meshtriangle_data[];
+
 // Definition of an dihedral
-struct Triangle
+struct MeshTriangle
     {
-    typedef group_storage<7> members_t;
+    typedef group_storage<6> members_t;
 
     //! Constructor
     /*! \param type Type of triangle
      * \param _a First dihedral member
      * \param _b Second dihedral member
      */
-    Triangle(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c, unsigned int _d, int _ea, int _eb , int _ec)
-        : type(_type), a(_a), b(_b), c(_c), d(_d), ea(_ea), eb(_eb), ec(_ec)
+    MeshTriangle(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c, int _ea, int _eb , int _ec)
+        : type(_type), a(_a), b(_b), c(_c), ea(_ea), eb(_eb), ec(_ec)
         {
         }
 
-    //! Constructor that takes a members_t (used internally by TriangleData)
+    //! Constructor that takes a members_t (used internally by MeshTriangleData)
     /*! \param type
      *  \param members group members
      */
-    Triangle(typeval_t _typeval, members_t _members)
+    MeshTriangle(typeval_t _typeval, members_t _members)
         : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2]),
-          d(_members.tag[3]), ea(_members.tag[4]), eb(_members.tag[5]), ec(_members.tag[6])
+          ea(_members.tag[3]), eb(_members.tag[4]), ec(_members.tag[5])
         {
         }
 
-    //! This helper function needs to be provided for the templated TriangleData to work correctly
+    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
     members_t get_members() const
         {
         members_t m;
         m.tag[0] = a;
         m.tag[1] = b;
         m.tag[2] = c;
-        m.tag[3] = d;
-        m.tag[4] = ea;
-        m.tag[5] = eb;
-        m.tag[6] = ec;
+        m.tag[3] = ea;
+        m.tag[4] = eb;
+        m.tag[5] = ec;
         return m;
         }
 
-    //! This helper function needs to be provided for the templated TriangleData to work correctly
+    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -958,34 +966,32 @@ struct Triangle
         return t;
         }
 
-    //! This helper function needs to be provided for the templated TriangleData to work correctly
+    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
     static void export_to_python(pybind11::module& m)
         {
-        pybind11::class_<Triangle>(m, "Triangle")
+        pybind11::class_<MeshTriangle>(m, "MeshTriangle")
             .def(pybind11::
-                     init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, int, int , int>())
-            .def_readonly("type", &Triangle::type)
-            .def_readonly("a", &Triangle::a)
-            .def_readonly("b", &Triangle::b)
-            .def_readonly("c", &Triangle::c)
-            .def_readonly("d", &Triangle::d)
-            .def_readonly("ea", &Triangle::ea)
-            .def_readonly("eb", &Triangle::eb)
-            .def_readonly("ec", &Triangle::ec);
+                     init<unsigned int, unsigned int, unsigned int, unsigned int, int, int , int>())
+            .def_readonly("type", &MeshTriangle::type)
+            .def_readonly("a", &MeshTriangle::a)
+            .def_readonly("b", &MeshTriangle::b)
+            .def_readonly("c", &MeshTriangle::c)
+            .def_readonly("ea", &MeshTriangle::ea)
+            .def_readonly("eb", &MeshTriangle::eb)
+            .def_readonly("ec", &MeshTriangle::ec);
         }
 
     unsigned int type; //!< Group type
     unsigned int a;    //!< First dihedral member
     unsigned int b;    //!< Second dihedral member
     unsigned int c;    //!< Third dihedral member
-    unsigned int d;    //!< Fourth dihedral member
     unsigned int ea;    //!< First endge
     unsigned int eb;    //!< Second edge
     unsigned int ec;    //!< Third edge
     };
 
-//! Definition of TriangleData
-typedef BondedGroupData<7, Triangle, name_triangle_data> TriangleData;
+//! Definition of MeshTriangleData
+typedef BondedGroupData<6, MeshTriangle, name_meshtriangle_data> MeshTriangleData;
 
 /*
  * DihedralData

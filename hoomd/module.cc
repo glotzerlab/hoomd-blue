@@ -23,6 +23,7 @@
 #include "Initializers.h"
 #include "Integrator.h"
 #include "LoadBalancer.h"
+#include "MeshData.h"
 #include "Messenger.h"
 #include "ParticleData.h"
 #include "ParticleFilterUpdater.h"

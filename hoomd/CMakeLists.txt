@@ -79,6 +79,7 @@ set(_hoomd_sources Analyzer.cc
                    Integrator.cc
                    IntegratorData.cc
                    LoadBalancer.cc
+		   MeshData.cc
                    Messenger.cc
                    MemoryTraceback.cc
                    MPIConfiguration.cc
@@ -170,6 +171,7 @@ set(_hoomd_headers
     managed_allocator.h
     ManagedArray.h
     MemoryTraceback.h
+    MeshData.h
     Messenger.h
     MPIConfiguration.h
     ParticleData.cuh
