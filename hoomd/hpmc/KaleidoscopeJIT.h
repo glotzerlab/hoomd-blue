@@ -56,7 +56,11 @@ class KaleidoscopeJIT
             CompileLayer(ES, ObjectLayer, std::make_unique<ConcurrentIRCompiler>(ConcurrentIRCompiler(std::move(JTMB)))),
             DL(std::move(DL)), Mangle(ES, this->DL),
             Ctx(std::make_unique<LLVMContext>()),
-            mainJD(this->ES.createJITDylib("<main>").get())
+            #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 10
+            mainJD(this->ES.createBareJITDylib("<main>"))
+            #else
+            mainJD(this->ES.createJITDylib("<main>"))
+            #endif
         {
         mainJD.addGenerator(
             cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix())));
