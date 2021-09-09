@@ -247,7 +247,6 @@ class CPPPotential(CPPPotentialBase):
         device = self._simulation.device
         cpp_sys_def = self._simulation.state._cpp_sys_def
 
-
         if self.llvm_ir == '':
             code = self.code
             llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
@@ -259,8 +258,8 @@ class CPPPotential(CPPPotentialBase):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             gpu_code = self._wrap_gpu_code(self._code)
             self._cpp_obj = _jit.PatchEnergyJITGPU(
-                cpp_sys_def, device._cpp_exec_conf, llvm_ir,
-                self.r_cut, self.param_array, gpu_code,
+                cpp_sys_def, device._cpp_exec_conf, llvm_ir, self.r_cut,
+                self.param_array, gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"], gpu_settings["cuda_devrt_lib_path"],
                 gpu_settings["max_arch"])
