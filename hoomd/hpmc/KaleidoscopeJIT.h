@@ -81,10 +81,8 @@ class KaleidoscopeJIT
     return std::make_unique<KaleidoscopeJIT>(std::move(*JTMB), std::move(*DL));
     }
 
-  Error addModule(std::unique_ptr<Module> M, ResourceTrackerSP RT = nullptr) {
-    if (!RT)
-      RT = mainJD->getDefaultResourceTracker();
-    return CompileLayer.add(RT, ThreadSafeModule(std::move(M), Ctx));
+  Error addModule(std::unique_ptr<Module> M) {
+    return CompileLayer.add(*mainJD, ThreadSafeModule(std::move(M), Ctx));
   }
 
   Expected<JITEvaluatedSymbol> findSymbol(std::string Name) {
