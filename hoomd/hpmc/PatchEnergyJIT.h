@@ -68,6 +68,11 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
         return m_alpha_size;
         }
 
+    std::string llvm_ir()
+        {
+        return m_llvm_ir;
+        }
+
     //! Get the maximum r_ij radius beyond which energies are always 0
     virtual inline Scalar getAdditiveCutoff(unsigned int type)
         {
@@ -124,6 +129,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     unsigned int m_alpha_size;              //!< Size of array
     std::vector<float, managed_allocator<float>>
         m_alpha; //!< Array containing adjustable parameters
+    std::string m_llvm_ir;                  //!< the LLVM IR
     };
 
 //! Exports the PatchEnergyJIT class to python

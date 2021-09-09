@@ -24,6 +24,9 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
     // build the JIT.
     m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir));
 
+    // save the llvm_ir string for exporting to python
+    m_llvm_ir = llvm_ir;
+
     // get the evaluator
     m_eval = m_factory->getEval();
 
@@ -54,6 +57,7 @@ void export_PatchEnergyJIT(pybind11::module& m)
         .def_property_readonly("param_array", &PatchEnergyJIT::getParamArray)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &Compute::setCommunicator)
+        .def_property_readonly("llvm_ir", &PatchEnergyJIT::llvm_ir)
 #endif
         ;
     }
