@@ -6,8 +6,8 @@
 #ifndef __ALCHEMOSTAT_TWO_STEP__
 #define __ALCHEMOSTAT_TWO_STEP__
 
-#include "IntegrationMethodTwoStep.h"
 #include "AlchemyData.h"
+#include "IntegrationMethodTwoStep.h"
 
 #include <cstddef>
 #include <pybind11/stl_bind.h>

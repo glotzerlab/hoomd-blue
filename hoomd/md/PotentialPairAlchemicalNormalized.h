@@ -178,7 +178,9 @@ PotentialPairAlchemicalNormalized<evaluator, extra_pkg, alpha_particle_type>::pk
                 {
                 std::shared_ptr<alpha_particle_type>& alpha_p
                     = m_alchemical_particles[j * m_alchemy_index.getNumElements() + i];
-                alpha_p->setNetForce(alpha_p->alchemical_derivative_normalization_value);
+                alpha_p->setNetForce();
+                if (m_normalizer)
+                    alpha_p->NormalizeNetForce(pkg.normalization_values[i], this->calcEnergySum());
                 }
     }
 

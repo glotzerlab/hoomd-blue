@@ -56,8 +56,7 @@ template<class evaluator> struct AlchemyPackage
 template<class evaluator,
          typename extra_pkg = AlchemyPackage<evaluator>,
          typename alpha_particle_type = AlchemicalPairParticle>
-class PotentialPairAlchemical
-    : public PotentialPair<evaluator, extra_pkg>
+class PotentialPairAlchemical : public PotentialPair<evaluator, extra_pkg>
     {
     public:
     //! Construct the pair potential
@@ -72,8 +71,7 @@ class PotentialPairAlchemical
             = m_alchemical_particles[k * m_alchemy_index.getNumElements() + m_alchemy_index(i, j)];
         if (alpha_p == nullptr)
             {
-            alpha_p = std::make_shared<alpha_particle_type>(m_exec_conf,
-                                                            make_int3(i, j, k));
+            alpha_p = std::make_shared<alpha_particle_type>(m_exec_conf, make_int3(i, j, k));
             }
         return alpha_p;
         }

@@ -83,12 +83,6 @@ struct AlchemicalMDParticle : AlchemicalParticle
         m_timestep_net_force.second = netForce;
         }
 
-    void setNetForce(Scalar norm_value)
-        {
-        setNetForce();
-        m_timestep_net_force.second *= norm_value;
-        }
-
     Scalar getNetForce(uint64_t timestep)
         {
         // TODO: remove this sanity check after we're done making sure timing works
@@ -151,7 +145,15 @@ struct AlchemicalNormalizedPairParticle : AlchemicalPairParticle
     {
     using AlchemicalPairParticle::AlchemicalPairParticle;
 
-    Scalar alchemical_derivative_normalization_value = 1;
+    Scalar alchemical_derivative_normalization_value = 0.;
+
+    void NormalizeNetForce(Scalar norm_value, Scalar energy_value)
+        {
+        m_timestep_net_force.second *= norm_value;
+        // FIXME: only valid for single type single interaction system
+        energy_value /= Scalar(m_alchemical_derivatives.getNumElements());
+        m_timestep_net_force.second += energy_value * alchemical_derivative_normalization_value;
+        }
     };
 
 inline void export_AlchemicalMDParticles(pybind11::module& m)
