@@ -437,7 +437,7 @@ class TypeConverterValue(TypeConverter):
             raise TypeConversionError(
                 "Value {} of type {} cannot be converted using {}. Raised "
                 "error: {}".format(value, type(value), str(self.converter),
-                                   str(err)))
+                                   str(err))) from err
 
 
 class TypeConverterSequence(TypeConverter):
@@ -483,7 +483,7 @@ class TypeConverterSequence(TypeConverter):
                     new_sequence.append(c(v))
             except (TypeConversionError) as err:
                 raise TypeConversionError("In list item number {}: {}"
-                                          "".format(i, str(err)))
+                                          "".format(i, str(err))) from err
             return new_sequence
 
     def __iter__(self):
@@ -538,7 +538,7 @@ class TypeConverterFixedLengthSequence(TypeConverter):
                     new_sequence.append(c(v))
             except (TypeConversionError) as err:
                 raise TypeConversionError("In tuple item number {}: {}"
-                                          "".format(i, str(err)))
+                                          "".format(i, str(err))) from err
             return tuple(new_sequence)
 
     def __iter__(self):
@@ -595,7 +595,7 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
                     new_mapping[key] = value
         except (TypeConversionError) as err:
             raise TypeConversionError("In key {}: {}"
-                                      "".format(str(key), str(err)))
+                                      "".format(str(key), str(err))) from err
         return new_mapping
 
     def __iter__(self):
