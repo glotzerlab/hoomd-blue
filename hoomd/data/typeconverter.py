@@ -256,6 +256,7 @@ class OnlyFrom(_HelpValidate):
 
 
 class Array(_HelpValidate):
+    """Validate array-like values."""
 
     def __init__(self,
                  dtype,

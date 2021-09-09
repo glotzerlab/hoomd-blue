@@ -371,6 +371,7 @@ class HPMCIntegrator(BaseIntegrator):
 
     @property
     def potential(self):
+        """The user-defined potential associated with the integrator."""
         return self._potential
 
     @potential.setter
@@ -391,6 +392,7 @@ class HPMCIntegrator(BaseIntegrator):
 
     @property
     def field(self):
+        """The user-defined field associated with the integrator."""
         return self._field
 
     @field.setter

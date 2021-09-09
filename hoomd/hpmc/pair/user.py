@@ -2,6 +2,8 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
+"""User-defined pair potentials for HPMC simulations."""
+
 import hoomd
 from hoomd import _compile
 from hoomd.hpmc import integrate
@@ -119,8 +121,9 @@ class CPPPotentialBase(_HOOMDBaseObject):
     @log
     def energy(self):
         """float: Total interaction energy of the system in the current state.
-                  Returns `None` when the patch object and integrator are not
-                  attached.
+
+        Returns `None` when the patch object and integrator are not
+        attached.
         """
         integrator = self._simulation.operations.integrator
         if self._attached and integrator._attached:
