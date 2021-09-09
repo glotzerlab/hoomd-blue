@@ -43,13 +43,13 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
     virtual ~TwoStepRATTLENVEGPU() {};
 
     //! Performs the first step of the integration
-    virtual void integrateStepOne(unsigned int timestep);
+    virtual void integrateStepOne(uint64_t timestep);
 
     //! Performs the second step of the integration
-    virtual void integrateStepTwo(unsigned int timestep);
+    virtual void integrateStepTwo(uint64_t timestep);
 
     //! Includes the RATTLE forces to the virial/net force
-    virtual void includeRATTLEForce(unsigned int timestep);
+    virtual void includeRATTLEForce(uint64_t timestep);
 
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
@@ -117,7 +117,7 @@ TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinit
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
    velocity verlet method.
 */
-template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(unsigned int timestep)
+template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(uint64_t timestep)
     {
     // profile this step
     if (this->m_prof)
@@ -215,7 +215,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(un
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(unsigned int timestep)
+template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = this->m_pdata->getNetForce();
 
@@ -304,7 +304,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(un
     }
 
 template<class Manifold>
-void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
+void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
     {
     // access all the needed data
     const GlobalArray<Scalar4>& net_force = this->m_pdata->getNetForce();
