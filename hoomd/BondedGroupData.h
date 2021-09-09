@@ -319,6 +319,7 @@ class BondedGroupData
         return types;
         }
 
+
     //! Rename a type
     void setTypeName(unsigned int type, const std::string& new_name);
 

@@ -96,7 +96,7 @@ SystemDefinition::SystemDefinition(std::shared_ptr<SnapshotSystemData<Real>> sna
     m_improper_data
         = std::shared_ptr<ImproperData>(new ImproperData(m_particle_data, snapshot->improper_data));
 
-    m_mesh_data = MeshData(m_particle_data, snapshot);
+    m_mesh_data = MeshData(m_particle_data, snapshot->triangle_data);
 
     m_constraint_data = std::shared_ptr<ConstraintData>(
         new ConstraintData(m_particle_data, snapshot->constraint_data));
@@ -170,7 +170,7 @@ void SystemDefinition::initializeFromSnapshot(std::shared_ptr<SnapshotSystemData
     m_dihedral_data->initializeFromSnapshot(snapshot->dihedral_data);
     m_improper_data->initializeFromSnapshot(snapshot->improper_data);
     m_constraint_data->initializeFromSnapshot(snapshot->constraint_data);
-    m_mesh_data.initializeFromSnapshot(snapshot);
+    m_mesh_data.initializeFromSnapshot(snapshot->triangle_data);
     m_pair_data->initializeFromSnapshot(snapshot->pair_data);
     }
 

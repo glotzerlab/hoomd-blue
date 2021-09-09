@@ -36,10 +36,11 @@ using namespace std;
 MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
                                    unsigned int n_triangle_types)
     {
-    triangle_data
-        = std::shared_ptr<TriangleData>(new TriangleData(pdata, n_triangle_types));
     m_meshtriangle_data
         = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(pdata, n_triangle_types));
+
+    m_meshbond_data
+        = std::shared_ptr<MeshBondData>(new MeshBondData(pdata, n_triangle_types));
     }
 
 /*! Evaluates the snapshot and initializes the respective *Data classes using
@@ -48,13 +49,28 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
     \param exec_conf Execution configuration to run on
     \param decomposition (optional) The domain decomposition layout
 */
-template<class Real>
 MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
-		std::shared_ptr<SnapshotSystemData<Real>> snapshot)
+		TriangleData::Snapshot snapshot)
     {
 
-    triangle_data = std::shared_ptr<TriangleData>(new TriangleData(pdata, snapshot->triangle_data));
+    triangle_data = std::shared_ptr<TriangleData>(new TriangleData(pdata, snapshot));
 
+    m_meshtriangle_data
+        = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(pdata, (unsigned int) snapshot.type_mapping.size() ));
+
+    for (unsigned group_types = 0; group_types < snapshot.type_mapping.size(); group_types++)
+    	{
+        m_meshtriangle_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
+	}
+
+    for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
+        {
+        unsigned int type = snapshot.type_id[group_idx];
+	unsigned int a = snapshot.groups[group_idx].tag[0];
+	unsigned int b = snapshot.groups[group_idx].tag[1];
+	unsigned int c = snapshot.groups[group_idx].tag[2];
+        m_meshtriangle_data->addBondedGroup(MeshTriangle(type, a, b, c, -1, -1, -1 ));
+        }
     }
 
 
@@ -73,39 +89,22 @@ template<class Real> void MeshData::takeSnapshot(std::shared_ptr<SnapshotSystemD
     }
 
 //! Re-initialize the system from a snapshot
-template<class Real>
-void MeshData::initializeFromSnapshot(std::shared_ptr<SnapshotSystemData<Real>> snapshot)
+void MeshData::initializeFromSnapshot( TriangleData::Snapshot snapshot)
     {
 
-    triangle_data->initializeFromSnapshot(snapshot->triangle_data);
+    triangle_data->initializeFromSnapshot(snapshot);
     }
 
-// instantiate both float and double methods
-template MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
-		                            std::shared_ptr<SnapshotSystemData<float>> snapshot);
-
 template void MeshData::takeSnapshot<float>(std::shared_ptr<SnapshotSystemData<float>> snap);
-template void MeshData::initializeFromSnapshot<float>(
-    std::shared_ptr<SnapshotSystemData<float>> snapshot);
-
-template MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
-		                            std::shared_ptr<SnapshotSystemData<double>> snapshot);
-
 template void MeshData::takeSnapshot<double>(std::shared_ptr<SnapshotSystemData<double>> snap);
-template void MeshData::initializeFromSnapshot<double>(
-    std::shared_ptr<SnapshotSystemData<double>> snapshot);
 
 void export_MeshData(py::module& m)
     {
     py::class_<MeshData, std::shared_ptr<MeshData>>(m, "MeshData")
         .def(py::init<std::shared_ptr<ParticleData>, unsigned int>())
-        .def(py::init<std::shared_ptr<ParticleData>,
-		      std::shared_ptr<SnapshotSystemData<float>>>())
-        .def(py::init<std::shared_ptr<ParticleData>,
-		      std::shared_ptr<SnapshotSystemData<double>>>())
+        .def(py::init<std::shared_ptr<ParticleData>, TriangleData::Snapshot>())
         .def("takeSnapshot_float", &MeshData::takeSnapshot<float>)
         .def("takeSnapshot_double", &MeshData::takeSnapshot<double>)
-        .def("initializeFromSnapshot", &MeshData::initializeFromSnapshot<float>)
-        .def("initializeFromSnapshot", &MeshData::initializeFromSnapshot<double>)
+        .def("initializeFromSnapshot", &MeshData::initializeFromSnapshot)
         .def("getTriangleData", &MeshData::getTriangleData);
     }

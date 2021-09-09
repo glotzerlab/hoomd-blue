@@ -34,16 +34,14 @@ class PYBIND11_EXPORT MeshData
                      unsigned int n_triangle_types = 0);
 
     //! Construct from a snapshot
-    template<class Real>
     MeshData(std::shared_ptr<ParticleData> pdata,
-		 std::shared_ptr<SnapshotSystemData<Real>> snapshot);
+		 TriangleData::Snapshot snapshot);
 
     //! Return a snapshot of the current system data
     template<class Real> void takeSnapshot(std::shared_ptr<SnapshotSystemData<Real>> snap);
 
     //! Re-initialize the system from a snapshot
-    template<class Real>
-    void initializeFromSnapshot(std::shared_ptr<SnapshotSystemData<Real>> snapshot);
+    void initializeFromSnapshot(TriangleData::Snapshot snapshot);
 
     //! Access the triangle data
     std::shared_ptr<TriangleData> getTriangleData()
