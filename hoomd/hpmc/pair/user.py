@@ -254,13 +254,12 @@ class CPPPotential(CPPPotentialBase):
             if self._param_dict['llvm_ir'] == '':
                 code = self._param_dict['code']
                 llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
-                                                        self._clang_exec)
+                                              self._clang_exec)
             else:
                 llvm_ir = self._param_dict['llvm_ir']
             self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def,
-                                                device._cpp_exec_conf,
-                                                llvm_ir, self.r_cut,
-                                                self.param_array)
+                                                device._cpp_exec_conf, llvm_ir,
+                                                self.r_cut, self.param_array)
         # attach patch object to the integrator
         super()._attach()
 
