@@ -434,8 +434,6 @@ class TypeConverterValue(TypeConverter):
         try:
             return self.converter(value)
         except (TypeError, ValueError, TypeConversionError) as err:
-            if value is RequiredArg:
-                raise TypeConversionError("Value is a required argument")
             raise TypeConversionError(
                 "Value {} of type {} cannot be converted using {}. Raised "
                 "error: {}".format(value, type(value), str(self.converter),
