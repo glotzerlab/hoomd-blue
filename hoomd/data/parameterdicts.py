@@ -14,7 +14,7 @@ from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
                                       TypeConverterMapping, OnlyIf, Either)
 from hoomd.data.smart_default import (_to_base_defaults, _to_default,
                                       _SmartDefault, _NoDefault)
-from hoomd.error import TypeConversionError
+from hoomd.error import TypeConversionError, IncompleteSpecificationError
 
 
 def _has_str_elems(obj):
@@ -48,7 +48,8 @@ def _raise_if_required_arg(value, current_context=()):
                 context_str = context_str + f"in key {c} "
             elif isinstance(c, int):
                 context_str = context_str + f"in index {c} "
-        raise ValueError(f"Value{context_str}is required")
+        # error is lower cased as this is meant to be caught.
+        raise IncompleteSpecificationError(f"value{context_str}is required")
 
     if value is RequiredArg:
         _raise_error_with_context(current_context)
@@ -129,9 +130,8 @@ class _ValidatedDefaultDict(MutableMapping):
         keys = self._yield_keys(keys)
         try:
             validated_value = self._validate_values(item)
-        except TypeConversionError as err:
-            raise TypeConversionError("For types {}, error {}.".format(
-                list(keys), str(err)))
+        except (TypeConversionError, IncompleteSpecificationError) as err:
+            raise err.__class__(f"For types {list(keys)} {str(err)}.") from err
         for key in keys:
             self._single_setitem(key, validated_value)
 
@@ -388,7 +388,10 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         # add all types to c++
         for key in self:
             parameter = type_param_dict._single_getitem(key)
-            _raise_if_required_arg(parameter)
+            try:
+                _raise_if_required_arg(parameter)
+            except IncompleteSpecificationError as err:
+                raise IncompleteSpecificationError(f"for key {key} {str(err)}")
             self._single_setitem(key, parameter)
 
     def to_detached(self):

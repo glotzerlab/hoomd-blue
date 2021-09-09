@@ -275,9 +275,9 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         for typeparam in self._typeparam_dict.values():
             try:
                 typeparam._attach(cpp_obj, simulation)
-            except ValueError as verr:
-                raise ValueError("In TypeParameter {}:"
-                                 " ".format(typeparam.name) + verr.args[0])
+            except ValueError as err:
+                raise err.__class__(
+                    f"In TypeParameter {typeparam.name} {str(err)}") from err
 
     def _update_param_dict(self):
         for key in self._param_dict.keys():

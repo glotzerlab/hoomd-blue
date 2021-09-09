@@ -34,6 +34,11 @@ class TypeConversionError(ValueError):
     pass
 
 
+class IncompleteSpecificationError(ValueError):
+    """Error when a value is missing."""
+    pass
+
+
 class SimulationDefinitionError(RuntimeError):
     """Error in definition of simulation internal state."""
     pass
