@@ -88,14 +88,13 @@ class CPPPotentialBase(_HOOMDBaseObject):
                  llvm_ir=None,
                  clang_exec='clang',
                  param_array=None):
-        self._code = code
-        self._clang_exec = clang_exec
         param_dict = ParameterDict(
             r_cut=float,
             param_array=hoomd.data.typeconverter.Array(dtype=np.float32,
                                                        ndim=1),
             code=str,
             clang_exec=str,
+            llvm_ir=str,
         )
         param_dict['r_cut'] = r_cut
         param_dict['code'] = code
@@ -107,7 +106,15 @@ class CPPPotentialBase(_HOOMDBaseObject):
             param_dict['param_array'] = np.array([])
         else:
             param_dict['param_array'] = param_array
+        param_dict['clang_exec'] = clang_exec
         self._param_dict.update(param_dict)
+
+    def _getattr_param(self, attr):
+        if attr == 'clang_exec':
+            return self._param_dict['clang_exec']
+        elif attr == 'code':
+            return self._param_dict['code']
+        return super()._getattr_param(attr)
 
     @log
     def energy(self):
@@ -240,23 +247,25 @@ class CPPPotential(CPPPotentialBase):
         device = self._simulation.device
         cpp_sys_def = self._simulation.state._cpp_sys_def
 
+
+        if self.llvm_ir == '':
+            code = self.code
+            llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
+                                          self.clang_exec)
+        else:
+            llvm_ir = self.llvm_ir
+
         if isinstance(device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             gpu_code = self._wrap_gpu_code(self._code)
             self._cpp_obj = _jit.PatchEnergyJITGPU(
-                cpp_sys_def, device._cpp_exec_conf, self._param_dict['llvm_ir'],
+                cpp_sys_def, device._cpp_exec_conf, llvm_ir,
                 self.r_cut, self.param_array, gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"], gpu_settings["cuda_devrt_lib_path"],
                 gpu_settings["max_arch"])
         else:  # running on cpu
             # if llvm_ir == '', then no IR was provided and we need to compile
-            if self._param_dict['llvm_ir'] == '':
-                code = self._param_dict['code']
-                llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
-                                              self._clang_exec)
-            else:
-                llvm_ir = self._param_dict['llvm_ir']
             self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def,
                                                 device._cpp_exec_conf, llvm_ir,
                                                 self.r_cut, self.param_array)
@@ -425,7 +434,7 @@ class _CPPUnionPotential(CPPPotentialBase):
         if self._code_union is not None:
             cpp_function_union = self._wrap_cpu_code(self._code_union)
             llvm_ir_union = _compile._to_llvm_ir(cpp_function_union,
-                                                 self._clang_exec)
+                                                 self.clang_exec)
         # fall back to LLVM IR file in case code is not provided
         elif self._llvm_ir_file_union is not None:
             # IR is a text file
@@ -436,7 +445,7 @@ class _CPPUnionPotential(CPPPotentialBase):
 
         if self._code is not None:
             cpp_function = self._wrap_cpu_code(self._code)
-            llvm_ir = _compile.to_llvm_ir(cpp_function, self._clang_exec)
+            llvm_ir = _compile.to_llvm_ir(cpp_function, self.clang_exec)
         elif self._llvm_ir_file is not None:
             # IR is a text file
             with open(self._llvm_ir_file, 'r') as f:
@@ -444,7 +453,7 @@ class _CPPUnionPotential(CPPPotentialBase):
         else:
             # provide a dummy function
             cpp_dummy = self._wrap_cpu_code('return 0.0;')
-            llvm_ir = _compile.to_llvm_ir(cpp_dummy, self._clang_exec)
+            llvm_ir = _compile.to_llvm_ir(cpp_dummy, self.clang_exec)
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):

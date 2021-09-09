@@ -84,7 +84,7 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
         {
         m_d_union_params[i].allocate_shared(ptr, available_bytes);
         }
-    unsigned int extra_bytes = max_extra_bytes - available_bytes;
+    long unsigned int extra_bytes = max_extra_bytes - available_bytes;
     shared_bytes += extra_bytes;
 
     dim3 thread(eval_threads, n_groups, tpp);
