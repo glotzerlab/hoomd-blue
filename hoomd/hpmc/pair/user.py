@@ -98,9 +98,14 @@ class CPPPotentialBase(_HOOMDBaseObject):
                                    )
         param_dict['r_cut'] = r_cut
         param_dict['code'] = code
-        param_dict['llvm_ir'] = {None: ''}.get(llvm_ir, llvm_ir)
-        param_dict['param_array'] = {None: np.array([])}.get(
-                param_array, param_array)
+        if llvm_ir is None:
+            param_dict['llvm_ir'] = ''
+        else:
+            param_dict['llvm_ir'] = llvm_ir
+        if param_array is None:
+            param_dict['param_array'] = np.array([])
+        else:
+            param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
 
     @log
