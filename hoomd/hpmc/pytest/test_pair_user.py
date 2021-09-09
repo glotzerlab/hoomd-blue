@@ -47,10 +47,10 @@ valid_constructor_args = [
          llvm_ir=return0_ir,
          clang_exec='/usr/bin/clang'),
     dict(r_cut=2,
-        param_array=[1, 2, 3, 4],
-        code='return -1;',
-        llvm_ir=return0_ir,
-        clang_exec='/usr/bin/clang'),
+         param_array=[1, 2, 3, 4],
+         code='return -1;',
+         llvm_ir=return0_ir,
+         clang_exec='/usr/bin/clang'),
 ]
 
 # setable attributes before attach for CPPPotential objects

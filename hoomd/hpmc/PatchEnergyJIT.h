@@ -128,8 +128,8 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     EvalFactory::EvalFnPtr m_eval;          //!< Pointer to evaluator function inside the JIT module
     unsigned int m_alpha_size;              //!< Size of array
     std::vector<float, managed_allocator<float>>
-        m_alpha; //!< Array containing adjustable parameters
-    std::string m_llvm_ir;                  //!< the LLVM IR
+        m_alpha;           //!< Array containing adjustable parameters
+    std::string m_llvm_ir; //!< the LLVM IR
     };
 
 //! Exports the PatchEnergyJIT class to python

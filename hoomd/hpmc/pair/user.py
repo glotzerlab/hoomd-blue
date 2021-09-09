@@ -119,7 +119,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
     @log
     def energy(self):
         """float: Total interaction energy of the system in the current state.
-                  Returns `None` when the patch object and integrator are not attached.
+                  Returns `None` when the patch object and integrator are not
+                  attached.
         """
         integrator = self._simulation.operations.integrator
         if self._attached and integrator._attached:
@@ -247,7 +248,6 @@ class CPPPotential(CPPPotentialBase):
         device = self._simulation.device
         cpp_sys_def = self._simulation.state._cpp_sys_def
 
-
         if self.llvm_ir == '':
             code = self.code
             llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
@@ -259,8 +259,8 @@ class CPPPotential(CPPPotentialBase):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             gpu_code = self._wrap_gpu_code(self._code)
             self._cpp_obj = _jit.PatchEnergyJITGPU(
-                cpp_sys_def, device._cpp_exec_conf, llvm_ir,
-                self.r_cut, self.param_array, gpu_code,
+                cpp_sys_def, device._cpp_exec_conf, llvm_ir, self.r_cut,
+                self.param_array, gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"], gpu_settings["cuda_devrt_lib_path"],
                 gpu_settings["max_arch"])
@@ -281,24 +281,35 @@ class _CPPUnionPotential(CPPPotentialBase):
         This class does not currenlty work. Please do not attempt to use this.
 
     Args:
-        r_cut_union (`float`): Constituent particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        r_cut (`float`, **default** 0): Cut-off for isotropic interaction between centers of union particles.
-        code_union (`str`): C++ code defining the custom pair interactions between constituent particles.
+        r_cut_union (`float`): Constituent particle center to center distance
+            cutoff beyond which all pair interactions are assumed 0.
+        r_cut (`float`, **default** 0): Cut-off for isotropic interaction
+            between centers of union particles.
+        code_union (`str`): C++ code defining the custom pair interactions
+            between constituent particles.
         code (`str`): C++ code for isotropic part.
         llvm_ir_fname_union (`str`): File name of the llvm IR file to load.
-        llvm_ir_fname (`str`): File name of the llvm IR file to load for isotropic interaction.
-        clang_exec (`str`, **default:** `clang`): The Clang executable to compile the provided code.
-        array_size_union (`int`, **default:** 1): Size of array with adjustable elements.
-        array_size (`int`, **default:** 1): Size of array with adjustable elements for the isotropic part.
+        llvm_ir_fname (`str`): File name of the llvm IR file to load for
+            isotropic interaction.
+        clang_exec (`str`, **default:** `clang`): The Clang executable to
+            compile the provided code.
+        array_size_union (`int`, **default:** 1): Size of array with adjustable
+            elements.
+        array_size (`int`, **default:** 1): Size of array with adjustable
+            elements for the isotropic part.
 
     Note:
-        If both `code_union` and `llvm_ir_fname_union` are provided, the former takes precedence. The latter will be used
-        as a fallback in case the compilation of `code_union` fails.
+        If both `code_union` and `llvm_ir_fname_union` are provided, the former
+            takes precedence. The latter will be used as a fallback in case the
+            compilation of `code_union` fails.
 
     Note:
-        This class uses an internal OBB tree for fast interaction queries bewteeen constituents of interacting particles.
-        Depending on the number of constituent particles per type in the tree, different values of the particles per leaf
-        node may yield different optimal performance. The capacity of leaf nodes is configurable.
+        This class uses an internal OBB tree for fast interaction queries
+            bewteeen constituents of interacting particles.
+        Depending on the number of constituent particles per type in the tree,
+            different values of the particles per leaf
+        node may yield different optimal performance. The capacity of leaf nodes
+            is configurable.
 
     Attributes:
         positions (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`]]])
@@ -484,7 +495,8 @@ class _CPPUnionPotential(CPPPotentialBase):
 
     @property
     def code_union(self):
-        """str: The C++ code defining the custom pair interactions between constituent particles."""
+        """str: The C++ code defining the custom pair interactions between
+        constituent particles."""
         return self._code_union
 
     @code_union.setter
