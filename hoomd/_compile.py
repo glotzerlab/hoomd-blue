@@ -3,13 +3,12 @@
 # License.
 
 import hoomd
-from hoomd.hpmc import _jit
 import subprocess
 import os
 
 
 def to_llvm_ir(code, clang_exec):
-    r"""Helper function to compile the provided code into an executable
+    r"""Helper function to compile the provided code into an executable.
 
     Args:
         code (`str`): C++ code to compile
