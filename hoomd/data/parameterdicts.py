@@ -45,7 +45,7 @@ def _raise_if_required_arg(value, current_context=()):
         context_str = " "
         for c in context:
             if isinstance(c, str):
-                context_str = context_str + f"in key {c} "
+                context_str = context_str + f"for key {c} "
             elif isinstance(c, int):
                 context_str = context_str + f"in index {c} "
         # error is lower cased as this is meant to be caught.
@@ -194,11 +194,12 @@ class _ValidatedDefaultDict(MutableMapping):
                            self._type_converter.converter.specs))
                 expected_keys = set(mapping.keys())
             else:
-                raise ValueError
+                # the code shouldn't reach here so raise an error.
+                raise ValueError("Couid not identify specification.")
             bad_keys = set(validated_value.keys()) - expected_keys
             if len(bad_keys) != 0:
-                raise ValueError("Keys must be a subset of available keys. "
-                                 "Bad keys are {}".format(bad_keys))
+                raise KeyError("Keys must be a subset of available keys. "
+                               "Bad keys are {}".format(bad_keys))
         # update validated_value with the default (specifically to add dict keys
         # that have defaults and were not manually specified).
         if isinstance(self._default, _SmartDefault):
@@ -296,7 +297,7 @@ class _ValidatedDefaultDict(MutableMapping):
             keys = set(self._default.keys())
             provided_keys = set(new_default.keys())
             if keys.intersection(provided_keys) != provided_keys:
-                raise ValueError("New default must a subset of current keys.")
+                raise KeyError("New default must a subset of current keys.")
         self._default = _to_default(new_default)
 
 
