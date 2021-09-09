@@ -303,8 +303,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
         this->m_prof->pop(this->m_exec_conf);
     }
 
-template<class Manifold>
-void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
+template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
     {
     // access all the needed data
     const GlobalArray<Scalar4>& net_force = this->m_pdata->getNetForce();
