@@ -37,6 +37,10 @@
 
 #pragma GCC diagnostic pop
 
+#if !defined LLVM_VERSION_MAJOR || LLVM_VERSION_MAJOR <= 9
+#error Unsupported LLVM version
+#endif
+
 namespace llvm
     {
 namespace orc
@@ -65,13 +69,8 @@ class KaleidoscopeJIT
             mainJD(this->ES.createJITDylib("<main>"))
             #endif
         {
-        #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 9
         mainJD.addGenerator(
             cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix())));
-        #else
-        mainJD.setGenerator(
-            cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL)));
-        #endif
     }
     const DataLayout &getDataLayout() const { return DL; }
 
