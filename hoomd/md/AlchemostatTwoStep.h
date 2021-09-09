@@ -65,12 +65,7 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
     void setAlchemicalParticleList(
         std::vector<std::shared_ptr<AlchemicalMDParticle>> alchemicalParticles)
         {
-        m_alchemicalParticles = alchemicalParticles;
-        }
-
-    void addAlchemicalParticle(std::shared_ptr<AlchemicalMDParticle> alpha)
-        {
-        m_alchemicalParticles.push_back(alpha);
+        m_alchemicalParticles.swap(alchemicalParticles);
         updateAlchemicalTimestep();
         }
 
@@ -86,14 +81,6 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
         for (auto& alpha : m_alchemicalParticles)
             {
             alpha->m_nextTimestep = m_nextAlchemTimeStep;
-            }
-        }
-
-    void updateAlchemicalTimestep(uint64_t timestep)
-        {
-        for (auto& alpha : m_alchemicalParticles)
-            {
-            alpha->m_nextTimestep = timestep;
             }
         }
 
@@ -129,7 +116,6 @@ inline void export_AlchemostatTwoStep(pybind11::module& m)
                       &AlchemostatTwoStep::getAlchemicalParticleList,
                       &AlchemostatTwoStep::setAlchemicalParticleList)
         .def("getAlchemicalParticleList", &AlchemostatTwoStep::getAlchemicalParticleList)
-        .def("addAlchemicalParticle", &AlchemostatTwoStep::addAlchemicalParticle)
         .def("getNDOF", &AlchemostatTwoStep::getNDOF)
         .def("setNextAlchemicalTimestep", &AlchemostatTwoStep::setNextAlchemicalTimestep);
     }

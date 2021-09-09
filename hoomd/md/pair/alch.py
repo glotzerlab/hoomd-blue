@@ -84,21 +84,38 @@ class AlchemicalPairParticle(_HOOMDBaseObject):
         self._param_dict.update(param_dict)
 
     def _attach(self):
+        assert self.force._attached
         self._cpp_obj = self.force._cpp_obj.getAlchemicalPairParticle(
             *map(self.force._simulation.state.particle_types.index,
                  self.typepair),
             self.force._alchemical_parameters.index(self.name))
-        self._enable()
         self.mass = self._mass
         self._mass = self.mass
+        if self._owned:
+            self._enable()
 
     # Need to enable and disable via synced list of alchemostat
     def _add(self, simulation):
         super()._add(simulation)
 
+    @property
+    def _owned(self):
+        return hasattr(self, '_owner')
+
+    def _own(self, alchemostat):
+        if self._owned:
+            raise RuntimeError(
+                "Attempting to iterate an alchemical particle twice")
+        self._owner = alchemostat
+        if self._attached:
+            self._enable()
+
+    def _disown(self):
+        self._disable()
+        delattr(self, '_owner')
+
     def _detach(self):
         if self._attached:
-            self.force.params[self.typepair][self.name] = self.value
             self._disable()
             super()._detach()
 
@@ -149,9 +166,12 @@ class AlchemicalPairParticle(_HOOMDBaseObject):
         return self._cpp_obj.net_force()
 
     def _enable(self):
+        assert self._attached
         self.force._cpp_obj.enableAlchemicalPairParticle(self._cpp_obj)
 
     def _disable(self):
+        assert self._attached
+        self.force.params[self.typepair][self.name] = self.value
         self.force._cpp_obj.disableAlchemicalPairParticle(self._cpp_obj)
 
 
@@ -162,6 +182,10 @@ class AlchemicalNormalizedPairParticle(AlchemicalPairParticle):
     def norm_value(self):
         """Normalization Value."""
         return self._cpp_obj.norm_value
+
+    @norm_value.setter
+    def norm_value(self, value):
+        self._cpp_obj.norm_value = value
 
     @log(default=False, requires_run=True, category='particle')
     def aforces(self):
@@ -258,31 +282,58 @@ class Alchemostat(Method):
     """Alchemostat Base Class."""
 
     def __init__(self, alchemical_particles):
-        if alchemical_particles is None:
-            alchemical_particles = []
-        self._alchemical_particles = syncedlist.SyncedList(
-            AlchemicalPairParticle,
-            syncedlist._PartialGetAttr('_cpp_obj'),
-            iterable=alchemical_particles)
+        self.alchemical_particles = self._OwnedAlchemicalParticles(self)
+        if alchemical_particles is not None:
+            self.alchemical_particles.extend(alchemical_particles)
+
+    def _update(self):
+        if self._attached:
+            self._cpp_obj.alchemical_particles = \
+                    self.alchemical_particles._synced_list
 
     def _attach(self):
-        self.alchemical_particles._sync(self._simulation,
-                                        self._cpp_obj.alchemical_particles)
         super()._attach()
+        # TODO: handle forces not attached
+        # for force in {alpha.force for alpha in self.alchemical_particles}
 
-    @property
-    def alchemical_particles(self):
+        # keep a separate local cpp list because static casting
+        # won't let us access directly
+        self.alchemical_particles._sync(None, [])
+        self._update()
+
+        # if we're holding onto a temporary variable, ditch it now
+        if hasattr(self, "_time_factor"):
+            self.time_factor
+
+    class _OwnedAlchemicalParticles(syncedlist.SyncedList):
         """Owned alchemical particles.
+
+        Accessor/wrapper to specialize a synced list
 
         Alchemical particles which will be integrated by this integrator
         method.
         """
-        return self._alchemical_particles
 
-    @alchemical_particles.setter
-    def alchemical_particles(self, value):
-        self._alchemical_particles.clear()
-        self._alchemical_particles = value
+        def __init__(self, outer):
+            self._outer = outer
+            super().__init__(AlchemicalPairParticle,
+                             syncedlist._PartialGetAttr('_cpp_obj'))
+
+        def __setitem__(self, i, item):
+            item._own(self._outer)
+            super().__setitem__(i, item)
+            self._outer._update()
+
+        def __delitem__(self, i):
+            self._outer._alchemical_particles[i]._disown()
+            super().__delitem__(i)
+            self._outer._update()
+
+        def insert(self, i, item):
+            """Insert value to list at index, handling list syncing."""
+            item._own(self._outer)
+            super().insert(i, item)
+            self._outer._update()
 
 
 class NVT(Alchemostat):
