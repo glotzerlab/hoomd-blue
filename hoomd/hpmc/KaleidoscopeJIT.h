@@ -48,22 +48,17 @@ class KaleidoscopeJIT
         DataLayout DL;
         MangleAndInterner Mangle;
         ThreadSafeContext Ctx;
-        JITDylib *mainJD;
+        JITDylib &mainJD;
 
     KaleidoscopeJIT(JITTargetMachineBuilder JTMB, DataLayout DL)
         : ObjectLayer(ES,
                         []() { return std::make_unique<SectionMemoryManager>(); }),
             CompileLayer(ES, ObjectLayer, std::make_unique<ConcurrentIRCompiler>(ConcurrentIRCompiler(std::move(JTMB)))),
             DL(std::move(DL)), Mangle(ES, this->DL),
-            Ctx(std::make_unique<LLVMContext>())
+            Ctx(std::make_unique<LLVMContext>()),
+            mainJD(this->ES.createBareJITDylib("<main>"))
         {
-        mainJD = ES.getJITDylibByName("<main>");
-        if (!mainJD)
-            {
-            mainJD = &(ES.createJITDylib("<main>").get());
-            }
-
-        mainJD->addGenerator(
+        mainJD.addGenerator(
             cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix())));
     }
     const DataLayout &getDataLayout() const { return DL; }
@@ -82,11 +77,11 @@ class KaleidoscopeJIT
     }
 
   Error addModule(std::unique_ptr<Module> M) {
-    return CompileLayer.add(*mainJD, ThreadSafeModule(std::move(M), Ctx));
+    return CompileLayer.add(mainJD, ThreadSafeModule(std::move(M), Ctx));
   }
 
   Expected<JITEvaluatedSymbol> findSymbol(std::string Name) {
-    return ES.lookup({mainJD}, Mangle(Name));
+    return ES.lookup({&mainJD}, Mangle(Name));
   }
 
     JITTargetAddress getSymbolAddress(const std::string Name)
