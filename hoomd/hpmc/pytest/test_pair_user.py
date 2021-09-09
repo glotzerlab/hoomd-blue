@@ -46,7 +46,11 @@ valid_constructor_args = [
          code='return -1;',
          llvm_ir=return0_ir,
          clang_exec='/usr/bin/clang'),
-    dict(r_cut=2, param_array=[1, 2, 3, 4], code='return -1;'),
+    dict(r_cut=2,
+        param_array=[1, 2, 3, 4],
+        code='return -1;',
+        llvm_ir=return0_ir,
+        clang_exec='/usr/bin/clang'),
 ]
 
 # setable attributes before attach for CPPPotential objects
@@ -66,8 +70,6 @@ positions_orientations_result = [
     ([(0, 0, 0), (0, 0, 1)], [(1, 0, 0, 0), (0, 0, 1, 0)], -1 / 2),
 ]
 
-attr_translator = {'code': '_code'}
-
 
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -77,9 +79,6 @@ def test_valid_construction_cpp_potential(device, constructor_args):
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        attr = attr_translator.get(attr, attr)
-        if attr == 'clang_exec':  # not saved as a class variable
-            continue
         try:
             assert getattr(patch, attr) == value
         except ValueError:
@@ -108,9 +107,6 @@ def test_valid_construction_and_attach_cpp_potential(
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        attr = attr_translator.get(attr, attr)
-        if attr == 'clang_exec':
-            continue
         try:
             assert getattr(patch, attr) == value
         except ValueError:  # array-like
