@@ -36,7 +36,7 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
     unsigned int n_groups = run_block_size / (tpp * eval_threads);
     unsigned int max_queue_size = n_groups * tpp;
 
-    const size_t min_shared_bytes
+    const unsigned int min_shared_bytes
         = args.num_types * sizeof(Scalar) + m_d_union_params.size() * sizeof(jit::union_params_t);
 
     unsigned int shared_bytes
@@ -85,7 +85,7 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
         {
         m_d_union_params[i].allocate_shared(ptr, available_bytes);
         }
-    long unsigned int extra_bytes = max_extra_bytes - available_bytes;
+    unsigned int extra_bytes = max_extra_bytes - available_bytes;
     shared_bytes += extra_bytes;
 
     dim3 thread(eval_threads, n_groups, tpp);
