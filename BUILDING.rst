@@ -111,7 +111,7 @@ Install prerequisites
 
 **For runtime code generation** (required when ``ENABLE_LLVM=on``):
 
-- LLVM >= 6.0
+- LLVM >= 10.0
 
 **To build the documentation:**
 
