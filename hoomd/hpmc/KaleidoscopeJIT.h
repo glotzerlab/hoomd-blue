@@ -77,12 +77,14 @@ class KaleidoscopeJIT
     static std::unique_ptr<KaleidoscopeJIT> Create() {
     auto JTMB = JITTargetMachineBuilder::detectHost();
 
-    // if (!JTMB)
-    //     throw std::runtime_error("Error initializing JITTargetMachineBuilder");
+    if (!JTMB)
+        return nullptr;
+
 
     auto DL = JTMB->getDefaultDataLayoutForTarget();
-    // if (!DL)
-    //     throw std::runtime_error("Error initializing DataLayout");
+
+    if (!DL)
+        return nullptr;
 
     return std::make_unique<KaleidoscopeJIT>(std::move(*JTMB), std::move(*DL));
     }

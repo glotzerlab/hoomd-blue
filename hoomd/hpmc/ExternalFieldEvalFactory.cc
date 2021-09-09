@@ -59,9 +59,20 @@ ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& llvm_ir)
     // Build the JIT
     m_jit = llvm::orc::KaleidoscopeJIT::Create();
 
-    // Add the module, look up main and run it.
-    m_jit->addModule(std::move(module));
+    if (!m_jit)
+        {
+        m_error_msg = "Could not initialize JIT.\n";
+        return;
+        }
 
+    // Add the module.
+    if (auto E = m_jit->addModule(std::move(module)))
+        {
+        m_error_msg = "Could not add JIT module.\n";
+        return;
+        }
+
+    // Look up the eval function pointer.
     auto eval = m_jit->findSymbol("eval");
 
     if (!eval)
