@@ -57,7 +57,7 @@ valid_attrs = [('r_cut', 1.4), ('code', 'return -1;'), ('llvm_ir', return0_ir),
 valid_attrs_after_attach = [('r_cut', 1.3)]
 
 # attributes that cannot be set after object is attached
-attr_error = [('code', 'return -1.0;'), ('clang_exec', '/usr/bin/clang')]
+attr_error = [('code', 'return -1.0;')]
 
 positions_orientations_result = [
     ([(0, 0, 0), (1, 0, 0)], [(1, 0, 0, 0), (1, 0, 0, 0)], -1),
@@ -66,7 +66,7 @@ positions_orientations_result = [
     ([(0, 0, 0), (0, 0, 1)], [(1, 0, 0, 0), (0, 0, 1, 0)], -1 / 2),
 ]
 
-attr_translator = {'code': '_code', 'llvm_ir': '_cpu_llvm_ir'}
+attr_translator = {'code': '_code'}
 
 
 @pytest.mark.serial

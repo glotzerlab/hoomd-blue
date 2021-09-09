@@ -1,4 +1,1 @@
-try:
-    from . import user
-except ImportError:
-    pass
+from . import user
