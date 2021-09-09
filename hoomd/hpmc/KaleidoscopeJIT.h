@@ -15,6 +15,10 @@
 #define LLVM_EXECUTIONENGINE_ORC_KALEIDOSCOPEJIT_H
 
 #include <utility>
+#include <memory>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
@@ -27,12 +31,11 @@
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"
-#include <memory>
-
 #include "llvm/IR/Mangler.h"
 #include "llvm/Support/DynamicLibrary.h"
-
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
+
+#pragma GCC diagnostic pop
 
 namespace llvm
     {
@@ -62,8 +65,13 @@ class KaleidoscopeJIT
             mainJD(this->ES.createJITDylib("<main>"))
             #endif
         {
+        #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 9
         mainJD.addGenerator(
             cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix())));
+        #else
+        mainJD.setGenerator(
+            cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL)));
+        #endif
     }
     const DataLayout &getDataLayout() const { return DL; }
 
