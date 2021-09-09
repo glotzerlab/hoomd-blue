@@ -92,6 +92,7 @@ def test_valid_setattr_cpp_external(device, attr, value):
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,val", attr_error)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+@pytest.mark.skip(reason='Read-only properties of user code not implemented')
 def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
                                        two_particle_snapshot_factory):
     """Test that CPPExternalField raises AttributeError if we
