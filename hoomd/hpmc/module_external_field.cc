@@ -26,7 +26,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterExternalFieldWall.h"
-#include "UpdaterRemoveDrift.h"
 
 namespace py = pybind11;
 

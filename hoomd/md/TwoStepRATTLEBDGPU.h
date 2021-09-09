@@ -37,6 +37,8 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoSt
                        std::shared_ptr<ParticleGroup> group,
                        Manifold manifold,
                        std::shared_ptr<Variant> T,
+                       bool noiseless_t,
+                       bool noiseless_r,
                        Scalar tolerance);
 
     virtual ~TwoStepRATTLEBDGPU() {};
@@ -64,8 +66,10 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
                                                  std::shared_ptr<ParticleGroup> group,
                                                  Manifold manifold,
                                                  std::shared_ptr<Variant> T,
+                                                 bool noiseless_t,
+                                                 bool noiseless_r,
                                                  Scalar tolerance)
-    : TwoStepRATTLEBD<Manifold>(sysdef, group, manifold, T, tolerance)
+    : TwoStepRATTLEBD<Manifold>(sysdef, group, manifold, T, noiseless_t, noiseless_r, tolerance)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
@@ -83,9 +87,13 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "BD step 1");
 
-    if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
+    if (this->m_box_changed)
         {
-        throw std::runtime_error("Parts of the manifold are outside the box");
+        if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
+            {
+            throw std::runtime_error("Parts of the manifold are outside the box");
+            }
+        this->m_box_changed = false;
         }
 
     // access all the needed data
@@ -284,6 +292,8 @@ template<class Manifold> void export_TwoStepRATTLEBDGPU(py::module& m, const std
                       std::shared_ptr<ParticleGroup>,
                       Manifold,
                       std::shared_ptr<Variant>,
+                      bool,
+                      bool,
                       Scalar>());
     }
 #endif // ENABLE_HIP

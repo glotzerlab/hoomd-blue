@@ -4,8 +4,62 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.8 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.9 (2021-09-08)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``Communicator.num_partitions`` - the number of partitions in the communicator.
+- ``domain_decomposition`` argument to ``State`` factory methods - set the parameters of the MPI
+  domain decomposition
+- ``State.domain_decomposition`` - number of domains in the x, y, and z directions in the domain
+  decomposition.
+- ``State.domain_decomposition_split_fractions`` - the fractional positions of the split planes in
+  the domain decomposition.
+- ``hoomd.update.FilterUpdater`` - an updater that evaluates the particles associated with a
+  `hoomd.filter.ParticleFilter` instance.
+- ``hoomd.update.RemoveDrift`` - Remove the average drift from a system restrained on a lattice.
+- Developer documentation for HOOMD-blue's Python object data model in ``ARCHITECTURE.md``.
+- Autocomplete support for interactive notebooks.
+- ``hoomd.md.methods.OverdampedViscous`` - Overdamped integrator with a drag force but no random
+  force .
+- ``MutabilityError`` exception when setting read-only operation parameters.
+
+*Changed*
+
+- Improved documentation.
+- [breaking] Moved ``manifold_constrant`` to separate integration method classes in
+  ``hoomd.md.methods.rattle``.
+- [breaking] Moved ``trigger`` to first argument position in `hoomd.update.BoxResize`,
+  `hoomd.write.DCD`, and `hoomd.write.GSD`.
+- [breaking] ``hoomd.data.LocalSnapshot`` particle data API now matches ``Snapshot``. Changes to
+  angular momentum, moment of intertia, and rigid body id attributes.
+- ``hoomd.write.CustomWriter`` now exposes action through the ``writer`` attribute.
+- [breaking] Active force rotational diffusion is managed by
+  ``hoomd.md.update.ActiveRotationalDiffusion``.
+
+*Fixed*
+
+- ``TypeParameter`` can set multiple parameters after calling ``hoomd.Simulation.run``.
+- ``tune.LoadBalancer`` can be used in a simulation.
+- ``hoomd.md.pair.Pair`` ``r_cut`` type parameter can be set to 0.
+- MD integration methods can be removed from the integrator's method list.
+- Neighborlist exclusions update when the number of bonds change.
+- Errors related to equality checks between HOOMD operations.
+- The integrator can be removed from a simulation after running.
+- ``hoomd.md.constrain.Rigid.create_bodies`` method correctly assigns the body attribute.
+- Setting rigid attribute of a MD integrator to ``None`` is allowed.
+
+*Deprecated*
+
+*Removed*
+
+- ``Snapshot.exists`` - use ``snapshot.communicator.rank == 0``
+- ``State.snapshot`` - use ``get_snapshot`` and ``set_snapshot``
+-   The ``State.box`` property setter - use ``State.set_box``
+
+v3.0.0-beta.8 (2021-08-03)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
@@ -17,6 +71,12 @@ v3.0.0-beta.8 (not yet released)
 - ``hpmc.compute.SDF`` - compute the pressure of convex hard particle systems.
 - ``Snapshot.wrap()`` - wrap snapshot particles back into the box.
 - Support gcc11.
+- ``md.bond.Tether`` - A bond with minimum and maximum lengths.
+- ``State.get_snapshot`` and ``State.set_snapshot`` - methods to access the global snapshot.
+- ``State.set_box`` set a new simulation box without modifying particle properties.
+- ``md.long_range.pppm.make_pppm_coulomb_forces`` - Long range electrostatics evaluated by PPPM.
+- ``md.long_range.pppm.Coulomb`` - The reciprocal part of PPPM electrostatics.
+- ``md.force.ActiveOnManifold`` - Active forces constrained to manifolds.
 
 *Changed*
 
@@ -25,16 +85,31 @@ v3.0.0-beta.8 (not yet released)
   default in their name (e.g. ``r_cut`` to ``default_r_cut`` for pair potentials and ``a`` to
   ``default_a`` for HPMC integrators).
 - [developer] Support git worktree checkouts.
+- [breaking] Rename ``nrank`` to ``ranks_per_partition`` in ``Communicator``.
+- rowan is now an optional dependency when running unit tests.
+- ``Snapshot`` and ``Box`` methods that make in-place modifications return the object.
 
 *Fixed*
 
 - Bug where ``ThermdynamicQuantities.volume`` returned 0 in 2D simulations.
 - Update neighbor list exclusions after the number of particles changes.
+- Test failures with the CMake option ``BUILD_MD=off``.
+- ``write.Table`` can now display MD pressures.
+
+*Deprecated*
+
+- ``State.snapshot`` - use ``get_snapshot`` and ``set_snapshot``.
+- The ability to set boxes with the property ``State.box`` - use ``set_box``.
 
 *Removed*
 
+- [breaking] ``Simulation.write_debug_data``.
+- [breaking] ``shared_msg_file`` option to ``Device``. ``msg_file`` now has the same behavior as
+  ``shared_msg_file``.
 - [developers] C++ and Python implementations of ``constraint_ellipsoid``, from ``hoomd.md.update``
   and ``sphere`` and ``oneD`` from ``hoomd.md.constrain``.
+- [developers] Doxygen configuration files.
+
 
 v3.0.0-beta.7 (2021-06-16)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -347,6 +422,14 @@ functionality.
 
 v2.x
 ----
+
+v2.9.7 (2021-08-03)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support CUDA 11.5. A bug in CUDA 11.4 may result in the error
+  `__global__ function call is not configure` when running HOOMD.
 
 v2.9.6 (2021-03-16)
 ^^^^^^^^^^^^^^^^^^^

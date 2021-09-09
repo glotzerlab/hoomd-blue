@@ -45,6 +45,17 @@ def expected_values():
     }
 
 
+def test_invalid_attrs(logger):
+    output = StringIO("")
+    table_writer = hoomd.write.Table(1, logger, output)
+    with pytest.raises(AttributeError):
+        table_writer.action
+    with pytest.raises(AttributeError):
+        table_writer.detach
+    with pytest.raises(AttributeError):
+        table_writer.attach
+
+
 @pytest.mark.serial
 def test_header_generation(device, logger):
     output = StringIO("")

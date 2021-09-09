@@ -4,7 +4,7 @@
 
 """Implement type conversion helpers."""
 
-from numpy import array, ndarray
+import numpy as np
 from itertools import repeat, cycle
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping
@@ -339,7 +339,7 @@ class NDArrayValidator(_HelpValidate):
 
     def _validate(self, arr):
         """Validate an array or array-like object."""
-        typed_and_ordered = array(arr, dtype=self._dtype, order=self._order)
+        typed_and_ordered = np.array(arr, dtype=self._dtype, order=self._order)
         if len(typed_and_ordered.shape) != len(self._shape):
             raise ValueError(
                 f"Expected array of {len(self._shape)} dimensions, but "
@@ -389,11 +389,18 @@ class TypeConverterValue(TypeConverter):
             TypeConverterValue(OnlyTypes(int, postprocess=natural_number))
     """
     _conversion_func_dict = {
-        Variant: OnlyTypes(Variant, preprocess=variant_preprocessing),
-        ParticleFilter: OnlyTypes(ParticleFilter, CustomFilter, strict=True),
-        str: OnlyTypes(str, strict=True),
-        Trigger: OnlyTypes(Trigger, preprocess=trigger_preprocessing),
-        ndarray: OnlyTypes(ndarray, preprocess=array),
+        Variant:
+            OnlyTypes(Variant, preprocess=variant_preprocessing),
+        ParticleFilter:
+            OnlyTypes(ParticleFilter, CustomFilter, strict=True),
+        str:
+            OnlyTypes(str, strict=True),
+        Trigger:
+            OnlyTypes(Trigger, preprocess=trigger_preprocessing),
+        # arrays default to float of one dimension of arbitrary length and
+        # ordering
+        np.ndarray:
+            NDArrayValidator(float),
     }
 
     def __init__(self, value):

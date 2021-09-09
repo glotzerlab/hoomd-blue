@@ -1029,7 +1029,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 unsigned int snap_idx = (unsigned int)(it - snapshot.pos.begin());
 
                 // if requested, do not initialize constituent particles of bodies
-                if (ignore_bodies && snapshot.body[snap_idx] < MIN_FLOPPY)
+                if (ignore_bodies && snapshot.body[snap_idx] < MIN_FLOPPY
+                    && snapshot.body[snap_idx] != snap_idx)
                     {
                     continue;
                     }
@@ -2432,7 +2433,7 @@ unsigned int ParticleData::addParticle(unsigned int type)
         {
         // update reverse-lookup table
         ArrayHandle<unsigned int> h_rtag(m_rtag, access_location::host, access_mode::readwrite);
-        assert(h_rtag.data[tag] = NOT_LOCAL);
+        assert((h_rtag.data[tag] = NOT_LOCAL));
         if (m_exec_conf->getRank() == 0)
             {
             // we add the particle at the end

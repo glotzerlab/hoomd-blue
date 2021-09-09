@@ -3662,20 +3662,7 @@ UP_TEST(BalancedDomainDecomposition_test)
             new ExecutionConfiguration(ExecutionConfiguration::CPU));
     BoxDim box(2.0);
 
-    // first test the fallback to the uniform grid using the standard DomainDecomposition test
-    std::vector<Scalar> fxs(2), fys(2), fzs(3);
-    fxs[0] = Scalar(0.5);
-    fxs[1] = Scalar(0.5);
-    fys[0] = Scalar(0.25);
-    fys[1] = Scalar(0.75);
-    fzs[0] = Scalar(0.4);
-    fzs[1] = Scalar(0.2);
-    fzs[2] = Scalar(0.4);
-    std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf_cpu, box.getL(), fxs, fys, fzs));
-    test_domain_decomposition(exec_conf_cpu, box, decomposition);
-
-    // then test the balanced decomposition in the test for nonuniform particles and decomposition
+    // test the balanced decomposition in the test for nonuniform particles and decomposition
     test_balanced_domain_decomposition(exec_conf_cpu);
     }
 
@@ -3931,20 +3918,7 @@ UP_TEST(BalancedDomainDecomposition_test_GPU)
 
     BoxDim box(2.0);
 
-    // first test the fallback to the uniform grid using the standard DomainDecomposition test
-    std::vector<Scalar> fxs(2), fys(2), fzs(3);
-    fxs[0] = Scalar(0.5);
-    fxs[1] = Scalar(0.5);
-    fys[0] = Scalar(0.25);
-    fys[1] = Scalar(0.75);
-    fzs[0] = Scalar(0.4);
-    fzs[1] = Scalar(0.2);
-    fzs[2] = Scalar(0.4);
-    std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf_gpu, box.getL(), fxs, fys, fzs));
-    test_domain_decomposition(exec_conf_gpu, box, decomposition);
-
-    // then test the balanced decomposition in the test for nonuniform particles and decomposition
+    // test the balanced decomposition in the test for nonuniform particles and decomposition
     test_balanced_domain_decomposition(exec_conf_cpu);
     }
 

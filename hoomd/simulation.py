@@ -151,7 +151,10 @@ class Simulation(metaclass=Loggable):
             self.device._cpp_msg.warning(
                 "Simulation.seed is not set, using default seed=0\n")
 
-    def create_state_from_gsd(self, filename, frame=-1):
+    def create_state_from_gsd(self,
+                              filename,
+                              frame=-1,
+                              domain_decomposition=(None, None, None)):
         """Create the simulation state from a GSD file.
 
         Args:
@@ -159,6 +162,23 @@ class Simulation(metaclass=Loggable):
 
             frame (int): Index of the frame to read from the file. Negative
                 values index back from the last frame in the file.
+
+            domain_decomposition (tuple): Choose how to distribute the state
+                across MPI ranks with domain decomposition. Provide a tuple
+                of 3 integers indicating the number of evenly spaced domains in
+                the x, y, and z directions (e.g. ``(8,4,2)``). Provide a tuple
+                of 3 lists of floats to set the fraction of the simulation box
+                to include in each domain. The sum of each list of floats must
+                be 1.0 (e.g. ``([0.25, 0.75], [0.2, 0.8], [1.0])``).
+
+        Note:
+            Set any or all of the ``domain_decomposition`` tuple elements to
+            `None` and `create_state_from_gsd` will select a value that
+            minimizes the surface area between the domains (e.g.
+            ``(2,None,None)``). The domains are spaced evenly along each
+            automatically selected direction. The default value of ``(None,
+            None, None)`` will automatically select the number of domains in all
+            directions.
         """
         if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
@@ -170,35 +190,58 @@ class Simulation(metaclass=Loggable):
                                                self.device.communicator)
 
         step = reader.getTimeStep() if self.timestep is None else self.timestep
-        self._state = State(self, snapshot)
+        self._state = State(self, snapshot, domain_decomposition)
 
         reader.clearSnapshot()
 
         self._init_system(step)
 
-    def create_state_from_snapshot(self, snapshot):
-        """Create the simulations state from a `Snapshot`.
+    def create_state_from_snapshot(self,
+                                   snapshot,
+                                   domain_decomposition=(None, None, None)):
+        """Create the simulation state from a `Snapshot`.
 
         Args:
             snapshot (Snapshot or gsd.hoomd.Snapshot): Snapshot to initialize
                 the state from. A `gsd.hoomd.Snapshot` will first be
                 converted to a `hoomd.Snapshot`.
 
+            domain_decomposition (tuple): Choose how to distribute the state
+                across MPI ranks with domain decomposition. Provide a tuple
+                of 3 integers indicating the number of evenly spaced domains in
+                the x, y, and z directions (e.g. ``(8,4,2)``). Provide a tuple
+                of 3 lists of floats to set the fraction of the simulation box
+                to include in each domain. The sum of each list of floats must
+                be 1.0 (e.g. ``([0.25, 0.75], [0.2, 0.8], [1.0])``).
 
         When `timestep` is `None` before calling, `create_state_from_snapshot`
         sets `timestep` to 0.
+
+        Note:
+            Set any or all of the ``domain_decomposition`` tuple elements to
+            `None` and `create_state_from_gsd` will select a value that
+            minimizes the surface area between the domains (e.g.
+            ``(2,None,None)``). The domains are spaced evenly along each
+            automatically selected direction. The default value of ``(None,
+            None, None)`` will automatically select the number of domains in all
+            directions.
+
+        See Also:
+            `State.get_snapshot`
+
+            `State.set_snapshot`
         """
         if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
 
         if isinstance(snapshot, Snapshot):
             # snapshot is hoomd.Snapshot
-            self._state = State(self, snapshot)
+            self._state = State(self, snapshot, domain_decomposition)
         elif _match_class_path(snapshot, 'gsd.hoomd.Snapshot'):
             # snapshot is gsd.hoomd.Snapshot
             snapshot = Snapshot.from_gsd_snapshot(snapshot,
                                                   self._device.communicator)
-            self._state = State(self, snapshot)
+            self._state = State(self, snapshot, domain_decomposition)
         else:
             raise TypeError(
                 "Snapshot must be a hoomd.Snapshot or gsd.hoomd.Snapshot.")
@@ -330,7 +373,7 @@ class Simulation(metaclass=Loggable):
 
             write_at_start (bool): When `True`, writers
                with triggers that evaluate `True` for the initial step will be
-               exected before the time step loop.
+               executed before the time step loop.
 
         Note:
             Initialize the simulation's state before calling `run`.

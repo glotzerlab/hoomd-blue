@@ -166,7 +166,7 @@ class HPMCIntegrator(BaseIntegrator):
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -224,7 +224,8 @@ class HPMCIntegrator(BaseIntegrator):
         the particles with tags ``i`` and ``j``.
 
         Attention:
-            `map_overlaps` does not support MPI parallel simulations.
+            `map_overlaps` does not support MPI parallel simulations. It returns
+            `None` when there is more than one MPI rank.
         """
         if self._simulation.device.communicator.num_ranks > 1:
             return None

@@ -84,13 +84,13 @@ env:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v2.2.3
+      uses: actions/upload-artifact@v2.2.4
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v2.2.3
+      uses: actions/upload-artifact@v2.2.4
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
@@ -98,7 +98,7 @@ env:
 <% endset %>
 <% set download_build_steps %>
     - name: Download build
-      uses: actions/download-artifact@v2.0.9
+      uses: actions/download-artifact@v2.0.10
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
@@ -106,7 +106,7 @@ env:
 <% endset %>
 <% set download_install_steps %>
     - name: Download install
-      uses: actions/download-artifact@v2.0.9
+      uses: actions/download-artifact@v2.0.10
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -217,7 +217,7 @@ jobs:
   # This job is used to provide a single requirement for branch merge conditions. GitHub considers
   # the check passing even if it is skipped, so this job raises errors when required jobs were not
   # run.
-  tests_complete:
+  unit_tests_complete:
     name: Unit test
     needs: [pytest, ctest, validate]
     if: ${{ always() && github.event_name == 'pull_request' }}
@@ -226,12 +226,15 @@ jobs:
     steps:
       - name: Error if pytest did not succeed
         if: needs.pytest.result != 'success'
-        run: exit 1
+        run: echo "::error ::pytest tests failed." && exit 1
       - name: Error if ctest did not succeed
         if: needs.ctest.result != 'success'
-        run: exit 1
+        run: echo "::error ::ctest tests failed." && exit 1
+      - name: Warn if validate did not run
+        if: needs.validate.result == 'skipped'
+        run: echo "::warning ::Skipped validation tests." && exit 1
       - name: Error if validate did not succeed
         if: needs.validate.result != 'success'
-        run: exit 1
+        run: echo "::error ::Validation tests failed." && exit 1
       - run: echo "Done!"
 <% endblock %>

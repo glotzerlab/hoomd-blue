@@ -4,6 +4,8 @@
 // Maintainer: joaander All developers are free to add the calls needed to export their modules
 
 #include "ActiveForceCompute.h"
+#include "ActiveForceConstraintCompute.h"
+#include "ActiveRotationalDiffusionUpdater.h"
 #include "AlchemostatTwoStep.h"
 #include "AllAnisoPairPotentials.h"
 #include "AllBondPotentials.h"
@@ -15,8 +17,6 @@
 #include "BondTablePotential.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoHMA.h"
-#include "ConstraintEllipsoid.h"
-#include "ConstraintSphere.h"
 #include "CosineSqAngleForceCompute.h"
 #include "EvaluatorRevCross.h"
 #include "EvaluatorSquareDensity.h"
@@ -43,7 +43,6 @@
 #include "NeighborListStencil.h"
 #include "NeighborListTree.h"
 #include "OPLSDihedralForceCompute.h"
-#include "OneDConstraint.h"
 #include "PPPMForceCompute.h"
 #include "PotentialBond.h"
 #include "PotentialExternal.h"
@@ -73,12 +72,11 @@
 // include GPU classes
 #ifdef ENABLE_HIP
 #include "ActiveForceComputeGPU.h"
+#include "ActiveForceConstraintComputeGPU.h"
 #include "AnisoPotentialPairGPU.h"
 #include "BondTablePotentialGPU.h"
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoHMAGPU.h"
-#include "ConstraintEllipsoidGPU.h"
-#include "ConstraintSphereGPU.h"
 #include "CosineSqAngleForceComputeGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
 #include "ForceCompositeGPU.h"
@@ -92,7 +90,6 @@
 #include "NeighborListGPUStencil.h"
 #include "NeighborListGPUTree.h"
 #include "OPLSDihedralForceComputeGPU.h"
-#include "OneDConstraintGPU.h"
 #include "PPPMForceComputeGPU.h"
 #include "PotentialBondGPU.h"
 #include "PotentialExternalGPU.h"
@@ -238,6 +235,17 @@ void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& 
 PYBIND11_MODULE(_md, m)
     {
     export_ActiveForceCompute(m);
+    export_ActiveForceConstraintCompute<ManifoldZCylinder>(m,
+                                                           "ActiveForceConstraintComputeCylinder");
+    export_ActiveForceConstraintCompute<ManifoldDiamond>(m, "ActiveForceConstraintComputeDiamond");
+    export_ActiveForceConstraintCompute<ManifoldEllipsoid>(m,
+                                                           "ActiveForceConstraintComputeEllipsoid");
+    export_ActiveForceConstraintCompute<ManifoldGyroid>(m, "ActiveForceConstraintComputeGyroid");
+    export_ActiveForceConstraintCompute<ManifoldXYPlane>(m, "ActiveForceConstraintComputePlane");
+    export_ActiveForceConstraintCompute<ManifoldPrimitive>(m,
+                                                           "ActiveForceConstraintComputePrimitive");
+    export_ActiveForceConstraintCompute<ManifoldSphere>(m, "ActiveForceConstraintComputeSphere");
+    export_ActiveRotationalDiffusionUpdater(m);
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
     export_HarmonicAngleForceCompute(m);
@@ -290,14 +298,13 @@ PYBIND11_MODULE(_md, m)
         "PotentialPairDPDLJThermoDPD");
     export_PotentialBond<PotentialBondHarmonic>(m, "PotentialBondHarmonic");
     export_PotentialBond<PotentialBondFENE>(m, "PotentialBondFENE");
+    export_PotentialBond<PotentialBondTether>(m, "PotentialBondTether");
     export_PotentialSpecialPair<PotentialSpecialPairLJ>(m, "PotentialSpecialPairLJ");
     export_PotentialSpecialPair<PotentialSpecialPairCoulomb>(m, "PotentialSpecialPairCoulomb");
     export_NeighborList(m);
     export_NeighborListBinned(m);
     export_NeighborListStencil(m);
     export_NeighborListTree(m);
-    export_ConstraintSphere(m);
-    export_OneDConstraint(m);
     export_MolecularForceCompute(m);
     export_ForceDistanceConstraint(m);
     export_ForceComposite(m);
@@ -389,6 +396,8 @@ PYBIND11_MODULE(_md, m)
         m,
         "PotentialBondHarmonicGPU");
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>(m, "PotentialBondFENEGPU");
+    export_PotentialBondGPU<PotentialBondTetherGPU, PotentialBondTether>(m,
+                                                                         "PotentialBondTetherGPU");
     export_PotentialSpecialPairGPU<PotentialSpecialPairLJGPU, PotentialSpecialPairLJ>(
         m,
         "PotentialSpecialPairLJGPU");
@@ -403,13 +412,29 @@ PYBIND11_MODULE(_md, m)
     export_OPLSDihedralForceComputeGPU(m);
     export_TableDihedralForceComputeGPU(m);
     export_HarmonicImproperForceComputeGPU(m);
-    export_ConstraintSphereGPU(m);
-    export_OneDConstraintGPU(m);
     export_ForceDistanceConstraintGPU(m);
     export_ComputeThermoGPU(m);
     export_ComputeThermoHMAGPU(m);
     export_PPPMForceComputeGPU(m);
     export_ActiveForceComputeGPU(m);
+    export_ActiveForceConstraintComputeGPU<ManifoldZCylinder>(
+        m,
+        "ActiveForceConstraintComputeCylinderGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldDiamond>(
+        m,
+        "ActiveForceConstraintComputeDiamondGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldEllipsoid>(
+        m,
+        "ActiveForceConstraintComputeEllipsoidGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldGyroid>(m,
+                                                           "ActiveForceConstraintComputeGyroidGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldXYPlane>(m,
+                                                            "ActiveForceConstraintComputePlaneGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldPrimitive>(
+        m,
+        "ActiveForceConstraintComputePrimitiveGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldSphere>(m,
+                                                           "ActiveForceConstraintComputeSphereGPU");
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>(
         m,
         "PotentialExternalPeriodicGPU");
@@ -446,7 +471,6 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepBD(m);
     export_TwoStepNPTMTK(m);
     export_Berendsen(m);
-    export_ConstraintEllipsoid(m);
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
     export_AlchemostatTwoStep(m);
@@ -486,7 +510,6 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepNPTMTKGPU(m);
     export_BerendsenGPU(m);
     export_FIREEnergyMinimizerGPU(m);
-    export_ConstraintEllipsoidGPU(m);
     export_MuellerPlatheFlowGPU(m);
 
     export_TwoStepRATTLEBDGPU<ManifoldZCylinder>(m, "TwoStepRATTLEBDCylinderGPU");
