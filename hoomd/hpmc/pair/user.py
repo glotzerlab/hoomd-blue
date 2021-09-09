@@ -90,12 +90,13 @@ class CPPPotentialBase(_HOOMDBaseObject):
                  param_array=None):
         self._code = code
         self._clang_exec = clang_exec
-        param_dict = ParameterDict(r_cut=float,
-                                   param_array=hoomd.data.typeconverter.Array(
-                                       dtype=np.float32, ndim=1),
-                                   code=str,
-                                   llvm_ir=str,
-                                   )
+        param_dict = ParameterDict(
+            r_cut=float,
+            param_array=hoomd.data.typeconverter.Array(dtype=np.float32,
+                                                       ndim=1),
+            code=str,
+            clang_exec=str,
+        )
         param_dict['r_cut'] = r_cut
         param_dict['code'] = code
         if llvm_ir is None:

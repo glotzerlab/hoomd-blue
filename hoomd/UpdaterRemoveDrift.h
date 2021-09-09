@@ -36,13 +36,18 @@ class UpdaterRemoveDrift : public Updater
     //! Set reference positions from a (N_particles, 3) numpy array
     void setReferencePositions(const pybind11::array_t<double> ref_pos)
         {
-        const size_t N_particles = ref_pos.request().shape[0];
-        const size_t dim = ref_pos.request().shape[1];
+        if (ref_pos.ndim() != 2)
+            {
+            throw std::runtime_error("The array must be of shape (N_particles, 3).");
+            }
+
+        const size_t N_particles = ref_pos.shape(0);
+        const size_t dim = ref_pos.shape(1);
         if (N_particles != this->m_pdata->getNGlobal() || dim != 3)
             {
             throw std::runtime_error("The array must be of shape (N_particles, 3).");
             }
-        const double* rawdata = static_cast<double*>(ref_pos.request().ptr);
+        const double* rawdata = static_cast<const double*>(ref_pos.data());
         m_ref_positions.resize(m_pdata->getNGlobal());
         for (size_t i = 0; i < N_particles; i++)
             {

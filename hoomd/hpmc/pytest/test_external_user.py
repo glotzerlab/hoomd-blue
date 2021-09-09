@@ -37,6 +37,7 @@ electric_field_params = [
 
 attr_translator = {'code': '_code', 'clang_exec': '_clang_exec'}
 
+
 @pytest.mark.cpu
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -167,14 +168,11 @@ def test_gravity(device, simulation_factory, lattice_snapshot_factory):
 
     # expand box and add gravity field
     old_box = sim.state.box
-    new_box = hoomd.Box(
-            Lx=1.5 * old_box.Lx,
-            Ly=1.5 * old_box.Ly,
-            Lz=20 * old_box.Lz
-    )
+    new_box = hoomd.Box(Lx=1.5 * old_box.Lx,
+                        Ly=1.5 * old_box.Ly,
+                        Lz=20 * old_box.Lz)
     sim.state.set_box(new_box)
-    ext = hoomd.hpmc.external.user.CPPExternalField(
-        code="return 1000*r_i.z;")
+    ext = hoomd.hpmc.external.user.CPPExternalField(code="return 1000*r_i.z;")
     mc.field = ext
     sim.operations.integrator = mc
 
