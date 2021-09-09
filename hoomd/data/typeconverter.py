@@ -203,12 +203,12 @@ class OnlyTypes(_HelpValidate):
 
     def _validate(self, value):
         if isinstance(value, self.disallow_types):
-            raise ValueError(f"Value cannot be of type {type(value)}")
+            raise ValueError(f"Value {value} cannot be of type {type(value)}")
         if isinstance(value, self.types):
             return value
         elif self.strict:
             raise ValueError(
-                f"Value {value} not instance of any of {self.types}.")
+                f"Value {value} is not an instance of any of {self.types}.")
         else:
             for type_ in self.types:
                 try:
