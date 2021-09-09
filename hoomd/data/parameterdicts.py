@@ -14,7 +14,7 @@ from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
                                       TypeConverterMapping, OnlyIf, Either)
 from hoomd.data.smart_default import (_to_base_defaults, _to_default,
                                       _SmartDefault, _NoDefault)
-from hoomd.error import TypeConversionError, IncompleteSpecificationError
+from hoomd.error import IncompleteSpecificationError
 
 
 def _has_str_elems(obj):
@@ -130,7 +130,7 @@ class _ValidatedDefaultDict(MutableMapping):
         keys = self._yield_keys(keys)
         try:
             validated_value = self._validate_values(item)
-        except (TypeConversionError, IncompleteSpecificationError) as err:
+        except ValueError as err:
             raise err.__class__(f"For types {list(keys)} {str(err)}.") from err
         for key in keys:
             self._single_setitem(key, validated_value)
