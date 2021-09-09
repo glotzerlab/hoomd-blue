@@ -257,7 +257,7 @@ class CPPPotential(CPPPotentialBase):
 
         if isinstance(device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
-            gpu_code = self._wrap_gpu_code(self._code)
+            gpu_code = self._wrap_gpu_code(self.code)
             self._cpp_obj = _jit.PatchEnergyJITGPU(
                 cpp_sys_def, device._cpp_exec_conf, llvm_ir,
                 self.r_cut, self.param_array, gpu_code,
