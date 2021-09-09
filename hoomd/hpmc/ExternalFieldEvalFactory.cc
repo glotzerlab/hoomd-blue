@@ -57,23 +57,10 @@ ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& llvm_ir)
         }
 
     // Build the JIT
-    auto JTMB = llvm::orc::JITTargetMachineBuilder::detectHost();
-
-    // if (!JTMB)
-    //     throw std::runtime_error("Error initializing JITTargetMachineBuilder");
-
-    auto DL = JTMB->getDefaultDataLayoutForTarget();
-    // if (!DL)
-    //     throw std::runtime_error("Error initializing DataLayout");
-
-    m_jit = std::unique_ptr<llvm::orc::KaleidoscopeJIT>(new llvm::orc::KaleidoscopeJIT(std::move(*JTMB), std::move(*DL)));
-
-    // make a thread safe module
-    llvm::orc::ThreadSafeContext tsc;
-    llvm::orc::ThreadSafeModule tsm(std::move(module), tsc);
+    m_jit = llvm::orc::KaleidoscopeJIT::Create();
 
     // Add the module, look up main and run it.
-    m_jit->addModule(std::move(tsm));
+    m_jit->addModule(std::move(module));
 
     auto eval = m_jit->findSymbol("eval");
 

@@ -68,10 +68,23 @@ class KaleidoscopeJIT
     }
     const DataLayout &getDataLayout() const { return DL; }
 
-  Error addModule(ThreadSafeModule TSM, ResourceTrackerSP RT = nullptr) {
+    static std::unique_ptr<KaleidoscopeJIT> Create() {
+    auto JTMB = JITTargetMachineBuilder::detectHost();
+
+    // if (!JTMB)
+    //     throw std::runtime_error("Error initializing JITTargetMachineBuilder");
+
+    auto DL = JTMB->getDefaultDataLayoutForTarget();
+    // if (!DL)
+    //     throw std::runtime_error("Error initializing DataLayout");
+
+    return std::make_unique<KaleidoscopeJIT>(std::move(*JTMB), std::move(*DL));
+    }
+
+  Error addModule(std::unique_ptr<Module> M, ResourceTrackerSP RT = nullptr) {
     if (!RT)
       RT = mainJD->getDefaultResourceTracker();
-    return CompileLayer.add(RT, std::move(TSM));
+    return CompileLayer.add(RT, ThreadSafeModule(std::move(M), Ctx));
   }
 
   Expected<JITEvaluatedSymbol> findSymbol(std::string Name) {
