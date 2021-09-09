@@ -16,7 +16,7 @@ class CPPExternalField(_HOOMDBaseObject):
 
     Args:
         code (str): C++ function body to compile.
-        clang_exec (str, optional): The clang executable to use, defaults to
+        clang_exec (str): The clang executable to use, defaults to
         ``'clang'``.
 
     Potentials added using external.CPPExternalField are added to the total
@@ -64,18 +64,6 @@ class CPPExternalField(_HOOMDBaseObject):
     Note:
         CPPExternalField does not support execution on GPUs.
     '''
-    _integrator_pairs = {
-        integrate.Sphere: _jit.ExternalFieldJITSphere,
-        integrate.ConvexPolygon: _jit.ExternalFieldJITConvexPolygon,
-        integrate.SimplePolygon: _jit.ExternalFieldJITSimplePolygon,
-        integrate.ConvexPolyhedron: _jit.ExternalFieldJITConvexPolyhedron,
-        integrate.ConvexSpheropolyhedron: _jit.ExternalFieldJITSpheropolyhedron,
-        integrate.Ellipsoid: _jit.ExternalFieldJITEllipsoid,
-        integrate.ConvexSpheropolygon: _jit.ExternalFieldJITSpheropolygon,
-        integrate.FacetedEllipsoid: _jit.ExternalFieldJITFacetedEllipsoid,
-        integrate.Polyhedron: _jit.ExternalFieldJITPolyhedron,
-        integrate.Sphinx: _jit.ExternalFieldJITSphinx
-    }
 
     def __init__(self, code, clang_exec='clang'):
         code_to_llvm = self._wrap_cpu_code(code)
@@ -115,6 +103,29 @@ class CPPExternalField(_HOOMDBaseObject):
         return cpp_function
 
     def _attach(self):
+        integrator_pairs = {
+            integrate.Sphere:
+                _jit.ExternalFieldJITSphere,
+            integrate.ConvexPolygon:
+                _jit.ExternalFieldJITConvexPolygon,
+            integrate.SimplePolygon:
+                _jit.ExternalFieldJITSimplePolygon,
+            integrate.ConvexPolyhedron:
+                _jit.ExternalFieldJITConvexPolyhedron,
+            integrate.ConvexSpheropolyhedron:
+                _jit.ExternalFieldJITSpheropolyhedron,
+            integrate.Ellipsoid:
+                _jit.ExternalFieldJITEllipsoid,
+            integrate.ConvexSpheropolygon:
+                _jit.ExternalFieldJITSpheropolygon,
+            integrate.FacetedEllipsoid:
+                _jit.ExternalFieldJITFacetedEllipsoid,
+            integrate.Polyhedron:
+                _jit.ExternalFieldJITPolyhedron,
+            integrate.Sphinx:
+                _jit.ExternalFieldJITSphinx
+        }
+
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -122,7 +133,7 @@ class CPPExternalField(_HOOMDBaseObject):
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
             raise RuntimeError("JIT forces are not supported on the GPU.")
 
-        cpp_cls = self._integrator_pairs.get(
+        cpp_cls = integrator_pairs.get(
             self._simulation.operations.integrator.__class__, None)
         if cpp_cls is None:
             raise RuntimeError("Unsupported integrator.\n")
