@@ -30,27 +30,31 @@ class FIRE(_DynamicIntegrator):
 
     Args:
         dt (float):
-            This is the maximum step size the minimizer is permitted to use :math:`[\\mathrm{time}]`.
-            Consider the stability of the system when setting.
+            This is the maximum step size the minimizer is permitted to use
+            :math:`[\\mathrm{time}]`. Consider the stability of the system when
+            setting.
         min_steps_adapt (int):
             Number of steps energy change is negative before allowing
             :math:`\\alpha` and :math:`\\delta t` to adapt.
         finc_dt (float):
-            Factor to increase :math:`\\delta t` by  :math:`[\\mathrm{dimensionless}]`.
+            Factor to increase :math:`\\delta t` by
+            :math:`[\\mathrm{dimensionless}]`.
         fdec_dt (float):
-            Factor to decrease :math:`\\delta t` by :math:`[\\mathrm{dimensionless}].
+            Factor to decrease :math:`\\delta t` by
+            :math:`[\\mathrm{dimensionless}]`.
         alpha_start (float):
             Initial (and maximum) :math:`\\alpha [\\mathrm{dimensionless}]`.
         fdec_alpha (float):
-            Factor to decrease :math:`\\alpha t` by :math:`[\\mathrm{dimensionless}].
+            Factor to decrease :math:`\\alpha t` by
+            :math:`[\\mathrm{dimensionless}]`.
         force_tol (float):
             Force convergence criteria
-            math:`[\\mathrm{force} / \\mathrm{mass}]`.
+            :math:`[\\mathrm{force} / \\mathrm{mass}]`.
         angmom_tol (float):
             Angular momentum convergence criteria
-            math:`[\\mathrm{energy} * \\mathrm{time}]`.
+            :math:`[\\mathrm{energy} * \\mathrm{time}]`.
         energy_tol (float):
-            Energy convergence criteria math:`[\\mathrm{energy}]`.
+            Energy convergence criteria :math:`[\\mathrm{energy}]`.
         min_steps_conv (int):
             A minimum number of attempts before convergence criteria are
             considered.
@@ -59,12 +63,13 @@ class FIRE(_DynamicIntegrator):
             None (autodetect).
 
     `minimize.FIRE` uses the Fast Inertial Relaxation Engine (FIRE) algorithm
-    to minimize the potential energy for a group of particles while keeping all other
-    particles fixed.  This method is published in `Bitzek, et. al., PRL, 2006
-    <http://dx.doi.org/10.1103/PhysRevLett.97.170201>`_.
+    to minimize the potential energy for a group of particles while keeping all
+    other particles fixed.  This method is published in `Bitzek, et. al., PRL,
+    2006 <http://dx.doi.org/10.1103/PhysRevLett.97.170201>`_.
 
-    At each time step, :math:`\\delta t`, the algorithm uses the supplied integration methods
-    to generate a x, v, and F, and then adjusts v according to
+    At each time step, :math:`\\delta t`, the algorithm uses the supplied
+    integration methods to generate a x, v, and F, and then adjusts v according
+    to
 
     .. math::
 
@@ -92,8 +97,8 @@ class FIRE(_DynamicIntegrator):
     the group size) Either of the two criterion can be effectively turned off
     by setting the tolerance to a large number.
 
-    If the minimization is acted over a subset of all the particles in the
-    system, the "other" particles will be kept frozen but will still interact
+    If the minimization acts on a subset of all the particles in the
+    system, the other particles will be kept frozen but will still interact
     with the particles being moved.
 
     Examples::
@@ -125,7 +130,8 @@ class FIRE(_DynamicIntegrator):
     Note:
         In practice, the default parameters prevents the simulation from making
         too aggressive a first step, but also from quitting before having found
-        a good search direction. Adjust the parameters as needed for your simulations.
+        a good search direction. Adjust the parameters as needed for your
+        simulations.
 
     """
     _cpp_class_name = "FIREEnergyMinimizer"
