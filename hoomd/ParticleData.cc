@@ -1494,8 +1494,8 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
                     ostringstream o;
-                    o << "Error gathering ParticleData: Could not find particle "
-                      << tag << " on any processor.";
+                    o << "Error gathering ParticleData: Could not find particle " << tag
+                      << " on any processor.";
                     throw std::runtime_error(o.str());
                     }
 
