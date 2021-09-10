@@ -147,7 +147,7 @@ class GPUEvalFactory
     jitify::KernelLauncher configureKernel(unsigned int idev,
                                            dim3 grid,
                                            dim3 threads,
-                                           unsigned int sharedMemBytes,
+                                           size_t sharedMemBytes,
                                            cudaStream_t hStream,
                                            unsigned int eval_threads,
                                            unsigned int launch_bounds)
@@ -157,7 +157,7 @@ class GPUEvalFactory
         return m_program[idev]
             .kernel(m_kernel_name)
             .instantiate(eval_threads, launch_bounds)
-            .configure(grid, threads, sharedMemBytes, hStream);
+            .configure(grid, threads, static_cast<unsigned int>(sharedMemBytes), hStream);
         }
 #endif
 

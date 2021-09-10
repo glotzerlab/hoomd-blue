@@ -41,7 +41,7 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
 
     const unsigned int min_shared_bytes = args.num_types * sizeof(Scalar);
 
-    unsigned int shared_bytes
+    size_t shared_bytes
         = n_groups
               * (sizeof(unsigned int) + 2 * sizeof(Scalar4) + 2 * sizeof(Scalar3)
                  + 2 * sizeof(Scalar) + 2 * sizeof(float))
@@ -51,7 +51,7 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of "
                                  "particle types or size of shape parameters");
 
-    unsigned int kernel_shared_bytes
+    size_t kernel_shared_bytes
         = m_gpu_factory.getKernelSharedSize(0, eval_threads, block_size); // fixme GPU 0
     while (shared_bytes + kernel_shared_bytes >= devprop.sharedMemPerBlock)
         {
