@@ -27,6 +27,26 @@ class FIRE(_DynamicIntegrator):
             This is the maximum step size the minimizer is permitted to use
             :math:`[\\mathrm{time}]`. Consider the stability of the system when
             setting.
+        methods (Sequence[hoomd.md.methods.Method]):
+            Sequence of integration methods. Each integration method can be
+            applied to only a specific subset of particles. The intersection of
+            the subsets must be null. The default value of ``None`` initializes
+            an empty list.
+        forces (Sequence[hoomd.md.force.Force]):
+            Sequence of forces applied to the particles in the system. All the
+            forces are summed together. The default value of ``None``
+            initializes an empty list.
+        aniso (str or bool):
+            Whether to integrate rotational degrees of freedom (bool), default
+            'auto' (autodetect if there is anisotropic factor from any defined
+            active or constraint forces).
+        constraints (Sequence[hoomd.md.constrain.Constraint]):
+            Sequence of constraint forces applied to the particles in the
+            system. The default value of ``None`` initializes an empty list.
+            Rigid body objects (i.e. `hoomd.md.constrain.Rigid`) are not
+            allowed in the list.
+        rigid (hoomd.md.constrain.Rigid):
+            A rigid bodies object defining the rigid bodies in the simulation.
         min_steps_adapt (int):
             Number of steps energy change is negative before allowing
             :math:`\\alpha` and :math:`\\delta t` to adapt.
@@ -134,6 +154,40 @@ class FIRE(_DynamicIntegrator):
         a good search direction. Adjust the parameters as needed for your
         simulations.
 
+    Attributes:
+        dt (float):
+            This is the maximum step size the minimizer is permitted to use
+            :math:`[\\mathrm{time}]`. Consider the stability of the system when
+            setting.
+        min_steps_adapt (int):
+            Number of steps energy change is negative before allowing
+            :math:`\\alpha` and :math:`\\delta t` to adapt.
+        finc_dt (float):
+            Factor to increase :math:`\\delta t` by
+            :math:`[\\mathrm{dimensionless}]`.
+        fdec_dt (float):
+            Factor to decrease :math:`\\delta t` by
+            :math:`[\\mathrm{dimensionless}]`.
+        alpha_start (float):
+            Initial (and maximum) :math:`\\alpha [\\mathrm{dimensionless}]`.
+        fdec_alpha (float):
+            Factor to decrease :math:`\\alpha t` by
+            :math:`[\\mathrm{dimensionless}]`.
+        force_tol (float):
+            Force convergence criteria
+            :math:`[\\mathrm{force} / \\mathrm{mass}]`.
+        angmom_tol (float):
+            Angular momentum convergence criteria
+            :math:`[\\mathrm{energy} * \\mathrm{time}]`.
+        energy_tol (float):
+            Energy convergence criteria :math:`[\\mathrm{energy}]`.
+        min_steps_conv (int):
+            A minimum number of attempts before convergence criteria are
+            considered.
+        aniso (bool):
+            Whether to integrate rotational degrees of freedom (bool), default
+            None (autodetect).
+
     """
     _cpp_class_name = "FIREEnergyMinimizer"
 
@@ -143,7 +197,16 @@ class FIRE(_DynamicIntegrator):
                  forces=None,
                  constraints=None,
                  methods=None,
-                 rigid=None):
+                 rigid=None,
+                 min_steps_adapt=5,
+                 finc_dt=1.1,
+                 fdec_dt=0.5,
+                 alpha_start=0.1,
+                 fdec_alpha=0.99,
+                 force_tol=0.1,
+                 angmom_tol=0.1,
+                 energy_tol=1e-5,
+                 min_steps_conv=10):
 
         super().__init__(forces, constraints, methods, rigid)
 
@@ -164,15 +227,15 @@ class FIRE(_DynamicIntegrator):
                                                    preprocess=positive_real),
                           _defaults={
                               "aniso": "auto",
-                              "min_steps_adapt": 5,
-                              "finc_dt": 1.1,
-                              "fdec_dt": 0.5,
-                              "alpha_start": 0.1,
-                              "fdec_alpha": 0.99,
-                              "force_tol": 0.1,
-                              "angmom_tol": 0.1,
-                              "energy_tol": 1e-5,
-                              "min_steps_conv": 10
+                              "min_steps_adapt": min_steps_adapt,
+                              "finc_dt": finc_dt,
+                              "fdec_dt": fdec_dt,
+                              "alpha_start": alpha_start,
+                              "fdec_alpha": fdec_alpha,
+                              "force_tol": force_tol,
+                              "angmom_tol": angmom_tol,
+                              "energy_tol": energy_tol,
+                              "min_steps_conv": min_steps_conv
                           }))
 
         # have to remove methods from old syncedlist so new syncedlist doesn't
