@@ -19,12 +19,6 @@ from hoomd.md import _md
 from hoomd.md.integrate import _DynamicIntegrator, _preprocess_aniso
 
 
-def _raise_if_nonpositive(value):
-    if value <= 0:
-        raise ValueError("This value cannot be negative")
-    return value
-
-
 class FIRE(_DynamicIntegrator):
     """Energy Minimizer (FIRE).
 
@@ -62,10 +56,11 @@ class FIRE(_DynamicIntegrator):
             Whether to integrate rotational degrees of freedom (bool), default
             None (autodetect).
 
-    `minimize.FIRE` is an `Integrator` that uses the Fast Inertial Relaxation Engine (FIRE) algorithm
-    to minimize the potential energy for a group of particles while keeping all
-    other particles fixed.  This method is published in `Bitzek, et. al., PRL,
-    2006 <http://dx.doi.org/10.1103/PhysRevLett.97.170201>`_.
+    `minimize.FIRE` is an `Integrator` that uses the Fast Inertial Relaxation
+    Engine (FIRE) algorithm to minimize the potential energy for a group of
+    particles while keeping all other particles fixed. This method is published
+    in `Bitzek, et. al., PRL, 2006
+    <http://dx.doi.org/10.1103/PhysRevLett.97.170201>`_.
 
     At each time step, :math:`\\delta t`, the algorithm uses the supplied
     integration methods to generate a x, v, and F, and then adjusts v according
@@ -94,9 +89,9 @@ class FIRE(_DynamicIntegrator):
         \\;\\; and \\;\\ \\Delta \\frac{\\sum|E|}{N} <
         \\mathrm{\\text{energy_tol}}
 
-    where :math:`N_{\\mathrm{dof}}` is the number of degrees of freedom the minimization is acting over.
-    Any of the criterion can be effectively disabled
-    by setting the tolerance to a large number.
+    where :math:`N_{\\mathrm{dof}}` is the number of degrees of freedom the
+    minimization is acting over. Any of the criterion can be effectively
+    disabled by setting the tolerance to a large number.
 
     If the minimization acts on a subset of all the particles in the
     system, the other particles will be kept frozen but will still interact
@@ -120,6 +115,11 @@ class FIRE(_DynamicIntegrator):
         sim.operations.integrator = fire
         while not(fire.converged):
            sim.run(100)
+
+    Note:
+        The `minimire.FIRE` class should be used as the integrator for
+        simulations, just as the standard `md.Integrator` class is (see
+        examples).
 
     Note:
         The algorithm requires an integration method to update the particle
