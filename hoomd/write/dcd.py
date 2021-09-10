@@ -14,8 +14,8 @@ class DCD(Writer):
     """Writes simulation snapshots in the DCD format.
 
     Args:
-        filename (str): File name to write.
         trigger (hoomd.trigger.Periodic): Select the timesteps to write.
+        filename (str): File name to write.
         filter (hoomd.filter.ParticleFilter): Select the particles to write.
             Defaults to `hoomd.filter.All`.
         overwrite (bool): When False, (the default) an existing DCD file will be
@@ -74,8 +74,8 @@ class DCD(Writer):
     """
 
     def __init__(self,
-                 filename,
                  trigger,
+                 filename,
                  filter=All(),
                  overwrite=False,
                  unwrap_full=False,

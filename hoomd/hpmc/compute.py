@@ -175,8 +175,8 @@ class SDF(Compute):
 
     @log(category='sequence', requires_run=True)
     def sdf(self):
-        """:math:`s[i]` - The scale distribution function \
-        :math:`[\\mathrm{probability\\ density}]`.
+        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[i]` - The scale \
+        distribution function :math:`[\\mathrm{probability\\ density}]`.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
@@ -187,7 +187,7 @@ class SDF(Compute):
 
     @log(requires_run=True)
     def betaP(self):  # noqa: N802 - allow function name
-        """Beta times pressure in NVT simulations \
+        """float: Beta times pressure in NVT simulations \
         :math:`\\left[ \\mathrm{length}^{-d} \\right]`.
 
         Use a polynomial curve fit of degree 5 to estimate

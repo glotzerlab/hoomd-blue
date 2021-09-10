@@ -7,7 +7,6 @@
     \brief Defines the LoadBalancerGPU class
 */
 
-#ifdef ENABLE_MPI
 #ifdef ENABLE_HIP
 #include "LoadBalancerGPU.h"
 #include "LoadBalancerGPU.cuh"
@@ -24,9 +23,8 @@ namespace py = pybind11;
  * \param decomposition Domain decomposition
  */
 LoadBalancerGPU::LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                 std::shared_ptr<DomainDecomposition> decomposition,
                                  std::shared_ptr<Trigger> trigger)
-    : LoadBalancer(sysdef, decomposition, trigger)
+    : LoadBalancer(sysdef, trigger)
     {
     // allocate data connected to the maximum number of particles
     m_pdata->getMaxParticleNumberChangeSignal()
@@ -45,6 +43,7 @@ LoadBalancerGPU::~LoadBalancerGPU()
         .disconnect<LoadBalancerGPU, &LoadBalancerGPU::slotMaxNumChanged>(this);
     }
 
+#ifdef ENABLE_MPI
 void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts)
     {
     // do nothing if rank doesn't own any particles
@@ -108,15 +107,13 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
         cnts[off_rank[cur_p]]++;
         }
     }
+#endif // ENABLE_MPI
 
 void export_LoadBalancerGPU(py::module& m)
     {
     py::class_<LoadBalancerGPU, LoadBalancer, std::shared_ptr<LoadBalancerGPU>>(m,
                                                                                 "LoadBalancerGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<DomainDecomposition>,
-                      std::shared_ptr<Trigger>>());
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
 #endif // ENABLE_HIP
-#endif // ENABLE_MPI

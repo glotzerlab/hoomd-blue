@@ -234,7 +234,6 @@ class Coulomb(Force):
             for b in particle_types:
                 self._pair_force.params[(a, b)] = dict(kappa=kappa, alpha=alpha)
                 self._pair_force.r_cut[(a, b)] = rcut
-                print("Setting ewald params for", a, b)
 
         self._cpp_obj.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha)
 

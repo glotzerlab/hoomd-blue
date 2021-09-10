@@ -9,6 +9,7 @@ from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
+from hoomd.error import MutabilityError
 from collections.abc import Sequence
 
 
@@ -37,7 +38,6 @@ class Manifold(_HOOMDBaseObject):
 
     def _attach(self):
         self._apply_param_dict()
-        self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
     @staticmethod
     def _preprocess_unitcell(value):
@@ -58,8 +58,7 @@ class Manifold(_HOOMDBaseObject):
             for attr in self._param_dict)
 
     def _setattr_param(self, attr, value):
-        raise AttributeError("Manifolds are immutable and {} cannot be set "
-                             "after initialization".format(attr))
+        raise MutabilityError(attr)
 
 
 class Cylinder(Manifold):

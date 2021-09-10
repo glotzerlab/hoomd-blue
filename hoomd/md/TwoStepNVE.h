@@ -39,13 +39,13 @@ class PYBIND11_EXPORT TwoStepNVE : public IntegrationMethodTwoStep
     void setLimit(pybind11::object limit);
 
     /// Get zero force
-    pybind11::object getZeroForce();
+    bool getZeroForce();
 
     //! Sets the zero force option
     /*! \param zero_force Set to true to specify that the integration with a zero net force on each
        of the particles in the group
     */
-    void setZeroForce(pybind11::object zero_force);
+    void setZeroForce(bool zero_force);
 
     //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);

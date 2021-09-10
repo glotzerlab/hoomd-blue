@@ -213,6 +213,30 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
 
+    m_sysdef->getBondData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getAngleData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getDihedralData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getImproperData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getConstraintData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getPairData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
     // connect locally to the rcut changing signal
     getRCutChangeSignal().connect<NeighborList, &NeighborList::slotRCutChange>(this);
 
@@ -264,6 +288,31 @@ NeighborList::~NeighborList()
         this);
     m_pdata->getGlobalParticleNumberChangeSignal()
         .disconnect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
+
+    m_sysdef->getBondData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getAngleData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getDihedralData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getImproperData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getConstraintData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getPairData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
 #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -297,8 +346,8 @@ void NeighborList::compute(uint64_t timestep)
     if (m_prof)
         m_prof->push("Neighbor");
 
-    // when the number of particles in the system changes, rebuild the exclusion list
-    if (m_n_particles_changed)
+    // when the number of particles or bonds in the system changes, rebuild the exclusion list
+    if (m_n_particles_changed || m_topology_changed)
         {
         resizeAndClearExclusions();
         for (const std::string& exclusion : m_exclusions)
@@ -307,6 +356,7 @@ void NeighborList::compute(uint64_t timestep)
             }
 
         m_n_particles_changed = false;
+        m_topology_changed = false;
         }
 
     // take care of some updates if things have changed since construction
