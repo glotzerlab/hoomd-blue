@@ -39,7 +39,7 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
     const unsigned int min_shared_bytes
         = args.num_types * sizeof(Scalar) + m_d_union_params.size() * sizeof(jit::union_params_t);
 
-    unsigned int shared_bytes
+    size_t shared_bytes
         = n_groups
               * (sizeof(unsigned int) + 2 * sizeof(Scalar4) + 2 * sizeof(Scalar3)
                  + 2 * sizeof(Scalar) + 2 * sizeof(float))
