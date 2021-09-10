@@ -3,7 +3,7 @@
 # - config: a string encoded list containing the docker image name and any number of build options.
 # - The build options are `mpi`, `tbb`, and `llvm`.
 unit_test_configurations:
-- config: "[clang11_py39, mpi, tbb, llvm]"
+- config: "[clang12_py39, mpi, tbb, llvm]"
 - config: "[gcc11_py39]"
 - config: "[cuda11_gcc9_py38, mpi, llvm]"
 - config: "[cuda11_gcc9_py38]"
@@ -12,7 +12,7 @@ unit_test_configurations:
 # Configurations on which to run longer validation tests. Must be a subset of
 # `unit_test_configurations`
 validate_configurations:
-- config: "[clang11_py39, mpi, tbb, llvm]"
+- config: "[clang12_py39, mpi, tbb, llvm]"
 - config: "[gcc11_py39]"
 - config: "[cuda11_gcc9_py38, mpi, llvm]"
 - config: "[cuda11_gcc9_py38]"
@@ -20,14 +20,15 @@ validate_configurations:
 # Configurations to build and test only rarely, such as just before a release.
 # There should be no overlap between this list and `unit_test_configurations`
 release_test_configurations:
+- config: "[clang11_py39, llvm]"
 - config: "[gcc10_py39]"
 - config: "[cuda10_gcc7_py37, llvm]"
 - config: "[clang10_py38, llvm]"
 - config: "[gcc9_py38]"
-- config: "[clang9_py38, llvm]"
-- config: "[clang8_py38, llvm]"
-- config: "[clang7_py38, llvm]"
+- config: "[clang9_py38]"
+- config: "[clang8_py38]"
+- config: "[clang7_py38]"
 - config: "[gcc8_py37]"
 - config: "[gcc7_py37]"
-- config: "[clang6_py37, llvm]"
+- config: "[clang6_py37]"
 - config: "[gcc7_py36]"

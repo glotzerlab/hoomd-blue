@@ -198,9 +198,7 @@ if (ENABLE_LLVM)
 
     # find and configure LLVM
     find_package(LLVM REQUIRED CONFIG)
-    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-    message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-    message(STATUS "LLVM Definitions: ${LLVM_DEFINITIONS}")
+    find_package_message(LLVM "Found LLVM: ${LLVM_DIR} ${LLVM_DEFINITIONS} (version ${LLVM_PACKAGE_VERSION})" "[${LLVM_DIR}]")
     include_directories(${LLVM_INCLUDE_DIRS})
     add_definitions(${LLVM_DEFINITIONS})
     llvm_map_components_to_libnames(llvm_libs executionengine support core irreader native runtimedyld orcjit object support transformutils lto)
