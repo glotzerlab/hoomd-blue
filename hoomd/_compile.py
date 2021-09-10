@@ -3,13 +3,12 @@
 # License.
 
 import hoomd
-from hoomd.hpmc import _jit
 import subprocess
 import os
 
 
 def to_llvm_ir(code, clang_exec):
-    r"""Helper function to compile the provided code into an executable
+    r"""Helper function to compile the provided code into an executable.
 
     Args:
         code (`str`): C++ code to compile
@@ -39,7 +38,7 @@ def to_llvm_ir(code, clang_exec):
 
 
 def get_gpu_compilation_settings(gpu):
-    """Helper function to set CUDA libraries for GPU execution. """
+    """Helper function to set CUDA libraries for GPU execution."""
     includes = [
         "-I" + os.path.dirname(hoomd.__file__) + '/include',
         "-I" + os.path.dirname(hoomd.__file__)

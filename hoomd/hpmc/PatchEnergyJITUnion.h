@@ -43,13 +43,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
 
         m_factory_union->setAlphaUnionArray(&m_alpha_union.front());
 
-        // Connect to number of types change signal
-        /*
-        m_sysdef->getParticleData()
-            ->getNumTypesChangeSignal()
-            .connect<PatchEnergyJITUnion, &PatchEnergyJITUnion::slotNumTypesChange>(this);
-        */
-
         unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
         m_extent_type.resize(ntypes, 0.0);
         m_type.resize(ntypes);
@@ -63,14 +56,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         }
 
     //! Destructor
-    virtual ~PatchEnergyJITUnion()
-        {
-        /*
-        m_sysdef->getParticleData()
-            ->getNumTypesChangeSignal()
-            .disconnect<PatchEnergyJITUnion, &PatchEnergyJITUnion::slotNumTypesChange>(this);
-        */
-        }
+    virtual ~PatchEnergyJITUnion() { }
 
     // //! Builds OBB tree based on geometric properties of the constituent particles
     // //! and the leaf capacity. To be called every time positions, diameters and/or leaf
