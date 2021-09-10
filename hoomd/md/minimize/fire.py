@@ -62,7 +62,7 @@ class FIRE(_DynamicIntegrator):
             Whether to integrate rotational degrees of freedom (bool), default
             None (autodetect).
 
-    `minimize.FIRE` uses the Fast Inertial Relaxation Engine (FIRE) algorithm
+    `minimize.FIRE` is an `Integrator` that uses the Fast Inertial Relaxation Engine (FIRE) algorithm
     to minimize the potential energy for a group of particles while keeping all
     other particles fixed.  This method is published in `Bitzek, et. al., PRL,
     2006 <http://dx.doi.org/10.1103/PhysRevLett.97.170201>`_.
@@ -83,9 +83,10 @@ class FIRE(_DynamicIntegrator):
     finc_{dt}, \\ \\delta t_{max})`. If the energy of the system increases (or
     stays the same), the velocity of the particles is set to 0, :math:`\\alpha
     \\rightarrow \\ \\alpha_{start}` and :math:`\\delta t \\rightarrow \\delta t
-    \\cdot fdec_{\\alpha}`. Convergence is determined by both the force per
-    particle and the change in energy per particle dropping below `angmom_tol`
-    and `energy_tol`, respectively or
+    \\cdot fdec_{\\alpha}`. The method converges when the force per
+    particle is below `force_tol`, the angular momentum is below `angmom_tol`
+    and the change in potential energy from one step to the next is below 
+    `energy_tol`:
 
     .. math::
 
@@ -93,8 +94,8 @@ class FIRE(_DynamicIntegrator):
         \\;\\; and \\;\\ \\Delta \\frac{\\sum|E|}{N} <
         \\mathrm{\\text{energy_tol}}
 
-    where N is the number of particles the minimization is acting over (i.e.
-    the group size) Either of the two criterion can be effectively turned off
+    where :math:`N_{\\mathrm{dof}}` is the number of degrees of freedom the minimization is acting over. 
+    Any of the criterion can be effectively disabled
     by setting the tolerance to a large number.
 
     If the minimization acts on a subset of all the particles in the
