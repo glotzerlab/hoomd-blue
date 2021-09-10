@@ -85,7 +85,7 @@ class FIRE(_DynamicIntegrator):
     \\rightarrow \\ \\alpha_{start}` and :math:`\\delta t \\rightarrow \\delta t
     \\cdot fdec_{\\alpha}`. The method converges when the force per
     particle is below `force_tol`, the angular momentum is below `angmom_tol`
-    and the change in potential energy from one step to the next is below 
+    and the change in potential energy from one step to the next is below
     `energy_tol`:
 
     .. math::
@@ -94,7 +94,7 @@ class FIRE(_DynamicIntegrator):
         \\;\\; and \\;\\ \\Delta \\frac{\\sum|E|}{N} <
         \\mathrm{\\text{energy_tol}}
 
-    where :math:`N_{\\mathrm{dof}}` is the number of degrees of freedom the minimization is acting over. 
+    where :math:`N_{\\mathrm{dof}}` is the number of degrees of freedom the minimization is acting over.
     Any of the criterion can be effectively disabled
     by setting the tolerance to a large number.
 
