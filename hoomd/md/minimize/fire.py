@@ -13,7 +13,7 @@ import hoomd
 
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data import syncedlist
-from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
+from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, positive_real
 from hoomd.logging import log
 from hoomd.md import _md
 from hoomd.md.integrate import _DynamicIntegrator, _preprocess_aniso
@@ -147,32 +147,32 @@ class FIRE(_DynamicIntegrator):
         super().__init__(forces, constraints, methods, rigid)
 
         self._param_dict.update(
-            ParameterDict(
-                dt=float(dt),
-                aniso=OnlyFrom(['true', 'false', 'auto'],
-                               preprocess=_preprocess_aniso),
-                min_steps_adapt=OnlyTypes(int,
-                                          preprocess=_raise_if_nonpositive),
-                finc_dt=float,
-                fdec_dt=float,
-                alpha_start=float,
-                fdec_alpha=float,
-                force_tol=float,
-                angmom_tol=float,
-                energy_tol=float,
-                min_steps_conv=OnlyTypes(int, preprocess=_raise_if_nonpositive),
-                _defaults={
-                    "aniso": "auto",
-                    "min_steps_adapt": 5,
-                    "finc_dt": 1.1,
-                    "fdec_dt": 0.5,
-                    "alpha_start": 0.1,
-                    "fdec_alpha": 0.99,
-                    "force_tol": 0.1,
-                    "angmom_tol": 0.1,
-                    "energy_tol": 1e-5,
-                    "min_steps_conv": 10
-                }))
+            ParameterDict(dt=float(dt),
+                          aniso=OnlyFrom(['true', 'false', 'auto'],
+                                         preprocess=_preprocess_aniso),
+                          min_steps_adapt=OnlyTypes(int,
+                                                    preprocess=positive_real),
+                          finc_dt=float,
+                          fdec_dt=float,
+                          alpha_start=float,
+                          fdec_alpha=float,
+                          force_tol=float,
+                          angmom_tol=float,
+                          energy_tol=float,
+                          min_steps_conv=OnlyTypes(int,
+                                                   preprocess=positive_real),
+                          _defaults={
+                              "aniso": "auto",
+                              "min_steps_adapt": 5,
+                              "finc_dt": 1.1,
+                              "fdec_dt": 0.5,
+                              "alpha_start": 0.1,
+                              "fdec_alpha": 0.99,
+                              "force_tol": 0.1,
+                              "angmom_tol": 0.1,
+                              "energy_tol": 1e-5,
+                              "min_steps_conv": 10
+                          }))
 
         # have to remove methods from old syncedlist so new syncedlist doesn't
         # think members are attached to multiple syncedlists
