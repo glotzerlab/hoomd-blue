@@ -198,10 +198,15 @@ if (ENABLE_LLVM)
 
     # find and configure LLVM
     find_package(LLVM REQUIRED CONFIG)
-    find_package_message(LLVM "Found LLVM: ${LLVM_DIR} ${LLVM_DEFINITIONS} (version ${LLVM_PACKAGE_VERSION})" "[${LLVM_DIR}]")
     include_directories(${LLVM_INCLUDE_DIRS})
     add_definitions(${LLVM_DEFINITIONS})
-    llvm_map_components_to_libnames(llvm_libs executionengine support core irreader native runtimedyld orcjit object support transformutils lto)
+
+    if (LLVM_FOUND)
+        find_library(llvm_library LLVM
+                     HINTS ${LLVM_LIBRARY_DIRS}
+                     NO_DEFAULT_PATH)
+    endif()
+    find_package_message(LLVM "Found LLVM: ${LLVM_DIR} ${llvm_library} ${LLVM_INCLUDE_DIRS} ${LLVM_DEFINITIONS} (version ${LLVM_PACKAGE_VERSION})" "[${LLVM_DIR},${llvm_library}]")
 
     # set files to compile
     set(_${PACKAGE_NAME}_sources
@@ -260,10 +265,10 @@ if (ENABLE_LLVM)
     endif()
 
     # link the libraries to their dependencies
-    target_link_libraries(_${PACKAGE_NAME}_llvm ${llvm_libs})
+    target_link_libraries(_${PACKAGE_NAME}_llvm ${llvm_library})
 
-    # need to link llvm_libs here, too, otherwise module import fails
-    target_link_libraries(_${PACKAGE_NAME} PUBLIC _hoomd PRIVATE _${PACKAGE_NAME}_llvm ${llvm_libs})
+    # need to link the LLVM library here, too, otherwise module import fails
+    target_link_libraries(_${PACKAGE_NAME} PUBLIC _hoomd PRIVATE _${PACKAGE_NAME}_llvm ${llvm_library})
 
     # set installation RPATH
     if(APPLE)
