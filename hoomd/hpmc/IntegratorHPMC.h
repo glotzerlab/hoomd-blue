@@ -133,22 +133,22 @@ class PatchEnergy : public Compute
     typedef detail::hpmc_patch_args_t gpu_args_t;
 #endif
 
-    virtual Scalar getRelevantRCut()
+    //! Returns the distance from the center of the particle (single or union) beyond which energies are always zero
+    virtual Scalar getRCut(unsigned int type)
         {
         return 0;
         }
 
-    //! Returns the geometric extent, per type
-    virtual Scalar getRCut()
+    //! Returns the distance from the center of the particle (single or union) beyond which energies are always zero
+    virtual Scalar getRCutIsotropic()
         {
         return 0;
         }
 
-    //! Get the maximum r_ij radius beyond which energies are always 0
-    virtual inline Scalar getAdditiveCutoff(unsigned int type)
+    //! Returns the distance from the center of each constituent particle in an union beyond which energies are always 0
+    virtual Scalar getRCutConstituent()
         {
-        // this potential corresponds to a point particle
-        return 0.0;
+        return 0;
         }
 
     //! evaluate the energy of the patch interaction

@@ -23,7 +23,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                         Scalar r_cut_union,
                         const unsigned int array_size_union)
         : PatchEnergyJIT(sysdef, exec_conf, llvm_ir_iso, r_cut_iso, param_array), m_sysdef(sysdef),
-          m_rcut_union(r_cut_union),
+          m_r_cut_constituent(r_cut_union),
           m_alpha_union(array_size_union,
                         0.0f,
                         managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
@@ -221,23 +221,18 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         return m_leaf_capacity;
         }
 
-    virtual Scalar getRelevantRCut()
-        {
-        return m_rcut_union;
-        }
-
     //! Get the cut-off for constituent particles
-    virtual Scalar getRCutUnion()
+    virtual Scalar getRCutConstituent()
         {
         // return cutoff for constituent particle potentials
-        return m_rcut_union;
+        return m_r_cut_constituent;
         }
 
     //! Set the cut-off for constituent particles
-    virtual void setRCutUnion(Scalar r_cut)
+    virtual void setRCutConstituent(Scalar r_cut)
         {
         // return cutoff for constituent particle potentials
-        m_rcut_union = r_cut;
+        m_r_cut_constituent = r_cut;
         }
 
     //! Get the size of the alpha_union array
@@ -247,7 +242,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         }
 
     //! Get the maximum geometric extent, which is added to the cutoff, per type
-    virtual inline Scalar getAdditiveCutoff(unsigned int type)
+    virtual inline Scalar getRCut(unsigned int type)
         {
         assert(type <= m_extent_type.size());
         Scalar extent = m_extent_type[type];
@@ -329,7 +324,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     std::shared_ptr<EvalFactory>
         m_factory_union; //!< The factory for the evaluator function, for constituent ptls
     EvalFactory::EvalFnPtr m_eval_union; //!< Pointer to evaluator function inside the JIT module
-    Scalar m_rcut_union;                 //!< Cutoff on constituent particles
+    Scalar m_r_cut_constituent;                 //!< Cutoff on constituent particles
     std::vector<float, managed_allocator<float>> m_alpha_union; //!< Data array for union
     unsigned int m_alpha_size_union;                            //!< Size of the alpha_union array
     std::vector<unsigned int>

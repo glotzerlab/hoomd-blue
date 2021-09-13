@@ -798,7 +798,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
             if (m_patch)
                 {
-                r_cut_patch = OverlapReal(m_patch->getRelevantRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i));
+                r_cut_patch = m_patch->getRCut(typ_i);
                 }
 
             // subtract minimum AABB extent from search radius
