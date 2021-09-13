@@ -23,6 +23,8 @@
 
 #include <string>
 
+#include "ClangCompiler.h"
+
 #ifdef ENABLE_HIP
 #include "PatchEnergyJITGPU.h"
 #include "PatchEnergyJITUnionGPU.h"
@@ -58,4 +60,10 @@ PYBIND11_MODULE(_jit, m)
     export_PatchEnergyJITGPU(m);
     export_PatchEnergyJITUnionGPU(m);
 #endif
+
+    std::string code = "#include <stdio.h>\nint eval() {}";
+    auto clang_compiler = ClangCompiler::createClangCompiler();
+    std::vector<std::string> args;
+    args.push_back("-I /test");
+    clang_compiler->compileCode(code, args);
     }

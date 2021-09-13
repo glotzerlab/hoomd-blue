@@ -205,8 +205,12 @@ if (ENABLE_LLVM)
         find_library(llvm_library LLVM
                      HINTS ${LLVM_LIBRARY_DIRS}
                      NO_DEFAULT_PATH)
+
+        find_library(clang_library clang-cpp
+                     HINTS ${LLVM_LIBRARY_DIRS}
+                     NO_DEFAULT_PATH)
     endif()
-    find_package_message(LLVM "Found LLVM: ${LLVM_DIR} ${llvm_library} ${LLVM_INCLUDE_DIRS} ${LLVM_DEFINITIONS} (version ${LLVM_PACKAGE_VERSION})" "[${LLVM_DIR},${llvm_library}]")
+    find_package_message(LLVM "Found LLVM: ${LLVM_DIR} ${llvm_library} ${clang_library} ${LLVM_INCLUDE_DIRS} ${LLVM_DEFINITIONS} (version ${LLVM_PACKAGE_VERSION})" "[${LLVM_DIR},${llvm_library},${clang_library}]")
 
     # set files to compile
     set(_${PACKAGE_NAME}_sources
@@ -216,6 +220,7 @@ if (ENABLE_LLVM)
          PatchEnergyJITGPU.cc
          PatchEnergyJITUnion.cc
          PatchEnergyJITUnionGPU.cc
+         ClangCompiler.cc
        )
 
     # we compile a separate package just for the LLVM-interfacing part,
@@ -233,6 +238,7 @@ if (ENABLE_LLVM)
                                  ExternalFieldEvalFactory.h
                                  GPUEvalFactory.h
                                  KaleidoscopeJIT.h
+                                 ClangCompiler.h
        )
 
     pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_${PACKAGE_NAME}_cu_sources} NO_EXTRAS)
@@ -265,10 +271,10 @@ if (ENABLE_LLVM)
     endif()
 
     # link the libraries to their dependencies
-    target_link_libraries(_${PACKAGE_NAME}_llvm ${llvm_library})
+    target_link_libraries(_${PACKAGE_NAME}_llvm ${llvm_library} ${clang_library})
 
     # need to link the LLVM library here, too, otherwise module import fails
-    target_link_libraries(_${PACKAGE_NAME} PUBLIC _hoomd PRIVATE _${PACKAGE_NAME}_llvm ${llvm_library})
+    target_link_libraries(_${PACKAGE_NAME} PUBLIC _hoomd PRIVATE _${PACKAGE_NAME}_llvm ${llvm_library} ${clang_library})
 
     # set installation RPATH
     if(APPLE)
