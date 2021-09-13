@@ -139,7 +139,7 @@ def test_setting_arg_values(typedict_with_int, valid_single_keys):
 def test_invalid_value_setting(typedict_with_int, typedict_singleton_keys):
     """Test value validation on new dict keys and wrong types."""
     # New dict key
-    with raises(ValueError):
+    with raises(KeyError):
         typedict_singleton_keys['A'] = dict(boo=None)
     # Invalid types
     with raises(TypeConversionError):

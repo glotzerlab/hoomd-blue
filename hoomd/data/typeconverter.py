@@ -62,8 +62,8 @@ def box_preprocessing(box):
         try:
             return hoomd.Box.from_box(box)
         except Exception:
-            raise ValueError("{} is not convertible into a hoomd.Box object. "
-                             "using hoomd.Box.from_box".format(box))
+            raise ValueError(f"{box} is not convertible into a hoomd.Box object"
+                             f". using hoomd.Box.from_box")
 
 
 def positive_real(number):
@@ -144,12 +144,12 @@ class Either(_HelpValidate):
                 return spec(value)
             except Exception:
                 continue
-        raise ValueError("value {} not converible using {}".format(
-            value, [str(spec) for spec in self.specs]))
+        raise ValueError(f"value {value} not converible using "
+                         f"{[str(spec) for spec in self.specs]}")
 
     def __str__(self):
         """str: String representation of the validator."""
-        return "Either({})".format([str(spec) for spec in self.specs])
+        return f"Either({[str(spec) for spec in self.specs]})"
 
 
 class OnlyIf(_HelpValidate):
@@ -172,7 +172,7 @@ class OnlyIf(_HelpValidate):
 
     def __str__(self):
         """str: String representation of the validator."""
-        return "OnlyIf({})".format(str(self.cond))
+        return f"OnlyIf({str(self.cond)})"
 
 
 class OnlyTypes(_HelpValidate):
@@ -203,12 +203,12 @@ class OnlyTypes(_HelpValidate):
 
     def _validate(self, value):
         if isinstance(value, self.disallow_types):
-            raise ValueError(f"Value cannot be of type {type(value)}")
+            raise ValueError(f"Value {value} cannot be of type {type(value)}")
         if isinstance(value, self.types):
             return value
         elif self.strict:
             raise ValueError(
-                f"Value {value} not instance of any of {self.types}.")
+                f"Value {value} is not an instance of any of {self.types}.")
         else:
             for type_ in self.types:
                 try:
@@ -243,8 +243,7 @@ class OnlyFrom(_HelpValidate):
         if value in self:
             return value
         else:
-            raise ValueError("Value {} not in options: {}".format(
-                value, self.options))
+            raise ValueError(f"Value {value} not in options: {self.options}")
 
     def __contains__(self, value):
         """bool: True when value is in the options."""
@@ -252,7 +251,7 @@ class OnlyFrom(_HelpValidate):
 
     def __str__(self):
         """str: String representation of the validator."""
-        return "OnlyFrom[{}]".format(self.options)
+        return "OnlyFrom[{self.options}]"
 
 
 class Array(_HelpValidate):
@@ -425,7 +424,7 @@ class TypeConverterValue(TypeConverter):
             def natural_number(value):
                 if i < 1:
                     raise ValueError(
-                        "Value {} must be a natural number.".format(value))
+                        f"Value {value} must be a natural number.")
 
             TypeConverterValue(OnlyTypes(int, postprocess=natural_number))
     """
@@ -474,13 +473,11 @@ class TypeConverterValue(TypeConverter):
         """Called when the value is set."""
         try:
             return self.converter(value)
-        except (TypeError, ValueError, TypeConversionError) as err:
-            if value is RequiredArg:
-                raise TypeConversionError("Value is a required argument")
+        except (TypeError, ValueError) as err:
             raise TypeConversionError(
-                "Value {} of type {} cannot be converted using {}. Raised "
-                "error: {}".format(value, type(value), str(self.converter),
-                                   str(err)))
+                f"Value {value} of type {type(value)} cannot be converted "
+                f"using {str(self.converter)}. Raised error: {str(err)}"
+            ) from err
 
 
 class TypeConverterSequence(TypeConverter):
@@ -517,16 +514,16 @@ class TypeConverterSequence(TypeConverter):
         """Called when the value is set."""
         if not _is_iterable(sequence):
             raise TypeConversionError(
-                "Expected a sequence like instance. Received {} of type {}."
-                "".format(sequence, type(sequence)))
+                f"Expected a sequence like instance. Received {sequence} of "
+                f"type {type(sequence)}.")
         else:
             new_sequence = []
             try:
                 for i, (v, c) in enumerate(zip(sequence, self)):
                     new_sequence.append(c(v))
-            except (TypeConversionError) as err:
-                raise TypeConversionError("In list item number {}: {}"
-                                          "".format(i, str(err)))
+            except (ValueError, TypeError) as err:
+                raise TypeConversionError(
+                    "In list item number {i}: {str(err)}") from err
             return new_sequence
 
     def __iter__(self):
@@ -568,20 +565,20 @@ class TypeConverterFixedLengthSequence(TypeConverter):
         """Called when the value is set."""
         if not _is_iterable(sequence):
             raise TypeConversionError(
-                "Expected a tuple like object. Received {} of type {}."
-                "".format(sequence, type(sequence)))
+                f"Expected a tuple like object. Received {sequence} of type "
+                f"{type(sequence)}.")
         elif len(sequence) != len(self.converter):
             raise TypeConversionError(
-                "Expected exactly {} items. Received {}.".format(
-                    len(self.converter), len(sequence)))
+                f"Expected exactly {len(self.converter)} items. Received "
+                f"{len(sequence)}.")
         else:
             new_sequence = []
             try:
                 for i, (v, c) in enumerate(zip(sequence, self)):
                     new_sequence.append(c(v))
-            except (TypeConversionError) as err:
-                raise TypeConversionError("In tuple item number {}: {}"
-                                          "".format(i, str(err)))
+            except (ValueError, TypeError) as err:
+                raise TypeConversionError(
+                    f"In tuple item number {i}: {str(err)}") from err
             return tuple(new_sequence)
 
     def __iter__(self):
@@ -626,8 +623,8 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
         """Called when the value is set."""
         if not isinstance(mapping, Mapping):
             raise TypeConversionError(
-                "Expected a dict like value. Recieved {} of type {}."
-                "".format(mapping, type(mapping)))
+                f"Expected a dict like value. Recieved {mapping} of type "
+                f"{type(mapping)}.")
 
         new_mapping = dict()
         try:
@@ -636,9 +633,8 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
                     new_mapping[key] = self.converter[key](value)
                 else:
                     new_mapping[key] = value
-        except (TypeConversionError) as err:
-            raise TypeConversionError("In key {}: {}"
-                                      "".format(str(key), str(err)))
+        except (ValueError, TypeError) as err:
+            raise TypeConversionError(f"In key {key}: {str(err)}") from err
         return new_mapping
 
     def __iter__(self):
