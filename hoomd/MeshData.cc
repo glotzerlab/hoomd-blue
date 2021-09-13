@@ -58,9 +58,13 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
     m_meshtriangle_data
         = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(pdata, (unsigned int) snapshot.type_mapping.size() ));
 
+    m_meshbond_data
+        = std::shared_ptr<MeshBondData>(new MeshBondData(pdata, (unsigned int) snapshot.type_mapping.size() ));
+
     for (unsigned group_types = 0; group_types < snapshot.type_mapping.size(); group_types++)
     	{
         m_meshtriangle_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
+        m_meshbond_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
 	}
 
     for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
@@ -69,7 +73,65 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
 	unsigned int a = snapshot.groups[group_idx].tag[0];
 	unsigned int b = snapshot.groups[group_idx].tag[1];
 	unsigned int c = snapshot.groups[group_idx].tag[2];
-        m_meshtriangle_data->addBondedGroup(MeshTriangle(type, a, b, c, -1, -1, -1 ));
+
+	int dreieck =0;
+
+	int aa = -1;
+	int bb = -1;
+	int cc = -1;
+	unsigned int size = (unsigned int)m_meshbond_data->getN();
+        for (unsigned int i = 0; i < size && dreieck < 3; i++)
+            {
+            const MeshBondData::members_t& bond = m_meshbond_data->getMembersByIndex(i);
+            if( bond.tag[0] == a || bond.tag[1] == a )
+	    	{
+            	if( bond.tag[0] == b || bond.tag[1] == b)
+			{
+			dreieck += 1;
+			aa = i;
+			}
+		else
+			{
+            		if( bond.tag[0] == c || bond.tag[1] == c)
+				{
+				dreieck += 1;
+				bb = i;
+				}
+			}
+	    	}
+	    else
+		{
+            	if( bond.tag[0] == b || bond.tag[1] == b )
+			{
+            		if( bond.tag[0] == c ||  bond.tag[1] == c )
+				{
+			        dreieck += 1;
+				cc = i;
+				}
+			}
+		}
+	    }
+
+	if(aa == -1)
+	    {
+	    m_meshbond_data->addBondedGroup(MeshBond(type, a, b, group_idx, -1));
+	    aa = size;
+	    size += 1;
+	    }
+	if(bb == -1)
+	    {
+	    m_meshbond_data->addBondedGroup(MeshBond(type, a, c, group_idx, -1));
+	    bb = size;
+	    size += 1;
+	    }
+	if(cc == -1)
+	    {
+	    m_meshbond_data->addBondedGroup(MeshBond(type, b, c, group_idx, -1));
+	    cc = size;
+	    size += 1;
+	    }
+
+        m_meshtriangle_data->addBondedGroup(MeshTriangle(type, a, b, c, aa, bb, cc ));
         }
     }
 
