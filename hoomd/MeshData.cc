@@ -82,13 +82,15 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
 	unsigned int size = (unsigned int)m_meshbond_data->getN();
         for (unsigned int i = 0; i < size && dreieck < 3; i++)
             {
-            const MeshBondData::members_t& bond = m_meshbond_data->getMembersByIndex(i);
+            MeshBondData::members_t bond = m_meshbond_data->getMembersByIndex(i);
             if( bond.tag[0] == a || bond.tag[1] == a )
 	    	{
             	if( bond.tag[0] == b || bond.tag[1] == b)
 			{
 			dreieck += 1;
 			aa = i;
+			bond.tag[3] = group_idx;
+			m_meshbond_data->setMemberByIndex(i,bond);
 			}
 		else
 			{
@@ -96,6 +98,8 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
 				{
 				dreieck += 1;
 				bb = i;
+			        bond.tag[3] = group_idx;
+				m_meshbond_data->setMemberByIndex(i,bond);
 				}
 			}
 	    	}
@@ -107,6 +111,8 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
 				{
 			        dreieck += 1;
 				cc = i;
+			        bond.tag[3] = group_idx;
+				m_meshbond_data->setMemberByIndex(i,bond);
 				}
 			}
 		}

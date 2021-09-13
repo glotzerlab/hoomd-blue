@@ -339,6 +339,9 @@ class BondedGroupData
     //! Get the members of a bonded group by index
     const members_t getMembersByIndex(unsigned int group_idx) const;
 
+    //! Get the members of a bonded group by index
+    void setMemberByIndex(unsigned int group_idx, members_t member);
+
     //! Get the type of a bonded group by index
     unsigned int getTypeByIndex(unsigned int group_idx) const;
 

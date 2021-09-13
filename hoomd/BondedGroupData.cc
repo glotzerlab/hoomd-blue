@@ -553,6 +553,18 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::getMembersByIndex(
     return m_groups[group_idx];
     }
 
+/*! \param idx Tag of bonded group
+ * \return Type of bonded group
+ */
+template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::setMemberByIndex(
+    unsigned int group_idx,
+    typename BondedGroupData<group_size, Group, name, has_type_mapping>::members_t member)
+    {
+    assert(group_idx < getN() + getNGhosts());
+    m_groups[group_idx] = member;
+    }
+
 /*! \param tag Tag of bonded group to remove
  */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
