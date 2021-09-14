@@ -16,13 +16,14 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
      */
     PatchEnergyJITUnion(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<ExecutionConfiguration> exec_conf,
-                        const std::string& llvm_ir_iso,
+                        const std::string& cpp_code_iso,
+                        const std::vector<std::string>& compiler_args,
                         Scalar r_cut_iso,
                         pybind11::array_t<float> param_array,
-                        const std::string& llvm_ir_union,
+                        const std::string& cpp_code_union,
                         Scalar r_cut_union,
                         const unsigned int array_size_union)
-        : PatchEnergyJIT(sysdef, exec_conf, llvm_ir_iso, r_cut_iso, param_array), m_sysdef(sysdef),
+        : PatchEnergyJIT(sysdef, exec_conf, cpp_code_iso, compiler_args, r_cut_iso, param_array), m_sysdef(sysdef),
           m_rcut_union(r_cut_union),
           m_alpha_union(array_size_union,
                         0.0f,
@@ -30,7 +31,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
           m_alpha_size_union(array_size_union)
         {
         // build the JIT.
-        m_factory_union = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir_union));
+        m_factory_union = std::shared_ptr<EvalFactory>(new EvalFactory(cpp_code_union, compiler_args));
 
         // get the evaluator
         m_eval_union = m_factory_union->getEval();

@@ -220,12 +220,11 @@ if (ENABLE_LLVM)
          PatchEnergyJITGPU.cc
          PatchEnergyJITUnion.cc
          PatchEnergyJITUnionGPU.cc
-         ClangCompiler.cc
        )
 
     # we compile a separate package just for the LLVM-interfacing part,
     # so that can be compiled with and without RTTI
-    set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc ExternalFieldEvalFactory.cc)
+    set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc ExternalFieldEvalFactory.cc ClangCompiler.cc)
 
     set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
                                  PatchEnergyJITUnion.h

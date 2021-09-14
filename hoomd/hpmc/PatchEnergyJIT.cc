@@ -12,7 +12,8 @@
 */
 PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<ExecutionConfiguration> exec_conf,
-                               const std::string& llvm_ir,
+                               const std::string& cpp_code,
+                               const std::vector<std::string>& compiler_args,
                                Scalar r_cut,
                                pybind11::array_t<float> param_array)
     : PatchEnergy(sysdef), m_exec_conf(exec_conf), m_r_cut(r_cut),
@@ -22,18 +23,21 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
               managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
     {
     // build the JIT.
-    m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir));
+    m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(cpp_code, compiler_args));
 
-    // save the llvm_ir string for exporting to python
-    m_llvm_ir = llvm_ir;
+    // save the C++ code string for exporting to python
+    m_cpp_code = cpp_code;
 
     // get the evaluator
     m_eval = m_factory->getEval();
 
     if (!m_eval)
         {
-        exec_conf->msg->error() << m_factory->getError() << std::endl;
-        throw std::runtime_error("Error compiling JIT code.");
+        std::ostringstream s;
+        s << "Error compiling JIT code:" << std::endl;
+        s << cpp_code << std::endl;
+        s << m_factory->getError() << std::endl;
+        throw std::runtime_error(s.str());
         }
 
     m_factory->setAlphaArray(&m_alpha.front());
@@ -49,6 +53,7 @@ void export_PatchEnergyJIT(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ExecutionConfiguration>,
                             const std::string&,
+                            const std::vector<std::string>&,
                             Scalar,
                             pybind11::array_t<float>>())
         .def_property("r_cut", &PatchEnergyJIT::getRCut, &PatchEnergyJIT::setRCut)

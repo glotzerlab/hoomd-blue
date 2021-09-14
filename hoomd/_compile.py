@@ -7,6 +7,12 @@ import subprocess
 import os
 
 
+def get_include_options():
+    """Get the source code include path for HOOMD's include files."""
+    hoomd_include_path = os.path.dirname(hoomd.__file__) + '/include'
+    return ['-I', hoomd_include_path]
+
+
 def to_llvm_ir(code, clang_exec):
     r"""Helper function to compile the provided code into an executable.
 

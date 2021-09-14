@@ -1,4 +1,6 @@
 #include "EvalFactory.h"
+#include "ClangCompiler.h"
+
 #include <memory>
 #include <sstream>
 #include <utility>
@@ -20,17 +22,16 @@
 #pragma GCC diagnostic pop
 
 //! C'tor
-EvalFactory::EvalFactory(const std::string& llvm_ir)
+EvalFactory::EvalFactory(const std::string& cpp_code,
+                         const std::vector<std::string>& compiler_args)
     {
     // set to null pointer
     m_eval = NULL;
 
     // initialize LLVM
     std::ostringstream sstream;
-    llvm::raw_os_ostream llvm_err(sstream);
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-    llvm::InitializeNativeTargetAsmParser();
+
+    auto clang_compiler = ClangCompiler::createClangCompiler();
 
     // Add the program's symbols into the JIT's search space.
     if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr))
@@ -42,16 +43,12 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
     llvm::LLVMContext Context;
     llvm::SMDiagnostic Err;
 
-    // Read the input IR data
-    llvm::StringRef ir_str(llvm_ir);
-    std::unique_ptr<llvm::MemoryBuffer> ir_membuf = llvm::MemoryBuffer::getMemBuffer(ir_str);
-    std::unique_ptr<llvm::Module> module = llvm::parseIR(*ir_membuf, Err, Context);
+    // compile the module
+    auto module = clang_compiler->compileCode(cpp_code, compiler_args, Context);
 
     if (!module)
         {
         // if the module didn't load, report an error
-        Err.print("EvalFactory", llvm_err);
-        llvm_err.flush();
         m_error_msg = sstream.str();
         return;
         }
@@ -100,6 +97,4 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
     m_eval = (EvalFnPtr)(long unsigned int)(eval->getAddress());
     m_alpha = (float**)(alpha->getAddress());
     m_alpha_union = (float**)(alpha_union->getAddress());
-
-    llvm_err.flush();
     }

@@ -87,34 +87,23 @@ class CPPPotentialBase(_HOOMDBaseObject):
     def __init__(self,
                  r_cut,
                  code,
-                 llvm_ir=None,
-                 clang_exec='clang',
                  param_array=None):
         param_dict = ParameterDict(
             r_cut=float,
             param_array=hoomd.data.typeconverter.Array(dtype=np.float32,
                                                        ndim=1),
-            code=str,
-            clang_exec=str,
-            llvm_ir=str,
+            code=str
         )
         param_dict['r_cut'] = r_cut
         param_dict['code'] = code
-        if llvm_ir is None:
-            param_dict['llvm_ir'] = ''
-        else:
-            param_dict['llvm_ir'] = llvm_ir
         if param_array is None:
             param_dict['param_array'] = np.array([])
         else:
             param_dict['param_array'] = param_array
-        param_dict['clang_exec'] = clang_exec
         self._param_dict.update(param_dict)
 
     def _getattr_param(self, attr):
-        if attr == 'clang_exec':
-            return self._param_dict['clang_exec']
-        elif attr == 'code':
+        if attr == 'code':
             return self._param_dict['code']
         return super()._getattr_param(attr)
 
@@ -231,13 +220,9 @@ class CPPPotential(CPPPotentialBase):
     def __init__(self,
                  r_cut,
                  code,
-                 llvm_ir=None,
-                 clang_exec='clang',
                  param_array=None):
         super().__init__(r_cut=r_cut,
                          code=code,
-                         llvm_ir=llvm_ir,
-                         clang_exec=clang_exec,
                          param_array=param_array)
 
     def _attach(self):
@@ -251,13 +236,6 @@ class CPPPotential(CPPPotentialBase):
         device = self._simulation.device
         cpp_sys_def = self._simulation.state._cpp_sys_def
 
-        if self.llvm_ir == '':
-            code = self.code
-            llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
-                                          self.clang_exec)
-        else:
-            llvm_ir = self.llvm_ir
-
         if isinstance(device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             gpu_code = self._wrap_gpu_code(self.code)
@@ -268,9 +246,9 @@ class CPPPotential(CPPPotentialBase):
                 gpu_settings["includes"], gpu_settings["cuda_devrt_lib_path"],
                 gpu_settings["max_arch"])
         else:  # running on cpu
-            # if llvm_ir == '', then no IR was provided and we need to compile
             self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def,
-                                                device._cpp_exec_conf, llvm_ir,
+                                                device._cpp_exec_conf, self._wrap_cpu_code(self.code),
+                                                _compile.get_include_options(),
                                                 self.r_cut, self.param_array)
         # attach patch object to the integrator
         super()._attach()
@@ -379,7 +357,6 @@ class _CPPUnionPotential(CPPPotentialBase):
     def __init__(self,
                  r_cut_union,
                  array_size_union=1,
-                 clang_exec='clang',
                  code_union=None,
                  llvm_ir_file_union=None,
                  r_cut=0,
@@ -391,8 +368,7 @@ class _CPPUnionPotential(CPPPotentialBase):
         super().__init__(r_cut=r_cut,
                          array_size=array_size,
                          code=code,
-                         llvm_ir_file=llvm_ir_file,
-                         clang_exec=clang_exec)
+                         llvm_ir_file=llvm_ir_file)
 
         # add union specific params
         param_dict = ParameterDict(r_cut_union=float(r_cut_union),

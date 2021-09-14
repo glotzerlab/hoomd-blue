@@ -3,6 +3,9 @@
 
 #pragma once
 
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+
 #include <string>
 #include <memory>
 #include <vector>
@@ -25,7 +28,7 @@ class ClangCompiler
         static std::shared_ptr<ClangCompiler> createClangCompiler();
 
         /// Compile the provided C++ code and return the LLVM IR
-        std::string compileCode(const std::string& code, const std::vector<std::string>& user_args);
+        std::unique_ptr<llvm::Module> compileCode(const std::string& code, const std::vector<std::string>& user_args, llvm::LLVMContext& context);
 
     protected:
         ClangCompiler();

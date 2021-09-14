@@ -14,6 +14,10 @@
 #include <clang/Lex/HeaderSearch.h>
 #include <clang/Lex/PreprocessorOptions.h>
 #include <clang/Basic/TargetInfo.h>
+#include <clang/Basic/Version.inc>
+#include <clang/Driver/Driver.h>
+#include <clang/Tooling/Tooling.h>
+#include <clang/Driver/Compilation.h>
 
 #include <sstream>
 #include <iostream>
@@ -56,67 +60,102 @@ ClangCompiler::ClangCompiler()
 /** @param code The C++ code to compile.
     @param user_args The arguments to pass to the compiler.
 
-    @returns The LLVM IR of the compiled code.
+    @returns The LLVM module with the code compiled.
 */
-std::string ClangCompiler::compileCode(const std::string& code, const std::vector<std::string>& user_args)
+std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code, const std::vector<std::string>& user_args, llvm::LLVMContext& context)
     {
+    // initialize the diagnostics engine to write compilation warnings/errors to stdout/stderr
     clang::IntrusiveRefCntPtr<clang::DiagnosticOptions> diagnostic_options = new clang::DiagnosticOptions();
-    // change outs to get text errors in a stringstream? https://clang.llvm.org/doxygen/classclang_1_1TextDiagnosticPrinter.html#af231b7c17ff249332b9399b62552cebe
     clang::TextDiagnosticPrinter diagnostic_printer(llvm::outs(), diagnostic_options.get());
     clang::IntrusiveRefCntPtr<clang::DiagnosticIDs> diag_ids = new clang::DiagnosticIDs();
-
-    // the false in the argument list prevents the diagnostic engine from freeing the diagnostic printer
     clang::DiagnosticsEngine diagnostics_engine(diag_ids, diagnostic_options, &diagnostic_printer, false);
 
-    clang::CompilerInstance compiler_instance;
-    auto& compiler_invocation = compiler_instance.getInvocation();
+    // determine the clang resource path
+    // TODO: get from LLVM_PREFIX in cmake
+    std::string resource_path("/usr");
 
-    // build up argument list
+    // build up the argument list
     std::vector<std::string> clang_args;
-
-    std::stringstream ss;
-    ss << "-triple=" << llvm::sys::getDefaultTargetTriple();
-    clang_args.push_back(ss.str());
+    clang_args.push_back("-D");
+    clang_args.push_back("HOOMD_LLVMJIT_BUILD");
+    clang_args.push_back("--std=c++14");
+    // prevent the driver from creating empty output files in /tmp
+    clang_args.push_back("-S");
+    clang_args.push_back("-emit-llvm");
     clang_args.insert(clang_args.end(), user_args.begin(), user_args.end());
+    clang_args.push_back("_hoomd_llvm_code.cc");
 
+    // convert arguments to a char** array.
     std::vector<const char *> clang_arg_c_strings;
+    clang_arg_c_strings.push_back("clang");
     for (auto& arg : clang_args)
         {
-        std::cout << arg << std::endl;
+        std::cout << "clang arg: " << arg << std::endl;
         clang_arg_c_strings.push_back(arg.c_str());
         }
 
-    bool result = clang::CompilerInvocation::CreateFromArgs(compiler_invocation, llvm::ArrayRef<const char*>(clang_arg_c_strings.data(), clang_arg_c_strings.size()), diagnostics_engine);
+    // This is a way to get system wide compiler options from the clang Driver interface.
+    // It is needed to find the standard library include directories.
+    // https://cpp.hotexamples.com/site/file?hash=0xd4e048edbee7a77d7b2181909e61ab1a1213629fe8aa79248fea8ae17f8dc7fc&fullName=safecode-mirror-master/tools/clang/examples/main.cpp&project=lygstate/safecode-mirror
+    // see also: https://cpp.hotexamples.com/examples/-/CompilerInstance/-/cpp-compilerinstance-class-examples.html
+    clang::driver::Driver driver(resource_path + "/bin/clang", llvm::sys::getDefaultTargetTriple(), diagnostics_engine, "hoomd LLVM compiler");
+    driver.setCheckInputsExist(false);
+    llvm::ArrayRef<const char*>RF(&(clang_arg_c_strings[0]), clang_arg_c_strings.size());
+    auto compilation = driver.BuildCompilation(RF);
+    // This may work in future LLVM releases
+    // auto CC1Args = clang::tooling::getCC1Arguments(Diagnostics, Compilation.get());
+    // if (CC1Args == NULL)
+    //     {
+    //     return 0;
+    //     }
+    // use this for now
+    auto& cc_args = compilation->getJobs().begin()->getArguments();
+
+    // enable to debug compilation arguments
+    std::cout << "job args:" << std::endl;
+    std::cout << cc_args.size() << std::endl;
+    for (unsigned int i = 0; i < cc_args.size(); i++)
+        {
+        std::cout << cc_args[i] << std::endl;
+        }
+    std::cout << std::endl;
+
+    // initialize the compiler instance with the args provided by the driver interface
+    clang::CompilerInstance compiler_instance;
+    auto& compiler_invocation = compiler_instance.getInvocation();
+    bool result = clang::CompilerInvocation::CreateFromArgs(compiler_invocation, llvm::ArrayRef<const char*>(cc_args.data(), cc_args.size()), diagnostics_engine);
     if (!result)
         {
-        std::cout << "Error creating CompilerInvocation" << std::endl;
-        // TODO: handle error condition
+        std::cerr << "Error creating CompilerInvocation" << std::endl;
+        return nullptr;
         }
 
-    auto& preprocessor_options = compiler_invocation.getPreprocessorOpts();
-    auto& target_options = compiler_invocation.getTargetOpts();
-    auto& frontend_options = compiler_invocation.getFrontendOpts();
+    // enable to debug header search issues
     auto& header_search_options = compiler_invocation.getHeaderSearchOpts();
     header_search_options.Verbose = true;
 
+    // replace the input file argument with the in memory code
+    auto& frontend_options = compiler_invocation.getFrontendOpts();
     frontend_options.Inputs.clear();
     frontend_options.Inputs.push_back(clang::FrontendInputFile(llvm::MemoryBufferRef(llvm::StringRef(code), "code.cc"), clang::InputKind(clang::Language::CXX)));
-    target_options.Triple = llvm::sys::getDefaultTargetTriple();
-    compiler_instance.createDiagnostics(&diagnostic_printer, false);
+    compiler_instance.createDiagnostics(&diagnostic_printer, false); // keep this or llvm seg faults
 
-    llvm::LLVMContext context;
+    // generate the code
     std::unique_ptr<clang::CodeGenAction> action = std::make_unique<clang::EmitLLVMOnlyAction>(&context);
 
     if (!compiler_instance.ExecuteAction(*action))
-    {
-        std::cout << "Error generating code" << std::endl;
-    }
+        {
+        std::cerr << "Error generating code" << std::endl;
+        return nullptr;
+        }
 
+    // get the module
     std::unique_ptr<llvm::Module> module = action->takeModule();
     if (!module)
-    {
-        std::cout << "Error taking module" << std::endl;
-    }
+        {
+        std::cerr << "Error taking module" << std::endl;
+        return nullptr;
+        }
 
     // TODO: Run optimization passes
     // see the posts following this one:
@@ -136,4 +175,6 @@ std::string ClangCompiler::compileCode(const std::string& code, const std::vecto
 
 //     llvm::ModulePassManager modulePassManager = passBuilder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O3);
 //     modulePassManager.run(*module, moduleAnalysisManager);
+
+    return module;
     }

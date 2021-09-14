@@ -42,7 +42,8 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     //! Constructor
     PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
                    std::shared_ptr<ExecutionConfiguration> exec_conf,
-                   const std::string& llvm_ir,
+                   const std::string& cpp_code,
+                   const std::vector<std::string>& compiler_args,
                    Scalar r_cut,
                    pybind11::array_t<float> param_array);
 
@@ -68,9 +69,9 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
         return m_alpha_size;
         }
 
-    std::string llvm_ir()
+    std::string getCPPCode()
         {
-        return m_llvm_ir;
+        return m_cpp_code;
         }
 
     //! Get the maximum r_ij radius beyond which energies are always 0
@@ -129,7 +130,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     unsigned int m_alpha_size;              //!< Size of array
     std::vector<float, managed_allocator<float>>
         m_alpha;           //!< Array containing adjustable parameters
-    std::string m_llvm_ir; //!< the LLVM IR
+    std::string m_cpp_code; //!< the C++ code
     };
 
 //! Exports the PatchEnergyJIT class to python
