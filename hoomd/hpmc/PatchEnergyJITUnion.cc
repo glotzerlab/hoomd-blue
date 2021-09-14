@@ -29,7 +29,7 @@ void PatchEnergyJITUnion::buildOBBTree()
                 // use a spherical OBB of radius 0.5*d
                 obbs[i] = hpmc::detail::OBB(pos, 0.5f * diameter);
 
-                Scalar r = sqrt(dot(pos, pos)) + 0.5f * diameter;
+                Scalar r = sqrt(dot(pos, pos));  // distance from center of union to  this constituent particle
                 extent_i = std::max(extent_i, float(2 * r));
 
                 // we do not support exclusions

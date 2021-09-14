@@ -20,10 +20,10 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                         Scalar r_cut_iso,
                         pybind11::array_t<float> param_array,
                         const std::string& llvm_ir_union,
-                        Scalar r_cut_union,
+                        Scalar r_cut_constituent,
                         const unsigned int array_size_union)
         : PatchEnergyJIT(sysdef, exec_conf, llvm_ir_iso, r_cut_iso, param_array), m_sysdef(sysdef),
-          m_r_cut_constituent(r_cut_union),
+          m_r_cut_constituent(r_cut_constituent),
           m_alpha_union(array_size_union,
                         0.0f,
                         managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
@@ -245,12 +245,9 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     virtual inline Scalar getRCut(unsigned int type)
         {
         assert(type <= m_extent_type.size());
-        Scalar extent = m_extent_type[type];
-        // ensure the minimum cutoff distance is the isotropic r_cut
-        if (extent + m_rcut_union < m_r_cut)
-            return m_r_cut - m_rcut_union;
-        else
-            return extent;
+        return std::max(
+                m_r_cut_isotropic,
+                m_extent_type[type] + m_r_cut_constituent);
         }
 
     //! evaluate the energy of the patch interaction
