@@ -5,12 +5,23 @@
 import hoomd
 import subprocess
 import os
+import pathlib
 
 
 def get_include_options():
     """Get the source code include path for HOOMD's include files."""
-    hoomd_include_path = os.path.dirname(hoomd.__file__) + '/include'
-    return ['-I', hoomd_include_path]
+    current_module_path = pathlib.Path(hoomd.__file__).parent.resolve()
+    build_module_path = (pathlib.Path(hoomd.version.build_dir) / 'hoomd').resolve()
+
+    print(current_module_path)
+    print(build_module_path)
+
+    if current_module_path == build_module_path:
+        hoomd_include_path = pathlib.Path(hoomd.version.source_dir)
+    else:
+        hoomd_include_path = current_module_path / 'include'
+
+    return ['-I', str(hoomd_include_path.resolve())]
 
 
 def to_llvm_ir(code, clang_exec):
