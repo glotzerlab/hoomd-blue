@@ -11,6 +11,9 @@
 #include <clang/Frontend/TextDiagnosticPrinter.h>
 #include <clang/Basic/TargetOptions.h>
 #include <clang/CodeGen/CodeGenAction.h>
+#include <clang/Lex/HeaderSearch.h>
+#include <clang/Lex/PreprocessorOptions.h>
+#include <clang/Basic/TargetInfo.h>
 
 #include <sstream>
 #include <iostream>
@@ -90,19 +93,14 @@ std::string ClangCompiler::compileCode(const std::string& code, const std::vecto
         // TODO: handle error condition
         }
 
-//     auto* language_options = compiler_invocation.getLangOpts();
-//     auto& preprocessor_options = compiler_invocation.getPreprocessorOpts();
+    auto& preprocessor_options = compiler_invocation.getPreprocessorOpts();
     auto& target_options = compiler_invocation.getTargetOpts();
     auto& frontend_options = compiler_invocation.getFrontendOpts();
     auto& header_search_options = compiler_invocation.getHeaderSearchOpts();
-// #ifdef NV_LLVM_VERBOSE
-     header_search_options.Verbose = true;
-// #endif
-//     auto& codeGen_options = compiler_invocation.getCodeGenOpts();
+    header_search_options.Verbose = true;
 
     frontend_options.Inputs.clear();
-    frontend_options.Inputs.push_back(clang::FrontendInputFile(llvm::MemoryBufferRef(llvm::StringRef(code), "code"), clang::InputKind(clang::Language::CXX)));
-
+    frontend_options.Inputs.push_back(clang::FrontendInputFile(llvm::MemoryBufferRef(llvm::StringRef(code), "code.cc"), clang::InputKind(clang::Language::CXX)));
     target_options.Triple = llvm::sys::getDefaultTargetTriple();
     compiler_instance.createDiagnostics(&diagnostic_printer, false);
 

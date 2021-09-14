@@ -61,9 +61,13 @@ PYBIND11_MODULE(_jit, m)
     export_PatchEnergyJITUnionGPU(m);
 #endif
 
-    std::string code = "#include <stdio.h>\nint eval() {}";
+    std::string code = "#include \"test.h\"\n// #include <stdio.h>\nint eval() {return a;}";
     auto clang_compiler = ClangCompiler::createClangCompiler();
     std::vector<std::string> args;
-    args.push_back("-I /test");
+    args.push_back("-x");
+    args.push_back("c++");
+    args.push_back("--std=c++14");
+    args.push_back("-I/scratch/joaander/build/hoomd");
+    args.push_back("-DHOOMD_LLVMJIT_BUILD");
     clang_compiler->compileCode(code, args);
     }
