@@ -104,7 +104,7 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     // It is needed to find the standard library include directories.
     // https://cpp.hotexamples.com/site/file?hash=0xd4e048edbee7a77d7b2181909e61ab1a1213629fe8aa79248fea8ae17f8dc7fc&fullName=safecode-mirror-master/tools/clang/examples/main.cpp&project=lygstate/safecode-mirror
     // see also: https://cpp.hotexamples.com/examples/-/CompilerInstance/-/cpp-compilerinstance-class-examples.html
-    clang::driver::Driver driver(resource_path + "/bin/clang", llvm::sys::getDefaultTargetTriple(), diagnostics_engine, "hoomd LLVM compiler");
+    clang::driver::Driver driver(resource_path + "/bin/clang", llvm::sys::getDefaultTargetTriple(), diagnostics_engine);
     driver.setCheckInputsExist(false);
     llvm::ArrayRef<const char*>RF(&(clang_arg_c_strings[0]), clang_arg_c_strings.size());
     auto compilation = driver.BuildCompilation(RF);
@@ -138,7 +138,12 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     // replace the input file argument with the in memory code
     auto& frontend_options = compiler_invocation.getFrontendOpts();
     frontend_options.Inputs.clear();
-    frontend_options.Inputs.push_back(clang::FrontendInputFile(llvm::MemoryBufferRef(llvm::StringRef(code), "code.cc"), clang::InputKind(clang::Language::CXX)));
+    llvm::MemoryBufferRef code_buffer(llvm::StringRef(code), "code.cc");
+    #if LLVM_VERSION_MAJOR >= 12
+    frontend_options.Inputs.push_back(clang::FrontendInputFile(code_buffer, clang::InputKind(clang::Language::CXX)));
+    #else
+    frontend_options.Inputs.push_back(clang::FrontendInputFile(&code_buffer, clang::InputKind(clang::Language::CXX)));
+    #endif
 
     // configure output streams for the compiler
     compiler_instance.setVerboseOutputStream(llvm_out);
