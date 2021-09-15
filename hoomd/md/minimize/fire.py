@@ -76,7 +76,7 @@ class FIRE(_DynamicIntegrator):
             Whether to integrate rotational degrees of freedom (bool), default
             None (autodetect).
 
-    `minimize.FIRE` is an `Integrator` that uses the Fast Inertial Relaxation
+    `minimize.FIRE` is an `md.Integrator` that uses the Fast Inertial Relaxation
     Engine (FIRE) algorithm to minimize the potential energy for a group of
     particles while keeping all other particles fixed. This method is published
     in `Bitzek, et. al., PRL, 2006
