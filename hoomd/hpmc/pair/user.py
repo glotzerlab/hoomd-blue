@@ -225,19 +225,23 @@ class CPPPotential(CPPPotentialBase):
         device = self._simulation.device
         cpp_sys_def = self._simulation.state._cpp_sys_def
 
+        cpu_code = self._wrap_cpu_code(self.code)
+        cpu_include_options = _compile.get_cpu_include_options()
+
         if isinstance(device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             gpu_code = self._wrap_gpu_code(self.code)
+
             self._cpp_obj = _jit.PatchEnergyJITGPU(
-                cpp_sys_def, device._cpp_exec_conf, llvm_ir, self.r_cut,
+                cpp_sys_def, device._cpp_exec_conf, cpu_code, cpu_include_options, self.r_cut,
                 self.param_array, gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"], gpu_settings["cuda_devrt_lib_path"],
                 gpu_settings["max_arch"])
         else:  # running on cpu
             self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def,
-                                                device._cpp_exec_conf, self._wrap_cpu_code(self.code),
-                                                _compile.get_include_options(),
+                                                device._cpp_exec_conf, cpu_code,
+                                                cpu_include_options,
                                                 self.r_cut, self.param_array)
         # attach patch object to the integrator
         super()._attach()

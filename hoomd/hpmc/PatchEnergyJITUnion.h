@@ -20,7 +20,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                         const std::vector<std::string>& compiler_args,
                         Scalar r_cut_iso,
                         pybind11::array_t<float> param_array,
-                        const std::string& cpp_code_union,
+                        const std::string& cpu_code_union,
                         Scalar r_cut_union,
                         const unsigned int array_size_union)
         : PatchEnergyJIT(sysdef, exec_conf, cpp_code_iso, compiler_args, r_cut_iso, param_array), m_sysdef(sysdef),
@@ -31,15 +31,18 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
           m_alpha_size_union(array_size_union)
         {
         // build the JIT.
-        m_factory_union = std::shared_ptr<EvalFactory>(new EvalFactory(cpp_code_union, compiler_args));
+        m_factory_union = std::shared_ptr<EvalFactory>(new EvalFactory(cpu_code_union, compiler_args));
 
         // get the evaluator
         m_eval_union = m_factory_union->getEval();
 
         if (!m_eval_union)
             {
-            exec_conf->msg->error() << m_factory_union->getError() << std::endl;
-            throw std::runtime_error("Error compiling Union JIT code.");
+            std::ostringstream s;
+            s << "Error compiling JIT code:" << std::endl;
+            s << cpu_code_union << std::endl;
+            s << m_factory->getError() << std::endl;
+            throw std::runtime_error(s.str());
             }
 
         m_factory_union->setAlphaUnionArray(&m_alpha_union.front());

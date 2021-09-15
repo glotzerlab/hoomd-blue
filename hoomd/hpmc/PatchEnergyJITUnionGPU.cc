@@ -162,6 +162,7 @@ void export_PatchEnergyJITUnionGPU(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ExecutionConfiguration>,
                             const std::string&,
+                            const std::vector<std::string>&,
                             Scalar,
                             pybind11::array_t<float>,
                             const std::string&,
