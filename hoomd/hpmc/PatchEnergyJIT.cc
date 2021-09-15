@@ -12,7 +12,7 @@
 */
 PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<ExecutionConfiguration> exec_conf,
-                               const std::string& cpp_code,
+                               const std::string& cpu_code,
                                const std::vector<std::string>& compiler_args,
                                Scalar r_cut,
                                pybind11::array_t<float> param_array)
@@ -23,10 +23,10 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
               managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
     {
     // build the JIT.
-    m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(cpp_code, compiler_args));
+    m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(cpu_code, compiler_args));
 
     // save the C++ code string for exporting to python
-    m_cpp_code = cpp_code;
+    m_cpu_code = cpu_code;
 
     // get the evaluator
     m_eval = m_factory->getEval();
@@ -35,7 +35,7 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
         {
         std::ostringstream s;
         s << "Error compiling JIT code:" << std::endl;
-        s << cpp_code << std::endl;
+        s << cpu_code << std::endl;
         s << m_factory->getError() << std::endl;
         throw std::runtime_error(s.str());
         }

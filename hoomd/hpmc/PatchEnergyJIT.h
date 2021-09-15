@@ -42,7 +42,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     //! Constructor
     PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
                    std::shared_ptr<ExecutionConfiguration> exec_conf,
-                   const std::string& cpp_code,
+                   const std::string& cpu_code,
                    const std::vector<std::string>& compiler_args,
                    Scalar r_cut,
                    pybind11::array_t<float> param_array);
@@ -69,9 +69,9 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
         return m_alpha_size;
         }
 
-    std::string getCPPCode()
+    std::string getCPUCode()
         {
-        return m_cpp_code;
+        return m_cpu_code;
         }
 
     //! Get the maximum r_ij radius beyond which energies are always 0
@@ -113,7 +113,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
         }
 
     protected:
-    std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The exceuction configuration
+    std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
     //! function pointer signature
     typedef float (*EvalFnPtr)(const vec3<float>& r_ij,
                                unsigned int type_i,
@@ -130,7 +130,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     unsigned int m_alpha_size;              //!< Size of array
     std::vector<float, managed_allocator<float>>
         m_alpha;           //!< Array containing adjustable parameters
-    std::string m_cpp_code; //!< the C++ code
+    std::string m_cpu_code; //!< the C++ code
     };
 
 //! Exports the PatchEnergyJIT class to python

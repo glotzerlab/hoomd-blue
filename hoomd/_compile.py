@@ -11,14 +11,14 @@ import pathlib
 def get_include_options():
     """Get the source code include path for HOOMD's include files."""
     current_module_path = pathlib.Path(hoomd.__file__).parent.resolve()
-    build_module_path = (pathlib.Path(hoomd.version.build_dir) / 'hoomd').resolve()
+    build_module_path = (pathlib.Path(hoomd.version.build_dir)
+                         / 'hoomd').resolve()
 
-    print(current_module_path)
-    print(build_module_path)
-
+    # use the source directory if this module is in the build directory
     if current_module_path == build_module_path:
         hoomd_include_path = pathlib.Path(hoomd.version.source_dir)
     else:
+        # otherwise, use the installation directory
         hoomd_include_path = current_module_path / 'include'
 
     return ['-I', str(hoomd_include_path.resolve())]

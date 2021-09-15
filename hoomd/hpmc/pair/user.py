@@ -17,65 +17,57 @@ import numpy as np
 
 
 class CPPPotentialBase(_HOOMDBaseObject):
-    """Base class for all HOOMD JIT interaction between pairs of particles.
-
-    Note:
-        Users should not invoke `CPPPotentialBase` directly. The class can be
-        used for `isinstance` or `issubclass` checks. The attributes documented
-        here are available to all patch computes.
+    """Base class for interaction between pairs of particles given in C++.
 
     Pair potential energies define energetic interactions between pairs of
     shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.  Shapes within a cutoff
-    distance of *r_cut* are potentially interacting and the energy of
-    interaction is a function the type and orientation of the particles and the
-    vector pointing from the *i* particle to the *j* particle center.
+    distance are interact and the energy of interaction is a function the type
+    and orientation of the particles and the vector pointing from the *i*
+    particle to the *j* particle center.
 
-    Classes derived from :py:class:`CPPPotentialBase` take C++ code, JIT
-    compiles it at run time and executes the code natively in the MC loop with
-    full performance. It enables researchers to quickly and easily implement
-    custom energetic interactions without the need to modify and recompile
-    HOOMD. Additionally, :py:class:`CPPPotentialBase` provides a mechanism,
-    through the `param_array` attribute (numpy array), to adjust user defined
-    potential parameters without the need to recompile the patch energy code.
+    Classes derived from :py:class:`CPPPotentialBase` take C++ code, compilesit
+    at run time and executes the code natively in the MC loop. Adjust parameters
+    to the code with the `param_array` attribute without requiring a recompile.
     These arrays are **read-only** during function evaluation.
 
     .. rubric:: C++ code
 
     Classes derived from :py:class:`CPPPotentialBase` will compile the code
-    provided by the user and call it to evaluate patch energies. Compilation
-    assumes that a recent ``clang`` installation is on your PATH.  The text
+    provided by the user and call it to evaluate patch energies. The text
     provided in *code* is the body of a function with the following signature:
 
     .. code::
 
-    float eval(const vec3<float>& r_ij,
-                unsigned int type_i,
-                const quat<float>& q_i,
-                float d_i,
-                float charge_i,
-                unsigned int type_j,
-                const quat<float>& q_j,
-                float d_j,
-                float charge_j)
+        float eval(const vec3<float>& r_ij,
+                    unsigned int type_i,
+                    const quat<float>& q_i,
+                    float d_i,
+                    float charge_i,
+                    unsigned int type_j,
+                    const quat<float>& q_j,
+                    float d_j,
+                    float charge_j)
 
     * ``r_ij`` is a vector pointing from the center of particle *i* to the
         center of particle *j*.
-    * ``type_i`` is the integer type of particle *i*
+    * ``type_i`` is the integer type id of particle *i*
     * ``q_i`` is the quaternion orientation of particle *i*
     * ``d_i`` is the diameter of particle *i*
     * ``charge_i`` is the charge of particle *i*
-    * ``type_j`` is the integer type of particle *j*
+    * ``type_j`` is the integer type id of particle *j*
     * ``q_j`` is the quaternion orientation of particle *j*
     * ``d_j`` is the diameter of particle *j*
     * ``charge_j`` is the charge of particle *j*
     * Your code *must* return a value.
 
-    ``vec3`` and ``quat`` are defined in HOOMDMath.h.  When :math:`|r_ij|` is
-    greater than ``r_cut``, the energy *must* be 0. This ``r_cut`` is applied
-    between the centers of the two particles: compute it accordingly based on
-    the maximum range of the anisotropic interaction that you implement.
+    ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h`.
 
-    Atrributes:
+    See Also:
+        `CPPPotential`
+
+        `CPPPotentialUnion`
+
+    Attributes:
         r_cut (float): Particle center to center distance cutoff beyond which
             all pair interactions are assumed 0.
         param_array ((N,) `numpy.ndarray` of float): Numpy array containing
@@ -107,7 +99,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
             return self._param_dict['code']
         return super()._getattr_param(attr)
 
-    @log
+    @log(requires_run=True)
     def energy(self):
         """float: Total interaction energy of the system in the current state.
 
@@ -115,11 +107,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
         attached.
         """
         integrator = self._simulation.operations.integrator
-        if self._attached and integrator._attached:
-            timestep = self._simulation.timestep
-            return integrator._cpp_obj.computePatchEnergy(timestep)
-        else:
-            return None
+        timestep = self._simulation.timestep
+        return integrator._cpp_obj.computePatchEnergy(timestep)
 
     def _wrap_cpu_code(self, code):
         r"""Helper function to wrap the provided code into a function
@@ -192,7 +181,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
 
 class CPPPotential(CPPPotentialBase):
-    r'''Define an energetic interaction between pairs of particles.
+    """Define an energetic interaction between pairs of particles.
 
     Args:
         r_cut (float): Particle center to center distance cutoff beyond which
@@ -206,16 +195,16 @@ class CPPPotential(CPPPotentialBase):
 
         .. code-block:: python
 
-            square_well = """float rsq = dot(r_ij, r_ij);
+            square_well = '''float rsq = dot(r_ij, r_ij);
                                 if (rsq < 1.21f)
                                     return -1.0f;
                                 else
                                     return 0.0f;
-                        """
+                        '''
             patch = hoomd.jit.patch.CPPPotential(r_cut=1.1, code=square_well)
             sim.operations += patch
             sim.run(1000)
-    '''
+    """
 
     def __init__(self,
                  r_cut,
