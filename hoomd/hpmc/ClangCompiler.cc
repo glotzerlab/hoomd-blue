@@ -7,6 +7,7 @@
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <llvm/Support/raw_os_ostream.h>
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
 #include <clang/Basic/TargetOptions.h>
@@ -62,11 +63,12 @@ ClangCompiler::ClangCompiler()
 
     @returns The LLVM module with the code compiled.
 */
-std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code, const std::vector<std::string>& user_args, llvm::LLVMContext& context)
+std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code, const std::vector<std::string>& user_args, llvm::LLVMContext& context, std::ostringstream& out)
     {
     // initialize the diagnostics engine to write compilation warnings/errors to stdout/stderr
     clang::IntrusiveRefCntPtr<clang::DiagnosticOptions> diagnostic_options = new clang::DiagnosticOptions();
-    clang::TextDiagnosticPrinter diagnostic_printer(llvm::outs(), diagnostic_options.get());
+    llvm::raw_os_ostream llvm_out(out);
+    clang::TextDiagnosticPrinter diagnostic_printer(llvm_out, diagnostic_options.get());
     clang::IntrusiveRefCntPtr<clang::DiagnosticIDs> diag_ids = new clang::DiagnosticIDs();
     clang::DiagnosticsEngine diagnostics_engine(diag_ids, diagnostic_options, &diagnostic_printer, false);
 
@@ -90,7 +92,6 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     clang_arg_c_strings.push_back("clang");
     for (auto& arg : clang_args)
         {
-        std::cout << "clang arg: " << arg << std::endl;
         clang_arg_c_strings.push_back(arg.c_str());
         }
 
@@ -111,14 +112,13 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     // use this for now
     auto& cc_args = compilation->getJobs().begin()->getArguments();
 
-    // enable to debug compilation arguments
-    std::cout << "job args:" << std::endl;
-    std::cout << cc_args.size() << std::endl;
+    // Write out the compilation arguments for debugging purposes
+    out << "Compilation arguments:" << std::endl;
     for (unsigned int i = 0; i < cc_args.size(); i++)
         {
-        std::cout << cc_args[i] << std::endl;
+        out << cc_args[i] << std::endl;
         }
-    std::cout << std::endl;
+    out << std::endl;
 
     // initialize the compiler instance with the args provided by the driver interface
     clang::CompilerInstance compiler_instance;
@@ -126,18 +126,17 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     bool result = clang::CompilerInvocation::CreateFromArgs(compiler_invocation, llvm::ArrayRef<const char*>(cc_args.data(), cc_args.size()), diagnostics_engine);
     if (!result)
         {
-        std::cerr << "Error creating CompilerInvocation" << std::endl;
+        out << "Error creating CompilerInvocation." << std::endl;
         return nullptr;
         }
-
-    // enable to debug header search issues
-    auto& header_search_options = compiler_invocation.getHeaderSearchOpts();
-    header_search_options.Verbose = true;
 
     // replace the input file argument with the in memory code
     auto& frontend_options = compiler_invocation.getFrontendOpts();
     frontend_options.Inputs.clear();
     frontend_options.Inputs.push_back(clang::FrontendInputFile(llvm::MemoryBufferRef(llvm::StringRef(code), "code.cc"), clang::InputKind(clang::Language::CXX)));
+
+    // configure output streams for the compiler
+    compiler_instance.setVerboseOutputStream(llvm_out);
     compiler_instance.createDiagnostics(&diagnostic_printer, false); // keep this or llvm seg faults
 
     // generate the code
@@ -145,7 +144,7 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
 
     if (!compiler_instance.ExecuteAction(*action))
         {
-        std::cerr << "Error generating code" << std::endl;
+        out << "Error generating code." << std::endl;
         return nullptr;
         }
 
@@ -153,7 +152,7 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     std::unique_ptr<llvm::Module> module = action->takeModule();
     if (!module)
         {
-        std::cerr << "Error taking module" << std::endl;
+        out << "Error taking module." << std::endl;
         return nullptr;
         }
 

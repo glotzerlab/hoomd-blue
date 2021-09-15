@@ -9,6 +9,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <sstream>
 
 /** Class that compiles C++ code strings to LLVM IR with clang.
 
@@ -28,7 +29,7 @@ class ClangCompiler
         static std::shared_ptr<ClangCompiler> createClangCompiler();
 
         /// Compile the provided C++ code and return the LLVM IR
-        std::unique_ptr<llvm::Module> compileCode(const std::string& code, const std::vector<std::string>& user_args, llvm::LLVMContext& context);
+        std::unique_ptr<llvm::Module> compileCode(const std::string& code, const std::vector<std::string>& user_args, llvm::LLVMContext& context, std::ostringstream& out);
 
     protected:
         ClangCompiler();

@@ -44,7 +44,7 @@ EvalFactory::EvalFactory(const std::string& cpp_code,
     llvm::SMDiagnostic Err;
 
     // compile the module
-    auto module = clang_compiler->compileCode(cpp_code, compiler_args, Context);
+    auto module = clang_compiler->compileCode(cpp_code, compiler_args, Context, sstream);
 
     if (!module)
         {
@@ -58,14 +58,14 @@ EvalFactory::EvalFactory(const std::string& cpp_code,
 
     if (!m_jit)
         {
-        m_error_msg = "Could not initialize JIT.\n";
+        m_error_msg = "Could not initialize JIT.";
         return;
         }
 
     // Add the module.
     if (auto E = m_jit->addModule(std::move(module)))
         {
-        m_error_msg = "Could not add JIT module.\n";
+        m_error_msg = "Could not add JIT module.";
         return;
         }
 
@@ -74,7 +74,7 @@ EvalFactory::EvalFactory(const std::string& cpp_code,
 
     if (!eval)
         {
-        m_error_msg = "Could not find eval function in LLVM module.\n";
+        m_error_msg = "Could not find eval function in LLVM module.";
         return;
         }
 
@@ -82,7 +82,7 @@ EvalFactory::EvalFactory(const std::string& cpp_code,
 
     if (!alpha)
         {
-        m_error_msg = "Could not find alpha array in LLVM module.\n";
+        m_error_msg = "Could not find alpha array in LLVM module.";
         return;
         }
 
@@ -90,7 +90,7 @@ EvalFactory::EvalFactory(const std::string& cpp_code,
 
     if (!alpha_union)
         {
-        m_error_msg = "Could not find alpha_union array in LLVM module.\n";
+        m_error_msg = "Could not find alpha_union array in LLVM module.";
         return;
         }
 
