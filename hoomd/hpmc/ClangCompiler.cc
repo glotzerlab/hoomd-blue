@@ -79,7 +79,7 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
 
     // determine the clang resource path
     // TODO: get from LLVM_PREFIX in cmake
-    std::string resource_path("/usr");
+    std::string resource_path(HOOMD_LLVM_INSTALL_PREFIX);
 
     // build up the argument list
     std::vector<std::string> clang_args;

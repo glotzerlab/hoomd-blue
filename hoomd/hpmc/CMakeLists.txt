@@ -198,8 +198,6 @@ if (ENABLE_LLVM)
 
     # find and configure LLVM
     find_package(LLVM REQUIRED CONFIG)
-    include_directories(${LLVM_INCLUDE_DIRS})
-    add_definitions(${LLVM_DEFINITIONS})
 
     if (LLVM_FOUND)
         find_library(llvm_library LLVM
@@ -249,6 +247,10 @@ if (ENABLE_LLVM)
     if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_${PACKAGE_NAME} PUBLIC CUDA::cuda CUDA::nvrtc)
     endif ()
+
+    target_include_directories(_${PACKAGE_NAME}_llvm PUBLIC ${LLVM_INCLUDE_DIRS})
+    target_compile_definitions(_${PACKAGE_NAME}_llvm PUBLIC ${LLVM_DEFINITIONS})
+    target_compile_definitions(_${PACKAGE_NAME}_llvm PUBLIC HOOMD_LLVM_INSTALL_PREFIX=\"${LLVM_INSTALL_PREFIX}\")
 
     target_include_directories(_${PACKAGE_NAME}_llvm PUBLIC
                                $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}>
