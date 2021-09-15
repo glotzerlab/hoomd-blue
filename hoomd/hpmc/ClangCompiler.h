@@ -3,8 +3,13 @@
 
 #pragma once
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+
+#pragma GCC diagnostic pop
 
 #include <string>
 #include <memory>

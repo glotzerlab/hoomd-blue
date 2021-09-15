@@ -1,5 +1,8 @@
 #include "ClangCompiler.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/PassRegistry.h>
 #include <llvm/InitializePasses.h>
@@ -19,6 +22,8 @@
 #include <clang/Driver/Driver.h>
 #include <clang/Tooling/Tooling.h>
 #include <clang/Driver/Compilation.h>
+
+#pragma GCC diagnostic pop
 
 #include <sstream>
 #include <iostream>

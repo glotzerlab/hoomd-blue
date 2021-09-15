@@ -259,7 +259,13 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
 # ignore conversion warnings in quickull
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_COMPILER_IS_GNUCXX)
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9.0.0)
+        target_compile_options(quickhull PRIVATE "-Wno-conversion;-Wno-pessimizing-move")
+    else()
+        target_compile_options(quickhull PRIVATE "-Wno-conversion")
+    endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(quickhull PRIVATE "-Wno-conversion;-Wno-pessimizing-move")
 endif()
 
