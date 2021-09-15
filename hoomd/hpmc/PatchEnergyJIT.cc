@@ -62,7 +62,6 @@ void export_PatchEnergyJIT(pybind11::module& m)
         .def_property_readonly("param_array", &PatchEnergyJIT::getParamArray)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &Compute::setCommunicator)
-        .def_property_readonly("llvm_ir", &PatchEnergyJIT::llvm_ir)
 #endif
         ;
     }
