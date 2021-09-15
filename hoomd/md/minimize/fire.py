@@ -120,14 +120,14 @@ class FIRE(_DynamicIntegrator):
         fire = md.minimize.FIRE(dt=0.05)
         fire.force_tol = 1e-2
         fire.energy_tol = 1e-7
-        fire.methods.append(methods.NVE(filter.All()))
+        fire.methods.append(md.methods.NVE(hoomd.filter.All()))
         sim.operations.integrator = fire
         while not(fire.converged):
            sim.run(100)
 
         fire = md.minimize.FIRE(dt=0.05)
-        fire.methods.append(methods.NPH(filter.All(), S=1, tauS=1,
-                                        couple='none'))
+        fire.methods.append(md.methods.NPH(
+            hoomd.filter.All(), S=1, tauS=1, couple='none'))
         sim.operations.integrator = fire
         while not(fire.converged):
            sim.run(100)
