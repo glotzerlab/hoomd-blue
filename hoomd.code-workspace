@@ -86,7 +86,8 @@
             "__nullptr": "cpp",
             "numbers": "cpp",
             "semaphore": "cpp",
-            "any": "cpp"
+            "any": "cpp",
+            "*.inc": "cpp"
         },
         "cSpell.words": [
             "Berendsen",

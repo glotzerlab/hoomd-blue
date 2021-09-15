@@ -138,11 +138,11 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     // replace the input file argument with the in memory code
     auto& frontend_options = compiler_invocation.getFrontendOpts();
     frontend_options.Inputs.clear();
-    llvm::MemoryBufferRef code_buffer(llvm::StringRef(code), "code.cc");
     #if LLVM_VERSION_MAJOR >= 12
-    frontend_options.Inputs.push_back(clang::FrontendInputFile(code_buffer, clang::InputKind(clang::Language::CXX)));
+    frontend_options.Inputs.push_back(clang::FrontendInputFile(llvm::MemoryBufferRef(llvm::StringRef(code), "code.cc"), clang::InputKind(clang::Language::CXX)));
     #else
-    frontend_options.Inputs.push_back(clang::FrontendInputFile(&code_buffer, clang::InputKind(clang::Language::CXX)));
+    auto code_buffer = llvm::MemoryBuffer::getMemBuffer(llvm::StringRef(code), "code.cc");
+    frontend_options.Inputs.push_back(clang::FrontendInputFile(code_buffer.get(), clang::InputKind(clang::Language::CXX)));
     #endif
 
     // configure output streams for the compiler
