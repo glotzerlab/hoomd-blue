@@ -27,19 +27,19 @@ class FIRE(_DynamicIntegrator):
             This is the maximum step size the minimizer is permitted to use
             :math:`[\\mathrm{time}]`. Consider the stability of the system when
             setting.
+        aniso (str or bool):
+            Whether to integrate rotational degrees of freedom (bool), default
+            'auto' (autodetect if there is anisotropic factor from any defined
+            active or constraint forces).
+        forces (Sequence[hoomd.md.force.Force]):
+            Sequence of forces applied to the particles in the system. All the
+            forces are summed together. The default value of ``None``
+            initializes an empty list.
         methods (Sequence[hoomd.md.methods.Method]):
             Sequence of integration methods. Each integration method can be
             applied to only a specific subset of particles. The intersection of
             the subsets must be null. The default value of ``None`` initializes
             an empty list.
-        forces (Sequence[hoomd.md.force.Force]):
-            Sequence of forces applied to the particles in the system. All the
-            forces are summed together. The default value of ``None``
-            initializes an empty list.
-        aniso (str or bool):
-            Whether to integrate rotational degrees of freedom (bool), default
-            'auto' (autodetect if there is anisotropic factor from any defined
-            active or constraint forces).
         constraints (Sequence[hoomd.md.constrain.Constraint]):
             Sequence of constraint forces applied to the particles in the
             system. The default value of ``None`` initializes an empty list.
@@ -72,9 +72,6 @@ class FIRE(_DynamicIntegrator):
         min_steps_conv (int):
             A minimum number of attempts before convergence criteria are
             considered.
-        aniso (bool):
-            Whether to integrate rotational degrees of freedom (bool), default
-            None (autodetect).
 
     `minimize.FIRE` is an `md.Integrator` that uses the Fast Inertial Relaxation
     Engine (FIRE) algorithm to minimize the potential energy for a group of
@@ -128,8 +125,6 @@ class FIRE(_DynamicIntegrator):
         while not(fire.converged):
            sim.run(100)
 
-    Examples::
-
         fire = md.minimize.FIRE(dt=0.05)
         fire.methods.append(methods.NPH(filter.All(), S=1, tauS=1,
                                         couple='none'))
@@ -160,6 +155,26 @@ class FIRE(_DynamicIntegrator):
             This is the maximum step size the minimizer is permitted to use
             :math:`[\\mathrm{time}]`. Consider the stability of the system when
             setting.
+        aniso (str or bool):
+            Whether to integrate rotational degrees of freedom (bool), default
+            'auto' (autodetect if there is anisotropic factor from any defined
+            active or constraint forces).
+        forces (Sequence[hoomd.md.force.Force]):
+            Sequence of forces applied to the particles in the system. All the
+            forces are summed together. The default value of ``None``
+            initializes an empty list.
+        methods (Sequence[hoomd.md.methods.Method]):
+            Sequence of integration methods. Each integration method can be
+            applied to only a specific subset of particles. The intersection of
+            the subsets must be null. The default value of ``None`` initializes
+            an empty list.
+        constraints (Sequence[hoomd.md.constrain.Constraint]):
+            Sequence of constraint forces applied to the particles in the
+            system. The default value of ``None`` initializes an empty list.
+            Rigid body objects (i.e. `hoomd.md.constrain.Rigid`) are not
+            allowed in the list.
+        rigid (hoomd.md.constrain.Rigid):
+            A rigid bodies object defining the rigid bodies in the simulation.
         min_steps_adapt (int):
             Number of steps energy change is negative before allowing
             :math:`\\alpha` and :math:`\\delta t` to adapt.
