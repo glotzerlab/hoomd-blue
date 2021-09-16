@@ -125,7 +125,7 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
         {
 #endif
             // evaluate isotropic part if necessary
-            if (m_r_cut >= 0.0)
+            if (m_r_cut_isotropic >= 0.0)
                 energy += m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
 
             if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())

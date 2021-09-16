@@ -56,7 +56,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     //! Set the maximum r_ij radius beyond which energies are always 0
     void setRCut(Scalar r_cut)
         {
-        m_r_cut = r_cut;
+        m_r_cut_isotropic = r_cut;
         }
 
     virtual Scalar getRCutIsotropic()

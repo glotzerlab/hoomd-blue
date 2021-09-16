@@ -257,8 +257,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         assert(type <= m_extent_type.size());
         Scalar extent = m_extent_type[type];
         // ensure the minimum cutoff distance is the isotropic r_cut
-        if (0.5*extent + m_r_cut_constituent < m_r_cut)
-            return m_r_cut-m_r_cut_constituent;
+        if (0.5*extent + m_r_cut_constituent < m_r_cut_isotropic)
+            return m_r_cut_isotropic - m_r_cut_constituent;
         else
             return extent;
         }
