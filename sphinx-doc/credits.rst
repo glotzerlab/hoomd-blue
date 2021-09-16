@@ -103,5 +103,6 @@ The following people have contributed to the to HOOMD-blue:
 * Wenbo Shen, University of Michigan
 * William Zygmunt, University of Michigan
 * Wouter Ellenbroek, Eindhoven University of Technology
+* Youri Ran, Leiden University
 * Yuan Zhou, University of Michigan
 * Åsmund Ervik, SINTEF
