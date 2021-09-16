@@ -21,7 +21,8 @@ class ExternalFieldEvalFactory
                                             Scalar charge);
 
     //! Constructor
-    ExternalFieldEvalFactory(const std::string& llvm_ir);
+    ExternalFieldEvalFactory(const std::string& cpp_code,
+                const std::vector<std::string>& compiler_args);
 
     //! Return the evaluator
     ExternalFieldEvalFnPtr getEval()

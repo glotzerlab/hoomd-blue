@@ -65,11 +65,8 @@ class CPPExternalField(_HOOMDBaseObject):
         CPPExternalField does not support execution on GPUs.
     '''
 
-    def __init__(self, code, clang_exec='clang'):
-        code_to_llvm = self._wrap_cpu_code(code)
-        self._llvm_ir = _compile.to_llvm_ir(code_to_llvm, clang_exec)
+    def __init__(self, code):
         self._code = code
-        self._clang_exec = clang_exec
 
     def _wrap_cpu_code(self, code):
         r"""Helper function to wrap the provided code into a function
@@ -138,9 +135,13 @@ class CPPExternalField(_HOOMDBaseObject):
         if cpp_cls is None:
             raise RuntimeError("Unsupported integrator.\n")
 
+        cpu_code = self._wrap_cpu_code(self._code)
+        cpu_include_options = _compile.get_cpu_include_options()
+
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self._simulation.device._cpp_exec_conf,
-                                self._llvm_ir)
+                                cpu_code,
+                                cpu_include_options)
         super()._attach()
 
     @log(requires_run=True)

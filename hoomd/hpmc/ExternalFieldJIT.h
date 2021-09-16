@@ -17,8 +17,8 @@
    interface for returning the energy of interaction between a particle and an external field. The
    actual computation is performed by code that is loaded and compiled at run time using LLVM.
 
-    The user provides LLVM IR code containing a function 'eval' with the defined function signature.
-   On construction, this class uses the LLVM library to compile that IR down to machine code and
+    The user provides C++ code containing a function 'eval' with the defined function signature.
+   On construction, this class uses the LLVM library to compile that down to machine code and
    obtain a function pointer to call.
 
     LLVM execution is managed with the KaleidoscopeJIT class in m_JIT. On construction, the LLVM
@@ -36,12 +36,14 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
     //! Constructor
     ExternalFieldJIT(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<ExecutionConfiguration> exec_conf,
-                     const std::string& llvm_ir)
+                     const std::string& cpu_code,
+                     const std::vector<std::string>& compiler_args
+                     )
         : hpmc::ExternalFieldMono<Shape>(sysdef)
         {
         // build the JIT.
         m_factory
-            = std::shared_ptr<ExternalFieldEvalFactory>(new ExternalFieldEvalFactory(llvm_ir));
+            = std::shared_ptr<ExternalFieldEvalFactory>(new ExternalFieldEvalFactory(cpu_code, compiler_args));
 
         // get the evaluator
         m_eval = m_factory->getEval();
@@ -232,7 +234,8 @@ template<class Shape> void export_ExternalFieldJIT(pybind11::module& m, std::str
                      std::shared_ptr<ExternalFieldJIT<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ExecutionConfiguration>,
-                            const std::string&>())
+                            const std::string&,
+                            const std::vector<std::string>&>())
         .def("computeEnergy", &ExternalFieldJIT<Shape>::computeEnergy);
     }
 #endif // _EXTERNAL_FIELD_ENERGY_JIT_H_

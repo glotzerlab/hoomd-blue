@@ -16,29 +16,33 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
      */
     PatchEnergyJITUnion(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<ExecutionConfiguration> exec_conf,
-                        const std::string& llvm_ir_iso,
+                        const std::string& cpp_code_iso,
+                        const std::vector<std::string>& compiler_args,
                         Scalar r_cut_iso,
                         pybind11::array_t<float> param_array,
-                        const std::string& llvm_ir_union,
+                        const std::string& cpu_code_union,
                         Scalar r_cut_constituent,
                         const unsigned int array_size_union)
-        : PatchEnergyJIT(sysdef, exec_conf, llvm_ir_iso, r_cut_iso, param_array), m_sysdef(sysdef),
-          m_r_cut_constituent(r_cut_constituent),
+        : PatchEnergyJIT(sysdef, exec_conf, cpp_code_iso, compiler_args, r_cut_iso, param_array), m_sysdef(sysdef),
+          m_rcut_constituent(r_cut_constituent),
           m_alpha_union(array_size_union,
                         0.0f,
                         managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
           m_alpha_size_union(array_size_union)
         {
         // build the JIT.
-        m_factory_union = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir_union));
+        m_factory_union = std::shared_ptr<EvalFactory>(new EvalFactory(cpu_code_union, compiler_args));
 
         // get the evaluator
         m_eval_union = m_factory_union->getEval();
 
         if (!m_eval_union)
             {
-            exec_conf->msg->error() << m_factory_union->getError() << std::endl;
-            throw std::runtime_error("Error compiling Union JIT code.");
+            std::ostringstream s;
+            s << "Error compiling JIT code:" << std::endl;
+            s << cpu_code_union << std::endl;
+            s << m_factory->getError() << std::endl;
+            throw std::runtime_error(s.str());
             }
 
         m_factory_union->setAlphaUnionArray(&m_alpha_union.front());

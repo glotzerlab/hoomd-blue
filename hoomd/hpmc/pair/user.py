@@ -17,65 +17,57 @@ import numpy as np
 
 
 class CPPPotentialBase(_HOOMDBaseObject):
-    """Base class for all HOOMD JIT interaction between pairs of particles.
-
-    Note:
-        Users should not invoke `CPPPotentialBase` directly. The class can be
-        used for `isinstance` or `issubclass` checks. The attributes documented
-        here are available to all patch computes.
+    """Base class for interaction between pairs of particles given in C++.
 
     Pair potential energies define energetic interactions between pairs of
     shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.  Shapes within a cutoff
-    distance of *r_cut* are potentially interacting and the energy of
-    interaction is a function the type and orientation of the particles and the
-    vector pointing from the *i* particle to the *j* particle center.
+    distance are interact and the energy of interaction is a function the type
+    and orientation of the particles and the vector pointing from the *i*
+    particle to the *j* particle center.
 
-    Classes derived from :py:class:`CPPPotentialBase` take C++ code, JIT
-    compiles it at run time and executes the code natively in the MC loop with
-    full performance. It enables researchers to quickly and easily implement
-    custom energetic interactions without the need to modify and recompile
-    HOOMD. Additionally, :py:class:`CPPPotentialBase` provides a mechanism,
-    through the `param_array` attribute (numpy array), to adjust user defined
-    potential parameters without the need to recompile the patch energy code.
+    Classes derived from :py:class:`CPPPotentialBase` take C++ code, compilesit
+    at run time and executes the code natively in the MC loop. Adjust parameters
+    to the code with the `param_array` attribute without requiring a recompile.
     These arrays are **read-only** during function evaluation.
 
     .. rubric:: C++ code
 
     Classes derived from :py:class:`CPPPotentialBase` will compile the code
-    provided by the user and call it to evaluate patch energies. Compilation
-    assumes that a recent ``clang`` installation is on your PATH.  The text
+    provided by the user and call it to evaluate patch energies. The text
     provided in *code* is the body of a function with the following signature:
 
     .. code::
 
-    float eval(const vec3<float>& r_ij,
-                unsigned int type_i,
-                const quat<float>& q_i,
-                float d_i,
-                float charge_i,
-                unsigned int type_j,
-                const quat<float>& q_j,
-                float d_j,
-                float charge_j)
+        float eval(const vec3<float>& r_ij,
+                    unsigned int type_i,
+                    const quat<float>& q_i,
+                    float d_i,
+                    float charge_i,
+                    unsigned int type_j,
+                    const quat<float>& q_j,
+                    float d_j,
+                    float charge_j)
 
     * ``r_ij`` is a vector pointing from the center of particle *i* to the
         center of particle *j*.
-    * ``type_i`` is the integer type of particle *i*
+    * ``type_i`` is the integer type id of particle *i*
     * ``q_i`` is the quaternion orientation of particle *i*
     * ``d_i`` is the diameter of particle *i*
     * ``charge_i`` is the charge of particle *i*
-    * ``type_j`` is the integer type of particle *j*
+    * ``type_j`` is the integer type id of particle *j*
     * ``q_j`` is the quaternion orientation of particle *j*
     * ``d_j`` is the diameter of particle *j*
     * ``charge_j`` is the charge of particle *j*
     * Your code *must* return a value.
 
-    ``vec3`` and ``quat`` are defined in HOOMDMath.h.  When :math:`|r_ij|` is
-    greater than ``r_cut``, the energy *must* be 0. This ``r_cut`` is applied
-    between the centers of the two particles: compute it accordingly based on
-    the maximum range of the anisotropic interaction that you implement.
+    ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h`.
 
-    Atrributes:
+    See Also:
+        `CPPPotential`
+
+        `CPPPotentialUnion`
+
+    Attributes:
         r_cut (float): Particle center to center distance cutoff beyond which
             all pair interactions are assumed 0.
         param_array ((N,) `numpy.ndarray` of float): Numpy array containing
@@ -87,38 +79,27 @@ class CPPPotentialBase(_HOOMDBaseObject):
     def __init__(self,
                  r_cut,
                  code,
-                 llvm_ir=None,
-                 clang_exec='clang',
                  param_array=None):
         param_dict = ParameterDict(
             r_cut=float,
             param_array=hoomd.data.typeconverter.Array(dtype=np.float32,
                                                        ndim=1),
-            code=str,
-            clang_exec=str,
-            llvm_ir=str,
+            code=str
         )
         param_dict['r_cut'] = r_cut
         param_dict['code'] = code
-        if llvm_ir is None:
-            param_dict['llvm_ir'] = ''
-        else:
-            param_dict['llvm_ir'] = llvm_ir
         if param_array is None:
             param_dict['param_array'] = np.array([])
         else:
             param_dict['param_array'] = param_array
-        param_dict['clang_exec'] = clang_exec
         self._param_dict.update(param_dict)
 
     def _getattr_param(self, attr):
-        if attr == 'clang_exec':
-            return self._param_dict['clang_exec']
-        elif attr == 'code':
+        if attr == 'code':
             return self._param_dict['code']
         return super()._getattr_param(attr)
 
-    @log
+    @log(requires_run=True)
     def energy(self):
         """float: Total interaction energy of the system in the current state.
 
@@ -126,11 +107,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
         attached.
         """
         integrator = self._simulation.operations.integrator
-        if self._attached and integrator._attached:
-            timestep = self._simulation.timestep
-            return integrator._cpp_obj.computePatchEnergy(timestep)
-        else:
-            return None
+        timestep = self._simulation.timestep
+        return integrator._cpp_obj.computePatchEnergy(timestep)
 
     def _wrap_cpu_code(self, code):
         r"""Helper function to wrap the provided code into a function
@@ -203,41 +181,40 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
 
 class CPPPotential(CPPPotentialBase):
-    r'''Define an energetic interaction between pairs of particles.
+    """Define an energetic interaction between pairs of particles.
 
     Args:
         r_cut (float): Particle center to center distance cutoff beyond which
             all pair interactions are assumed 0.
         code (str): C++ code defining the function body for pair interactions
             between particles.
-        clang_exec (`str`, optional): The Clang executable to compile
-            the provided code, defaults to ``'clang'``.
+        param_array (list[float]): Parameter values to pass into ``param_array``
+            in the compiled code.
+
+    See Also:
+        `CPPPotentialBase`
 
     Examples:
 
         .. code-block:: python
 
-            square_well = """float rsq = dot(r_ij, r_ij);
+            square_well = '''float rsq = dot(r_ij, r_ij);
                                 if (rsq < 1.21f)
                                     return -1.0f;
                                 else
                                     return 0.0f;
-                        """
+                        '''
             patch = hoomd.jit.patch.CPPPotential(r_cut=1.1, code=square_well)
             sim.operations += patch
             sim.run(1000)
-    '''
+    """
 
     def __init__(self,
                  r_cut,
                  code,
-                 llvm_ir=None,
-                 clang_exec='clang',
                  param_array=None):
         super().__init__(r_cut=r_cut,
                          code=code,
-                         llvm_ir=llvm_ir,
-                         clang_exec=clang_exec,
                          param_array=param_array)
 
     def _attach(self):
@@ -251,27 +228,24 @@ class CPPPotential(CPPPotentialBase):
         device = self._simulation.device
         cpp_sys_def = self._simulation.state._cpp_sys_def
 
-        if self.llvm_ir == '':
-            code = self.code
-            llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
-                                          self.clang_exec)
-        else:
-            llvm_ir = self.llvm_ir
+        cpu_code = self._wrap_cpu_code(self.code)
+        cpu_include_options = _compile.get_cpu_include_options()
 
         if isinstance(device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             gpu_code = self._wrap_gpu_code(self.code)
+
             self._cpp_obj = _jit.PatchEnergyJITGPU(
-                cpp_sys_def, device._cpp_exec_conf, llvm_ir, self.r_cut,
+                cpp_sys_def, device._cpp_exec_conf, cpu_code, cpu_include_options, self.r_cut,
                 self.param_array, gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"], gpu_settings["cuda_devrt_lib_path"],
-                gpu_settings["max_arch"])
+                gpu_settings["max_arch"],)
         else:  # running on cpu
-            # if llvm_ir == '', then no IR was provided and we need to compile
             self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def,
-                                                device._cpp_exec_conf, llvm_ir,
-                                                self.r_cut, self.param_array)
+                                                device._cpp_exec_conf, cpu_code,
+                                                cpu_include_options,
+                                                self.r_cut, self.param_array,)
         # attach patch object to the integrator
         super()._attach()
 
@@ -291,11 +265,6 @@ class _CPPUnionPotential(CPPPotentialBase):
         code_union (`str`): C++ code defining the custom pair interactions
             between constituent particles.
         code (`str`): C++ code for isotropic part.
-        llvm_ir_fname_union (`str`): File name of the llvm IR file to load.
-        llvm_ir_fname (`str`): File name of the llvm IR file to load for
-            isotropic interaction.
-        clang_exec (`str`, **default:** `clang`): The Clang executable to
-            compile the provided code.
         array_size_union (`int`, **default:** 1): Size of array with adjustable
             elements.
         array_size (`int`, **default:** 1): Size of array with adjustable
@@ -308,7 +277,7 @@ class _CPPUnionPotential(CPPPotentialBase):
 
     Note:
         This class uses an internal OBB tree for fast interaction queries
-            bewteeen constituents of interacting particles.
+            between constituents of interacting particles.
         Depending on the number of constituent particles per type in the tree,
             different values of the particles per leaf
         node may yield different optimal performance. The capacity of leaf nodes
@@ -379,20 +348,14 @@ class _CPPUnionPotential(CPPPotentialBase):
     def __init__(self,
                  r_cut_union,
                  array_size_union=1,
-                 clang_exec='clang',
                  code_union=None,
-                 llvm_ir_file_union=None,
                  r_cut=0,
-                 array_size=1,
-                 code='return 0;',
-                 llvm_ir_file=None):
+                 array_size=1):
 
         # initialize base class
         super().__init__(r_cut=r_cut,
                          array_size=array_size,
-                         code=code,
-                         llvm_ir_file=llvm_ir_file,
-                         clang_exec=clang_exec)
+                         code=code)
 
         # add union specific params
         param_dict = ParameterDict(r_cut_union=float(r_cut_union),
@@ -433,7 +396,6 @@ class _CPPUnionPotential(CPPPotentialBase):
 
         # these only exist on python
         self._code_union = code_union
-        self._llvm_ir_file_union = llvm_ir_file_union
         self.alpha_union = np.zeros(array_size_union)
 
     def _attach(self):
@@ -444,30 +406,9 @@ class _CPPUnionPotential(CPPPotentialBase):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        # compile code if provided
-        if self._code_union is not None:
-            cpp_function_union = self._wrap_cpu_code(self._code_union)
-            llvm_ir_union = _compile._to_llvm_ir(cpp_function_union,
-                                                 self.clang_exec)
-        # fall back to LLVM IR file in case code is not provided
-        elif self._llvm_ir_file_union is not None:
-            # IR is a text file
-            with open(self._llvm_ir_file_union, 'r') as f:
-                llvm_ir_union = f.read()
-        else:
-            raise RuntimeError("Must provide code or LLVM IR file.")
-
-        if self._code is not None:
-            cpp_function = self._wrap_cpu_code(self._code)
-            llvm_ir = _compile.to_llvm_ir(cpp_function, self.clang_exec)
-        elif self._llvm_ir_file is not None:
-            # IR is a text file
-            with open(self._llvm_ir_file, 'r') as f:
-                llvm_ir = f.read()
-        else:
-            # provide a dummy function
-            cpp_dummy = self._wrap_cpu_code('return 0.0;')
-            llvm_ir = _compile.to_llvm_ir(cpp_dummy, self.clang_exec)
+        cpu_code_constituent = self._wrap_cpu_code(self._code_union)
+        cpu_code_iso = self._wrap_cpu_code(self._code)
+        cpu_include_options = _compile.get_cpu_include_options()
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
@@ -476,16 +417,19 @@ class _CPPUnionPotential(CPPPotentialBase):
             gpu_code = self._wrap_gpu_code(self._code)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
                 self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
-                llvm_ir, self.r_cut, self.array_size, llvm_ir_union,
+                cpu_code_iso, self.r_cut, self.param_array, cpu_code_constituent,
                 self.r_cut_union, self.array_size_union, gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"] + ["-DUNION_EVAL"],
-                gpu_settings["cuda_devrt_lib_path"], gpu_settings["max_arch"])
+                gpu_settings["cuda_devrt_lib_path"], gpu_settings["max_arch"],)
         else:
             self._cpp_obj = _jit.PatchEnergyJITUnion(
                 self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
-                llvm_ir, self.r_cut, self.array_size, llvm_ir_union,
-                self.r_cut_union, self.array_size_union)
+                cpu_code_iso,
+                cpu_include_options,
+                self.r_cut, self.param_array,
+                cpu_code_constituent,
+                self.r_cut_union, self.array_size_union,)
 
         # Set the C++ mirror array with the cached values
         # and override the python array
@@ -510,17 +454,3 @@ class _CPPUnionPotential(CPPPotentialBase):
             )
         else:
             self._code_union = code
-
-    @property
-    def llvm_ir_file_union(self):
-        """str: File name of the llvm IR file to load."""
-        return self._llvm_ir_file_union
-
-    @llvm_ir_file_union.setter
-    def llvm_ir_file_union(self, llvm_ir):
-        if self._attached:
-            raise AttributeError(
-                "This attribute can only be set when the object is not attached."
-            )
-        else:
-            self._llvm_ir_file_union = llvm_ir

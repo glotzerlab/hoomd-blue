@@ -5,6 +5,8 @@
 """Version and build information.
 
 Attributes:
+    build_dir (str): The directory where this build was compiled.
+
     compile_date (str): The date this build was compiled.
 
     compile_flags (str): Human readable summary of compilation flags.
@@ -46,6 +48,7 @@ Attributes:
 from hoomd import _hoomd
 
 from hoomd.version_config import (
+    build_dir,
     compile_date,
     cuda_include_path,
     cuda_devrt_library,
