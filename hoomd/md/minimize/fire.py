@@ -226,21 +226,19 @@ class FIRE(_DynamicIntegrator):
 
         super().__init__(forces, constraints, methods, rigid)
 
-        pdict = ParameterDict(dt=float(dt),
-                      aniso=OnlyFrom(['true', 'false', 'auto'],
-                                     preprocess=_preprocess_aniso),
-                      min_steps_adapt=OnlyTypes(int,
-                                                preprocess=positive_real),
-                      finc_dt=float(finc_dt),
-                      fdec_dt=float(fdec_dt),
-                      alpha_start=float(alpha_start),
-                      fdec_alpha=float(fdec_alpha),
-                      force_tol=float(force_tol),
-                      angmom_tol=float(angmom_tol),
-                      energy_tol=float(energy_tol),
-                      min_steps_conv=OnlyTypes(int,
-                                               preprocess=positive_real)
-                )
+        pdict = ParameterDict(
+            dt=float(dt),
+            aniso=OnlyFrom(['true', 'false', 'auto'],
+                           preprocess=_preprocess_aniso),
+            min_steps_adapt=OnlyTypes(int, preprocess=positive_real),
+            finc_dt=float(finc_dt),
+            fdec_dt=float(fdec_dt),
+            alpha_start=float(alpha_start),
+            fdec_alpha=float(fdec_alpha),
+            force_tol=float(force_tol),
+            angmom_tol=float(angmom_tol),
+            energy_tol=float(energy_tol),
+            min_steps_conv=OnlyTypes(int, preprocess=positive_real))
 
         # make sure these values are valid
         pdict.aniso = aniso
