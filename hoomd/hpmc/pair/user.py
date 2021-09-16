@@ -76,16 +76,11 @@ class CPPPotentialBase(_HOOMDBaseObject):
             however.
     """
 
-    def __init__(self,
-                 r_cut,
-                 code,
-                 param_array=None):
-        param_dict = ParameterDict(
-            r_cut=float,
-            param_array=hoomd.data.typeconverter.Array(dtype=np.float32,
-                                                       ndim=1),
-            code=str
-        )
+    def __init__(self, r_cut, code, param_array=None):
+        param_dict = ParameterDict(r_cut=float,
+                                   param_array=hoomd.data.typeconverter.Array(
+                                       dtype=np.float32, ndim=1),
+                                   code=str)
         param_dict['r_cut'] = r_cut
         param_dict['code'] = code
         if param_array is None:
@@ -209,13 +204,8 @@ class CPPPotential(CPPPotentialBase):
             sim.run(1000)
     """
 
-    def __init__(self,
-                 r_cut,
-                 code,
-                 param_array=None):
-        super().__init__(r_cut=r_cut,
-                         code=code,
-                         param_array=param_array)
+    def __init__(self, r_cut, code, param_array=None):
+        super().__init__(r_cut=r_cut, code=code, param_array=param_array)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -236,16 +226,27 @@ class CPPPotential(CPPPotentialBase):
             gpu_code = self._wrap_gpu_code(self.code)
 
             self._cpp_obj = _jit.PatchEnergyJITGPU(
-                cpp_sys_def, device._cpp_exec_conf, cpu_code, cpu_include_options, self.r_cut,
-                self.param_array, gpu_code,
+                cpp_sys_def,
+                device._cpp_exec_conf,
+                cpu_code,
+                cpu_include_options,
+                self.r_cut,
+                self.param_array,
+                gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
-                gpu_settings["includes"], gpu_settings["cuda_devrt_lib_path"],
-                gpu_settings["max_arch"],)
+                gpu_settings["includes"],
+                gpu_settings["cuda_devrt_lib_path"],
+                gpu_settings["max_arch"],
+            )
         else:  # running on cpu
-            self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def,
-                                                device._cpp_exec_conf, cpu_code,
-                                                cpu_include_options,
-                                                self.r_cut, self.param_array,)
+            self._cpp_obj = _jit.PatchEnergyJIT(
+                cpp_sys_def,
+                device._cpp_exec_conf,
+                cpu_code,
+                cpu_include_options,
+                self.r_cut,
+                self.param_array,
+            )
         # attach patch object to the integrator
         super()._attach()
 
@@ -353,9 +354,7 @@ class _CPPUnionPotential(CPPPotentialBase):
                  array_size=1):
 
         # initialize base class
-        super().__init__(r_cut=r_cut,
-                         array_size=array_size,
-                         code=code)
+        super().__init__(r_cut=r_cut, array_size=array_size, code=code)
 
         # add union specific params
         param_dict = ParameterDict(r_cut_union=float(r_cut_union),
@@ -416,20 +415,32 @@ class _CPPUnionPotential(CPPPotentialBase):
             # use union evaluator
             gpu_code = self._wrap_gpu_code(self._code)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
-                self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
-                cpu_code_iso, self.r_cut, self.param_array, cpu_code_constituent,
-                self.r_cut_union, self.array_size_union, gpu_code,
+                self._simulation.state._cpp_sys_def,
+                device._cpp_exec_conf,
+                cpu_code_iso,
+                self.r_cut,
+                self.param_array,
+                cpu_code_constituent,
+                self.r_cut_union,
+                self.array_size_union,
+                gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"] + ["-DUNION_EVAL"],
-                gpu_settings["cuda_devrt_lib_path"], gpu_settings["max_arch"],)
+                gpu_settings["cuda_devrt_lib_path"],
+                gpu_settings["max_arch"],
+            )
         else:
             self._cpp_obj = _jit.PatchEnergyJITUnion(
-                self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
+                self._simulation.state._cpp_sys_def,
+                device._cpp_exec_conf,
                 cpu_code_iso,
                 cpu_include_options,
-                self.r_cut, self.param_array,
+                self.r_cut,
+                self.param_array,
                 cpu_code_constituent,
-                self.r_cut_union, self.array_size_union,)
+                self.r_cut_union,
+                self.array_size_union,
+            )
 
         # Set the C++ mirror array with the cached values
         # and override the python array

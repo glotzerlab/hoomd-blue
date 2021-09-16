@@ -140,8 +140,7 @@ class CPPExternalField(_HOOMDBaseObject):
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self._simulation.device._cpp_exec_conf,
-                                cpu_code,
-                                cpu_include_options)
+                                cpu_code, cpu_include_options)
         super()._attach()
 
     @log(requires_run=True)
