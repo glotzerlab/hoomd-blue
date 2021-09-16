@@ -200,9 +200,6 @@ class FIRE(_DynamicIntegrator):
         min_steps_conv (int):
             A minimum number of attempts before convergence criteria are
             considered.
-        aniso (bool):
-            Whether to integrate rotational degrees of freedom (bool), default
-            None (autodetect).
 
     """
     _cpp_class_name = "FIREEnergyMinimizer"
