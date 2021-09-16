@@ -145,9 +145,7 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
         float rsq = dot(r_ij_local, r_ij_local);
         float d_i = params[type_a].mdiameter[ileaf];
         float d_j = params[type_b].mdiameter[jleaf];
-        float rcut_total = r_cut + 0.5f * (d_i + d_j);
-
-        if (rsq <= rcut_total * rcut_total)
+        if (rsq <= r_cut * r_cut)
             {
             // evaluate energy via JIT function
             energy += ::eval(r_ij_local,

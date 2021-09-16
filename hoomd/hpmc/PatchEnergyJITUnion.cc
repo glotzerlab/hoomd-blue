@@ -22,12 +22,11 @@ void PatchEnergyJITUnion::buildOBBTree()
             float extent_i = 0.0;
             for (unsigned int i = 0; i < N; i++)
                 {
-                // use a spherical OBB of radius 0.5*d
                 auto pos = m_position[type][i];
                 float diameter = m_diameter[type][i];
 
-                // use a spherical OBB of radius 0.5*d
-                obbs[i] = hpmc::detail::OBB(pos, 0.5f * diameter);
+                // use a point-sized OBB
+                obbs[i] = hpmc::detail::OBB(pos, 0.0);
 
                 Scalar r = sqrt(dot(pos, pos));  // distance from center of union to  this constituent particle
                 extent_i = std::max(extent_i, float(2 * r));
@@ -87,9 +86,7 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
             vec3<float> r_ij = m_position[type_b][jleaf] - pos_i;
 
             float rsq = dot(r_ij, r_ij);
-            float rcut = float(m_r_cut_constituent
-                               + 0.5 * (m_diameter[type_a][ileaf] + m_diameter[type_b][jleaf]));
-            if (rsq <= rcut * rcut)
+            if (rsq <= m_r_cut_constituent * m_r_cut_constituent)
                 {
                 // evaluate energy via JIT function
                 energy += m_eval_union(r_ij,
