@@ -29,6 +29,10 @@ To build the documentation from source (optional):
 
    $ <package-manager> install sphinx sphinx_rtd_theme nbsphinx ipython
 
+.. note::
+
+   `nbsphinx` requires `pandoc>=1.12.1`, which you may need to install separately.
+
 2. `Build the documentation`_::
 
    $ sphinx-build -b html hoomd-blue/sphinx-doc build/hoomd-documentation
