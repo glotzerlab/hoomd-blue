@@ -129,7 +129,7 @@ class EvaluatorPairCosineSquared
     */
     DEVICE EvaluatorPairCosineSquared(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
         : rsq(_rsq), rcutsq(_rcutsq), wca1(_params.wca1), wca2(_params.wca2), sigma(_params.sigma),
-        epsilon(_params.epsilon), wca(_params.wca)
+          epsilon(_params.epsilon), wca(_params.wca)
         {
         }
 
