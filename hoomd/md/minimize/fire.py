@@ -238,9 +238,14 @@ class FIRE(_DynamicIntegrator):
             force_tol=float(force_tol),
             angmom_tol=float(angmom_tol),
             energy_tol=float(energy_tol),
-            min_steps_conv=OnlyTypes(int, preprocess=positive_real))
+            min_steps_conv=OnlyTypes(int, preprocess=positive_real),
+            _defaults={
+                'aniso': 'auto',
+                'min_steps_adapt': 5,
+                'min_steps_conv': 10
+            })
 
-        # make sure these values are valid
+        # set these values explicitly so they can be validated
         pdict.aniso = aniso
         pdict.min_steps_adapt = min_steps_adapt
         pdict.min_steps_conv = min_steps_conv
