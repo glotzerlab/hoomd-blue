@@ -10,6 +10,7 @@ md.pair
 
     Pair
     Buckingham
+    CosineSquared
     DLVO
     DPD
     DPDLJ
@@ -39,6 +40,7 @@ md.pair
     :synopsis: Pair potentials.
     :members: Pair,
         Buckingham,
+        CosineSquared,
         DLVO,
         DPD,
         DPDLJ,

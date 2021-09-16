@@ -5,7 +5,6 @@
 
 #include "ActiveForceCompute.h"
 #include "ActiveForceConstraintCompute.h"
-#include "ActiveRotationalDiffusionUpdater.h"
 #include "AllAnisoPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "AllExternalPotentials.h"
@@ -240,7 +239,6 @@ PYBIND11_MODULE(_md, m)
     export_ActiveForceConstraintCompute<ManifoldPrimitive>(m,
                                                            "ActiveForceConstraintComputePrimitive");
     export_ActiveForceConstraintCompute<ManifoldSphere>(m, "ActiveForceConstraintComputeSphere");
-    export_ActiveRotationalDiffusionUpdater(m);
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
     export_HarmonicAngleForceCompute(m);
@@ -273,6 +271,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
+    export_PotentialPair<PotentialPairCosineSquared>(m, "PotentialPairCosineSquared");
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
@@ -365,6 +364,9 @@ PYBIND11_MODULE(_md, m)
         "PotentialPairDPDThermoDPDGPU");
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
     export_PotentialPairGPU<PotentialPairTableGPU, PotentialPairTable>(m, "PotentialPairTableGPU");
+    export_PotentialPairGPU<PotentialPairCosineSquaredGPU, PotentialPairCosineSquared>(
+        m,
+        "PotentialPairCosineSquaredGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD>(
         m,
         "PotentialPairDPDLJThermoDPDGPU");

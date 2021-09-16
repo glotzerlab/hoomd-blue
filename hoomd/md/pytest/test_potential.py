@@ -52,9 +52,6 @@ def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 def test_rcut(simulation_factory, two_particle_snapshot_factory):
     lj = md.pair.LJ(nlist=md.nlist.Cell(), default_r_cut=2.5)
     assert lj.r_cut.default == 2.5
-    # ensure 0 is a valid value for r_cut
-    lj.r_cut[("A", "A")] = 0.0
-    lj.r_cut[("A", "A")] = 2.5
 
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     with pytest.raises(TypeConversionError):
@@ -296,6 +293,12 @@ def _invalid_params():
     twf_invalid_dicts = _make_invalid_param_dict(twf_valid_dict)
     invalid_params_list.extend(
         _make_invalid_params(twf_invalid_dicts, hoomd.md.pair.TWF, {}))
+
+    cossq_valid_dict = {'sigma': 1.0, 'epsilon': 1.0, 'wca': True}
+    cossq_invalid_dicts = _make_invalid_param_dict(cossq_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(cossq_invalid_dicts, hoomd.md.pair.CosineSquared, 
+                                {}))
 
     table_valid_dict = {
         'V': np.arange(0, 20, 1) / 10,
@@ -605,6 +608,16 @@ def _valid_params(particle_types=['A', 'B']):
         paramtuple(hoomd.md.pair.TWF, dict(zip(combos, twf_valid_param_dicts)),
                    {}))
 
+    cossq_arg_dict = {
+        'sigma': [0.5, 1.0, 1.0],
+        'epsilon': [0.1, 0.5, 0.001],
+        'wca': [True, False, True]
+    }
+    cossq_valid_param_dicts = _make_valid_param_dicts(cossq_arg_dict)
+    valid_params_list.append(
+        paramtuple(hoomd.md.pair.CosineSquared,
+                    dict(zip(combos, cossq_valid_param_dicts)), {}))
+
     rs = [
         np.arange(0, 2.6, 0.1),
         np.linspace(0.5, 2.5, 25),
@@ -714,9 +727,9 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
     sim.operations.integrator = integrator
     sim.operations._schedule()
-    old_snap = sim.state.get_snapshot()
+    old_snap = sim.state.snapshot
     sim.run(2)
-    new_snap = sim.state.get_snapshot()
+    new_snap = sim.state.snapshot
     if new_snap.communicator.rank == 0:
         assert not np.allclose(new_snap.particles.position,
                                old_snap.particles.position)
@@ -757,11 +770,11 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     if energies is not None:
         E_r = sum(energies)
 
-    snap = sim.state.get_snapshot()
+    snap = sim.state.snapshot
     if snap.communicator.rank == 0:
         snap.particles.position[0] = [0, 0, .1]
         snap.particles.position[1] = [0, 0, r_cut + .1]
-    sim.state.set_snapshot(snap)
+    sim.state.snapshot = snap
     energies = sim.operations.integrator.forces[0].energies
     if energies is not None:
         E_rcut = sum(energies)
@@ -777,11 +790,11 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
     sim.run(0)
 
-    snap = sim.state.get_snapshot()
+    snap = sim.state.snapshot
     if snap.communicator.rank == 0:
         snap.particles.position[0] = [0, 0, .1]
         snap.particles.position[1] = [0, 0, r + .1]
-    sim.state.set_snapshot(snap)
+    sim.state.snapshot = snap
 
     energies = sim.operations.integrator.forces[0].energies
     if energies is not None:
@@ -816,14 +829,14 @@ def _calculate_force(sim):
     """
     dr = 1e-6
 
-    snap = sim.state.get_snapshot()
+    snap = sim.state.snapshot
     if snap.communicator.rank == 0:
         initial_pos = np.array(snap.particles.position)
         snap.particles.position[1, 0] = initial_pos[1, 0] - dr
 
-    sim.state.set_snapshot(snap)
+    sim.state.snapshot = snap
     E0 = sim.operations.integrator.forces[0].energies
-    snap = sim.state.get_snapshot()
+    snap = sim.state.snapshot
     if snap.communicator.rank == 0:
         pos = snap.particles.position
         r0 = pos[0] - pos[1]
@@ -832,21 +845,21 @@ def _calculate_force(sim):
 
         snap.particles.position[1, 0] = initial_pos[1, 0] + dr
 
-    sim.state.set_snapshot(snap)
+    sim.state.snapshot = snap
     E1 = sim.operations.integrator.forces[0].energies
 
-    snap = sim.state.get_snapshot()
+    snap = sim.state.snapshot
     if snap.communicator.rank == 0:
         pos = snap.particles.position
         mag_r1 = np.linalg.norm(pos[0] - pos[1])
         Fa = -1 * ((sum(E1) - sum(E0)) / (mag_r1 - mag_r0)) * direction
         Fb = -Fa
 
-    snap = sim.state.get_snapshot()
+    snap = sim.state.snapshot
     if snap.communicator.rank == 0:
         snap.particles.position[1] = initial_pos[1]
-    sim.state.set_snapshot(snap)
-    if sim.state.get_snapshot().communicator.rank == 0:
+    sim.state.snapshot = snap
+    if sim.state.snapshot.communicator.rank == 0:
         return Fa, Fb
     else:
         return 0, 0  # return dummy values if not on rank 1
@@ -879,11 +892,11 @@ def test_force_energy_relationship(simulation_factory,
     sim.operations.integrator = integrator
     sim.run(0)
     for pair in valid_params.pair_potential_params:
-        snap = sim.state.get_snapshot()
+        snap = sim.state.snapshot
         if snap.communicator.rank == 0:
             snap.particles.typeid[0] = particle_types.index(pair[0])
             snap.particles.typeid[1] = particle_types.index(pair[1])
-        sim.state.set_snapshot(snap)
+        sim.state.snapshot = snap
 
         calculated_forces = _calculate_force(sim)
         sim_forces = sim.operations.integrator.forces[0].forces
@@ -984,75 +997,17 @@ def test_force_energy_accuracy(simulation_factory,
     for i in range(len(particle_distances)):
         d = particle_distances[i]
         r = np.array([0, 0, d]) / d
-        snap = sim.state.get_snapshot()
+        snap = sim.state.snapshot
         if snap.communicator.rank == 0:
             snap.particles.position[0] = [0, 0, .1]
             snap.particles.position[1] = [0, 0, d + .1]
-        sim.state.set_snapshot(snap)
+        sim.state.snapshot = snap
         sim_energies = sim.operations.integrator.forces[0].energies
         sim_forces = sim.operations.integrator.forces[0].forces
         if sim_energies is not None:
             assert isclose(sum(sim_energies), forces_and_energies.energies[i])
             assert isclose(sim_forces[0], forces_and_energies.forces[i] * r)
             assert isclose(sim_forces[0], -forces_and_energies.forces[i] * r)
-
-
-def populate_sim(sim):
-    """Add an integrator for the following tests."""
-    sim.operations.integrator = md.Integrator(
-        dt=0.005, methods=[md.methods.NVE(hoomd.filter.All())])
-    return sim
-
-
-def test_setting_to_new_sim(simulation_factory, two_particle_snapshot_factory):
-    """Test that pair force can only below to one integrator."""
-    sim1 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
-    sim2 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
-
-    nlist = md.nlist.Cell()
-    lj = md.pair.LJ(nlist, default_r_cut=1.1)
-    lj.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
-    sim1.operations.integrator.forces.append(lj)
-
-    # Test cannot add to new integrator
-    with pytest.raises(RuntimeError):
-        sim2.operations.integrator.forces.append(lj)
-
-    # Ensure that removing and appending works
-    sim1.operations.integrator.forces.remove(lj)
-    sim2.operations.integrator.forces.append(lj)
-    sim2.run(0)
-    # Ensure that when attached cannot add to new integrator
-    with pytest.raises(RuntimeError):
-        sim1.operations.integrator.forces.append(lj)
-
-    # Test that correct removal with a necessary nlist copy properly warns but
-    # does not error.
-    lj2 = md.pair.LJ(nlist, default_r_cut=1.1)
-    lj2.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
-    sim2.operations.integrator.forces.append(lj2)
-    sim2.operations.integrator.forces.remove(lj)
-    with pytest.warns(RuntimeWarning):
-        sim1.operations.integrator.forces.append(lj)
-
-
-def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
-    """Test neighbor list cannot be spread between multiple simulations."""
-    sim1 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
-    sim2 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
-
-    nlist = md.nlist.Cell()
-    lj = md.pair.LJ(nlist, default_r_cut=1.1)
-    lj.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
-    lj2 = deepcopy(lj)
-    sim1.operations.integrator.forces.append(lj)
-    sim2.operations.integrator.forces.append(lj2)
-    with pytest.raises(RuntimeError):
-        lj2.nlist = nlist
-    sim2.operations.integrator.forces.remove(lj2)
-    lj2.nlist = nlist
-    with pytest.raises(RuntimeError):
-        sim2.operations.integrator.forces.append(lj2)
 
 
 # Test logging

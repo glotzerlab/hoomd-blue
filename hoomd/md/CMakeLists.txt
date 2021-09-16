@@ -80,6 +80,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorExternalElectricField.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairBuckingham.h
+                EvaluatorPairCosineSquared.h
                 EvaluatorPairDipole.h
                 EvaluatorPairDPDLJThermo.h
                 EvaluatorPairDPDThermo.h
@@ -227,6 +228,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       BuckinghamDriverPotentialPairGPU.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
+                      CosineSquaredDriverPotentialPairGPU.cu
                       DLVODriverPotentialPairGPU.cu
                       DPDLJThermoDriverPotentialPairGPU.cu
                       DPDThermoDriverPotentialPairGPU.cu

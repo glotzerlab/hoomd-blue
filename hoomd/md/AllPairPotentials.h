@@ -7,6 +7,7 @@
 #define __PAIR_POTENTIALS__H__
 
 #include "EvaluatorPairBuckingham.h"
+#include "EvaluatorPairCosineSquared.h"
 #include "EvaluatorPairDLVO.h"
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairDPDThermo.h"
@@ -93,6 +94,8 @@ typedef PotentialPair<EvaluatorPairOPP> PotentialPairOPP;
 /// Pair potential force compute for Ten wolde and Frenkels globular protein
 /// model
 typedef PotentialPair<EvaluatorPairTWF> PotentialPairTWF;
+/// Pair potential force compute for Cosine Squared with Weeks-Chandler-Anderson repulsion
+typedef PotentialPair<EvaluatorPairCosineSquared> PotentialPairCosineSquared;
 /// Tabulateed pair potential
 typedef PotentialPair<EvaluatorPairTable> PotentialPairTable;
 
@@ -150,6 +153,9 @@ typedef PotentialPairGPU<EvaluatorPairFourier, gpu_compute_fourier_forces> Poten
 typedef PotentialPairGPU<EvaluatorPairOPP, gpu_compute_opp_forces> PotentialPairOPPGPU;
 //! Pair potential force compute for Table pair potential on the GPU
 typedef PotentialPairGPU<EvaluatorPairTable, gpu_compute_table_forces> PotentialPairTableGPU;
+//! Pair potential force compute for Cosine Squared pair potential on the GPU
+typedef PotentialPairGPU<EvaluatorPairCosineSquared, gpu_compute_cosinesquared_forces>
+    PotentialPairCosineSquaredGPU;
 /// Pair potential force compute for Ten wolde and Frenkels globular protein
 /// model
 typedef PotentialPairGPU<EvaluatorPairTWF, gpu_compute_twf_forces> PotentialPairTWFGPU;
