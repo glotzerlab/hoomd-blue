@@ -23,7 +23,6 @@ void PatchEnergyJITUnion::buildOBBTree()
             for (unsigned int i = 0; i < N; i++)
                 {
                 auto pos = m_position[type][i];
-                float diameter = m_diameter[type][i];
 
                 // use a point-sized OBB
                 obbs[i] = hpmc::detail::OBB(pos, 0.0);
