@@ -17,20 +17,16 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 
-#include "llvm/Support/raw_os_ostream.h"
-
 #pragma GCC diagnostic pop
 
 //! C'tor
 EvalFactory::EvalFactory(const std::string& cpp_code,
                          const std::vector<std::string>& compiler_args)
     {
-    // set to null pointer
-    m_eval = NULL;
+    std::ostringstream sstream;
+    m_eval = nullptr;
 
     // initialize LLVM
-    std::ostringstream sstream;
-
     auto clang_compiler = ClangCompiler::createClangCompiler();
 
     // Add the program's symbols into the JIT's search space.
