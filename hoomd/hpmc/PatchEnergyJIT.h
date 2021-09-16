@@ -17,8 +17,8 @@
    generic interface for returning the energy of interaction between a pair of particles. The actual
    computation is performed by code that is loaded and compiled at run time using LLVM.
 
-    The user provides LLVM IR code containing a function 'eval' with the defined function signature.
-   On construction, this class uses the LLVM library to compile that IR down to machine code and
+    The user provides C++ code containing a function 'eval' with the defined function signature.
+   On construction, this class uses the LLVM library to compile that to machine code and
    obtain a function pointer to call.
 
     This is the first use of LLVM in HOOMD and it is experimental. As additional areas are

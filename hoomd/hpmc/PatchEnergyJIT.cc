@@ -3,11 +3,13 @@
 
 #include <sstream>
 
-/*! \param exec_conf The execution configuration (used for messages and MPI communication)
-    \param llvm_ir Contents of the LLVM IR to load
-    \param r_cut Center to center distance beyond which the patch energy is 0
+/*! \param exec_conf The execution configuration (used for messages and MPI communication).
+    \param cpu_code C++ code to compile.
+    \param compiler_args Additional arguments to pass to the compiler.
+    \param r_cut Center to center distance beyond which the patch energy is 0.
+    \param param_array Values for the parameter array.
 
-    After construction, the LLVM IR is loaded, compiled, and the energy() method is ready to be
+    After construction, the C++ code is compiled, and the energy() method is ready to be
    called.
 */
 PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,

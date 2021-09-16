@@ -17,8 +17,8 @@
    interface for returning the energy of interaction between a particle and an external field. The
    actual computation is performed by code that is loaded and compiled at run time using LLVM.
 
-    The user provides LLVM IR code containing a function 'eval' with the defined function signature.
-   On construction, this class uses the LLVM library to compile that IR down to machine code and
+    The user provides C++ code containing a function 'eval' with the defined function signature.
+   On construction, this class uses the LLVM library to compile that down to machine code and
    obtain a function pointer to call.
 
     LLVM execution is managed with the KaleidoscopeJIT class in m_JIT. On construction, the LLVM

@@ -33,7 +33,7 @@ class ClangCompiler
         /// Get an instance to the singleton class
         static std::shared_ptr<ClangCompiler> createClangCompiler();
 
-        /// Compile the provided C++ code and return the LLVM IR
+        /// Compile the provided C++ code and return the LLVM module
         std::unique_ptr<llvm::Module> compileCode(const std::string& code, const std::vector<std::string>& user_args, llvm::LLVMContext& context, std::ostringstream& out);
 
     protected:

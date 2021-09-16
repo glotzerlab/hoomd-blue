@@ -454,17 +454,3 @@ class _CPPUnionPotential(CPPPotentialBase):
             )
         else:
             self._code_union = code
-
-    @property
-    def llvm_ir_file_union(self):
-        """str: File name of the llvm IR file to load."""
-        return self._llvm_ir_file_union
-
-    @llvm_ir_file_union.setter
-    def llvm_ir_file_union(self, llvm_ir):
-        if self._attached:
-            raise AttributeError(
-                "This attribute can only be set when the object is not attached."
-            )
-        else:
-            self._llvm_ir_file_union = llvm_ir
