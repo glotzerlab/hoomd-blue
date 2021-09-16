@@ -188,8 +188,11 @@ class CPPPotential(CPPPotentialBase):
             all pair interactions are assumed 0.
         code (str): C++ code defining the function body for pair interactions
             between particles.
-        clang_exec (`str`, optional): The Clang executable to compile
-            the provided code, defaults to ``'clang'``.
+        param_array (list[float]): Parameter values to pass into ``param_array``
+            in the compiled code.
+
+    See Also:
+        `CPPPotentialBase`
 
     Examples:
 
