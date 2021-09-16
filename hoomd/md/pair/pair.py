@@ -1927,7 +1927,7 @@ class CosineSquared(Pair):
         = & 0 \quad & r \geq r_{cut}
         \end{eqnarray*}
 
-    See `Pair` for details on how forces are calculated. No energy shifting 
+    See `Pair` for details on how forces are calculated. No energy shifting
     modes are available for this pair potential.
 
     .. py:attribute:: params
