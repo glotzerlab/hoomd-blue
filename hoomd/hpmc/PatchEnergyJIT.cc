@@ -58,7 +58,7 @@ void export_PatchEnergyJIT(pybind11::module& m)
                             const std::vector<std::string>&,
                             Scalar,
                             pybind11::array_t<float>>())
-        .def_property("r_cut_isotropic", &PatchEnergyJIT::getRCutIsotropic, &PatchEnergyJIT::setRCutIsotropic)
+        .def_property("r_cut", &PatchEnergyJIT::getRCutIsotropic, &PatchEnergyJIT::setRCutIsotropic)
         .def_property_readonly("array_size", &PatchEnergyJIT::getArraySize)
         .def("energy", &PatchEnergyJIT::energy)
         .def_property_readonly("param_array", &PatchEnergyJIT::getParamArray)

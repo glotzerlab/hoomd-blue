@@ -11,13 +11,13 @@ import numpy as np
 # check if llvm_enabled
 llvm_disabled = not hoomd.version.llvm_enabled
 
-valid_constructor_args = [dict(code='return -1;', clang_exec='/usr/bin/clang')]
+valid_constructor_args = [dict(code='return -1;')]
 
 # setable attributes before attach for CPPExternalField objects
-valid_attrs = [('code', 'return -1;'), ('clang_exec', 'clang')]
+valid_attrs = [('code', 'return -1;'),]
 
 # attributes that cannot be set after object is attached
-attr_error = [('code', 'return -1.0;'), ('clang_exec', '/usr/bin/clang')]
+attr_error = [('code', 'return -1.0;'),]
 
 # (orientation of p1, orientation of p2, charge of both particles, expected result)
 electric_field_params = [
@@ -35,7 +35,7 @@ electric_field_params = [
       (0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2)], -3, -6),
 ]
 
-attr_translator = {'code': '_code', 'clang_exec': '_clang_exec'}
+attr_translator = {'code': '_code',}
 
 
 @pytest.mark.cpu

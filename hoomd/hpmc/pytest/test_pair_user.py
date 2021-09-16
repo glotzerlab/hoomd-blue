@@ -11,51 +11,19 @@ import numpy as np
 # check if llvm_enabled
 llvm_disabled = not hoomd.version.llvm_enabled
 
-# this is the IR generated for a pair kernel that is just "return 0;"
-return0_ir = """
-; ModuleID = 'patch-code.cc'
-source_filename = "patch-code.cc"
-target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx11.0.0"
-
-%struct.vec3 = type { float, float, float }
-%struct.quat = type { float, %struct.vec3 }
-
-@param_array = local_unnamed_addr global float* null, align 8
-@alpha_union = local_unnamed_addr global float* null, align 8
-
-; Function Attrs: norecurse nounwind readnone ssp uwtable
-define float @eval(%struct.vec3* nocapture nonnull readnone align 4 dereferenceable(12) %0, i32 %1, %struct.quat* nocapture nonnull readnone align 4 dereferenceable(16) %2, float %3, float %4, i32 %5, %struct.quat* nocapture nonnull readnone align 4 dereferenceable(16) %6, float %7, float %8) local_unnamed_addr #0 {
-  ret float 0.000000e+00
-}
-
-attributes #0 = { norecurse nounwind readnone ssp uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-
-!llvm.module.flags = !{!0, !1, !2}
-!llvm.ident = !{!3}
-
-!0 = !{i32 2, !"SDK Version", [2 x i32] [i32 11, i32 3]}
-!1 = !{i32 1, !"wchar_size", i32 4}
-!2 = !{i32 7, !"PIC Level", i32 2}
-!3 = !{!"clang version 11.1.0"}
-"""
-
 valid_constructor_args = [
     dict(r_cut=3,
          param_array=[0, 1],
          code='return -1;',
-         llvm_ir=return0_ir,
-         clang_exec='/usr/bin/clang'),
+         ),
     dict(r_cut=2,
          param_array=[1, 2, 3, 4],
          code='return -1;',
-         llvm_ir=return0_ir,
-         clang_exec='/usr/bin/clang'),
+         )
 ]
 
 # setable attributes before attach for CPPPotential objects
-valid_attrs = [('r_cut', 1.4), ('code', 'return -1;'), ('llvm_ir', return0_ir),
-               ('clang_exec', 'clang')]
+valid_attrs = [('r_cut', 1.4), ('code', 'return -1;')]
 
 # setable attributes after attach for CPPPotential objects
 valid_attrs_after_attach = [('r_cut', 1.3)]
@@ -158,8 +126,7 @@ def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
     """
 
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2,
-                                              code='return 0;',
-                                              llvm_ir=return0_ir)
+                                              code='return 0;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.potential = patch
