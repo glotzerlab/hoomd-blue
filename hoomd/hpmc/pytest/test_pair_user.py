@@ -12,14 +12,16 @@ import numpy as np
 llvm_disabled = not hoomd.version.llvm_enabled
 
 valid_constructor_args = [
-    dict(r_cut=3,
-         param_array=[0, 1],
-         code='return -1;',
-         ),
-    dict(r_cut=2,
-         param_array=[1, 2, 3, 4],
-         code='return -1;',
-         )
+    dict(
+        r_cut=3,
+        param_array=[0, 1],
+        code='return -1;',
+    ),
+    dict(
+        r_cut=2,
+        param_array=[1, 2, 3, 4],
+        code='return -1;',
+    )
 ]
 
 # setable attributes before attach for CPPPotential objects
@@ -125,8 +127,7 @@ def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
        try to set certain attributes after attaching.
     """
 
-    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2,
-                                              code='return 0;')
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2, code='return 0;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.potential = patch

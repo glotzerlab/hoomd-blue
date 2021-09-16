@@ -14,10 +14,14 @@ llvm_disabled = not hoomd.version.llvm_enabled
 valid_constructor_args = [dict(code='return -1;')]
 
 # setable attributes before attach for CPPExternalField objects
-valid_attrs = [('code', 'return -1;'),]
+valid_attrs = [
+    ('code', 'return -1;'),
+]
 
 # attributes that cannot be set after object is attached
-attr_error = [('code', 'return -1.0;'),]
+attr_error = [
+    ('code', 'return -1.0;'),
+]
 
 # (orientation of p1, orientation of p2, charge of both particles, expected result)
 electric_field_params = [
@@ -35,7 +39,9 @@ electric_field_params = [
       (0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2)], -3, -6),
 ]
 
-attr_translator = {'code': '_code',}
+attr_translator = {
+    'code': '_code',
+}
 
 
 @pytest.mark.cpu
