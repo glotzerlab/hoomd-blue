@@ -240,12 +240,12 @@ class CPPPotential(CPPPotentialBase):
                 self.param_array, gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"], gpu_settings["cuda_devrt_lib_path"],
-                gpu_settings["max_arch"])
+                gpu_settings["max_arch"],)
         else:  # running on cpu
             self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def,
                                                 device._cpp_exec_conf, cpu_code,
                                                 cpu_include_options,
-                                                self.r_cut, self.param_array)
+                                                self.r_cut, self.param_array,)
         # attach patch object to the integrator
         super()._attach()
 
@@ -265,11 +265,6 @@ class _CPPUnionPotential(CPPPotentialBase):
         code_union (`str`): C++ code defining the custom pair interactions
             between constituent particles.
         code (`str`): C++ code for isotropic part.
-        llvm_ir_fname_union (`str`): File name of the llvm IR file to load.
-        llvm_ir_fname (`str`): File name of the llvm IR file to load for
-            isotropic interaction.
-        clang_exec (`str`, **default:** `clang`): The Clang executable to
-            compile the provided code.
         array_size_union (`int`, **default:** 1): Size of array with adjustable
             elements.
         array_size (`int`, **default:** 1): Size of array with adjustable
@@ -282,7 +277,7 @@ class _CPPUnionPotential(CPPPotentialBase):
 
     Note:
         This class uses an internal OBB tree for fast interaction queries
-            bewteeen constituents of interacting particles.
+            between constituents of interacting particles.
         Depending on the number of constituent particles per type in the tree,
             different values of the particles per leaf
         node may yield different optimal performance. The capacity of leaf nodes
@@ -354,17 +349,13 @@ class _CPPUnionPotential(CPPPotentialBase):
                  r_cut_union,
                  array_size_union=1,
                  code_union=None,
-                 llvm_ir_file_union=None,
                  r_cut=0,
-                 array_size=1,
-                 code='return 0;',
-                 llvm_ir_file=None):
+                 array_size=1):
 
         # initialize base class
         super().__init__(r_cut=r_cut,
                          array_size=array_size,
-                         code=code,
-                         llvm_ir_file=llvm_ir_file)
+                         code=code)
 
         # add union specific params
         param_dict = ParameterDict(r_cut_union=float(r_cut_union),
@@ -405,7 +396,6 @@ class _CPPUnionPotential(CPPPotentialBase):
 
         # these only exist on python
         self._code_union = code_union
-        self._llvm_ir_file_union = llvm_ir_file_union
         self.alpha_union = np.zeros(array_size_union)
 
     def _attach(self):
@@ -416,30 +406,9 @@ class _CPPUnionPotential(CPPPotentialBase):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        # compile code if provided
-        if self._code_union is not None:
-            cpp_function_union = self._wrap_cpu_code(self._code_union)
-            llvm_ir_union = _compile._to_llvm_ir(cpp_function_union,
-                                                 self.clang_exec)
-        # fall back to LLVM IR file in case code is not provided
-        elif self._llvm_ir_file_union is not None:
-            # IR is a text file
-            with open(self._llvm_ir_file_union, 'r') as f:
-                llvm_ir_union = f.read()
-        else:
-            raise RuntimeError("Must provide code or LLVM IR file.")
-
-        if self._code is not None:
-            cpp_function = self._wrap_cpu_code(self._code)
-            llvm_ir = _compile.to_llvm_ir(cpp_function, self.clang_exec)
-        elif self._llvm_ir_file is not None:
-            # IR is a text file
-            with open(self._llvm_ir_file, 'r') as f:
-                llvm_ir = f.read()
-        else:
-            # provide a dummy function
-            cpp_dummy = self._wrap_cpu_code('return 0.0;')
-            llvm_ir = _compile.to_llvm_ir(cpp_dummy, self.clang_exec)
+        cpu_code_constituent = self._wrap_cpu_code(self._code_union)
+        cpu_code_iso = self._wrap_cpu_code(self._code)
+        cpu_include_options = _compile.get_cpu_include_options()
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
@@ -448,16 +417,19 @@ class _CPPUnionPotential(CPPPotentialBase):
             gpu_code = self._wrap_gpu_code(self._code)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
                 self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
-                llvm_ir, self.r_cut, self.array_size, llvm_ir_union,
+                cpu_code_iso, self.r_cut, self.param_array, cpu_code_constituent,
                 self.r_cut_union, self.array_size_union, gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"] + ["-DUNION_EVAL"],
-                gpu_settings["cuda_devrt_lib_path"], gpu_settings["max_arch"])
+                gpu_settings["cuda_devrt_lib_path"], gpu_settings["max_arch"],)
         else:
             self._cpp_obj = _jit.PatchEnergyJITUnion(
                 self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
-                llvm_ir, self.r_cut, self.array_size, llvm_ir_union,
-                self.r_cut_union, self.array_size_union)
+                cpu_code_iso,
+                cpu_include_options,
+                self.r_cut, self.param_array,
+                cpu_code_constituent,
+                self.r_cut_union, self.array_size_union,)
 
         # Set the C++ mirror array with the cached values
         # and override the python array
