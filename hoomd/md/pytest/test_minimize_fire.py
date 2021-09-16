@@ -52,6 +52,16 @@ def _assert_error_if_nonpositive(fire):
         fire.min_steps_conv = negative_value
 
 
+def test_constructor_validation():
+    """Make sure constructor validates arguments."""
+    with pytest.raises(ValueError):
+        md.minimize.FIRE(dt=0.01, aniso='nonsense')
+    with pytest.raises(ValueError):
+        md.minimize.FIRE(dt=0.01, min_steps_conv=-5)
+    with pytest.raises(ValueError):
+        md.minimize.FIRE(dt=0.01, min_steps_adapt=0)
+
+
 def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
     """Assert we can get/set params when not attached and when attached."""
     fire = md.minimize.FIRE(dt=0.01)

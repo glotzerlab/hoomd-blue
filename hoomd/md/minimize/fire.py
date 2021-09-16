@@ -245,12 +245,12 @@ class FIRE(_DynamicIntegrator):
                 'min_steps_conv': 10
             })
 
-        # set these values explicitly so they can be validated
-        pdict.aniso = aniso
-        pdict.min_steps_adapt = min_steps_adapt
-        pdict.min_steps_conv = min_steps_conv
-
         self._param_dict.update(pdict)
+
+        # set these values explicitly so they can be validated
+        self.aniso = aniso
+        self.min_steps_adapt = min_steps_adapt
+        self.min_steps_conv = min_steps_conv
 
         # have to remove methods from old syncedlist so new syncedlist doesn't
         # think members are attached to multiple syncedlists
