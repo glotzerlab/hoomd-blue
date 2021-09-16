@@ -226,33 +226,28 @@ class FIRE(_DynamicIntegrator):
 
         super().__init__(forces, constraints, methods, rigid)
 
-        self._param_dict.update(
-            ParameterDict(dt=float(dt),
-                          aniso=OnlyFrom(['true', 'false', 'auto'],
-                                         preprocess=_preprocess_aniso),
-                          min_steps_adapt=OnlyTypes(int,
-                                                    preprocess=positive_real),
-                          finc_dt=float,
-                          fdec_dt=float,
-                          alpha_start=float,
-                          fdec_alpha=float,
-                          force_tol=float,
-                          angmom_tol=float,
-                          energy_tol=float,
-                          min_steps_conv=OnlyTypes(int,
-                                                   preprocess=positive_real),
-                          _defaults={
-                              "aniso": "auto",
-                              "min_steps_adapt": min_steps_adapt,
-                              "finc_dt": finc_dt,
-                              "fdec_dt": fdec_dt,
-                              "alpha_start": alpha_start,
-                              "fdec_alpha": fdec_alpha,
-                              "force_tol": force_tol,
-                              "angmom_tol": angmom_tol,
-                              "energy_tol": energy_tol,
-                              "min_steps_conv": min_steps_conv
-                          }))
+        pdict = ParameterDict(dt=float(dt),
+                      aniso=OnlyFrom(['true', 'false', 'auto'],
+                                     preprocess=_preprocess_aniso),
+                      min_steps_adapt=OnlyTypes(int,
+                                                preprocess=positive_real),
+                      finc_dt=float(finc_dt),
+                      fdec_dt=float(fdec_dt),
+                      alpha_start=float(alpha_start),
+                      fdec_alpha=float(fdec_alpha),
+                      force_tol=float(force_tol),
+                      angmom_tol=float(angmom_tol),
+                      energy_tol=float(energy_tol),
+                      min_steps_conv=OnlyTypes(int,
+                                               preprocess=positive_real)
+                )
+
+        # make sure these values are valid
+        pdict.aniso = aniso
+        pdict.min_steps_adapt = min_steps_adapt
+        pdict.min_steps_conv = min_steps_conv
+
+        self._param_dict.update(pdict)
 
         # have to remove methods from old syncedlist so new syncedlist doesn't
         # think members are attached to multiple syncedlists
