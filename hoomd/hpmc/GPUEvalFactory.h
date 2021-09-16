@@ -238,7 +238,7 @@ class GPUEvalFactory
                     CUdeviceptr ptr = m_program[idev]
                                           .kernel(m_kernel_name)
                                           .instantiate(e, l)
-                                          .get_global_ptr("jit::d_rcut_union");
+                                          .get_global_ptr("jit::d_r_cut_constituent");
 
                     // copy the array pointer to the device
                     char* error;

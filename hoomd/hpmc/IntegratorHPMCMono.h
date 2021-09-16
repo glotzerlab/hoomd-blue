@@ -798,7 +798,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
             if (m_patch)
                 {
-                r_cut_patch = m_patch->getRCut(typ_i);
+                r_cut_patch = m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i);
                 }
 
             // subtract minimum AABB extent from search radius
@@ -1278,7 +1278,7 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
         Scalar charge_i = h_charge.data[i];
 
         // the cut-off
-        OverlapReal r_cut = OverlapReal(m_patch->getRelevantRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i));
+        OverlapReal r_cut = OverlapReal(m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i));
 
         // subtract minimum AABB extent from search radius
         OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0),
@@ -1531,7 +1531,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
 
             Scalar r_cut_patch_i(0.0);
             if (m_patch)
-                r_cut_patch_i = (Scalar)m_patch->getRelevantRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i);
+                r_cut_patch_i = (Scalar)m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i);
 
             Scalar range_i(0.0);
             for (unsigned int typ_j = 0; typ_j < this->m_pdata->getNTypes(); typ_j++)
@@ -1722,7 +1722,7 @@ void IntegratorHPMCMono<Shape>::updateCellWidth()
             max_extent = std::max(max_extent, this->m_patch->getAdditiveCutoff(typ));
             }
 
-        this->m_nominal_width = std::max(this->m_nominal_width, this->m_patch->getRelevantRCut() + max_extent);
+        this->m_nominal_width = std::max(this->m_nominal_width, this->m_patch->getRCut() + max_extent);
         }
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;
@@ -1997,7 +1997,7 @@ std::vector<float> IntegratorHPMCMono<Shape>::mapEnergies()
         Scalar charge_i = h_charge.data[i];
 
         // Check particle against AABB tree for neighbors
-        Scalar r_cut_patch = m_patch->getRelevantRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i);
+        Scalar r_cut_patch = m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i);
         OverlapReal R_query = OverlapReal(r_cut_patch-getMinCoreDiameter()/(OverlapReal)2.0);
         detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 

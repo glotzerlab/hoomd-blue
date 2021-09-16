@@ -258,7 +258,7 @@ def test_param_array(device, cls, simulation_factory,
     r_cut = 5
     params = dict(code=lennard_jones, param_array=[2.5, 1.2, 1.0], r_cut=r_cut)
     if "union" in cls.__name__.lower():
-        params.update({"r_cut_union": 0})
+        params.update({"r_cut_constituent": 0})
         params.update({"code_union": "return 0;"})
     patch = cls(**params)
     if "union" in cls.__name__.lower():

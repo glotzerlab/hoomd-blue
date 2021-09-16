@@ -21,7 +21,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
                            Scalar r_cut_iso,
                            pybind11::array_t<float> param_array,
                            const std::string& cpu_code_union,
-                           Scalar r_cut_union,
+                           Scalar r_cut_constituent,
                            const unsigned int array_size_union,
                            const std::string& code,
                            const std::string& kernel_name,
@@ -35,7 +35,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
                               r_cut_iso,
                               param_array,
                               cpu_code_union,
-                              r_cut_union,
+                              r_cut_constituent,
                               array_size_union),
           m_gpu_factory(exec_conf,
                         code,
@@ -50,7 +50,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         m_gpu_factory.setAlphaPtr(&m_alpha.front());
         m_gpu_factory.setAlphaUnionPtr(&m_alpha_union.front());
         m_gpu_factory.setUnionParamsPtr(&m_d_union_params.front());
-        m_gpu_factory.setRCutUnion(float(m_rcut_union));
+        m_gpu_factory.setRCutUnion(float(m_r_cut_constituent));
 
         // tuning params for patch narrow phase
         std::vector<unsigned int> valid_params_patch;

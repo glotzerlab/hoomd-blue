@@ -259,7 +259,7 @@ class _CPPUnionPotential(CPPPotentialBase):
         This class does not currenlty work. Please do not attempt to use this.
 
     Args:
-        r_cut_union (`float`): Constituent particle center to center distance
+        r_cut_constituent (`float`): Constituent particle center to center distance
             cutoff beyond which all pair interactions are assumed 0.
         r_cut (`float`, **default** 0): Cut-off for isotropic interaction
             between centers of union particles.
@@ -309,7 +309,7 @@ class _CPPUnionPotential(CPPPotentialBase):
                             else
                                 return 0.0f;
                       """
-        patch = hoomd.jit.patch.CPPUnionPotential(r_cut_union=1.1, code_union=square_well)
+        patch = hoomd.jit.patch.CPPUnionPotential(r_cut_constituent=1.1, code_union=square_well)
         patch.positions['A'] = [(0,0,-5.),(0,0,.5)]
         patch.diameters['A'] =[0,0]
         patch.typeids['A'] =[0,0]
@@ -336,7 +336,7 @@ class _CPPUnionPotential(CPPPotentialBase):
                                     return 0.0f;
                          """
 
-        patch = hoomd.jit.patch.CPPUnionPotential(r_cut_union=2.5, code_union=square_well, array_size_union=2, \
+        patch = hoomd.jit.patch.CPPUnionPotential(r_cut_constituent=2.5, code_union=square_well, array_size_union=2, \
                                                r_cut=5, code=soft_repulsion, array_size=2)
         patch.positions['A'] = [(0,0,-5.),(0,0,.5)]
         patch.typeids['A'] = [0,0]
@@ -347,7 +347,7 @@ class _CPPUnionPotential(CPPPotentialBase):
     '''
 
     def __init__(self,
-                 r_cut_union,
+                 r_cut_constituent,
                  array_size_union=1,
                  code_union=None,
                  r_cut=0,
@@ -357,7 +357,7 @@ class _CPPUnionPotential(CPPPotentialBase):
         super().__init__(r_cut=r_cut, array_size=array_size, code=code)
 
         # add union specific params
-        param_dict = ParameterDict(r_cut_union=float(r_cut_union),
+        param_dict = ParameterDict(r_cut_constituent=float(r_cut_constituent),
                                    array_size_union=int(array_size_union),
                                    leaf_capacity=int(4))
         self._param_dict.update(param_dict)
@@ -421,7 +421,7 @@ class _CPPUnionPotential(CPPPotentialBase):
                 self.r_cut,
                 self.param_array,
                 cpu_code_constituent,
-                self.r_cut_union,
+                self.r_cut_constituent,
                 self.array_size_union,
                 gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
@@ -438,7 +438,7 @@ class _CPPUnionPotential(CPPPotentialBase):
                 self.r_cut,
                 self.param_array,
                 cpu_code_constituent,
-                self.r_cut_union,
+                self.r_cut_constituent,
                 self.array_size_union,
             )
 

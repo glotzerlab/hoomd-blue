@@ -24,7 +24,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                         Scalar r_cut_constituent,
                         const unsigned int array_size_union)
         : PatchEnergyJIT(sysdef, exec_conf, cpp_code_iso, compiler_args, r_cut_iso, param_array), m_sysdef(sysdef),
-          m_rcut_constituent(r_cut_constituent),
+          m_r_cut_constituent(r_cut_constituent),
           m_alpha_union(array_size_union,
                         0.0f,
                         managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
@@ -225,6 +225,12 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         return m_leaf_capacity;
         }
 
+    //! Get the maximum r_ij radius beyond which energies are always 0
+    virtual Scalar getRCut()
+        {
+        return m_r_cut_constituent;
+        }
+
     //! Get the cut-off for constituent particles
     virtual Scalar getRCutConstituent()
         {
@@ -246,12 +252,15 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         }
 
     //! Get the maximum geometric extent, which is added to the cutoff, per type
-    virtual inline Scalar getRCut(unsigned int type)
+    virtual inline Scalar getAdditiveCutoff(unsigned int type)
         {
         assert(type <= m_extent_type.size());
-        return std::max(
-                m_r_cut_isotropic,
-                m_extent_type[type] + m_r_cut_constituent);
+        Scalar extent = m_extent_type[type];
+        // ensure the minimum cutoff distance is the isotropic r_cut
+        if (0.5*extent + m_r_cut_constituent < m_r_cut)
+            return m_r_cut-m_r_cut_constituent;
+        else
+            return extent;
         }
 
     //! evaluate the energy of the patch interaction

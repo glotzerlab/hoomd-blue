@@ -134,7 +134,7 @@ class PatchEnergy : public Compute
 #endif
 
     //! Returns the distance from the center of the particle (single or union) beyond which energies are always zero
-    virtual Scalar getRCut(unsigned int type)
+    virtual Scalar getRCut()
         {
         return 0;
         }

@@ -48,7 +48,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
                    pybind11::array_t<float> param_array);
 
     //! Get the maximum r_ij radius beyond which energies are always 0
-    virtual Scalar getRCut(unsigned int type)
+    virtual Scalar getRCut()
         {
         return m_r_cut_isotropic;
         }
