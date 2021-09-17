@@ -224,10 +224,13 @@ class EvaluatorPairLJ
 
     DEVICE Scalar evalEnergyLRCIntegral()
         {
-        // TODO: Use correct forumla
         // Note that lj1 and lj2 are defined above.
+        // lj1 = 4.0 * epsilon * pow(sigma,12.0)
+        // lj2 = 4.0 * epsilon * pow(sigma,6.0);
         // Due to a bug, the way that lj1 and lj2 are defined will unfortunately be changing soon...
-        return 1/2 * rcutsq * lj1 * lj2;
+        Scalar rcut3inv = Scalar(1.0) / pow(rcutsq, 1.5);
+        Scalar rcut9inv = rcut3inv * rcut3inv;
+        return lj1 * (-1/9) * rcut9inv + lj2 * (1/3) * rcut3inv;
         }
 
 #ifndef __HIPCC__
