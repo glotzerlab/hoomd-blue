@@ -196,6 +196,11 @@ class EvaluatorPairExpandedMie
             return false;
         }
 
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name. Must be short and all lowercase, as this is the name energies

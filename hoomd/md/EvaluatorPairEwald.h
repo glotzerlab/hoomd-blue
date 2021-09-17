@@ -159,6 +159,11 @@ class EvaluatorPairEwald
             return false;
         }
 
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
