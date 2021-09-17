@@ -193,7 +193,9 @@ template<class evaluator> class PotentialPair : public ForceCompute
 
         std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
 
-        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                       access_location::host,
+                                       access_mode::read);
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
             unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
@@ -209,8 +211,11 @@ template<class evaluator> class PotentialPair : public ForceCompute
                 {
                 Scalar mass = m_pdata->getMass(type_j);
                 Scalar rho = num_particles_by_type[type_j] * mass / volume;
-                evaluator eval(Scalar(0.0), h_rcutsq.data[m_typpair_idx(type_i, type_j)], m_params[m_typpair_idx(type_i, type_j)]);
-                m_external_energy += 1/2 * num_particles_by_type[type_i] * 4 * M_PI * rho * eval.evalEnergyLRCIntegral();
+                evaluator eval(Scalar(0.0),
+                               h_rcutsq.data[m_typpair_idx(type_i, type_j)],
+                               m_params[m_typpair_idx(type_i, type_j)]);
+                m_external_energy += 1/2 * num_particles_by_type[type_i] * 4 * M_PI * rho
+                                     * eval.evalEnergyLRCIntegral();
                 }
             }
 

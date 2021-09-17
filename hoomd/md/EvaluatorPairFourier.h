@@ -194,10 +194,11 @@ class EvaluatorPairFourier
             return false;
         }
 
-    DEVICE Scalar evalEnergyLRCIntegral()
+    DEVICE Scalar evalEnergyLRCIntegral()
         {
-        return 0;
-        }
+            return 0;
+
+        }
 
 #ifndef __HIPCC__
     //! Get the name of this potential

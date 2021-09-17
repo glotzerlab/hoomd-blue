@@ -230,7 +230,7 @@ class EvaluatorPairLJ
         // Due to a bug, the way that lj1 and lj2 are defined will unfortunately be changing soon...
         Scalar rcut3inv = Scalar(1.0) / pow(rcutsq, 1.5);
         Scalar rcut9inv = rcut3inv * rcut3inv;
-        return lj1 * (-1/9) * rcut9inv + lj2 * (1/3) * rcut3inv;
+        return lj1 * (-1 / 9) * rcut9inv + lj2 * (1 / 3) * rcut3inv;
         }
 
 #ifndef __HIPCC__
