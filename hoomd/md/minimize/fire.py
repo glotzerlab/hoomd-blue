@@ -80,7 +80,8 @@ class FIRE(_DynamicIntegrator):
     <http://dx.doi.org/10.1103/PhysRevLett.97.170201>`_.
 
     At each time step, :math:`\\delta t`, the algorithm uses the supplied
-    integration methods to generate a x, v, and F, and then adjusts v according
+    integration methods to generate :math:`x`, :math:`v`, and :math:`F`, and
+    then adjusts :math:`v` according
     to
 
     .. math::
@@ -90,15 +91,15 @@ class FIRE(_DynamicIntegrator):
     where :math:`\\alpha` and :math:`\\delta t` are dynamically adaptive
     quantities.  While a current search has been lowering the energy of system
     for more than :math:`N_{min}` steps, :math:`\\alpha` is decreased by
-    :math:`\\alpha \\rightarrow \\alpha fdec_{\\alpha}` and :math:`\\delta t`
-    is increased by :math:`\\delta t \\rightarrow max(\\delta t \\cdot
-    finc_{dt}, \\ \\delta t_{max})`. If the energy of the system increases (or
-    stays the same), the velocity of the particles is set to 0, :math:`\\alpha
-    \\rightarrow \\ \\alpha_{start}` and :math:`\\delta t \\rightarrow \\delta t
-    \\cdot fdec_{\\alpha}`. The method converges when the force per
-    particle is below `force_tol`, the angular momentum is below `angmom_tol`
-    and the change in potential energy from one step to the next is below
-    `energy_tol`:
+    :math:`\\alpha \\rightarrow \\alpha \\cdot \\mathrm{fdec}_{\\alpha}` and
+    :math:`\\delta t` is increased by :math:`\\delta t \\rightarrow max(\\delta
+    t \\cdot \\mathrm{finc}_{dt}, \\ \\delta t_{max})`. If the energy of the
+    system increases (or stays the same), the velocity of the particles is set
+    to 0, :math:`\\alpha \\rightarrow \\ \\alpha_{start}` and :math:`\\delta t
+    \\rightarrow \\delta t \\cdot \\mathrm{fdec}_{\\alpha}`. The method
+    converges when the force per particle is below `force_tol`, the angular
+    momentum is below `angmom_tol` and the change in potential energy from one
+    step to the next is below `energy_tol`:
 
     .. math::
 
