@@ -180,6 +180,12 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     GroupCommunicatorGPU<DihedralData> m_dihedral_comm; //!< Communication helper for dihedrals
     friend class GroupCommunicatorGPU<DihedralData>;
 
+    GroupCommunicatorGPU<MeshBondData> m_meshbond_comm; //!< Communication helper for meshbonds
+    friend class GroupCommunicatorGPU<MeshBondData>;
+
+    GroupCommunicatorGPU<MeshTraingleData> m_meshtriangle_comm; //!< Communication helper for meshtriangles
+    friend class GroupCommunicatorGPU<MeshTraingleData>;
+
     GroupCommunicatorGPU<ImproperData> m_improper_comm; //!< Communication helper for impropers
     friend class GroupCommunicatorGPU<ImproperData>;
 
