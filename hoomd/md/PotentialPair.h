@@ -194,20 +194,21 @@ template<class evaluator> class PotentialPair : public ForceCompute
         std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
 
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-        // Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
-            unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w); // snapshot.particles.typeid[i]
-            ... // count particles in num_particles_by_type[]
+            unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
+            num_particles_by_type[typeid_i] += 1
             }
+        // how to access volume? mass?
 
         m_external_energy = 0;
         for (int type_i = 0; type_i < m_pdata->getNTypes(); i++)
             {
             for (int type_j = 0; type_j < m_pdata->getNTypes(); j++)
                 {
+                rho = num_particles_by_type[type_j] * mass / volume
                 evaluator eval(Scalar(0.0), h_rcutsq.data[m_typpair_idx(type_i, type_j)], m_params[m_typpair_idx(type_i, type_j)]);
-                m_external_energy += 1/2 * rho * ... * eval.evalEnergyLRCIntegral();
+                m_external_energy += 1/2 * num_particles_by_type[type_i] * 4 * M_PI * rho * eval.evalEnergyLRCIntegral();
                 }
             }
 
