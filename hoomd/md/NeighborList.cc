@@ -350,13 +350,13 @@ void NeighborList::compute(uint64_t timestep)
     if (m_n_particles_changed || m_topology_changed)
         {
         resizeAndClearExclusions();
+        m_n_particles_changed = false;
+        m_topology_changed = false;
+
         for (const std::string& exclusion : m_exclusions)
             {
             setSingleExclusion(exclusion);
             }
-
-        m_n_particles_changed = false;
-        m_topology_changed = false;
         }
 
     // take care of some updates if things have changed since construction
