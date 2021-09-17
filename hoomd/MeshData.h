@@ -44,9 +44,15 @@ class PYBIND11_EXPORT MeshData
     void initializeFromSnapshot(TriangleData::Snapshot snapshot);
 
     //! Access the triangle data
-    std::shared_ptr<TriangleData> getTriangleData()
+    std::shared_ptr<MeshTriangleData> getMeshTriangleData()
         {
-        return triangle_data;
+        return m_meshtriangle_data;
+        }
+
+    //! Access the triangle data
+    std::shared_ptr<MeshBondData> getMeshBondData()
+        {
+        return m_meshbond_data;
         }
 
     private:

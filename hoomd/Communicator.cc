@@ -1242,6 +1242,8 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
       m_has_ghost_particles(false), m_last_flags(0), m_comm_pending(false),
       m_bond_comm(*this, m_sysdef->getBondData()), m_angle_comm(*this, m_sysdef->getAngleData()),
       m_dihedral_comm(*this, m_sysdef->getDihedralData()),
+      m_meshtriangle_comm(*this, m_sysdef->getMeshTriangleData()),
+      m_meshbond_comm(*this, m_sysdef->getMeshBondData()),
       m_improper_comm(*this, m_sysdef->getImproperData()),
       m_constraint_comm(*this, m_sysdef->getConstraintData()),
       m_pair_comm(*this, m_sysdef->getPairData())
@@ -1312,6 +1314,16 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     m_sysdef->getDihedralData()
         ->getGroupNumChangeSignal()
         .connect<Communicator, &Communicator::setDihedralsChanged>(this);
+
+    m_meshbonds_changed = true;
+    m_sysdef->getMeshBondData()
+        ->getGroupNumChangeSignal()
+        .connect<Communicator, &Communicator::setMeshBondsChanged>(this);
+
+    m_meshtriangles_changed = true;
+    m_sysdef->getMeshTraingleData()
+        ->getGroupNumChangeSignal()
+        .connect<Communicator, &Communicator::setMeshTrainglesChanged>(this);
 
     m_impropers_changed = true;
     m_sysdef->getImproperData()
@@ -1407,6 +1419,12 @@ Communicator::~Communicator()
     m_sysdef->getDihedralData()
         ->getGroupNumChangeSignal()
         .disconnect<Communicator, &Communicator::setDihedralsChanged>(this);
+    m_sysdef->getMeshBondData()
+        ->getGroupNumChangeSignal()
+        .disconnect<Communicator, &Communicator::setMeshBondsChanged>(this);
+    m_sysdef->getMeshTraingleData()
+        ->getGroupNumChangeSignal()
+        .disconnect<Communicator, &Communicator::setMeshTrainglesChanged>(this);
     m_sysdef->getImproperData()
         ->getGroupNumChangeSignal()
         .disconnect<Communicator, &Communicator::setImpropersChanged>(this);
@@ -1668,6 +1686,14 @@ void Communicator::migrateParticles()
         m_dihedral_comm.migrateGroups(m_dihedrals_changed, true);
         m_dihedrals_changed = false;
 
+        // MeshBonds
+        m_meshbond_comm.migrateGroups(m_meshbonds_changed, true);
+        m_meshbonds_changed = false;
+
+        // MeshTraingles
+        m_meshtriangle_comm.migrateGroups(m_meshtriangles_changed, true);
+        m_meshtriangles_changed = false;
+
         // Dihedrals
         m_improper_comm.migrateGroups(m_impropers_changed, true);
         m_impropers_changed = false;
@@ -1925,6 +1951,12 @@ void Communicator::exchangeGhosts()
 
     // dihedrals
     m_dihedral_comm.markGhostParticles(m_plan, mask);
+
+    // meshbonds
+    m_meshbond_comm.markGhostParticles(m_plan, mask);
+
+    // meshtriangles
+    m_meshtriangle_comm.markGhostParticles(m_plan, mask);
 
     // impropers
     m_improper_comm.markGhostParticles(m_plan, mask);

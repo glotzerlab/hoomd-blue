@@ -174,5 +174,6 @@ void export_MeshData(py::module& m)
         .def("takeSnapshot_float", &MeshData::takeSnapshot<float>)
         .def("takeSnapshot_double", &MeshData::takeSnapshot<double>)
         .def("initializeFromSnapshot", &MeshData::initializeFromSnapshot)
-        .def("getTriangleData", &MeshData::getTriangleData);
+        .def("getMeshTriangleData", &MeshData::getMeshTriangleData)
+        .def("getMeshBondData", &MeshData::getMeshBondData);
     }
