@@ -222,6 +222,14 @@ class EvaluatorPairLJ
             return false;
         }
 
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        // TODO: Use correct forumla
+        // Note that lj1 and lj2 are defined above.
+        // Due to a bug, the way that lj1 and lj2 are defined will unfortunately be changing soon...
+        return 1/2 * rcutsq * lj1 * lj2;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.

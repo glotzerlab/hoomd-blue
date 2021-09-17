@@ -178,6 +178,43 @@ template<class evaluator> class PotentialPair : public ForceCompute
         m_attached = false;
         }
 
+    //! Get the contribution to the external virial
+    Scalar getExternalVirial(unsigned int dir)
+        {
+        assert(dir < 6);
+
+        return m_external_virial[dir];
+        }
+
+    //! Get the contribution to the external potential energy
+    Scalar getExternalEnergy()
+        {
+        ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+
+        std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
+
+        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+        // Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            {
+            unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w); // snapshot.particles.typeid[i]
+            ... // count particles in num_particles_by_type[]
+            }
+
+        m_external_energy = 0;
+        for (int type_i = 0; type_i < m_pdata->getNTypes(); i++)
+            {
+            for (int type_j = 0; type_j < m_pdata->getNTypes(); j++)
+                {
+                evaluator eval(Scalar(0.0), h_rcutsq.data[m_typpair_idx(type_i, type_j)], m_params[m_typpair_idx(type_i, type_j)]);
+                m_external_energy += 1/2 * rho * ... * eval.evalEnergyLRCIntegral();
+                }
+            }
+
+        // TODO MPI reduction
+        return m_external_energy;
+        }
+
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     virtual CommFlags getRequestedCommFlags(uint64_t timestep);
