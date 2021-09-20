@@ -1,20 +1,27 @@
 Units
 +++++
 
-HOOMD-blue does not adopt any particular system of units, but instead follows a self-consistent system of units. Users are free to define HOOMD-blue's base units (e.g. meters versus centimeters for length), and units of all derived quantities can be determined from the base units. For instance if the base units are chosen to be 1 meter, 1 Joule, and 1 kilogram, then velocity is in meters per second, but if one chooses nanometers for length, kilojoules per mole for energy, and 1 amu for mass then velocity is in nanometers per picosecond.
+HOOMD-blue does not adopt a particular system of units, nor does it offer a variety of systems
+to choose from. Instead, it follows a self-consistent system of units where all derived units
+(e.g. force) are defined in terms of base units (e.g. energy / length). To adopt a system of units
+for your simulations, choose a set of base units (e.g. meters versus centimeters for length), and
+then determine what the derived unis are.
 
-Note:
+.. note::
+
+    Most of the units on this page apply to MD simulations.
+
     In HPMC, the primary unit is that of length. Mass is factored out of the partition function and
     does not enter into the simulation. In addition, the scale of energy is irrelevant in athermal
     HPMC systems where overlapping energies are infinite and valid configurations have
     zero potential energy. However, energy does appear implicitly in derived units like
     :math:`[\mathrm{pressure}] = \left(\frac{\mathrm{[energy]}}{\mathrm{[length]}^3}\right)`.  In
-    HPMC, :math:`kT` is assumed to be 1 unit of energy.
+    HPMC, :math:`kT` is assumed to be 1 :math:`\mathrm{energy}`.
 
 Base Units
 ==========
 
-Base units in HOOMD-blue are:
+The base units are:
 
 - energy
 - length
@@ -23,26 +30,75 @@ Base units in HOOMD-blue are:
 Unit Conversion
 ===============
 
-Unit conversions between derived units and base units:
-
+Unit conversions between derived units and arbitrary base units:
 
 .. list-table::
    :header-rows: 1
 
    * - Derived units
-     - Base units
-   * - :math:`[\mathrm{time}]`
-     - :math:`[\sqrt{\mathrm{mass} \cdot \mathrm{length}^2 \cdot \mathrm{energy}^{-1}}]`
-   * - :math:`[\mathrm{force}]`
-     - :math:`[\mathrm{energy} \cdot \mathrm{length}^{-1}]`
-   * - :math:`[\mathrm{pressure}]`
-     - :math:`[\mathrm{energy} \cdot \mathrm{length}^{-3}]`
-   * - :math:`[\mathrm{charge}]`
-     - :math:`[\sqrt{4 \cdot \pi \cdot \epsilon_{0} \cdot \mathrm{energy} \cdot \mathrm{length}}]`
-       :math:`\epsilon_{0}`: the permittivity of free space
-   * - :math:`[\mathrm{velocity}]`
-     - :math:`[\sqrt{\mathrm{energy} \cdot \mathrm{mass}^{-1}}]`
-   * - :math:`[\mathrm{volume}]`
-     - :math:`[\mathrm{length}^3]`
+     - Relation to base units
    * - :math:`[\mathrm{area}]`
-     - :math:`[\mathrm{length}^2]`
+     - :math:`[\mathrm{length}]^2`
+   * - :math:`[\mathrm{volume}]`
+     - :math:`[\mathrm{length}]^3`
+   * - :math:`[\mathrm{time}]`
+     - :math:`[\mathrm{energy}]^{-1/2} \cdot [\mathrm{length}] \cdot [\mathrm{mass}]^{1/2}`
+   * - :math:`[\mathrm{velocity}]`
+     - :math:`[\mathrm{energy}]^{1/2} \cdot [\mathrm{mass}]^{-1/2}`
+   * - :math:`[\mathrm{force}]`
+     - :math:`[\mathrm{energy}] \cdot [\mathrm{length}]^{-1}`
+   * - :math:`[\mathrm{pressure}]`
+     - :math:`[\mathrm{energy}] \cdot [\mathrm{length}]^{-3}`
+   * - :math:`[\mathrm{charge}]`
+     - :math:`\left(4 \pi \epsilon_{0} \cdot [\mathrm{energy}] \cdot [\mathrm{length}] \right)^{1/2}`
+       - where :math:`\epsilon_{0}` is permittivity of free space
+
+
+Common unit systems
+===================
+
+Here are the base and derived units for some commonly used MD unit systems.
+
+.. note::
+
+    All conversion factors are computed by Wolfram Alpha using the provided links.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Unit
+     - AKMA
+     - MD
+   * - :math:`[\mathrm{energy}]`
+     - kcal/mol
+     - kJ/mol
+   * - :math:`[\mathrm{length}]`
+     - Å
+     - nm
+   * - :math:`[\mathrm{mass}]`
+     - atomic mass unit
+     - atomic mass unit
+   * - :math:`[\mathrm{area}]`
+     - :math:`\mathrm{Å}^2`
+     - :math:`\mathrm{nm}^2`
+   * - :math:`[\mathrm{volume}]`
+     - :math:`\mathrm{Å}^3`
+     - :math:`\mathrm{nm}^3`
+   * - :math:`[\mathrm{time}]`
+     - `48.8882129 fs <https://www.wolframalpha.com/input/?i=angstrom+*+amu%5E%281%2F2%29+*+%28kcal%2Favagodros+number%29%5E%28%E2%88%921%2F2%29>`__
+     - `1 ps <https://www.wolframalpha.com/input/?i=nanometer+*+amu%5E%281%2F2%29+*+%28kilojoule%2Favagodros+number%29%5E%28%E2%88%921%2F2%29>`__
+   * - :math:`[\mathrm{velocity}]`
+     - `0.02045482828 Å/fs <https://www.wolframalpha.com/input/?i=%28kcal%2Favagodros+number%29%5E%281%2F2%29+*+amu%5E%28-1%2F2%29+in+angstrom%2Ffs>`__
+     - 1 nm/ps
+   * - :math:`[\mathrm{force}]`
+     - kcal/mol/Å
+     - kJ/mol/nm
+   * - :math:`[\mathrm{pressure}]`
+     - `68568 atm <https://www.wolframalpha.com/input/?i=%28kcal%2Favagodros+number%29+*+angstrom%5E%28-3%29+in+atomospheres>`__
+     - `16.39 atm <https://www.wolframalpha.com/input/?i=%28kilojoule%2Favagodros+number%29+*+nanometer%5E%28-3%29+in+atomospheres>`__
+   * - :math:`[\mathrm{charge}]`
+     - `0.05487686461 e <https://www.wolframalpha.com/input/?i=sqrt%284+*+pi+*+permittivity+of+free+space+*+1+%28kcal%2Favogadro%27s+number%29+*+1+angstrom%29+%2F+proton+charge>`__
+     - `0.0848385920 e <https://www.wolframalpha.com/input/?i=sqrt%284+*+pi+*+permittivity+of+free+space+*+1+%28kilojoule%2Favogadro%27s+number%29+*+1+nanometer%29+%2F+proton+charge>`__
+   * - :math:`k_B` (Boltzmann's constant)
+     - `0.001987 kcal/mol/K <https://www.wolframalpha.com/input/?i=boltzmann%27s+constant+in+kcal%2Favagadros+number%2FK>`__
+     - `0.008314 kJ/mol/K <https://www.wolframalpha.com/input/?i=boltzmann%27s+constant+in+kilojoues%2Favagadros+number%2FK>`__
