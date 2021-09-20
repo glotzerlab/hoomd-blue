@@ -238,44 +238,44 @@ if (ENABLE_LLVM)
                                  ClangCompiler.h
        )
 
-    pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_${PACKAGE_NAME}_cu_sources} NO_EXTRAS)
+    pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_${PACKAGE_NAME}_cu_sources} ${_${PACKAGE_NAME}_llvm_sources} NO_EXTRAS)
     # alias into the HOOMD namespace so that plugins and symlinked components both work
     add_library(HOOMD::_${PACKAGE_NAME} ALIAS _${PACKAGE_NAME})
 
-    add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
+    # add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
 
     if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_${PACKAGE_NAME} PUBLIC CUDA::cuda CUDA::nvrtc)
     endif ()
 
-    target_include_directories(_${PACKAGE_NAME}_llvm PUBLIC ${LLVM_INCLUDE_DIRS})
-    target_compile_definitions(_${PACKAGE_NAME}_llvm PUBLIC ${LLVM_DEFINITIONS})
-    target_compile_definitions(_${PACKAGE_NAME}_llvm PUBLIC HOOMD_LLVM_INSTALL_PREFIX=\"${LLVM_INSTALL_PREFIX}\")
+    target_include_directories(_${PACKAGE_NAME} PUBLIC ${LLVM_INCLUDE_DIRS})
+    target_compile_definitions(_${PACKAGE_NAME} PUBLIC ${LLVM_DEFINITIONS})
+    target_compile_definitions(_${PACKAGE_NAME} PUBLIC HOOMD_LLVM_INSTALL_PREFIX=\"${LLVM_INSTALL_PREFIX}\")
 
-    target_include_directories(_${PACKAGE_NAME}_llvm PUBLIC
+    target_include_directories(_${PACKAGE_NAME} PUBLIC
                                $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}>
                                $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include>)
 
     # set the appropriate compiler flags on the _llvm target
-    list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-    include(AddLLVM)
-    llvm_update_compile_flags(_${PACKAGE_NAME}_llvm)
+    # list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+    # include(AddLLVM)
+    # llvm_update_compile_flags(_${PACKAGE_NAME}_llvm)
 
     # work around missing LLVM link information
-    if(LLVM_ENABLE_TERMINFO)
-        find_library(TERMINFO NAMES tinfo ncurses)
-        if (${TERMINFO} STREQUAL TERMINFO-NOTFOUND)
-            message(FATAL_ERROR "no libtinfo or libncurses is found in system")
-        else (${TERMINFO} STREQUAL TERMINFO-NOTFOUND)
-            target_link_libraries(_${PACKAGE_NAME}_llvm ${TERMINFO})
-        endif (${TERMINFO} STREQUAL TERMINFO-NOTFOUND)
-    endif()
+    # if(LLVM_ENABLE_TERMINFO)
+    #     find_library(TERMINFO NAMES tinfo ncurses)
+    #     if (${TERMINFO} STREQUAL TERMINFO-NOTFOUND)
+    #         message(FATAL_ERROR "no libtinfo or libncurses is found in system")
+    #     else (${TERMINFO} STREQUAL TERMINFO-NOTFOUND)
+    #         target_link_libraries(_${PACKAGE_NAME}_llvm PRIVATE ${TERMINFO})
+    #     endif (${TERMINFO} STREQUAL TERMINFO-NOTFOUND)
+    # endif()
 
     # link the libraries to their dependencies
-    target_link_libraries(_${PACKAGE_NAME}_llvm ${llvm_library} ${clang_library})
+    # target_link_libraries(_${PACKAGE_NAME}_llvm PUBLIC ${llvm_library} ${clang_library} _hoomd)
 
-    # need to link the LLVM library here, too, otherwise module import fails
-    target_link_libraries(_${PACKAGE_NAME} PUBLIC _hoomd PRIVATE _${PACKAGE_NAME}_llvm ${llvm_library} ${clang_library})
+    # # need to link the LLVM library here, too, otherwise module import fails
+    target_link_libraries(_${PACKAGE_NAME} PUBLIC ${llvm_library} ${clang_library} _hoomd )
 
     # set installation RPATH
     if(APPLE)
@@ -285,10 +285,10 @@ if (ENABLE_LLVM)
     endif()
 
     fix_cudart_rpath(_${PACKAGE_NAME})
-    fix_cudart_rpath(_${PACKAGE_NAME}_llvm)
+    # fix_cudart_rpath(_${PACKAGE_NAME}_llvm)
 
     # install the library
-    install(TARGETS _${PACKAGE_NAME} _${PACKAGE_NAME}_llvm
+    install(TARGETS _${PACKAGE_NAME}
             LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc
             )
 
