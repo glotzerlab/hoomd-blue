@@ -203,7 +203,7 @@ class _AlchemicalMethods(_HOOMDBaseObject):
         def __init__(self, outer):
             self.outer = outer
             super().__init__(SetOnce(outer._particle_type), len_keys=2)
-            
+
         # FIXME: breaks delayed instantiation by validating types
         def _validate_and_split_alchem(self, key):
             if isinstance(key, tuple) and len(key) == self._len_keys:
