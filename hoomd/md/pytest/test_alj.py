@@ -37,8 +37,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
 
     with sim.state.cpu_local_snapshot as snapshot:
         snapshot.particles.mass[:] = mass
-        snapshot.particles.moment_of_inertia[:] = np.array(
-            [0, 0, moment_inertia])
+        snapshot.particles.moment_inertia[:] = np.array([0, 0, moment_inertia])
         # Not sure if this should be incircle or circumcircle;
         # probably doesn't matter based on current usage, but may
         # matter in the future for the potential if it's modified
