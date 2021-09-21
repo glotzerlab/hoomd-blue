@@ -199,15 +199,15 @@ template<class evaluator> class PotentialPair : public ForceCompute
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
             unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
-            num_particles_by_type[typeid_i] += 1
+            num_particles_by_type[typeid_i] += 1;
             }
         BoxDim box = m_pdata->getBox();
         Scalar volume = box.getVolume();
 
         m_external_energy = 0;
-        for (int type_i = 0; type_i < m_pdata->getNTypes(); i++)
+        for (int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
             {
-            for (int type_j = 0; type_j < m_pdata->getNTypes(); j++)
+            for (int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
                 {
                 Scalar mass = m_pdata->getMass(type_j);
                 Scalar rho = num_particles_by_type[type_j] * mass / volume;
