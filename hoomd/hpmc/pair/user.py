@@ -261,20 +261,13 @@ class _CPPUnionPotential(CPPPotentialBase):
     Args:
         r_cut_constituent (`float`): Constituent particle center to center distance
             cutoff beyond which all pair interactions are assumed 0.
-        r_cut (`float`, **default** 0): Cut-off for isotropic interaction
+        r_cut_isotropic (`float`, **default** 0): Cut-off for isotropic interaction
             between centers of union particles.
-        code_union (`str`): C++ code defining the custom pair interactions
+        code_constituent (`str`): C++ code defining the custom pair interactions
             between constituent particles.
-        code (`str`): C++ code for isotropic part.
-        array_size_union (`int`, **default:** 1): Size of array with adjustable
-            elements.
-        array_size (`int`, **default:** 1): Size of array with adjustable
-            elements for the isotropic part.
-
-    Note:
-        If both `code_union` and `llvm_ir_fname_union` are provided, the former
-            takes precedence. The latter will be used as a fallback in case the
-            compilation of `code_union` fails.
+        code_isotropic (`str`): C++ code for isotropic part.
+        param_array (list[float]): Parameter values to pass into ``param_array``
+            in the compiled code.
 
     Note:
         This class uses an internal OBB tree for fast interaction queries
@@ -296,7 +289,7 @@ class _CPPUnionPotential(CPPPotentialBase):
         typeids (`TypeParameter` [``particle type``, `list` [`float`]])
             The charges of the constituent particles.
         leaf_capacity (`int`, **default:** 4) : The number of particles in a leaf of the internal tree data structure
-        alpha_union (``ndarray<float>``): Length array_size_union numpy array containing dynamically adjustable elements
+        param_array (``ndarray<float>``): Length array_size_union numpy array containing dynamically adjustable elements
                                           defined by the user for unions of shapes.
 
     Example:
@@ -336,8 +329,12 @@ class _CPPUnionPotential(CPPPotentialBase):
                                     return 0.0f;
                          """
 
-        patch = hoomd.jit.patch.CPPUnionPotential(r_cut_constituent=2.5, code_union=square_well, array_size_union=2, \
-                                               r_cut=5, code=soft_repulsion, array_size=2)
+        patch = hoomd.jit.patch.CPPUnionPotential(
+                        r_cut_constituent=2.5,
+                        r_cut_isotropic=5.0,
+                        code_union=square_well,
+                        code_isotropic=soft_repulsion
+        )
         patch.positions['A'] = [(0,0,-5.),(0,0,.5)]
         patch.typeids['A'] = [0,0]
         patch.diameters['A'] = [0,0]
@@ -348,10 +345,10 @@ class _CPPUnionPotential(CPPPotentialBase):
 
     def __init__(self,
                  r_cut_constituent,
-                 array_size_union=1,
-                 code_union=None,
-                 r_cut=0,
-                 array_size=1):
+                 r_cut_isotropic,
+                 code_constituent=None,
+                 code_isotropic=None,
+                 param_array):
 
         # initialize base class
         super().__init__(r_cut=r_cut, array_size=array_size, code=code)
@@ -359,7 +356,8 @@ class _CPPUnionPotential(CPPPotentialBase):
         # add union specific params
         param_dict = ParameterDict(r_cut_constituent=float(r_cut_constituent),
                                    array_size_union=int(array_size_union),
-                                   leaf_capacity=int(4))
+                                   leaf_capacity=int(4),
+                                   r_cut_isotropic=float(r_cut_isotropic))
         self._param_dict.update(param_dict)
 
         # add union specific per-type parameters
@@ -394,8 +392,9 @@ class _CPPUnionPotential(CPPPotentialBase):
         ])
 
         # these only exist on python
-        self._code_union = code_union
-        self.alpha_union = np.zeros(array_size_union)
+        self._code_constituent = code_constituent
+        self._code_isotropic = code_isotropic
+        self.param_array = param_array
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -405,20 +404,20 @@ class _CPPUnionPotential(CPPPotentialBase):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        cpu_code_constituent = self._wrap_cpu_code(self._code_union)
-        cpu_code_iso = self._wrap_cpu_code(self._code)
+        cpu_code_constituent = self._wrap_cpu_code(self._code_constituent)
+        cpu_code_iso = self._wrap_cpu_code(self._code_isotropic)
         cpu_include_options = _compile.get_cpu_include_options()
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
-            gpu_code = self._wrap_gpu_code(self._code)
+            gpu_code = self._wrap_gpu_code(self._code_isotropic)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
                 self._simulation.state._cpp_sys_def,
                 device._cpp_exec_conf,
                 cpu_code_iso,
-                self.r_cut,
+                self.r_cut_isotropic,
                 self.param_array,
                 cpu_code_constituent,
                 self.r_cut_constituent,
@@ -435,7 +434,7 @@ class _CPPUnionPotential(CPPPotentialBase):
                 device._cpp_exec_conf,
                 cpu_code_iso,
                 cpu_include_options,
-                self.r_cut,
+                self.r_cut_isotropic,
                 self.param_array,
                 cpu_code_constituent,
                 self.r_cut_constituent,
