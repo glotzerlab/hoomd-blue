@@ -234,7 +234,7 @@ hipError_t gpu_fire_compute_sum_pe(unsigned int* d_group_members,
                        d_partial_sum_pe);
 
     hipLaunchKernelGGL((gpu_fire_reduce_partial_sum_kernel),
-                       dim3(grid),
+                       dim3(1, 1, 1),
                        dim3(threads),
                        block_size * sizeof(Scalar),
                        0,
@@ -591,7 +591,6 @@ hipError_t gpu_fire_compute_sum_all(const unsigned int N,
                        block_size * sizeof(Scalar),
                        0,
                        d_vel,
-
                        d_accel,
                        d_group_members,
                        group_size,

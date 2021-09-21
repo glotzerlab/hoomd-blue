@@ -362,6 +362,7 @@ add_subdirectory(methods)
 add_subdirectory(long_range)
 
 add_subdirectory(external)
+add_subdirectory(minimize)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)
