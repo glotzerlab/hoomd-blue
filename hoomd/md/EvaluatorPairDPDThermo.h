@@ -288,8 +288,7 @@ class EvaluatorPairDPDThermo
 
     DEVICE Scalar evalEnergyLRCIntegral()
         {
-            return 0;
-
+        return 0;
         }
 
 #ifndef __HIPCC__
