@@ -61,7 +61,7 @@ Here are the base and derived units for some commonly used MD unit systems.
 
 .. note::
 
-    All conversion factors are computed by Wolfram Alpha using the provided links.
+    All conversion factors are provided with the given links.
 
 .. list-table::
    :header-rows: 1
@@ -85,20 +85,20 @@ Here are the base and derived units for some commonly used MD unit systems.
      - :math:`\mathrm{Å}^3`
      - :math:`\mathrm{nm}^3`
    * - :math:`[\mathrm{time}]`
-     - `48.8882129 fs <https://www.wolframalpha.com/input/?i=angstrom+*+amu%5E%281%2F2%29+*+%28kcal%2Favagodros+number%29%5E%28%E2%88%921%2F2%29>`__
-     - `1 ps <https://www.wolframalpha.com/input/?i=nanometer+*+amu%5E%281%2F2%29+*+%28kilojoule%2Favagodros+number%29%5E%28%E2%88%921%2F2%29>`__
+     - `48.8882129 fs <https://www.wolframalpha.com/input/?i=angstrom+*+amu%5E%281%2F2%29+*+%28kcal%2FAvogadro+number%29%5E%28%E2%88%921%2F2%29>`__
+     - `1 ps <https://www.wolframalpha.com/input/?i=nanometer+*+amu%5E%281%2F2%29+*+%28kilojoule%2FAvogadro+number%29%5E%28%E2%88%921%2F2%29>`__
    * - :math:`[\mathrm{velocity}]`
-     - `0.02045482828 Å/fs <https://www.wolframalpha.com/input/?i=%28kcal%2Favagodros+number%29%5E%281%2F2%29+*+amu%5E%28-1%2F2%29+in+angstrom%2Ffs>`__
+     - `0.02045482828 Å/fs <https://www.wolframalpha.com/input/?i=%28kcal%2FAvogadro+number%29%5E%281%2F2%29+*+amu%5E%28-1%2F2%29+in+angstrom%2Ffs>`__
      - 1 nm/ps
    * - :math:`[\mathrm{force}]`
      - kcal/mol/Å
      - kJ/mol/nm
    * - :math:`[\mathrm{pressure}]`
-     - `68568 atm <https://www.wolframalpha.com/input/?i=%28kcal%2Favagodros+number%29+*+angstrom%5E%28-3%29+in+atomospheres>`__
-     - `16.39 atm <https://www.wolframalpha.com/input/?i=%28kilojoule%2Favagodros+number%29+*+nanometer%5E%28-3%29+in+atomospheres>`__
+     - `68568.4230 atm <https://www.wolframalpha.com/input/?i=%28kcal%2FAvogadro+number%29+*+angstrom%5E%28-3%29+in+atmospheres>`__
+     - `16.3882464 atm <https://www.wolframalpha.com/input/?i=%28kilojoule%2FAvogadro+number%29+*+nanometer%5E%28-3%29+in+atmospheres>`__
    * - :math:`[\mathrm{charge}]`
-     - `0.05487686461 e <https://www.wolframalpha.com/input/?i=sqrt%284+*+pi+*+permittivity+of+free+space+*+1+%28kcal%2Favogadro%27s+number%29+*+1+angstrom%29+%2F+proton+charge>`__
-     - `0.0848385920 e <https://www.wolframalpha.com/input/?i=sqrt%284+*+pi+*+permittivity+of+free+space+*+1+%28kilojoule%2Favogadro%27s+number%29+*+1+nanometer%29+%2F+proton+charge>`__
+     - `0.05487686461 e <https://www.wolframalpha.com/input/?i=sqrt%284+*+pi+*+permittivity+of+free+space+*+1+%28kcal%2FAvogadro%27s+number%29+*+1+angstrom%29+%2F+proton+charge>`__
+     - `0.0848385920 e <https://www.wolframalpha.com/input/?i=sqrt%284+*+pi+*+permittivity+of+free+space+*+1+%28kilojoule%2FAvogadro%27s+number%29+*+1+nanometer%29+%2F+proton+charge>`__
    * - :math:`k_B` (Boltzmann's constant)
-     - `0.001987 kcal/mol/K <https://www.wolframalpha.com/input/?i=boltzmann%27s+constant+in+kcal%2Favagadros+number%2FK>`__
-     - `0.008314 kJ/mol/K <https://www.wolframalpha.com/input/?i=boltzmann%27s+constant+in+kilojoues%2Favagadros+number%2FK>`__
+     - `0.00198720426 kcal/mol/K <https://www.wolframalpha.com/input/?i=boltzmann%27s+constant+in+kcal%2FAvogadro+number%2FK>`__
+     - `0.00831446262 kJ/mol/K <https://www.wolframalpha.com/input/?i=boltzmann%27s+constant+in+kilojoues%2FAvogadro+number%2FK>`__
