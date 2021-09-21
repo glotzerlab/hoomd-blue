@@ -5,7 +5,7 @@ HOOMD-blue does not adopt a particular system of units, nor does it offer a vari
 to choose from. Instead, it follows a self-consistent system of units where all derived units
 (e.g. force) are defined in terms of base units (e.g. energy / length). To adopt a system of units
 for your simulations, choose a set of base units (e.g. meters versus centimeters for length), and
-then determine what the derived unis are.
+then determine what the derived units are.
 
 .. note::
 
