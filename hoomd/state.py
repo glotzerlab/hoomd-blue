@@ -80,7 +80,7 @@ class State:
 
     `State` stores the data that describes the thermodynamic microstate of a
     `hoomd.Simulation` object. This data consists of the box, particles, bonds,
-    angles, dihedrals, impropers, special pairs, and constraints.
+    angles, dihedrals, triangles, impropers, special pairs, and constraints.
 
     .. rubric:: Box
 
@@ -157,17 +157,19 @@ class State:
 
     The state contains `N_bonds` bonds, `N_angles` angles, `N_dihedrals`
     dihedrals, `N_impropers` impropers, and `N_special_pairs` special pairs.
+    It also contains `N_triangles` tringles that define a surface mesh.
     Each of these data structures is similar, differing in the number of
     particles in the group and what operations use them. Bonds, angles,
-    dihedrals, and impropers contain 2, 3, 4, and 4 particles per group
-    respectively. Bonds specify the toplogy used when computing energies and
-    forces in `md.bond`, angles define the same for `md.angle`, dihedrals for
-    `md.dihedral` and impropers for `md.improper`. These collectively implement
-    bonding potentials used in molecular dynamics force fields. Like bonds,
-    special pairs define connections between two particles, but special pairs
-    are intended to adjust the 1-4 pairwise interactions in some molecular
-    dynamics force fields: see `md.special_pair`. Each bonded group is defined
-    by a type id, the group members, and a tag.
+    triangles, dihedrals, and impropers contain 2, 3, 3, 4, and 4 particles
+    per group respectively. Bonds specify the toplogy used when computing
+    energies and forces in `md.bond`, angles define the same for `md.angle`,
+    dihedrals for `md.dihedral` and impropers for `md.improper`. These
+    collectively implement bonding potentials used in molecular dynamics
+    force fields. Like bonds, special pairs define connections between two
+    particles, but special pairs are intended to adjust the 1-4 pairwise
+    interactions in some molecular dynamics force fields: see
+    `md.special_pair`. Each bonded group is defined by a type id, the
+    group members, and a tag.
 
     - :math:`t_\\mathrm{id}`: type id :math:`[\\mathrm{dimensionless}]` -
       integer in the range ``[0,len(bond_types)``) that identifies the
@@ -310,6 +312,8 @@ class State:
                 raise RuntimeError("Angle types must remain the same")
             if snapshot.dihedrals.types != self.dihedral_types:
                 raise RuntimeError("Dihedral types must remain the same")
+            if snapshot.triangles.types != self.triangle_types:
+                raise RuntimeError("Triangle types must remain the same")
             if snapshot.impropers.types != self.improper_types:
                 raise RuntimeError("Improper types must remain the same")
             if snapshot.pairs.types != self.special_pair_types:
@@ -338,6 +342,11 @@ class State:
         return self._cpp_sys_def.getDihedralData().getTypes()
 
     @property
+    def triangle_types(self):
+        """list[str]: List of all triangle types in the simulation state."""
+        return self._cpp_sys_def.getMeshTriangleData().getTypes()
+
+    @property
     def improper_types(self):
         """list[str]: List of all improper types in the simulation state."""
         return self._cpp_sys_def.getImproperData().getTypes()
@@ -360,6 +369,7 @@ class State:
                     bond_types=self.bond_types,
                     angle_types=self.angle_types,
                     dihedral_types=self.dihedral_types,
+                    triangle_types=self.triangle_types,
                     improper_types=self.improper_types,
                     special_pair_types=self.special_pair_types)
 
@@ -392,6 +402,11 @@ class State:
     def N_dihedrals(self):  # noqa: N802 - allow N in name
         """int: The number of dihedrals in the simulation state."""
         return self._cpp_sys_def.getDihedralData().getNGlobal()
+
+    @property
+    def N_triangles(self):  # noqa: N802 - allow N in name
+        """int: The number of triangles in the simulation state."""
+        return self._cpp_sys_def.getMeshTriangleData().getNGlobal()
 
     @property
     def N_constraints(self):  # noqa: N802 - allow N in name
@@ -449,9 +464,10 @@ class State:
         `replicate` makes the system state ``nx * ny * nz`` times larger. In
         each of the new periodic box images, it places a copy of the initial
         state with the particle positions offset to locate them in the image and
-        the bond, angle, dihedral, improper, and pair group tags offset to apply
-        to the copied particles. All other particle properties (mass, typeid,
-        velocity, charge, ...) are copied to the new particles without change.
+        the bond, angle, dihedral, triangle, improper, and pair group tags
+        offset to apply to the copied particles. All other particle properties
+        (mass, typeid, velocity, charge, ...) are copied to the new particles
+        without change.
 
         After placing the particles, `replicate` expands the simulation box by a
         factor of ``nx``, ``ny``, and ``nz`` in the direction of the first,
@@ -506,12 +522,13 @@ class State:
         """hoomd.data.LocalSnapshot: Expose simulation data on the CPU.
 
         Provides access directly to the system state's particle, bond, angle,
-        dihedral, improper, constaint, and pair data through a context manager.
-        Data in `State.cpu_local_snapshot` is MPI rank local, and the
-        `hoomd.data.LocalSnapshot` object is only usable within a context
-        manager (i.e. ``with sim.state.cpu_local_snapshot as data:``). Attempts
-        to assess data outside the context manager will result in errors. The
-        local snapshot interface is similar to that of `hoomd.Snapshot`.
+        dihedral, triangle, improper, constaint, and pair data through a
+        context manager. Data in `State.cpu_local_snapshot` is MPI rank local,
+        and the `hoomd.data.LocalSnapshot` object is only usable within a
+        context manager (i.e. ``with sim.state.cpu_local_snapshot as data:``).
+        Attempts to assess data outside the context manager will result in
+        errors. The local snapshot interface is similar to that of
+        `hoomd.Snapshot`.
 
         The `hoomd.data.LocalSnapshot` data access is mediated through
         `hoomd.array.HOOMDArray` objects. This lets us ensure memory safety when
@@ -530,8 +547,8 @@ class State:
 
         Note:
             The state's box and the number of particles, bonds, angles,
-            dihedrals, impropers, constaints, and pairs cannot change within the
-            context manager.
+            dihedrals, triangles, impropers, constaints, and pairs cannot
+            change within the context manager.
 
         Note:
             Getting a local snapshot object is order :math:`O(1)` and setting a
@@ -548,12 +565,13 @@ class State:
         """hoomd.data.LocalSnapshotGPU: Expose simulation data on the GPU.
 
         Provides access directly to the system state's particle, bond, angle,
-        dihedral, improper, constaint, and pair data through a context manager.
-        Data in `State.gpu_local_snapshot` is GPU local, and the
-        `hoomd.data.LocalSnapshotGPU` object is only usable within a context
-        manager (i.e. ``with sim.state.gpu_local_snapshot as data:``). Attempts
-        to assess data outside the context manager will result in errors. The
-        local snapshot interface is similar to that of `hoomd.Snapshot`.
+        dihedral, triangle, improper, constaint, and pair data through a
+        context manager. Data in `State.gpu_local_snapshot` is GPU local,
+        and the `hoomd.data.LocalSnapshotGPU` object is only usable within a
+        context manager (i.e. ``with sim.state.gpu_local_snapshot as data:``).
+        Attempts to assess data outside the context manager will result in
+        errors. The local snapshot interface is similar to that of
+        `hoomd.Snapshot`.
 
         The `hoomd.data.LocalSnapshotGPU` data access is mediated through
         `hoomd.array.HOOMDGPUArray` objects. This helps us maintain memory
@@ -575,8 +593,8 @@ class State:
 
         Note:
             The state's box and the number of particles, bonds, angles,
-            dihedrals, impropers, constaints, and pairs cannot change within the
-            context manager.
+            dihedrals, triangles, impropers, constaints, and pairs cannot
+            change within the context manager.
 
         Note:
             Getting a local snapshot object is order :math:`O(1)` and setting a

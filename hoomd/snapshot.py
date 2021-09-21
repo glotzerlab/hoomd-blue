@@ -216,6 +216,29 @@ class Snapshot:
             raise RuntimeError('Snapshot data is only present on rank 0')
 
     @property
+    def triangles(self):
+        """Triangles.
+
+        Attributes:
+            triangles.N (int): Number of triangles in the mesh.
+
+            triangles.types (list[str]): Names of the Triangle types
+
+            triangles.typeid ((*N*,) `numpy.ndarray` of ``uint32``):
+                Triangle type id.
+
+            triangles.group ((*N*, 3) `numpy.ndarray` of ``uint32``):
+                Tags of the particles in the trianglel.
+
+        Note:
+            Set ``N`` to change the size of the arrays.
+        """
+        if self.communicator.rank == 0:
+            return self._cpp_obj.triangles
+        else:
+            raise RuntimeError('Snapshot data is only present on rank 0')
+
+    @property
     def impropers(self):
         """Impropers.
 
@@ -356,8 +379,8 @@ class Snapshot:
                             'mass', 'moment_inertia', 'orientation', 'position',
                             'typeid', 'velocity'))
 
-            for section in ('angles', 'bonds', 'dihedrals', 'impropers',
-                            'pairs'):
+            for section in ('angles', 'bonds', 'dihedrals', 'triangles',
+                            'impropers', 'pairs'):
                 set_properties(getattr(snap,
                                        section), getattr(gsd_snap, section),
                                ('N', 'types'), ('group', 'typeid'))
