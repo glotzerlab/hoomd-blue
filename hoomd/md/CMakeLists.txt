@@ -86,6 +86,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
+                EvaluatorPairDLVO.h
                 EvaluatorPairDPDLJThermo.h
                 EvaluatorPairDPDThermo.h
                 EvaluatorPairEwald.h
