@@ -442,7 +442,9 @@ def test_aniso_force_computes(make_two_particle_simulation,
             assert isclose(sim_torques, aniso_forces_and_energies.torques[i])
 
 
-@pytest.mark.parametrize('pair_potential_spec', _valid_params())
+@pytest.mark.parametrize('pair_potential_spec',
+                         _valid_params(),
+                         ids=PotentialId())
 def test_pickling(make_two_particle_simulation, pair_potential_spec):
     pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(),
                                              default_r_cut=2.5)
