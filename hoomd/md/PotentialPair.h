@@ -178,6 +178,17 @@ template<class evaluator> class PotentialPair : public ForceCompute
         m_attached = false;
         }
 
+    //! Set whether analytical tail correction is enabled
+    void setTailCorrectionEnabled(bool enable)
+        {
+        m_tail_correction_enabled = enable;
+        }
+
+    void getTailCorrectionEnabled()
+        {
+        return m_tail_correction_enabled;
+        }
+
     //! Get the contribution to the external virial
     Scalar getExternalVirial(unsigned int dir)
         {
@@ -189,38 +200,42 @@ template<class evaluator> class PotentialPair : public ForceCompute
     //! Get the contribution to the external potential energy
     Scalar getExternalEnergy()
         {
-        ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
-
-        std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
-
-        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
-                                       access_location::host,
-                                       access_mode::read);
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        if (m_tail_correction_enabled)
             {
-            unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
-            num_particles_by_type[typeid_i] += 1;
-            }
-        BoxDim box = m_pdata->getBox();
-        Scalar volume = box.getVolume();
+            ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
 
-        m_external_energy = 0;
-        for (int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
-            {
-            for (int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+            std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
+
+            ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                           access_location::host,
+                                           access_mode::read);
+            for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
-                Scalar mass = m_pdata->getMass(type_j);
-                Scalar rho = num_particles_by_type[type_j] * mass / volume;
-                evaluator eval(Scalar(0.0),
-                               h_rcutsq.data[m_typpair_idx(type_i, type_j)],
-                               m_params[m_typpair_idx(type_i, type_j)]);
-                m_external_energy += 1 / 2 * num_particles_by_type[type_i] * 4 * M_PI * rho
-                                     * eval.evalEnergyLRCIntegral();
+                unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
+                num_particles_by_type[typeid_i] += 1;
                 }
-            }
+            BoxDim box = m_pdata->getBox();
+            Scalar volume = box.getVolume();
 
-        // TODO MPI reduction
-        return m_external_energy;
+            m_external_energy = 0;
+            for (int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
+                {
+                for (int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                    {
+                    Scalar mass = m_pdata->getMass(type_j);
+                    Scalar rho = num_particles_by_type[type_j] * mass / volume;
+                    evaluator eval(Scalar(0.0),
+                                   h_rcutsq.data[m_typpair_idx(type_i, type_j)],
+                                   m_params[m_typpair_idx(type_i, type_j)]);
+                    m_external_energy += 1 / 2 * num_particles_by_type[type_i] * 4 * M_PI * rho
+                                         * eval.evalEnergyLRCIntegral();
+                    }
+                }
+
+            // TODO MPI reduction
+            return m_external_energy;
+            }
+        return 0
         }
 
 #ifdef ENABLE_MPI
@@ -265,6 +280,7 @@ template<class evaluator> class PotentialPair : public ForceCompute
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
 
+    bool m_tail_correction_enabled = false;
     /// r_cut (not squared) given to the neighbor list
     std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
 
