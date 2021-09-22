@@ -22,7 +22,7 @@ class ExternalFieldEvalFactory
 
     //! Constructor
     ExternalFieldEvalFactory(const std::string& cpp_code,
-                const std::vector<std::string>& compiler_args);
+                             const std::vector<std::string>& compiler_args);
 
     //! Return the evaluator
     ExternalFieldEvalFnPtr getEval()

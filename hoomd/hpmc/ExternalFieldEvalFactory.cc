@@ -21,7 +21,7 @@
 
 //! C'tor
 ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& cpp_code,
-                const std::vector<std::string>& compiler_args)
+                                                   const std::vector<std::string>& compiler_args)
     {
     std::ostringstream sstream;
     m_eval = nullptr;
@@ -37,7 +37,6 @@ ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& cpp_code,
         }
 
     llvm::LLVMContext Context;
-    llvm::SMDiagnostic Err;
 
     // compile the module
     auto module = clang_compiler->compileCode(cpp_code, compiler_args, Context, sstream);

@@ -3,13 +3,11 @@
 # License.
 
 import hoomd
-import subprocess
-import os
 import pathlib
 
 
 def _get_hoomd_include_path():
-    """Get the base directory for the HOOMD source include path"""
+    """Get the base directory for the HOOMD source include path."""
     current_module_path = pathlib.Path(hoomd.__file__).parent.resolve()
     build_module_path = (pathlib.Path(hoomd.version.build_dir)
                          / 'hoomd').resolve()

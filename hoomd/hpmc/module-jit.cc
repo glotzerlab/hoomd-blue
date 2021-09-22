@@ -23,8 +23,6 @@
 
 #include <string>
 
-#include "ClangCompiler.h"
-
 #ifdef ENABLE_HIP
 #include "PatchEnergyJITGPU.h"
 #include "PatchEnergyJITUnionGPU.h"

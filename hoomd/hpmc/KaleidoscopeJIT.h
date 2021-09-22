@@ -55,15 +55,16 @@ class KaleidoscopeJIT
     MangleAndInterner Mangle;
     ThreadSafeContext Ctx;
     JITDylib& mainJD;
-    SectionMemoryManager *memory_manager;
+    SectionMemoryManager* memory_manager;
 
     KaleidoscopeJIT(JITTargetMachineBuilder JTMB, DataLayout DL)
-      : ObjectLayer(ES,
-                     [&]() {
-                       auto smgr = std::make_unique<SectionMemoryManager>();
-                       memory_manager = smgr.get();
-                       return smgr;
-                     }),
+        : ObjectLayer(ES,
+                      [&]()
+                      {
+                          auto smgr = std::make_unique<SectionMemoryManager>();
+                          memory_manager = smgr.get();
+                          return smgr;
+                      }),
           CompileLayer(
               ES,
               ObjectLayer,
@@ -85,7 +86,7 @@ class KaleidoscopeJIT
         // https://github.com/taichi-dev/taichi/issues/655#issuecomment-620344230
         // https://github.com/taichi-dev/taichi/pull/885/files#
         if (memory_manager)
-        memory_manager->deregisterEHFrames();
+            memory_manager->deregisterEHFrames();
         }
 
     const DataLayout& getDataLayout() const

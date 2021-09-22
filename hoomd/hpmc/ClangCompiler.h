@@ -11,10 +11,10 @@
 
 #pragma GCC diagnostic pop
 
-#include <string>
 #include <memory>
-#include <vector>
 #include <sstream>
+#include <string>
+#include <vector>
 
 /** Class that compiles C++ code strings to LLVM IR with clang.
 
@@ -24,20 +24,23 @@
 class ClangCompiler
     {
     public:
-        /// delete the copy constructor
-        ClangCompiler(ClangCompiler &other) = delete;
+    /// delete the copy constructor
+    ClangCompiler(ClangCompiler& other) = delete;
 
-        /// delete the equals operator
-        void operator=(const ClangCompiler&) = delete;
+    /// delete the equals operator
+    void operator=(const ClangCompiler&) = delete;
 
-        /// Get an instance to the singleton class
-        static std::shared_ptr<ClangCompiler> createClangCompiler();
+    /// Get an instance to the singleton class
+    static std::shared_ptr<ClangCompiler> createClangCompiler();
 
-        /// Compile the provided C++ code and return the LLVM module
-        std::unique_ptr<llvm::Module> compileCode(const std::string& code, const std::vector<std::string>& user_args, llvm::LLVMContext& context, std::ostringstream& out);
+    /// Compile the provided C++ code and return the LLVM module
+    std::unique_ptr<llvm::Module> compileCode(const std::string& code,
+                                              const std::vector<std::string>& user_args,
+                                              llvm::LLVMContext& context,
+                                              std::ostringstream& out);
 
     protected:
-        ClangCompiler();
+    ClangCompiler();
 
-        static std::shared_ptr<ClangCompiler> m_clang_compiler;
+    static std::shared_ptr<ClangCompiler> m_clang_compiler;
     };

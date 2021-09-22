@@ -23,15 +23,16 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                         const std::string& cpu_code_union,
                         Scalar r_cut_constituent,
                         const unsigned int array_size_union)
-        : PatchEnergyJIT(sysdef, exec_conf, cpp_code_iso, compiler_args, r_cut_iso, param_array), m_sysdef(sysdef),
-          m_r_cut_constituent(r_cut_constituent),
+        : PatchEnergyJIT(sysdef, exec_conf, cpp_code_iso, compiler_args, r_cut_iso, param_array),
+          m_sysdef(sysdef), m_r_cut_constituent(r_cut_constituent),
           m_alpha_union(array_size_union,
                         0.0f,
                         managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
           m_alpha_size_union(array_size_union)
         {
         // build the JIT.
-        m_factory_union = std::shared_ptr<EvalFactory>(new EvalFactory(cpu_code_union, compiler_args));
+        m_factory_union
+            = std::shared_ptr<EvalFactory>(new EvalFactory(cpu_code_union, compiler_args));
 
         // get the evaluator
         m_eval_union = m_factory_union->getEval();
@@ -257,7 +258,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         assert(type <= m_extent_type.size());
         Scalar extent = m_extent_type[type];
         // ensure the minimum cutoff distance is the isotropic r_cut
-        if (0.5*extent + m_r_cut_constituent < m_r_cut_isotropic)
+        if (0.5 * extent + m_r_cut_constituent < m_r_cut_isotropic)
             return m_r_cut_isotropic - m_r_cut_constituent;
         else
             return extent;
@@ -334,7 +335,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     std::shared_ptr<EvalFactory>
         m_factory_union; //!< The factory for the evaluator function, for constituent ptls
     EvalFactory::EvalFnPtr m_eval_union; //!< Pointer to evaluator function inside the JIT module
-    Scalar m_r_cut_constituent;                 //!< Cutoff on constituent particles
+    Scalar m_r_cut_constituent;          //!< Cutoff on constituent particles
     std::vector<float, managed_allocator<float>> m_alpha_union; //!< Data array for union
     unsigned int m_alpha_size_union;                            //!< Size of the alpha_union array
     std::vector<unsigned int>

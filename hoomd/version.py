@@ -11,6 +11,10 @@ Attributes:
 
     compile_flags (str): Human readable summary of compilation flags.
 
+    cuda_include_path (str): CUDA toolkit include directory.
+
+    cuda_devrt_library (str): CUDA devrt library.
+
     cxx_compiler (str): Name and version of the C++ compiler used to build
         HOOMD.
 
@@ -30,6 +34,9 @@ Attributes:
     hpmc_built (bool): ``True`` when the `hpmc` component is built.
 
     install_dir (str): The installation directory.
+
+    llvm_enabled (bool): ``True`` when this build supports LLVM run time
+        compilation.
 
     metal_built (bool): ``True`` when the `metal` component is built.
 
