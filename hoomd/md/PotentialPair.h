@@ -960,7 +960,7 @@ template<class T> void export_PotentialPair(pybind11::module& m, const std::stri
         .def("setROn", &T::setROnPython)
         .def("getROn", &T::getROn)
         .def_property("mode", &T::getShiftMode, &T::setShiftModePython)
-        .def_property("tail_correction", &T::getExternalEnergy, &T::setExternalEnergy)
+        .def_property("tail_correction", &T::getTailCorrectionEnabled, &T::setTailCorrectionEnabled)
         .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
         .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec);
