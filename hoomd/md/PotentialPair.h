@@ -215,7 +215,8 @@ template<class evaluator> class PotentialPair : public ForceCompute
                 num_particles_by_type[typeid_i] += 1;
                 }
             BoxDim box = m_pdata->getBox();
-            Scalar volume = box.getVolume();
+            bool is_two_dimensions = m_sysdef->getNDimensions() == 2;
+            Scalar volume = box.getVolume(is_two_dimensions);
 
             m_external_energy = 0;
             for (int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
