@@ -27,7 +27,8 @@ void PatchEnergyJITUnion::buildOBBTree()
                 // use a point-sized OBB
                 obbs[i] = hpmc::detail::OBB(pos, 0.0);
 
-                Scalar r = sqrt(dot(pos, pos));  // distance from center of union to  this constituent particle
+                Scalar r = sqrt(
+                    dot(pos, pos)); // distance from center of union to  this constituent particle
                 extent_i = std::max(extent_i, float(2 * r));
 
                 // we do not support exclusions

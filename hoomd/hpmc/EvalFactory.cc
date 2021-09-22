@@ -20,8 +20,7 @@
 #pragma GCC diagnostic pop
 
 //! C'tor
-EvalFactory::EvalFactory(const std::string& cpp_code,
-                         const std::vector<std::string>& compiler_args)
+EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::string>& compiler_args)
     {
     std::ostringstream sstream;
     m_eval = nullptr;

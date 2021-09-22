@@ -129,12 +129,12 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
                                const quat<float>& q_j,
                                float,
                                float);
-    Scalar m_r_cut_isotropic;                         //!< Cutoff radius
+    Scalar m_r_cut_isotropic;               //!< Cutoff radius
     std::shared_ptr<EvalFactory> m_factory; //!< The factory for the evaluator function
     EvalFactory::EvalFnPtr m_eval;          //!< Pointer to evaluator function inside the JIT module
     unsigned int m_alpha_size;              //!< Size of array
     std::vector<float, managed_allocator<float>>
-        m_alpha;           //!< Array containing adjustable parameters
+        m_alpha;            //!< Array containing adjustable parameters
     std::string m_cpu_code; //!< the C++ code
     };
 

@@ -37,13 +37,12 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
     ExternalFieldJIT(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<ExecutionConfiguration> exec_conf,
                      const std::string& cpu_code,
-                     const std::vector<std::string>& compiler_args
-                     )
+                     const std::vector<std::string>& compiler_args)
         : hpmc::ExternalFieldMono<Shape>(sysdef)
         {
         // build the JIT.
-        m_factory
-            = std::shared_ptr<ExternalFieldEvalFactory>(new ExternalFieldEvalFactory(cpu_code, compiler_args));
+        m_factory = std::shared_ptr<ExternalFieldEvalFactory>(
+            new ExternalFieldEvalFactory(cpu_code, compiler_args));
 
         // get the evaluator
         m_eval = m_factory->getEval();

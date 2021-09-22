@@ -21,7 +21,7 @@
 
 //! C'tor
 ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& cpp_code,
-                const std::vector<std::string>& compiler_args)
+                                                   const std::vector<std::string>& compiler_args)
     {
     std::ostringstream sstream;
     m_eval = nullptr;
