@@ -637,9 +637,17 @@ class Table(Pair):
             same length as ``V``.
 
     Note:
-
         The implicitly defined :math:`r` values are those that would be returned
         by ``numpy.linspace(r_min, r_cut, len(V), endpoint=False)``.
+
+    Tip:
+        Define non-interacting potentials with::
+
+            table.params[(type1, type2)] = dict(r_min=0, V=[0], F=[0])
+            table.r_cut[(type1, type2)] = 0
+
+        There must be at least one element in V and F, but the ``r_cut`` value
+        of 0 disables the interaction entirely.
     """
     _cpp_class_name = "PotentialPairTable"
     _accepted_modes = ("none",)
