@@ -120,13 +120,24 @@ class Pair(force.Force):
         Possible values: ``"none"``, ``"shift"``, ``"xplor"``
 
         Type: `str`
+
+    .. py:attribute:: tail_correction
+
+        *tail_correction*, *optional*: defaults to ``False``.
+
+        Type: `bool`
     """
 
     # The accepted modes for the potential. Should be reset by subclasses with
     # restricted modes.
     _accepted_modes = ("none", "shift", "xplor")
 
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
+    def __init__(self,
+                 nlist,
+                 default_r_cut=None,
+                 default_r_on=0.,
+                 mode='none',
+                 tail_correction=False):
         self._nlist = validate_nlist(nlist)
         tp_r_cut = TypeParameter(
             'r_cut', 'particle_types',
@@ -139,7 +150,8 @@ class Pair(force.Force):
             tp_r_on.default = default_r_on
         self._extend_typeparam([tp_r_cut, tp_r_on])
         self._param_dict.update(
-            ParameterDict(mode=OnlyFrom(self._accepted_modes)))
+            ParameterDict(mode=OnlyFrom(self._accepted_modes),
+                          tail_correction=bool(tail_correction)))
         self.mode = mode
 
     def compute_energy(self, tags1, tags2):
