@@ -203,9 +203,7 @@ template<class evaluator> class PotentialPair : public ForceCompute
                 bool is_two_dimensions = dimension == 2;
                 Scalar volume = box.getVolume(is_two_dimensions);
 
-                ArrayHandle<Scalar> h_rcutsq(m_rcutsq,
-                                             access_location::host,
-                                             access_mode::read);
+                ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
 
                 std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
 
@@ -233,8 +231,8 @@ template<class evaluator> class PotentialPair : public ForceCompute
                                        m_params[m_typpair_idx(type_i, type_j)]);
                         // The pressure LRC, where
                         // P = \frac{2 \cdot K_{trans} + W}{D \cdot  V}
-                        Scalar delta_pressure = 1 / 6 * rho_i * rho_j * 4 * M_PI
-                                                * eval.evalPressureLRCIntegral();
+                        Scalar delta_pressure
+                            = 1 / 6 * rho_i * rho_j * 4 * M_PI * eval.evalPressureLRCIntegral();
                         // \Delta W = \Delta P (D \cdot V)
                         // We will assume that the contribution to pressure is equal
                         // in x, y, and z, so we will add 1/3 \Delta W on the diagonal
