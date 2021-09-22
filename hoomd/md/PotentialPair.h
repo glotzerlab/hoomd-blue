@@ -193,8 +193,60 @@ template<class evaluator> class PotentialPair : public ForceCompute
     Scalar getExternalVirial(unsigned int dir)
         {
         assert(dir < 6);
+        if (m_tail_correction_enabled)
+            {
+            std::set<int> diagonal_inds = {0, 3, 5};
+            if (diagonal_inds.find(dir) != diagonal_inds.end())
+                {
+                BoxDim box = m_pdata->getBox();
+                int dimension = m_sysdef->getNDimensions();
+                bool is_two_dimensions = dimension == 2;
+                Scalar volume = box.getVolume(is_two_dimensions);
 
-        return m_external_virial[dir];
+                ArrayHandle<Scalar> h_rcutsq(m_rcutsq,
+                                             access_location::host,
+                                             access_mode::read);
+
+                std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
+
+                ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                               access_location::host,
+                                               access_mode::read);
+
+                for (unsigned int i = 0; i < m_pdata->getN(); i++)
+                    {
+                    unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
+                    num_particles_by_type[typeid_i] += 1;
+                    }
+
+                m_external_virial[dir] = 0;
+                for (int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
+                    {
+                    Scalar mass_i = m_pdata->getMass(type_i);
+                    Scalar rho_i = num_particles_by_type[type_i] * mass_i / volume;
+                    for (int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                        {
+                        Scalar mass_j = m_pdata->getMass(type_j);
+                        Scalar rho_j = num_particles_by_type[type_j] * mass_j / volume;
+                        evaluator eval(Scalar(0.0),
+                                       h_rcutsq.data[m_typpair_idx(type_i, type_j)],
+                                       m_params[m_typpair_idx(type_i, type_j)]);
+                        // The pressure LRC, where
+                        // P = \frac{2 \cdot K_{trans} + W}{D \cdot  V}
+                        Scalar delta_pressure = 1 / 6 * rho_i * rho_j * 4 * M_PI
+                                                * eval.evalPressureLRCIntegral();
+                        // \Delta W = \Delta P (D \cdot V)
+                        // We will assume that the contribution to pressure is equal
+                        // in x, y, and z, so we will add 1/3 \Delta W on the diagonal
+                        m_external_virial[dir] += 1 / 3 * dimension * volume * delta_pressure;
+                        }
+                    }
+
+                return m_external_virial[dir];
+                }
+            return 0;
+            }
+        return 0;
         }
 
     //! Get the contribution to the external potential energy
@@ -236,7 +288,7 @@ template<class evaluator> class PotentialPair : public ForceCompute
             // TODO MPI reduction
             return m_external_energy;
             }
-        return 0
+        return 0;
         }
 
 #ifdef ENABLE_MPI
