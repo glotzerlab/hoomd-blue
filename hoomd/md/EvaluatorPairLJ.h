@@ -227,7 +227,11 @@ class EvaluatorPairLJ
         // Note that lj1 and lj2 are defined above.
         // lj1 = 4.0 * epsilon * pow(sigma,12.0)
         // lj2 = 4.0 * epsilon * pow(sigma,6.0);
-        // Due to a bug, the way that lj1 and lj2 are defined will unfortunately be changing soon...
+        // The complete integral is as follows
+        // \int_{r_{c}}^{\infty} g_{ij}(r) E_{ij}(r) r^{2} dr
+        // which evaluates to
+        // 4 \varepsilon \sigma^{12} (-\frac{r_{c}^{-9}}{9}) + ...
+        // 4 \varepsilon \sigma^{6} (\frac{r_{c}^{-3}}{3})
         Scalar rcut3inv = Scalar(1.0) / pow(rcutsq, 1.5);
         Scalar rcut9inv = rcut3inv * rcut3inv;
         return lj1 * (-1 / 9) * rcut9inv + lj2 * (1 / 3) * rcut3inv;
