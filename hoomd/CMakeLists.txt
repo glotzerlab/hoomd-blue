@@ -385,7 +385,6 @@ install(FILES ${_hoomd_headers}
 add_subdirectory(custom)
 add_subdirectory(data)
 add_subdirectory(filter)
-add_subdirectory(minimize)
 add_subdirectory(write)
 add_subdirectory(pytest)
 add_subdirectory(tune)

@@ -5,7 +5,7 @@ set(files __init__.py
    )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/minimize
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md/minimize
        )
 
 copy_files_to_build("${files}" "minimize" "*.py")
