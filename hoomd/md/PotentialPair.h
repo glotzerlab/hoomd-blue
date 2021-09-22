@@ -184,7 +184,7 @@ template<class evaluator> class PotentialPair : public ForceCompute
         m_tail_correction_enabled = enable;
         }
 
-    void getTailCorrectionEnabled()
+    bool getTailCorrectionEnabled()
         {
         return m_tail_correction_enabled;
         }
