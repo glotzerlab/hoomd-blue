@@ -10,44 +10,44 @@
 // Builds OBB tree based on geometric properties of the constituent particles
 void PatchEnergyJITUnion::buildOBBTree()
     {
-    //if (m_build_obb)
-    {
-    for (unsigned int ti = 0; ti < m_updated_types.size(); ti++)
+    // if (m_build_obb)
         {
-        unsigned int type = m_updated_types[ti];
-        unsigned int N = (unsigned int)m_position[type].size();
-        hpmc::detail::OBB* obbs = new hpmc::detail::OBB[N];
-        // extract member parameters, positions, and orientations and compute the rcut along the
-        // way
-        float extent_i = 0.0;
-        for (unsigned int i = 0; i < N; i++)
+        for (unsigned int ti = 0; ti < m_updated_types.size(); ti++)
             {
-            auto pos = m_position[type][i];
+            unsigned int type = m_updated_types[ti];
+            unsigned int N = (unsigned int)m_position[type].size();
+            hpmc::detail::OBB* obbs = new hpmc::detail::OBB[N];
+            // extract member parameters, positions, and orientations and compute the rcut along the
+            // way
+            float extent_i = 0.0;
+            for (unsigned int i = 0; i < N; i++)
+                {
+                auto pos = m_position[type][i];
 
-            // use a point-sized OBB
-            obbs[i] = hpmc::detail::OBB(pos, 0.0);
+                // use a point-sized OBB
+                obbs[i] = hpmc::detail::OBB(pos, 0.0);
 
-            Scalar r = sqrt(
-                dot(pos, pos)); // distance from center of union to  this constituent particle
-            extent_i = std::max(extent_i, float(2 * r));
+                Scalar r = sqrt(
+                    dot(pos, pos)); // distance from center of union to  this constituent particle
+                extent_i = std::max(extent_i, float(2 * r));
 
-            // we do not support exclusions
-            obbs[i].mask = 1;
+                // we do not support exclusions
+                obbs[i].mask = 1;
+                }
+
+            // set the diameter
+            m_extent_type[type] = extent_i;
+
+            // build tree and store proxy structure
+            hpmc::detail::OBBTree tree;
+            tree.buildTree(obbs, N, m_leaf_capacity, false);
+            delete[] obbs;
+            m_tree[type] = hpmc::detail::GPUTree(tree, m_managed_memory);
             }
 
-        // set the diameter
-        m_extent_type[type] = extent_i;
-
-        // build tree and store proxy structure
-        hpmc::detail::OBBTree tree;
-        tree.buildTree(obbs, N, m_leaf_capacity, false);
-        delete[] obbs;
-        m_tree[type] = hpmc::detail::GPUTree(tree, m_managed_memory);
+        m_updated_types.clear();
+        // m_build_obb = false;
         }
-
-    m_updated_types.clear();
-    //m_build_obb = false;
-    }
     }
 
 float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,

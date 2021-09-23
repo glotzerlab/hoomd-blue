@@ -20,8 +20,8 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
                                pybind11::array_t<float> param_array)
     : PatchEnergy(sysdef), m_exec_conf(exec_conf), m_r_cut_isotropic(r_cut),
       m_param_array(param_array.data(),
-              param_array.data() + param_array.size(),
-              managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
+                    param_array.data() + param_array.size(),
+                    managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
     {
     // build the JIT.
     m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(cpu_code, compiler_args));
@@ -61,7 +61,7 @@ void export_PatchEnergyJIT(pybind11::module& m)
         .def("energy", &PatchEnergyJIT::energy)
         .def_property_readonly("param_array", &PatchEnergyJIT::getParamArray)
 #ifdef ENABLE_MPI
-        //.def("setCommunicator", &Compute::setCommunicator)
+    //.def("setCommunicator", &Compute::setCommunicator)
 #endif
         ;
     }

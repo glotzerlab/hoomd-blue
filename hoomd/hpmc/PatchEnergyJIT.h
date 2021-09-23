@@ -94,7 +94,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     static pybind11::object getParamArray(pybind11::object self)
         {
         auto self_cpp = self.cast<PatchEnergyJIT*>();
-        unsigned int array_size = (unsigned int) self_cpp->m_param_array.size();
+        unsigned int array_size = (unsigned int)self_cpp->m_param_array.size();
         return pybind11::array(array_size, self_cpp->m_factory->getAlphaArray(), self);
         }
 
@@ -114,7 +114,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     std::shared_ptr<EvalFactory> m_factory; //!< The factory for the evaluator function
     EvalFactory::EvalFnPtr m_eval;          //!< Pointer to evaluator function inside the JIT module
     std::vector<float, managed_allocator<float>>
-        m_param_array;            //!< Array containing adjustable parameters
+        m_param_array;      //!< Array containing adjustable parameters
     std::string m_cpu_code; //!< the C++ code
     };
 

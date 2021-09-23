@@ -127,7 +127,8 @@ class PatchEnergy
     typedef detail::hpmc_patch_args_t gpu_args_t;
 #endif
 
-    //! Returns the non-additive distance from the center of the particle beyond which energies are always zero
+    //! Returns the non-additive distance from the center of the particle beyond which energies are
+    //! always zero
     virtual Scalar getRCut()
         {
         return 0;
@@ -186,7 +187,7 @@ class PatchEnergy
 
     protected:
     std::shared_ptr<SystemDefinition> m_sysdef; // HOOMD's system definition
-    };  // end class PatchEnergy
+    };                                              // end class PatchEnergy
 
 //! Integrator that implements the HPMC approach
 /*! **Overview** <br>

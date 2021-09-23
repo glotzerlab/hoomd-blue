@@ -22,7 +22,12 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                         pybind11::array_t<float> param_array,
                         const std::string& cpu_code_constituent,
                         Scalar r_cut_constituent)
-        : PatchEnergyJIT(sysdef, exec_conf, cpp_code_isotropic, compiler_args, r_cut_isotropic, param_array),
+        : PatchEnergyJIT(sysdef,
+                         exec_conf,
+                         cpp_code_isotropic,
+                         compiler_args,
+                         r_cut_isotropic,
+                         param_array),
           m_r_cut_constituent(r_cut_constituent)
         {
         // build the JIT.
@@ -103,7 +108,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             {
             m_updated_types.push_back(pid);
             }
-        //m_build_obb = true;
+        // m_build_obb = true;
         buildOBBTree();
         }
 
@@ -170,7 +175,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             {
             m_updated_types.push_back(pid);
             }
-        //m_build_obb = true;
+        // m_build_obb = true;
         buildOBBTree();
         }
 
@@ -214,7 +219,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     virtual void setLeafCapacity(unsigned int leaf_capacity)
         {
         m_leaf_capacity = leaf_capacity;
-        //m_build_obb = true;
+        // m_build_obb = true;
         buildOBBTree();
         }
 
@@ -282,15 +287,13 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     static pybind11::object getParamArrayConstituent(pybind11::object self)
         {
         auto self_cpp = self.cast<PatchEnergyJITUnion*>();
-        unsigned int array_size = (unsigned int) self_cpp->m_param_array_constituent.size();
-        return pybind11::array(array_size,
-                               self_cpp->m_factory_union->getAlphaUnionArray(),
-                               self);
+        unsigned int array_size = (unsigned int)self_cpp->m_param_array_constituent.size();
+        return pybind11::array(array_size, self_cpp->m_factory_union->getAlphaUnionArray(), self);
         }
 
     protected:
-    std::vector<hpmc::detail::GPUTree> m_tree;  // The tree acceleration structure per particle type
-    std::vector<float> m_extent_type;           // The per-type geometric extent
+    std::vector<hpmc::detail::GPUTree> m_tree; // The tree acceleration structure per particle type
+    std::vector<float> m_extent_type;          // The per-type geometric extent
     std::vector<std::vector<vec3<float>>> m_position; // The positions of the constituent particles
     std::vector<std::vector<quat<float>>>
         m_orientation;                          // The orientations of the constituent particles
@@ -315,7 +318,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         m_factory_union; //!< The factory for the evaluator function, for constituent ptls
     EvalFactory::EvalFnPtr m_eval_union; //!< Pointer to evaluator function inside the JIT module
     Scalar m_r_cut_constituent;          //!< Cutoff on constituent particles
-    std::vector<float, managed_allocator<float>> m_param_array_constituent; //!< Data array for constituent particles
+    std::vector<float, managed_allocator<float>>
+        m_param_array_constituent; //!< Data array for constituent particles
     std::vector<unsigned int>
         m_updated_types; //!< List of types whose geometric properties were updated
     };
