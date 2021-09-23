@@ -197,6 +197,11 @@ class EvaluatorPairDLVO
             return false;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
     DEVICE Scalar evalEnergyLRCIntegral()
         {
         return 0;
