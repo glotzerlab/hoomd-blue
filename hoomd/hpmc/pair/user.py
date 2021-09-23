@@ -360,9 +360,7 @@ class _CPPUnionPotential(CPPPotentialBase):
                  param_array=None):
 
         # initialize base class
-        super().__init__(r_cut=r_cut,
-                code=code,
-                param_array=param_array)
+        super().__init__(r_cut=r_cut, code=code, param_array=param_array)
 
         # add union specific params
         param_dict = ParameterDict(
@@ -403,15 +401,10 @@ class _CPPUnionPotential(CPPPotentialBase):
             param_dict=TypeParameterDict([int], len_keys=1),
         )
 
-        self._extend_typeparam(
-            [
-                typeparam_positions,
-                typeparam_orientations,
-                typeparam_diameters,
-                typeparam_charges,
-                typeparam_typeids
-            ]
-        )
+        self._extend_typeparam([
+            typeparam_positions, typeparam_orientations, typeparam_diameters,
+            typeparam_charges, typeparam_typeids
+        ])
 
         # these only exist on python
         self._code_constituent = code_constituent
