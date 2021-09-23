@@ -285,19 +285,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                          float d_j,
                          float charge_j);
 
-    //! Method to be called when number of types changes
-    virtual void slotNumTypesChange()
-        {
-        unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
-        m_extent_type.resize(ntypes, 0.0);
-        m_type.resize(ntypes);
-        m_position.resize(ntypes);
-        m_orientation.resize(ntypes);
-        m_diameter.resize(ntypes);
-        m_charge.resize(ntypes);
-        m_tree.resize(ntypes);
-        }
-
     static pybind11::object getParamArrayConstituent(pybind11::object self)
         {
         auto self_cpp = self.cast<PatchEnergyJITUnion*>();
