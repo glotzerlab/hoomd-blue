@@ -52,7 +52,7 @@ LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
         m_enable_z = (di.getD() > 1);
 
         auto comm_weak = m_sysdef->getCommunicator();
-        assert(comm_weak);
+        assert(comm_weak.lock());
         m_comm = comm_weak.lock();
         }
     else

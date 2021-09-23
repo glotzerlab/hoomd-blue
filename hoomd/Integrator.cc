@@ -29,7 +29,7 @@ Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
     if (m_sysdef->isDomainDecomposed())
         {
         auto comm_weak = m_sysdef->getCommunicator();
-        assert(comm_weak);
+        assert(comm_weak.lock());
         m_comm = comm_weak.lock();
 
         // connect to ghost communication flags request

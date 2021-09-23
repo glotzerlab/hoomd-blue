@@ -254,7 +254,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     if (m_sysdef->isDomainDecomposed())
         {
         auto comm_weak = m_sysdef->getCommunicator();
-        assert(comm_weak);
+        assert(comm_weak.lock());
         m_comm = comm_weak.lock();
 
         m_comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);

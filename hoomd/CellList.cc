@@ -53,7 +53,7 @@ CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
     if (m_sysdef->isDomainDecomposed())
         {
         auto comm_weak = m_sysdef->getCommunicator();
-        assert(comm_weak);
+        assert(comm_weak.lock());
         m_comm = comm_weak.lock();
         }
     #endif
