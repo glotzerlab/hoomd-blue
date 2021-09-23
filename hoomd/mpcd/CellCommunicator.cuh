@@ -153,13 +153,11 @@ cudaError_t pack_cell_buffer(typename PackOpT::element* d_send_buf,
                              unsigned int block_size)
     {
     // determine runtime block size
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::pack_cell_buffer<T, PackOpT>);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::pack_cell_buffer<T, PackOpT>);
+    max_block_size = attr.maxThreadsPerBlock;
+
     const unsigned int run_block_size = min(block_size, max_block_size);
 
     dim3 grid(num_send / run_block_size + 1);
@@ -201,14 +199,12 @@ cudaError_t unpack_cell_buffer(T* d_props,
                                const unsigned int block_size)
     {
     // determine runtime block size
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr,
-                              (const void*)mpcd::gpu::kernel::unpack_cell_buffer<T, PackOpT>);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr,
+                            (const void*)mpcd::gpu::kernel::unpack_cell_buffer<T, PackOpT>);
+    max_block_size = attr.maxThreadsPerBlock;
+
     const unsigned int run_block_size = min(block_size, max_block_size);
 
     dim3 grid(num_cells / run_block_size + 1);

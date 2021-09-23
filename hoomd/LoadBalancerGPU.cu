@@ -107,13 +107,11 @@ void gpu_load_balance_mark_rank(unsigned int* d_ranks,
                                 const unsigned int N,
                                 const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_load_balance_mark_rank_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_load_balance_mark_rank_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
+
     unsigned int run_block_size = min(block_size, max_block_size);
     unsigned int n_blocks = N / run_block_size + 1;
 

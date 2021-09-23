@@ -118,13 +118,10 @@ hipError_t gpu_nlist_mark_types(unsigned int* d_types,
                                 const Scalar3 ghost_width,
                                 const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_nlist_mark_types_kernel));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_nlist_mark_types_kernel));
+    max_block_size = attr.maxThreadsPerBlock;
 
     const unsigned int run_block_size = min(block_size, max_block_size);
     const unsigned int num_blocks = ((N + nghosts) + run_block_size - 1) / run_block_size;
@@ -260,13 +257,10 @@ hipError_t gpu_nlist_count_types(unsigned int* d_first,
     thrust::fill(thrust::device, d_first, d_first + ntypes, NeighborListTypeSentinel);
     hipMemset(d_last, 0, sizeof(unsigned int) * ntypes);
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_nlist_count_types_kernel));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_nlist_count_types_kernel));
+    max_block_size = attr.maxThreadsPerBlock;
 
     int run_block_size = min(block_size, max_block_size);
     hipLaunchKernelGGL(gpu_nlist_count_types_kernel,
@@ -321,14 +315,11 @@ hipError_t gpu_nlist_copy_primitives(unsigned int* d_traverse_order,
                                      const unsigned int N,
                                      const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr,
-                             reinterpret_cast<const void*>(gpu_nlist_copy_primitives_kernel));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr,
+                            reinterpret_cast<const void*>(gpu_nlist_copy_primitives_kernel));
+    max_block_size = attr.maxThreadsPerBlock;
 
     int run_block_size = min(block_size, max_block_size);
     hipLaunchKernelGGL(gpu_nlist_copy_primitives_kernel,

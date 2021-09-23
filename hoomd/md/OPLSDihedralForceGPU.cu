@@ -330,16 +330,13 @@ hipError_t gpu_compute_opls_dihedral_forces(Scalar4* d_force,
     {
     assert(d_params);
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_compute_opls_dihedral_forces_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        if (max_block_size % warp_size)
-            // handle non-sensical return values from hipFuncGetAttributes
-            max_block_size = (max_block_size / warp_size - 1) * warp_size;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_compute_opls_dihedral_forces_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
+    if (max_block_size % warp_size)
+        // handle non-sensical return values from hipFuncGetAttributes
+        max_block_size = (max_block_size / warp_size - 1) * warp_size;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 

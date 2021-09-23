@@ -187,14 +187,11 @@ void concatenate_adjacency_list(const unsigned int* d_adjacency,
                                 const unsigned int group_size)
     {
     // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    if (max_block_size == -1)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr,
-                             reinterpret_cast<const void*>(kernel::concatenate_adjacency_list));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr,
+                            reinterpret_cast<const void*>(kernel::concatenate_adjacency_list));
+    max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel
     unsigned int run_block_size = min(block_size, (unsigned int)max_block_size);
@@ -244,13 +241,10 @@ void flip_clusters(Scalar4* d_postype,
                    const unsigned int block_size)
     {
     // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    if (max_block_size == -1)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::flip_clusters));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::flip_clusters));
+    max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel
     unsigned int run_block_size = min(block_size, (unsigned int)max_block_size);
