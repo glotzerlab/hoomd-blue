@@ -78,11 +78,10 @@ class CPPPotentialBase(_HOOMDBaseObject):
     """
 
     def __init__(self, r_cut, code, param_array=None):
-        param_dict = ParameterDict(r_cut=float,
-                                   code=str)
+        param_dict = ParameterDict(r_cut=float, code=str)
         if param_array != None:
             array_validator = NDArrayValidator(dtype=np.float32,
-                    shape=(len(param_array),))
+                                               shape=(len(param_array),))
             param_dict['param_array'] = array_validator
         param_dict['r_cut'] = r_cut
         param_dict['code'] = code
