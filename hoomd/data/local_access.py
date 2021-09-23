@@ -252,7 +252,7 @@ class DihedralLocalAccessBase(_GroupLocalAccess):
     Attributes:
         typeid ((N_dihedrals) `hoomd.data.array` object of ``int``): The integer
             type of a dihedral.
-        members ((N_dihedrals, 3) `hoomd.data.array` object of ``int``): the
+        members ((N_dihedrals, 4) `hoomd.data.array` object of ``int``): the
             tags of particles in a dihedral.
         tag ((N_dihedrals) `hoomd.data.array` object of ``int``):
             The tag of the dihedral.  HOOMD-blue uses spacial sorting to improve
@@ -266,6 +266,28 @@ class DihedralLocalAccessBase(_GroupLocalAccess):
             for the dihedral with tag 0.
     """
     _cpp_get_data_method_name = "getDihedralData"
+
+
+class TriangleLocalAccessBase(_GroupLocalAccess):
+    """Class for directly accessing HOOMD-blue triangle data.
+
+    Attributes:
+        typeid ((N_triangles) `hoomd.data.array` object of ``int``): The integer
+            type of a triangle.
+        members ((N_triangles, 3) `hoomd.data.array` object of ``int``): the
+            tags of particles in a triangle.
+        tag ((N_triangles) `hoomd.data.array` object of ``int``):
+            The tag of the triangle.  HOOMD-blue uses spacial sorting to improve
+            cache efficiency in triangle look-ups. This means the ordering of
+            the array changes.  However, triangle tags remain constant. This
+            means that if ``triangle.tag[0]`` is 1, then later whatever triangle
+            has a tag of 1 later in the simulation is the same triangle.
+        rtag ((N_triangles_global) `hoomd.data.array` object of ``int``):
+            The reverse tag of a triangle. This means that the value
+            ``triangle.rtag[0]`` represents the current index for accessing data
+            for the triangle with tag 0.
+    """
+    _cpp_get_data_method_name = "getTriangleData"
 
 
 class ImproperLocalAccessBase(_GroupLocalAccess):
@@ -380,6 +402,11 @@ class _LocalSnapshot:
         return self._dihedrals
 
     @property
+    def triangles(self):
+        """hoomd.data.TriangleLocalAccessBase: Local triangle data."""
+        return self._triangles
+
+    @property
     def impropers(self):
         """hoomd.data.ImproperLocalAccessBase: Local improper data."""
         return self._impropers
@@ -400,6 +427,7 @@ class _LocalSnapshot:
         self._bonds._enter()
         self._angles._enter()
         self._dihedrals._enter()
+        self._triangles._enter()
         self._impropers._enter()
         self._constraints._enter()
         self._pairs._enter()
@@ -411,6 +439,7 @@ class _LocalSnapshot:
         self._bonds._exit()
         self._angles._exit()
         self._dihedrals._exit()
+        self._triangles._exit()
         self._impropers._exit()
         self._constraints._exit()
         self._pairs._exit()

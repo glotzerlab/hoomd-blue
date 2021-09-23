@@ -41,6 +41,8 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
 
     m_meshbond_data
         = std::shared_ptr<MeshBondData>(new MeshBondData(pdata, n_triangle_types));
+
+    triangle_data = std::shared_ptr<TriangleData>(new TriangleData(pdata, n_triangle_types));
     }
 
 /*! Evaluates the snapshot and initializes the respective *Data classes using
@@ -53,16 +55,20 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
 		TriangleData::Snapshot snapshot)
     {
 
-    triangle_data = std::shared_ptr<TriangleData>(new TriangleData(pdata, snapshot));
+    triangle_data
+        = std::shared_ptr<TriangleData>(new TriangleData(pdata, (unsigned int) snapshot.type_mapping.size() ));
 
     m_meshtriangle_data
         = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(pdata, (unsigned int) snapshot.type_mapping.size() ));
+
+
 
     m_meshbond_data
         = std::shared_ptr<MeshBondData>(new MeshBondData(pdata, (unsigned int) snapshot.type_mapping.size() ));
 
     for (unsigned group_types = 0; group_types < snapshot.type_mapping.size(); group_types++)
     	{
+        triangle_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
         m_meshtriangle_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
         m_meshbond_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
 	}
@@ -153,15 +159,39 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
  */
 template<class Real> void MeshData::takeSnapshot(std::shared_ptr<SnapshotSystemData<Real>> snap)
     {
-    triangle_data->takeSnapshot(snap->triangle_data);
+    std::shared_ptr<TriangleData> triangle = getTriangleData();
+    triangle->takeSnapshot(snap->triangle_data);
     }
 
 //! Re-initialize the system from a snapshot
 void MeshData::initializeFromSnapshot( TriangleData::Snapshot snapshot)
     {
-
     triangle_data->initializeFromSnapshot(snapshot);
+
+    for (unsigned group_types = 0; group_types < snapshot.type_mapping.size(); group_types++)
+    	{
+        triangle_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
+        m_meshtriangle_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
+        m_meshbond_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
+
+	}
     }
+
+std::shared_ptr<TriangleData> MeshData::getTriangleData()
+        {
+        for (unsigned group_idx = 0; group_idx < m_meshbond_data->getN(); group_idx++)
+            {
+            MeshTriangleData::members_t meshtriangle = m_meshtriangle_data->getMembersByIndex(group_idx);
+            TriangleData::members_t triangle = triangle_data->getMembersByIndex(group_idx);
+	    triangle.tag[0] = meshtriangle.tag[0];
+	    triangle.tag[1] = meshtriangle.tag[1];
+	    triangle.tag[2] = meshtriangle.tag[2];
+	    triangle_data->setMemberByIndex(group_idx,triangle);
+
+	    }
+        return triangle_data;
+        }
+
 
 template void MeshData::takeSnapshot<float>(std::shared_ptr<SnapshotSystemData<float>> snap);
 template void MeshData::takeSnapshot<double>(std::shared_ptr<SnapshotSystemData<double>> snap);
@@ -174,6 +204,7 @@ void export_MeshData(py::module& m)
         .def("takeSnapshot_float", &MeshData::takeSnapshot<float>)
         .def("takeSnapshot_double", &MeshData::takeSnapshot<double>)
         .def("initializeFromSnapshot", &MeshData::initializeFromSnapshot)
+        .def("getTriangleData", &MeshData::getTriangleData)
         .def("getMeshTriangleData", &MeshData::getMeshTriangleData)
         .def("getMeshBondData", &MeshData::getMeshBondData);
     }

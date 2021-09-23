@@ -7,8 +7,8 @@
 from hoomd import _hoomd
 from hoomd.data.local_access import (
     ParticleLocalAccessBase, BondLocalAccessBase, ConstraintLocalAccessBase,
-    DihedralLocalAccessBase, AngleLocalAccessBase, ImproperLocalAccessBase,
-    PairLocalAccessBase, _LocalSnapshot)
+    DihedralLocalAccessBase, AngleLocalAccessBase, TriangleLocalAccessBase,
+    ImproperLocalAccessBase, PairLocalAccessBase, _LocalSnapshot)
 
 from hoomd.data.array import HOOMDGPUArray
 import hoomd
@@ -35,6 +35,11 @@ if hoomd.version.gpu_enabled:
         _cpp_cls = _hoomd.LocalDihedralDataDevice
         _array_cls = HOOMDGPUArray
 
+    class TriangleLocalAccessGPU(TriangleLocalAccessBase):
+        """Access triangle data on the GPU."""
+        _cpp_cls = _hoomd.LocalTriangleDataDevice
+        _array_cls = HOOMDGPUArray
+
     class ImproperLocalAccessGPU(ImproperLocalAccessBase):
         """Access improper data on the GPU."""
         _cpp_cls = _hoomd.LocalImproperDataDevice
@@ -59,6 +64,7 @@ if hoomd.version.gpu_enabled:
             self._bonds = BondLocalAccessGPU(state)
             self._angles = AngleLocalAccessGPU(state)
             self._dihedrals = DihedralLocalAccessGPU(state)
+            self._triangles = TriangleLocalAccessGPU(state)
             self._impropers = ImproperLocalAccessGPU(state)
             self._pairs = PairLocalAccessGPU(state)
             self._constraints = ConstraintLocalAccessGPU(state)
@@ -75,6 +81,10 @@ else:
         pass
 
     class DihedralLocalAccessGPU(_NoGPU):
+        """GPU data access is not available in CPU builds."""
+        pass
+
+    class TriangleLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""
         pass
 

@@ -152,16 +152,21 @@ class PYBIND11_EXPORT SystemDefinition
         return m_improper_data;
         }
     //! Access the triangle data defined for the simulation
+    std::shared_ptr<TriangleData> getTriangleData()
+        {
+        return m_mesh_data.getTriangleData();
+        }
+    //! Access the mesh triangle data defined for the simulation
     std::shared_ptr<MeshTriangleData> getMeshTriangleData()
         {
         return m_mesh_data.getMeshTriangleData();
         }
-    //! Access the triangle data defined for the simulation
+    //! Access the mesh bond data defined for the simulation
     std::shared_ptr<MeshBondData> getMeshBondData()
         {
         return m_mesh_data.getMeshBondData();
         }
-    //! Access the triangle data defined for the simulation
+    //! Access the mesh data defined for the simulation
      MeshData getMeshData()
         {
         return m_mesh_data;
