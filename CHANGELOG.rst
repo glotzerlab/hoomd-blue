@@ -4,6 +4,30 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.10 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``hoomd.md.minimize.FIRE`` - MD integrator that minimized the system's potential energy.
+- AKMA and MD unit conversion factors to the documentation.
+
+*Changed*
+
+- Improved error messages when setting operation parameters.
+- Added note on dependencies for building the documentation.
+
+*Fixed*
+
+- Calling ``hoomd.Operations.__len__`` no longer raises a ``RecursionError``.
+- RATTLE integration methods execute on the GPU.
+- Include ``EvaluatorPairDLVO.h`` in the installation for plugins.
+- Bug in setting zero sized ``ManagedArrays``.
+
+*Deprecated*
+
+*Removed*
+
 v3.0.0-beta.9 (2021-09-08)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

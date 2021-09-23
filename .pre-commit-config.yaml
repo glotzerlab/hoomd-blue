@@ -52,7 +52,6 @@ repos:
         ^hoomd/dem/|
         ^hoomd/jit/|
         ^hoomd/metal/|
-        ^hoomd/minimize/|
         ^doc/dev/
       )
 - repo: https://github.com/glotzerlab/pre-commit-clang-format

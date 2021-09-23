@@ -561,6 +561,12 @@ template<class T> class GPUArray : public GPUArrayBase<T, GPUArray<T>>
             return std::string("null");
         }
 
+    //! get the execution configuration
+    std::shared_ptr<const ExecutionConfiguration> getExecutionConfiguration()
+        {
+        return m_exec_conf;
+        }
+
     protected:
     //! Clear memory starting from a given element
     /*! \param first The first element to clear
