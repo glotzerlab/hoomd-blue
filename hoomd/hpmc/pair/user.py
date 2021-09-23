@@ -12,6 +12,7 @@ if hoomd.version.llvm_enabled:
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
+from data.typconverter import NDArrayValidator
 from hoomd.logging import log
 import numpy as np
 
@@ -78,7 +79,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
     def __init__(self, r_cut, code, param_array=None):
         param_dict = ParameterDict(r_cut=float,
-                                   param_array=hoomd.data.typeconverter.Array(
+                                   param_array=NDArrayValidator(
                                        dtype=np.float32, ndim=1),
                                    code=str)
         param_dict['r_cut'] = r_cut

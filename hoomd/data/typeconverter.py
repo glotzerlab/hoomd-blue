@@ -254,47 +254,6 @@ class OnlyFrom(_HelpValidate):
         return "OnlyFrom[{self.options}]"
 
 
-class Array(_HelpValidate):
-    """Validate array-like values."""
-
-    def __init__(self,
-                 dtype,
-                 ndim=None,
-                 shape=None,
-                 preprocess=None,
-                 postprocess=None,
-                 allow_none=False):
-        super().__init__(preprocess, postprocess, allow_none)
-        self.dtype = dtype
-        self.ndim = ndim
-        self.shape = shape
-        if shape is not None and len(shape) != ndim:
-            raise ValueError(
-                "Inconsistent ndim and shape arguments for type spec.")
-
-    def _validate(self, arr):
-        if not isinstance(arr, np.ndarray):
-            try:
-                arr = np.array(arr)
-            except Exception:
-                raise ValueError("Expected a NumPy array.")
-        if not isinstance(arr.dtype, self.dtype):
-            try:
-                arr = arr.astype(self.dtype)
-            except Exception:
-                raise ValueError(f"Expected an array of dtype {self.dtype}")
-        if self.ndim is not None:
-            if len(arr.shape) != self.ndim:
-                raise ValueError(f"Excepted an array of size {self.ndim}")
-        if self.shape is not None:
-            for expected_size, size in zip(self.shape, arr.shape):
-                if expected_size is not None:
-                    if size != expected_size:
-                        raise ValueError(
-                            "Expected an array with shape {self.shape}")
-        return arr
-
-
 class SetOnce:
     """Used to make properties read-only after setting."""
 
