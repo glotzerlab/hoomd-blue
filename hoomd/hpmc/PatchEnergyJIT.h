@@ -59,16 +59,6 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
         m_r_cut_isotropic = r_cut;
         }
 
-    virtual Scalar getRCutIsotropic()
-        {
-        return m_r_cut_isotropic;
-        }
-
-    void setRCutIsotropic(Scalar r_cut_iso)
-        {
-        m_r_cut_isotropic = r_cut_iso;
-        }
-
     unsigned int getArraySize()
         {
         return m_param_array_size;
