@@ -256,5 +256,5 @@ void export_PatchEnergyJITUnion(pybind11::module& m)
         .def_property("r_cut_constituent",
                       &PatchEnergyJITUnion::getRCutConstituent,
                       &PatchEnergyJITUnion::setRCutConstituent)
-        .def_property_readonly("param_array", &PatchEnergyJITUnion::getAlphaUnionNP);
+        .def_property_readonly("param_array", &PatchEnergyJITUnion::getParamArrayConstituent);
     }

@@ -23,7 +23,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                         const std::string& cpu_code_constituent,
                         Scalar r_cut_constituent)
         : PatchEnergyJIT(sysdef, exec_conf, cpp_code_isotropic, compiler_args, r_cut_isotropic, param_array),
-          m_sysdef(sysdef), m_r_cut_constituent(r_cut_constituent)
+          m_sysdef(sysdef), m_r_cut_constituent(r_cut_constituent),
+          m_param_array_size_constituent(static_cast<unsigned int>(param_array.size()))
         {
         // build the JIT.
         m_factory_union
@@ -41,7 +42,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             throw std::runtime_error(s.str());
             }
 
-        m_factory_union->setAlphaUnionArray(&m_alpha_union.front());
+        m_factory_union->setAlphaUnionArray(&m_param_array_constituent.front());
 
         unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
         m_extent_type.resize(ntypes, 0.0);
@@ -241,10 +242,10 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         m_r_cut_constituent = r_cut;
         }
 
-    //! Get the size of the alpha_union array
-    unsigned int getArraySizeUnion()
+    //! Get the size of the constituent param_array
+    unsigned int getArraySizeConstituent()
         {
-        return m_alpha_size_union;
+        return m_param_array_size_constituent;
         }
 
     //! Get the maximum geometric extent, which is added to the cutoff, per type
@@ -295,10 +296,10 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         m_tree.resize(ntypes);
         }
 
-    static pybind11::object getAlphaUnionNP(pybind11::object self)
+    static pybind11::object getParamArrayConstituent(pybind11::object self)
         {
         auto self_cpp = self.cast<PatchEnergyJITUnion*>();
-        return pybind11::array(self_cpp->m_alpha_size_union,
+        return pybind11::array(self_cpp->m_param_array_size_constituent,
                                self_cpp->m_factory_union->getAlphaUnionArray(),
                                self);
         }
@@ -331,10 +332,10 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         m_factory_union; //!< The factory for the evaluator function, for constituent ptls
     EvalFactory::EvalFnPtr m_eval_union; //!< Pointer to evaluator function inside the JIT module
     Scalar m_r_cut_constituent;          //!< Cutoff on constituent particles
-    std::vector<float, managed_allocator<float>> m_alpha_union; //!< Data array for union
-    unsigned int m_alpha_size_union;                            //!< Size of the alpha_union array
+    std::vector<float, managed_allocator<float>> m_param_array_constituent; //!< Data array for constituent particles
     std::vector<unsigned int>
         m_updated_types; //!< List of types whose geometric properties were updated
+    unsigned int m_param_array_size_constituent; //!< Length of data array for constituent particles
     };
 
 //! Exports the PatchEnergyJITUnion class to python
