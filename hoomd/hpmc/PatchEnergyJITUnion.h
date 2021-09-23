@@ -23,7 +23,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                         const std::string& cpu_code_constituent,
                         Scalar r_cut_constituent)
         : PatchEnergyJIT(sysdef, exec_conf, cpp_code_isotropic, compiler_args, r_cut_isotropic, param_array),
-          m_sysdef(sysdef), m_r_cut_constituent(r_cut_constituent)
+          m_r_cut_constituent(r_cut_constituent)
         {
         // build the JIT.
         m_factory_union
@@ -244,12 +244,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         m_r_cut_constituent = r_cut;
         }
 
-    //! Get the size of the constituent param_array
-    unsigned int getArraySizeConstituent()
-        {
-        return m_param_array_size_constituent;
-        }
-
     //! Get the maximum geometric extent, which is added to the cutoff, per type
     virtual inline Scalar getAdditiveCutoff(unsigned int type)
         {
@@ -288,8 +282,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     static pybind11::object getParamArrayConstituent(pybind11::object self)
         {
         auto self_cpp = self.cast<PatchEnergyJITUnion*>();
-        unsigned int array_size = static_cast<unsigned int>(param_array_consituent.size());
-        return pybind11::array(self_cpp->m_param_array_size_constituent,
+        unsigned int array_size = (unsigned int) self_cpp->m_param_array_constituent.size();
+        return pybind11::array(array_size,
                                self_cpp->m_factory_union->getAlphaUnionArray(),
                                self);
         }

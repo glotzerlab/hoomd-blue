@@ -387,10 +387,12 @@ class IntegratorHPMCMono : public IntegratorHPMC
                 }
 
             //! Update the OBB tree if necessary
+            /*
             if (m_patch)
                 {
                 m_patch->buildOBBTree();
                 }
+            */
 
             updateCellWidth(); // make sure the cell width is up-to-date and forces a rebuild of the AABB tree and image list
 

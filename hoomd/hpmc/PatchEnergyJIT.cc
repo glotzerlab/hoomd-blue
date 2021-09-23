@@ -19,7 +19,6 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
                                Scalar r_cut,
                                pybind11::array_t<float> param_array)
     : PatchEnergy(sysdef), m_exec_conf(exec_conf), m_r_cut_isotropic(r_cut),
-      m_param_array_size(static_cast<unsigned int>(param_array.size())),
       m_param_array(param_array.data(),
               param_array.data() + param_array.size(),
               managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
@@ -49,7 +48,7 @@ void export_PatchEnergyJIT(pybind11::module& m)
     {
     pybind11::class_<hpmc::PatchEnergy, std::shared_ptr<hpmc::PatchEnergy>>(m, "PatchEnergy")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
-    pybind11::class_<PatchEnergyJIT, Compute, hpmc::PatchEnergy, std::shared_ptr<PatchEnergyJIT>>(
+    pybind11::class_<PatchEnergyJIT, hpmc::PatchEnergy, std::shared_ptr<PatchEnergyJIT>>(
         m,
         "PatchEnergyJIT")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
@@ -58,11 +57,11 @@ void export_PatchEnergyJIT(pybind11::module& m)
                             const std::vector<std::string>&,
                             Scalar,
                             pybind11::array_t<float>>())
-        .def_property("r_cut", &PatchEnergyJIT::getRCutIsotropic, &PatchEnergyJIT::setRCutIsotropic)
+        .def_property("r_cut", &PatchEnergyJIT::getRCut, &PatchEnergyJIT::setRCut)
         .def("energy", &PatchEnergyJIT::energy)
         .def_property_readonly("param_array", &PatchEnergyJIT::getParamArray)
 #ifdef ENABLE_MPI
-        .def("setCommunicator", &Compute::setCommunicator)
+        //.def("setCommunicator", &Compute::setCommunicator)
 #endif
         ;
     }
