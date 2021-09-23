@@ -238,8 +238,7 @@ void export_PatchEnergyJITUnion(pybind11::module& m)
                             Scalar,
                             pybind11::array_t<float>,
                             const std::string&,
-                            Scalar,
-                            const unsigned int>())
+                            Scalar>())
 
         .def("getPositions", &PatchEnergyJITUnion::getPositions)
         .def("setPositions", &PatchEnergyJITUnion::setPositions)
@@ -257,6 +256,5 @@ void export_PatchEnergyJITUnion(pybind11::module& m)
         .def_property("r_cut_constituent",
                       &PatchEnergyJITUnion::getRCutConstituent,
                       &PatchEnergyJITUnion::setRCutConstituent)
-        .def_property_readonly("array_size_union", &PatchEnergyJITUnion::getArraySizeUnion)
-        .def_property_readonly("alpha_union", &PatchEnergyJITUnion::getAlphaUnionNP);
+        .def_property_readonly("param_array", &PatchEnergyJITUnion::getAlphaUnionNP);
     }

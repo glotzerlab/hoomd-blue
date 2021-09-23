@@ -71,7 +71,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
 
     unsigned int getArraySize()
         {
-        return m_alpha_size;
+        return m_param_array_size;
         }
 
     std::string getCPUCode()
@@ -114,7 +114,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     static pybind11::object getParamArray(pybind11::object self)
         {
         auto self_cpp = self.cast<PatchEnergyJIT*>();
-        return pybind11::array(self_cpp->m_alpha_size, self_cpp->m_factory->getAlphaArray(), self);
+        return pybind11::array(self_cpp->m_param_array_size, self_cpp->m_factory->getAlphaArray(), self);
         }
 
     protected:
@@ -132,9 +132,9 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     Scalar m_r_cut_isotropic;               //!< Cutoff radius
     std::shared_ptr<EvalFactory> m_factory; //!< The factory for the evaluator function
     EvalFactory::EvalFnPtr m_eval;          //!< Pointer to evaluator function inside the JIT module
-    unsigned int m_alpha_size;              //!< Size of array
+    unsigned int m_param_array_size;              //!< Size of array
     std::vector<float, managed_allocator<float>>
-        m_alpha;            //!< Array containing adjustable parameters
+        m_param_array;            //!< Array containing adjustable parameters
     std::string m_cpu_code; //!< the C++ code
     };
 

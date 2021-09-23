@@ -19,8 +19,8 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
                                Scalar r_cut,
                                pybind11::array_t<float> param_array)
     : PatchEnergy(sysdef), m_exec_conf(exec_conf), m_r_cut_isotropic(r_cut),
-      m_alpha_size(static_cast<unsigned int>(param_array.size())),
-      m_alpha(param_array.data(),
+      m_param_array_size(static_cast<unsigned int>(param_array.size())),
+      m_param_array(param_array.data(),
               param_array.data() + param_array.size(),
               managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
     {
@@ -42,7 +42,7 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error(s.str());
         }
 
-    m_factory->setAlphaArray(&m_alpha.front());
+    m_factory->setAlphaArray(&m_param_array.front());
     }
 
 void export_PatchEnergyJIT(pybind11::module& m)
@@ -59,7 +59,6 @@ void export_PatchEnergyJIT(pybind11::module& m)
                             Scalar,
                             pybind11::array_t<float>>())
         .def_property("r_cut", &PatchEnergyJIT::getRCutIsotropic, &PatchEnergyJIT::setRCutIsotropic)
-        .def_property_readonly("array_size", &PatchEnergyJIT::getArraySize)
         .def("energy", &PatchEnergyJIT::energy)
         .def_property_readonly("param_array", &PatchEnergyJIT::getParamArray)
 #ifdef ENABLE_MPI

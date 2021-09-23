@@ -287,12 +287,12 @@ class _CPPUnionPotential(CPPPotentialBase):
         charges (`TypeParameter` [``particle type``, `list` [`float`]])
             The charges of the constituent particles.
         typeids (`TypeParameter` [``particle type``, `list` [`float`]])
-            The charges of the constituent particles.
+            The integer types of the constituent particles.
         leaf_capacity (`int`, **default:** 4) : The number of particles in a leaf of the internal tree data structure
         param_array (``ndarray<float>``): Length array_size_union numpy array containing dynamically adjustable elements
                                           defined by the user for unions of shapes.
 
-    Example:
+    Example without isotropic interactions:
 
     .. code-block:: python
 
@@ -302,10 +302,17 @@ class _CPPUnionPotential(CPPPotentialBase):
                             else
                                 return 0.0f;
                       """
-        patch = hoomd.jit.patch.CPPUnionPotential(r_cut_constituent=1.1, code_union=square_well)
-        patch.positions['A'] = [(0,0,-5.),(0,0,.5)]
-        patch.diameters['A'] =[0,0]
-        patch.typeids['A'] =[0,0]
+        patch = hoomd.jit.patch.CPPUnionPotential(
+            r_cut_constituent=1.1,
+            r_cut_isotropic=0.0
+            code_constituent=square_well,
+        )
+        patch.positions['A'] = [
+            (0, 0, -0.5),
+            (0, 0, 0.5)
+        ]
+        patch.diameters['A'] = [0, 0]
+        patch.typeids['A'] = [0, 0]
 
     Example with added isotropic interactions:
 
@@ -313,12 +320,12 @@ class _CPPUnionPotential(CPPPotentialBase):
 
         # square well attraction on constituent spheres
         square_well = """float rsq = dot(r_ij, r_ij);
-                              float r_cut = alpha_union[0];
+                              float r_cut = param_array[0];
                               if (rsq < r_cut*r_cut)
-                                  return alpha_union[1];
+                                  return param_array[1];
                               else
                                   return 0.0f;
-                           """
+                        """
 
         # soft repulsion between centers of unions
         soft_repulsion = """float rsq = dot(r_ij, r_ij);
@@ -330,17 +337,19 @@ class _CPPUnionPotential(CPPPotentialBase):
                          """
 
         patch = hoomd.jit.patch.CPPUnionPotential(
-                        r_cut_constituent=2.5,
-                        r_cut_isotropic=5.0,
-                        code_union=square_well,
-                        code_isotropic=soft_repulsion
+            r_cut_constituent=2.5,
+            r_cut_isotropic=5.0,
+            code_union=square_well,
+            code_isotropic=soft_repulsion
         )
-        patch.positions['A'] = [(0,0,-5.),(0,0,.5)]
-        patch.typeids['A'] = [0,0]
-        patch.diameters['A'] = [0,0]
+        patch.positions['A'] = [
+            (0, 0, -0.5),
+            (0, 0, 0.5)
+        ]
+        patch.typeids['A'] = [0, 0]
+        patch.diameters['A'] = [0, 0]
         # [r_cut, epsilon]
-        patch.param_array[:] = [2.5, 1.3];
-        patch.alpha_union[:] = [2.5, -1.7];
+        patch.param_array[:] = [2.5, 1.3]
     '''
 
     def __init__(self,
@@ -348,48 +357,61 @@ class _CPPUnionPotential(CPPPotentialBase):
                  r_cut_isotropic,
                  code_constituent=None,
                  code_isotropic=None,
-                 param_array):
+                 param_array=None):
 
         # initialize base class
-        super().__init__(r_cut=r_cut, array_size=array_size, code=code)
+        super().__init__(r_cut=r_cut,
+                code=code,
+                param_array=param_array)
 
         # add union specific params
-        param_dict = ParameterDict(r_cut_constituent=float(r_cut_constituent),
-                                   array_size_union=int(array_size_union),
-                                   leaf_capacity=int(4),
-                                   r_cut_isotropic=float(r_cut_isotropic))
+        param_dict = ParameterDict(
+            r_cut_constituent=float(r_cut_constituent),
+            r_cut_isotropic=float(r_cut_isotropic),
+            leaf_capacity=int(4),  # should this be a kwarg?
+        )
         self._param_dict.update(param_dict)
 
         # add union specific per-type parameters
-        typeparam_positions = TypeParameter('positions',
-                                            type_kind='particle_types',
-                                            param_dict=TypeParameterDict(
-                                                [tuple], len_keys=1))
+        typeparam_positions = TypeParameter(
+            'positions',
+            type_kind='particle_types',
+            param_dict=TypeParameterDict([tuple], len_keys=1),
+        )
 
-        typeparam_orientations = TypeParameter('orientations',
-                                               type_kind='particle_types',
-                                               param_dict=TypeParameterDict(
-                                                   [tuple], len_keys=1))
+        typeparam_orientations = TypeParameter(
+            'orientations',
+            type_kind='particle_types',
+            param_dict=TypeParameterDict([tuple], len_keys=1),
+        )
 
-        typeparam_diameters = TypeParameter('diameters',
-                                            type_kind='particle_types',
-                                            param_dict=TypeParameterDict(
-                                                [float], len_keys=1))
+        typeparam_diameters = TypeParameter(
+            'diameters',
+            type_kind='particle_types',
+            param_dict=TypeParameterDict([float], len_keys=1),
+        )
 
-        typeparam_charges = TypeParameter('charges',
-                                          type_kind='particle_types',
-                                          param_dict=TypeParameterDict(
-                                              [float], len_keys=1))
+        typeparam_charges = TypeParameter(
+            'charges',
+            type_kind='particle_types',
+            param_dict=TypeParameterDict([float], len_keys=1),
+        )
 
-        typeparam_typeids = TypeParameter('typeids',
-                                          type_kind='particle_types',
-                                          param_dict=TypeParameterDict(
-                                              [int], len_keys=1))
+        typeparam_typeids = TypeParameter(
+            'typeids',
+            type_kind='particle_types',
+            param_dict=TypeParameterDict([int], len_keys=1),
+        )
 
-        self._extend_typeparam([
-            typeparam_positions, typeparam_orientations, typeparam_diameters,
-            typeparam_charges, typeparam_typeids
-        ])
+        self._extend_typeparam(
+            [
+                typeparam_positions,
+                typeparam_orientations,
+                typeparam_diameters,
+                typeparam_charges,
+                typeparam_typeids
+            ]
+        )
 
         # these only exist on python
         self._code_constituent = code_constituent
@@ -399,24 +421,24 @@ class _CPPUnionPotential(CPPPotentialBase):
     def _attach(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
-            raise RuntimeError("The integrator must be a HPMC integrator.")
+            raise RuntimeError("The integrator must be an HPMC integrator.")
 
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
         cpu_code_constituent = self._wrap_cpu_code(self._code_constituent)
-        cpu_code_iso = self._wrap_cpu_code(self._code_isotropic)
+        cpu_code_isotropic = self._wrap_cpu_code(self._code_isotropic)
         cpu_include_options = _compile.get_cpu_include_options()
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
-            gpu_code = self._wrap_gpu_code(self._code_isotropic)
+            gpu_code_isotropic = self._wrap_gpu_code(self._code_isotropic)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
                 self._simulation.state._cpp_sys_def,
                 device._cpp_exec_conf,
-                cpu_code_iso,
+                cpu_code_isotropic,
                 self.r_cut_isotropic,
                 self.param_array,
                 cpu_code_constituent,
@@ -432,7 +454,7 @@ class _CPPUnionPotential(CPPPotentialBase):
             self._cpp_obj = _jit.PatchEnergyJITUnion(
                 self._simulation.state._cpp_sys_def,
                 device._cpp_exec_conf,
-                cpu_code_iso,
+                cpu_code_isotropic,
                 cpu_include_options,
                 self.r_cut_isotropic,
                 self.param_array,
@@ -447,20 +469,21 @@ class _CPPUnionPotential(CPPPotentialBase):
         self._cpp_obj.alpha_union[:] = self.alpha_union[:]
         self.alpha_iso = self._cpp_obj.alpha_iso
         self.alpha_union = self._cpp_obj.alpha_union
+
         # attach patch object to the integrator
         super()._attach()
 
     @property
-    def code_union(self):
+    def code_constituent(self):
         """str: The C++ code defining the custom pair interactions between
         constituent particles."""
-        return self._code_union
+        return self._code_constituent
 
-    @code_union.setter
-    def code_union(self, code):
+    @code_constituent.setter
+    def code_constituent(self, code):
         if self._attached:
-            raise AttributeError(
-                "This attribute can only be set when the object is not attached."
-            )
+            msg = "The attribute 'code_constituen' can only be set when the "
+            msg += "object is not attached."
+            raise AttributeError(msg)
         else:
-            self._code_union = code
+            self._code_constituent = code
