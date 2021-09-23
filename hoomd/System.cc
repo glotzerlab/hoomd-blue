@@ -347,7 +347,6 @@ void export_System(py::module& m)
         .def_property_readonly("computes", &System::getComputes)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &System::setCommunicator)
-        .def("getCommunicator", &System::getCommunicator)
 #endif
         ;
     }

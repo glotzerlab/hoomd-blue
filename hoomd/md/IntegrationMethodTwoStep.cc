@@ -204,8 +204,5 @@ void export_IntegrationMethodTwoStep(py::module& m)
         .def_property_readonly("filter",
                                [](const std::shared_ptr<IntegrationMethodTwoStep> method)
                                { return method->getGroup()->getFilter(); })
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)
-#endif
         ;
     }

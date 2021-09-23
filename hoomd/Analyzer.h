@@ -68,14 +68,6 @@ class PYBIND11_EXPORT Analyzer
         */
     virtual void analyze(uint64_t timestep)
         {
-#ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition() && !m_comm)
-            {
-            throw std::runtime_error(
-                "Bug: m_comm not set for a system with a domain decomposition in "
-                + std::string(typeid(*this).name()));
-            }
-#endif
         }
 
     //! Sets the profiler for the analyzer to use
@@ -110,15 +102,6 @@ class PYBIND11_EXPORT Analyzer
         return m_exec_conf;
         }
 
-#ifdef ENABLE_MPI
-    //! Set the communicator to use
-    /*! \param comm The Communicator
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        m_comm = comm;
-        }
-#endif
     void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
         {
         m_slots.push_back(slot);
@@ -150,10 +133,6 @@ class PYBIND11_EXPORT Analyzer
     const std::shared_ptr<ParticleData>
         m_pdata;                      //!< The particle data this analyzer is associated with
     std::shared_ptr<Profiler> m_prof; //!< The profiler this analyzer is to use
-
-#ifdef ENABLE_MPI
-    std::shared_ptr<Communicator> m_comm; //!< The communicator to use
-#endif
 
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration

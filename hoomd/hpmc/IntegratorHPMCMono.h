@@ -617,7 +617,7 @@ std::vector<hpmc_implicit_counters_t> IntegratorHPMCMono<Shape>::getImplicitCoun
         }
 
     #ifdef ENABLE_MPI
-    if (this->m_comm)
+    if (this->m_sysdef->isDomainDecomposed())
         {
         // MPI Reduction to total result values on all ranks
         for (unsigned int i = 0; i < m_depletant_idx.getNumElements(); ++i)

@@ -42,8 +42,5 @@ void export_Updater(py::module& m)
         .def("update", &Updater::update)
         .def("setProfiler", &Updater::setProfiler)
         .def("notifyDetach", &Updater::notifyDetach)
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &Updater::setCommunicator)
-#endif
         ;
     }

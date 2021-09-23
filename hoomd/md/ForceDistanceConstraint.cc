@@ -35,6 +35,20 @@ ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinitio
 
     // reset condition
     m_condition.resetFlags(0);
+
+    #ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak);
+        m_comm = comm_weak.lock();
+
+        // register this class with the communicator
+        m_comm->getGhostLayerWidthRequestSignal()
+            .connect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(
+                this);
+        }
+    #endif
     }
 
 //! Destructor
@@ -47,10 +61,12 @@ ForceDistanceConstraint::~ForceDistanceConstraint()
         .disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintsAddedRemoved>(
             this);
 #ifdef ENABLE_MPI
-    if (m_comm_ghost_layer_connected)
+    if (m_sysdef->isDomainDecomposed())
+        {
         m_comm->getGhostLayerWidthRequestSignal()
             .disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(
                 this);
+        }
 #endif
     }
 

@@ -239,10 +239,6 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
-        # pass the system communicator to the object
-        if self._simulation._system_communicator is not None:
-            self._cpp_obj.setCommunicator(self._simulation._system_communicator)
-
     @property
     def _attached(self):
         return self._cpp_obj is not None

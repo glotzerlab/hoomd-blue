@@ -461,11 +461,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
         }
 
 #ifdef ENABLE_MPI
-    //! Set the communicator to use
-    /*! \param comm MPI communication class
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm);
-
     //! Returns true if the particle migration criterion is fulfilled
     /*! \param timestep The current timestep
      */
@@ -535,6 +530,11 @@ class PYBIND11_EXPORT NeighborList : public Compute
 
     /// True if the number of bonds/angles/dihedrals/impropers/pairs has changed.
     bool m_topology_changed = false;
+
+#ifdef ENABLE_MPI
+    /// The system's communicator.
+    std::shared_ptr<Communicator> m_comm;
+#endif
 
     //! Return true if we are supposed to do a distance check in this time step
     bool shouldCheckDistance(uint64_t timestep);

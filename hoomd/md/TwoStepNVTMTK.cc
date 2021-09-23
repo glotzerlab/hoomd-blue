@@ -406,7 +406,7 @@ void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)
     m_exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * xi * m_deltaT);
 
 #ifdef ENABLE_MPI
-    if (m_comm && broadcast)
+    if (m_sysdef->isDomainDecomposed() && broadcast)
         {
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());

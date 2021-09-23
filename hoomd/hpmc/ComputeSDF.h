@@ -141,14 +141,6 @@ template<class Shape> class ComputeSDF : public Compute
         m_dx = dx;
         }
 
-#ifdef ENABLE_MPI
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method
-        Compute::setCommunicator(comm);
-        }
-#endif
-
     //! Analyze the current configuration
     virtual void compute(uint64_t timestep);
 

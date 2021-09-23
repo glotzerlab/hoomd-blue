@@ -249,6 +249,21 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     if (m_exec_conf->isCUDAEnabled())
         m_last_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
 #endif
+
+    #ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak);
+        m_comm = comm_weak.lock();
+
+        m_comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
+        m_comm->getCommFlagsRequestSignal()
+            .connect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
+        m_comm->getGhostLayerWidthRequestSignal()
+            .connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
+        }
+    #endif
     }
 
 void NeighborList::reallocate()
@@ -1690,23 +1705,6 @@ void NeighborList::growExclusionList()
     }
 
 #ifdef ENABLE_MPI
-//! Set the communicator to use
-void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
-    {
-    if (!m_comm)
-        {
-        // only add the migrate request on the first call
-        assert(comm);
-        comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
-        comm->getCommFlagsRequestSignal()
-            .connect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
-        comm->getGhostLayerWidthRequestSignal()
-            .connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
-        }
-
-    Compute::setCommunicator(comm);
-    }
-
 //! Returns true if the particle migration criterion is fulfilled
 /*! \note The criterion for when to request particle migration is the same as the one for neighbor
    list rebuilds, which is implemented in needsUpdating().
@@ -1829,9 +1827,6 @@ void export_NeighborList(py::module& m)
         .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
         .def("getNumExclusions", &NeighborList::getNumExclusions)
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &NeighborList::setCommunicator)
-#endif
         ;
 
     py::enum_<NeighborList::storageMode>(nlist, "storageMode")

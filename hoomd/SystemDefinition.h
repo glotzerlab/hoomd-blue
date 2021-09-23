@@ -128,6 +128,20 @@ class PYBIND11_EXPORT SystemDefinition
 #endif
         }
 
+    #ifdef ENABLE_MPI
+    void setCommunicator(std::shared_ptr<Communicator> communicator)
+        {
+        // Communicator holds a shared pointer to the SystemDefinition, so hold a weak pointer
+        // to break the circular reference.
+        m_communicator = communicator;
+        }
+
+    std::weak_ptr<Communicator> getCommunicator()
+        {
+        return m_communicator;
+        }
+    #endif
+
     /// Get the random number seed
     uint16_t getSeed() const
         {
@@ -196,6 +210,11 @@ class PYBIND11_EXPORT SystemDefinition
     std::shared_ptr<ConstraintData> m_constraint_data; //!< Improper data for the system
     std::shared_ptr<IntegratorData> m_integrator_data; //!< Integrator data for the system
     std::shared_ptr<PairData> m_pair_data;             //!< Special pairs data for the system
+
+    #ifdef ENABLE_MPI
+    /// The system communicator
+    std::weak_ptr<Communicator> m_communicator;
+    #endif
     };
 
 //! Exports SystemDefinition to python

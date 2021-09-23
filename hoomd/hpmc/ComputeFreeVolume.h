@@ -67,17 +67,6 @@ template<class Shape> class ComputeFreeVolume : public Compute
         m_type = type_int;
         }
 
-#ifdef ENABLE_MPI
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method
-        Compute::setCommunicator(comm);
-
-        // set the communicator on the internal cell list
-        m_cl->setCommunicator(comm);
-        }
-#endif
-
     //! Analyze the current configuration
     virtual void compute(uint64_t timestep);
 

@@ -45,6 +45,15 @@ SFCPackTuner::SFCPackTuner(std::shared_ptr<SystemDefinition> sysdef,
     // register reallocate method with particle data maximum particle number change signal
     m_pdata->getMaxParticleNumberChangeSignal().connect<SFCPackTuner, &SFCPackTuner::reallocate>(
         this);
+
+    #ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak);
+        m_comm = comm_weak.lock();
+        }
+    #endif
     }
 
 /*! reallocate the internal arrays

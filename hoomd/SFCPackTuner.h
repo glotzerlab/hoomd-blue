@@ -114,6 +114,11 @@ class PYBIND11_EXPORT SFCPackTuner : public Tuner
     std::vector<unsigned int> m_sort_order; //!< Generated sort order of the particles
     std::vector<std::pair<unsigned int, unsigned int>> m_particle_bins; //!< Binned particles
     std::shared_ptr<Trigger> m_trigger;
+
+#ifdef ENABLE_MPI
+    /// The systems's communicator.
+    std::shared_ptr<Communicator> m_comm;
+#endif
     };
 
 //! Export the SFCPackTuner class to python

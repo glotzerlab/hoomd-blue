@@ -730,6 +730,8 @@ template<class CL> void celllist_basic_test(std::shared_ptr<ExecutionConfigurati
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, snap->global_box.getL(), 2, 2, 2));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
+    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
+    sysdef->setCommunicator(pdata_comm);
 
     // initialize mpcd system
     std::shared_ptr<mpcd::ParticleData> pdata;
@@ -765,8 +767,6 @@ template<class CL> void celllist_basic_test(std::shared_ptr<ExecutionConfigurati
         }
 
     std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata));
-    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
-    cl->setCommunicator(pdata_comm);
     cl->compute(0);
     const unsigned int my_rank = exec_conf->getRank();
         {
@@ -961,6 +961,8 @@ template<class CL> void celllist_edge_test(std::shared_ptr<ExecutionConfiguratio
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, snap->global_box.getL(), fx, fy, fz));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
+    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
+    sysdef->setCommunicator(pdata_comm);
 
     // place each particle around the edges of each domain
     std::shared_ptr<mpcd::ParticleData> pdata;
@@ -997,8 +999,6 @@ template<class CL> void celllist_edge_test(std::shared_ptr<ExecutionConfiguratio
         }
 
     std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata));
-    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
-    cl->setCommunicator(pdata_comm);
 
     // move particles to edges of domains for testing
     const unsigned int my_rank = exec_conf->getRank();
