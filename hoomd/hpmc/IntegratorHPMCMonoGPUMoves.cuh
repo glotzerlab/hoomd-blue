@@ -286,7 +286,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
         int max_block_size;
         hipFuncAttributes attr;
         hipFuncGetAttributes(&attr,
-                                reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 2>));
+                             reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 2>));
         max_block_size = attr.maxThreadsPerBlock;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
@@ -339,7 +339,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
         int max_block_size;
         hipFuncAttributes attr;
         hipFuncGetAttributes(&attr,
-                                reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 3>));
+                             reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 3>));
         max_block_size = attr.maxThreadsPerBlock;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
@@ -395,8 +395,7 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
     // determine the maximum block size and clamp the input block size down
     int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr,
-                            reinterpret_cast<const void*>(kernel::hpmc_update_pdata<Shape>));
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_update_pdata<Shape>));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);

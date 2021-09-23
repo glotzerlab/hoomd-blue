@@ -435,11 +435,8 @@ struct PairForceComputeKernel
                   * typpair_idx.getNumElements();
 
             unsigned int max_block_size;
-            max_block_size
-                = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator,
-                                                                            shift_mode,
-                                                                            compute_virial,
-                                                                            tpp>);
+            max_block_size = get_max_block_size(
+                gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp>);
 
             hipFuncAttributes attr;
             hipFuncGetAttributes(

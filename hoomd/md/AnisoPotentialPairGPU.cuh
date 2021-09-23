@@ -434,12 +434,12 @@ struct AnisoPairForceComputeKernel
 
             unsigned int max_block_size;
             hipFuncAttributes attr;
-            hipFuncGetAttributes(&attr,
-                                    reinterpret_cast<const void*>(
-                                        &gpu_compute_pair_aniso_forces_kernel<evaluator,
-                                                                            shift_mode,
-                                                                            compute_virial,
-                                                                            tpp>));
+            hipFuncGetAttributes(
+                &attr,
+                reinterpret_cast<const void*>(&gpu_compute_pair_aniso_forces_kernel<evaluator,
+                                                                                    shift_mode,
+                                                                                    compute_virial,
+                                                                                    tpp>));
             int max_threads = attr.maxThreadsPerBlock;
             // number of threads has to be multiple of warp size
             max_block_size = max_threads - max_threads % gpu_aniso_pair_force_max_tpp;

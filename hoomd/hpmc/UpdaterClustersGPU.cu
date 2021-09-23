@@ -189,8 +189,7 @@ void concatenate_adjacency_list(const unsigned int* d_adjacency,
     // determine the maximum block size and clamp the input block size down
     int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr,
-                            reinterpret_cast<const void*>(kernel::concatenate_adjacency_list));
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::concatenate_adjacency_list));
     max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel

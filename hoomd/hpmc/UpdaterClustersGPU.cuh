@@ -495,8 +495,7 @@ void cluster_overlaps_launcher(const cluster_args_t& args,
         max_block_size = attr.maxThreadsPerBlock;
         if (max_block_size % args.devprop.warpSize)
             // handle non-sensical return values from hipFuncGetAttributes
-            max_block_size
-                = (max_block_size / args.devprop.warpSize - 1) * args.devprop.warpSize;
+            max_block_size = (max_block_size / args.devprop.warpSize - 1) * args.devprop.warpSize;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
         // dynamic shared memory usage
@@ -705,8 +704,7 @@ void transform_particles(const clusters_transform_args_t& args,
     // determine the maximum block size and clamp the input block size down
     int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr,
-                            reinterpret_cast<const void*>(&kernel::transform_particles<Shape>));
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&kernel::transform_particles<Shape>));
     max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel

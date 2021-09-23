@@ -378,8 +378,7 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
     // determine the maximum block size and clamp the input block size down
     int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr,
-                            reinterpret_cast<const void*>(gpu_hpmc_free_volume_kernel<Shape>));
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_hpmc_free_volume_kernel<Shape>));
     max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel

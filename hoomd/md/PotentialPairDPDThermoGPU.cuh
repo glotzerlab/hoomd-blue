@@ -373,12 +373,11 @@ struct DPDForceComputeKernel
                                         * typpair_idx.getNumElements();
 
             unsigned int max_block_size;
-            max_block_size
-                = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator,
-                                                                        shift_mode,
-                                                                        compute_virial,
-                                                                        use_gmem_nlist,
-                                                                        tpp>);
+            max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator,
+                                                                                  shift_mode,
+                                                                                  compute_virial,
+                                                                                  use_gmem_nlist,
+                                                                                  tpp>);
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(args.N / (block_size / tpp) + 1, 1, 1);

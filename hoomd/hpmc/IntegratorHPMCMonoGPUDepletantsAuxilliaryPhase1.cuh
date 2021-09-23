@@ -678,8 +678,8 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
             &attr,
             reinterpret_cast<const void*>(
                 &kernel::hpmc_insert_depletants_phase1<Shape,
-                                                    launch_bounds_nonzero * MIN_BLOCK_SIZE,
-                                                    pairwise>));
+                                                       launch_bounds_nonzero * MIN_BLOCK_SIZE,
+                                                       pairwise>));
         max_block_size = attr.maxThreadsPerBlock;
 
         // choose a block size based on the max block size by regs (max_block_size) and include

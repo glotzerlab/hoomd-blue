@@ -814,8 +814,7 @@ void clusters_depletants_launcher(const cluster_args_t& args,
         max_block_size = attr.maxThreadsPerBlock;
         if (max_block_size % args.devprop.warpSize)
             // handle non-sensical return values from hipFuncGetAttributes
-            max_block_size
-                = (max_block_size / args.devprop.warpSize - 1) * args.devprop.warpSize;
+            max_block_size = (max_block_size / args.devprop.warpSize - 1) * args.devprop.warpSize;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
         // dynamic shared memory usage

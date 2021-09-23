@@ -411,9 +411,8 @@ inline void launch_begin_cell_thermo(const mpcd::detail::thermo_args_t& args,
             {
             unsigned int max_block_size_energy;
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(
-                &attr,
-                (const void*)mpcd::gpu::kernel::begin_cell_thermo<true, cur_tpp>);
+            cudaFuncGetAttributes(&attr,
+                                  (const void*)mpcd::gpu::kernel::begin_cell_thermo<true, cur_tpp>);
             max_block_size_energy = attr.maxThreadsPerBlock;
 
             unsigned int run_block_size = min(block_size, max_block_size_energy);
@@ -583,9 +582,8 @@ inline void launch_inner_cell_thermo(const mpcd::detail::thermo_args_t& args,
             {
             unsigned int max_block_size_energy;
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(
-                &attr,
-                (const void*)mpcd::gpu::kernel::inner_cell_thermo<true, cur_tpp>);
+            cudaFuncGetAttributes(&attr,
+                                  (const void*)mpcd::gpu::kernel::inner_cell_thermo<true, cur_tpp>);
             max_block_size_energy = attr.maxThreadsPerBlock;
 
             unsigned int run_block_size = min(block_size, max_block_size_energy);
@@ -712,8 +710,7 @@ cudaError_t stage_net_cell_thermo(mpcd::detail::cell_thermo_element* d_tmp_therm
         {
         unsigned int max_block_size_energy;
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr,
-                                (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<true>);
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<true>);
         max_block_size_energy = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = min(block_size, max_block_size_energy);
@@ -725,8 +722,7 @@ cudaError_t stage_net_cell_thermo(mpcd::detail::cell_thermo_element* d_tmp_therm
         {
         unsigned int max_block_size_noenergy;
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr,
-                                (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<false>);
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<false>);
         max_block_size_noenergy = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = min(block_size, max_block_size_noenergy);

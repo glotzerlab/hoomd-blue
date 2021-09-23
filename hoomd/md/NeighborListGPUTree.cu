@@ -317,8 +317,7 @@ hipError_t gpu_nlist_copy_primitives(unsigned int* d_traverse_order,
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr,
-                            reinterpret_cast<const void*>(gpu_nlist_copy_primitives_kernel));
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_nlist_copy_primitives_kernel));
     max_block_size = attr.maxThreadsPerBlock;
 
     int run_block_size = min(block_size, max_block_size);

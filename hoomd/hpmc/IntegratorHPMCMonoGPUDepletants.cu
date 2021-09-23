@@ -233,7 +233,7 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
     unsigned int max_block_size;
     hipFuncAttributes attr;
     hipFuncGetAttributes(&attr,
-                            reinterpret_cast<const void*>(kernel::generate_num_depletants_ntrial));
+                         reinterpret_cast<const void*>(kernel::generate_num_depletants_ntrial));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);

@@ -201,8 +201,7 @@ cudaError_t unpack_cell_buffer(T* d_props,
     // determine runtime block size
     unsigned int max_block_size;
     cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr,
-                            (const void*)mpcd::gpu::kernel::unpack_cell_buffer<T, PackOpT>);
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::unpack_cell_buffer<T, PackOpT>);
     max_block_size = attr.maxThreadsPerBlock;
 
     const unsigned int run_block_size = min(block_size, max_block_size);

@@ -350,8 +350,7 @@ inline void launcher(unsigned int* d_nlist,
             if (!diameter_shift && !filter_body)
                 {
                 unsigned int max_block_size;
-                max_block_size
-                    = get_max_block_size(gpu_compute_nlist_binned_kernel<0, 0, cur_tpp>);
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<0, 0, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -391,8 +390,7 @@ inline void launcher(unsigned int* d_nlist,
             else if (!diameter_shift && filter_body)
                 {
                 unsigned int max_block_size;
-                max_block_size
-                    = get_max_block_size(gpu_compute_nlist_binned_kernel<1, 0, cur_tpp>);
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<1, 0, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -432,8 +430,7 @@ inline void launcher(unsigned int* d_nlist,
             else if (diameter_shift && !filter_body)
                 {
                 unsigned int max_block_size;
-                max_block_size
-                    = get_max_block_size(gpu_compute_nlist_binned_kernel<2, 0, cur_tpp>);
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<2, 0, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -473,8 +470,7 @@ inline void launcher(unsigned int* d_nlist,
             else if (diameter_shift && filter_body)
                 {
                 unsigned int max_block_size;
-                max_block_size
-                    = get_max_block_size(gpu_compute_nlist_binned_kernel<3, 0, cur_tpp>);
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<3, 0, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -517,8 +513,7 @@ inline void launcher(unsigned int* d_nlist,
             if (!diameter_shift && !filter_body)
                 {
                 unsigned int max_block_size;
-                max_block_size
-                    = get_max_block_size(gpu_compute_nlist_binned_kernel<0, 1, cur_tpp>);
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<0, 1, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -558,8 +553,7 @@ inline void launcher(unsigned int* d_nlist,
             else if (!diameter_shift && filter_body)
                 {
                 unsigned int max_block_size;
-                max_block_size
-                    = get_max_block_size(gpu_compute_nlist_binned_kernel<1, 1, cur_tpp>);
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<1, 1, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -599,8 +593,7 @@ inline void launcher(unsigned int* d_nlist,
             else if (diameter_shift && !filter_body)
                 {
                 unsigned int max_block_size;
-                max_block_size
-                    = get_max_block_size(gpu_compute_nlist_binned_kernel<2, 1, cur_tpp>);
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<2, 1, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -640,8 +633,7 @@ inline void launcher(unsigned int* d_nlist,
             else if (diameter_shift && filter_body)
                 {
                 unsigned int max_block_size;
-                max_block_size
-                    = get_max_block_size(gpu_compute_nlist_binned_kernel<3, 1, cur_tpp>);
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<3, 1, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);

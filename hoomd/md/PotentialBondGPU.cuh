@@ -251,9 +251,8 @@ hipError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
 
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(
-        &attr,
-        reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator>));
+    hipFuncGetAttributes(&attr,
+                         reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator>));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(bond_args.block_size, max_block_size);
