@@ -79,7 +79,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
     def __init__(self, r_cut, code, param_array=None):
         param_dict = ParameterDict(r_cut=float, code=str)
-        if param_array != None:
+        if param_array is not None:
             array_validator = NDArrayValidator(dtype=np.float32,
                                                shape=(len(param_array),))
             param_dict['param_array'] = array_validator
@@ -110,8 +110,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
         return integrator._cpp_obj.computePatchEnergy(timestep)
 
     def _wrap_cpu_code(self, code):
-        r"""Helper function to wrap the provided code into a function
-            with the expected signature.
+        r"""Wrap the provided code into a function with the expected signature.
 
         Args:
             code (`str`): Body of the C++ function
@@ -146,8 +145,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
         return cpp_function
 
     def _wrap_gpu_code(self, code):
-        r"""Helper function to convert the provided code into a device function
-            with the expected signature.
+        r"""Convert the provided code into a device function with the expected signature.
 
         Args:
             code (`str`): Body of the C++ function
