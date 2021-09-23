@@ -305,7 +305,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         }
 
     protected:
-    std::shared_ptr<SystemDefinition> m_sysdef; // HOOMD's system definition
     std::vector<hpmc::detail::GPUTree> m_tree;  // The tree acceleration structure per particle type
     std::vector<float> m_extent_type;           // The per-type geometric extent
     std::vector<std::vector<vec3<float>>> m_position; // The positions of the constituent particles

@@ -116,10 +116,10 @@ struct hpmc_patch_args_t
 
     \ingroup ??
 */
-class PatchEnergy : public Compute
+class PatchEnergy
     {
     public:
-    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef) { }
+    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef) { }
     virtual ~PatchEnergy() { }
 
 #ifdef ENABLE_HIP
@@ -183,6 +183,9 @@ class PatchEnergy : public Compute
         throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
         }
 #endif
+
+    protected:
+    std::shared_ptr<SystemDefinition> m_sysdef; // HOOMD's system definition
     };  // end class PatchEnergy
 
 //! Integrator that implements the HPMC approach
