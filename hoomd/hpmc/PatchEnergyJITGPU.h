@@ -35,7 +35,7 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
                         cuda_devrt_library_path,
                         compute_arch)
         {
-        m_gpu_factory.setAlphaPtr(&m_alpha.front());
+        m_gpu_factory.setAlphaPtr(&m_param_array.front());
 
         // tuning params for patch narrow phase
         std::vector<unsigned int> valid_params_patch;
