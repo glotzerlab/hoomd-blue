@@ -127,28 +127,13 @@ class PatchEnergy : public Compute
     typedef detail::hpmc_patch_args_t gpu_args_t;
 #endif
 
-    //! Returns the distance from the center of the particle (single or union) beyond which energies
-    //! are always zero
+    //! Returns the non-additive distance from the center of the particle beyond which energies are always zero
     virtual Scalar getRCut()
         {
         return 0;
         }
 
-    //! Returns the distance from the center of the particle (single or union) beyond which energies
-    //! are always zero
-    virtual Scalar getRCutIsotropic()
-        {
-        return 0;
-        }
-
-    //! Returns the distance from the center of each constituent particle in an union beyond which
-    //! energies are always 0
-    virtual Scalar getRCutConstituent()
-        {
-        return 0;
-        }
-
-    //! Returns the geometric extent, per type
+    //! Returns the additive part of the cutoff distance
     virtual Scalar getAdditiveCutoff(unsigned int type)
         {
         return 0;
