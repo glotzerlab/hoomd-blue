@@ -606,7 +606,7 @@ void ForceDistanceConstraint::assignMoleculeTags()
     std::vector<Scalar> length = snap.val;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         bcast(groups, 0, m_exec_conf->getMPICommunicator());
         bcast(length, 0, m_exec_conf->getMPICommunicator());

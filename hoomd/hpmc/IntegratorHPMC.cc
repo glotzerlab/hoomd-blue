@@ -174,7 +174,7 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
         result = h_counters.data[0] - m_count_step_start;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // MPI Reduction to total result values on all nodes.
         MPI_Allreduce(MPI_IN_PLACE,

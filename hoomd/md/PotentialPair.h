@@ -717,7 +717,7 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
         return;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // temporarily add tag comm flag
         CommFlags old_flags = m_comm->getFlags();

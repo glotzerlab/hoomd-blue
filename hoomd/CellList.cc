@@ -84,7 +84,7 @@ uint3 CellList::computeDimensions()
     // size the ghost layer width
     m_ghost_width = make_scalar3(0.0, 0.0, 0.0);
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         Scalar ghost_width = m_comm->getGhostLayerMaxWidth();
         if (ghost_width > Scalar(0.0))

@@ -76,7 +76,7 @@ void SFCPackTuner::update(uint64_t timestep)
     m_exec_conf->msg->notice(6) << "SFCPackTuner: particle sort" << std::endl;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // make sure all particles that need to be local are
         m_comm->forceMigrate();
@@ -103,7 +103,7 @@ void SFCPackTuner::update(uint64_t timestep)
     m_pdata->notifyParticleSort();
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // restore ghosts
         m_comm->communicate(timestep);

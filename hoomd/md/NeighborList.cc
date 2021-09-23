@@ -314,7 +314,7 @@ NeighborList::~NeighborList()
         .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         m_comm->getMigrateSignal().disconnect<NeighborList, &NeighborList::peekUpdate>(this);
         m_comm->getCommFlagsRequestSignal()

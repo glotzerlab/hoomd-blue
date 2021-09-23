@@ -1043,7 +1043,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                     }
 
 #ifdef ENABLE_MPI
-                if (m_comm)
+                if (m_sysdef->isDomainDecomposed())
                     {
                     bcast(type, 0, m_exec_conf->getMPICommunicator());
                     }
@@ -1145,7 +1145,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                         }
                     }
 
-                if (m_comm)
+                if (m_sysdef->isDomainDecomposed())
                     {
                     bcast(lnboltzmann, 0, m_exec_conf->getMPICommunicator());
                     bcast(nonzero, 0, m_exec_conf->getMPICommunicator());
@@ -1443,7 +1443,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                 }
             }
 
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             bcast(V_new, 0, m_exec_conf->getMPICommunicator());
             }
@@ -1590,7 +1590,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                 }
             }
 
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             bcast(accept, 0, m_exec_conf->getMPICommunicator());
             }
@@ -1634,7 +1634,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 #endif
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // We have inserted or removed particles or changed box volume, so update ghosts
         m_mc->communicate(false);
@@ -1795,7 +1795,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                 }
 
 #ifdef ENABLE_MPI
-            if (m_comm)
+            if (m_sysdef->isDomainDecomposed())
                 {
                 MPI_Allreduce(MPI_IN_PLACE,
                               &lnboltzmann,
@@ -2134,7 +2134,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
         }         // end if local
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
                       &lnboltzmann,

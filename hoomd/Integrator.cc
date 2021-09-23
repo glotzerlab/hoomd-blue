@@ -303,7 +303,7 @@ void Integrator::computeNetForce(uint64_t timestep)
         return;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // communicate the net force
         m_comm->updateNetForce(timestep);
@@ -651,7 +651,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         return;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // communicate the net force
         m_comm->updateNetForce(timestep);

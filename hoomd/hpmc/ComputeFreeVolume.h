@@ -270,7 +270,7 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
         } // end lexical scope
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
                       &overlap_count,

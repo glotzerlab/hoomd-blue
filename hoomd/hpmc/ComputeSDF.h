@@ -235,7 +235,7 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
 
 // in MPI, total up all of the histogram bins from all nodes to the root node
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         MPI_Reduce(m_hist.data(),
                    hist_total.data(),

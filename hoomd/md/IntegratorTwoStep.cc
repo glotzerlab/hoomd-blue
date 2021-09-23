@@ -25,7 +25,7 @@ IntegratorTwoStep::~IntegratorTwoStep()
     m_exec_conf->msg->notice(5) << "Destroying IntegratorTwoStep" << endl;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         m_comm->getComputeCallbackSignal()
             .disconnect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
@@ -80,7 +80,7 @@ void IntegratorTwoStep::update(uint64_t timestep)
         m_prof->pop();
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // perform all necessary communication steps. This ensures
         // a) that particles have migrated to the correct domains
@@ -329,7 +329,7 @@ void IntegratorTwoStep::prepRun(uint64_t timestep)
         method->setAnisotropic(aniso);
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // force particle migration and ghost exchange
         m_comm->forceMigrate();
