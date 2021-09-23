@@ -128,7 +128,8 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             m_updated_types.push_back(pid);
             }
 
-        m_build_obb = true;
+        //m_build_obb = true;
+        buildOBBTree();
         // store result
         m_d_union_params[pid] = params;
         // cudaMemadviseReadMostly
@@ -191,7 +192,8 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             m_updated_types.push_back(pid);
             }
 
-        m_build_obb = true;
+        //m_build_obb = true;
+        buildOBBTree();
         // store result
         m_d_union_params[pid] = params;
         // cudaMemadviseReadMostly

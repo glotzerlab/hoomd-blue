@@ -104,7 +104,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             {
             m_updated_types.push_back(pid);
             }
-        m_build_obb = true;
+        //m_build_obb = true;
+        buildOBBTree();
         }
 
     //! Get per-type positions of the constituent particles as a python list of 3-tuples
@@ -170,7 +171,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             {
             m_updated_types.push_back(pid);
             }
-        m_build_obb = true;
+        //m_build_obb = true;
+        buildOBBTree();
         }
 
     //! Get per-type diameters of the constituent particles as a python list
@@ -213,7 +215,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     virtual void setLeafCapacity(unsigned int leaf_capacity)
         {
         m_leaf_capacity = leaf_capacity;
-        m_build_obb = true;
+        //m_build_obb = true;
+        buildOBBTree();
         }
 
     //! Get OBB leaf_capacity
