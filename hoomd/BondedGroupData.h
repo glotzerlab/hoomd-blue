@@ -243,6 +243,9 @@ class BondedGroupData
 
     virtual ~BondedGroupData();
 
+    //! Initialize internal memory
+    void initialize();
+
     //! Initialize from a snapshot
     virtual void initializeFromSnapshot(const Snapshot& snapshot);
 
@@ -659,16 +662,15 @@ class BondedGroupData
     bool m_invalid_cached_tags; //!< true if m_cached_tag_set needs to be rebuilt
     std::shared_ptr<Profiler> m_prof; //!< Profiler
 
+    Nano::Signal<void()> m_group_num_change_signal; //!< Signal that is triggered when groups are
+                                                    //!< added or deleted (globally)
+						    //
     private:
     bool m_groups_dirty; //!< Is it necessary to rebuild the lookup-by-index table?
 
-    Nano::Signal<void()> m_group_num_change_signal; //!< Signal that is triggered when groups are
-                                                    //!< added or deleted (globally)
     Nano::Signal<void()> m_group_reorder_signal; //!< Signal that is triggered when groups are added
                                                  //!< or deleted locally
 
-    //! Initialize internal memory
-    void initialize();
 
     //! Helper function to rebuild the active tag cache if necessary
     void maybe_rebuild_tag_cache();
@@ -773,74 +775,74 @@ struct Bond
 //! Definition of BondData
 typedef BondedGroupData<2, Bond, name_bond_data> BondData;
 
-/*
- * MeshBondData
- */
-extern char name_meshbond_data[];
-
-// Definition of a bond
-struct MeshBond
-    {
-    typedef group_storage<4> members_t;
-
-    //! Constructor
-    /*! \param type Type of bond
-     * \param _a First bond member
-     * \param _b Second bond member
-     * \param _ta First triangle
-     * \param _tb Second triangle
-     */
-    MeshBond(unsigned int _type, unsigned int _a, unsigned int _b, int _ta, int _tb ) : type(_type), a(_a), b(_b), ta(_ta), tb(_tb) { }
-
-    //! Constructor that takes a members_t (used internally by MeshBondData)
-    /*! \param type
-     *  \param members group members
-     */
-    MeshBond(typeval_t _typeval, members_t _members)
-        : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1]), ta(_members.tag[2]), tb(_members.tag[3])
-        {
-        }
-
-    //! This helper function needs to be provided for the templated MeshBondData to work correctly
-    members_t get_members() const
-        {
-        members_t m;
-        m.tag[0] = a;
-        m.tag[1] = b;
-        m.tag[2] = ta;
-        m.tag[3] = tb;
-        return m;
-        }
-
-    //! This helper function needs to be provided for the templated MeshBondData to work correctly
-    typeval_t get_typeval() const
-        {
-        typeval_t t;
-        t.type = type;
-        return t;
-        }
-
-    //! This helper function needs to be provided for the templated MeshBondData to work correctly
-    static void export_to_python(pybind11::module& m)
-        {
-        pybind11::class_<MeshBond>(m, "MeshBond")
-            .def(pybind11::init<unsigned int, unsigned int, unsigned int, int, int>())
-            .def_readonly("type", &MeshBond::type)
-            .def_readonly("a", &MeshBond::a)
-            .def_readonly("b", &MeshBond::b)
-            .def_readonly("ta", &MeshBond::ta)
-            .def_readonly("tb", &MeshBond::tb);
-        }
-
-    unsigned int type; //!< Group type
-    unsigned int a;    //!< First bond member
-    unsigned int b;    //!< Second bond member
-    unsigned int ta;    //!< First triangle
-    unsigned int tb;    //!< Second triangle
-    };
-
-//! Definition of MeshBondData
-typedef BondedGroupData<4, MeshBond, name_meshbond_data> MeshBondData;
+///*
+// * MeshBondData
+// */
+//extern char name_meshbond_data[];
+//
+//// Definition of a bond
+//struct MeshBond
+//    {
+//    typedef group_storage<4> members_t;
+//
+//    //! Constructor
+//    /*! \param type Type of bond
+//     * \param _a First bond member
+//     * \param _b Second bond member
+//     * \param _ta First triangle
+//     * \param _tb Second triangle
+//     */
+//    MeshBond(unsigned int _type, unsigned int _a, unsigned int _b, int _ta, int _tb ) : type(_type), a(_a), b(_b), ta(_ta), tb(_tb) { }
+//
+//    //! Constructor that takes a members_t (used internally by MeshBondData)
+//    /*! \param type
+//     *  \param members group members
+//     */
+//    MeshBond(typeval_t _typeval, members_t _members)
+//        : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1]), ta(_members.tag[2]), tb(_members.tag[3])
+//        {
+//        }
+//
+//    //! This helper function needs to be provided for the templated MeshBondData to work correctly
+//    members_t get_members() const
+//        {
+//        members_t m;
+//        m.tag[0] = a;
+//        m.tag[1] = b;
+//        m.tag[2] = ta;
+//        m.tag[3] = tb;
+//        return m;
+//        }
+//
+//    //! This helper function needs to be provided for the templated MeshBondData to work correctly
+//    typeval_t get_typeval() const
+//        {
+//        typeval_t t;
+//        t.type = type;
+//        return t;
+//        }
+//
+//    //! This helper function needs to be provided for the templated MeshBondData to work correctly
+//    static void export_to_python(pybind11::module& m)
+//        {
+//        pybind11::class_<MeshBond>(m, "MeshBond")
+//            .def(pybind11::init<unsigned int, unsigned int, unsigned int, int, int>())
+//            .def_readonly("type", &MeshBond::type)
+//            .def_readonly("a", &MeshBond::a)
+//            .def_readonly("b", &MeshBond::b)
+//            .def_readonly("ta", &MeshBond::ta)
+//            .def_readonly("tb", &MeshBond::tb);
+//        }
+//
+//    unsigned int type; //!< Group type
+//    unsigned int a;    //!< First bond member
+//    unsigned int b;    //!< Second bond member
+//    unsigned int ta;    //!< First triangle
+//    unsigned int tb;    //!< Second triangle
+//    };
+//
+////! Definition of MeshBondData
+//typedef BondedGroupData<4, MeshBond, name_meshbond_data> MeshBondData;
 
 
 /*
@@ -919,83 +921,83 @@ extern char name_triangle_data[];
 typedef BondedGroupData<3, Angle, name_triangle_data> TriangleData;
 
 
-/*
- * MeshTriangleData
- */
-extern char name_meshtriangle_data[];
-
-// Definition of an dihedral
-struct MeshTriangle
-    {
-    typedef group_storage<6> members_t;
-
-    //! Constructor
-    /*! \param type Type of triangle
-     * \param _a First dihedral member
-     * \param _b Second dihedral member
-     */
-    MeshTriangle(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c, int _ea, int _eb , int _ec)
-        : type(_type), a(_a), b(_b), c(_c), ea(_ea), eb(_eb), ec(_ec)
-        {
-        }
-
-    //! Constructor that takes a members_t (used internally by MeshTriangleData)
-    /*! \param type
-     *  \param members group members
-     */
-    MeshTriangle(typeval_t _typeval, members_t _members)
-        : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2]),
-          ea(_members.tag[3]), eb(_members.tag[4]), ec(_members.tag[5])
-        {
-        }
-
-    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
-    members_t get_members() const
-        {
-        members_t m;
-        m.tag[0] = a;
-        m.tag[1] = b;
-        m.tag[2] = c;
-        m.tag[3] = ea;
-        m.tag[4] = eb;
-        m.tag[5] = ec;
-        return m;
-        }
-
-    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
-    typeval_t get_typeval() const
-        {
-        typeval_t t;
-        t.type = type;
-        return t;
-        }
-
-    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
-    static void export_to_python(pybind11::module& m)
-        {
-        pybind11::class_<MeshTriangle>(m, "MeshTriangle")
-            .def(pybind11::
-                     init<unsigned int, unsigned int, unsigned int, unsigned int, int, int , int>())
-            .def_readonly("type", &MeshTriangle::type)
-            .def_readonly("a", &MeshTriangle::a)
-            .def_readonly("b", &MeshTriangle::b)
-            .def_readonly("c", &MeshTriangle::c)
-            .def_readonly("ea", &MeshTriangle::ea)
-            .def_readonly("eb", &MeshTriangle::eb)
-            .def_readonly("ec", &MeshTriangle::ec);
-        }
-
-    unsigned int type; //!< Group type
-    unsigned int a;    //!< First dihedral member
-    unsigned int b;    //!< Second dihedral member
-    unsigned int c;    //!< Third dihedral member
-    unsigned int ea;    //!< First endge
-    unsigned int eb;    //!< Second edge
-    unsigned int ec;    //!< Third edge
-    };
-
-//! Definition of MeshTriangleData
-typedef BondedGroupData<6, MeshTriangle, name_meshtriangle_data> MeshTriangleData;
+///*
+// * MeshTriangleData
+// */
+//extern char name_meshtriangle_data[];
+//
+//// Definition of an dihedral
+//struct MeshTriangle
+//    {
+//    typedef group_storage<6> members_t;
+//
+//    //! Constructor
+//    /*! \param type Type of triangle
+//     * \param _a First dihedral member
+//     * \param _b Second dihedral member
+//     */
+//    MeshTriangle(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c, int _ea, int _eb , int _ec)
+//        : type(_type), a(_a), b(_b), c(_c), ea(_ea), eb(_eb), ec(_ec)
+//        {
+//        }
+//
+//    //! Constructor that takes a members_t (used internally by MeshTriangleData)
+//    /*! \param type
+//     *  \param members group members
+//     */
+//    MeshTriangle(typeval_t _typeval, members_t _members)
+//        : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2]),
+//          ea(_members.tag[3]), eb(_members.tag[4]), ec(_members.tag[5])
+//        {
+//        }
+//
+//    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
+//    members_t get_members() const
+//        {
+//        members_t m;
+//        m.tag[0] = a;
+//        m.tag[1] = b;
+//        m.tag[2] = c;
+//        m.tag[3] = ea;
+//        m.tag[4] = eb;
+//        m.tag[5] = ec;
+//        return m;
+//        }
+//
+//    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
+//    typeval_t get_typeval() const
+//        {
+//        typeval_t t;
+//        t.type = type;
+//        return t;
+//        }
+//
+//    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
+//    static void export_to_python(pybind11::module& m)
+//        {
+//        pybind11::class_<MeshTriangle>(m, "MeshTriangle")
+//            .def(pybind11::
+//                     init<unsigned int, unsigned int, unsigned int, unsigned int, int, int , int>())
+//            .def_readonly("type", &MeshTriangle::type)
+//            .def_readonly("a", &MeshTriangle::a)
+//            .def_readonly("b", &MeshTriangle::b)
+//            .def_readonly("c", &MeshTriangle::c)
+//            .def_readonly("ea", &MeshTriangle::ea)
+//            .def_readonly("eb", &MeshTriangle::eb)
+//            .def_readonly("ec", &MeshTriangle::ec);
+//        }
+//
+//    unsigned int type; //!< Group type
+//    unsigned int a;    //!< First dihedral member
+//    unsigned int b;    //!< Second dihedral member
+//    unsigned int c;    //!< Third dihedral member
+//    unsigned int ea;    //!< First endge
+//    unsigned int eb;    //!< Second edge
+//    unsigned int ec;    //!< Third edge
+//    };
+//
+////! Definition of MeshTriangleData
+//typedef BondedGroupData<6, MeshTriangle, name_meshtriangle_data> MeshTriangleData;
 
 /*
  * DihedralData

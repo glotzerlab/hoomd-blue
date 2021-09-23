@@ -11,12 +11,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __BONDED_GROUP_DATA_H__
-#define __BONDED_GROUP_DATA_H__
+#ifndef __MESH_GROUP_DATA_H__
+#define __MESH_GROUP_DATA_H__
 
-//! Sentinel value to indicate group is not present on this processor
-const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
-
+#include "BondedGroupData.h"
 #include "ExecutionConfiguration.h"
 #include "GPUVector.h"
 #include "HOOMDMPI.h"
@@ -24,7 +22,6 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
 #include "Index1D.h"
 #include "ParticleData.h"
 #include "Profiler.h"
-#include "BondedGroupData.h"
 
 #ifdef ENABLE_HIP
 #include "BondedGroupData.cuh"
@@ -52,10 +49,13 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
  *  \tpp name Name of element, i.e. bond, angle, dihedral, ..
  */
 template<unsigned int group_size, typename Group, const char* name, bool bond>
-class MeshGroupData: BondedGroupData<group_size,Group,name,true>
+class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
     {
     public:
     //! Group size
+    //
+    //! Group data element type
+    typedef union group_storage<group_size> members_t;
 
     //! Constructor for empty BondedGroupData
     MeshGroupData(std::shared_ptr<ParticleData> pdata, unsigned int n_group_types);
@@ -66,9 +66,11 @@ class MeshGroupData: BondedGroupData<group_size,Group,name,true>
     virtual ~MeshGroupData();
 
     //! Initialize from a snapshot
-    virtual void initializeFromSnapshot(const TriangleData::Snapshot& snapshot);
+    //using BondedGroupData<group_size,Group,name,true>::initializeFromSnapshot;
+    void initializeFromSnapshot(const TriangleData::Snapshot& snapshot);
 
     //! Take a snapshot
+    //using BondedGroupData<group_size,Group,name,true>::takeSnapshot;
     virtual std::map<unsigned int, unsigned int> takeSnapshot(TriangleData::Snapshot& snapshot) const;
 
     /*
@@ -81,11 +83,12 @@ class MeshGroupData: BondedGroupData<group_size,Group,name,true>
     unsigned int addBondedGroup(Group g);
 
     protected:
+
     };
 
 //! Exports BondData to python
 template<class T, class Group>
-void export_BondedGroupData(pybind11::module& m,
+void export_MeshGroupData(pybind11::module& m,
                             std::string name,
                             std::string snapshot_name,
                             bool export_struct = true);

@@ -11,7 +11,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "BondedGroupData.h"
+#include "MeshGroupData.h"
 #include "ParticleData.h"
 
 #include <memory>
