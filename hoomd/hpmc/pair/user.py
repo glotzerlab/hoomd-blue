@@ -103,6 +103,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
         """
         integrator = self._simulation.operations.integrator
         timestep = self._simulation.timestep
+        if not self._attached:  # is this the right check?
+            return None
         return integrator._cpp_obj.computePatchEnergy(timestep)
 
     def _wrap_cpu_code(self, code):
@@ -453,7 +455,6 @@ class _CPPUnionPotential(CPPPotentialBase):
                 self.param_array,
                 cpu_code_constituent,
                 self.r_cut_constituent,
-                self.array_size_union,
             )
 
         # Set the C++ mirror array with the cached values
