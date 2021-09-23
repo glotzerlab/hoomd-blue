@@ -110,18 +110,12 @@ struct hpmc_patch_args_t
 
     } // end namespace detail
 
-//! Integrator that implements the HPMC approach
+//! Integrator that implements patchy interactions between particles in HPMC simulations
 /*! **Overview** <br>
-    IntegratorHPMC is an non-templated base class that implements the basic methods that all HPMC
-   integrators have. This provides a base interface that any other code can use when given a shared
-   pointer to an IntegratorHPMC.
+    PatchEnergy is ...
 
-    The move ratio is stored as an unsigned int (0xffff = 100%) to avoid numerical issues when the
-   move ratio is exactly at 100%.
-
-    \ingroup hpmc_integrators
+    \ingroup ??
 */
-
 class PatchEnergy : public Compute
     {
     public:
