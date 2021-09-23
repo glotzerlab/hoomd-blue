@@ -25,7 +25,7 @@ using namespace std;
 Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
     : Updater(sysdef), m_deltaT(deltaT)
     {
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         auto comm_weak = m_sysdef->getCommunicator();
@@ -37,11 +37,10 @@ Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
 
         m_comm->getComputeCallbackSignal().connect<Integrator, &Integrator::computeCallback>(this);
         }
-    #endif
+#endif
 
     if (m_deltaT < 0)
-        m_exec_conf->msg->warning()
-            << "A step size dt of less than 0 was specified." << endl;
+        m_exec_conf->msg->warning() << "A step size dt of less than 0 was specified." << endl;
     }
 
 Integrator::~Integrator()

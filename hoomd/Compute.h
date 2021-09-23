@@ -68,9 +68,7 @@ class PYBIND11_EXPORT Compute
     /*! \param timestep Current time step
         Derived classes will implement this method to calculate their results
     */
-    virtual void compute(uint64_t timestep)
-        {
-        }
+    virtual void compute(uint64_t timestep) { }
 
     //! Abstract method that performs a benchmark
     virtual double benchmark(unsigned int num_iters);

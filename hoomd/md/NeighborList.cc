@@ -250,7 +250,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
         m_last_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
 #endif
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         auto comm_weak = m_sysdef->getCommunicator();
@@ -263,7 +263,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
         m_comm->getGhostLayerWidthRequestSignal()
             .connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
         }
-    #endif
+#endif
     }
 
 void NeighborList::reallocate()
@@ -1826,8 +1826,7 @@ void export_NeighborList(py::module& m)
         .def("estimateNNeigh", &NeighborList::estimateNNeigh)
         .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
-        .def("getNumExclusions", &NeighborList::getNumExclusions)
-        ;
+        .def("getNumExclusions", &NeighborList::getNumExclusions);
 
     py::enum_<NeighborList::storageMode>(nlist, "storageMode")
         .value("half", NeighborList::storageMode::half)

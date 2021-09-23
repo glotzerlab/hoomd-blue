@@ -65,9 +65,7 @@ class PYBIND11_EXPORT Updater
     /*! Derived classes will implement this method to perform their specific update
         \param timestep Current time step of the simulation
     */
-    virtual void update(uint64_t timestep)
-        {
-        };
+    virtual void update(uint64_t timestep) {};
 
     //! Sets the profiler for the compute to use
     virtual void setProfiler(std::shared_ptr<Profiler> prof);

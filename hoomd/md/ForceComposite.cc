@@ -19,8 +19,7 @@ namespace py = pybind11;
  */
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
     : MolecularForceCompute(sysdef), m_bodies_changed(false), m_particles_added_removed(false),
-      m_global_max_d(0.0),
-      m_global_max_d_changed(true)
+      m_global_max_d(0.0), m_global_max_d_changed(true)
     {
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
@@ -62,7 +61,7 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
 
     m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         auto comm_weak = m_sysdef->getCommunicator();
@@ -73,7 +72,7 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         m_comm->getExtraGhostLayerWidthRequestSignal()
             .connect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
         }
-    #endif
+#endif
     }
 
 //! Destructor

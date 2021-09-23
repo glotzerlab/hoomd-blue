@@ -298,14 +298,14 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
     // initialize name
     m_prof_name = std::string("Pair ") + evaluator::getName();
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         auto comm_weak = m_sysdef->getCommunicator();
         assert(comm_weak.lock());
         m_comm = comm_weak.lock();
         }
-    #endif
+#endif
     }
 
 template<class evaluator> PotentialPair<evaluator>::~PotentialPair()

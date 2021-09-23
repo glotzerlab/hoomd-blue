@@ -41,6 +41,5 @@ void export_Updater(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>>())
         .def("update", &Updater::update)
         .def("setProfiler", &Updater::setProfiler)
-        .def("notifyDetach", &Updater::notifyDetach)
-        ;
+        .def("notifyDetach", &Updater::notifyDetach);
     }

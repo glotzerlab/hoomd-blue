@@ -49,14 +49,14 @@ CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
     m_pdata->getParticleSortSignal().connect<CellList, &CellList::slotParticlesSorted>(this);
     m_pdata->getBoxChangeSignal().connect<CellList, &CellList::slotBoxChanged>(this);
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         auto comm_weak = m_sysdef->getCommunicator();
         assert(comm_weak.lock());
         m_comm = comm_weak.lock();
         }
-    #endif
+#endif
     }
 
 CellList::~CellList()

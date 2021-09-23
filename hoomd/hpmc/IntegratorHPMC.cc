@@ -43,7 +43,7 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
 
     resetStats();
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         assert(m_comm);
@@ -51,10 +51,10 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
         m_comm->getGhostLayerWidthRequestSignal()
             .connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
 
-        m_comm->getCommFlagsRequestSignal()
-            .connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
+        m_comm->getCommFlagsRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(
+            this);
         }
-    #endif
+#endif
     }
 
 IntegratorHPMC::~IntegratorHPMC()
@@ -67,8 +67,8 @@ IntegratorHPMC::~IntegratorHPMC()
         auto comm = m_sysdef->getCommunicator().lock();
         comm->getGhostLayerWidthRequestSignal()
             .disconnect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
-        comm->getCommFlagsRequestSignal()
-            .disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
+        comm->getCommFlagsRequestSignal().disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(
+            this);
         }
 #endif
     }

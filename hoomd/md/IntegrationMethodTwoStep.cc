@@ -203,6 +203,5 @@ void export_IntegrationMethodTwoStep(py::module& m)
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
         .def_property_readonly("filter",
                                [](const std::shared_ptr<IntegrationMethodTwoStep> method)
-                               { return method->getGroup()->getFilter(); })
-        ;
+                               { return method->getGroup()->getFilter(); });
     }

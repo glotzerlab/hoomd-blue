@@ -230,8 +230,8 @@ void export_SystemDefinition(py::module& m)
         .def("initializeFromSnapshot", &SystemDefinition::initializeFromSnapshot<double>)
         .def("getSeed", &SystemDefinition::getSeed)
         .def("setSeed", &SystemDefinition::setSeed)
-        #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
         .def("setCommunicator", &SystemDefinition::setCommunicator)
-        #endif
+#endif
         ;
     }

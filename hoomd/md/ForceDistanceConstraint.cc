@@ -36,7 +36,7 @@ ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinitio
     // reset condition
     m_condition.resetFlags(0);
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         auto comm_weak = m_sysdef->getCommunicator();
@@ -45,10 +45,9 @@ ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinitio
 
         // register this class with the communicator
         m_comm->getGhostLayerWidthRequestSignal()
-            .connect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(
-                this);
+            .connect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(this);
         }
-    #endif
+#endif
     }
 
 //! Destructor

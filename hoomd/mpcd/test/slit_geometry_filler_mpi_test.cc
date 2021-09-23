@@ -3,8 +3,8 @@
 
 // Maintainer: mphoward
 
-#include "hoomd/mpcd/SlitGeometryFiller.h"
 #include "hoomd/Communicator.h"
+#include "hoomd/mpcd/SlitGeometryFiller.h"
 #ifdef ENABLE_HIP
 #include "hoomd/mpcd/SlitGeometryFillerGPU.h"
 #endif // ENABLE_HIP

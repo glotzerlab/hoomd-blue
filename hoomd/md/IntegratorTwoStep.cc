@@ -19,13 +19,13 @@ IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, S
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         m_comm->getComputeCallbackSignal()
             .connect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
         }
-    #endif
+#endif
     }
 
 IntegratorTwoStep::~IntegratorTwoStep()
