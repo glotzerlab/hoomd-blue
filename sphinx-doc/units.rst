@@ -7,30 +7,19 @@ to choose from. Instead, it follows a self-consistent system of units where all 
 for your simulations, choose a set of base units (e.g. meters versus centimeters for length), and
 then determine what the derived units are.
 
-.. note::
-
-    Most of the units on this page apply to MD simulations.
-
-    In HPMC, the primary unit is that of length. Mass is factored out of the partition function and
-    does not enter into the simulation. In addition, the scale of energy is irrelevant in athermal
-    HPMC systems where overlapping energies are infinite and valid configurations have
-    zero potential energy. However, energy does appear implicitly in derived units like
-    :math:`[\mathrm{pressure}] = \left(\frac{\mathrm{[energy]}}{\mathrm{[length]}^3}\right)`.  In
-    HPMC, :math:`kT` is assumed to be 1 :math:`\mathrm{energy}`.
-
 Base Units
 ==========
 
 The base units are:
 
-- energy
-- length
-- mass
+- :math:`[\mathrm{energy}]`
+- :math:`[\mathrm{length}]`
+- :math:`[\mathrm{mass}]`
 
 Unit Conversion
 ===============
 
-Unit conversions between derived units and arbitrary base units:
+Example unit conversions between derived units and base units:
 
 .. list-table::
    :header-rows: 1
@@ -53,15 +42,25 @@ Unit conversions between derived units and arbitrary base units:
      - :math:`\left(4 \pi \epsilon_{0} \cdot [\mathrm{energy}] \cdot [\mathrm{length}] \right)^{1/2}`
        - where :math:`\epsilon_{0}` is permittivity of free space
 
+.. note::
+
+    Most of the units on this page apply to MD simulations.
+
+    In HPMC, the primary unit is that of length. Mass is factored out of the partition function and
+    does not enter into the simulation. In addition, the energy scale is irrelevant in athermal
+    HPMC systems where overlapping energies are infinite and valid configurations have
+    zero potential energy. However, energy does appear implicitly in derived units like
+    :math:`[\mathrm{pressure}] = [\mathrm{energy}] \cdot [\mathrm{length}]^{-3}`.  In
+    HPMC, :math:`kT` is set to 1 :math:`\mathrm{energy}`.
 
 Common unit systems
 ===================
 
-Here are the base and derived units for some commonly used MD unit systems.
+Example base and derived units for common MD unit systems.
 
 .. note::
 
-    All conversion factors are provided with the given links.
+    All conversion factors given here are computed with Wolfram Alpha using the provided links.
 
 .. list-table::
    :header-rows: 1
@@ -99,6 +98,6 @@ Here are the base and derived units for some commonly used MD unit systems.
    * - :math:`[\mathrm{charge}]`
      - `0.05487686461 e <https://www.wolframalpha.com/input/?i=sqrt%284+*+pi+*+permittivity+of+free+space+*+1+%28kcal%2FAvogadro%27s+number%29+*+1+angstrom%29+%2F+proton+charge>`__
      - `0.0848385920 e <https://www.wolframalpha.com/input/?i=sqrt%284+*+pi+*+permittivity+of+free+space+*+1+%28kilojoule%2FAvogadro%27s+number%29+*+1+nanometer%29+%2F+proton+charge>`__
-   * - :math:`k_B` (Boltzmann's constant)
+   * - :math:`k` (Boltzmann's constant)
      - `0.00198720426 kcal/mol/K <https://www.wolframalpha.com/input/?i=boltzmann%27s+constant+in+kcal%2FAvogadro+number%2FK>`__
      - `0.00831446262 kJ/mol/K <https://www.wolframalpha.com/input/?i=boltzmann%27s+constant+in+kilojoues%2FAvogadro+number%2FK>`__
