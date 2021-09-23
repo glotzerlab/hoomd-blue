@@ -47,7 +47,7 @@ template<class Real> struct SnapshotSystemData;
     such a reference.
 
     More generally, any data structure class in SystemDefinition can potentially reference any
-   other, simply by giving the shared pointer to the referenced class to the constructor of the one
+    other, simply by giving the shared pointer to the referenced class to the constructor of the one
    that needs to refer to it. Note that using this setup, there can be no circular references. This
    is a \b good \b thing ^TM, as it promotes good separation and isolation of the various classes
    responsibilities.
@@ -103,6 +103,16 @@ class PYBIND11_EXPORT SystemDefinition
         return m_n_dimensions;
         }
 
+    /// Check if the system is decomposed across MPI ranks
+    bool isDomainDecomposed()
+        {
+#ifdef ENABLE_MPI
+        return bool(this->m_particle_data->getDomainDecomposition());
+#else
+        return false;
+#endif
+        }
+
     /// Set the random numbers seed
     void setSeed(uint16_t seed)
         {
@@ -113,7 +123,7 @@ class PYBIND11_EXPORT SystemDefinition
         // Broadcast the seed of rank 0 to all ranks to correct cases where the user provides
         // different seeds
 
-        if (this->m_particle_data->getDomainDecomposition())
+        if (isDomainDecomposed())
             bcast(m_seed, 0, this->m_particle_data->getExecConf()->getMPICommunicator());
 #endif
         }
