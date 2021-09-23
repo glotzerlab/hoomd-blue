@@ -23,8 +23,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                         const std::string& cpu_code_constituent,
                         Scalar r_cut_constituent)
         : PatchEnergyJIT(sysdef, exec_conf, cpp_code_isotropic, compiler_args, r_cut_isotropic, param_array),
-          m_sysdef(sysdef), m_r_cut_constituent(r_cut_constituent),
-          m_param_array_size_constituent(static_cast<unsigned int>(param_array.size()))
+          m_sysdef(sysdef), m_r_cut_constituent(r_cut_constituent)
         {
         // build the JIT.
         m_factory_union
@@ -302,6 +301,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     static pybind11::object getParamArrayConstituent(pybind11::object self)
         {
         auto self_cpp = self.cast<PatchEnergyJITUnion*>();
+        unsigned int array_size = static_cast<unsigned int>(param_array_consituent.size());
         return pybind11::array(self_cpp->m_param_array_size_constituent,
                                self_cpp->m_factory_union->getAlphaUnionArray(),
                                self);
@@ -337,7 +337,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     std::vector<float, managed_allocator<float>> m_param_array_constituent; //!< Data array for constituent particles
     std::vector<unsigned int>
         m_updated_types; //!< List of types whose geometric properties were updated
-    unsigned int m_param_array_size_constituent; //!< Length of data array for constituent particles
     };
 
 //! Exports the PatchEnergyJITUnion class to python
