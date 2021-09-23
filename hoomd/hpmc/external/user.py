@@ -2,6 +2,8 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
+"""User-defined external fields for HPMC simulations."""
+
 import hoomd
 from hoomd import _compile
 from hoomd.hpmc import integrate
@@ -12,7 +14,7 @@ from hoomd.logging import log
 
 
 class CPPExternalField(_HOOMDBaseObject):
-    r'''Define an external field imposed on all particles in the system.
+    r"""Define an external field imposed on all particles in the system.
 
     Args:
         code (str): C++ function body to compile.
@@ -55,7 +57,6 @@ class CPPExternalField(_HOOMDBaseObject):
     * Your code *must* return a value.
 
     Example:
-
     .. code-block:: python
 
         gravity = "return r_i.z + box.getL().z/2;"
@@ -63,13 +64,13 @@ class CPPExternalField(_HOOMDBaseObject):
 
     Note:
         CPPExternalField does not support execution on GPUs.
-    '''
+    """
 
     def __init__(self, code):
         self._code = code
 
     def _wrap_cpu_code(self, code):
-        r"""Helper function to wrap the provided code into a function
+        """Helper function to wrap the provided code into a function \
             with the expected signature.
 
         Args:

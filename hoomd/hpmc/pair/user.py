@@ -145,7 +145,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
         return cpp_function
 
     def _wrap_gpu_code(self, code):
-        r"""Convert the provided code into a device function with the expected signature.
+        """Convert the provided code into a device function with the expected \
+                signature.
 
         Args:
             code (`str`): Body of the C++ function
@@ -192,7 +193,6 @@ class CPPPotential(CPPPotentialBase):
         `CPPPotentialBase`
 
     Examples:
-
         .. code-block:: python
 
             square_well = '''float rsq = dot(r_ij, r_ij);
@@ -256,14 +256,15 @@ class CPPPotential(CPPPotentialBase):
 class _CPPUnionPotential(CPPPotentialBase):
     r'''Define an arbitrary energetic interaction between unions of particles.
 
-
     Warning:
         This class does not currenlty work. Please do not attempt to use this.
 
     Args:
-        r_cut_constituent (`float`): Constituent particle center to center distance
+        r_cut_constituent (`float`): Constituent particle center to center \
+                distance
             cutoff beyond which all pair interactions are assumed 0.
-        r_cut_isotropic (`float`, **default** 0): Cut-off for isotropic interaction
+        r_cut_isotropic (`float`, **default** 0): Cut-off for isotropic \
+                interaction
             between centers of union particles.
         code_constituent (`str`): C++ code defining the custom pair interactions
             between constituent particles.
@@ -280,9 +281,11 @@ class _CPPUnionPotential(CPPPotentialBase):
             is configurable.
 
     Attributes:
-        positions (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`]]])
+        positions (`TypeParameter` [``particle type``, `list` [`tuple` \
+                [`float`, `float`, `float`]]])
             The positions of the constituent particles.
-        orientations (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float, `float`]]])
+        orientations (`TypeParameter` [``particle type``, `list` [`tuple` \
+                [`float`, `float`, `float, `float`]]])
             The orientations of the constituent particles.
         diameters (`TypeParameter` [``particle type``, `list` [`float`]])
             The diameters of the constituent particles.
@@ -290,9 +293,11 @@ class _CPPUnionPotential(CPPPotentialBase):
             The charges of the constituent particles.
         typeids (`TypeParameter` [``particle type``, `list` [`float`]])
             The integer types of the constituent particles.
-        leaf_capacity (`int`, **default:** 4) : The number of particles in a leaf of the internal tree data structure
-        param_array (``ndarray<float>``): Length array_size_union numpy array containing dynamically adjustable elements
-                                          defined by the user for unions of shapes.
+        leaf_capacity (`int`, **default:** 4) : The number of particles in a \
+                leaf of the internal tree data structure
+        param_array (``ndarray<float>``): Length array_size_union numpy array \
+                containing dynamically adjustable elements defined by the user \
+                for unions of shapes.
 
     Example without isotropic interactions:
 
@@ -362,7 +367,9 @@ class _CPPUnionPotential(CPPPotentialBase):
                  param_array=None):
 
         # initialize base class
-        super().__init__(r_cut=r_cut, code=code, param_array=param_array)
+        super().__init__(r_cut=r_cut_isotropic,
+                         code=code_isotropic,
+                         param_array=param_array)
 
         # add union specific params
         param_dict = ParameterDict(
@@ -439,7 +446,7 @@ class _CPPUnionPotential(CPPPotentialBase):
                 cpu_code_constituent,
                 self.r_cut_constituent,
                 self.array_size_union,
-                gpu_code,
+                gpu_code_isotropic,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"] + ["-DUNION_EVAL"],
                 gpu_settings["cuda_devrt_lib_path"],
@@ -469,8 +476,12 @@ class _CPPUnionPotential(CPPPotentialBase):
 
     @property
     def code_constituent(self):
-        """str: The C++ code defining the custom pair interactions between
-        constituent particles."""
+        """str: The C++ code defining the custom pair interactions between \
+        constituent particles.
+
+        This returns the code that was passed into the class constructor, which
+        contains only the body of the patch energy kernel.
+        """
         return self._code_constituent
 
     @code_constituent.setter

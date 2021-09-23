@@ -2,7 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Test hoomd.hpmc.external.user.CPPExternalField"""
+"""Test hoomd.hpmc.external.user.CPPExternalField."""
 
 import hoomd
 import pytest
@@ -23,7 +23,12 @@ attr_error = [
     ('code', 'return -1.0;'),
 ]
 
-# (orientation of p1, orientation of p2, charge of both particles, expected result)
+# list of tuples with (
+# orientation of p1,
+# orientation of p2,
+# charge of both particles,
+# expected result
+# )
 electric_field_params = [
     ([(1, 0, 0, 0), (0, np.sqrt(2) / 2, np.sqrt(2) / 2, 0)], 1, 0),
     ([(1, 0, 0, 0), (0, np.sqrt(2) / 2, 0, np.sqrt(2) / 2)], 1, -1),
@@ -102,10 +107,8 @@ def test_valid_setattr_cpp_external(device, attr, value):
 @pytest.mark.skip(reason='Read-only properties of user code not implemented')
 def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
                                        two_particle_snapshot_factory):
-    """Test that CPPExternalField raises AttributeError if we
-       try to set certain attributes after attaching.
-    """
-
+    """Test that CPPExternalField raises AttributeError if we try to set \
+            certain attributes after attaching."""
     ext = hoomd.hpmc.external.user.CPPExternalField(code='return 0;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
@@ -127,15 +130,17 @@ def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_electric_field(device, orientations, charge, result,
                         simulation_factory, two_particle_snapshot_factory):
-    """Test that CPPExternalField computes the correct energies for static
-       point-like electric dipoles inmersed in an uniform electric field.
-    """
+    """Test that CPPExternalField computes the correct energies for static \
+            point-like electric dipoles inmersed in an uniform electric field.
 
-    # pontential energy of a point dipole in an electric field in the z direction
-    #    - use charge as a proxy for dipole moment
-    #    - ignore units for simplicity
+    Here, we test the potential energy of a point dipole in an electric field
+    oriented along the z-direction. Note that we 1) use charge as a proxy for
+    the dipole moment and 2) ignore units for simplicity.
+
+    """
     electric_field = """ vec3<Scalar> E(0,0,1);
-                         vec3<Scalar> p = charge*rotate(q_i, vec3<Scalar> (1,0,0));
+                         vec3<Scalar> p = charge*rotate(q_i, vec3<Scalar>
+                            (1,0,0));
                          return -dot(p,E);
                      """
 
@@ -160,14 +165,15 @@ def test_electric_field(device, orientations, charge, result,
 @pytest.mark.serial
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_gravity(device, simulation_factory, lattice_snapshot_factory):
-    """ This test simulates a sedimentation experiment by using an elongated
-        box in the z-dimension and adding an effective gravitational
-        potential with a wall. Note that it is technically probabilistic in
-        nature, but we use enough particles and a strong enough gravitational
-        potential that the probability of particles rising in the simulation is
-        vanishingly small.
-    """
+    """Test that particles "fall" in a gravitaional field.
 
+    This test simulates a sedimentation experiment by using an elongated box in
+    the z-dimension and adding an effective gravitational potential with a wall.
+    Note that it is technically probabilistic in nature, but we use enough
+    particles and a strong enough gravitational potential that the probability
+    of particles rising in the simulation is vanishingly small.
+
+    """
     sim = simulation_factory(lattice_snapshot_factory(a=1.1, n=5))
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.01)
     mc.shape['A'] = dict(diameter=1)

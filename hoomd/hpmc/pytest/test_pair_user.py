@@ -2,7 +2,8 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Test hoomd.hpmc.pair.user.CPPPotential and hoomd.hpmc.pair.user.CPPUnionPotential."""
+"""Test hoomd.hpmc.pair.user.CPPPotential and \
+        hoomd.hpmc.pair.user.CPPUnionPotential."""
 
 import hoomd
 import pytest
@@ -100,7 +101,6 @@ def test_valid_setattr_attached_cpp_potential(device, attr, value,
                                               simulation_factory,
                                               two_particle_snapshot_factory):
     """Test that CPPPotential can get and set attributes after attached."""
-
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2, code='return -1;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
@@ -123,10 +123,8 @@ def test_valid_setattr_attached_cpp_potential(device, attr, value,
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
                                         two_particle_snapshot_factory):
-    """Test that CPPPotential raises AttributeError if we
-       try to set certain attributes after attaching.
-    """
-
+    """Test that CPPPotential raises AttributeError if we \
+            try to set certain attributes after attaching."""
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2, code='return 0;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
@@ -148,8 +146,12 @@ def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_cpp_potential(device, positions, orientations, result,
                        simulation_factory, two_particle_snapshot_factory):
-    """Test that CPPPotential computes the correct."""
+    """Test that CPPPotential computes the correct.
 
+    Here, we test the interaction between point dipoles and ensure the energy
+    is what we expect.
+
+    """
     # interaction between point dipoles
     dipole_dipole = """ float rsq = dot(r_ij, r_ij);
                         float r_cut = {0};
@@ -198,11 +200,16 @@ def test_cpp_potential(device, positions, orientations, result,
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_param_array(device, cls, simulation_factory,
                      two_particle_snapshot_factory):
-    """Test that: i) changes to the param_array reflect on the energy
-       caltulation, ii) that it can be accessed from CPPPotential and CPPUnionPotential
-       objects and iii) that the energy computed from both classes agree.
-    """
+    """Test passing in parameter arrays to the patch objects.
 
+    This test tests that several actions are performed correctly:
+        i) changes to the parameter array are reflected in on the energy \
+                calculation,
+        ii) that the paramater array can be accessed from CPPPotential and \
+                CPPUnionPotential objects, and
+        iii) that the energy computed from both classes agree.
+
+    """
     lennard_jones = """
                      float rsq = dot(r_ij, r_ij);
                      float rcut  = param_array[0];
