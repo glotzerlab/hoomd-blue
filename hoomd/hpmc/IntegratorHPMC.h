@@ -119,7 +119,7 @@ struct hpmc_patch_args_t
 class PatchEnergy : public Compute
     {
     public:
-    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_build_obb(false) { }
+    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef) { }
     virtual ~PatchEnergy() { }
 
 #ifdef ENABLE_HIP
@@ -183,14 +183,19 @@ class PatchEnergy : public Compute
         throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
         }
 #endif
+    };  // end class PatchEnergy
 
-    //! Update the OBB tree  for union of particles
-    virtual void buildOBBTree() { }
+//! Integrator that implements the HPMC approach
+/*! **Overview** <br>
+    IntegratorHPMC is an non-templated base class that implements the basic methods that all HPMC
+   integrators have. This provides a base interface that any other code can use when given a shared
+   pointer to an IntegratorHPMC.
 
-    protected:
-    bool m_build_obb; //! Flag to update the OBB tree for union of particles
-    };
+    The move ratio is stored as an unsigned int (0xffff = 100%) to avoid numerical issues when the
+   move ratio is exactly at 100%.
 
+    \ingroup hpmc_integrators
+*/
 class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     {
     public:
