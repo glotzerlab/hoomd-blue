@@ -194,10 +194,13 @@ def test_cpp_potential(device, positions, orientations, result,
 
     assert np.isclose(patch.energy, result)
 
+
 patch_classes = [
-        hoomd.hpmc.pair.user.CPPPotential,
-        hoomd.hpmc.pair.user.CPPUnionPotential,
+    hoomd.hpmc.pair.user.CPPPotential,
+    hoomd.hpmc.pair.user.CPPUnionPotential,
 ]
+
+
 @pytest.mark.serial
 @pytest.mark.parametrize("cls", patch_classes)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
