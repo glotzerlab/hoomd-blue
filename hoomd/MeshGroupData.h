@@ -67,11 +67,14 @@ class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
 
     //! Initialize from a snapshot
     //using BondedGroupData<group_size,Group,name,true>::initializeFromSnapshot;
+    #pragma clang diagnostic push
+    # pragma clang diagnostic ignored "-Woverloaded-virtual"
     void initializeFromSnapshot(const TriangleData::Snapshot& snapshot);
+    #pragma clang diagnostic pop
 
     //! Take a snapshot
     //using BondedGroupData<group_size,Group,name,true>::takeSnapshot;
-    virtual std::map<unsigned int, unsigned int> takeSnapshot(TriangleData::Snapshot& snapshot) const;
+    std::map<unsigned int, unsigned int> takeSnapshot(TriangleData::Snapshot& snapshot) const;
 
     /*
      * add/remove groups globally
@@ -82,7 +85,7 @@ class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
      */
     unsigned int addBondedGroup(Group g);
 
-    protected:
+    private:
 
     };
 

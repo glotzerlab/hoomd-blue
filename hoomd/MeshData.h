@@ -61,7 +61,6 @@ class PYBIND11_EXPORT MeshData
     private:
     std::shared_ptr<MeshBondData> m_meshbond_data;             //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data;             //!< Triangle data for the mesh
-    std::shared_ptr<TriangleData> triangle_data;             //!< Triangle data for the mesh
     };
 
 //! Exports MeshData to python

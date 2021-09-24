@@ -247,10 +247,10 @@ class BondedGroupData
     void initialize();
 
     //! Initialize from a snapshot
-    virtual void initializeFromSnapshot(const Snapshot& snapshot);
+    void initializeFromSnapshot(const Snapshot& snapshot);
 
     //! Take a snapshot
-    virtual std::map<unsigned int, unsigned int> takeSnapshot(Snapshot& snapshot) const;
+    std::map<unsigned int, unsigned int> takeSnapshot(Snapshot& snapshot) const;
 
     //! Get local number of bonded groups
     unsigned int getN() const

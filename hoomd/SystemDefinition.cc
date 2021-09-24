@@ -58,7 +58,10 @@ SystemDefinition::SystemDefinition(unsigned int N,
         = std::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
     m_improper_data
         = std::shared_ptr<ImproperData>(new ImproperData(m_particle_data, n_improper_types));
-    m_mesh_data = MeshData(m_particle_data, n_triangle_types);
+    m_meshtriangle_data
+        = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, n_triangle_types));
+    m_meshbond_data
+        = std::shared_ptr<MeshBondData>(new MeshBondData(m_particle_data, n_triangle_types));
     m_constraint_data = std::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, 0));
     m_pair_data = std::shared_ptr<PairData>(new PairData(m_particle_data, 0));
     m_integrator_data = std::shared_ptr<IntegratorData>(new IntegratorData());
@@ -96,7 +99,11 @@ SystemDefinition::SystemDefinition(std::shared_ptr<SnapshotSystemData<Real>> sna
     m_improper_data
         = std::shared_ptr<ImproperData>(new ImproperData(m_particle_data, snapshot->improper_data));
 
-    m_mesh_data = MeshData(m_particle_data, snapshot->triangle_data);
+    m_meshtriangle_data
+        = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, snapshot->triangle_data));
+
+    m_meshbond_data
+        = std::shared_ptr<MeshBondData>(new MeshBondData(m_particle_data, snapshot->triangle_data));
 
     m_constraint_data = std::shared_ptr<ConstraintData>(
         new ConstraintData(m_particle_data, snapshot->constraint_data));
@@ -143,7 +150,7 @@ template<class Real> std::shared_ptr<SnapshotSystemData<Real>> SystemDefinition:
     m_dihedral_data->takeSnapshot(snap->dihedral_data);
     m_improper_data->takeSnapshot(snap->improper_data);
     m_constraint_data->takeSnapshot(snap->constraint_data);
-    m_mesh_data.takeSnapshot(snap);
+    m_meshtriangle_data->takeSnapshot(snap->triangle_data);
     m_pair_data->takeSnapshot(snap->pair_data);
 
     return snap;
@@ -170,7 +177,8 @@ void SystemDefinition::initializeFromSnapshot(std::shared_ptr<SnapshotSystemData
     m_dihedral_data->initializeFromSnapshot(snapshot->dihedral_data);
     m_improper_data->initializeFromSnapshot(snapshot->improper_data);
     m_constraint_data->initializeFromSnapshot(snapshot->constraint_data);
-    m_mesh_data.initializeFromSnapshot(snapshot->triangle_data);
+    m_meshtriangle_data->initializeFromSnapshot(snapshot->triangle_data);
+    m_meshbond_data->initializeFromSnapshot(snapshot->triangle_data);
     m_pair_data->initializeFromSnapshot(snapshot->pair_data);
     }
 

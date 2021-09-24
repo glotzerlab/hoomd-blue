@@ -154,22 +154,19 @@ class PYBIND11_EXPORT SystemDefinition
     //! Access the triangle data defined for the simulation
     std::shared_ptr<TriangleData> getTriangleData()
         {
-        return m_mesh_data.getTriangleData();
+	TriangleData::Snapshot snapshot;
+	m_meshtriangle_data->takeSnapshot(snapshot);
+        return  std::shared_ptr<TriangleData>(new TriangleData(m_particle_data, snapshot));
         }
     //! Access the mesh triangle data defined for the simulation
     std::shared_ptr<MeshTriangleData> getMeshTriangleData()
         {
-        return m_mesh_data.getMeshTriangleData();
+        return m_meshtriangle_data;
         }
     //! Access the mesh bond data defined for the simulation
     std::shared_ptr<MeshBondData> getMeshBondData()
         {
-        return m_mesh_data.getMeshBondData();
-        }
-    //! Access the mesh data defined for the simulation
-     MeshData getMeshData()
-        {
-        return m_mesh_data;
+        return m_meshbond_data;
         }
 
     //! Access the constraint data defined for the simulation
@@ -208,7 +205,8 @@ class PYBIND11_EXPORT SystemDefinition
     std::shared_ptr<ConstraintData> m_constraint_data; //!< Improper data for the system
     std::shared_ptr<IntegratorData> m_integrator_data; //!< Integrator data for the system
     std::shared_ptr<PairData> m_pair_data;             //!< Special pairs data for the system
-    MeshData m_mesh_data;                              //!< Mesh data for the system
+    std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
+    std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
     };
 
 //! Exports SystemDefinition to python

@@ -42,7 +42,6 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
     m_meshbond_data
         = std::shared_ptr<MeshBondData>(new MeshBondData(pdata, n_triangle_types));
 
-    triangle_data = std::shared_ptr<TriangleData>(new TriangleData(pdata, n_triangle_types));
     }
 
 /*! Evaluates the snapshot and initializes the respective *Data classes using
@@ -54,97 +53,11 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
 MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
 		TriangleData::Snapshot snapshot)
     {
-
-    triangle_data
-        = std::shared_ptr<TriangleData>(new TriangleData(pdata, (unsigned int) snapshot.type_mapping.size() ));
-
     m_meshtriangle_data
-        = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(pdata, (unsigned int) snapshot.type_mapping.size() ));
-
-
+        = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(pdata, snapshot));
 
     m_meshbond_data
-        = std::shared_ptr<MeshBondData>(new MeshBondData(pdata, (unsigned int) snapshot.type_mapping.size() ));
-
-    for (unsigned group_types = 0; group_types < snapshot.type_mapping.size(); group_types++)
-    	{
-        triangle_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
-        m_meshtriangle_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
-        m_meshbond_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
-	}
-
-    for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
-        {
-        unsigned int type = snapshot.type_id[group_idx];
-	unsigned int a = snapshot.groups[group_idx].tag[0];
-	unsigned int b = snapshot.groups[group_idx].tag[1];
-	unsigned int c = snapshot.groups[group_idx].tag[2];
-
-	int dreieck =0;
-
-	int aa = -1;
-	int bb = -1;
-	int cc = -1;
-	unsigned int size = (unsigned int)m_meshbond_data->getN();
-        for (unsigned int i = 0; i < size && dreieck < 3; i++)
-            {
-            MeshBondData::members_t bond = m_meshbond_data->getMembersByIndex(i);
-            if( bond.tag[0] == a || bond.tag[1] == a )
-	    	{
-            	if( bond.tag[0] == b || bond.tag[1] == b)
-			{
-			dreieck += 1;
-			aa = i;
-			bond.tag[3] = group_idx;
-			m_meshbond_data->setMemberByIndex(i,bond);
-			}
-		else
-			{
-            		if( bond.tag[0] == c || bond.tag[1] == c)
-				{
-				dreieck += 1;
-				bb = i;
-			        bond.tag[3] = group_idx;
-				m_meshbond_data->setMemberByIndex(i,bond);
-				}
-			}
-	    	}
-	    else
-		{
-            	if( bond.tag[0] == b || bond.tag[1] == b )
-			{
-            		if( bond.tag[0] == c ||  bond.tag[1] == c )
-				{
-			        dreieck += 1;
-				cc = i;
-			        bond.tag[3] = group_idx;
-				m_meshbond_data->setMemberByIndex(i,bond);
-				}
-			}
-		}
-	    }
-
-	if(aa == -1)
-	    {
-	    m_meshbond_data->addBondedGroup(MeshBond(type, a, b, group_idx, -1));
-	    aa = size;
-	    size += 1;
-	    }
-	if(bb == -1)
-	    {
-	    m_meshbond_data->addBondedGroup(MeshBond(type, a, c, group_idx, -1));
-	    bb = size;
-	    size += 1;
-	    }
-	if(cc == -1)
-	    {
-	    m_meshbond_data->addBondedGroup(MeshBond(type, b, c, group_idx, -1));
-	    cc = size;
-	    size += 1;
-	    }
-
-        m_meshtriangle_data->addBondedGroup(MeshTriangle(type, a, b, c, aa, bb, cc ));
-        }
+        = std::shared_ptr<MeshBondData>(new MeshBondData(pdata, snapshot));
     }
 
 
@@ -159,36 +72,20 @@ MeshData::MeshData(std::shared_ptr<ParticleData> pdata,
  */
 template<class Real> void MeshData::takeSnapshot(std::shared_ptr<SnapshotSystemData<Real>> snap)
     {
-    std::shared_ptr<TriangleData> triangle = getTriangleData();
-    triangle->takeSnapshot(snap->triangle_data);
+    m_meshtriangle_data->takeSnapshot(snap->triangle_data);
     }
 
 //! Re-initialize the system from a snapshot
 void MeshData::initializeFromSnapshot( TriangleData::Snapshot snapshot)
     {
-    triangle_data->initializeFromSnapshot(snapshot);
+    m_meshtriangle_data->initializeFromSnapshot(snapshot);
+    m_meshbond_data->initializeFromSnapshot(snapshot);
 
-    for (unsigned group_types = 0; group_types < snapshot.type_mapping.size(); group_types++)
-    	{
-        triangle_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
-        m_meshtriangle_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
-        m_meshbond_data->setTypeName(group_types, snapshot.type_mapping[group_types]);
-
-	}
     }
 
 std::shared_ptr<TriangleData> MeshData::getTriangleData()
         {
-        for (unsigned group_idx = 0; group_idx < m_meshbond_data->getN(); group_idx++)
-            {
-            MeshTriangleData::members_t meshtriangle = m_meshtriangle_data->getMembersByIndex(group_idx);
-            TriangleData::members_t triangle = triangle_data->getMembersByIndex(group_idx);
-	    triangle.tag[0] = meshtriangle.tag[0];
-	    triangle.tag[1] = meshtriangle.tag[1];
-	    triangle.tag[2] = meshtriangle.tag[2];
-	    triangle_data->setMemberByIndex(group_idx,triangle);
-
-	    }
+        std::shared_ptr<TriangleData> triangle_data;
         return triangle_data;
         }
 
