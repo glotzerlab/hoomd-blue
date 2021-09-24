@@ -380,19 +380,19 @@ class CPPUnionPotential(CPPPotentialBase):
         )
 
         arrays = dict(
-                'param_array_isotropic': param_array_isotropic,
-                'param_array_constituent': param_array_constituent
+                param_array_isotropic=param_array_isotropic,
+                param_array_constituent=param_array_constituent
                 )
         for array_name, array in arrays.items():
-        if array is not None:
-            array_validator = NDArrayValidator(dtype=np.float32,
-                                               shape=(len(array),)
-                                               )
-            param_dict[array_name] = array_validator
-            param_dict[array_name] = array
-        else:
-            param_dict[array_name] = np.array([])
-        self._param_dict.update(param_dict)
+            if array is not None:
+                array_validator = NDArrayValidator(dtype=np.float32,
+                                                   shape=(len(array),)
+                                                   )
+                param_dict[array_name] = array_validator
+                param_dict[array_name] = array
+            else:
+                param_dict[array_name] = np.array([])
+            self._param_dict.update(param_dict)
 
         # add union specific per-type parameters
         typeparam_positions = TypeParameter(
