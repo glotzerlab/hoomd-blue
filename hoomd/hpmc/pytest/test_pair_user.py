@@ -194,9 +194,12 @@ def test_cpp_potential(device, positions, orientations, result,
 
     assert np.isclose(patch.energy, result)
 
-
+patch_classes = [
+        hoomd.hpmc.pair.user.CPPPotential,
+        hoomd.hpmc.pair.user.CPPUnionPotential,
+]
 @pytest.mark.serial
-@pytest.mark.parametrize("cls", [hoomd.hpmc.pair.user.CPPPotential])
+@pytest.mark.parametrize("cls", patch_classes)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_param_array(device, cls, simulation_factory,
                      two_particle_snapshot_factory):
@@ -212,7 +215,7 @@ def test_param_array(device, cls, simulation_factory,
     """
     lennard_jones = """
                      float rsq = dot(r_ij, r_ij);
-                     float rcut  = param_array[0];
+                     float rcut = param_array[0];
                      if (rsq <= rcut*rcut)
                          {{
                          float sigma = param_array[1];
@@ -233,8 +236,13 @@ def test_param_array(device, cls, simulation_factory,
     r_cut = 5
     params = dict(code=lennard_jones, param_array=[2.5, 1.2, 1.0], r_cut=r_cut)
     if "union" in cls.__name__.lower():
+        print('yo dawg')
         params.update({"r_cut_constituent": 0})
-        params.update({"code_union": "return 0;"})
+        params['r_cut_isotropic'] = params['r_cut']
+        del params['r_cut']
+        params.update({"code_constituent": "return 0;"})
+        params.update({'code_isotropic': params['code']})
+        del params['code']
     patch = cls(**params)
     if "union" in cls.__name__.lower():
         patch.positions['A'] = [(0, 0, 0)]
