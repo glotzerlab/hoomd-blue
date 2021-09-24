@@ -12,6 +12,7 @@ void PatchEnergyJITUnion::buildOBBTree()
     {
     // if (m_build_obb)
         {
+        Scalar max_extent = 0.0; // 2x the dist of farthest-away constituent (all types), used for r_cut calc
         for (unsigned int ti = 0; ti < m_updated_types.size(); ti++)
             {
             unsigned int type = m_updated_types[ti];
@@ -19,7 +20,7 @@ void PatchEnergyJITUnion::buildOBBTree()
             hpmc::detail::OBB* obbs = new hpmc::detail::OBB[N];
             // extract member parameters, positions, and orientations and compute the rcut along the
             // way
-            float extent_i = 0.0;
+            Scalar extent_i = 0.0; // 2x the dist of farthest-away constituent particle of type i, used for r_cut calc
             for (unsigned int i = 0; i < N; i++)
                 {
                 auto pos = m_position[type][i];
@@ -28,8 +29,9 @@ void PatchEnergyJITUnion::buildOBBTree()
                 obbs[i] = hpmc::detail::OBB(pos, 0.0);
 
                 Scalar r = sqrt(
-                    dot(pos, pos)); // distance from center of union to  this constituent particle
-                extent_i = std::max(extent_i, float(2 * r));
+                    dot(pos, pos)); // distance from center of union to this constituent particle
+                // extent_i is twice the distance to the farthest particle, so is ~ the circumsphere diameter
+                extent_i = std::max(extent_i, Scalar(2 * r));
 
                 // we do not support exclusions
                 obbs[i].mask = 1;
@@ -37,6 +39,13 @@ void PatchEnergyJITUnion::buildOBBTree()
 
             // set the diameter
             m_extent_type[type] = extent_i;
+
+            // update max_extent
+            max_extent = std::max(max_extent, extent_i);
+
+            // update m_r_cut_max
+            Scalar r_cut_max = std::max(m_r_cut_isotropic, max_extent + m_r_cut_constituent);
+            m_r_cut_max = std::max(m_r_cut_max, r_cut_max);
 
             // build tree and store proxy structure
             hpmc::detail::OBBTree tree;
@@ -89,7 +98,7 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
             if (rsq <= m_r_cut_constituent * m_r_cut_constituent)
                 {
                 // evaluate energy via JIT function
-                energy += m_eval_union(r_ij,
+                energy += m_eval_constituent(r_ij,
                                        type_i,
                                        orientation_i,
                                        m_diameter[type_a][ileaf],
@@ -238,7 +247,8 @@ void export_PatchEnergyJITUnion(pybind11::module& m)
                             Scalar,
                             pybind11::array_t<float>,
                             const std::string&,
-                            Scalar>())
+                            Scalar,
+                            pybind11::array_t<float>>())
 
         .def("getPositions", &PatchEnergyJITUnion::getPositions)
         .def("setPositions", &PatchEnergyJITUnion::setPositions)
@@ -256,5 +266,10 @@ void export_PatchEnergyJITUnion(pybind11::module& m)
         .def_property("r_cut_constituent",
                       &PatchEnergyJITUnion::getRCutConstituent,
                       &PatchEnergyJITUnion::setRCutConstituent)
-        .def_property_readonly("param_array", &PatchEnergyJITUnion::getParamArrayConstituent);
+        .def_property("r_cut_isotropic",
+                      &PatchEnergyJITUnion::getRCutIsotropic,
+                      &PatchEnergyJITUnion::setRCutIsotropic)
+        .def_property_readonly("r_cut", &PatchEnergyJITUnion::getRCut)
+        .def_property_readonly("param_array_isotropic", &PatchEnergyJITUnion::getParamArray)
+        .def_property_readonly("param_array_constituent", &PatchEnergyJITUnion::getParamArrayConstituent);
     }

@@ -16,37 +16,41 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
      */
     PatchEnergyJITUnion(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<ExecutionConfiguration> exec_conf,
-                        const std::string& cpp_code_isotropic,
+                        const std::string& cpu_code_isotropic,
                         const std::vector<std::string>& compiler_args,
                         Scalar r_cut_isotropic,
-                        pybind11::array_t<float> param_array,
+                        pybind11::array_t<float> param_array_isotropic,
                         const std::string& cpu_code_constituent,
-                        Scalar r_cut_constituent)
+                        Scalar r_cut_constituent,
+                        pybind11::array_t<float> param_array_constituent)
         : PatchEnergyJIT(sysdef,
                          exec_conf,
-                         cpp_code_isotropic,
+                         cpu_code_isotropic,
                          compiler_args,
                          r_cut_isotropic,
-                         param_array),
-          m_r_cut_constituent(r_cut_constituent)
+                         param_array_isotropic),
+          m_r_cut_constituent(r_cut_constituent),
+          m_param_array_constituent(param_array_constituent.data(),
+                        param_array_constituent.data() + param_array_constituent.size(),
+                        managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
+          m_r_cut_max(0.0)
         {
         // build the JIT.
-        m_factory_union
+        m_factory_constituent
             = std::shared_ptr<EvalFactory>(new EvalFactory(cpu_code_constituent, compiler_args));
 
-        // get the evaluator
-        m_eval_union = m_factory_union->getEval();
-
-        if (!m_eval_union)
+        // get the evaluator and check for errors
+        m_eval_constituent = m_factory_constituent->getEval();
+        if (!m_eval_constituent)
             {
             std::ostringstream s;
             s << "Error compiling JIT code:" << std::endl;
             s << cpu_code_constituent << std::endl;
-            s << m_factory->getError() << std::endl;
+            s << m_factory_constituent->getError() << std::endl;
             throw std::runtime_error(s.str());
             }
 
-        m_factory_union->setAlphaUnionArray(&m_param_array_constituent.front());
+        m_factory_constituent->setAlphaUnionArray(&m_param_array_constituent.front());
 
         unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
         m_extent_type.resize(ntypes, 0.0);
@@ -232,7 +236,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     //! Get the maximum r_ij radius beyond which energies are always 0
     virtual Scalar getRCut()
         {
-        return m_r_cut_constituent;
+        return m_r_cut_max;
         }
 
     //! Get the cut-off for constituent particles
@@ -247,6 +251,22 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         {
         // return cutoff for constituent particle potentials
         m_r_cut_constituent = r_cut;
+        buildOBBTree();
+        }
+
+    //! Get the cut-off for constituent particles
+    virtual Scalar getRCutIsotropic()
+        {
+        // return cutoff for constituent particle potentials
+        return m_r_cut_isotropic;
+        }
+
+    //! Set the cut-off for constituent particles
+    virtual void setRCutIsotropic(Scalar r_cut)
+        {
+        // return cutoff for constituent particle potentials
+        m_r_cut_isotropic = r_cut;
+        buildOBBTree();
         }
 
     //! Get the maximum geometric extent, which is added to the cutoff, per type
@@ -288,12 +308,12 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         {
         auto self_cpp = self.cast<PatchEnergyJITUnion*>();
         unsigned int array_size = (unsigned int)self_cpp->m_param_array_constituent.size();
-        return pybind11::array(array_size, self_cpp->m_factory_union->getAlphaUnionArray(), self);
+        return pybind11::array(array_size, self_cpp->m_factory_constituent->getAlphaUnionArray(), self);
         }
 
     protected:
     std::vector<hpmc::detail::GPUTree> m_tree; // The tree acceleration structure per particle type
-    std::vector<float> m_extent_type;          // The per-type geometric extent
+    std::vector<Scalar> m_extent_type;          // The per-type geometric extent
     std::vector<std::vector<vec3<float>>> m_position; // The positions of the constituent particles
     std::vector<std::vector<quat<float>>>
         m_orientation;                          // The orientations of the constituent particles
@@ -315,13 +335,14 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                                    unsigned int cur_node_b);
 
     std::shared_ptr<EvalFactory>
-        m_factory_union; //!< The factory for the evaluator function, for constituent ptls
-    EvalFactory::EvalFnPtr m_eval_union; //!< Pointer to evaluator function inside the JIT module
+        m_factory_constituent; //!< The factory for the evaluator function, for constituent ptls
+    EvalFactory::EvalFnPtr m_eval_constituent; //!< Pointer to evaluator function inside the JIT module
     Scalar m_r_cut_constituent;          //!< Cutoff on constituent particles
     std::vector<float, managed_allocator<float>>
         m_param_array_constituent; //!< Data array for constituent particles
     std::vector<unsigned int>
         m_updated_types; //!< List of types whose geometric properties were updated
+    Scalar m_r_cut_max;                  //!< Max of r_cut_isotropic and and r_cut_constituent+max_const_ptl_dist
     };
 
 //! Exports the PatchEnergyJITUnion class to python
