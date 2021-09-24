@@ -112,7 +112,7 @@ struct hpmc_patch_args_t
 
 //! Integrator that implements patchy interactions between particles in HPMC simulations
 /*! **Overview** <br>
-    PatchEnergy is ...
+    PatchEnergy allows energetic interactions to be included in an HPMC simulation.
 
     \ingroup ??
 */

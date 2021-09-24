@@ -31,8 +31,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                          param_array_isotropic),
           m_r_cut_constituent(r_cut_constituent),
           m_param_array_constituent(param_array_constituent.data(),
-                        param_array_constituent.data() + param_array_constituent.size(),
-                        managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
+                                    param_array_constituent.data() + param_array_constituent.size(),
+                                    managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
           m_r_cut_max(0.0)
         {
         // build the JIT.
@@ -311,12 +311,14 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         {
         auto self_cpp = self.cast<PatchEnergyJITUnion*>();
         unsigned int array_size = (unsigned int)self_cpp->m_param_array_constituent.size();
-        return pybind11::array(array_size, self_cpp->m_factory_constituent->getAlphaUnionArray(), self);
+        return pybind11::array(array_size,
+                               self_cpp->m_factory_constituent->getAlphaUnionArray(),
+                               self);
         }
 
     protected:
     std::vector<hpmc::detail::GPUTree> m_tree; // The tree acceleration structure per particle type
-    std::vector<Scalar> m_extent_type;          // The per-type geometric extent
+    std::vector<Scalar> m_extent_type;         // The per-type geometric extent
     std::vector<std::vector<vec3<float>>> m_position; // The positions of the constituent particles
     std::vector<std::vector<quat<float>>>
         m_orientation;                          // The orientations of the constituent particles
@@ -339,13 +341,14 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
 
     std::shared_ptr<EvalFactory>
         m_factory_constituent; //!< The factory for the evaluator function, for constituent ptls
-    EvalFactory::EvalFnPtr m_eval_constituent; //!< Pointer to evaluator function inside the JIT module
-    Scalar m_r_cut_constituent;          //!< Cutoff on constituent particles
+    EvalFactory::EvalFnPtr
+        m_eval_constituent;     //!< Pointer to evaluator function inside the JIT module
+    Scalar m_r_cut_constituent; //!< Cutoff on constituent particles
     std::vector<float, managed_allocator<float>>
         m_param_array_constituent; //!< Data array for constituent particles
     std::vector<unsigned int>
         m_updated_types; //!< List of types whose geometric properties were updated
-    Scalar m_r_cut_max;                  //!< Max of r_cut_isotropic and and r_cut_constituent+max_const_ptl_dist
+    Scalar m_r_cut_max;  //!< Max of r_cut_isotropic and and r_cut_constituent+max_const_ptl_dist
     };
 
 //! Exports the PatchEnergyJITUnion class to python
