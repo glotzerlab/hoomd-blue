@@ -26,7 +26,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
     and orientation of the particles and the vector pointing from the *i*
     particle to the *j* particle center.
 
-    Classes derived from :py:class:`CPPPotentialBase` take C++ code, compilesit
+    Classes derived from :py:class:`CPPPotentialBase` take C++ code, compiles it
     at run time and executes the code natively in the MC loop. Adjust parameters
     to the code with the `param_array` attribute without requiring a recompile.
     These arrays are **read-only** during function evaluation.
@@ -253,7 +253,7 @@ class CPPPotential(CPPPotentialBase):
         super()._attach()
 
 
-class _CPPUnionPotential(CPPPotentialBase):
+class CPPUnionPotential(CPPPotentialBase):
     r'''Define an arbitrary energetic interaction between unions of particles.
 
     Warning:
@@ -364,19 +364,34 @@ class _CPPUnionPotential(CPPPotentialBase):
                  r_cut_isotropic,
                  code_constituent=None,
                  code_isotropic=None,
-                 param_array=None):
+                 param_array_isotropic=None,
+                 param_array_constituent=None):
 
         # initialize base class
         super().__init__(r_cut=r_cut_isotropic,
                          code=code_isotropic,
-                         param_array=param_array)
+                         param_array=param_array_isotropic)
 
-        # add union specific params
+        # add union-specific params
         param_dict = ParameterDict(
             r_cut_constituent=float(r_cut_constituent),
             r_cut_isotropic=float(r_cut_isotropic),
-            leaf_capacity=int(4),  # should this be a kwarg?
+            leaf_capacity=int(4),  # should this be a kwarg to the constructor?
         )
+
+        arrays = dict(
+                'param_array_isotropic': param_array_isotropic,
+                'param_array_constituent': param_array_constituent
+                )
+        for array_name, array in arrays.items():
+        if array is not None:
+            array_validator = NDArrayValidator(dtype=np.float32,
+                                               shape=(len(array),)
+                                               )
+            param_dict[array_name] = array_validator
+            param_dict[array_name] = array
+        else:
+            param_dict[array_name] = np.array([])
         self._param_dict.update(param_dict)
 
         # add union specific per-type parameters
