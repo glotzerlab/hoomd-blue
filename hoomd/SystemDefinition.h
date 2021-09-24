@@ -12,8 +12,8 @@
 #endif
 
 #include "BondedGroupData.h"
+#include "MeshGroupData.h"
 #include "IntegratorData.h"
-#include "MeshData.h"
 #include "ParticleData.h"
 
 #include <memory>
