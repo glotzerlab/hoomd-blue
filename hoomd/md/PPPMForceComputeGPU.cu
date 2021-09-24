@@ -329,13 +329,10 @@ void gpu_assign_particles(const uint3 mesh_dim,
     hipMemsetAsync(d_mesh, 0, sizeof(hipfftComplex) * grid_dim.x * grid_dim.y * grid_dim.z);
     Scalar V_cell = box.getVolume() / (Scalar)(mesh_dim.x * mesh_dim.y * mesh_dim.z);
 
-    static unsigned int max_block_size = UINT_MAX;
-    static hipFuncAttributes attr;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncGetAttributes(&attr, (const void*)gpu_assign_particles_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_assign_particles_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(max_block_size, block_size);
 
@@ -523,13 +520,10 @@ void gpu_update_meshes(const unsigned int n_wave_vectors,
                        unsigned int block_size)
 
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_update_meshes_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_update_meshes_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(max_block_size, block_size);
     dim3 grid(n_wave_vectors / run_block_size + 1, 1, 1);
@@ -710,13 +704,10 @@ void gpu_compute_forces(const unsigned int N,
                         bool local_fft,
                         unsigned int inv_mesh_elements)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_compute_forces_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_compute_forces_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(max_block_size, block_size);
 
@@ -1260,13 +1251,10 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
 
     if (local_fft)
         {
-        static unsigned int max_block_size = UINT_MAX;
-        if (max_block_size == UINT_MAX)
-            {
-            hipFuncAttributes attr;
-            hipFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<true>);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
+        unsigned int max_block_size;
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<true>);
+        max_block_size = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = min(max_block_size, block_size);
 
@@ -1302,13 +1290,10 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
 #ifdef ENABLE_MPI
     else
         {
-        static unsigned int max_block_size = UINT_MAX;
-        if (max_block_size == UINT_MAX)
-            {
-            hipFuncAttributes attr;
-            hipFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<false>);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
+        unsigned int max_block_size;
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<false>);
+        max_block_size = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = min(max_block_size, block_size);
 

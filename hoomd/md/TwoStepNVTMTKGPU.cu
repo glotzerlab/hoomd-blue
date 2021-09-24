@@ -99,13 +99,10 @@ hipError_t gpu_nvt_mtk_step_one(Scalar4* d_pos,
                                 Scalar deltaT,
                                 const GPUPartition& gpu_partition)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_nvt_mtk_step_one_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_nvt_mtk_step_one_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -209,13 +206,10 @@ hipError_t gpu_nvt_mtk_step_two(Scalar4* d_vel,
                                 Scalar exp_v_fac_thermo,
                                 const GPUPartition& gpu_partition)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_nvt_mtk_step_two_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_nvt_mtk_step_two_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 

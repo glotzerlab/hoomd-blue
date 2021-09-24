@@ -132,13 +132,10 @@ hipError_t gpu_nve_step_one(Scalar4* d_pos,
                             bool zero_force,
                             unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_nve_step_one_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_nve_step_one_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -323,13 +320,10 @@ hipError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
                                     Scalar scale,
                                     const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_nve_angular_step_one_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_nve_angular_step_one_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -465,13 +459,10 @@ hipError_t gpu_nve_step_two(Scalar4* d_vel,
                             bool zero_force,
                             unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_nve_step_two_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_nve_step_two_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -584,13 +575,10 @@ hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
                                     Scalar scale,
                                     const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_nve_angular_step_two_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_nve_angular_step_two_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
