@@ -239,6 +239,9 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         return m_r_cut_max;
         }
 
+    //! Override inherited setRCut() to do nothing so that m_r_cut_isotropic doesn't get set
+    virtual void setRCut(Scalar r_cut) { }
+
     //! Get the cut-off for constituent particles
     virtual Scalar getRCutConstituent()
         {
