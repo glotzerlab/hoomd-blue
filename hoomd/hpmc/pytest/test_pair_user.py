@@ -2,8 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Test hoomd.hpmc.pair.user.CPPPotential and \
-        hoomd.hpmc.pair.user.CPPUnionPotential."""
+"""Test hoomd.hpmc.pair.user.CPPPotential."""
 
 import hoomd
 import pytest
@@ -194,23 +193,14 @@ def test_cpp_potential(device, positions, orientations, result,
 
     assert np.isclose(patch.energy, result)
 
-patch_classes = [
-        hoomd.hpmc.pair.user.CPPPotential,
-        hoomd.hpmc.pair.user.CPPUnionPotential,
-]
 @pytest.mark.serial
-@pytest.mark.parametrize("cls", patch_classes)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_param_array(device, cls, simulation_factory,
+def test_param_array(device, simulation_factory,
                      two_particle_snapshot_factory):
-    """Test passing in parameter arrays to the patch objects.
+    """Test passing in parameter arrays to the patch object.
 
-    This test tests that several actions are performed correctly:
-        i) changes to the parameter array are reflected in on the energy \
-                calculation,
-        ii) that the paramater array can be accessed from CPPPotential and \
-                CPPUnionPotential objects, and
-        iii) that the energy computed from both classes agree.
+    This test tests that changes to the parameter array are reflected on the
+    energy calculation.
 
     """
     lennard_jones = """
@@ -235,21 +225,7 @@ def test_param_array(device, cls, simulation_factory,
 
     r_cut = 5
     params = dict(code=lennard_jones, param_array=[2.5, 1.2, 1.0], r_cut=r_cut)
-    if "union" in cls.__name__.lower():
-        print('yo dawg')
-        params.update({"r_cut_constituent": 0})
-        params['r_cut_isotropic'] = params['r_cut']
-        del params['r_cut']
-        params.update({"code_constituent": "return 0;"})
-        params.update({'code_isotropic': params['code']})
-        del params['code']
-    patch = cls(**params)
-    if "union" in cls.__name__.lower():
-        patch.positions['A'] = [(0, 0, 0)]
-        patch.orientations['A'] = [(1, 0, 0, 0)]
-        patch.diameters['A'] = [0]
-        patch.typeids['A'] = [0]
-        patch.charges['A'] = [0]
+    patch = hoomd.hpmc.pair.user.CPPPotential(**params)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.potential = patch

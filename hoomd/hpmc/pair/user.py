@@ -84,12 +84,12 @@ class CPPPotentialBase(_HOOMDBaseObject):
                                                shape=(len(param_array),))
             param_dict['param_array'] = array_validator
         param_dict['r_cut'] = r_cut
-        param_dict['code'] = code
         if param_array is None:
             param_dict['param_array'] = np.array([])
         else:
             param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
+        self._code = code
 
     def _getattr_param(self, attr):
         if attr == 'code':
@@ -122,7 +122,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
                         // these are allocated by the library
                         float *param_array;
-                        float *alpha_union;
+                        float *param_array_constituent;
 
                         extern "C"
                         {
@@ -251,6 +251,25 @@ class CPPPotential(CPPPotentialBase):
             )
         # attach patch object to the integrator
         super()._attach()
+
+    @property
+    def code(self):
+        """Return the code passed to the object."""
+        return self._code
+
+    @code.setter
+    def code(self, code):
+        """Set the code.
+
+        This function rasies an error if the object is already attached.
+
+        """
+        if self._attached:
+            msg = "The attribute 'code' can only be set when the "
+            msg += "object is not attached."
+            raise AttributeError(msg)
+        else:
+            self._code = code
 
 
 class CPPUnionPotential(CPPPotentialBase):
@@ -433,7 +452,6 @@ class CPPUnionPotential(CPPPotentialBase):
         # these only exist on python
         self._code_constituent = code_constituent
         self._code_isotropic = code_isotropic
-        self.param_array = param_array
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -475,17 +493,18 @@ class CPPUnionPotential(CPPPotentialBase):
                 cpu_code_isotropic,
                 cpu_include_options,
                 self.r_cut_isotropic,
-                self.param_array,
+                self.param_array_isotropic,
                 cpu_code_constituent,
                 self.r_cut_constituent,
+                self.param_array_constituent
             )
 
         # Set the C++ mirror array with the cached values
         # and override the python array
-        self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
-        self._cpp_obj.alpha_union[:] = self.alpha_union[:]
-        self.alpha_iso = self._cpp_obj.alpha_iso
-        self.alpha_union = self._cpp_obj.alpha_union
+        #self._cpp_obj.param_array_isotropic[:] = self.alpha_iso[:]
+        #self._cpp_obj.alpha_union[:] = self.alpha_union[:]
+        #self.alpha_iso = self._cpp_obj.alpha_iso
+        #self.alpha_union = self._cpp_obj.alpha_union
 
         # attach patch object to the integrator
         super()._attach()
