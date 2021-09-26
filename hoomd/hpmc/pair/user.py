@@ -485,16 +485,10 @@ class CPPUnionPotential(CPPPotentialBase):
             )
         else:
             self._cpp_obj = _jit.PatchEnergyJITUnion(
-                self._simulation.state._cpp_sys_def,
-                device._cpp_exec_conf,
-                cpu_code_isotropic,
-                cpu_include_options,
-                self.r_cut_isotropic,
-                self.param_array_isotropic,
-                cpu_code_constituent,
-                self.r_cut_constituent,
-                self.param_array_constituent
-            )
+                self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
+                cpu_code_isotropic, cpu_include_options, self.r_cut_isotropic,
+                self.param_array_isotropic, cpu_code_constituent,
+                self.r_cut_constituent, self.param_array_constituent)
 
         # Set the C++ mirror array with the cached values
         # and override the python array
