@@ -76,15 +76,15 @@ EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::str
 
     if (!alpha)
         {
-        m_error_msg = "Could not find alpha array in LLVM module.";
+        m_error_msg = "Could not find param_array array in LLVM module.";
         return;
         }
 
-    auto alpha_union = m_jit->findSymbol("alpha_union");
+    auto alpha_union = m_jit->findSymbol("param_array_constituent");
 
     if (!alpha_union)
         {
-        m_error_msg = "Could not find alpha_union array in LLVM module.";
+        m_error_msg = "Could not find param_array_constituent array in LLVM module.";
         return;
         }
 
