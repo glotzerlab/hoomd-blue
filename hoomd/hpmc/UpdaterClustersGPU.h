@@ -15,6 +15,7 @@
 
 #include <hip/hip_runtime.h>
 
+namespace hoomd {
 namespace hpmc
     {
 /*!
@@ -1119,6 +1120,8 @@ template<class Shape> void UpdaterClustersGPU<Shape>::updateGPUAdvice()
 #endif
     }
 
+namespace detail {
+
 template<class Shape> void export_UpdaterClustersGPU(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<UpdaterClustersGPU<Shape>,
@@ -1129,7 +1132,9 @@ template<class Shape> void export_UpdaterClustersGPU(pybind11::module& m, const 
                             std::shared_ptr<CellList>>());
     }
 
+} // end namespace detail
     } // end namespace hpmc
+} // end namespace hoomd
 
 #endif // ENABLE_CUDA
 #endif // _UPDATER_HPMC_CLUSTERS_GPU_

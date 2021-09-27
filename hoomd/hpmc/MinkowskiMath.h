@@ -20,6 +20,7 @@
 #define DEVICE
 #endif
 
+namespace hoomd {
 namespace hpmc
     {
 namespace detail
@@ -91,8 +92,9 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc3D
 #endif
     };
 
-    }; // end namespace detail
+    } // end namespace detail
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+} // end namespace hoomd
 
 #endif // __MINKOWSKI_MATH_H__

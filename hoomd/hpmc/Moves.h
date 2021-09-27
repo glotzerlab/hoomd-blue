@@ -26,6 +26,7 @@
 #define DEVICE
 #endif
 
+namespace hoomd {
 //! hpmc namespace
 namespace hpmc
     {
@@ -246,7 +247,7 @@ DEVICE inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng,
  */
 template<class RNG>
 DEVICE inline vec3<Scalar>
-generatePositionInAABB(RNG& rng, const detail::AABB& aabb, unsigned int ndim)
+generatePositionInAABB(RNG& rng, const hoomd::detail::AABB& aabb, unsigned int ndim)
     {
     vec3<Scalar> p;
     vec3<Scalar> lower = aabb.getLower();
@@ -322,6 +323,7 @@ DEVICE inline vec3<Scalar> lineReflection(vec3<Scalar> pos, vec3<Scalar> p, quat
     }
 
     }; // end namespace hpmc
+} // namespace hoomd
 
 #undef DEVICE
 

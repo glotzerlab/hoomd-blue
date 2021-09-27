@@ -33,26 +33,10 @@
 /*! \file module.cc
     \brief Export classes to python
 */
-using namespace hpmc;
+using namespace hoomd::hpmc;
+using namespace hoomd::hpmc::detail;
 using namespace std;
 namespace py = pybind11;
-
-namespace hpmc
-    {
-//! HPMC implementation details
-/*! The detail namespace contains classes and functions that are not part of the HPMC public
-   interface. These are subject to change without notice and are designed solely for internal use
-   within HPMC.
-*/
-namespace detail
-    {
-// could move the make_param functions back??
-
-    }; // end namespace detail
-
-    }; // end namespace hpmc
-
-using namespace hpmc::detail;
 
 //! Define the _hpmc python module exports
 PYBIND11_MODULE(_hpmc, m)

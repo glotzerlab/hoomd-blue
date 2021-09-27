@@ -12,9 +12,9 @@ HOOMD_UP_MAIN();
 
 #include <pybind11/pybind11.h>
 
-using namespace hpmc;
+using namespace hoomd::hpmc;
 using namespace std;
-using namespace hpmc::detail;
+using namespace hoomd::hpmc::detail;
 
 unsigned int err_count;
 

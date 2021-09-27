@@ -288,7 +288,7 @@ template<class T> class ManagedArray
 #ifndef __HIPCC__
     void allocate()
         {
-        ptr = managed_allocator<T>::allocate_construct_aligned(N,
+        ptr = detail::managed_allocator<T>::allocate_construct_aligned(N,
                                                                managed,
                                                                align,
                                                                allocation_bytes,
@@ -300,7 +300,7 @@ template<class T> class ManagedArray
         {
         if (N > 0)
             {
-            managed_allocator<T>::deallocate_destroy_aligned(ptr, N, managed, allocation_ptr);
+            detail::managed_allocator<T>::deallocate_destroy_aligned(ptr, N, managed, allocation_ptr);
             }
         ptr = nullptr;
         }

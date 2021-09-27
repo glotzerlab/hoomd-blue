@@ -27,12 +27,11 @@
 #endif
 
 namespace py = pybind11;
-using namespace hpmc;
-
-using namespace hpmc::detail;
-
+namespace hoomd {
 namespace hpmc
     {
+namespace detail {
+
 //! Export the base HPMCMono integrators
 void export_convex_spheropolyhedron(py::module& m)
     {
@@ -60,5 +59,6 @@ void export_convex_spheropolyhedron(py::module& m)
 
 #endif
     }
-
+} // namespace detail
     } // namespace hpmc
+} // namespace hoomd

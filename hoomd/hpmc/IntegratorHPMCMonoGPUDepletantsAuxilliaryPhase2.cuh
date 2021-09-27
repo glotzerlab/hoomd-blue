@@ -23,6 +23,7 @@
 
 #include <cassert>
 
+namespace hoomd {
 namespace hpmc
     {
 namespace gpu
@@ -945,3 +946,4 @@ void hpmc_depletants_auxilliary_phase2(const hpmc_args_t& args,
     } // end namespace gpu
 
     } // end namespace hpmc
+} // end namespace hoomd

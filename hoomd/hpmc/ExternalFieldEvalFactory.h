@@ -7,6 +7,9 @@
 
 #include "KaleidoscopeJIT.h"
 
+namespace hoomd {
+namespace hpmd {
+
 // Forward declare box class
 struct BoxDim;
 
@@ -42,3 +45,6 @@ class ExternalFieldEvalFactory
 
     std::string m_error_msg; //!< The error message if initialization fails
     };
+
+} // end namespace hpmc
+} // end namespace hoomd

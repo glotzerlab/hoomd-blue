@@ -29,6 +29,7 @@
 #include "hoomd/GPUPartition.cuh"
 #endif
 
+namespace hoomd {
 namespace hpmc
     {
 namespace detail
@@ -532,9 +533,14 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 #endif
     };
 
+namespace detail {
+
 //! Export the IntegratorHPMC class to python
 void export_IntegratorHPMC(pybind11::module& m);
 
+} // end namespace detail
+
     } // end namespace hpmc
 
+} // end namespace hoomd
 #endif // _INTEGRATOR_HPMC_H_

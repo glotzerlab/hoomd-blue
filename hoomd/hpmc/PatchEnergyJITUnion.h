@@ -6,6 +6,9 @@
 #include "hoomd/hpmc/GPUTree.h"
 #include "hoomd/managed_allocator.h"
 
+namespace hoomd {
+namespace hpmc {
+
 //! Evaluate patch energies via runtime generated code, using a tree accelerator structure for
 //! unions of particles
 class PatchEnergyJITUnion : public PatchEnergyJIT
@@ -351,6 +354,12 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     Scalar m_r_cut_max;  //!< Max of r_cut_isotropic and and r_cut_constituent+max_const_ptl_dist
     };
 
+namespace detail {
+
 //! Exports the PatchEnergyJITUnion class to python
 void export_PatchEnergyJITUnion(pybind11::module& m);
+
+} // end namespace detail
+} // end namespace hpmc
+} // end namespace hoomd
 #endif // _PATCH_ENERGY_JIT_UNION_H_

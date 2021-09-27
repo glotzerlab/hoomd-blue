@@ -37,6 +37,9 @@
 #include <map>
 #include <vector>
 
+namespace hoomd {
+namespace hpmc {
+
 //! Evaluate patch energies via runtime generated code, GPU version
 /*! This class encapsulates a JIT compiled kernel and provides the API necessary to query kernel
     parameters and launch the kernel into a stream.
@@ -303,4 +306,7 @@ class GPUEvalFactory
     std::vector<jitify::Program> m_program; //!< The kernel object, one per GPU
 #endif
     };
+
+} // end namespace hpmc
+} // end namespace hoomd
 #endif

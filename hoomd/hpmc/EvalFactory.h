@@ -7,6 +7,8 @@
 
 #include "KaleidoscopeJIT.h"
 
+namespace hoomd { namespace hpmc {
+
 class EvalFactory
     {
     public:
@@ -66,3 +68,6 @@ class EvalFactory
     float** m_alpha_union;                             // Pointer to alpha array for union
     std::string m_error_msg; //!< The error message if initialization fails
     };
+
+} // end namespace hpmc
+} // end namespace hoomd

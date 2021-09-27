@@ -9,6 +9,9 @@
 
 #include <vector>
 
+namespace hoomd {
+namespace hpmc {
+
 //! Evaluate patch energies via runtime generated code, GPU version
 class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
     {
@@ -254,6 +257,12 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         m_d_union_params; //!< Parameters for each particle type on GPU
     };
 
+namespace detail {
+
 //! Exports the PatchEnergyJITUnionGPU class to python
 void export_PatchEnergyJITUnionGPU(pybind11::module& m);
+
+} // end namespace detail
+} // end namespace hpmc
+} // end namespace hoomd
 #endif

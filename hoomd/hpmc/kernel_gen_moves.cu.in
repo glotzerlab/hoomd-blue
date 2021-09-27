@@ -21,6 +21,8 @@
 #define SHAPE_CLASS(T) T
 #endif
 
+namespace hoomd
+{
 namespace hpmc
 {
 
@@ -31,3 +33,4 @@ template void hpmc_gen_moves<SHAPE_CLASS(SHAPE)>(const hpmc_args_t& args, const 
 }
 
 } // end namespace hpmc
+} // end namespace hoomd

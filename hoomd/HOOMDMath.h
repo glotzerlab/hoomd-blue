@@ -193,178 +193,6 @@ HOSTDEVICE inline int __scalar_as_int(Scalar b)
     return u.a;
     }
 
-// ------------ Vector math functions --------------------------
-//! Comparison operator needed for export of std::vector<uint2>
-HOSTDEVICE inline bool operator==(const uint2& a, const uint2& b)
-    {
-    return (a.x == b.x && a.y == b.y);
-    }
-
-//! Comparison operator needed for export of std::vector<Scalar3>
-HOSTDEVICE inline bool operator==(const Scalar3& a, const Scalar3& b)
-    {
-    return (a.x == b.x && a.y == b.y && a.z == b.z);
-    }
-
-//! Comparison operator needed for export of std::vector<Scalar3>
-HOSTDEVICE inline bool operator!=(const Scalar3& a, const Scalar3& b)
-    {
-    return !(a == b);
-    }
-
-//! Comparison operator needed for export of std::vector<Scalar4>
-HOSTDEVICE inline bool operator==(const Scalar4& a, const Scalar4& b)
-    {
-    return (a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w);
-    }
-
-//! Comparison operator needed for export of std::vector<Scalar4>
-HOSTDEVICE inline bool operator!=(const Scalar4& a, const Scalar4& b)
-    {
-    return !(a == b);
-    }
-
-//! Vector addition
-HOSTDEVICE inline Scalar3 operator+(const Scalar3& a, const Scalar3& b)
-    {
-    return make_scalar3(a.x + b.x, a.y + b.y, a.z + b.z);
-    }
-
-#if !defined(ENABLE_HIP) || defined(__HIP_PLATFORM_NVCC__)
-//! Vector addition
-HOSTDEVICE inline Scalar3& operator+=(Scalar3& a, const Scalar3& b)
-    {
-    a.x += b.x;
-    a.y += b.y;
-    a.z += b.z;
-    return a;
-    }
-#endif
-
-//! Vector subtraction
-HOSTDEVICE inline Scalar3 operator-(const Scalar3& a, const Scalar3& b)
-    {
-    return make_scalar3(a.x - b.x, a.y - b.y, a.z - b.z);
-    }
-//! Vector subtraction
-HOSTDEVICE inline Scalar3& operator-=(Scalar3& a, const Scalar3& b)
-    {
-    a.x -= b.x;
-    a.y -= b.y;
-    a.z -= b.z;
-    return a;
-    }
-
-//! Vector multiplication (component-wise)
-HOSTDEVICE inline Scalar3 operator*(const Scalar3& a, const Scalar3& b)
-    {
-    return make_scalar3(a.x * b.x, a.y * b.y, a.z * b.z);
-    }
-
-//! Vector multiplication
-HOSTDEVICE inline Scalar3& operator*=(Scalar3& a, const Scalar3& b)
-    {
-    a.x *= b.x;
-    a.y *= b.y;
-    a.z *= b.z;
-    return a;
-    }
-
-//! Vector division (component-wise)
-HOSTDEVICE inline Scalar3 operator/(const Scalar3& a, const Scalar3& b)
-    {
-    return make_scalar3(a.x / b.x, a.y / b.y, a.z / b.z);
-    }
-//! Scalar - vector multiplication
-HOSTDEVICE inline Scalar3 operator*(const Scalar& a, const Scalar3& b)
-    {
-    return make_scalar3(a * b.x, a * b.y, a * b.z);
-    }
-//! Scalar - vector multiplication
-HOSTDEVICE inline Scalar3 operator*(const Scalar3& a, const Scalar& b)
-    {
-    return make_scalar3(a.x * b, a.y * b, a.z * b);
-    }
-//! Vector - scalar multiplication
-HOSTDEVICE inline Scalar3& operator*=(Scalar3& a, const Scalar& b)
-    {
-    a.x *= b;
-    a.y *= b;
-    a.z *= b;
-    return a;
-    }
-//! Vector - scalar division
-HOSTDEVICE inline Scalar3 operator/(const Scalar3& a, const Scalar& b)
-    {
-    return make_scalar3(a.x / b, a.y / b, a.z / b);
-    }
-//! Vector - scalar division in place
-HOSTDEVICE inline Scalar3& operator/=(Scalar3& a, const Scalar& b)
-    {
-    a.x /= b;
-    a.y /= b;
-    a.z /= b;
-    return a;
-    }
-//! Vector - scalar division
-HOSTDEVICE inline Scalar3 operator/(const Scalar& a, const Scalar3& b)
-    {
-    return make_scalar3(a / b.x, a / b.y, a / b.z);
-    }
-//! Vector unary -
-HOSTDEVICE inline Scalar3 operator-(const Scalar3& a)
-    {
-    return make_scalar3(-a.x, -a.y, -a.z);
-    }
-//! Vector dot product
-HOSTDEVICE inline Scalar dot(const Scalar3& a, const Scalar3& b)
-    {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-    }
-
-// ----------- Integer vector math functions ----------------------
-//! Integer vector addition
-HOSTDEVICE inline int3 operator+(const int3& a, const int3& b)
-    {
-    return make_int3(a.x + b.x, a.y + b.y, a.z + b.z);
-    }
-//! Integer vector unary addition
-HOSTDEVICE inline int3 operator+=(int3& a, const int3& b)
-    {
-    a.x += b.x;
-    a.y += b.y;
-    a.z += b.z;
-    return a;
-    }
-//! Integer vector subtraction
-HOSTDEVICE inline int3 operator-(const int3& a, const int3& b)
-    {
-    return make_int3(a.x - b.x, a.y - b.y, a.z - b.z);
-    }
-//! Integer vector unary subtraction
-HOSTDEVICE inline int3 operator-=(int3& a, const int3& b)
-    {
-    a.x -= b.x;
-    a.y -= b.y;
-    a.z -= b.z;
-    return a;
-    }
-//! Integer vector unary -
-HOSTDEVICE inline int3 operator-(const int3& a)
-    {
-    return make_int3(-a.x, -a.y, -a.z);
-    }
-//! Integer vector comparison
-HOSTDEVICE inline bool operator==(const int3& a, const int3& b)
-    {
-    return (a.x == b.x && a.y == b.y && a.z == b.z);
-    }
-//! Integer vector comparison
-HOSTDEVICE inline bool operator!=(const int3& a, const int3& b)
-    {
-    return (a.x != b.x || a.y != b.y || a.z != b.z);
-    }
-
 //! Export relevant hoomd math functions to python
 #ifndef __HIPCC__
 #ifndef HOOMD_LLVMJIT_BUILD
@@ -786,6 +614,178 @@ inline HOSTDEVICE float rint(float x)
     } // namespace slow
 
 } // end namespace hoomd
+
+// ------------ Vector math functions --------------------------
+//! Comparison operator needed for export of std::vector<uint2>
+HOSTDEVICE inline bool operator==(const uint2& a, const uint2& b)
+    {
+    return (a.x == b.x && a.y == b.y);
+    }
+
+//! Comparison operator needed for export of std::vector<Scalar3>
+HOSTDEVICE inline bool operator==(const hoomd::Scalar3& a, const hoomd::Scalar3& b)
+    {
+    return (a.x == b.x && a.y == b.y && a.z == b.z);
+    }
+
+//! Comparison operator needed for export of std::vector<Scalar3>
+HOSTDEVICE inline bool operator!=(const hoomd::Scalar3& a, const hoomd::Scalar3& b)
+    {
+    return !(a == b);
+    }
+
+//! Comparison operator needed for export of std::vector<Scalar4>
+HOSTDEVICE inline bool operator==(const hoomd::Scalar4& a, const hoomd::Scalar4& b)
+    {
+    return (a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w);
+    }
+
+//! Comparison operator needed for export of std::vector<Scalar4>
+HOSTDEVICE inline bool operator!=(const hoomd::Scalar4& a, const hoomd::Scalar4& b)
+    {
+    return !(a == b);
+    }
+
+//! Vector addition
+HOSTDEVICE inline hoomd::Scalar3 operator+(const hoomd::Scalar3& a, const hoomd::Scalar3& b)
+    {
+    return hoomd::make_scalar3(a.x + b.x, a.y + b.y, a.z + b.z);
+    }
+
+#if !defined(ENABLE_HIP) || defined(__HIP_PLATFORM_NVCC__)
+//! Vector addition
+HOSTDEVICE inline hoomd::Scalar3& operator+=(hoomd::Scalar3& a, const hoomd::Scalar3& b)
+    {
+    a.x += b.x;
+    a.y += b.y;
+    a.z += b.z;
+    return a;
+    }
+#endif
+
+//! Vector subtraction
+HOSTDEVICE inline hoomd::Scalar3 operator-(const hoomd::Scalar3& a, const hoomd::Scalar3& b)
+    {
+    return hoomd::make_scalar3(a.x - b.x, a.y - b.y, a.z - b.z);
+    }
+//! Vector subtraction
+HOSTDEVICE inline hoomd::Scalar3& operator-=(hoomd::Scalar3& a, const hoomd::Scalar3& b)
+    {
+    a.x -= b.x;
+    a.y -= b.y;
+    a.z -= b.z;
+    return a;
+    }
+
+//! Vector multiplication (component-wise)
+HOSTDEVICE inline hoomd::Scalar3 operator*(const hoomd::Scalar3& a, const hoomd::Scalar3& b)
+    {
+    return hoomd::make_scalar3(a.x * b.x, a.y * b.y, a.z * b.z);
+    }
+
+//! Vector multiplication
+HOSTDEVICE inline hoomd::Scalar3& operator*=(hoomd::Scalar3& a, const hoomd::Scalar3& b)
+    {
+    a.x *= b.x;
+    a.y *= b.y;
+    a.z *= b.z;
+    return a;
+    }
+
+//! Vector division (component-wise)
+HOSTDEVICE inline hoomd::Scalar3 operator/(const hoomd::Scalar3& a, const hoomd::Scalar3& b)
+    {
+    return hoomd::make_scalar3(a.x / b.x, a.y / b.y, a.z / b.z);
+    }
+//! Scalar - vector multiplication
+HOSTDEVICE inline hoomd::Scalar3 operator*(const hoomd::Scalar& a, const hoomd::Scalar3& b)
+    {
+    return hoomd::make_scalar3(a * b.x, a * b.y, a * b.z);
+    }
+//! Scalar - vector multiplication
+HOSTDEVICE inline hoomd::Scalar3 operator*(const hoomd::Scalar3& a, const hoomd::Scalar& b)
+    {
+    return hoomd::make_scalar3(a.x * b, a.y * b, a.z * b);
+    }
+//! Vector - scalar multiplication
+HOSTDEVICE inline hoomd::Scalar3& operator*=(hoomd::Scalar3& a, const hoomd::Scalar& b)
+    {
+    a.x *= b;
+    a.y *= b;
+    a.z *= b;
+    return a;
+    }
+//! Vector - scalar division
+HOSTDEVICE inline hoomd::Scalar3 operator/(const hoomd::Scalar3& a, const hoomd::Scalar& b)
+    {
+    return hoomd::make_scalar3(a.x / b, a.y / b, a.z / b);
+    }
+//! Vector - scalar division in place
+HOSTDEVICE inline hoomd::Scalar3& operator/=(hoomd::Scalar3& a, const hoomd::Scalar& b)
+    {
+    a.x /= b;
+    a.y /= b;
+    a.z /= b;
+    return a;
+    }
+//! Vector - scalar division
+HOSTDEVICE inline hoomd::Scalar3 operator/(const hoomd::Scalar& a, const hoomd::Scalar3& b)
+    {
+    return hoomd::make_scalar3(a / b.x, a / b.y, a / b.z);
+    }
+//! Vector unary -
+HOSTDEVICE inline hoomd::Scalar3 operator-(const hoomd::Scalar3& a)
+    {
+    return hoomd::make_scalar3(-a.x, -a.y, -a.z);
+    }
+//! Vector dot product
+HOSTDEVICE inline hoomd::Scalar dot(const hoomd::Scalar3& a, const hoomd::Scalar3& b)
+    {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+
+// ----------- Integer vector math functions ----------------------
+//! Integer vector addition
+HOSTDEVICE inline int3 operator+(const int3& a, const int3& b)
+    {
+    return make_int3(a.x + b.x, a.y + b.y, a.z + b.z);
+    }
+//! Integer vector unary addition
+HOSTDEVICE inline int3 operator+=(int3& a, const int3& b)
+    {
+    a.x += b.x;
+    a.y += b.y;
+    a.z += b.z;
+    return a;
+    }
+//! Integer vector subtraction
+HOSTDEVICE inline int3 operator-(const int3& a, const int3& b)
+    {
+    return make_int3(a.x - b.x, a.y - b.y, a.z - b.z);
+    }
+//! Integer vector unary subtraction
+HOSTDEVICE inline int3 operator-=(int3& a, const int3& b)
+    {
+    a.x -= b.x;
+    a.y -= b.y;
+    a.z -= b.z;
+    return a;
+    }
+//! Integer vector unary -
+HOSTDEVICE inline int3 operator-(const int3& a)
+    {
+    return make_int3(-a.x, -a.y, -a.z);
+    }
+//! Integer vector comparison
+HOSTDEVICE inline bool operator==(const int3& a, const int3& b)
+    {
+    return (a.x == b.x && a.y == b.y && a.z == b.z);
+    }
+//! Integer vector comparison
+HOSTDEVICE inline bool operator!=(const int3& a, const int3& b)
+    {
+    return (a.x != b.x || a.y != b.y || a.z != b.z);
+    }
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE

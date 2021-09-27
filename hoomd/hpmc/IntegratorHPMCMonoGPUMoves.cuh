@@ -19,6 +19,7 @@
 // base data types
 #include "IntegratorHPMCMonoGPUTypes.cuh"
 
+namespace hoomd {
 namespace hpmc
     {
 namespace gpu
@@ -431,3 +432,4 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
     } // end namespace gpu
 
     } // end namespace hpmc
+} // end namespace hoomd

@@ -30,8 +30,8 @@
 
 #include <pybind11/pybind11.h>
 
-using namespace hpmc;
-using namespace hpmc::detail;
+using namespace hoomd::hpmc;
+using namespace hoomd::hpmc::detail;
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName

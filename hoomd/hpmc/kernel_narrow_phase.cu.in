@@ -21,6 +21,7 @@
 #define SHAPE_CLASS(T) T
 #endif
 
+namespace hoomd {
 namespace hpmc
 {
 
@@ -31,3 +32,4 @@ template void hpmc_narrow_phase<SHAPE_CLASS(SHAPE)>(const hpmc_args_t& args, con
 }
 
 } // end namespace hpmc
+} // end namespace hoomd

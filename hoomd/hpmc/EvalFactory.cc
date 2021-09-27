@@ -19,6 +19,8 @@
 
 #pragma GCC diagnostic pop
 
+namespace hoomd { namespace hpmc {
+
 //! C'tor
 EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::string>& compiler_args)
     {
@@ -92,3 +94,6 @@ EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::str
     m_alpha = (float**)(alpha->getAddress());
     m_alpha_union = (float**)(alpha_union->getAddress());
     }
+
+} // end namespace hpmc
+} // end namespace hoomd

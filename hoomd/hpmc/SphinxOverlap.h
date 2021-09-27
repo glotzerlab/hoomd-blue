@@ -8,6 +8,7 @@
 #ifndef __SPHINXOVERLAP__H__
 #define __SPHINXOVERLAP__H__
 
+namespace hoomd {
 namespace hpmc
     {
 /*! \file SphinxOverlap.h
@@ -4862,4 +4863,5 @@ DEVICE inline OverlapReal yol4(OverlapReal ar,
 
     }      // namespace detail
     }      // namespace hpmc
+} // end namespace hoomd
 #endif // __SPHINXOVERLAP__H__

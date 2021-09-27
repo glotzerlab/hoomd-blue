@@ -21,6 +21,7 @@
 #define SHAPE_CLASS(T) T
 #endif
 
+namespace hoomd {
 namespace hpmc
 {
 
@@ -32,3 +33,4 @@ template void hpmc_clusters_depletants<SHAPE_CLASS(SHAPE)>(const cluster_args_t&
 }
 
 } // end namespace hpmc
+} // end namespace hoomd

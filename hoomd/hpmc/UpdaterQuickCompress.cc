@@ -4,6 +4,7 @@
 #include "UpdaterQuickCompress.h"
 #include "hoomd/RNGIdentifiers.h"
 
+namespace hoomd {
 namespace hpmc
     {
 UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sysdef,
@@ -191,6 +192,7 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     return new_box;
     }
 
+namespace detail {
 void export_UpdaterQuickCompress(pybind11::module& m)
     {
     pybind11::class_<UpdaterQuickCompress, Updater, std::shared_ptr<UpdaterQuickCompress>>(
@@ -215,5 +217,6 @@ void export_UpdaterQuickCompress(pybind11::module& m)
                       &UpdaterQuickCompress::getInstance,
                       &UpdaterQuickCompress::setInstance);
     }
-
-    } // end namespace hpmc
+} // end namespace detail
+} // end namespace hpmc
+} // end namespace hoomd

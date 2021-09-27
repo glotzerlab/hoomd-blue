@@ -21,6 +21,7 @@
 #define SHAPE_CLASS(T) T
 #endif
 
+namespace hoomd {
 namespace hpmc
 {
 
@@ -34,3 +35,4 @@ template void hpmc_depletants_auxilliary_phase2<SHAPE_CLASS(SHAPE)>(const hpmc_a
 }
 
 } // end namespace hpmc
+} // end namespace hoomd

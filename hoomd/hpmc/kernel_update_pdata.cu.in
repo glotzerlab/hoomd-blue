@@ -21,6 +21,7 @@
 #define SHAPE_CLASS(T) T
 #endif
 
+namespace hoomd {
 namespace hpmc
 {
 
@@ -31,3 +32,4 @@ template void hpmc_update_pdata<SHAPE_CLASS(SHAPE)>(const hpmc_update_args_t& ar
 }
 
 } // end namespace hpmc
+} // end namespace hoomd
