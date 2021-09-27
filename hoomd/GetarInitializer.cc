@@ -436,6 +436,29 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
             }
         }
 
+    unsigned int triangle_N((unsigned int)snapshot->triangle_data.type_id.size());
+
+    if (snapshot->triangle_data.groups.size() != triangle_N)
+        {
+        stringstream message;
+        message << "Expected to find " << triangle_N << " triangles, but found "
+                << snapshot->triangle_data.groups.size() << " (i, j, k) triplets" << endl;
+        m_exec_conf->msg->error() << message.str() << endl;
+        throw runtime_error(message.str());
+        }
+
+    if (triangle_N)
+        {
+        unsigned int maxtriangletype(*std::max_element(snapshot->triangle_data.type_id.begin(),
+                                                    snapshot->triangle_data.type_id.end()));
+        for (unsigned int i((unsigned int)snapshot->triangle_data.type_mapping.size());
+             i < maxtriangletype + 1;
+             ++i)
+            {
+            snapshot->triangle_data.type_mapping.push_back(getDefaultTypeName(i));
+            }
+        }
+
     unsigned int improper_N((unsigned int)snapshot->improper_data.type_id.size());
 
     if (snapshot->improper_data.groups.size() != improper_N)
@@ -611,6 +634,10 @@ void GetarInitializer::restoreSingle(shared_ptr<SystemSnapshot> snap, const Reco
                 {
                 snap->dihedral_data.type_id = data;
                 }
+            else if (rec.getGroup() == "triangle")
+                {
+                snap->triangle_data.type_id = data;
+                }
             else if (rec.getGroup() == "improper")
                 {
                 snap->improper_data.type_id = data;
@@ -644,6 +671,12 @@ void GetarInitializer::restoreSingle(shared_ptr<SystemSnapshot> snap, const Reco
                 vector<group_storage<4>> groupData(InvGroupTagIterator<4>(data.begin()),
                                                    InvGroupTagIterator<4>(data.end()));
                 snap->dihedral_data.groups = groupData;
+                }
+            else if (rec.getGroup() == "triangle")
+                {
+                vector<group_storage<3>> groupData(InvGroupTagIterator<3>(data.begin()),
+                                                   InvGroupTagIterator<3>(data.end()));
+                snap->triangle_data.groups = groupData;
                 }
             else if (rec.getGroup() == "improper")
                 {
@@ -1109,6 +1142,10 @@ void GetarInitializer::restoreSingle(shared_ptr<SystemSnapshot> snap, const Reco
             {
             snap->dihedral_data.type_mapping = names;
             }
+        else if (rec.getGroup() == "triangle")
+            {
+            snap->triangle_data.type_mapping = names;
+            }
         else if (rec.getGroup() == "improper")
             {
             snap->improper_data.type_mapping = names;
@@ -1198,6 +1235,11 @@ bool GetarInitializer::insertRecord(const string& name, set<Record>& recs) const
     else if (name.substr(0, 9) == "dihedral_")
         {
         recGroup = "dihedral";
+        recName = name.substr(9);
+        }
+    else if (name.substr(0, 9) == "triangle_")
+        {
+        recGroup = "triangle";
         recName = name.substr(9);
         }
     else if (name.substr(0, 9) == "improper_")

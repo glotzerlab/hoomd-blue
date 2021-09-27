@@ -214,6 +214,9 @@ void GSDDumpWriter::analyze(uint64_t timestep)
         DihedralData::Snapshot ddata_snapshot;
         m_sysdef->getDihedralData()->takeSnapshot(ddata_snapshot);
 
+        TriangleData::Snapshot tdata_snapshot;
+        m_sysdef->getTriangleData()->takeSnapshot(tdata_snapshot);
+
         ImproperData::Snapshot idata_snapshot;
         m_sysdef->getImproperData()->takeSnapshot(idata_snapshot);
 
@@ -227,6 +230,7 @@ void GSDDumpWriter::analyze(uint64_t timestep)
             writeTopology(bdata_snapshot,
                           adata_snapshot,
                           ddata_snapshot,
+                          tdata_snapshot,
                           idata_snapshot,
                           cdata_snapshot,
                           pdata_snapshot);
@@ -768,6 +772,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot,
 /*! \param bond Bond data snapshot
     \param angle Angle data snapshot
     \param dihedral Dihedral data snapshot
+    \param triangle Triangle data snapshot
     \param improper Improper data snapshot
     \param constraint Constraint data snapshot
     \param pair Special pair data snapshot
@@ -777,6 +782,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot,
 void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
                                   AngleData::Snapshot& angle,
                                   DihedralData::Snapshot& dihedral,
+                                  TriangleData::Snapshot& triangle,
                                   ImproperData::Snapshot& improper,
                                   ConstraintData::Snapshot& constraint,
                                   PairData::Snapshot& pair)
@@ -866,6 +872,35 @@ void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
                                  4,
                                  0,
                                  (void*)&dihedral.groups[0]);
+        GSDUtils::checkError(retval, m_fname);
+        }
+    if (triangle.size > 0)
+        {
+        m_exec_conf->msg->notice(10) << "GSD: writing triangle/N" << endl;
+        uint32_t N = triangle.size;
+        int retval = gsd_write_chunk(&m_handle, "triangles/N", GSD_TYPE_UINT32, 1, 1, 0, (void*)&N);
+        GSDUtils::checkError(retval, m_fname);
+
+        writeTypeMapping("triangles/types", triangle.type_mapping);
+
+        m_exec_conf->msg->notice(10) << "GSD: writing triangles/typeid" << endl;
+        retval = gsd_write_chunk(&m_handle,
+                                 "triangles/typeid",
+                                 GSD_TYPE_UINT32,
+                                 N,
+                                 1,
+                                 0,
+                                 (void*)&triangle.type_id[0]);
+        GSDUtils::checkError(retval, m_fname);
+
+        m_exec_conf->msg->notice(10) << "GSD: writing triangles/group" << endl;
+        retval = gsd_write_chunk(&m_handle,
+                                 "triangles/group",
+                                 GSD_TYPE_UINT32,
+                                 N,
+                                 3,
+                                 0,
+                                 (void*)&triangle.groups[0]);
         GSDUtils::checkError(retval, m_fname);
         }
     if (improper.size > 0)

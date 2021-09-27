@@ -44,11 +44,11 @@ class GSD(Writer):
             `None`.
 
     `GSD` writes a simulation snapshot to the specified file each time it
-    triggers. `GSD` can store all particle, bond, angle, dihedral, improper,
-    pair, and constraint data fields in every frame of the trajectory.  `GSD`
-    can write trajectories where the number of particles, number of particle
-    types, particle types, diameter, mass, charge, or other quantities change
-    over time. `GSD` can also store operation-specific state information
+    triggers. `GSD` can store all particle, bond, angle, dihedral, triangle,
+    improper, pair, and constraint data fields in every frame of the trajectory.
+    `GSD` can write trajectories where the number of particles, number of
+    particle types, particle types, diameter, mass, charge, or other quantities
+    change over time. `GSD` can also store operation-specific state information
     necessary for restarting simulations and user-defined log quantities.
 
     Valid file open modes:
@@ -108,6 +108,7 @@ class GSD(Writer):
         * bonds/*
         * angles/*
         * dihedrals/*
+        * triangles/*
         * impropers/*
         * constraints/*
         * pairs/*
@@ -282,8 +283,8 @@ class _GSDLogWriter:
             of each logged quantity.
     """
     _per_categories = LoggerCategories.any([
-        'angle', 'bond', 'constraint', 'dihedral', 'improper', 'pair',
-        'particle'
+        'angle', 'bond', 'constraint', 'dihedral', 'triangle', 'improper',
+        'pair', 'particle'
     ])
     _convert_categories = LoggerCategories.any(['string', 'strings'])
     _skip_categories = LoggerCategories['object']
