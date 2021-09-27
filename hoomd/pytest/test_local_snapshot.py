@@ -154,6 +154,21 @@ _dihedral_data = dict(_N=Nd,
                                shape=(Nd,)),
                       _types=['d1', 'd2'])
 
+Nt = 2
+_triangle_data = dict(_N=Nt,
+                      typeid=dict(np_type=np.unsignedinteger,
+                                  value=[1, 0],
+                                  new_value=[0, 1],
+                                  shape=(Nt,)),
+                      group=dict(np_type=np.unsignedinteger,
+                                 value=[[0, 1, 2], [2, 3, 4]],
+                                 new_value=[[1, 3, 4], [0, 2, 4]],
+                                 shape=(Nt, 3)),
+                      tag=dict(np_type=np.unsignedinteger,
+                               value=None,
+                               shape=(Nt,)),
+                      _types=['t1', 't2'])
+
 Ni = 2
 _improper_data = dict(_N=Ni,
                       typeid=dict(np_type=np.unsignedinteger,
@@ -201,6 +216,7 @@ _global_dict = dict(rtag=dict(
     bonds=dict(np_type=np.unsignedinteger, value=None, shape=(Nb,)),
     angles=dict(np_type=np.unsignedinteger, value=None, shape=(Na,)),
     dihedrals=dict(np_type=np.unsignedinteger, value=None, shape=(Nd,)),
+    triangles=dict(np_type=np.unsignedinteger, value=None, shape=(Nt,)),
     impropers=dict(np_type=np.unsignedinteger, value=None, shape=(Ni,)),
     constraints=dict(np_type=np.unsignedinteger, value=None, shape=(Nc,)),
     pairs=dict(np_type=np.unsignedinteger, value=None, shape=(Npa,)),
@@ -234,6 +250,7 @@ def base_snapshot(device):
         set_snapshot(snapshot, _bond_data, 'bonds')
         set_snapshot(snapshot, _angle_data, 'angles')
         set_snapshot(snapshot, _dihedral_data, 'dihedrals')
+        set_snapshot(snapshot, _triangle_data, 'triangles')
         set_snapshot(snapshot, _improper_data, 'impropers')
         set_snapshot(snapshot, _constraint_data, 'constraints')
         set_snapshot(snapshot, _pair_data, 'pairs')
@@ -241,8 +258,8 @@ def base_snapshot(device):
 
 
 @pytest.fixture(params=[
-    'particles', 'bonds', 'angles', 'dihedrals', 'impropers', 'constraints',
-    'pairs'
+    'particles', 'bonds', 'angles', 'dihedrals', 'triangles', 'impropers',
+    'constraints', 'pairs'
 ])
 def snapshot_section(request):
     return request.param
@@ -260,20 +277,22 @@ def global_property(request):
 
 @pytest.fixture(
     scope='function',
-    params=[(name, prop_name, prop_dict)
-            for name, section_dict in [('particles', {
-                **_particle_data,
-                **_particle_local_data
-            }), ('bonds', _bond_data), (
-                'angles', _angle_data), (
-                    'dihedrals',
-                    _dihedral_data), (
-                        'impropers',
-                        _improper_data), (
-                            'constraints',
-                            _constraint_data), ('pairs', _pair_data)]
-            for prop_name, prop_dict in section_dict.items()
-            if not prop_name.startswith('_')],
+    params=[
+        (name, prop_name, prop_dict)
+        for name, section_dict in [('particles', {
+            **_particle_data,
+            **_particle_local_data
+        }), ('bonds',
+             _bond_data), ('angles', _angle_data), (
+                 'dihedrals',
+                 _dihedral_data), ('triangles',
+                                   _triangle_data), ('impropers',
+                                                     _improper_data),
+                                   ('constraints',
+                                    _constraint_data), ('pairs', _pair_data)]
+        for prop_name, prop_dict in section_dict.items()
+        if not prop_name.startswith('_')
+    ],
     ids=lambda x: x[0] + '-' + x[1])
 def section_name_dict(request):
     """Parameterization of expected values for local_snapshot properties.
