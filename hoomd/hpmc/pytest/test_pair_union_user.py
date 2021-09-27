@@ -26,17 +26,16 @@ valid_constructor_args = [
 
 # setable attributes before attach for CPPPotential objects
 valid_attrs = [
-        ('r_cut_isotropic', 1.4),
-        ('r_cut_constituent', 1.0)
-        ('code_isotropic', 'return -1;'),
-        ('code_union', 'return -1;'),
-    ]
+    ('r_cut_isotropic', 1.4),
+    ('r_cut_constituent', 1.0)('code_isotropic', 'return -1;'),
+    ('code_union', 'return -1;'),
+]
 
 # setable attributes after attach for CPPPotential objects
 valid_attrs_after_attach = [
-        ('r_cut_isotropic', 1.3),
-        ('r_cut_constituent', 1.3),
-    ]
+    ('r_cut_isotropic', 1.3),
+    ('r_cut_constituent', 1.3),
+]
 
 # attributes that cannot be set after object is attached
 attr_error = [('code', 'return -1.0;')]
@@ -201,10 +200,10 @@ def test_cpp_potential(device, positions, orientations, result,
 
     assert np.isclose(patch.energy, result)
 
+
 @pytest.mark.serial
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_param_array(device, simulation_factory,
-                     two_particle_snapshot_factory):
+def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
     """Test passing in parameter arrays to the patch object.
 
     This test tests that changes to the parameter array are reflected on the
@@ -267,10 +266,11 @@ def test_param_array(device, simulation_factory,
     sim.run(0)
     assert np.isclose(patch.energy, 0.0)
 
+
 @pytest.mark.serial
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_param_array_union(device, simulation_factory,
-                     two_particle_snapshot_factory):
+                           two_particle_snapshot_factory):
     """Test passing in parameter arrays to the union patch objects.
 
     This test tests that changes to the parameter array are reflected on the
@@ -299,13 +299,13 @@ def test_param_array_union(device, simulation_factory,
     sim = simulation_factory(two_particle_snapshot_factory())
     r_cut_iso = 5
     params = dict(
-            code_isotropic=square_well_isotropic,
-            param_array_isotropic=[2.5, 1.0],
-            r_cut_isotropic=r_cut_iso,
-            code_constituent=square_well_constituent,
-            param_array_constituent=[1.5, 3.0],
-            r_cut_constituent=1.5,
-            )
+        code_isotropic=square_well_isotropic,
+        param_array_isotropic=[2.5, 1.0],
+        r_cut_isotropic=r_cut_iso,
+        code_constituent=square_well_constituent,
+        param_array_constituent=[1.5, 3.0],
+        r_cut_constituent=1.5,
+    )
     patch = hoomd.hpmc.pair.user.CPPUnionPotential(**params)
     const_paricle_pos = [(0.0, -0.5, 0), (0.0, 0.5, 0)]
     patch.positions['A'] = const_paricle_pos
@@ -316,8 +316,8 @@ def test_param_array_union(device, simulation_factory,
     mc = hoomd.hpmc.integrate.SphereUnion()
     sphere1 = dict(diameter=1)
     mc.shape["A"] = dict(shapes=[sphere1, sphere1],
-                     positions=const_paricle_pos,
-                     orientations=[(1, 0, 0, 0), (1, 0, 0, 0)])
+                         positions=const_paricle_pos,
+                         orientations=[(1, 0, 0, 0), (1, 0, 0, 0)])
     mc.potential = patch
     sim.operations.integrator = mc
 
@@ -333,13 +333,13 @@ def test_param_array_union(device, simulation_factory,
     patch.param_array_constituent[0] = 1.1
     patch.param_array_constituent[1] = -1.0
     sim.run(0)
-    assert(np.isclose(patch.energy, -2.0))  # 2 interacting pairs
+    assert (np.isclose(patch.energy, -2.0))  # 2 interacting pairs
 
     # now extend r_cut_constituent so that all constituent particles interact
     # with all other constituent particles
     patch.param_array_constituent[0] = np.sqrt(2) + 0.1
     sim.run(0)
-    assert(np.isclose(patch.energy, -4.0))  # 4 interacting pairs this time
+    assert (np.isclose(patch.energy, -4.0))  # 4 interacting pairs this time
 
     # now add a respulsive interaction between the union centers
     # and increase its r_cut so that the particle centers interact
@@ -347,21 +347,21 @@ def test_param_array_union(device, simulation_factory,
     patch.param_array_isotropic[0] = 2.0
     patch.param_array_isotropic[1] = 1.0
     sim.run(0)
-    assert(np.isclose(patch.energy, -3.0))
+    assert (np.isclose(patch.energy, -3.0))
 
     # now make r_cut_constituent zero so that only the centers interact with
     # their repulsive square well (square shoulder?)
     patch.param_array_constituent[0] = 0
     sim.run(0)
-    assert(np.isclose(patch.energy, 1.0))
+    assert (np.isclose(patch.energy, 1.0))
 
     # change epsilon of center-center interaction to make it attractive
     # to make sure that change is reflected in the energy
     patch.param_array_isotropic[1] = -1.0
     sim.run(0)
-    assert(np.isclose(patch.energy, -1.0))
+    assert (np.isclose(patch.energy, -1.0))
 
     # set both r_cuts to zero to make sure no particles interact
     patch.param_array_isotropic[0] = 0
     sim.run(0)
-    assert(np.isclose(patch.energy, 0.0))
+    assert (np.isclose(patch.energy, 0.0))
