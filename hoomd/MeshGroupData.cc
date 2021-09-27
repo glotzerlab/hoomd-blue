@@ -113,23 +113,27 @@ void MeshGroupData<group_size, Group, name, bond>::initializeFromSnapshot(
             triag.tag[1] = snapshot.groups[group_idx].tag[1];
             triag.tag[2] = snapshot.groups[group_idx].tag[2];
 
+
 	    bonds[0].tag[0] = triag.tag[0];
 	    bonds[0].tag[1] = triag.tag[1];
 	    bonds[0].tag[2] = group_idx;
+	    bonds[0].tag[3] = group_idx;
 	    bonds[1].tag[0] = triag.tag[1];
 	    bonds[1].tag[1] = triag.tag[2];
 	    bonds[1].tag[2] = group_idx;
+	    bonds[1].tag[3] = group_idx;
 	    bonds[2].tag[0] = triag.tag[2];
 	    bonds[2].tag[1] = triag.tag[0];
 	    bonds[2].tag[2] = group_idx;
+	    bonds[2].tag[3] = group_idx;
 
 	    for (unsigned int i = 0; i < all_groups.size(); ++i)
 		{
                 for (unsigned int j = 0; j < bonds.size(); ++j)
 		   {
-                   if( (bonds[j].tag[0] == all_groups[i].tag[0] && bonds[j].tag[1] == all_groups[i].tag[1]) || (bonds[j].tag[0] == all_groups[i].tag[1] && bonds[j].tag[0] == all_groups[i].tag[1]) )
+                   if( (bonds[j].tag[0] == all_groups[i].tag[0] && bonds[j].tag[1] == all_groups[i].tag[1]) || (bonds[j].tag[0] == all_groups[i].tag[1] && bonds[j].tag[1] == all_groups[i].tag[0]) )
 		       {
-		       all_groups[i].tag[3]=i;
+		       all_groups[i].tag[3]=group_idx;
 		       bonds.erase(bonds.begin()+j);
 		       break;
 		       }
@@ -165,7 +169,7 @@ void MeshGroupData<group_size, Group, name, bond>::initializeFromSnapshot(
 		{
                 for (unsigned int j = 0; j < bonds.size(); ++j)
 		   {
-                   if( (bonds[j].tag[0] == all_helper[i].tag[0] && bonds[j].tag[1] == all_helper[i].tag[1]) || (bonds[j].tag[0] == all_helper[i].tag[1] && bonds[j].tag[0] == all_helper[i].tag[1]) )
+                   if( (bonds[j].tag[0] == all_helper[i].tag[0] && bonds[j].tag[1] == all_helper[i].tag[1]) || (bonds[j].tag[0] == all_helper[i].tag[1] && bonds[j].tag[1] == all_helper[i].tag[0]) )
 		       {
 		       bond_id.push_back(i);
 		       bonds.erase(bonds.begin()+j);
@@ -244,7 +248,7 @@ unsigned int MeshGroupData<group_size, Group, name, bond>::addBondedGroup(Group 
     unsigned int max_tag = this->m_pdata->getMaximumTag();
 
     // validate user input
-    for (unsigned int i = 0; i < group_size; ++i)
+    for (unsigned int i = 0; i < group_size/2; ++i)
         if (members_tags.tag[i] > max_tag)
             {
             std::ostringstream oss;
@@ -261,18 +265,6 @@ unsigned int MeshGroupData<group_size, Group, name, bond>::addBondedGroup(Group 
                 {
                 std::ostringstream oss;
                 oss << "The same particle can only occur once in a " << name << ": ";
-                for (unsigned int k = 0; k < group_size; ++k)
-                    oss << members_tags.tag[k] << ((k != group_size - 1) ? "," : "");
-                oss << std::endl;
-                throw runtime_error(oss.str());
-                }
-
-    for (unsigned int i = group_size/2; i < group_size; ++i)
-        for (unsigned int j = group_size/2; j < group_size; ++j)
-            if (i != j && members_tags.tag[i] == members_tags.tag[j])
-                {
-                std::ostringstream oss;
-                oss << "The same simplex can only occur once in a " << name << ": ";
                 for (unsigned int k = 0; k < group_size; ++k)
                     oss << members_tags.tag[k] << ((k != group_size - 1) ? "," : "");
                 oss << std::endl;

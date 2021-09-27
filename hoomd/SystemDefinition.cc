@@ -59,6 +59,8 @@ SystemDefinition::SystemDefinition(unsigned int N,
         = std::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
     m_improper_data
         = std::shared_ptr<ImproperData>(new ImproperData(m_particle_data, n_improper_types));
+    m_triangle_data
+        = std::shared_ptr<TriangleData>(new TriangleData(m_particle_data, n_triangle_types));
     m_meshtriangle_data
         = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, n_triangle_types));
     m_meshbond_data
@@ -99,6 +101,9 @@ SystemDefinition::SystemDefinition(std::shared_ptr<SnapshotSystemData<Real>> sna
 
     m_improper_data
         = std::shared_ptr<ImproperData>(new ImproperData(m_particle_data, snapshot->improper_data));
+
+    //m_triangle_data
+    //    = std::shared_ptr<TriangleData>(new TriangleData(m_particle_data, snapshot->triangle_data));
 
     m_meshtriangle_data
         = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, snapshot->triangle_data));
@@ -153,6 +158,7 @@ template<class Real> std::shared_ptr<SnapshotSystemData<Real>> SystemDefinition:
     m_improper_data->takeSnapshot(snap->improper_data);
     m_constraint_data->takeSnapshot(snap->constraint_data);
     m_meshtriangle_data->takeSnapshot(snap->triangle_data);
+    //m_triangle_data->takeSnapshot(snap->triangle_data);
     m_pair_data->takeSnapshot(snap->pair_data);
 
     return snap;
@@ -179,6 +185,7 @@ void SystemDefinition::initializeFromSnapshot(std::shared_ptr<SnapshotSystemData
     m_dihedral_data->initializeFromSnapshot(snapshot->dihedral_data);
     m_improper_data->initializeFromSnapshot(snapshot->improper_data);
     m_constraint_data->initializeFromSnapshot(snapshot->constraint_data);
+    //m_triangle_data->initializeFromSnapshot(snapshot->triangle_data);
     m_meshtriangle_data->initializeFromSnapshot(snapshot->triangle_data);
     m_meshbond_data->initializeFromSnapshot(snapshot->triangle_data);
     m_pair_data->initializeFromSnapshot(snapshot->pair_data);

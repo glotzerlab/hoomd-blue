@@ -156,7 +156,8 @@ class PYBIND11_EXPORT SystemDefinition
         {
 	TriangleData::Snapshot snapshot;
 	m_meshtriangle_data->takeSnapshot(snapshot);
-        return  std::shared_ptr<TriangleData>(new TriangleData(m_particle_data, snapshot));
+        m_triangle_data = std::shared_ptr<TriangleData>(new TriangleData(m_particle_data, snapshot));
+        return m_triangle_data;
         }
     //! Access the mesh triangle data defined for the simulation
     std::shared_ptr<MeshTriangleData> getMeshTriangleData()
@@ -201,6 +202,7 @@ class PYBIND11_EXPORT SystemDefinition
     std::shared_ptr<BondData> m_bond_data;             //!< Bond data for the system
     std::shared_ptr<AngleData> m_angle_data;           //!< Angle data for the system
     std::shared_ptr<DihedralData> m_dihedral_data;     //!< Dihedral data for the system
+    std::shared_ptr<TriangleData> m_triangle_data;           //!< Angle data for the system
     std::shared_ptr<ImproperData> m_improper_data;     //!< Improper data for the system
     std::shared_ptr<ConstraintData> m_constraint_data; //!< Improper data for the system
     std::shared_ptr<IntegratorData> m_integrator_data; //!< Integrator data for the system
