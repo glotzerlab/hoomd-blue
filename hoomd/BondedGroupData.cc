@@ -21,6 +21,8 @@
 using namespace std;
 namespace py = pybind11;
 
+namespace hoomd {
+
 //! Names of bonded groups
 char name_bond_data[] = "bond";
 char name_angle_data[] = "angle";
@@ -68,7 +70,7 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
         // offer a default type mapping
         for (unsigned int i = 0; i < n_group_types; i++)
             {
-            m_type_mapping.push_back(getDefaultTypeName(i));
+            m_type_mapping.push_back(detail::getDefaultTypeName(i));
             }
         }
 
@@ -1289,6 +1291,8 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
     }
 #endif
 
+namespace detail {
+
 template<class T, typename Group>
 void export_BondedGroupData(py::module& m,
                             std::string name,
@@ -1340,6 +1344,8 @@ void export_BondedGroupData(py::module& m,
             .def_property("N", &Snapshot::getSize, &Snapshot::resize);
         }
     }
+
+} // end namespace detail
 
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::replicate(
@@ -1454,39 +1460,45 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTy
         this->type_mapping[i] = py::cast<string>(types[i]);
     }
 
-//! Explicit template instantiations
 template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_bond_data>;
+template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
+template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_dihedral_data>;
+template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
+template class PYBIND11_EXPORT BondedGroupData<2, Constraint, name_constraint_data, false>;
+template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_pair_data>;
+
+namespace detail {
+
 template void export_BondedGroupData<BondData, Bond>(py::module& m,
                                                      std::string name,
                                                      std::string snapshot_name,
                                                      bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
 template void export_BondedGroupData<AngleData, Angle>(py::module& m,
                                                        std::string name,
                                                        std::string snapshot_name,
                                                        bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_dihedral_data>;
 template void export_BondedGroupData<DihedralData, Dihedral>(py::module& m,
                                                              std::string name,
                                                              std::string snapshot_name,
                                                              bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
 template void export_BondedGroupData<ImproperData, Dihedral>(py::module& m,
                                                              std::string name,
                                                              std::string snapshot_name,
                                                              bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<2, Constraint, name_constraint_data, false>;
 template void export_BondedGroupData<ConstraintData, Constraint>(py::module& m,
                                                                  std::string name,
                                                                  std::string snapshot_name,
                                                                  bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_pair_data>;
 template void export_BondedGroupData<PairData, Bond>(py::module& m,
                                                      std::string name,
                                                      std::string snapshot_name,
                                                      bool export_struct);
+
+} // end namespace detail
+
+} // end namespace hoomd

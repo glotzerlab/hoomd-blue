@@ -29,6 +29,8 @@
 
 #include <cassert>
 
+namespace hoomd {
+
 //! Select a particle for migration
 __global__ void gpu_select_particle_migrate(unsigned int N,
                                             const Scalar4* d_postype,
@@ -2820,4 +2822,5 @@ template void gpu_exchange_ghost_groups_copy_buf<2>(unsigned int nrecv,
                                                     unsigned int& n_keep,
                                                     CachedAllocator& alloc);
 
+} // end namespace hoomd
 #endif // ENABLE_MPI

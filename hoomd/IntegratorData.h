@@ -19,6 +19,8 @@
 
 #include "HOOMDMPI.h"
 
+namespace hoomd {
+
 //! Stores integrator variables
 /*! The integration state is necessary for exact restarts.  Extended systems
     integrators in the spirit of Nose-Hoover store the positions, velocities,
@@ -31,6 +33,8 @@ struct PYBIND11_EXPORT IntegratorVariables
     std::string type;             //!< The type of integrator (NVT, NPT, etc.)
     std::vector<Scalar> variable; //!< Variables that define the integration state
     };
+
+} // end namespace hoomd
 
 #ifdef ENABLE_MPI
 namespace cereal
@@ -45,6 +49,8 @@ void serialize(Archive& ar, IntegratorVariables& iv, const unsigned int version)
     }
     } // namespace cereal
 #endif
+
+namespace hoomd {
 
 //! Stores all integrator variables in the simulation
 /*! IntegratorData keeps track of the parameters for all of the integrators
@@ -124,7 +130,12 @@ class PYBIND11_EXPORT IntegratorData
         m_integrator_variables; //!< List of the integrator variables defined
     };
 
+namespace detail {
+
 //! Exports IntegratorData to python
 void export_IntegratorData();
 
+} // end namespace detail
+
+} // end namespace hoomd
 #endif

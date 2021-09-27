@@ -9,6 +9,7 @@
 
 #include <sys/stat.h>
 
+namespace hoomd {
 namespace filesystem
     {
 //! Test if a file exists
@@ -20,3 +21,4 @@ inline bool exists(const std::string& name)
     return (stat(name.c_str(), &buffer) == 0);
     }
     } // namespace filesystem
+} // end namespace hoomd

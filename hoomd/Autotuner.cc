@@ -15,6 +15,9 @@
 using namespace std;
 namespace py = pybind11;
 
+namespace hoomd {
+namespace detail {
+
 /*! \file Autotuner.cc
     \brief Definition of Autotuner
 */
@@ -376,3 +379,7 @@ void export_Autotuner(py::module& m)
         .def("setMoveRatio", &Autotuner::isComplete)
         .def("setNSelect", &Autotuner::setPeriod);
     }
+
+} // end namespace detail
+
+} // end namespace hoomd

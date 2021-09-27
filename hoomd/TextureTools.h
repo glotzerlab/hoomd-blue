@@ -19,6 +19,8 @@
 
 #ifdef __HIPCC__
 
+namespace hoomd {
+
 //! Fetch a double4 value from texture memory.
 /*! This function should be called whenever a CUDA kernel wants to retrieve a
     double4 value from read only memory.
@@ -38,4 +40,6 @@ __device__ inline double4 __ldg(const double4* ptr)
     }
 #endif
 
-#endif // __HOOMD_MATH_H__
+} // end namespace hoomd
+
+#endif

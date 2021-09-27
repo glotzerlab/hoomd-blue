@@ -14,6 +14,8 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd {
+
 /*!
  * \param sysdef System definition
  * \param cl Cell list to pair the stencil with
@@ -204,8 +206,12 @@ bool CellListStencil::shouldCompute(uint64_t timestep)
     return false;
     }
 
+namespace detail {
 void export_CellListStencil(py::module& m)
     {
     py::class_<CellListStencil, Compute, std::shared_ptr<CellListStencil>>(m, "CellListStencil")
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>>());
     }
+} // end namespace detail
+
+} // end namespace hoomd

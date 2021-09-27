@@ -19,18 +19,16 @@
 #include <stdexcept>
 #include <time.h>
 
-// the typedef works around an issue with older versions of the preprocessor
-typedef std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>> _analyzer_pair;
-PYBIND11_MAKE_OPAQUE(std::vector<_analyzer_pair>)
-typedef std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>> _updater_pair;
-PYBIND11_MAKE_OPAQUE(std::vector<_updater_pair>)
-
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<Tuner>>)
 
 using namespace std;
 namespace py = pybind11;
 
-PyObject* walltimeLimitExceptionTypeObj = 0;
+// the typedef works around an issue with older versions of the preprocessor
+PYBIND11_MAKE_OPAQUE(std::vector<std::pair<std::shared_ptr<hoomd::Analyzer>, std::shared_ptr<hoomd::Trigger>>>)
+PYBIND11_MAKE_OPAQUE(std::vector<std::pair<std::shared_ptr<hoomd::Updater>, std::shared_ptr<hoomd::Trigger>>>)
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::Tuner>>)
+
+namespace hoomd {
 
 /*! \param sysdef SystemDefinition for the system to be simulated
     \param initial_tstep Initial time step of the simulation
@@ -314,6 +312,8 @@ PDataFlags System::determineFlags(uint64_t tstep)
     return flags;
     }
 
+namespace detail {
+
 void export_System(py::module& m)
     {
     py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>>(
@@ -351,3 +351,7 @@ void export_System(py::module& m)
 #endif
         ;
     }
+
+} // end namespace detail
+
+} // end namespace hoomd

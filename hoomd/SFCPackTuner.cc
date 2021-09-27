@@ -19,6 +19,8 @@
 using namespace std;
 namespace py = pybind11;
 
+namespace hoomd {
+
 /*! \param sysdef System to perform sorts on
  */
 SFCPackTuner::SFCPackTuner(std::shared_ptr<SystemDefinition> sysdef,
@@ -282,6 +284,8 @@ void SFCPackTuner::applySortOrder()
     delete[] int3_tmp;
     }
 
+namespace detail {
+
 //! x walking table for the hilbert curve
 static int istep[] = {0, 0, 0, 0, 1, 1, 1, 1};
 //! y walking table for the hilbert curve
@@ -434,6 +438,8 @@ void permute(unsigned int result[8], const unsigned int in[8], int p)
         }
     }
 
+} // end namespace detail
+
 //! recursive function for generating hilbert curve traversal order
 /*! \param i Current x coordinate in grid
     \param j Current y coordinate in grid
@@ -469,12 +475,12 @@ void SFCPackTuner::generateTraversalOrder(int i,
         for (int m = 0; m < 8; m++)
             {
             unsigned int cur_cell = cell_order[m];
-            int ic = i + w * istep[cur_cell];
-            int jc = j + w * jstep[cur_cell];
-            int kc = k + w * kstep[cur_cell];
+            int ic = i + w * detail::istep[cur_cell];
+            int jc = j + w * detail::jstep[cur_cell];
+            int kc = k + w * detail::kstep[cur_cell];
 
             unsigned int child_cell_order[8];
-            permute(child_cell_order, cell_order, m);
+            detail::permute(child_cell_order, cell_order, m);
             generateTraversalOrder(ic, jc, kc, w, Mx, child_cell_order, traversal_order);
             }
         }
@@ -677,9 +683,15 @@ void SFCPackTuner::writeTraversalOrder(const std::string& fname,
         }
     }
 
+namespace detail {
+
 void export_SFCPackTuner(py::module& m)
     {
     py::class_<SFCPackTuner, Tuner, std::shared_ptr<SFCPackTuner>>(m, "SFCPackTuner")
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
         .def_property("grid", &SFCPackTuner::getGrid, &SFCPackTuner::setGridPython);
     }
+
+} // end namespace detail
+
+} // end namespace hoomd

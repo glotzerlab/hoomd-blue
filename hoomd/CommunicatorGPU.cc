@@ -17,6 +17,8 @@
 namespace py = pybind11;
 #include <algorithm>
 
+namespace hoomd {
+
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<DomainDecomposition> decomposition)
@@ -3901,6 +3903,7 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
 //! Export CommunicatorGPU class to python
 void export_CommunicatorGPU(py::module& m)
     {
@@ -3909,6 +3912,9 @@ void export_CommunicatorGPU(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition>>())
         .def("setMaxStages", &CommunicatorGPU::setMaxStages);
     }
+} // end namespace detail
+
+} // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI

@@ -19,11 +19,6 @@
 // files which define the vector types (float4, etc...)
 #include "hoomd/extern/cudacpu_vector_functions.h"
 #include "hoomd/extern/cudacpu_vector_types.h"
-
-//! Define complex type
-typedef float2 hipfftComplex;
-//! Double complex type
-typedef double2 hipfftDoubleComplex;
 #endif
 
 // bring in math.h
@@ -50,6 +45,15 @@ typedef double2 hipfftDoubleComplex;
 #else
 #define HOSTDEVICE
 #define DEVICE
+#endif
+
+namespace hoomd {
+
+#ifndef ENABLE_HIP
+//! Define complex type
+typedef float2 hipfftComplex;
+//! Double complex type
+typedef double2 hipfftDoubleComplex;
 #endif
 
 // Handle both single and double precision through a define
@@ -364,7 +368,9 @@ HOSTDEVICE inline bool operator!=(const int3& a, const int3& b)
 //! Export relevant hoomd math functions to python
 #ifndef __HIPCC__
 #ifndef HOOMD_LLVMJIT_BUILD
+namespace detail {
 void export_hoomd_math_functions(pybind11::module& m);
+}
 #endif
 #endif
 
@@ -778,6 +784,8 @@ inline HOSTDEVICE float rint(float x)
     return ::rintf(x);
     }
     } // namespace slow
+
+} // end namespace hoomd
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE

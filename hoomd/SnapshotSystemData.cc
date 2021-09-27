@@ -11,6 +11,8 @@
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
+namespace hoomd {
+
 template<class Real>
 void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsigned int nz)
     {
@@ -121,6 +123,8 @@ void SnapshotSystemData<Real>::broadcast_all(unsigned int root,
 template struct PYBIND11_EXPORT SnapshotSystemData<float>;
 template struct PYBIND11_EXPORT SnapshotSystemData<double>;
 
+namespace detail {
+
 void export_SnapshotSystemData(py::module& m)
     {
     py::class_<SnapshotSystemData<float>, std::shared_ptr<SnapshotSystemData<float>>>(
@@ -161,3 +165,7 @@ void export_SnapshotSystemData(py::module& m)
         .def("_broadcast", &SnapshotSystemData<double>::broadcast)
         .def("_broadcast_all", &SnapshotSystemData<double>::broadcast_all);
     }
+
+} // end namespace detail
+
+} // end namespace hoomd

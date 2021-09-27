@@ -16,6 +16,8 @@
 
 #include "hoomd/CachedAllocator.h"
 
+namespace hoomd {
+
 #ifdef __HIPCC__
 //! The flags used for indicating the itinerary of a particle
 enum gpu_send_flags
@@ -336,4 +338,5 @@ void gpu_exchange_ghosts_copy_netvirial_buf(unsigned int n_recv,
                                             const Scalar* d_netvirial_recvbuf,
                                             Scalar* d_netvirial,
                                             unsigned int pitch_out);
+} // end namespace hoomd
 #endif // ENABLE_MPI

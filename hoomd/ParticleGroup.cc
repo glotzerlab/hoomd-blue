@@ -19,6 +19,8 @@
 using namespace std;
 namespace py = pybind11;
 
+namespace hoomd {
+
 /*! \param sysdef System the particles are to be selected from
     \param rigid true selects particles that are in bodies, false selects particles that are not
    part of a body
@@ -889,6 +891,8 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         }
     }
 
+namespace detail {
+
 void export_ParticleGroup(py::module& m)
     {
     py::class_<ParticleGroup, std::shared_ptr<ParticleGroup>>(m, "ParticleGroup")
@@ -911,3 +915,7 @@ void export_ParticleGroup(py::module& m)
         .def("thermalizeParticleMomenta", &ParticleGroup::thermalizeParticleMomenta)
         .def_property_readonly("member_tags", &ParticleGroup::getMemberTags);
     }
+
+} // end namespace detail
+
+} // end namespace hoomd

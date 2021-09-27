@@ -21,6 +21,8 @@
 using namespace std;
 namespace py = pybind11;
 
+namespace hoomd {
+
 //! Constructor
 /*! \param sysdef System to perform sorts on
  */
@@ -308,11 +310,17 @@ void SFCPackTunerGPU::applySortOrder()
     m_pdata->swapNetTorque();
     }
 
+namespace detail {
+
 void export_SFCPackTunerGPU(py::module& m)
     {
     py::class_<SFCPackTunerGPU, SFCPackTuner, std::shared_ptr<SFCPackTunerGPU>>(m,
                                                                                 "SFCPackTunerGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
+
+} // end namespace detail
+
+} // end namespace hoomd
 
 #endif

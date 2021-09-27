@@ -62,7 +62,6 @@ set(_hoomd_sources Analyzer.cc
                    Autotuner.cc
                    BondedGroupData.cc
                    BoxResizeUpdater.cc
-                   CallbackAnalyzer.cc
                    CellList.cc
                    CellListStencil.cc
                    ClockSource.cc
@@ -131,7 +130,6 @@ set(_hoomd_headers
     BoxResizeUpdater.h
     UpdaterRemoveDrift.h
     CachedAllocator.h
-    CallbackAnalyzer.h
     CellListGPU.cuh
     CellListGPU.h
     CellList.h

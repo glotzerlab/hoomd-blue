@@ -19,6 +19,8 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd {
+
 /*! \post All shared pointers contained in SystemDefinition are NULL
  */
 SystemDefinition::SystemDefinition() { }
@@ -183,6 +185,8 @@ template std::shared_ptr<SnapshotSystemData<double>> SystemDefinition::takeSnaps
 template void SystemDefinition::initializeFromSnapshot<double>(
     std::shared_ptr<SnapshotSystemData<double>> snapshot);
 
+namespace detail {
+
 void export_SystemDefinition(py::module& m)
     {
     py::class_<SystemDefinition, std::shared_ptr<SystemDefinition>>(m, "SystemDefinition")
@@ -231,3 +235,7 @@ void export_SystemDefinition(py::module& m)
         .def("getSeed", &SystemDefinition::getSeed)
         .def("setSeed", &SystemDefinition::setSeed);
     }
+
+} // end namespace detail
+
+} // end namespace hoomd

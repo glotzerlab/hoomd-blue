@@ -11,6 +11,8 @@ namespace py = pybind11;
 
 #include <pybind11/stl_bind.h>
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<IntegrationMethodTwoStep>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceConstraint>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceCompute>>);
 
 using namespace std;
 
@@ -483,6 +485,9 @@ void export_IntegratorTwoStep(py::module& m)
     py::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
         m,
         "IntegrationMethodList");
+
+    py::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
+    py::bind_vector<std::vector<std::shared_ptr<ForceConstraint>>>(m, "ForceConstraintList");
 
     py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
         m,

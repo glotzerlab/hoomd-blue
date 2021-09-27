@@ -15,6 +15,8 @@ using namespace hoomd::detail;
 
 namespace py = pybind11;
 
+namespace hoomd {
+
 /*! \param exec_conf The execution configuration
     \param name File name to read
     \param frame Frame index to read from the file
@@ -459,6 +461,8 @@ pybind11::array GSDStateReader::readChunk(const std::string& name)
     return result;
     }
 
+namespace detail {
+
 void export_GSDReader(py::module& m)
     {
     py::class_<GSDReader, std::shared_ptr<GSDReader>>(m, "GSDReader")
@@ -476,3 +480,7 @@ void export_GSDReader(py::module& m)
         .def("getAvailableChunks", &GSDStateReader::getAvailableChunks)
         .def("readChunk", &GSDStateReader::readChunk);
     }
+
+} // end namespace detail
+
+} // end namespace hoomd

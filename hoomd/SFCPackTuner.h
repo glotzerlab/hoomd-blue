@@ -22,6 +22,8 @@
 #ifndef __SFCPACK_UPDATER_H__
 #define __SFCPACK_UPDATER_H__
 
+namespace hoomd {
+
 //! Sort the particles
 /*! Implements an algorithm that reorders particles in the ParticleData so that particles
     near each other in space become near each other in memory. This transformation improves
@@ -116,7 +118,13 @@ class PYBIND11_EXPORT SFCPackTuner : public Tuner
     std::shared_ptr<Trigger> m_trigger;
     };
 
+namespace detail {
+
 //! Export the SFCPackTuner class to python
 void export_SFCPackTuner(pybind11::module& m);
+
+} // end namespace detail
+
+} // end namespace hoomd
 
 #endif

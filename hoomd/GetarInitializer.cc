@@ -6,6 +6,7 @@
 
 namespace py = pybind11;
 
+namespace hoomd {
 namespace getardump
     {
 using std::auto_ptr;
@@ -341,7 +342,7 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
     for (unsigned int i((unsigned int)snapshot->particle_data.type_mapping.size()); i < maxtype + 1;
          ++i)
         {
-        snapshot->particle_data.type_mapping.push_back(getDefaultTypeName(i));
+        snapshot->particle_data.type_mapping.push_back(detail::getDefaultTypeName(i));
         }
 
     unsigned int bond_N((unsigned int)snapshot->bond_data.type_id.size());
@@ -363,7 +364,7 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
              i < maxbondtype + 1;
              ++i)
             {
-            snapshot->bond_data.type_mapping.push_back(getDefaultTypeName(i));
+            snapshot->bond_data.type_mapping.push_back(detail::getDefaultTypeName(i));
             }
         }
 
@@ -386,7 +387,7 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
              i < maxpairtype + 1;
              ++i)
             {
-            snapshot->pair_data.type_mapping.push_back(getDefaultTypeName(i));
+            snapshot->pair_data.type_mapping.push_back(detail::getDefaultTypeName(i));
             }
         }
 
@@ -409,7 +410,7 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
              i < maxangletype + 1;
              ++i)
             {
-            snapshot->angle_data.type_mapping.push_back(getDefaultTypeName(i));
+            snapshot->angle_data.type_mapping.push_back(detail::getDefaultTypeName(i));
             }
         }
 
@@ -432,7 +433,7 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
              i < maxdihedraltype + 1;
              ++i)
             {
-            snapshot->dihedral_data.type_mapping.push_back(getDefaultTypeName(i));
+            snapshot->dihedral_data.type_mapping.push_back(detail::getDefaultTypeName(i));
             }
         }
 
@@ -455,7 +456,7 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
              i < maximpropertype + 1;
              ++i)
             {
-            snapshot->improper_data.type_mapping.push_back(getDefaultTypeName(i));
+            snapshot->improper_data.type_mapping.push_back(detail::getDefaultTypeName(i));
             }
         }
     }
@@ -1240,3 +1241,4 @@ void export_GetarInitializer(py::module& m)
     }
 
     } // namespace getardump
+} // end namespace hoomd

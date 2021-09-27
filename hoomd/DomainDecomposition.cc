@@ -23,6 +23,8 @@
 using namespace std;
 namespace py = pybind11;
 
+namespace hoomd {
+
 //! Constructor
 /*! The constructor performs a spatial domain decomposition of the simulation box of processor with
  * rank \b exec_conf->getMPIroot(). The domain dimensions are distributed on the other processors.
@@ -713,6 +715,7 @@ void DomainDecomposition::initializeTwoLevel()
         }
     }
 
+namespace detail {
 //! Export DomainDecomposition class to python
 void export_DomainDecomposition(py::module& m)
     {
@@ -730,4 +733,7 @@ void export_DomainDecomposition(py::module& m)
                       const std::vector<Scalar>&>())
         .def("getCumulativeFractions", &DomainDecomposition::getCumulativeFractions);
     }
+} // end namespace detail
+
+} // end namespace hoomd
 #endif // ENABLE_MPI

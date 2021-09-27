@@ -22,6 +22,8 @@ namespace py = pybind11;
 
 #include <memory>
 
+namespace hoomd {
+
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated
     \post \c force and \c virial GPUarrays are initialized
@@ -660,6 +662,8 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
     return result;
     }
 
+namespace detail {
+
 void export_ForceCompute(py::module& m)
     {
     py::class_<ForceCompute, Compute, std::shared_ptr<ForceCompute>>(m, "ForceCompute")
@@ -676,3 +680,6 @@ void export_ForceCompute(py::module& m)
         .def("getTorques", &ForceCompute::getTorquesPython)
         .def("getVirials", &ForceCompute::getVirialsPython);
     }
+} // end namespace detail
+
+} // end namespace hoomd

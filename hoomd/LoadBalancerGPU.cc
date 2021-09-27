@@ -18,6 +18,8 @@ using namespace std;
 
 namespace py = pybind11;
 
+namespace hoomd {
+
 /*!
  * \param sysdef System definition
  * \param decomposition Domain decomposition
@@ -109,11 +111,17 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
     }
 #endif // ENABLE_MPI
 
+namespace detail {
+
 void export_LoadBalancerGPU(py::module& m)
     {
     py::class_<LoadBalancerGPU, LoadBalancer, std::shared_ptr<LoadBalancerGPU>>(m,
                                                                                 "LoadBalancerGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
+
+} // end namespace detail
+
+} // end namespace hoomd
 
 #endif // ENABLE_HIP

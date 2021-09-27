@@ -15,6 +15,8 @@
 using namespace std;
 namespace py = pybind11;
 
+namespace hoomd {
+
 ////////////////////////////////////////////////////
 // ProfileDataElem members
 int64_t ProfileDataElem::getChildElapsedTime() const
@@ -247,9 +249,15 @@ string print_profiler(Profiler* prof)
     return s.str();
     }
 
+namespace detail {
+
 void export_Profiler(py::module& m)
     {
     py::class_<Profiler>(m, "Profiler")
         .def(py::init<const std::string&>())
         .def("__str__", &print_profiler);
     }
+
+} // end namespace detail
+
+} // end namespace hoomd

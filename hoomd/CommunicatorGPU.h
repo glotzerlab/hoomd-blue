@@ -28,6 +28,8 @@
 /*! \ingroup communication
  */
 
+namespace hoomd {
+
 //! Class that handles MPI communication (GPU version)
 /*! CommunicatorGPU is the GPU implementation of the base communication class.
  */
@@ -257,8 +259,12 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     void initializeCommunicationStages();
     };
 
+namespace detail {
 //! Export CommunicatorGPU class to python
 void export_CommunicatorGPU(pybind11::module& m);
+} // end namespace detail
+
+} // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI

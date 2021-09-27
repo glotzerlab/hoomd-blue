@@ -23,6 +23,8 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd {
+
 //! A device-side, fixed-size array memory-managed through cudaMallocManaged
 template<class T> class ManagedArray
     {
@@ -313,6 +315,8 @@ template<class T> class ManagedArray
     void* allocation_ptr;    //!< Pointer to un-aligned start of allocation
     size_t allocation_bytes; //!< Total size of allocation, including aligned part
     };
+
+} // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

@@ -10,6 +10,8 @@
 
 namespace py = pybind11;
 
+namespace hoomd {
+
 namespace getardump
     {
 using namespace gtar;
@@ -1054,3 +1056,5 @@ void export_GetarDumpWriter(py::module& m)
         .export_values();
     }
     } // namespace getardump
+
+} // end namespace hoomd

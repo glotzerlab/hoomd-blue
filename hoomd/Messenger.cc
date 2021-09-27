@@ -25,6 +25,10 @@ using namespace std;
 
 namespace py = pybind11;
 
+namespace hoomd {
+
+namespace detail {
+
 #ifdef ENABLE_MPI
 //! Class that supports writing to a shared log file using MPI-IO
 class mpi_io : public std::streambuf
@@ -56,6 +60,8 @@ class mpi_io : public std::streambuf
     };
 #endif
 
+} // end namespace detail
+
 /*! \post Warning and error streams are set to cerr
     \post The notice stream is set to cout
     \post The notice level is set to 2
@@ -67,7 +73,7 @@ Messenger::Messenger(std::shared_ptr<MPIConfiguration> mpi_config) : m_mpi_confi
     m_warning_stream = &cerr;
     m_notice_stream = &cout;
 
-    m_nullstream = std::shared_ptr<nullstream>(new nullstream());
+    m_nullstream = std::shared_ptr<detail::nullstream>(new detail::nullstream());
     m_notice_level = 2;
     m_err_prefix = "**ERROR**";
     m_warning_prefix = "*Warning*";
@@ -442,6 +448,8 @@ void mpi_io::close()
 
 #endif
 
+namespace detail {
+
 void export_Messenger(py::module& m)
     {
     py::class_<Messenger, std::shared_ptr<Messenger>>(m, "Messenger")
@@ -467,3 +475,7 @@ void export_Messenger(py::module& m)
         .def("openPython", &Messenger::openPython)
         .def("openStd", &Messenger::openStd);
     }
+
+} // end namespace detail
+
+} // end namespace hoomd

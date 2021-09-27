@@ -5,7 +5,6 @@
 #include "Analyzer.h"
 #include "BondedGroupData.h"
 #include "BoxResizeUpdater.h"
-#include "CallbackAnalyzer.h"
 #include "CellList.h"
 #include "CellListStencil.h"
 #include "ClockSource.h"
@@ -70,8 +69,6 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-using namespace std;
-using namespace hoomd;
 
 #ifdef ENABLE_TBB
 #include <tbb/task_arena.h>
@@ -80,6 +77,10 @@ using namespace hoomd;
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
+
+namespace hoomd {
+
+namespace detail {
 
 void mpi_barrier_world()
     {
@@ -154,6 +155,14 @@ std::string mpi_bcast_str(pybind11::object string,
     return s;
 #endif
     }
+
+} // end namespace detail
+
+} // end namespace hoomd
+
+using namespace std;
+using namespace hoomd;
+using namespace hoomd::detail;
 
 //! Create the python module
 /*! each class sets up its own python exports in a function export_ClassName
@@ -270,7 +279,6 @@ PYBIND11_MODULE(_hoomd, m)
     export_DCDDumpWriter(m);
     getardump::export_GetarDumpWriter(m);
     export_GSDDumpWriter(m);
-    export_CallbackAnalyzer(m);
 
     // updaters
     export_Updater(m);

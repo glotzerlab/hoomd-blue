@@ -12,6 +12,10 @@
 
 namespace py = pybind11;
 
+namespace hoomd {
+
+namespace detail {
+
 void export_hoomd_math_functions(py::module& m)
     {
 // The use of shared_ptr's for exporting CUDA vector types is a workaround
@@ -281,3 +285,7 @@ void export_hoomd_math_functions(py::module& m)
         .def_readwrite("v", &quat<float>::v)
         .def_static("fromAxisAngle", &quat<float>::fromAxisAngle);
     }
+
+} // end namespace detail
+
+} // end namespace hoomd

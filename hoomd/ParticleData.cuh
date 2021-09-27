@@ -28,6 +28,10 @@ const unsigned int MIN_FLOPPY = 0x80000000;
 const unsigned int NOT_LOCAL = 0xffffffff;
 #endif
 
+namespace hoomd {
+
+namespace detail {
+
 #ifdef __HIPCC__
 //! Compact particle data storage
 struct pdata_element
@@ -51,6 +55,10 @@ struct pdata_element
 //! Forward declaration
 struct pdata_element;
 #endif
+
+} // end namespace detail
+
+namespace kernel {
 
 //! Pack particle data into output buffer and remove marked particles
 unsigned int gpu_pdata_remove(const unsigned int N,
@@ -113,4 +121,8 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                              unsigned int* d_rtag,
                              const pdata_element* d_in,
                              unsigned int* d_comm_flags);
+} // end namespace kernel
+
+} // end namespace hoomd
+
 #endif

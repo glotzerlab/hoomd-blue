@@ -10,6 +10,8 @@ namespace py = pybind11;
     \brief Defines a base class for all updaters
 */
 
+namespace hoomd {
+
 /*! \param sysdef System this compute will act on. Must not be NULL.
     \post The Updater is constructed with the given particle data and a NULL profiler.
 */
@@ -35,6 +37,8 @@ void Updater::setProfiler(std::shared_ptr<Profiler> prof)
     m_prof = prof;
     }
 
+namespace detail {
+
 void export_Updater(py::module& m)
     {
     py::class_<Updater, std::shared_ptr<Updater>>(m, "Updater")
@@ -47,3 +51,7 @@ void export_Updater(py::module& m)
 #endif
         ;
     }
+
+} // end namespace detail
+
+} // end namespace hoomd

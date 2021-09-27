@@ -21,6 +21,8 @@
 #ifndef __SYSTEM_DEFINITION_H__
 #define __SYSTEM_DEFINITION_H__
 
+namespace hoomd {
+
 #ifdef ENABLE_MPI
 //! Forward declaration of Communicator
 class Communicator;
@@ -188,7 +190,13 @@ class PYBIND11_EXPORT SystemDefinition
     std::shared_ptr<PairData> m_pair_data;             //!< Special pairs data for the system
     };
 
+namespace detail {
+
 //! Exports SystemDefinition to python
 void export_SystemDefinition(pybind11::module& m);
+
+} // end namespace detail
+
+} // end namespace hoomd
 
 #endif

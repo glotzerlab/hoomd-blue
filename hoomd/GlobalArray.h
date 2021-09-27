@@ -208,8 +208,6 @@ class event_deleter
 
     } // end namespace detail
 
-    } // end namespace hoomd
-
 //! Forward declarations
 template<class T> class GlobalArrayDispatch;
 
@@ -943,3 +941,4 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
 
     return GlobalArrayDispatch<T>(m_data.get(), *this);
     }
+    } // end namespace hoomd

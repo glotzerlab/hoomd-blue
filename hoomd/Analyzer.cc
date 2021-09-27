@@ -11,6 +11,8 @@
 
 namespace py = pybind11;
 
+namespace hoomd {
+
 /*! \param sysdef System definition this analyzer will act on. Must not be NULL.
     \post The Analyzer is constructed with the given particle data and a NULL profiler.
 */
@@ -36,6 +38,8 @@ void Analyzer::setProfiler(std::shared_ptr<Profiler> prof)
     m_prof = prof;
     }
 
+namespace detail {
+
 void export_Analyzer(py::module& m)
     {
     py::class_<Analyzer, std::shared_ptr<Analyzer>>(m, "Analyzer")
@@ -48,3 +52,7 @@ void export_Analyzer(py::module& m)
 #endif
         ;
     }
+
+} // end namespace detail
+
+} // end namespace hoomd

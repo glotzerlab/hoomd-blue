@@ -33,6 +33,10 @@ using namespace std;
 
 namespace py = pybind11;
 
+namespace hoomd {
+
+namespace detail {
+
 std::string getDefaultTypeName(unsigned int id)
     {
     const char default_name[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -47,6 +51,8 @@ std::string getDefaultTypeName(unsigned int id)
 
     return result;
     }
+
+} // end namespace detail
 
 ////////////////////////////////////////////////////////////////////////////
 // ParticleData members
@@ -88,7 +94,7 @@ ParticleData::ParticleData(unsigned int N,
     // setup the type mappings
     for (unsigned int i = 0; i < n_types; i++)
         {
-        snap.type_mapping.push_back(getDefaultTypeName(i));
+        snap.type_mapping.push_back(detail::getDefaultTypeName(i));
         }
 
 #ifdef ENABLE_MPI
@@ -2655,6 +2661,8 @@ unsigned int ParticleData::getNthTag(unsigned int n)
     return m_cached_tag_set[n];
     }
 
+namespace detail {
+
 void export_BoxDim(py::module& m)
     {
     void (BoxDim::*wrap_overload)(Scalar3&, int3&, char3) const = &BoxDim::wrap;
@@ -2704,6 +2712,8 @@ string print_ParticleData(ParticleData* pdata)
     return s.str();
     }
 
+} // end namespace detail
+
 // instantiate both float and double methods for snapshots
 template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot,
                                     const BoxDim& global_box,
@@ -2724,6 +2734,8 @@ ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float>& s
                                             bool ignore_bodies);
 template std::map<unsigned int, unsigned int>
 ParticleData::takeSnapshot<float>(SnapshotParticleData<float>& snapshot);
+
+namespace detail {
 
 void export_ParticleData(py::module& m)
     {
@@ -2786,6 +2798,8 @@ void export_ParticleData(py::module& m)
 #endif
         .def("getTypes", &ParticleData::getTypesPy);
     }
+
+} // end namespace detail
 
 //! Constructor for SnapshotParticleData
 template<class Real>
@@ -4015,6 +4029,8 @@ template<class Real> void SnapshotParticleData<Real>::bcast(unsigned int root, M
 template struct SnapshotParticleData<float>;
 template struct SnapshotParticleData<double>;
 
+namespace detail {
+
 void export_SnapshotParticleData(py::module& m)
     {
     py::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float>>>(
@@ -4065,3 +4081,7 @@ void export_SnapshotParticleData(py::module& m)
                       &SnapshotParticleData<double>::resize)
         .def_readonly("is_accel_set", &SnapshotParticleData<double>::is_accel_set);
     }
+
+} // end namespace detail
+
+} // end namespace hoomd
