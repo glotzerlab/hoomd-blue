@@ -78,7 +78,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
     """
 
     def __init__(self, r_cut, code, param_array=None):
-        param_dict = ParameterDict(r_cut=float, code=str)
+        param_dict = ParameterDict(r_cut=float)
         if param_array is not None:
             array_validator = NDArrayValidator(dtype=np.float32,
                                                shape=(len(param_array),))
@@ -90,11 +90,6 @@ class CPPPotentialBase(_HOOMDBaseObject):
             param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
         self._code = code
-
-    def _getattr_param(self, attr):
-        if attr == 'code':
-            return self._param_dict['code']
-        return super()._getattr_param(attr)
 
     @log(requires_run=True)
     def energy(self):
