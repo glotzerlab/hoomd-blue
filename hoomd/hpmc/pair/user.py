@@ -26,7 +26,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
     and orientation of the particles and the vector pointing from the *i*
     particle to the *j* particle center.
 
-    Classes derived from :py:class:`CPPPotentialBase` take C++ code, compilesit
+    Classes derived from :py:class:`CPPPotentialBase` take C++ code, compiles it
     at run time and executes the code natively in the MC loop. Adjust parameters
     to the code with the `param_array` attribute without requiring a recompile.
     These arrays are **read-only** during function evaluation.
@@ -84,12 +84,12 @@ class CPPPotentialBase(_HOOMDBaseObject):
                                                shape=(len(param_array),))
             param_dict['param_array'] = array_validator
         param_dict['r_cut'] = r_cut
-        param_dict['code'] = code
         if param_array is None:
             param_dict['param_array'] = np.array([])
         else:
             param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
+        self._code = code
 
     def _getattr_param(self, attr):
         if attr == 'code':
@@ -122,7 +122,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
                         // these are allocated by the library
                         float *param_array;
-                        float *alpha_union;
+                        float *param_array_constituent;
 
                         extern "C"
                         {
@@ -252,8 +252,27 @@ class CPPPotential(CPPPotentialBase):
         # attach patch object to the integrator
         super()._attach()
 
+    @property
+    def code(self):
+        """Return the code passed to the object."""
+        return self._code
 
-class _CPPUnionPotential(CPPPotentialBase):
+    @code.setter
+    def code(self, code):
+        """Set the code.
+
+        This function rasies an error if the object is already attached.
+
+        """
+        if self._attached:
+            msg = "The attribute 'code' can only be set when the "
+            msg += "object is not attached."
+            raise AttributeError(msg)
+        else:
+            self._code = code
+
+
+class CPPUnionPotential(CPPPotentialBase):
     r'''Define an arbitrary energetic interaction between unions of particles.
 
     Warning:
@@ -364,20 +383,32 @@ class _CPPUnionPotential(CPPPotentialBase):
                  r_cut_isotropic,
                  code_constituent=None,
                  code_isotropic=None,
-                 param_array=None):
+                 param_array_isotropic=None,
+                 param_array_constituent=None):
 
         # initialize base class
         super().__init__(r_cut=r_cut_isotropic,
                          code=code_isotropic,
-                         param_array=param_array)
+                         param_array=param_array_isotropic)
 
-        # add union specific params
+        # add union-specific params
         param_dict = ParameterDict(
             r_cut_constituent=float(r_cut_constituent),
             r_cut_isotropic=float(r_cut_isotropic),
-            leaf_capacity=int(4),  # should this be a kwarg?
+            leaf_capacity=int(4),  # should this be a kwarg to the constructor?
         )
-        self._param_dict.update(param_dict)
+
+        arrays = dict(param_array_isotropic=param_array_isotropic,
+                      param_array_constituent=param_array_constituent)
+        for array_name, array in arrays.items():
+            if array is not None:
+                array_validator = NDArrayValidator(dtype=np.float32,
+                                                   shape=(len(array),))
+                param_dict[array_name] = array_validator
+                param_dict[array_name] = array
+            else:
+                param_dict[array_name] = np.array([])
+            self._param_dict.update(param_dict)
 
         # add union specific per-type parameters
         typeparam_positions = TypeParameter(
@@ -418,7 +449,6 @@ class _CPPUnionPotential(CPPPotentialBase):
         # these only exist on python
         self._code_constituent = code_constituent
         self._code_isotropic = code_isotropic
-        self.param_array = param_array
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -441,11 +471,12 @@ class _CPPUnionPotential(CPPPotentialBase):
                 self._simulation.state._cpp_sys_def,
                 device._cpp_exec_conf,
                 cpu_code_isotropic,
+                cpu_include_options,
                 self.r_cut_isotropic,
-                self.param_array,
-                cpu_code_constituent,
+                self.param_array_isotropic,
+                cpu_code_constituent,  # do we have this?
                 self.r_cut_constituent,
-                self.array_size_union,
+                self.param_array_constituent,
                 gpu_code_isotropic,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"] + ["-DUNION_EVAL"],
@@ -454,22 +485,17 @@ class _CPPUnionPotential(CPPPotentialBase):
             )
         else:
             self._cpp_obj = _jit.PatchEnergyJITUnion(
-                self._simulation.state._cpp_sys_def,
-                device._cpp_exec_conf,
-                cpu_code_isotropic,
-                cpu_include_options,
-                self.r_cut_isotropic,
-                self.param_array,
-                cpu_code_constituent,
-                self.r_cut_constituent,
-            )
+                self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
+                cpu_code_isotropic, cpu_include_options, self.r_cut_isotropic,
+                self.param_array_isotropic, cpu_code_constituent,
+                self.r_cut_constituent, self.param_array_constituent)
 
         # Set the C++ mirror array with the cached values
         # and override the python array
-        self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
-        self._cpp_obj.alpha_union[:] = self.alpha_union[:]
-        self.alpha_iso = self._cpp_obj.alpha_iso
-        self.alpha_union = self._cpp_obj.alpha_union
+        #self._cpp_obj.param_array_isotropic[:] = self.alpha_iso[:]
+        #self._cpp_obj.alpha_union[:] = self.alpha_union[:]
+        #self.alpha_iso = self._cpp_obj.alpha_iso
+        #self.alpha_union = self._cpp_obj.alpha_union
 
         # attach patch object to the integrator
         super()._attach()
