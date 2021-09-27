@@ -16,7 +16,6 @@ using namespace std;
 namespace py = pybind11;
 
 namespace hoomd {
-namespace detail {
 
 /*! \file Autotuner.cc
     \brief Definition of Autotuner
@@ -363,6 +362,8 @@ unsigned int Autotuner::computeOptimalParameter()
 #endif
     return opt;
     }
+
+namespace detail {
 
 void export_Autotuner(py::module& m)
     {

@@ -13,6 +13,7 @@ HOOMD_UP_MAIN();
 #include "hoomd/Index1D.h"
 
 using namespace std;
+using namespace hoomd;
 
 /*! \file lj_force_test.cc
     \brief Implements unit tests for LJForceCompute and descendants

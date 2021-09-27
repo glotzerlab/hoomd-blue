@@ -23,7 +23,6 @@
 #endif
 
 namespace hoomd {
-namespace detail {
 
 //! Autotuner for low level GPU kernel parameters
 /*! **Overview** <br>
@@ -239,6 +238,8 @@ class PYBIND11_EXPORT Autotuner
     bool m_sync;      //!< If true, synchronize results via MPI
     mode_Enum m_mode; //!< The sampling mode
     };
+
+namespace detail {
 
 //! Export the Autotuner class to python
 void export_Autotuner(pybind11::module& m);

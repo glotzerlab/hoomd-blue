@@ -13,9 +13,11 @@
 
 #ifdef ENABLE_HIP
 #include "test_gpu_array.cuh"
+using namespace hoomd::test;
 #endif
 
 using namespace std;
+using namespace hoomd;
 
 /*! \file gpu_array_test.cc
     \brief Implements unit tests for GPUArray and GPUVector

@@ -92,7 +92,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                               Scalar4* d_net_torque_alt,
                               Scalar* d_net_virial_alt,
                               unsigned int* d_tag_alt,
-                              pdata_element* d_out,
+                              detail::pdata_element* d_out,
                               unsigned int* d_comm_flags,
                               unsigned int* d_comm_flags_out,
                               unsigned int max_n_out,
@@ -119,7 +119,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                              unsigned int net_virial_pitch,
                              unsigned int* d_tag,
                              unsigned int* d_rtag,
-                             const pdata_element* d_in,
+                             const detail::pdata_element* d_in,
                              unsigned int* d_comm_flags);
 } // end namespace kernel
 

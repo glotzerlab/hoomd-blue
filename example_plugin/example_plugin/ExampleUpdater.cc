@@ -85,7 +85,7 @@ void ExampleUpdaterGPU::update(uint64_t timestep)
                                access_mode::readwrite);
 
     // call the kernel defined in ExampleUpdater.cu
-    gpu_zero_velocities(d_vel.data, m_pdata->getN());
+    kernel::gpu_zero_velocities(d_vel.data, m_pdata->getN());
 
     // check for error codes from the GPU if error checking is enabled
     if (m_exec_conf->isCUDAErrorCheckingEnabled())

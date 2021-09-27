@@ -470,7 +470,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force += 6)
             {
             // grab the device pointers for the current set
-            gpu_force_list force_list;
+            kernel::gpu_force_list force_list;
 
             const GlobalArray<Scalar4>& d_force_array0 = m_forces[cur_force]->getForceArray();
             ArrayHandle<Scalar4> d_force0(d_force_array0,
@@ -694,7 +694,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force += 6)
             {
             // grab the device pointers for the current set
-            gpu_force_list force_list;
+            kernel::gpu_force_list force_list;
             const GlobalArray<Scalar4>& d_force_array0
                 = m_constraint_forces[cur_force]->getForceArray();
             ArrayHandle<Scalar4> d_force0(d_force_array0,

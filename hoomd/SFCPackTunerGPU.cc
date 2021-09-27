@@ -136,7 +136,7 @@ void SFCPackTunerGPU::getSortedOrder3D()
                                                 access_mode::read);
 
     // put the particles in the bins and sort
-    gpu_generate_sorted_order(m_pdata->getN(),
+    kernel::gpu_generate_sorted_order(m_pdata->getN(),
                               d_pos.data,
                               d_gpu_particle_bins.data,
                               d_traversal_order.data,
@@ -255,7 +255,7 @@ void SFCPackTunerGPU::applySortOrder()
                                                    access_mode::read);
 
         // apply sorted order and re-build rtags
-        gpu_apply_sorted_order(m_pdata->getN(),
+        kernel::gpu_apply_sorted_order(m_pdata->getN(),
                                m_pdata->getNGhosts(),
                                d_gpu_sort_order.data,
                                d_pos.data,
