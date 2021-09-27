@@ -22,10 +22,6 @@
 using namespace std;
 namespace py = pybind11;
 
-//! Names of bonded groups
-char name_meshbond_data[] = "meshbond";
-char name_meshtriangle_data[] = "meshtriangle";
-
 /*
  * Implementation of BondedGroupData methods
  */
@@ -538,31 +534,32 @@ void export_MeshGroupData(py::module& m,
         .def(py::init<std::shared_ptr<ParticleData>, const typename TriangleData::Snapshot&>())
         .def("initializeFromSnapshot", &T::initializeFromSnapshot)
         .def("takeSnapshot", &T::takeSnapshot)
-        .def("getN", &T::getN)
-        .def("getNGlobal", &T::getNGlobal)
-        .def("getNTypes", &T::getNTypes)
-        .def("getNthTag", &T::getNthTag)
-        .def("getMaximumTag", &T::getMaximumTag)
-        .def("getGroupByTag", &T::getGroupByTag)
-        .def("getTypeByName", &T::getTypeByName)
-        .def("setTypeName", &T::setTypeName)
-        .def("getNameByType", &T::getNameByType)
-        .def("addBondedGroup", &T::addBondedGroup)
-        .def("removeBondedGroup", &T::removeBondedGroup)
-        .def("setProfiler", &T::setProfiler)
-        .def("getTypes", &T::getTypesPy);
+        //.def("getN", &T::getN)
+        //.def("getNGlobal", &T::getNGlobal)
+        //.def("getNTypes", &T::getNTypes)
+        //.def("getNthTag", &T::getNthTag)
+        //.def("getMaximumTag", &T::getMaximumTag)
+        //.def("getGroupByTag", &T::getGroupByTag)
+        //.def("getTypeByName", &T::getTypeByName)
+        //.def("setTypeName", &T::setTypeName)
+        //.def("getNameByType", &T::getNameByType)
+        .def("addBondedGroup", &T::addBondedGroup);
+        //.def("removeBondedGroup", &T::removeBondedGroup)
+        //.def("setProfiler", &T::setProfiler)
+        //.def("getTypes", &T::getTypesPy);
 
     }
 
 
-template class PYBIND11_EXPORT MeshGroupData<4, MeshBond, name_meshbond_data, true>;
-template void export_MeshGroupData<MeshBondData, MeshBond>(py::module& m,
-                                                     std::string name,
-                                                     std::string snapshot_name,
-                                                     bool export_struct);
 
 template class PYBIND11_EXPORT MeshGroupData<6, MeshTriangle, name_meshtriangle_data, false>;
 template void export_MeshGroupData<MeshTriangleData, MeshTriangle>(py::module& m,
                                                        std::string name,
                                                        std::string snapshot_name,
                                                        bool export_struct);
+
+template class PYBIND11_EXPORT MeshGroupData<4, MeshBond, name_meshbond_data, true>;
+template void export_MeshGroupData<MeshBondData, MeshBond>(py::module& m,
+                                                     std::string name,
+                                                     std::string snapshot_name,
+                                                     bool export_struct);

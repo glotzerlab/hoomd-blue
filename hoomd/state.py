@@ -179,8 +179,8 @@ class State:
       lists the improper types, and `special_pair_types` lists the special pair
       types.
     - group members: a list of integers in the range ``[0,max(p_tag)]`` that
-      defines the tags of the particles in the bond (2), angle (3), dihedral
-      (4), improper (4), or special pair (2).
+      defines the tags of the particles in the bond (2), angle (3), triangle
+      (3), dihedral (4), improper (4), or special pair (2).
     - :math:`b_\\mathrm{tag}`` : tag :math:`[\\mathrm{dimensionless}]` -
       integer that uniquely identifies a given bond. The bonds are in
       tag order when writing and initializing to/from a GSD file or snapshot
@@ -344,7 +344,7 @@ class State:
     @property
     def triangle_types(self):
         """list[str]: List of all triangle types in the simulation state."""
-        return self._cpp_sys_def.getMeshTriangleData().getTypes()
+        return self._cpp_sys_def.getTriangleData().getTypes()
 
     @property
     def improper_types(self):
@@ -361,9 +361,9 @@ class State:
         """dict[str, list[str]]: dictionary of all types in the state.
 
         Combines the data from `State.particle_types`, `State.bond_types`,
-        `State.angle_types`, `State.dihedral_types`, `State.improper_types`, and
-        `State.special_pair_types` into a dictionary with keys matching the
-        property names.
+        `State.angle_types`, `State.triangle_types`, `State.dihedral_types`,
+        `State.improper_types`, and `State.special_pair_types` into a
+        dictionary with keys matching the property names.
         """
         return dict(particle_types=self.particle_types,
                     bond_types=self.bond_types,
@@ -406,7 +406,7 @@ class State:
     @property
     def N_triangles(self):  # noqa: N802 - allow N in name
         """int: The number of triangles in the simulation state."""
-        return self._cpp_sys_def.getMeshTriangleData().getNGlobal()
+        return self._cpp_sys_def.getTriangleData().getNGlobal()
 
     @property
     def N_constraints(self):  # noqa: N802 - allow N in name

@@ -44,6 +44,8 @@ class LoggerCategories(Flag):
 
         improper: per-improper quantity
 
+        triangle: per-triangle quantity
+
         pair: per-pair quantity
 
         particle: per-particle quantity
@@ -65,6 +67,7 @@ class LoggerCategories(Flag):
     constraint = auto()
     dihedral = auto()
     improper = auto()
+    triangle = auto()
     pair = auto()
     particle = auto()
     state = auto()

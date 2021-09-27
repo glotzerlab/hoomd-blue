@@ -222,7 +222,7 @@ class Snapshot:
         Attributes:
             triangles.N (int): Number of triangles in the mesh.
 
-            triangles.types (list[str]): Names of the Triangle types
+            triangles.types (list[str]): Names of the triangle types
 
             triangles.typeid ((*N*,) `numpy.ndarray` of ``uint32``):
                 Triangle type id.

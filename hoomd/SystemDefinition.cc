@@ -30,6 +30,7 @@ SystemDefinition::SystemDefinition() { }
     \param n_angle_types Number of angle types to create
     \param n_dihedral_types Number of dihedral types to create
     \param n_improper_types Number of improper types to create
+    \param n_triangle_types Number of triangle types to create
     \param exec_conf The ExecutionConfiguration HOOMD is to be run on
 
     Creating SystemDefinition with this constructor results in
@@ -133,6 +134,7 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
  *  \param angles True if angle data should be saved
  *  \param dihedrals True if dihedral data should be saved
  *  \param impropers True if improper data should be saved
+ *  \param triangles True if triangle data should be saved
  *  \param constraints True if constraint data should be saved
  *  \param integrators True if integrator data should be saved
  *  \param pairs True if pair data should be saved

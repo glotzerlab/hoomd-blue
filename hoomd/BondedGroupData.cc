@@ -27,6 +27,8 @@ char name_angle_data[] = "angle";
 char name_triangle_data[] = "triangle";
 char name_dihedral_data[] = "dihedral";
 char name_improper_data[] = "improper";
+char name_meshbond_data[] = "meshbond";
+char name_meshtriangle_data[] = "meshtriangle";
 char name_constraint_data[] = "constraint";
 char name_pair_data[] = "pair";
 
@@ -1474,11 +1476,12 @@ template void export_BondedGroupData<BondData, Bond>(py::module& m,
                                                      std::string snapshot_name,
                                                      bool export_struct);
 
-//template class PYBIND11_EXPORT BondedGroupData<4, MeshBond, name_meshbond_data>;
-//template void export_BondedGroupData<MeshBondData, MeshBond>(py::module& m,
-//                                                     std::string name,
-//                                                     std::string snapshot_name,
-//                                                     bool export_struct);
+template class PYBIND11_EXPORT BondedGroupData<4, MeshBond, name_meshbond_data>;
+template void export_BondedGroupData<BMeshBondData, MeshBond>(py::module& m,
+                                                     std::string name,
+                                                     std::string snapshot_name,
+                                                     bool export_struct);
+
 
 template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
 template void export_BondedGroupData<AngleData, Angle>(py::module& m,
@@ -1492,17 +1495,17 @@ template void export_BondedGroupData<TriangleData, Angle>(py::module& m,
                                                        std::string snapshot_name,
                                                        bool export_struct);
 
-//template class PYBIND11_EXPORT BondedGroupData<6, MeshTriangle, name_meshtriangle_data>;
-//template void export_BondedGroupData<MeshTriangleData, MeshTriangle>(py::module& m,
-//                                                       std::string name,
-//                                                       std::string snapshot_name,
-//                                                       bool export_struct);
-
 template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_dihedral_data>;
 template void export_BondedGroupData<DihedralData, Dihedral>(py::module& m,
                                                              std::string name,
                                                              std::string snapshot_name,
                                                              bool export_struct);
+
+template class PYBIND11_EXPORT BondedGroupData<6, MeshTriangle, name_meshtriangle_data>;
+template void export_BondedGroupData<BMeshTriangleData, MeshTriangle>(py::module& m,
+                                                       std::string name,
+                                                       std::string snapshot_name,
+                                                       bool export_struct);
 
 template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
 template void export_BondedGroupData<ImproperData, Dihedral>(py::module& m,
