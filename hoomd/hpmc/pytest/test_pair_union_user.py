@@ -2,7 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Test hoomd.hpmc.pair.user.CPPUserPotential."""
+"""Test hoomd.hpmc.pair.user.CPPUnionPotential."""
 
 import hoomd
 import pytest
@@ -27,7 +27,8 @@ valid_constructor_args = [
 # setable attributes before attach for CPPPotential objects
 valid_attrs = [
     ('r_cut_isotropic', 1.4),
-    ('r_cut_constituent', 1.0)('code_isotropic', 'return -1;'),
+    ('r_cut_constituent', 1.0),
+    ('code_isotropic', 'return -1;'),
     ('code_union', 'return -1;'),
 ]
 
