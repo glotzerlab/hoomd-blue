@@ -294,10 +294,10 @@ class CPPUnionPotential(CPPPotentialBase):
         `CPPPotentialBase` for the documentation of the parent class.
 
     Attributes:
-        positions (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`]]])
+        positions (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`]]])  # noqa: E501,W505
             The positions of the constituent particles.
 
-        orientations (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float, `float`]]])
+        orientations (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`, `float`]]])  # noqa: E501,W505
             The orientations of the constituent particles.
 
         diameters (`TypeParameter` [``particle type``, `list` [`float`]])
