@@ -31,6 +31,11 @@ class CPPPotentialBase(_HOOMDBaseObject):
     to the code with the `param_array` attribute without requiring a recompile.
     These arrays are **read-only** during function evaluation.
 
+    Warning:
+        The user interface for this class and its derived classes is not
+        guaranteed to be stable. Usage is subject to change in future (minor)
+        releases.
+
     .. rubric:: C++ code
 
     Classes derived from :py:class:`CPPPotentialBase` will compile the code
@@ -62,11 +67,6 @@ class CPPPotentialBase(_HOOMDBaseObject):
     * Your code *must* return a value.
 
     ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h`.
-
-    See Also:
-        `CPPPotential`
-
-        `CPPPotentialUnion`
 
     Attributes:
         r_cut (float): Particle center to center distance cutoff beyond which
@@ -290,6 +290,9 @@ class CPPUnionPotential(CPPPotentialBase):
         node may yield different optimal performance. The capacity of leaf nodes
         is configurable.
 
+    See Also:
+        `CPPPotentialBase` for the documentation of the parent class.
+
     Attributes:
         positions (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`]]])
             The positions of the constituent particles.
@@ -317,13 +320,13 @@ class CPPUnionPotential(CPPPotentialBase):
 
     .. code-block:: python
 
-        square_well = \"\"\"float rsq = dot(r_ij, r_ij);
+        square_well = '''float rsq = dot(r_ij, r_ij);
                             if (rsq < 1.21f)
                                 return -1.0f;
                             else
                                 return 0.0f;
-                      \"\"\"
-        patch = hoomd.jit.patch.CPPUnionPotential(
+                      '''
+        patch = hoomd.hpmc.pair.user.CPPUnionPotential(
             r_cut_constituent=1.1,
             r_cut_isotropic=0.0
             code_constituent=square_well,
@@ -334,34 +337,37 @@ class CPPUnionPotential(CPPPotentialBase):
         ]
         patch.diameters['A'] = [0, 0]
         patch.typeids['A'] = [0, 0]
+        mc.potential = patch
 
     Example with added isotropic interactions:
 
     .. code-block:: python
 
         # square well attraction on constituent spheres
-        square_well = \"\"\"float rsq = dot(r_ij, r_ij);
+        square_well = '''float rsq = dot(r_ij, r_ij);
                               float r_cut = param_array[0];
                               if (rsq < r_cut*r_cut)
                                   return param_array[1];
                               else
                                   return 0.0f;
-                        \"\"\"
+                        '''
 
         # soft repulsion between centers of unions
-        soft_repulsion = \"\"\"float rsq = dot(r_ij, r_ij);
+        soft_repulsion = '''float rsq = dot(r_ij, r_ij);
                                   float r_cut = param_array[0];
                                   if (rsq < r_cut*r_cut)
                                     return param_array[1];
                                   else
                                     return 0.0f;
-                         \"\"\"
+                         '''
 
-        patch = hoomd.jit.patch.CPPUnionPotential(
+        patch = hoomd.hpmc.pair.user.CPPUnionPotential(
             r_cut_constituent=2.5,
             r_cut_isotropic=5.0,
             code_union=square_well,
-            code_isotropic=soft_repulsion
+            code_isotropic=soft_repulsion,
+            param_array_constituent=[2.0, -5.0],
+            param_array_isotropic=[2.5, 1.3],
         )
         patch.positions['A'] = [
             (0, 0, -0.5),
@@ -369,8 +375,8 @@ class CPPUnionPotential(CPPPotentialBase):
         ]
         patch.typeids['A'] = [0, 0]
         patch.diameters['A'] = [0, 0]
-        # [r_cut, epsilon]
-        patch.param_array[:] = [2.5, 1.3]
+        mc.potential = patch
+
     """
 
     def __init__(self,
