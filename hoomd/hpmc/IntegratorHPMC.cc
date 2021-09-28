@@ -66,8 +66,8 @@ IntegratorHPMC::~IntegratorHPMC()
         {
         m_comm->getGhostLayerWidthRequestSignal()
             .disconnect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
-        m_comm->getCommFlagsRequestSignal().disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(
-            this);
+        m_comm->getCommFlagsRequestSignal()
+            .disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
         }
 #endif
     }
