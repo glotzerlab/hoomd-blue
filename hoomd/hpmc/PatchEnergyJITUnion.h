@@ -111,7 +111,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             {
             m_updated_types.push_back(pid);
             }
-        // m_build_obb = true;
         buildOBBTree();
         }
 
