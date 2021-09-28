@@ -117,6 +117,36 @@ class Force(_HOOMDBaseObject):
         return numpy.array(virial, dtype=numpy.float64)
 
 
+class Custom(Force):
+
+    def __init__(self):
+        pass
+
+    def _attach(self):
+        self._cpp_obj = _hoomd.ConstForceCompute(self._simulation._cpp_sys_def)
+        self._cpp_obj.setCallback(self.set_forces)
+        super()._attach()
+
+    @property
+    def forces(self):
+        # TODO expose this with 0 copy access
+        pass
+
+    @property
+    def torques(self):
+        # TODO expose this with 0 copy access
+        pass
+
+    @property
+    def energies(self):
+        # TODO expose this with 0 copy access
+        pass
+
+    @abstractmethod
+    def set_forces(self, timestep):
+        pass
+
+
 class constant(Force):  # noqa - this will be renamed when it is ported to v3
     R"""Constant force.
 
