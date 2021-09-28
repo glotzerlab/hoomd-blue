@@ -487,10 +487,10 @@ class CPPUnionPotential(CPPPotentialBase):
 
         # Set the C++ mirror array with the cached values
         # and override the python array
-        #self._cpp_obj.param_array_isotropic[:] = self.alpha_iso[:]
-        #self._cpp_obj.alpha_union[:] = self.alpha_union[:]
-        #self.alpha_iso = self._cpp_obj.alpha_iso
-        #self.alpha_union = self._cpp_obj.alpha_union
+        # self._cpp_obj.param_array_isotropic[:] = self.alpha_iso[:]
+        # self._cpp_obj.alpha_union[:] = self.alpha_union[:]
+        # self.alpha_iso = self._cpp_obj.alpha_iso
+        # self.alpha_union = self._cpp_obj.alpha_union
 
         # attach patch object to the integrator
         super()._attach()
