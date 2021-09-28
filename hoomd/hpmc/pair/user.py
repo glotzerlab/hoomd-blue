@@ -271,7 +271,7 @@ class CPPUnionPotential(CPPPotentialBase):
     r'''Define an arbitrary energetic interaction between unions of particles.
 
     Warning:
-        This class does not currenlty work. Please do not attempt to use this.
+        This class does not currently work. Please do not attempt to use this.
 
     Args:
         r_cut_constituent (`float`): Constituent particle center to center \
@@ -508,8 +508,27 @@ class CPPUnionPotential(CPPPotentialBase):
     @code_constituent.setter
     def code_constituent(self, code):
         if self._attached:
-            msg = "The attribute 'code_constituen' can only be set when the "
+            msg = "The attribute 'code_constituent' can only be set when the "
             msg += "object is not attached."
             raise AttributeError(msg)
         else:
             self._code_constituent = code
+
+    @property
+    def code_isotropic(self):
+        """str: The C++ code defining the custom pair interactions between \
+        the central particles of union objects.
+
+        This returns the code that was passed into the class constructor, which
+        contains only the body of the patch energy kernel.
+        """
+        return self._code_isotropic
+
+    @code_isotropic.setter
+    def code_isotropic(self, code):
+        if self._attached:
+            msg = "The attribute 'code_isotropic' can only be set when the "
+            msg += "object is not attached."
+            raise AttributeError(msg)
+        else:
+            self._code_isotropic = code
