@@ -64,10 +64,9 @@ IntegratorHPMC::~IntegratorHPMC()
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
-        auto comm = m_sysdef->getCommunicator().lock();
-        comm->getGhostLayerWidthRequestSignal()
+        m_comm->getGhostLayerWidthRequestSignal()
             .disconnect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
-        comm->getCommFlagsRequestSignal().disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(
+        m_comm->getCommFlagsRequestSignal().disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(
             this);
         }
 #endif
