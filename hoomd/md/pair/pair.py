@@ -100,16 +100,18 @@ class Pair(force.Force):
 
     .. py:attribute:: r_cut
 
-        *r_cut* :math:`[\mathrm{length}]`, *optional*: defaults to the
-            value ``default_r_cut`` specified on construction.
+        Cuttoff radius beyond which the energy and force are 0
+        :math:`[\mathrm{length}]`. *Optional*: defaults to the value
+        ``default_r_cut`` specified on construction.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `float`])
 
     .. py:attribute:: r_on
 
-        *r_on* :math:`[\mathrm{length}]`,  *optional*: defaults to the
-         value ``default_r_on`` specified on construction.
+        Radius at which the smoothing modification to the potential starts
+        :math:`[\mathrm{length}]`.  *Optional*: defaults to the value
+        ``default_r_on`` specified on construction.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `float`])
