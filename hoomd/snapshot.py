@@ -379,8 +379,13 @@ class Snapshot:
                             'mass', 'moment_inertia', 'orientation', 'position',
                             'typeid', 'velocity'))
 
-            for section in ('angles', 'bonds', 'dihedrals', 'triangles',
-                            'impropers', 'pairs'):
+            for section in (
+                    'angles',
+                    'bonds',
+                    'dihedrals',
+                    # 'triangles',
+                    'impropers',
+                    'pairs'):
                 set_properties(getattr(snap,
                                        section), getattr(gsd_snap, section),
                                ('N', 'types'), ('group', 'typeid'))
