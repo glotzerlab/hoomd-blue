@@ -46,8 +46,8 @@ valid_attrs_after_attach = [
 
 # attributes that cannot be set after object is attached
 attr_error = [
-        ('code_isotropic', 'return -1.0;'),
-        ('code_constituent', 'return -2.0;'),
+    ('code_isotropic', 'return -1.0;'),
+    ('code_constituent', 'return -2.0;'),
 ]
 
 positions_orientations_result = [
@@ -118,11 +118,11 @@ def test_valid_setattr_cpp_union_potential(device, attr, value):
     """Test that CPPUnionPotential can get and set attributes before \
             attached."""
     patch = hoomd.hpmc.pair.user.CPPUnionPotential(
-            r_cut_isotropic=1.4,
-            r_cut_constituent=1.0,
-            code_isotropic='return 5;',
-            code_constituent='return 6;',
-            )
+        r_cut_isotropic=1.4,
+        r_cut_constituent=1.0,
+        code_isotropic='return 5;',
+        code_constituent='return 6;',
+    )
 
     setattr(patch, attr, value)
     assert getattr(patch, attr) == value
@@ -131,16 +131,15 @@ def test_valid_setattr_cpp_union_potential(device, attr, value):
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs_after_attach)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_valid_setattr_attached_cpp_union_potential(device, attr, value,
-                                              simulation_factory,
-                                              two_particle_snapshot_factory):
+def test_valid_setattr_attached_cpp_union_potential(
+        device, attr, value, simulation_factory, two_particle_snapshot_factory):
     """Test that CPPUnionPotential can get and set attributes after attached."""
     patch = hoomd.hpmc.pair.user.CPPUnionPotential(
-            r_cut_isotropic=1.4,
-            r_cut_constituent=1.0,
-            code_isotropic='return 5;',
-            code_constituent='return 6;',
-            )
+        r_cut_isotropic=1.4,
+        r_cut_constituent=1.0,
+        code_isotropic='return 5;',
+        code_constituent='return 6;',
+    )
     patch.positions['A'] = [(0, 0, 0)]
     patch.orientations['A'] = [(1, 0, 0, 0)]
     patch.diameters['A'] = [1.0]
@@ -165,19 +164,17 @@ def test_valid_setattr_attached_cpp_union_potential(device, attr, value,
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,val", attr_error)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_raise_attr_error_cpp_union_potential(device,
-                                              attr, 
-                                              val,
+def test_raise_attr_error_cpp_union_potential(device, attr, val,
                                               simulation_factory,
                                               two_particle_snapshot_factory):
     """Test that CPPUnionPotential raises AttributeError if we \
             try to set certain attributes after attaching."""
     patch = hoomd.hpmc.pair.user.CPPUnionPotential(
-            r_cut_isotropic=1.4,
-            r_cut_constituent=1.0,
-            code_isotropic='return 5;',
-            code_constituent='return 6;',
-            )
+        r_cut_isotropic=1.4,
+        r_cut_constituent=1.0,
+        code_isotropic='return 5;',
+        code_constituent='return 6;',
+    )
     patch.positions['A'] = [(0, 0, 0)]
     patch.orientations['A'] = [(1, 0, 0, 0)]
     patch.diameters['A'] = [1.0]
