@@ -140,12 +140,13 @@ def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
 
 
 @pytest.mark.serial
+@pytest.mark.validate
 @pytest.mark.parametrize("positions,orientations,result",
                          positions_orientations_result)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_cpp_potential(device, positions, orientations, result,
                        simulation_factory, two_particle_snapshot_factory):
-    """Test that CPPPotential computes the correct.
+    """Test that CPPPotential computes the correct energy.
 
     Here, we test the interaction between point dipoles and ensure the energy
     is what we expect.
@@ -195,6 +196,7 @@ def test_cpp_potential(device, positions, orientations, result,
 
 
 @pytest.mark.serial
+@pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
     """Test passing in parameter arrays to the patch object.
