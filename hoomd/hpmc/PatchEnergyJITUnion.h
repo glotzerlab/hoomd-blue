@@ -32,8 +32,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
           m_r_cut_constituent(r_cut_constituent),
           m_param_array_constituent(param_array_constituent.data(),
                                     param_array_constituent.data() + param_array_constituent.size(),
-                                    managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
-          m_r_cut_max(0.0)
+                                    managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
         {
         // build the JIT.
         m_factory_constituent
@@ -236,7 +235,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     //! Get the maximum r_ij radius beyond which energies are always 0
     virtual Scalar getRCut()
         {
-        return m_r_cut_max;
+        return m_r_cut_constituent;
         }
 
     //! Override inherited setRCut() to do nothing so that m_r_cut_isotropic doesn't get set
@@ -348,7 +347,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         m_param_array_constituent; //!< Data array for constituent particles
     std::vector<unsigned int>
         m_updated_types; //!< List of types whose geometric properties were updated
-    Scalar m_r_cut_max;  //!< Max of r_cut_isotropic and and r_cut_constituent+max_const_ptl_dist
     };
 
 //! Exports the PatchEnergyJITUnion class to python

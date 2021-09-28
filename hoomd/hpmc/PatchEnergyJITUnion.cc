@@ -12,8 +12,6 @@ void PatchEnergyJITUnion::buildOBBTree()
     {
     // if (m_build_obb)
         {
-        Scalar max_extent
-            = 0.0; // 2x the dist of farthest-away constituent (all types), used for r_cut calc
         for (unsigned int ti = 0; ti < m_updated_types.size(); ti++)
             {
             unsigned int type = m_updated_types[ti];
@@ -42,13 +40,6 @@ void PatchEnergyJITUnion::buildOBBTree()
 
             // set the diameter
             m_extent_type[type] = extent_i;
-
-            // update max_extent
-            max_extent = std::max(max_extent, extent_i);
-
-            // update m_r_cut_max
-            Scalar r_cut_max = std::max(m_r_cut_isotropic, max_extent + m_r_cut_constituent);
-            m_r_cut_max = std::max(m_r_cut_max, r_cut_max);
 
             // build tree and store proxy structure
             hpmc::detail::OBBTree tree;
