@@ -41,7 +41,6 @@ positions_orientations_result = [
 ]
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_cpp_potential(device, constructor_args):
     """Test that CPPPotential can be constructed with valid arguments."""
@@ -55,7 +54,6 @@ def test_valid_construction_cpp_potential(device, constructor_args):
             assert all(getattr(patch, attr) == value)
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_valid_construction_and_attach_cpp_potential(
@@ -83,7 +81,6 @@ def test_valid_construction_and_attach_cpp_potential(
             assert all(getattr(patch, attr) == value)
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_cpp_potential(device, attr, value):
     """Test that CPPPotential can get and set attributes before attached."""
@@ -93,7 +90,6 @@ def test_valid_setattr_cpp_potential(device, attr, value):
     assert getattr(patch, attr) == value
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs_after_attach)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_valid_setattr_attached_cpp_potential(device, attr, value,
@@ -117,7 +113,6 @@ def test_valid_setattr_attached_cpp_potential(device, attr, value,
     assert getattr(patch, attr) == value
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize("attr,val", attr_error)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
@@ -139,8 +134,6 @@ def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
         setattr(patch, attr, val)
 
 
-@pytest.mark.serial
-@pytest.mark.validate
 @pytest.mark.parametrize("positions,orientations,result",
                          positions_orientations_result)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
@@ -195,8 +188,6 @@ def test_cpp_potential(device, positions, orientations, result,
     assert np.isclose(patch.energy, result)
 
 
-@pytest.mark.serial
-@pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
     """Test passing in parameter arrays to the patch object.
