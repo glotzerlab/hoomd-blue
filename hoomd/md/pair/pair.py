@@ -591,8 +591,8 @@ class Table(Pair):
         \\begin{eqnarray*}
         \\vec{F}(\\vec{r}) = & 0; & r < r_{\\mathrm{min}} \\\\
                            = & F(r)\\hat{r};
-                             & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
-                           = & 0; & r \\ge r_{\\mathrm{max}} \\\\
+                             & r_{\\mathrm{min}} \\le r < r_{\\mathrm{cut}} \\\\
+                           = & 0; & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
     and the potential :math:`V(r)` is:
@@ -603,12 +603,13 @@ class Table(Pair):
         \\begin{eqnarray*}
         V(r) = & 0; & r < r_{\\mathrm{min}} \\\\
              = & V(r);
-               & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
-             = & 0; & r \\ge r_{\\mathrm{max}} \\\\
+               & r_{\\mathrm{min}} \\le r < r_{\\mathrm{cut}} \\\\
+             = & 0; & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
     where :math:`\\vec{r}` is the vector pointing from one particle to the other
-    in the pair.
+    in the pair, ``r_min`` is defined in `params`, and ``r_cut`` is defined in
+    `Pair.r_cut`.
 
     Provide :math:`F(r)` and :math:`V(r)` on an evenly space set of grid points
     points between :math:`r_{\\mathrm{min}}` and :math:`r_{\\mathrm{cut}}`.
