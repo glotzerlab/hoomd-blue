@@ -45,6 +45,13 @@ def hoomd_snapshot(lattice_snapshot_factory):
         snap.dihedrals.typeid[:] = [0]
         snap.dihedrals.group[0] = [0, 1, 2, 3]
 
+        # triangles
+        snap.triangles.types = ['a1', 'a2']
+        snap.triangles.N = 2
+        snap.triangles.typeid[:] = [1, 0]
+        snap.triangles.group[0] = [0, 1, 2]
+        snap.triangles.group[1] = [2, 3, 0]
+
         # impropers
         snap.impropers.types = ['i1']
         snap.impropers.N = 1

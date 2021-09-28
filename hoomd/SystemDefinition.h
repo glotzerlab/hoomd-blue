@@ -154,19 +154,39 @@ class PYBIND11_EXPORT SystemDefinition
     //! Access the triangle data defined for the simulation
     std::shared_ptr<TriangleData> getTriangleData()
         {
-	TriangleData::Snapshot snapshot;
-	m_meshtriangle_data->takeSnapshot(snapshot);
-        m_triangle_data = std::shared_ptr<TriangleData>(new TriangleData(m_particle_data, snapshot));
+	if(m_mesh_change){
+	    TriangleData::Snapshot snapshot;
+	    m_meshtriangle_data->takeSnapshot(snapshot);
+            m_triangle_data = std::shared_ptr<TriangleData>(new TriangleData(m_particle_data, snapshot));
+	    m_mesh_change = false;
+	}
+	m_triangle_change = true;
         return m_triangle_data;
         }
     //! Access the mesh triangle data defined for the simulation
     std::shared_ptr<MeshTriangleData> getMeshTriangleData()
         {
+	if(m_triangle_change){
+	    TriangleData::Snapshot snapshot;
+	    m_triangle_data->takeSnapshot(snapshot);
+            m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, snapshot));
+            m_meshbond_data = std::shared_ptr<MeshBondData>(new MeshBondData(m_particle_data, snapshot));
+	    m_triangle_change = false;
+	}
+	m_mesh_change = true;
         return m_meshtriangle_data;
         }
     //! Access the mesh bond data defined for the simulation
     std::shared_ptr<MeshBondData> getMeshBondData()
         {
+	if(m_triangle_change){
+	    TriangleData::Snapshot snapshot;
+	    m_triangle_data->takeSnapshot(snapshot);
+            m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, snapshot));
+            m_meshbond_data = std::shared_ptr<MeshBondData>(new MeshBondData(m_particle_data, snapshot));
+	    m_triangle_change = false;
+	}
+	m_mesh_change = true;
         return m_meshbond_data;
         }
 
@@ -209,6 +229,8 @@ class PYBIND11_EXPORT SystemDefinition
     std::shared_ptr<PairData> m_pair_data;             //!< Special pairs data for the system
     std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
+    bool m_triangle_change;
+    bool m_mesh_change;
     };
 
 //! Exports SystemDefinition to python
