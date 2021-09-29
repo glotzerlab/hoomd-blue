@@ -224,7 +224,7 @@ def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
                          }}
                      """
 
-    sim = simulation_factory(two_particle_snapshot_factory())
+    sim = simulation_factory(two_particle_snapshot_factory(L=50))
 
     r_cut = 5
     params = dict(code=lennard_jones, param_array=[2.5, 1.2, 1.0], r_cut=r_cut)
@@ -236,10 +236,11 @@ def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = mc
 
     dist = 1
+
     snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
-        snap.particles.position[0, :] = (0, 0, 0)
-        snap.particles.position[1, :] = (dist, 0, 0)
+        snap.particles.position[0] = [0, 0, 0]
+        snap.particles.position[1] = [dist, 0, 0]
     sim.state.set_snapshot(snap)
 
     sim.run(0)
