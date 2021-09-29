@@ -338,7 +338,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         {
         ArrayHandle<Scalar> h_sumBD(m_sum, access_location::host, access_mode::read);
 #ifdef ENABLE_MPI
-        if (this->m_comm)
+        if (this->m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &h_sumBD.data[0],

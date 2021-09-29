@@ -95,11 +95,6 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
 #endif
 
 #ifdef ENABLE_MPI
-    /// Set the communicator to use
-    /** \param comm The Communicator
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm);
-
     /// helper function to determine the ghost communication flags
     virtual CommFlags determineFlags(uint64_t timestep);
 #endif

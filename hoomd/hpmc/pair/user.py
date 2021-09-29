@@ -276,6 +276,11 @@ class CPPUnionPotential(CPPPotentialBase):
                 ``param_array`` in the compiled code.
 
     Note:
+        This class is not implemented to run on the GPU. When running on the
+        GPU, attempting to attach an object of this type will raise a
+        `NotImplemetedError`.
+
+    Note:
         This class uses an internal OBB tree for fast interaction queries
         between constituents of interacting particles.
         Depending on the number of constituent particles per type in the tree,
@@ -384,6 +389,12 @@ class CPPUnionPotential(CPPPotentialBase):
                  param_array_isotropic=None,
                  param_array_constituent=None):
 
+        # if either of the codes is None, set them to return 0
+        if code_isotropic is None:
+            code_isotropic = 'return 0.0f;'
+        if code_constituent is None:
+            code_constituent = 'return 0.0f;'
+
         # initialize base class
         super().__init__(r_cut=r_cut_isotropic,
                          code=code_isotropic,
@@ -462,9 +473,12 @@ class CPPUnionPotential(CPPPotentialBase):
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
+            msg = 'Running with a CPPUnionPotential on the GPU is not '
+            msg += 'implemented.'
+            raise NotImplementedError(msg)
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
-            gpu_code_isotropic = self._wrap_gpu_code(self._code_isotropic)
+            gpu_code_constituent = self._wrap_gpu_code(self._code_constituent)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
                 self._simulation.state._cpp_sys_def,
                 device._cpp_exec_conf,
@@ -472,10 +486,10 @@ class CPPUnionPotential(CPPPotentialBase):
                 cpu_include_options,
                 self.r_cut_isotropic,
                 self.param_array_isotropic,
-                cpu_code_constituent,  # do we have this?
+                cpu_code_constituent,
                 self.r_cut_constituent,
                 self.param_array_constituent,
-                gpu_code_isotropic,
+                gpu_code_constituent,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"] + ["-DUNION_EVAL"],
                 gpu_settings["cuda_devrt_lib_path"],

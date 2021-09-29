@@ -100,7 +100,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
     resetStats();
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // make sure we start off with a migration substep
         m_comm->forceMigrate();
@@ -171,7 +171,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
 
 #ifdef ENABLE_MPI
     // make sure all ranks return the same TPS after the run completes
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
         bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
@@ -216,7 +216,7 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
         compute->setAutotunerParams(enabled, period);
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         m_comm->setAutotunerParams(enabled, period);
 #endif
     }
@@ -259,7 +259,7 @@ void System::setupProfiling()
 
 #ifdef ENABLE_MPI
     // communicator
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         m_comm->setProfiler(m_profiler);
 #endif
     }
@@ -347,7 +347,6 @@ void export_System(py::module& m)
         .def_property_readonly("computes", &System::getComputes)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &System::setCommunicator)
-        .def("getCommunicator", &System::getCommunicator)
 #endif
         ;
     }
