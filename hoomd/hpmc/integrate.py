@@ -237,6 +237,7 @@ class HPMCIntegrator(BaseIntegrator):
 
         return self._cpp_obj.mapOverlaps()
 
+    @log(category='sequence', requires_run=True)
     def map_energies(self):
         """Build an energy map of the system.
 
@@ -255,15 +256,9 @@ class HPMCIntegrator(BaseIntegrator):
             mc.shape_param.set(...)
             energy_map = np.asarray(mc.map_energies())
         """
-        raise NotImplementedError("map_energies will be implemented in a future"
-                                  "release.")
-        # TODO: update map_energies to new API
-
-        self.update_forces()
-        N = hoomd.context.current.system_definition.getParticleData(
-        ).getMaximumTag() + 1
-        energy_map = self.cpp_integrator.mapEnergies()
-        return list(zip(*[iter(energy_map)] * N))
+        if self._simulation.device.communicator.num_ranks > 1:
+            return None
+        return self._cpp_obj.mapEnergies()
 
     @log(requires_run=True)
     def overlaps(self):

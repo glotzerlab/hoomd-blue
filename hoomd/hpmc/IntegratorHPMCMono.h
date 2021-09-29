@@ -2069,19 +2069,23 @@ std::vector<float> IntegratorHPMCMono<Shape>::mapEnergies()
     return energy_map;
     }
 
-/*! Function for returning a python list of all overlaps in a system by particle
-  tag. returns an unraveled form of an NxN matrix with true/false indicating
-  the overlap status of the ith and jth particle
+/*! Function for returning a python NxN list of all the energies between pairs
  */
 template <class Shape>
 pybind11::list IntegratorHPMCMono<Shape>::PyMapEnergies()
     {
     std::vector<float> v = IntegratorHPMCMono<Shape>::mapEnergies();
     pybind11::list energy_map;
-    for (auto i: v)
-        {
-        energy_map.append(i);
-        }
+    unsigned int N = this->m_pdata->getNGlobal();
+    for (unsigned int i = 0; i < N; i++)
+      {
+      pybind11::list tmp;
+      for (unsigned int j = 0; j < N; j++)
+          {
+          tmp.append(v[i*N+j]);
+          }
+      energy_map.append(tmp);
+      }
     return energy_map;
     }
 
