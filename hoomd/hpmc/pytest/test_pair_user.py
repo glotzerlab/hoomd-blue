@@ -43,10 +43,8 @@ positions_orientations_result = [
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 @pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_behavior_before_attach_cpp_potential(device,
-                                                    constructor_args,
-                                                    attr,
-                                                    value):
+def test_valid_behavior_before_attach_cpp_potential(device, constructor_args,
+                                                    attr, value):
     """Test that CPPPotential can be constructed with valid arguments.
 
     This test also tests that the properties can be modified before attaching.
@@ -142,9 +140,8 @@ def test_cpp_potential(device, positions, orientations, result,
     sim = simulation_factory(two_particle_snapshot_factory(d=2, L=100))
 
     r_cut = sim.state.box.Lx / 2. * 0.4
-    patch = hoomd.hpmc.pair.user.CPPPotential(
-            r_cut=r_cut,
-            code=dipole_dipole.format(r_cut))
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=r_cut,
+                                              code=dipole_dipole.format(r_cut))
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.potential = patch
