@@ -31,6 +31,11 @@ class CPPPotentialBase(_HOOMDBaseObject):
     to the code with the `param_array` attribute without requiring a recompile.
     These arrays are **read-only** during function evaluation.
 
+    Warning:
+        The user interface for this class and its derived classes is not
+        guaranteed to be stable. Usage is subject to change in future (minor)
+        releases.
+
     .. rubric:: C++ code
 
     Classes derived from :py:class:`CPPPotentialBase` will compile the code
@@ -62,11 +67,6 @@ class CPPPotentialBase(_HOOMDBaseObject):
     * Your code *must* return a value.
 
     ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h`.
-
-    See Also:
-        `CPPPotential`
-
-        `CPPPotentialUnion`
 
     Attributes:
         r_cut (float): Particle center to center distance cutoff beyond which
@@ -185,19 +185,19 @@ class CPPPotential(CPPPotentialBase):
             in the compiled code.
 
     See Also:
-        `CPPPotentialBase`
+        `CPPPotentialBase` for the documentation of the parent class.
 
     Examples:
         .. code-block:: python
 
-            square_well = '''float rsq = dot(r_ij, r_ij);
+            sq_well = '''float rsq = dot(r_ij, r_ij);
                                 if (rsq < 1.21f)
                                     return -1.0f;
                                 else
                                     return 0.0f;
                         '''
-            patch = hoomd.jit.patch.CPPPotential(r_cut=1.1, code=square_well)
-            sim.operations += patch
+            patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=1.1, code=sq_well)
+            mc.potential = patch
             sim.run(1000)
     """
 
@@ -268,62 +268,65 @@ class CPPPotential(CPPPotentialBase):
 
 
 class CPPUnionPotential(CPPPotentialBase):
-    r'''Define an arbitrary energetic interaction between unions of particles.
-
-    Warning:
-        This class does not currently work. Please do not attempt to use this.
+    r"""Define an arbitrary energetic interaction between unions of particles.
 
     Args:
-        r_cut_constituent (`float`): Constituent particle center to center \
-                distance
-            cutoff beyond which all pair interactions are assumed 0.
-        r_cut_isotropic (`float`, **default** 0): Cut-off for isotropic \
-                interaction
-            between centers of union particles.
-        code_constituent (`str`): C++ code defining the custom pair interactions
-            between constituent particles.
-        code_isotropic (`str`): C++ code for isotropic part.
-        param_array (list[float]): Parameter values to pass into ``param_array``
-            in the compiled code.
+        r_cut_constituent (`float`): Constituent particle center to center
+                distance cutoff beyond which all pair interactions are assumed
+                0.
+        r_cut_isotropic (`float`, **default** 0): Cut-off for isotropic
+                interaction between centers of union particles.
+        code_constituent (`str`): C++ code defining the custom pair
+                interactions between constituent particles.
+        code_isotropic (`str`): C++ code for isotropic part of the interaction.
+        param_array (list[float]): Parameter values to pass into
+                ``param_array`` in the compiled code.
 
     Note:
         This class uses an internal OBB tree for fast interaction queries
-            between constituents of interacting particles.
+        between constituents of interacting particles.
         Depending on the number of constituent particles per type in the tree,
-            different values of the particles per leaf
+        different values of the particles per leaf
         node may yield different optimal performance. The capacity of leaf nodes
-            is configurable.
+        is configurable.
+
+    See Also:
+        `CPPPotentialBase` for the documentation of the parent class.
 
     Attributes:
-        positions (`TypeParameter` [``particle type``, `list` [`tuple` \
-                [`float`, `float`, `float`]]])
+        positions (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`]]])  # noqa: E501,W505
             The positions of the constituent particles.
-        orientations (`TypeParameter` [``particle type``, `list` [`tuple` \
-                [`float`, `float`, `float, `float`]]])
+
+        orientations (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`, `float`]]])  # noqa: E501,W505
             The orientations of the constituent particles.
+
         diameters (`TypeParameter` [``particle type``, `list` [`float`]])
             The diameters of the constituent particles.
+
         charges (`TypeParameter` [``particle type``, `list` [`float`]])
             The charges of the constituent particles.
+
         typeids (`TypeParameter` [``particle type``, `list` [`float`]])
             The integer types of the constituent particles.
-        leaf_capacity (`int`, **default:** 4) : The number of particles in a \
-                leaf of the internal tree data structure
-        param_array (``ndarray<float>``): Length array_size_union numpy array \
-                containing dynamically adjustable elements defined by the user \
+
+        leaf_capacity (`int`) : The number of particles in a
+                leaf of the internal tree data structure (**default:** 4).
+
+        param_array (``ndarray<float>``): Length array_size_union numpy array
+                containing dynamically adjustable elements defined by the user
                 for unions of shapes.
 
     Example without isotropic interactions:
 
     .. code-block:: python
 
-        square_well = """float rsq = dot(r_ij, r_ij);
+        square_well = '''float rsq = dot(r_ij, r_ij);
                             if (rsq < 1.21f)
                                 return -1.0f;
                             else
                                 return 0.0f;
-                      """
-        patch = hoomd.jit.patch.CPPUnionPotential(
+                      '''
+        patch = hoomd.hpmc.pair.user.CPPUnionPotential(
             r_cut_constituent=1.1,
             r_cut_isotropic=0.0
             code_constituent=square_well,
@@ -334,34 +337,37 @@ class CPPUnionPotential(CPPPotentialBase):
         ]
         patch.diameters['A'] = [0, 0]
         patch.typeids['A'] = [0, 0]
+        mc.potential = patch
 
     Example with added isotropic interactions:
 
     .. code-block:: python
 
         # square well attraction on constituent spheres
-        square_well = """float rsq = dot(r_ij, r_ij);
+        square_well = '''float rsq = dot(r_ij, r_ij);
                               float r_cut = param_array[0];
                               if (rsq < r_cut*r_cut)
                                   return param_array[1];
                               else
                                   return 0.0f;
-                        """
+                        '''
 
         # soft repulsion between centers of unions
-        soft_repulsion = """float rsq = dot(r_ij, r_ij);
+        soft_repulsion = '''float rsq = dot(r_ij, r_ij);
                                   float r_cut = param_array[0];
                                   if (rsq < r_cut*r_cut)
                                     return param_array[1];
                                   else
                                     return 0.0f;
-                         """
+                         '''
 
-        patch = hoomd.jit.patch.CPPUnionPotential(
+        patch = hoomd.hpmc.pair.user.CPPUnionPotential(
             r_cut_constituent=2.5,
             r_cut_isotropic=5.0,
             code_union=square_well,
-            code_isotropic=soft_repulsion
+            code_isotropic=soft_repulsion,
+            param_array_constituent=[2.0, -5.0],
+            param_array_isotropic=[2.5, 1.3],
         )
         patch.positions['A'] = [
             (0, 0, -0.5),
@@ -369,9 +375,9 @@ class CPPUnionPotential(CPPPotentialBase):
         ]
         patch.typeids['A'] = [0, 0]
         patch.diameters['A'] = [0, 0]
-        # [r_cut, epsilon]
-        patch.param_array[:] = [2.5, 1.3]
-    '''
+        mc.potential = patch
+
+    """
 
     def __init__(self,
                  r_cut_constituent,

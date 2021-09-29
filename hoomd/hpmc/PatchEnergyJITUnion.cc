@@ -29,7 +29,8 @@ void PatchEnergyJITUnion::buildOBBTree()
             // calcuate distance from center of union to this constituent particle
             Scalar r = sqrt(dot(pos, pos));
 
-            // extent_i is twice the distance to the farthest particle, so is ~ the circumsphere diameter
+            // extent_i is twice the distance to the farthest particle, so is ~ the circumsphere
+            // diameter
             extent_i = std::max(extent_i, Scalar(2 * r));
 
             // we do not support exclusions
