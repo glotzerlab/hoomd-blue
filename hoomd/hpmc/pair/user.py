@@ -270,6 +270,8 @@ class CPPUnionPotential(CPPPotentialBase):
         code_constituent (`str`): C++ code defining the custom pair
                 interactions between constituent particles.
         code_isotropic (`str`): C++ code for isotropic part of the interaction.
+        param_array_constituent (list[float]): Parameter values to pass into
+                ``param_array_constituent`` in the compiled code.
         param_array (list[float]): Parameter values to pass into
                 ``param_array`` in the compiled code.
 
@@ -303,9 +305,13 @@ class CPPUnionPotential(CPPPotentialBase):
         leaf_capacity (`int`) : The number of particles in a
                 leaf of the internal tree data structure (**default:** 4).
 
-        param_array (``ndarray<float>``): Length array_size_union numpy array
-                containing dynamically adjustable elements defined by the user
-                for unions of shapes.
+        param_array (``ndarray<float>``): Numpy array containing dynamically
+                adjustable elements in the isotropic part of the potential as
+                defined by the user.
+
+        param_array_constituent (``ndarray<float>``): Numpy array containing
+                dynamically adjustable elements in the constituent part of the
+                potential part of the potential as defined by the user.
 
     Example without isotropic interactions:
 
@@ -336,9 +342,9 @@ class CPPUnionPotential(CPPPotentialBase):
 
         # square well attraction on constituent spheres
         square_well = '''float rsq = dot(r_ij, r_ij);
-                              float r_cut = param_array[0];
+                              float r_cut = param_array_constituent[0];
                               if (rsq < r_cut*r_cut)
-                                  return param_array[1];
+                                  return param_array_constituent[1];
                               else
                                   return 0.0f;
                         '''
