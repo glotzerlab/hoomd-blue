@@ -256,24 +256,41 @@ class GayBerne(AnisotropicPair):
 class ALJ(AnisotropicPair):
     r"""Anistropic LJ potential.
 
-    The potential is described and introduced in the paper
-    `Ramasubramani, V.  et. al. 2020`_.
-
-    .. _Ramasubramani, V.  et. al. 2020: https://doi.org/10.1063/5.0019735
-
-
     Args:
         nlist (hoomd.md.nlist.NList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[length]`.
         mode (`str`, optional) : the energy shifting mode, defaults to "none".
 
-    `ALJ` computes the Lennard-Jones potential between anisotropic particles.
-    The anisotropy is implemented as a composite of two interactions, a
-    center-center component and a component of interaction measured at the
-    closest point of contact between the two particles. The potential supports
-    both standard Lennard-Jones interactions as well as repulsive-only
-    Weeks-Chandler-Anderson (WCA) interactions.  This behavior is controlled
-    using the ``alpha`` parameter, which can take on the following values:
+    `ALJ` computes the Lennard-Jones potential between anisotropic particles as
+    described in `Ramasubramani, V.  et. al. 2020`_. Specifically we implement
+    the formula:
+
+    .. _Ramasubramani, V.  et. al. 2020: https://doi.org/10.1063/5.0019735
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{ALJ}}(r, r_c)
+            = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+            \left( \frac{\sigma}{r} \right)^{6} \right] +
+            4 \varepsilon_c \left[ \left( \frac{\sigma_c}{r_c} \right)^{12} -
+            \left( \frac{\sigma_c}{r_c} \right)^{6} \right] \\
+        \end{eqnarray*}
+
+    The first term is the standard center-center interaction between two
+    Lennard-Jones spheres. The second term is a contact interaction computed
+    based on the smallest distance between the surfaces of the two shapes,
+    :math:`r_c`. The total potential energy can thus be viewed as the sum of
+    two interactions, a central Lennard-Jones potential and a shifted
+    Lennard-Jones potential where the shift is anisotroipc and depends on the
+    extent of the shape in each direction.
+
+    Like a standard LJ potential, each term has an independent cutoff beyond
+    which it decays to zero the behavior of these cutoffs is dependendent on
+    whether a user requires LJ or Weeks-Chandler-Anderson (WCA)-like
+    (repulsive-only) behavior. This behavior is controlled using the ``alpha``
+    parameter, which can take on the following values:
 
     * 0:
       All interactions are WCA (no attraction).
