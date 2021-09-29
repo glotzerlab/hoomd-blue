@@ -80,7 +80,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
         param_dict = ParameterDict(r_cut=float)
         param_dict['r_cut'] = r_cut
         param_dict['param_array'] = NDArrayValidator(dtype=np.float32,
-                                           shape=(None,))
+                                                     shape=(None,))
         if param_array is None:
             param_dict['param_array'] = np.array([])
         else:
