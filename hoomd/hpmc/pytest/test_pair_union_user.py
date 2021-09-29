@@ -97,17 +97,23 @@ def test_valid_construction_and_attach_cpp_union_potential(
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
 
-    # create C++ mirror classes and set parameters
-    sim.run(0)
+    # ensure we raise the right error on gpu
+    if isinstance(device, hoomd.device.GPU):
+        with pytest.raises(NotImplementedError):
+            sim.run(0)
 
-    # validate the params were set properly
-    for attr, value in constructor_args.items():
-        if attr in ['code_constituent', 'code_isotropic']:
-            attr = f'_{attr}'
-        try:
-            assert getattr(patch, attr) == value
-        except ValueError:  # array-like
-            assert all(getattr(patch, attr) == value)
+    else:
+        # create C++ mirror classes and set parameters
+        sim.run(0)
+
+        # validate the params were set properly
+        for attr, value in constructor_args.items():
+            if attr in ['code_constituent', 'code_isotropic']:
+                attr = f'_{attr}'
+            try:
+                assert getattr(patch, attr) == value
+            except ValueError:  # array-like
+                assert all(getattr(patch, attr) == value)
 
 
 @pytest.mark.parametrize("attr,value", valid_attrs)
