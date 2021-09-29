@@ -54,7 +54,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
                     float d_j,
                     float charge_j)
 
-    * ``r_ij`` is a vector pointing from the center of particle *i* to the
+    * ``r_ij`` is a vector pointing from the center of particle *i* to the \
         center of particle *j*.
     * ``type_i`` is the integer type id of particle *i*
     * ``q_i`` is the quaternion orientation of particle *i*
@@ -65,25 +65,22 @@ class CPPPotentialBase(_HOOMDBaseObject):
     * ``d_j`` is the diameter of particle *j*
     * ``charge_j`` is the charge of particle *j*
     * Your code *must* return a value.
+    * ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h`.
 
-    ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h`.
-
-    Attributes:
+    Args:
         r_cut (float): Particle center to center distance cutoff beyond which
             all pair interactions are assumed 0.
-        param_array ((N,) `numpy.ndarray` of float): Numpy array containing
-            dynamically adjustable elements defined by the user. Cannot change
-            size after calling `Simulation.run`. The elements are still mutable
-            however.
+        code (str): C++ code defining the function body for pair interactions
+            between particles.
+        param_array (list[float]): Parameter values to pass into ``param_array``
+            in the compiled code.
     """
 
     def __init__(self, r_cut, code, param_array=None):
         param_dict = ParameterDict(r_cut=float)
-        if param_array is not None:
-            array_validator = NDArrayValidator(dtype=np.float32,
-                                               shape=(len(param_array),))
-            param_dict['param_array'] = array_validator
         param_dict['r_cut'] = r_cut
+        param_dict['param_array'] = NDArrayValidator(dtype=np.float32,
+                                           shape=(None,))
         if param_array is None:
             param_dict['param_array'] = np.array([])
         else:
@@ -100,7 +97,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
         """
         integrator = self._simulation.operations.integrator
         timestep = self._simulation.timestep
-        if not self._attached:  # is this the right check?
+        if not self._attached:
             return None
         return integrator._cpp_obj.computePatchEnergy(timestep)
 
@@ -249,20 +246,14 @@ class CPPPotential(CPPPotentialBase):
 
     @property
     def code(self):
-        """Return the code passed to the object."""
+        """str: the code defining the isotropic pair interactions"""
         return self._code
 
     @code.setter
     def code(self, code):
-        """Set the code.
-
-        This function rasies an error if the object is already attached.
-
-        """
         if self._attached:
-            msg = "The attribute 'code' can only be set when the "
-            msg += "object is not attached."
-            raise AttributeError(msg)
+            raise AttributeError("This attribute can only be set before the \
+                                  object is attached.")
         else:
             self._code = code
 
@@ -490,14 +481,6 @@ class CPPUnionPotential(CPPPotentialBase):
                 cpu_code_isotropic, cpu_include_options, self.r_cut_isotropic,
                 self.param_array_isotropic, cpu_code_constituent,
                 self.r_cut_constituent, self.param_array_constituent)
-
-        # Set the C++ mirror array with the cached values
-        # and override the python array
-        # self._cpp_obj.param_array_isotropic[:] = self.alpha_iso[:]
-        # self._cpp_obj.alpha_union[:] = self.alpha_union[:]
-        # self.alpha_iso = self._cpp_obj.alpha_iso
-        # self.alpha_union = self._cpp_obj.alpha_union
-
         # attach patch object to the integrator
         super()._attach()
 
