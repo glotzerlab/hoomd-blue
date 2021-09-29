@@ -137,6 +137,18 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
     m_n_dimensions = n_dimensions;
     }
 
+void SystemDefinition::checkMeshData()
+    {
+    if(m_triangle_change)
+        {
+        TriangleData::Snapshot snapshot;
+        m_triangle_data->takeSnapshot(snapshot);
+        m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, snapshot));
+        m_meshbond_data = std::shared_ptr<MeshBondData>(new MeshBondData(m_particle_data, snapshot));
+        m_triangle_change = false;
+        }
+    }
+
 /*! \param particles True if particle data should be saved
  *  \param bonds True if bond data should be saved
  *  \param angles True if angle data should be saved
@@ -254,6 +266,7 @@ void export_SystemDefinition(py::module& m)
         .def("getTriangleData", &SystemDefinition::getTriangleData)
         .def("getMeshTriangleData", &SystemDefinition::getMeshTriangleData)
         .def("getMeshBondData", &SystemDefinition::getMeshBondData)
+        .def("checkMeshData", &SystemDefinition::checkMeshData)
         .def("getIntegratorData", &SystemDefinition::getIntegratorData)
         .def("getPairData", &SystemDefinition::getPairData)
         .def("takeSnapshot_float", &SystemDefinition::takeSnapshot<float>)

@@ -166,29 +166,15 @@ class PYBIND11_EXPORT SystemDefinition
     //! Access the mesh triangle data defined for the simulation
     std::shared_ptr<MeshTriangleData> getMeshTriangleData()
         {
-	if(m_triangle_change){
-	    TriangleData::Snapshot snapshot;
-	    m_triangle_data->takeSnapshot(snapshot);
-            m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, snapshot));
-            m_meshbond_data = std::shared_ptr<MeshBondData>(new MeshBondData(m_particle_data, snapshot));
-	    m_triangle_change = false;
-	}
-	m_mesh_change = true;
         return m_meshtriangle_data;
         }
     //! Access the mesh bond data defined for the simulation
     std::shared_ptr<MeshBondData> getMeshBondData()
         {
-	if(m_triangle_change){
-	    TriangleData::Snapshot snapshot;
-	    m_triangle_data->takeSnapshot(snapshot);
-            m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, snapshot));
-            m_meshbond_data = std::shared_ptr<MeshBondData>(new MeshBondData(m_particle_data, snapshot));
-	    m_triangle_change = false;
-	}
-	m_mesh_change = true;
         return m_meshbond_data;
         }
+
+    void checkMeshData();
 
     //! Access the constraint data defined for the simulation
     std::shared_ptr<ConstraintData> getConstraintData()
