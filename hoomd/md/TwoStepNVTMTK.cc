@@ -406,7 +406,7 @@ void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)
     m_exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * xi * m_deltaT);
 
 #ifdef ENABLE_MPI
-    if (m_comm && broadcast)
+    if (m_sysdef->isDomainDecomposed() && broadcast)
         {
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
@@ -434,7 +434,7 @@ void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)
         eta_rot += xi_prime_rot * m_deltaT;
 
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             // broadcast integrator variables from rank 0 to other processors
             MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
@@ -473,7 +473,7 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
         }
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
@@ -492,7 +492,7 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
             }
 
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             // broadcast integrator variables from rank 0 to other processors
             MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
