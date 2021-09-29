@@ -225,9 +225,84 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     virtual void computeForces(uint64_t timestep) { }
     };
 
+
+template<class Output>
+class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, ForceCompute>
+    {
+    public;
+    LocalForceComputeData(ForceCompute& data)
+        : LocalDataAccess<Output, ForceCompute>(data), m_force_handle(), m_torque_handle(),
+        m_virial_handle()
+        {
+        }
+
+    virtual ~LocalForceComputeData() = default;
+
+    Output getForce(GhostDataFlag flag)
+        {
+        return this->template getBuffer<Scalar4, Scalar>(m_force_handle,
+                                                         &ForceCompute::getForceArray,
+                                                         flag,
+                                                         3);
+        }
+
+    Output getPotentialEnergy(GhostDataFlag flag)
+        {
+        return this->template getBuffer<Scalar4, Scalar>(m_force_handle,
+                                                         &ForceCompute::getForceArray,
+                                                         flag,
+                                                         0,
+                                                         3 * sizeof(Scalar));
+        }
+
+    Output getTorque(GhostDataFlag flag)
+        {
+        return this->template getBuffer<Scalar4, Scalar>(m_torque_handle,
+                                                         &ForceCompute::getTorqueArray,
+                                                         flag,
+                                                         3);
+        }
+
+    // leave this for now, not sure what to do with the pitch
+    /*
+    Output getVirial(GhostDataFlag flag)
+        {
+        return this->template getBuffer<Scalar, Scalar>(m_virial_handle,
+                                                        &ForceCompute::getVirialArray,
+                                                        flag,
+                                                        3);
+        }
+    */
+
+    protected:
+    void clear()
+        {
+        m_force_handle.reset(nullptr);
+        m_torque_handle.reset(nullptr);
+        }
+
+    private:
+    std::unique_ptr<ArrayHandle<Scalar4>> m_force_handle;
+    std::unique_pts<ArrayHandle<Scalar4>> m_torque_handle;
+    }
+
+
 //! Exports the ForceCompute class to python
 #ifndef __HIPCC__
 void export_ForceCompute(pybind11::module& m);
+
+template<class Output> void export_LocalForceComputeData(pybind11::module& m, std::string name)
+    {
+    pybind11::class_<LocalForceComputeData<Output>, std::shared_ptr<LocalForceComputeData<Output>>>(
+        m,
+        name.c_str())
+        .def(pybind11::init<ForceCompute&>())
+        .def("getForce", &LocalForceComputeData<Output>::getForce)
+        .def("getPotentialEnergy", &LocalForceComputeData<Output>::getPotentialEnergy)
+        .def("getTorque", &LocalForceComputeData<Output>::getTorque)
+        .def("enter", &LocalForceComputeData<Output>::enter)
+        .def("exit", &LocalForceComputeData<Output>::exit);
+    }
 #endif
 
 #endif
