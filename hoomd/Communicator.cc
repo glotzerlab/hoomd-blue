@@ -1368,26 +1368,26 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
                               MPI_HOOMD_SCALAR};
     MPI_Aint offsets[14];
 
-    offsets[0] = offsetof(pdata_element, pos);
-    offsets[1] = offsetof(pdata_element, vel);
-    offsets[2] = offsetof(pdata_element, accel);
-    offsets[3] = offsetof(pdata_element, charge);
-    offsets[4] = offsetof(pdata_element, diameter);
-    offsets[5] = offsetof(pdata_element, image);
-    offsets[6] = offsetof(pdata_element, body);
-    offsets[7] = offsetof(pdata_element, orientation);
-    offsets[8] = offsetof(pdata_element, angmom);
-    offsets[9] = offsetof(pdata_element, inertia);
-    offsets[10] = offsetof(pdata_element, tag);
-    offsets[11] = offsetof(pdata_element, net_force);
-    offsets[12] = offsetof(pdata_element, net_torque);
-    offsets[13] = offsetof(pdata_element, net_virial);
+    offsets[0] = offsetof(detail::pdata_element, pos);
+    offsets[1] = offsetof(detail::pdata_element, vel);
+    offsets[2] = offsetof(detail::pdata_element, accel);
+    offsets[3] = offsetof(detail::pdata_element, charge);
+    offsets[4] = offsetof(detail::pdata_element, diameter);
+    offsets[5] = offsetof(detail::pdata_element, image);
+    offsets[6] = offsetof(detail::pdata_element, body);
+    offsets[7] = offsetof(detail::pdata_element, orientation);
+    offsets[8] = offsetof(detail::pdata_element, angmom);
+    offsets[9] = offsetof(detail::pdata_element, inertia);
+    offsets[10] = offsetof(detail::pdata_element, tag);
+    offsets[11] = offsetof(detail::pdata_element, net_force);
+    offsets[12] = offsetof(detail::pdata_element, net_torque);
+    offsets[13] = offsetof(detail::pdata_element, net_virial);
 
     MPI_Datatype tmp;
     MPI_Type_create_struct(nitems, blocklengths, offsets, types, &tmp);
     MPI_Type_commit(&tmp);
 
-    MPI_Type_create_resized(tmp, 0, sizeof(pdata_element), &m_mpi_pdata_element);
+    MPI_Type_create_resized(tmp, 0, sizeof(detail::pdata_element), &m_mpi_pdata_element);
     MPI_Type_commit(&m_mpi_pdata_element);
     MPI_Type_free(&tmp);
     }
@@ -1735,7 +1735,7 @@ void Communicator::migrateParticles()
         const BoxDim shifted_box = getShiftedBox();
         for (unsigned int idx = 0; idx < n_recv_ptls; idx++)
             {
-            pdata_element& p = m_recvbuf[idx];
+            detail::pdata_element& p = m_recvbuf[idx];
             Scalar4& postype = p.pos;
             int3& image = p.image;
 

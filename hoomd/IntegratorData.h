@@ -41,7 +41,7 @@ namespace cereal
     {
 //! Serialization of IntegratorVariables
 template<class Archive>
-void serialize(Archive& ar, IntegratorVariables& iv, const unsigned int version)
+void serialize(Archive& ar, hoomd::IntegratorVariables& iv, const unsigned int version)
     {
     // serialize both members
     ar& iv.type;

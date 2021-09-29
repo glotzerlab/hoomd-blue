@@ -121,7 +121,7 @@ namespace cereal
     {
 //! Serialization of vec3<Real>
 template<class Archive, class Real>
-void serialize(Archive& ar, vec3<Real>& v, const unsigned int version)
+void serialize(Archive& ar, hoomd::vec3<Real>& v, const unsigned int version)
     {
     ar& v.x;
     ar& v.y;
@@ -130,7 +130,7 @@ void serialize(Archive& ar, vec3<Real>& v, const unsigned int version)
 
 //! Serialization of quat<Real>
 template<class Archive, class Real>
-void serialize(Archive& ar, quat<Real>& q, const unsigned int version)
+void serialize(Archive& ar, hoomd::quat<Real>& q, const unsigned int version)
     {
     // serialize both members
     ar& q.s;
@@ -1216,12 +1216,12 @@ class PYBIND11_EXPORT ParticleData
      *        are invalidated. (call removeAllGhostAtoms() before or after
      *        this method).
      */
-    void removeParticles(std::vector<pdata_element>& out, std::vector<unsigned int>& comm_flags);
+    void removeParticles(std::vector<detail::pdata_element>& out, std::vector<unsigned int>& comm_flags);
 
     //! Add new local particles
     /*! \param in List of particle data elements to fill the particle data with
      */
-    void addParticles(const std::vector<pdata_element>& in);
+    void addParticles(const std::vector<detail::pdata_element>& in);
 
 #ifdef ENABLE_HIP
     //! Pack particle data into a buffer (GPU version)
@@ -1237,13 +1237,13 @@ class PYBIND11_EXPORT ParticleData
      *        are invalidated. (call removeAllGhostAtoms() before or after
      *        this method).
      */
-    void removeParticlesGPU(GlobalVector<pdata_element>& out,
+    void removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
                             GlobalVector<unsigned int>& comm_flags);
 
     //! Remove particles from local domain and add new particle data (GPU version)
     /*! \param in List of particle data elements to fill the particle data with
      */
-    void addParticlesGPU(const GlobalVector<pdata_element>& in);
+    void addParticlesGPU(const GlobalVector<detail::pdata_element>& in);
 #endif // ENABLE_HIP
 
 #endif // ENABLE_MPI

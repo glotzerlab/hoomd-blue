@@ -214,11 +214,11 @@ class BondedGroupData
          */
         void bcast(unsigned int root, MPI_Comm mpi_comm)
             {
-            ::bcast(type_id, root, mpi_comm);
-            ::bcast(val, root, mpi_comm);
-            ::bcast(groups, root, mpi_comm);
-            ::bcast(type_mapping, root, mpi_comm);
-            ::bcast(size, root, mpi_comm);
+            hoomd::bcast(type_id, root, mpi_comm);
+            hoomd::bcast(val, root, mpi_comm);
+            hoomd::bcast(groups, root, mpi_comm);
+            hoomd::bcast(type_mapping, root, mpi_comm);
+            hoomd::bcast(size, root, mpi_comm);
             }
 #endif
 

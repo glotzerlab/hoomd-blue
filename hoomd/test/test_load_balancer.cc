@@ -26,6 +26,7 @@ HOOMD_UP_MAIN();
     ref_box.makeCoordinates(dest_box.makeFraction(make_scalar3(v.x, v.y, v.z)))
 
 using namespace std;
+using namespace hoomd;
 
 template<class LB>
 void test_load_balancer_basic(std::shared_ptr<ExecutionConfiguration> exec_conf,

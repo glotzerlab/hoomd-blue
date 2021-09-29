@@ -114,12 +114,12 @@ int initialize_mpi()
     }
 
 //! Get the processor name associated to this rank
-string get_mpi_proc_name()
+std::string get_mpi_proc_name()
     {
     char proc_name[MPI_MAX_PROCESSOR_NAME];
     int name_len;
     MPI_Get_processor_name(proc_name, &name_len);
-    return string(proc_name);
+    return std::string(proc_name);
     }
 
 //! Finalize MPI environment

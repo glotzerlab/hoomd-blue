@@ -668,8 +668,8 @@ class PYBIND11_EXPORT Communicator
         }
 
     private:
-    std::vector<pdata_element> m_sendbuf; //!< Buffer for particles that are sent
-    std::vector<pdata_element> m_recvbuf; //!< Buffer for particles that are received
+    std::vector<detail::pdata_element> m_sendbuf; //!< Buffer for particles that are sent
+    std::vector<detail::pdata_element> m_recvbuf; //!< Buffer for particles that are received
 
     /* Communication of bonded groups */
     GroupCommunicator<BondData> m_bond_comm; //!< Communication helper for bonds

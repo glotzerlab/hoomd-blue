@@ -322,7 +322,7 @@ void Messenger::openFile(const std::string& fname)
         bcast(broadcast_fname, 0, m_mpi_config->getCommunicator());
 
         m_streambuf_out
-            = std::make_shared<mpi_io>(m_mpi_config->getCommunicator(), broadcast_fname);
+            = std::make_shared<detail::mpi_io>(m_mpi_config->getCommunicator(), broadcast_fname);
         m_file_out = std::make_shared<std::ostream>(m_streambuf_out.get());
         }
     else
@@ -407,7 +407,7 @@ void Messenger::openStd()
 /*! \param filename The output filename
     \param mpi_comm The MPI communicator to use for MPI file IO
  */
-mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
+detail::mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
     : m_mpi_comm(mpi_comm), m_file_open(false)
     {
     assert(m_mpi_comm);
@@ -426,7 +426,7 @@ mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
         m_file_open = true;
     }
 
-int mpi_io::overflow(int ch)
+int detail::mpi_io::overflow(int ch)
     {
     assert(m_file_open);
 
@@ -438,7 +438,8 @@ int mpi_io::overflow(int ch)
     return 0;
     }
 
-void mpi_io::close()
+void detail::
+mpi_io::close()
     {
     if (m_file_open)
         MPI_File_close(&m_file);

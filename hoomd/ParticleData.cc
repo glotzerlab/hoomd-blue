@@ -2141,7 +2141,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                     h_comm_flag.data[idx] = 1;
                     }
 
-                std::vector<pdata_element> buf;
+                std::vector<detail::pdata_element> buf;
 
                 // retrieve particle data
                 std::vector<unsigned int> comm_flags; // not used here
@@ -2163,7 +2163,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
 
                 // send particle data to new domain
                 MPI_Isend(&buf.front(),
-                          sizeof(pdata_element),
+                          sizeof(detail::pdata_element),
                           MPI_BYTE,
                           new_rank,
                           0,
@@ -2173,14 +2173,14 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                 }
             else if (new_rank == my_rank)
                 {
-                std::vector<pdata_element> buf(1);
+                std::vector<detail::pdata_element> buf(1);
 
                 MPI_Request req;
                 MPI_Status stat;
 
                 // receive particle data
                 MPI_Irecv(&buf.front(),
-                          sizeof(pdata_element),
+                          sizeof(detail::pdata_element),
                           MPI_BYTE,
                           owner_rank,
                           0,
@@ -2871,7 +2871,7 @@ struct comm_flag_select : std::unary_function<const unsigned int, bool>
  *        no ghost particles are present, because ghost particle values
  *        are undefined after calling this method.
  */
-void ParticleData::removeParticles(std::vector<pdata_element>& out,
+void ParticleData::removeParticles(std::vector<detail::pdata_element>& out,
                                    std::vector<unsigned int>& comm_flags)
     {
     if (m_prof)
@@ -3018,7 +3018,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out,
             else
                 {
                 // write to packed array
-                pdata_element p;
+                detail::pdata_element p;
                 p.pos = h_pos.data[i];
                 p.vel = h_vel.data[i];
                 p.accel = h_accel.data[i];
@@ -3086,7 +3086,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out,
     }
 
 //! Remove particles from local domain and append new particle data
-void ParticleData::addParticles(const std::vector<pdata_element>& in)
+void ParticleData::addParticles(const std::vector<detail::pdata_element>& in)
     {
     if (m_prof)
         m_prof->push("unpack");
@@ -3141,9 +3141,9 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
         unsigned int net_virial_pitch = (unsigned int)m_net_virial.getPitch();
         // add new particles at the end
         unsigned int n = old_nparticles;
-        for (std::vector<pdata_element>::const_iterator it = in.begin(); it != in.end(); ++it)
+        for (std::vector<detail::pdata_element>::const_iterator it = in.begin(); it != in.end(); ++it)
             {
-            pdata_element p = *it;
+            detail::pdata_element p = *it;
             h_pos.data[n] = p.pos;
             h_vel.data[n] = p.vel;
             h_accel.data[n] = p.accel;
@@ -4006,22 +4006,22 @@ template<class Real> void SnapshotParticleData<Real>::setTypes(py::list types)
 template<class Real> void SnapshotParticleData<Real>::bcast(unsigned int root, MPI_Comm mpi_comm)
     {
     // broadcast all member quantities
-    ::bcast(pos, root, mpi_comm);
-    ::bcast(vel, root, mpi_comm);
-    ::bcast(accel, root, mpi_comm);
-    ::bcast(type, root, mpi_comm);
-    ::bcast(mass, root, mpi_comm);
-    ::bcast(charge, root, mpi_comm);
-    ::bcast(diameter, root, mpi_comm);
-    ::bcast(image, root, mpi_comm);
-    ::bcast(body, root, mpi_comm);
-    ::bcast(orientation, root, mpi_comm);
-    ::bcast(angmom, root, mpi_comm);
-    ::bcast(inertia, root, mpi_comm);
+    hoomd::bcast(pos, root, mpi_comm);
+    hoomd::bcast(vel, root, mpi_comm);
+    hoomd::bcast(accel, root, mpi_comm);
+    hoomd::bcast(type, root, mpi_comm);
+    hoomd::bcast(mass, root, mpi_comm);
+    hoomd::bcast(charge, root, mpi_comm);
+    hoomd::bcast(diameter, root, mpi_comm);
+    hoomd::bcast(image, root, mpi_comm);
+    hoomd::bcast(body, root, mpi_comm);
+    hoomd::bcast(orientation, root, mpi_comm);
+    hoomd::bcast(angmom, root, mpi_comm);
+    hoomd::bcast(inertia, root, mpi_comm);
 
-    ::bcast(size, root, mpi_comm);
-    ::bcast(type_mapping, root, mpi_comm);
-    ::bcast(is_accel_set, root, mpi_comm);
+    hoomd::bcast(size, root, mpi_comm);
+    hoomd::bcast(type_mapping, root, mpi_comm);
+    hoomd::bcast(is_accel_set, root, mpi_comm);
     }
 #endif
 

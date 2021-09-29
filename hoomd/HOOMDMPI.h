@@ -42,16 +42,16 @@ namespace cereal
     {
 //! Serialization functions for some of our data types
 //! Serialization of Scalar4
-template<class Archive> void serialize(Archive& ar, Scalar4& s, const unsigned int version)
+template<class Archive> void serialize(Archive& ar, hoomd::Scalar4& s, const unsigned int version)
     {
-    ar&(Scalar&)s.x;
-    ar&(Scalar&)s.y;
-    ar&(Scalar&)s.z;
-    ar&(Scalar&)s.w;
+    ar&(hoomd::Scalar&)s.x;
+    ar&(hoomd::Scalar&)s.y;
+    ar&(hoomd::Scalar&)s.z;
+    ar&(hoomd::Scalar&)s.w;
     }
 
 //! Serialization of Scalar3
-template<class Archive> void serialize(Archive& ar, Scalar3& s, const unsigned int version)
+template<class Archive> void serialize(Archive& ar, hoomd::Scalar3& s, const unsigned int version)
     {
     ar& s.x;
     ar& s.y;
