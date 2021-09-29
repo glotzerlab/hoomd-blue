@@ -24,7 +24,7 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
     : PatchEnergy(sysdef), m_exec_conf(exec_conf), m_r_cut_isotropic(r_cut),
       m_param_array(param_array.data(),
                     param_array.data() + param_array.size(),
-                    managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
+                    hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
     {
     // build the JIT.
     m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(cpu_code, compiler_args));

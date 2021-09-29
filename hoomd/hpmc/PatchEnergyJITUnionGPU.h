@@ -48,7 +48,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
                         compute_arch),
           m_d_union_params(m_sysdef->getParticleData()->getNTypes(),
                            jit::union_params_t(),
-                           managed_allocator<jit::union_params_t>(m_exec_conf->isCUDAEnabled()))
+                           hoomd::detail::managed_allocator<jit::union_params_t>(m_exec_conf->isCUDAEnabled()))
         {
         m_gpu_factory.setAlphaPtr(&m_param_array.front());
         m_gpu_factory.setAlphaUnionPtr(&m_param_array_constituent.front());
@@ -253,7 +253,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
     private:
     GPUEvalFactory m_gpu_factory; //!< JIT implementation
 
-    std::vector<jit::union_params_t, managed_allocator<jit::union_params_t>>
+    std::vector<jit::union_params_t, hoomd::detail::managed_allocator<jit::union_params_t>>
         m_d_union_params; //!< Parameters for each particle type on GPU
     };
 

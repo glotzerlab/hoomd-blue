@@ -35,7 +35,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
           m_r_cut_constituent(r_cut_constituent),
           m_param_array_constituent(param_array_constituent.data(),
                                     param_array_constituent.data() + param_array_constituent.size(),
-                                    managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
+                                    hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
           m_r_cut_max(0.0)
         {
         // build the JIT.
@@ -347,7 +347,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     EvalFactory::EvalFnPtr
         m_eval_constituent;     //!< Pointer to evaluator function inside the JIT module
     Scalar m_r_cut_constituent; //!< Cutoff on constituent particles
-    std::vector<float, managed_allocator<float>>
+    std::vector<float, hoomd::detail::managed_allocator<float>>
         m_param_array_constituent; //!< Data array for constituent particles
     std::vector<unsigned int>
         m_updated_types; //!< List of types whose geometric properties were updated

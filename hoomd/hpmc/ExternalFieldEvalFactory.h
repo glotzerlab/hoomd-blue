@@ -8,10 +8,11 @@
 #include "KaleidoscopeJIT.h"
 
 namespace hoomd {
-namespace hpmd {
 
 // Forward declare box class
 struct BoxDim;
+
+namespace hpmc {
 
 class ExternalFieldEvalFactory
     {
