@@ -266,7 +266,7 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         {
         ArrayHandle<Scalar> h_sumBD(m_sum, access_location::host, access_mode::read);
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &h_sumBD.data[0],

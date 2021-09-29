@@ -447,36 +447,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_patch;
         }
 
-#ifdef ENABLE_MPI
-    //! Set the MPI communicator
-    /*! \param comm the communicator
-        This method is overridden so that we can register with the signal to set the ghost layer
-       width.
-    */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        if (!m_communicator_ghost_width_connected)
-            {
-            // only add the migrate request on the first call
-            assert(comm);
-            comm->getGhostLayerWidthRequestSignal()
-                .connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
-            m_communicator_ghost_width_connected = true;
-            }
-        if (!m_communicator_flags_connected)
-            {
-            // only add the migrate request on the first call
-            assert(comm);
-            comm->getCommFlagsRequestSignal()
-                .connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
-            m_communicator_flags_connected = true;
-            }
-
-        // set the member variable
-        Integrator::setCommunicator(comm);
-        }
-#endif
-
     protected:
     unsigned int m_translation_move_probability; //!< Fraction of moves that are translation moves.
     unsigned int m_nselect;                      //!< Number of particles to select for trial moves
@@ -523,13 +493,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     private:
     hpmc_counters_t m_count_run_start;  //!< Count saved at run() start
     hpmc_counters_t m_count_step_start; //!< Count saved at the start of the last step
-
-#ifdef ENABLE_MPI
-    bool m_communicator_ghost_width_connected; //!< True if we have connected to Communicator's
-                                               //!< ghost layer width signal
-    bool m_communicator_flags_connected;       //!< True if we have connected to Communicator's
-                                               //!< communication flags signal
-#endif
     };
 
 //! Export the IntegratorHPMC class to python

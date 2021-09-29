@@ -163,17 +163,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
     //! not)
     virtual void validateGroup();
 
-#ifdef ENABLE_MPI
-    //! Set the communicator to use
-    /*! \param comm MPI communication class
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        assert(comm);
-        m_comm = comm;
-        }
-#endif
-
     //! Set (an-)isotropic integration mode
     /*! \param aniso True if anisotropic integration is requested
      */
@@ -247,9 +236,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         m_valid_restart = b;
         }
 
-#ifdef ENABLE_MPI
-    std::shared_ptr<Communicator> m_comm; //!< The communicator to use for MPI
-#endif
     private:
     unsigned int m_integrator_id; //!< Registered integrator id to access the state variables
     bool m_valid_restart;         //!< True if the restart info was valid when loading

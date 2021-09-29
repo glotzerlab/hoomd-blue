@@ -189,6 +189,8 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
     // initialize extra shared mem
     auto s_extra = reinterpret_cast<char*>(s_ronsq + num_typ_parameters);
 
+    __syncthreads();
+
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_pair = 0; cur_pair < num_typ_parameters; ++cur_pair)
         s_params[cur_pair].load_shared(s_extra, available_bytes);

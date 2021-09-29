@@ -622,7 +622,7 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(
     if (m_tally)
         {
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &bd_energy_transfer,

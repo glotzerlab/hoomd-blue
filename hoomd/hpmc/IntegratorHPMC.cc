@@ -45,6 +45,19 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
         }
 
     resetStats();
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        assert(m_comm);
+
+        m_comm->getGhostLayerWidthRequestSignal()
+            .connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
+
+        m_comm->getCommFlagsRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(
+            this);
+        }
+#endif
     }
 
 IntegratorHPMC::~IntegratorHPMC()
@@ -52,12 +65,13 @@ IntegratorHPMC::~IntegratorHPMC()
     m_exec_conf->msg->notice(5) << "Destroying IntegratorHPMC" << endl;
 
 #ifdef ENABLE_MPI
-    if (m_communicator_ghost_width_connected)
+    if (m_sysdef->isDomainDecomposed())
+        {
         m_comm->getGhostLayerWidthRequestSignal()
             .disconnect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
-    if (m_communicator_flags_connected)
         m_comm->getCommFlagsRequestSignal()
             .disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
+        }
 #endif
     }
 
@@ -173,7 +187,7 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
         result = h_counters.data[0] - m_count_step_start;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // MPI Reduction to total result values on all nodes.
         MPI_Allreduce(MPI_IN_PLACE,
@@ -238,6 +252,7 @@ void export_IntegratorHPMC(py::module& m)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &IntegratorHPMC::setCommunicator)
 #endif
+        .def("disablePatchEnergyLogOnly", &IntegratorHPMC::disablePatchEnergyLogOnly)
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
         .def_property("translation_move_probability",
                       &IntegratorHPMC::getTranslationMoveProbability,
