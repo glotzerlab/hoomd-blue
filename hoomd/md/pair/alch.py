@@ -163,7 +163,7 @@ class AlchemicalPairParticle(_HOOMDBaseObject):
     @log(requires_run=True)
     def net_aforce(self):
         """Net force in alchemical alpha space."""
-        return self._cpp_obj.net_force()
+        return self._cpp_obj.net_force
 
     def _enable(self):
         assert self._attached
