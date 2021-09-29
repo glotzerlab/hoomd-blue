@@ -15,6 +15,7 @@ HOOMD_UP_MAIN();
 #include <memory>
 #include <pybind11/pybind11.h>
 
+using namespace hoomd;
 using namespace hoomd::hpmc;
 using namespace std;
 using namespace hoomd::hpmc::detail;

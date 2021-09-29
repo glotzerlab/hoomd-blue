@@ -16,6 +16,7 @@ HOOMD_UP_MAIN();
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/RandomNumbers.h"
 
+using namespace hoomd;
 using namespace hoomd::hpmc;
 using namespace hoomd::hpmc::detail;
 using namespace std;
