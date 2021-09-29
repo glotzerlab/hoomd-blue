@@ -65,7 +65,7 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
                                                access_mode::read);
 
         m_tuner->begin();
-        gpu_load_balance_mark_rank(d_comm_flag.data,
+        kernel::gpu_load_balance_mark_rank(d_comm_flag.data,
                                    d_pos.data,
                                    d_cart_ranks.data,
                                    m_decomposition->getGridPos(),
@@ -89,7 +89,7 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
                                               access_mode::overwrite);
 
         // size the temporary storage
-        const unsigned int n_off_rank = gpu_load_balance_select_off_rank(d_off_ranks.data,
+        const unsigned int n_off_rank = kernel::gpu_load_balance_select_off_rank(d_off_ranks.data,
                                                                          d_comm_flag.data,
                                                                          m_pdata->getN(),
                                                                          m_exec_conf->getRank());

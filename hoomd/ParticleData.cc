@@ -3188,7 +3188,7 @@ void ParticleData::addParticles(const std::vector<detail::pdata_element>& in)
  *        no ghost particles are present, because ghost particle values
  *        are undefined after calling this method.
  */
-void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out,
+void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
                                       GlobalVector<unsigned int>& comm_flags)
     {
     if (m_prof)
@@ -3294,7 +3294,7 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out,
 
             {
             // Access output array
-            ArrayHandle<pdata_element> d_out(out, access_location::device, access_mode::overwrite);
+            ArrayHandle<detail::pdata_element> d_out(out, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_comm_flags_out(comm_flags,
                                                        access_location::device,
                                                        access_mode::overwrite);
@@ -3304,7 +3304,7 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out,
 
             m_exec_conf->beginMultiGPU();
 
-            n_out = gpu_pdata_remove(getN(),
+            n_out = kernel::gpu_pdata_remove(getN(),
                                      d_pos.data,
                                      d_vel.data,
                                      d_accel.data,
@@ -3389,7 +3389,8 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out,
     }
 
 //! Add new particle data (GPU version)
-void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
+void ParticleData::addParticlesGPU(const GlobalVector<detail::
+                                   pdata_element>& in)
     {
     if (m_prof)
         m_prof->push(m_exec_conf, "unpack");
@@ -3445,10 +3446,10 @@ void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
                                                access_mode::readwrite);
 
         // Access input array
-        ArrayHandle<pdata_element> d_in(in, access_location::device, access_mode::read);
+        ArrayHandle<detail::pdata_element> d_in(in, access_location::device, access_mode::read);
 
         // add new particles on GPU
-        gpu_pdata_add_particles(old_nparticles,
+        kernel::gpu_pdata_add_particles(old_nparticles,
                                 num_add_ptls,
                                 d_pos.data,
                                 d_vel.data,

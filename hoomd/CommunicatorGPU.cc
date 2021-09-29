@@ -59,10 +59,10 @@ void CommunicatorGPU::allocateBuffers()
     /*
      * Particle migration
      */
-    GlobalVector<pdata_element> gpu_sendbuf(m_exec_conf);
+    GlobalVector<detail::pdata_element> gpu_sendbuf(m_exec_conf);
     m_gpu_sendbuf.swap(gpu_sendbuf);
 
-    GlobalVector<pdata_element> gpu_recvbuf(m_exec_conf);
+    GlobalVector<detail::pdata_element> gpu_recvbuf(m_exec_conf);
     m_gpu_recvbuf.swap(gpu_recvbuf);
 
     // Communication flags for every particle sent
@@ -1841,7 +1841,7 @@ void CommunicatorGPU::migrateParticles()
             // resize keys
             m_send_keys.resize(m_gpu_sendbuf.size());
 
-            ArrayHandle<pdata_element> d_gpu_sendbuf(m_gpu_sendbuf,
+            ArrayHandle<detail::pdata_element> d_gpu_sendbuf(m_gpu_sendbuf,
                                                      access_location::device,
                                                      access_mode::readwrite);
             ArrayHandle<unsigned int> d_send_keys(m_send_keys,
@@ -1865,7 +1865,7 @@ void CommunicatorGPU::migrateParticles()
             // get temporary buffers
             size_t nsend = m_gpu_sendbuf.size();
             CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
-            ScopedAllocation<pdata_element> d_in_copy(alloc, nsend);
+            ScopedAllocation<detail::pdata_element> d_in_copy(alloc, nsend);
             ScopedAllocation<unsigned int> d_tmp(alloc, nsend);
 
             gpu_sort_migrating_particles(m_gpu_sendbuf.size(),
@@ -1977,17 +1977,17 @@ void CommunicatorGPU::migrateParticles()
                 m_prof->push(m_exec_conf, "MPI send/recv");
 
 #if defined(ENABLE_MPI_CUDA)
-            ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf,
+            ArrayHandle<detail::pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf,
                                                           access_location::device,
                                                           access_mode::read);
-            ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf,
+            ArrayHandle<detail::pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf,
                                                           access_location::device,
                                                           access_mode::overwrite);
 #else
-            ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf,
+            ArrayHandle<detail::pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf,
                                                           access_location::host,
                                                           access_mode::read);
-            ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf,
+            ArrayHandle<detail::pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf,
                                                           access_location::host,
                                                           access_mode::overwrite);
 #endif
@@ -2012,7 +2012,7 @@ void CommunicatorGPU::migrateParticles()
                               n_send_ptls[ineigh],
                               m_mpi_pdata_element,
 #else
-                              n_send_ptls[ineigh] * sizeof(pdata_element),
+                              n_send_ptls[ineigh] * sizeof(detail::pdata_element),
                               MPI_BYTE,
 #endif
                               neighbor,
@@ -2021,7 +2021,7 @@ void CommunicatorGPU::migrateParticles()
                               &req);
                     reqs.push_back(req);
                     }
-                send_bytes += (unsigned int)(n_send_ptls[ineigh] * sizeof(pdata_element));
+                send_bytes += (unsigned int)(n_send_ptls[ineigh] * sizeof(detail::pdata_element));
 
                 if (n_recv_ptls[ineigh])
                     {
@@ -2030,7 +2030,7 @@ void CommunicatorGPU::migrateParticles()
                               n_recv_ptls[ineigh],
                               m_mpi_pdata_element,
 #else
-                              n_recv_ptls[ineigh] * sizeof(pdata_element),
+                              n_recv_ptls[ineigh] * sizeof(detail::pdata_element),
                               MPI_BYTE,
 #endif
                               neighbor,
@@ -2039,7 +2039,7 @@ void CommunicatorGPU::migrateParticles()
                               &req);
                     reqs.push_back(req);
                     }
-                recv_bytes += (unsigned int)(n_recv_ptls[ineigh] * sizeof(pdata_element));
+                recv_bytes += (unsigned int)(n_recv_ptls[ineigh] * sizeof(detail::pdata_element));
                 }
 
             std::vector<MPI_Status> stats(reqs.size());
@@ -2050,7 +2050,7 @@ void CommunicatorGPU::migrateParticles()
             }
 
             {
-            ArrayHandle<pdata_element> d_gpu_recvbuf(m_gpu_recvbuf,
+            ArrayHandle<detail::pdata_element> d_gpu_recvbuf(m_gpu_recvbuf,
                                                      access_location::device,
                                                      access_mode::readwrite);
             const BoxDim shifted_box = getShiftedBox();

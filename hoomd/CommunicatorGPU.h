@@ -166,8 +166,8 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     std::vector<int> m_stages;             //!< Communication stage per unique neighbor
 
     /* Particle migration */
-    GlobalVector<pdata_element> m_gpu_sendbuf; //!< Send buffer for particle data
-    GlobalVector<pdata_element> m_gpu_recvbuf; //!< Receive buffer for particle data
+    GlobalVector<detail::pdata_element> m_gpu_sendbuf; //!< Send buffer for particle data
+    GlobalVector<detail::pdata_element> m_gpu_recvbuf; //!< Receive buffer for particle data
     GlobalVector<unsigned int> m_comm_flags;   //!< Output buffer for communication flags
 
     GlobalVector<unsigned int> m_send_keys; //!< Destination rank for particles

@@ -248,7 +248,7 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
     const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
     // access the parameters
-    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type>>&
+    auto&
         params
         = this->m_mc->getParams();
 

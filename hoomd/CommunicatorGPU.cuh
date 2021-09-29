@@ -58,7 +58,7 @@ void gpu_stage_particles(const unsigned int n,
     \param alloc Caching allocator
  */
 void gpu_sort_migrating_particles(const size_t nsend,
-                                  pdata_element* d_in,
+                                  detail::pdata_element* d_in,
                                   const unsigned int* d_comm_flags,
                                   const Index3D& di,
                                   const uint3 my_pos,
@@ -70,11 +70,11 @@ void gpu_sort_migrating_particles(const size_t nsend,
                                   const unsigned int nneigh,
                                   const unsigned int mask,
                                   unsigned int* d_tmp,
-                                  pdata_element* d_in_copy,
+                                  detail::pdata_element* d_in_copy,
                                   CachedAllocator& alloc);
 
 //! Apply boundary conditions
-void gpu_wrap_particles(const unsigned int n_recv, pdata_element* d_in, const BoxDim& box);
+void gpu_wrap_particles(const unsigned int n_recv, detail::pdata_element* d_in, const BoxDim& box);
 
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls, unsigned int* d_delete_tags, unsigned int* d_rtag);
