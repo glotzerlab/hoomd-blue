@@ -170,19 +170,29 @@ def test_cpp_potential(device, positions, orientations, result,
 
     sim = simulation_factory(two_particle_snapshot_factory(d=2, L=100))
 
-    r_cut = sim.state.box.Lx / 2.
-    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=r_cut,
-                                              code=dipole_dipole.format(r_cut))
+    r_cut = sim.state.box.Lx / 2. * 0.4
+    patch = hoomd.hpmc.pair.user.CPPPotential(
+            r_cut=r_cut,
+            code=dipole_dipole.format(r_cut))
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.potential = patch
 
     sim.operations.integrator = mc
-    with sim.state.cpu_local_snapshot as data:
-        data.particles.position[0, :] = positions[0]
-        data.particles.position[1, :] = positions[1]
-        data.particles.orientation[0, :] = orientations[0]
-        data.particles.orientation[1, :] = orientations[1]
+
+    snap = sim.state.get_snapshot()
+    if snap.communicator.rank == 0:
+        snap.particles.position[0, :] = positions[0]
+        snap.particles.position[1, :] = positions[1]
+        snap.particles.orientation[0, :] = orientations[0]
+        snap.particles.orientation[1, :] = orientations[1]
+    sim.state.set_snapshot(snap)
+
+    # with sim.state.cpu_local_snapshot as data:
+    #     data.particles.position[0, :] = positions[0]
+    #     data.particles.position[1, :] = positions[1]
+    #     data.particles.orientation[0, :] = orientations[0]
+    #     data.particles.orientation[1, :] = orientations[1]
     sim.run(0)
 
     assert np.isclose(patch.energy, result)
@@ -226,9 +236,11 @@ def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = mc
 
     dist = 1
-    with sim.state.cpu_local_snapshot as data:
-        data.particles.position[0, :] = (0, 0, 0)
-        data.particles.position[1, :] = (dist, 0, 0)
+    snap = sim.state.get_snapshot()
+    if snap.communicator.rank == 0:
+        snap.particles.position[0, :] = (0, 0, 0)
+        snap.particles.position[1, :] = (dist, 0, 0)
+    sim.state.set_snapshot(snap)
 
     sim.run(0)
     # set alpha to sensible LJ values: [rcut, sigma, epsilon]
