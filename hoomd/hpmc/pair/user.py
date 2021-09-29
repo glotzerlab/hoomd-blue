@@ -283,6 +283,11 @@ class CPPUnionPotential(CPPPotentialBase):
                 ``param_array`` in the compiled code.
 
     Note:
+        This class is not implemented to run on the GPU. When running on the
+        GPU, attempting to attach an object of this type will raise a
+        `NotImplemetedError`.
+
+    Note:
         This class uses an internal OBB tree for fast interaction queries
         between constituents of interacting particles.
         Depending on the number of constituent particles per type in the tree,
@@ -465,6 +470,9 @@ class CPPUnionPotential(CPPPotentialBase):
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
+            msg = 'Running with a CPPUnionPotential on the GPU is not '
+            msg += 'implemented.'
+            raise NotImplementedError(msg)
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
             gpu_code_isotropic = self._wrap_gpu_code(self._code_isotropic)
