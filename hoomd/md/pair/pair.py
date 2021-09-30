@@ -273,6 +273,7 @@ class LJ(Pair):
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
+        tail_correction (bool): Whether to apply a tail correction.
 
     `LJ` specifies that a Lennard-Jones pair potential should be
     applied between every non-excluded particle pair in the simulation.
@@ -311,8 +312,14 @@ class LJ(Pair):
     """
     _cpp_class_name = "PotentialPairLJ"
 
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
-        super().__init__(nlist, default_r_cut, default_r_on, mode)
+    def __init__(self,
+                 nlist,
+                 default_r_cut=None,
+                 default_r_on=0.,
+                 mode='none',
+                 tail_correction=False):
+        super().__init__(nlist, default_r_cut, default_r_on, mode,
+                         tail_correction)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
