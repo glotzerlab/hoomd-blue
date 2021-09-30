@@ -394,12 +394,6 @@ class MoveSize(_InternalCustomTuner):
                 considered tuned. The tolerance should not be too much lower
                 than the default of 0.01 as acceptance rates can vary
                 significantly at typical tuning rates.
-
-        Note:
-            Increasing ``gamma`` towards 1 does not necessarily speed up
-            convergence and can slow it down. In addition, large values of
-            ``gamma`` can make the solver unstable, especially when tuning
-            frequently.
         """
         solver = ScaleSolver(max_scale, gamma, 'negative', tol)
         return cls(trigger, moves, target, solver, types, max_translation_move,
