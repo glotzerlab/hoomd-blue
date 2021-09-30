@@ -53,15 +53,15 @@ class CPPExternalField(_HOOMDBaseObject):
     * Your code *must* return a value.
 
     Example:
+        .. code-block:: python
 
-    .. code-block:: python
-
-        gravity_code = "return r_i.z + box.getL().z/2;"
-        gravity = hoomd.hpmc.external.user.CPPExternalField(code=gravity_code)
-        mc.field = gravity
+            grav_code = "return r_i.z + box.getL().z/2;"
+            gravity = hoomd.hpmc.external.user.CPPExternalField(code=grav_code)
+            mc.field = gravity
 
     Note:
         `CPPExternalField` does not support execution on GPUs.
+
     """
 
     def __init__(self, code):
