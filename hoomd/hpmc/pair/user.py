@@ -404,9 +404,7 @@ class CPPUnionPotential(CPPPotentialBase):
         )
 
         param_dict['param_array_constituent'] = NDArrayValidator(
-            dtype=np.float32,
-            shape=(None,)
-        )
+            dtype=np.float32, shape=(None,))
 
         if param_array_constituent is None:
             param_dict['param_array_constituent'] = np.array([])
@@ -494,8 +492,8 @@ class CPPUnionPotential(CPPPotentialBase):
             self._cpp_obj = _jit.PatchEnergyJITUnion(
                 self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
                 cpu_code_isotropic, cpu_include_options, self.r_cut_isotropic,
-                self.param_array, cpu_code_constituent,
-                self.r_cut_constituent, self.param_array_constituent)
+                self.param_array, cpu_code_constituent, self.r_cut_constituent,
+                self.param_array_constituent)
         # attach patch object to the integrator
         super()._attach()
 
