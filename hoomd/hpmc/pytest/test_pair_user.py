@@ -155,12 +155,6 @@ def test_cpp_potential(device, positions, orientations, result,
         snap.particles.orientation[0, :] = orientations[0]
         snap.particles.orientation[1, :] = orientations[1]
     sim.state.set_snapshot(snap)
-
-    # with sim.state.cpu_local_snapshot as data:
-    #     data.particles.position[0, :] = positions[0]
-    #     data.particles.position[1, :] = positions[1]
-    #     data.particles.orientation[0, :] = orientations[0]
-    #     data.particles.orientation[1, :] = orientations[1]
     sim.run(0)
 
     assert np.isclose(patch.energy, result)
