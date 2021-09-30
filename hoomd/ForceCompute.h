@@ -145,14 +145,14 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         }
 
     //! Get the contribution to the external virial
-    Scalar getExternalVirial(unsigned int dir)
+    virtual Scalar getExternalVirial(unsigned int dir)
         {
         assert(dir < 6);
         return m_external_virial[dir];
         }
 
     //! Get the contribution to the external potential energy
-    Scalar getExternalEnergy()
+    virtual Scalar getExternalEnergy()
         {
         return m_external_energy;
         }
