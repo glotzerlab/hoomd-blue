@@ -123,7 +123,7 @@ class Custom(Force):
         self._in_context_manager = False
 
     def _attach(self):
-        self._cpp_obj = _hoomd.ConstForceCompute(self._simulation._cpp_sys_def)
+        self._cpp_obj = _hoomd.CustomForceCompute(self._simulation._cpp_sys_def)
         self._cpp_obj.setCallback(self.set_forces)
         super()._attach()
         self._state = self._simulation.state

@@ -231,8 +231,8 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, For
     {
     public;
     LocalForceComputeData(ForceCompute& data)
-        : LocalDataAccess<Output, ForceCompute>(data), m_force_handle(), m_torque_handle(),
-        m_virial_handle()
+        : LocalDataAccess<Output, ForceCompute>(data), m_force_handle(), m_torque_handle()
+        //m_virial_handle()
         {
         }
 
