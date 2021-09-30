@@ -217,7 +217,7 @@ template<class evaluator> class PotentialPair : public ForceCompute
                     num_particles_by_type[typeid_i] += 1;
                     }
 
-                m_external_virial[dir] = 0;
+                m_external_virial[dir] = Scalar(0.0);
                 for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
                     {
                     Scalar mass_i = m_pdata->getMass(type_i);
@@ -232,11 +232,11 @@ template<class evaluator> class PotentialPair : public ForceCompute
                         // The pressure LRC, where
                         // P = \frac{2 \cdot K_{trans} + W}{D \cdot  V}
                         Scalar delta_pressure
-                            = 1 / 6 * rho_i * rho_j * 4 * M_PI * eval.evalPressureLRCIntegral();
+                            = Scalar(4.0) / Scalar(6.0) * rho_i * rho_j * M_PI * eval.evalPressureLRCIntegral();
                         // \Delta W = \Delta P (D \cdot V)
                         // We will assume that the contribution to pressure is equal
                         // in x, y, and z, so we will add 1/3 \Delta W on the diagonal
-                        m_external_virial[dir] += 1 / 3 * dimension * volume * delta_pressure;
+                        m_external_virial[dir] += dimension * volume * delta_pressure / Scalar(3.0);
                         }
                     }
 

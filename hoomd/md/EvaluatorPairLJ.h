@@ -233,7 +233,7 @@ class EvaluatorPairLJ
         // 4 \varepsilon \sigma^{6} (\frac{6r_{c}^{-3}}{3})
         Scalar rcut3inv = Scalar(1.0) / pow(rcutsq, 1.5);
         Scalar rcut9inv = rcut3inv * rcut3inv;
-        return lj1 * (-12 / 9) * rcut9inv + lj2 * (6 / 3) * rcut3inv;
+        return lj1 * Scalar(-12.0) / Scalar(9.0) * rcut9inv + lj2 * Scalar(6.0) / Scalar(3.0) * rcut3inv;
         }
 
     DEVICE Scalar evalEnergyLRCIntegral()
