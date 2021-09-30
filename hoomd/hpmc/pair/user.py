@@ -44,15 +44,16 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
     .. code::
 
-        float eval(const vec3<float>& r_ij,
-                    unsigned int type_i,
-                    const quat<float>& q_i,
-                    float d_i,
-                    float charge_i,
-                    unsigned int type_j,
-                    const quat<float>& q_j,
-                    float d_j,
-                    float charge_j)
+        float eval(const vec3<float>& r_ij,  // r_ij.x = x-component of r_ij
+                   unsigned int type_i,
+                   const quat<float>& q_i,
+                   float d_i,
+                   float charge_i,
+                   unsigned int type_j,
+                   const quat<float>& q_j,
+                   float d_j,
+                   float charge_j
+        )
 
     * ``r_ij`` is a vector pointing from the center of particle *i* to the \
         center of particle *j*.
