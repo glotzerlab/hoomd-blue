@@ -248,7 +248,7 @@ class EvaluatorPairLJ
         // 4 \varepsilon \sigma^{6} (\frac{r_{c}^{-3}}{3})
         Scalar rcut3inv = Scalar(1.0) / pow(rcutsq, 1.5);
         Scalar rcut9inv = rcut3inv * rcut3inv;
-        return lj1 * (-1 / 9) * rcut9inv + lj2 * (1 / 3) * rcut3inv;
+        return lj1 * Scalar(-9.0) * rcut9inv + lj2 / Scalar(3.0) * rcut3inv;
         }
 
 #ifndef __HIPCC__
