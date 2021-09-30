@@ -126,7 +126,6 @@ class Custom(Force):
         self._cpp_obj = _hoomd.CustomForceCompute(self._simulation._cpp_sys_def)
         self._cpp_obj.setCallback(self.set_forces)
         super()._attach()
-        self._state = self._simulation.state
 
     @property
     def cpu_local_force_arrays(self):
