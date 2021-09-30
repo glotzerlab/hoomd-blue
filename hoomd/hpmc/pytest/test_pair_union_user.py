@@ -15,7 +15,7 @@ valid_constructor_args = [
     dict(
         r_cut_isotropic=3,
         r_cut_constituent=2.0,
-        param_array_isotropic=[0, 1],
+        param_array=[0, 1],
         param_array_constituent=[2.0, 4.0],
         code_isotropic='return -1;',
         code_constituent='return -2;',
@@ -23,7 +23,7 @@ valid_constructor_args = [
     dict(
         r_cut_isotropic=1.0,
         r_cut_constituent=3.0,
-        param_array_isotropic=[1, 2, 3, 4],
+        param_array=[1, 2, 3, 4],
         param_array_constituent=[1, 2, 3, 4],
         code_isotropic='return -1;',
         code_constituent='return 0;',
@@ -64,12 +64,7 @@ def test_valid_construction_cpp_union_potential(device, constructor_args):
     patch = hoomd.hpmc.pair.user.CPPUnionPotential(**constructor_args)
 
     # validate the params were set properly
-    # note that the constituent and isotropic codes do not get stored in the
-    # object's param dict, but they do get saved as a prive member in the
-    # python object, so we prepend a '_' to the code attributes in this test
     for attr, value in constructor_args.items():
-        if attr in ['code_constituent', 'code_isotropic']:
-            attr = f'_{attr}'
         try:
             assert getattr(patch, attr) == value
         except ValueError:
@@ -108,8 +103,6 @@ def test_valid_construction_and_attach_cpp_union_potential(
 
         # validate the params were set properly
         for attr, value in constructor_args.items():
-            if attr in ['code_constituent', 'code_isotropic']:
-                attr = f'_{attr}'
             try:
                 assert getattr(patch, attr) == value
             except ValueError:  # array-like
@@ -155,6 +148,12 @@ def test_valid_setattr_attached_cpp_union_potential(
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
 
+    # ensure we raise the right error on gpu
+    if isinstance(device, hoomd.device.GPU):
+        with pytest.raises(NotImplementedError):
+            sim.run(0)
+        return
+
     # create C++ mirror classes and set parameters
     sim.run(0)
 
@@ -188,13 +187,19 @@ def test_raise_attr_error_cpp_union_potential(device, attr, val,
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
-    sim.run(0)
+
+    # ensure we raise the right error on gpu
+    if isinstance(device, hoomd.device.GPU):
+        with pytest.raises(NotImplementedError):
+            sim.run(0)
+        return
 
     # make sure the AttributeError gets raised when trying to change the
     # properties that cannot be changed after attachment
     # in this case, this is the jit-compiled code, because it gets compiled
     # upon attachment, so changing after attaching would return code that does
     # not reflect what was attached
+    sim.run(0)
     with pytest.raises(AttributeError):
         setattr(patch, attr, val)
 
@@ -231,7 +236,7 @@ def test_param_array_union(device, simulation_factory,
     r_cut_iso = 5
     params = dict(
         code_isotropic=square_well_isotropic,
-        param_array_isotropic=[2.5, 1.0],
+        param_array=[2.5, 1.0],
         r_cut_isotropic=r_cut_iso,
         code_constituent=square_well_constituent,
         param_array_constituent=[1.5, 3.0],
@@ -252,6 +257,12 @@ def test_param_array_union(device, simulation_factory,
     mc.potential = patch
     sim.operations.integrator = mc
 
+    # ensure we raise the right error on gpu
+    if isinstance(device, hoomd.device.GPU):
+        with pytest.raises(NotImplementedError):
+            sim.run(0)
+        return
+
     # first test the case where r_cut_isotropic = 0, so particles only interact
     # through the constituent particles
     # there's 2 cases here, one where they interact with only 1 other
@@ -259,8 +270,8 @@ def test_param_array_union(device, simulation_factory,
     # neighboring constituent particles
 
     # first, only interact with nearest neighboring constituent particle
-    patch.param_array_isotropic[0] = 0.0
-    patch.param_array_isotropic[1] = -1.0
+    patch.param_array[0] = 0.0
+    patch.param_array[1] = -1.0
     patch.param_array_constituent[0] = 1.1
     patch.param_array_constituent[1] = -1.0
     sim.run(0)
@@ -275,8 +286,8 @@ def test_param_array_union(device, simulation_factory,
     # now add a respulsive interaction between the union centers
     # and increase its r_cut so that the particle centers interact
     # this should increase the energy by 1 unit
-    patch.param_array_isotropic[0] = 2.0
-    patch.param_array_isotropic[1] = 1.0
+    patch.param_array[0] = 2.0
+    patch.param_array[1] = 1.0
     sim.run(0)
     assert (np.isclose(patch.energy, -3.0))
 
@@ -288,11 +299,11 @@ def test_param_array_union(device, simulation_factory,
 
     # change epsilon of center-center interaction to make it attractive
     # to make sure that change is reflected in the energy
-    patch.param_array_isotropic[1] = -1.0
+    patch.param_array[1] = -1.0
     sim.run(0)
     assert (np.isclose(patch.energy, -1.0))
 
     # set both r_cuts to zero to make sure no particles interact
-    patch.param_array_isotropic[0] = 0
+    patch.param_array[0] = 0
     sim.run(0)
     assert (np.isclose(patch.energy, 0.0))

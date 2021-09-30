@@ -87,6 +87,9 @@ class CPPPotentialBase(_HOOMDBaseObject):
         else:
             param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
+        # not storing in the param_dict because this can only be set
+        # before the object is attached to the integrator, thus it
+        # requires special handling
         self._code = code
 
     @log(requires_run=True)
@@ -266,13 +269,13 @@ class CPPUnionPotential(CPPPotentialBase):
         r_cut_constituent (`float`): Constituent particle center to center
                 distance cutoff beyond which all pair interactions are assumed
                 0.
-        r_cut_isotropic (`float`, **default** 0): Cut-off for isotropic
-                interaction between centers of union particles.
         code_constituent (`str`): C++ code defining the custom pair
                 interactions between constituent particles.
-        code_isotropic (`str`): C++ code for isotropic part of the interaction.
         param_array_constituent (list[float]): Parameter values to pass into
                 ``param_array_constituent`` in the compiled code.
+        r_cut_isotropic (`float`, **default** 0): Cut-off for isotropic
+                interaction between centers of union particles.
+        code_isotropic (`str`): C++ code for isotropic part of the interaction.
         param_array (list[float]): Parameter values to pass into
                 ``param_array`` in the compiled code.
 
@@ -370,7 +373,7 @@ class CPPUnionPotential(CPPPotentialBase):
             code_union=square_well,
             code_isotropic=soft_repulsion,
             param_array_constituent=[2.0, -5.0],
-            param_array_isotropic=[2.5, 1.3],
+            param_array=[2.5, 1.3],
         )
         patch.positions['A'] = [
             (0, 0, -0.5),
@@ -384,41 +387,31 @@ class CPPUnionPotential(CPPPotentialBase):
 
     def __init__(self,
                  r_cut_constituent,
-                 r_cut_isotropic,
-                 code_constituent=None,
-                 code_isotropic=None,
-                 param_array_isotropic=None,
-                 param_array_constituent=None):
-
-        # if either of the codes is None, set them to return 0
-        if code_isotropic is None:
-            code_isotropic = 'return 0.0f;'
-        if code_constituent is None:
-            code_constituent = 'return 0.0f;'
+                 code_constituent,
+                 param_array_constituent=None,
+                 r_cut_isotropic=0,
+                 code_isotropic="return 0.0;",
+                 param_array=None):
 
         # initialize base class
         super().__init__(r_cut=r_cut_isotropic,
                          code=code_isotropic,
-                         param_array=param_array_isotropic)
+                         param_array=param_array)
 
-        # add union-specific params
         param_dict = ParameterDict(
             r_cut_constituent=float(r_cut_constituent),
             r_cut_isotropic=float(r_cut_isotropic),
-            leaf_capacity=int(4),  # should this be a kwarg to the constructor?
+            leaf_capacity=int(4),
         )
 
-        arrays = dict(param_array_isotropic=param_array_isotropic,
-                      param_array_constituent=param_array_constituent)
-        for array_name, array in arrays.items():
-            if array is not None:
-                array_validator = NDArrayValidator(dtype=np.float32,
-                                                   shape=(len(array),))
-                param_dict[array_name] = array_validator
-                param_dict[array_name] = array
-            else:
-                param_dict[array_name] = np.array([])
-            self._param_dict.update(param_dict)
+        param_dict['param_array_constituent'] = NDArrayValidator(
+            dtype=np.float32, shape=(None,))
+
+        if param_array_constituent is None:
+            param_dict['param_array_constituent'] = np.array([])
+        else:
+            param_dict['param_array_constituent'] = param_array_constituent
+        self._param_dict.update(param_dict)
 
         # add union specific per-type parameters
         typeparam_positions = TypeParameter(
@@ -456,9 +449,10 @@ class CPPUnionPotential(CPPPotentialBase):
             typeparam_charges, typeparam_typeids
         ])
 
-        # these only exist on python
+        # not storing in the param_dict because this can only be set
+        # before the object is attached to the integrator, thus it
+        # requires special handling
         self._code_constituent = code_constituent
-        self._code_isotropic = code_isotropic
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -469,14 +463,13 @@ class CPPUnionPotential(CPPPotentialBase):
             raise RuntimeError("Integrator is not attached yet.")
 
         cpu_code_constituent = self._wrap_cpu_code(self._code_constituent)
-        cpu_code_isotropic = self._wrap_cpu_code(self._code_isotropic)
+        cpu_code_isotropic = self._wrap_cpu_code(self._code)
         cpu_include_options = _compile.get_cpu_include_options()
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
-            msg = 'Running with a CPPUnionPotential on the GPU is not '
-            msg += 'implemented.'
-            raise NotImplementedError(msg)
+            raise NotImplementedError("Running with a CPPUnionPotential \
+                on the GPU is not implemented")
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
             gpu_code_constituent = self._wrap_gpu_code(self._code_constituent)
@@ -486,7 +479,7 @@ class CPPUnionPotential(CPPPotentialBase):
                 cpu_code_isotropic,
                 cpu_include_options,
                 self.r_cut_isotropic,
-                self.param_array_isotropic,
+                self.param_array,
                 cpu_code_constituent,
                 self.r_cut_constituent,
                 self.param_array_constituent,
@@ -500,8 +493,8 @@ class CPPUnionPotential(CPPPotentialBase):
             self._cpp_obj = _jit.PatchEnergyJITUnion(
                 self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
                 cpu_code_isotropic, cpu_include_options, self.r_cut_isotropic,
-                self.param_array_isotropic, cpu_code_constituent,
-                self.r_cut_constituent, self.param_array_constituent)
+                self.param_array, cpu_code_constituent, self.r_cut_constituent,
+                self.param_array_constituent)
         # attach patch object to the integrator
         super()._attach()
 
@@ -518,9 +511,8 @@ class CPPUnionPotential(CPPPotentialBase):
     @code_constituent.setter
     def code_constituent(self, code):
         if self._attached:
-            msg = "The attribute 'code_constituent' can only be set when the "
-            msg += "object is not attached."
-            raise AttributeError(msg)
+            raise AttributeError("This attribute can only be set before the \
+                                  object is attached.")
         else:
             self._code_constituent = code
 
@@ -532,13 +524,12 @@ class CPPUnionPotential(CPPPotentialBase):
         This returns the code that was passed into the class constructor, which
         contains only the body of the patch energy kernel.
         """
-        return self._code_isotropic
+        return self._code
 
     @code_isotropic.setter
     def code_isotropic(self, code):
         if self._attached:
-            msg = "The attribute 'code_isotropic' can only be set when the "
-            msg += "object is not attached."
-            raise AttributeError(msg)
+            raise AttributeError("This attribute can only be set before the \
+                                  object is attached.")
         else:
-            self._code_isotropic = code
+            self._code = code
