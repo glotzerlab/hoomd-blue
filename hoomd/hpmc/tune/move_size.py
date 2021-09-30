@@ -322,37 +322,7 @@ class MoveSize(_InternalCustomTuner):
         approach the target value, while the per-type acceptance ratios may not
         be close to the target value. This requires creating move size tuners
         for each type and leveraging the ``ignore_statistics`` flag of the shape
-        property of the HPMC integrator; see below for an example.
-
-    ::
-
-        mc_tuners = {}
-        for ptype in sim.state.particle_types:
-            mc_tuners[ptype] = hoomd.hpmc.tune.MoveSize.scale_solver(
-                moves=['a', 'd'],
-                target=0.2,
-                types=[ptype],
-                trigger=hoomd.trigger.Periodic(1),
-                max_translation_move=2*max_r,
-                max_rotation_move=1.0,
-            )
-            # get shape params, modify, and re-set
-            td = mc.shape[ptype]
-            td['ignore_statistics'] = True
-            mc.shape[ptype] = td
-
-        # now loop through and only acknowledge statistics of 1 type at a time
-        for acknowledged_type in sim.state.particle_types:
-            sim.operations.tuners.append(mc_tuners[acknowledged_type])
-            td = mc.shape[acknowledged_type]
-            td['ignore_statistics'] = False
-            mc.shape[acknowledged_type] = td
-            for _ in range(10):
-                sim.run(10)
-            td = mc.shape[acknowledged_type]
-            td['ignore_statistics'] = True
-            mc.shape[acknowledged_type] = td
-            sim.operations.tuners.remove(mc_tuners[acknowledged_type])
+        property of the HPMC integrator.
 
     """
     _internal_class = _InternalMoveSize
