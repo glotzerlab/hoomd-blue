@@ -246,7 +246,7 @@ class CPPPotential(CPPPotentialBase):
 
     @property
     def code(self):
-        """str: the code defining the isotropic pair interactions"""
+        """str: the code defining the isotropic pair interactions."""
         return self._code
 
     @code.setter
