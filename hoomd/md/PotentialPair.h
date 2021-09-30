@@ -218,11 +218,11 @@ template<class evaluator> class PotentialPair : public ForceCompute
                     }
 
                 m_external_virial[dir] = 0;
-                for (int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
+                for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
                     {
                     Scalar mass_i = m_pdata->getMass(type_i);
                     Scalar rho_i = num_particles_by_type[type_i] * mass_i / volume;
-                    for (int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                    for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
                         {
                         Scalar mass_j = m_pdata->getMass(type_j);
                         Scalar rho_j = num_particles_by_type[type_j] * mass_j / volume;
@@ -268,17 +268,17 @@ template<class evaluator> class PotentialPair : public ForceCompute
             bool is_two_dimensions = m_sysdef->getNDimensions() == 2;
             Scalar volume = box.getVolume(is_two_dimensions);
 
-            m_external_energy = 0;
-            for (int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
+            m_external_energy = Scalar(0.0);
+            for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
                 {
-                for (int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
                     {
                     Scalar mass = m_pdata->getMass(type_j);
                     Scalar rho = num_particles_by_type[type_j] * mass / volume;
                     evaluator eval(Scalar(0.0),
                                    h_rcutsq.data[m_typpair_idx(type_i, type_j)],
                                    m_params[m_typpair_idx(type_i, type_j)]);
-                    m_external_energy += 1 / 2 * num_particles_by_type[type_i] * 4 * M_PI * rho
+                    m_external_energy += Scalar(2.0) * num_particles_by_type[type_i] * M_PI * rho
                                          * eval.evalEnergyLRCIntegral();
                     }
                 }
