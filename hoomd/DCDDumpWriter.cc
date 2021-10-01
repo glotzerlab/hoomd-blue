@@ -161,7 +161,7 @@ void DCDDumpWriter::analyze(uint64_t timestep)
 
 #ifdef ENABLE_MPI
     // if we are not the root processor, do not perform file I/O
-    if (m_comm && !m_exec_conf->isRoot())
+    if (m_sysdef->isDomainDecomposed() && !m_exec_conf->isRoot())
         {
         if (m_prof)
             m_prof->pop();

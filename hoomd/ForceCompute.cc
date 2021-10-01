@@ -216,7 +216,7 @@ Scalar ForceCompute::calcEnergySum()
         pe_total += (double)h_force.data[i].w;
         }
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // reduce potential energy on all processors
         MPI_Allreduce(MPI_IN_PLACE,
@@ -247,7 +247,7 @@ Scalar ForceCompute::calcEnergyGroup(std::shared_ptr<ParticleGroup> group)
         pe_total += (double)h_force.data[j].w;
         }
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // reduce potential energy on all processors
         MPI_Allreduce(MPI_IN_PLACE,
@@ -277,7 +277,7 @@ vec3<double> ForceCompute::calcForceGroup(std::shared_ptr<ParticleGroup> group)
         f_total += (vec3<double>)h_force.data[j];
         }
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // reduce potential energy on all processors
         MPI_Allreduce(MPI_IN_PLACE,
@@ -309,7 +309,7 @@ std::vector<Scalar> ForceCompute::calcVirialGroup(std::shared_ptr<ParticleGroup>
             total_virial[i] += h_virial.data[m_virial_pitch * i + j];
         }
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // reduce potential energy on all processors
         MPI_Allreduce(MPI_IN_PLACE,

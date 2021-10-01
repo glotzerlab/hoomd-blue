@@ -80,12 +80,6 @@ class PYBIND11_EXPORT System
 
     //! Sets the communicator
     void setCommunicator(std::shared_ptr<Communicator> comm);
-
-    //! Returns the communicator
-    std::shared_ptr<Communicator> getCommunicator()
-        {
-        return m_comm;
-        }
 #endif
 
     // -------------- Methods for running the simulation
@@ -189,8 +183,10 @@ class PYBIND11_EXPORT System
     std::shared_ptr<Profiler> m_profiler;       //!< Profiler to profile runs
 
 #ifdef ENABLE_MPI
-    std::shared_ptr<Communicator> m_comm; //!< Communicator to use
+    /// The system's communicator.
+    std::shared_ptr<Communicator> m_comm;
 #endif
+
     uint64_t m_start_tstep; //!< Initial time step of the current run
     uint64_t m_end_tstep;   //!< Final time step of the current run
     uint64_t m_cur_tstep;   //!< Current time step

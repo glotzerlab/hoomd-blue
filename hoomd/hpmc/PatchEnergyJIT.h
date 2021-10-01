@@ -101,9 +101,22 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
         return pybind11::array(array_size, self_cpp->m_factory->getAlphaArray(), self);
         }
 
+#ifdef ENABLE_MPI
+    //! Set communicator this object is to use
+    /*! \param comm The communicator
+     */
+    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+        {
+        m_comm = comm;
+        }
+#endif
+
     protected:
     std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
     //! function pointer signature
+#ifdef ENABLE_MPI
+    std::shared_ptr<Communicator> m_comm; //!< The communicator this compute is to use
+#endif
     typedef float (*EvalFnPtr)(const vec3<float>& r_ij,
                                unsigned int type_i,
                                const quat<float>& q_i,

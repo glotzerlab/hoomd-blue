@@ -18,8 +18,6 @@ class CPPExternalField(_HOOMDBaseObject):
 
     Args:
         code (str): C++ function body to compile.
-        clang_exec (str): The clang executable to use, defaults to
-        ``'clang'``.
 
     Potentials added using external.CPPExternalField are added to the total
     energy calculation in :py:mod:`hpmc <hoomd.hpmc>` integrators. The
@@ -31,39 +29,39 @@ class CPPExternalField(_HOOMDBaseObject):
     .. rubric:: C++ code
 
     Supply C++ code to the *code* argument and :py:class:`CPPExternalField` will
-    compile the code and call it to evaluate forces. Compilation assumes that a
-    recent ``clang`` installation is on your PATH.
-
+    compile the code and call it to evaluate the energy.
     The text provided in *code* is the body of a function with the following
     signature:
 
     .. code::
 
         float eval(const BoxDim& box,
-        unsigned int type_i,
-        const vec3<Scalar>& r_i,
-        const quat<Scalar>& q_i
-        Scalar diameter,
-        Scalar charge
+                   unsigned int type_i,
+                   const vec3<Scalar>& r_i, // r_i.x = x-component of r_i
+                   const quat<Scalar>& q_i
+                   Scalar diameter,
+                   Scalar charge
         )
 
     * ``vec3`` and ``quat`` are defined in HOOMDMath.h.
     * *box* is the system box.
-    * *type_i* is the particle type.
+    * *type_i* is the (integer) particle type.
     * *r_i* is the particle position
-    * *q_i* the particle orientation.
+    * *q_i* the quaternion representing the particle orientation.
     * *diameter* the particle diameter.
     * *charge* the particle charge.
     * Your code *must* return a value.
 
     Example:
-    .. code-block:: python
+        .. code-block:: python
 
-        gravity = "return r_i.z + box.getL().z/2;"
-        external = hoomd.jit.external.CPPExternalField(code=gravity)
+            grav_code = "return r_i.z + box.getL().z/2;"
+            gravity = hoomd.hpmc.external.user.CPPExternalField(code=grav_code)
+            mc.field = gravity
 
     Note:
-        CPPExternalField does not support execution on GPUs.
+        `CPPExternalField` does not support execution on GPUs.
+
     """
 
     def __init__(self, code):
@@ -129,7 +127,8 @@ class CPPExternalField(_HOOMDBaseObject):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
-            raise RuntimeError("JIT forces are not supported on the GPU.")
+            msg = 'User-defined external fields are not supported on the GPU.'
+            raise NotImplementedError(msg)
 
         cpp_cls = integrator_pairs.get(
             self._simulation.operations.integrator.__class__, None)

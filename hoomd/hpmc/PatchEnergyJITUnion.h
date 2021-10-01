@@ -35,8 +35,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
           m_r_cut_constituent(r_cut_constituent),
           m_param_array_constituent(param_array_constituent.data(),
                                     param_array_constituent.data() + param_array_constituent.size(),
-                                    hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
-          m_r_cut_max(0.0)
+                                    hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
         {
         // build the JIT.
         m_factory_constituent
@@ -73,7 +72,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     // //! Builds OBB tree based on geometric properties of the constituent particles
     // //! and the leaf capacity. To be called every time positions, diameters and/or leaf
     // //! leaf capacity are updated.
-    void buildOBBTree();
+    virtual void buildOBBTree(unsigned int type_id);
 
     //! Set per-type typeid of constituent particles
     virtual void setTypeids(std::string type, pybind11::list typeids)
@@ -115,8 +114,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             {
             m_updated_types.push_back(pid);
             }
-        // m_build_obb = true;
-        buildOBBTree();
+        buildOBBTree(pid);
         }
 
     //! Get per-type positions of the constituent particles as a python list of 3-tuples
@@ -182,8 +180,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             {
             m_updated_types.push_back(pid);
             }
-        // m_build_obb = true;
-        buildOBBTree();
         }
 
     //! Get per-type diameters of the constituent particles as a python list
@@ -227,7 +223,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         {
         m_leaf_capacity = leaf_capacity;
         // m_build_obb = true;
-        buildOBBTree();
+        // buildOBBTree(); // TODO: loop over all types
         }
 
     //! Get OBB leaf_capacity
@@ -239,7 +235,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     //! Get the maximum r_ij radius beyond which energies are always 0
     virtual Scalar getRCut()
         {
-        return m_r_cut_max;
+        return m_r_cut_constituent;
         }
 
     //! Override inherited setRCut() to do nothing so that m_r_cut_isotropic doesn't get set
@@ -257,7 +253,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         {
         // return cutoff for constituent particle potentials
         m_r_cut_constituent = r_cut;
-        buildOBBTree();
+        // buildOBBTree();  // TODO: investigate if this is needed here
         }
 
     //! Get the cut-off for constituent particles
@@ -272,7 +268,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         {
         // return cutoff for constituent particle potentials
         m_r_cut_isotropic = r_cut;
-        buildOBBTree();
+        // buildOBBTree();  // TODO: investigate if this is needed here
         }
 
     //! Get the maximum geometric extent, which is added to the cutoff, per type
@@ -351,7 +347,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         m_param_array_constituent; //!< Data array for constituent particles
     std::vector<unsigned int>
         m_updated_types; //!< List of types whose geometric properties were updated
-    Scalar m_r_cut_max;  //!< Max of r_cut_isotropic and and r_cut_constituent+max_const_ptl_dist
     };
 
 namespace detail {

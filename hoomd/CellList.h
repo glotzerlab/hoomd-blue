@@ -399,6 +399,11 @@ class PYBIND11_EXPORT CellList : public Compute
     bool m_sort_cell_list;   //!< If true, sort cell list
     bool m_compute_adj_list; //!< If true, compute the cell adjacency lists
 
+#ifdef ENABLE_MPI
+    /// The system's communicator.
+    std::shared_ptr<Communicator> m_comm;
+#endif
+
     //! Computes what the dimensions should me
     uint3 computeDimensions();
 

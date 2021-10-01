@@ -310,7 +310,7 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
         }
 
 #ifdef ENABLE_MPI
-    if (this->m_comm)
+    if (this->m_sysdef->isDomainDecomposed())
         {
         ArrayHandle<unsigned int> h_n_overlap_all(this->m_n_overlap_all,
                                                   access_location::host,

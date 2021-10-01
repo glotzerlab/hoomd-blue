@@ -11,58 +11,40 @@ namespace hoomd {
 namespace hpmc {
 
 // Builds OBB tree based on geometric properties of the constituent particles
-void PatchEnergyJITUnion::buildOBBTree()
+void PatchEnergyJITUnion::buildOBBTree(unsigned int type)
     {
-    // if (m_build_obb)
+    unsigned int N = (unsigned int)m_position[type].size();
+    hpmc::detail::OBB* obbs = new hpmc::detail::OBB[N];
+    // extract member parameters, positions, and orientations and compute the rcut along the
+    // way
+    Scalar extent_i = 0.0; // 2x the dist of farthest-away constituent particle of type i,
+                           // used for r_cut calc
+    for (unsigned int i = 0; i < N; i++)
         {
-        Scalar max_extent
-            = 0.0; // 2x the dist of farthest-away constituent (all types), used for r_cut calc
-        for (unsigned int ti = 0; ti < m_updated_types.size(); ti++)
-            {
-            unsigned int type = m_updated_types[ti];
-            unsigned int N = (unsigned int)m_position[type].size();
-            hpmc::detail::OBB* obbs = new hpmc::detail::OBB[N];
-            // extract member parameters, positions, and orientations and compute the rcut along the
-            // way
-            Scalar extent_i = 0.0; // 2x the dist of farthest-away constituent particle of type i,
-                                   // used for r_cut calc
-            for (unsigned int i = 0; i < N; i++)
-                {
-                auto pos = m_position[type][i];
+        auto pos = m_position[type][i];
 
-                // use a point-sized OBB
-                obbs[i] = hpmc::detail::OBB(pos, 0.0);
+        // use a point-sized OBB
+        obbs[i] = hpmc::detail::OBB(pos, 0.0);
 
-                Scalar r = sqrt(
-                    dot(pos, pos)); // distance from center of union to this constituent particle
-                // extent_i is twice the distance to the farthest particle, so is ~ the circumsphere
-                // diameter
-                extent_i = std::max(extent_i, Scalar(2 * r));
+        // calcuate distance from center of union to this constituent particle
+        Scalar r = sqrt(dot(pos, pos));
 
-                // we do not support exclusions
-                obbs[i].mask = 1;
-                }
+        // extent_i is twice the distance to the farthest particle, so is ~ the circumsphere
+        // diameter
+        extent_i = std::max(extent_i, Scalar(2 * r));
 
-            // set the diameter
-            m_extent_type[type] = extent_i;
-
-            // update max_extent
-            max_extent = std::max(max_extent, extent_i);
-
-            // update m_r_cut_max
-            Scalar r_cut_max = std::max(m_r_cut_isotropic, max_extent + m_r_cut_constituent);
-            m_r_cut_max = std::max(m_r_cut_max, r_cut_max);
-
-            // build tree and store proxy structure
-            hpmc::detail::OBBTree tree;
-            tree.buildTree(obbs, N, m_leaf_capacity, false);
-            delete[] obbs;
-            m_tree[type] = hpmc::detail::GPUTree(tree, m_managed_memory);
-            }
-
-        m_updated_types.clear();
-        // m_build_obb = false;
+        // we do not support exclusions
+        obbs[i].mask = 1;
         }
+
+    // set the diameter
+    m_extent_type[type] = extent_i;
+
+    // build tree and store proxy structure
+    hpmc::detail::OBBTree tree;
+    tree.buildTree(obbs, N, m_leaf_capacity, false);
+    delete[] obbs;
+    m_tree[type] = hpmc::detail::GPUTree(tree, m_managed_memory);
     }
 
 float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,

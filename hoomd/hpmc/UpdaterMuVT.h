@@ -840,7 +840,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
             overlap_count = overlap;
 
 #ifdef ENABLE_MPI
-            if (this->m_comm)
+            if (this->m_sysdef->isDomainDecomposed())
                 {
                 MPI_Allreduce(MPI_IN_PLACE,
                               &overlap_count,
@@ -1044,7 +1044,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                     }
 
 #ifdef ENABLE_MPI
-                if (m_comm)
+                if (m_sysdef->isDomainDecomposed())
                     {
                     bcast(type, 0, m_exec_conf->getMPICommunicator());
                     }
@@ -1146,7 +1146,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                         }
                     }
 
-                if (m_comm)
+                if (m_sysdef->isDomainDecomposed())
                     {
                     bcast(lnboltzmann, 0, m_exec_conf->getMPICommunicator());
                     bcast(nonzero, 0, m_exec_conf->getMPICommunicator());
@@ -1346,7 +1346,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                 }
 
 #ifdef ENABLE_MPI
-            if (m_gibbs && m_comm)
+            if (m_gibbs && m_sysdef->isDomainDecomposed())
                 {
                 bcast(accept, 0, m_exec_conf->getMPICommunicator());
                 }
@@ -1444,7 +1444,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                 }
             }
 
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             bcast(V_new, 0, m_exec_conf->getMPICommunicator());
             }
@@ -1591,7 +1591,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
                 }
             }
 
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             bcast(accept, 0, m_exec_conf->getMPICommunicator());
             }
@@ -1635,7 +1635,7 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 #endif
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // We have inserted or removed particles or changed box volume, so update ghosts
         m_mc->communicate(false);
@@ -1796,7 +1796,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                 }
 
 #ifdef ENABLE_MPI
-            if (m_comm)
+            if (m_sysdef->isDomainDecomposed())
                 {
                 MPI_Allreduce(MPI_IN_PLACE,
                               &lnboltzmann,
@@ -1868,7 +1868,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                           &req[1]);
                 MPI_Waitall(2, req, status);
                 }
-            if (this->m_comm)
+            if (this->m_sysdef->isDomainDecomposed())
                 {
                 bcast(n_insert, 0, this->m_exec_conf->getMPICommunicator());
                 }
@@ -2135,7 +2135,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
         }         // end if local
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
                       &lnboltzmann,
@@ -2255,7 +2255,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                           &req[1]);
                 MPI_Waitall(2, req, status);
                 }
-            if (this->m_comm)
+            if (this->m_sysdef->isDomainDecomposed())
                 {
                 bcast(n_insert, 0, this->m_exec_conf->getMPICommunicator());
                 }
@@ -2503,7 +2503,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep,
         }     // is_local
 
 #ifdef ENABLE_MPI
-    if (this->m_comm)
+    if (this->m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
                       &lnboltzmann,
@@ -2722,7 +2722,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(uint64_t timestep,
         }     // end is_local
 
 #ifdef ENABLE_MPI
-    if (this->m_comm)
+    if (this->m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
                       &lnboltzmann,
@@ -2913,7 +2913,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t ti
         }     // is_local
 
 #ifdef ENABLE_MPI
-    if (this->m_comm)
+    if (this->m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
                       &n_overlap,
@@ -3084,7 +3084,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep,
         }     // is_local
 
 #ifdef ENABLE_MPI
-    if (this->m_comm)
+    if (this->m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
                       &n_overlap,

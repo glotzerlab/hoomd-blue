@@ -68,17 +68,6 @@ template<class Shape> class ComputeFreeVolume : public Compute
         m_type = type_int;
         }
 
-#ifdef ENABLE_MPI
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method
-        Compute::setCommunicator(comm);
-
-        // set the communicator on the internal cell list
-        m_cl->setCommunicator(comm);
-        }
-#endif
-
     //! Analyze the current configuration
     virtual void compute(uint64_t timestep);
 
@@ -271,7 +260,7 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
         } // end lexical scope
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
                       &overlap_count,

@@ -41,10 +41,15 @@ positions_orientations_result = [
 ]
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-def test_valid_construction_cpp_potential(device, constructor_args):
-    """Test that CPPPotential can be constructed with valid arguments."""
+@pytest.mark.parametrize("attr,value", valid_attrs)
+def test_valid_behavior_before_attach_cpp_potential(device, constructor_args,
+                                                    attr, value):
+    """Test that CPPPotential can be constructed with valid arguments.
+
+    This test also tests that the properties can be modified before attaching.
+
+    """
     patch = hoomd.hpmc.pair.user.CPPPotential(**constructor_args)
 
     # validate the params were set properly
@@ -54,13 +59,18 @@ def test_valid_construction_cpp_potential(device, constructor_args):
         except ValueError:
             assert all(getattr(patch, attr) == value)
 
+    # ensure we can set properties
+    setattr(patch, attr, value)
+    assert getattr(patch, attr) == value
 
-@pytest.mark.serial
+
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
+@pytest.mark.parametrize("attr_set,value_set", valid_attrs_after_attach)
+@pytest.mark.parametrize("err_attr,err_val", attr_error)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_valid_construction_and_attach_cpp_potential(
+def test_valid_behavior_after_attach_cpp_potential(
         device, simulation_factory, two_particle_snapshot_factory,
-        constructor_args):
+        constructor_args, attr_set, value_set, err_attr, err_val):
     """Test that CPPPotential can be attached with valid arguments."""
     # create objects
     patch = hoomd.hpmc.pair.user.CPPPotential(**constructor_args)
@@ -82,70 +92,23 @@ def test_valid_construction_and_attach_cpp_potential(
         except ValueError:  # array-like
             assert all(getattr(patch, attr) == value)
 
-
-@pytest.mark.serial
-@pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_setattr_cpp_potential(device, attr, value):
-    """Test that CPPPotential can get and set attributes before attached."""
-    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2, code='return 0;')
-
-    setattr(patch, attr, value)
-    assert getattr(patch, attr) == value
-
-
-@pytest.mark.serial
-@pytest.mark.parametrize("attr,value", valid_attrs_after_attach)
-@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_valid_setattr_attached_cpp_potential(device, attr, value,
-                                              simulation_factory,
-                                              two_particle_snapshot_factory):
-    """Test that CPPPotential can get and set attributes after attached."""
-    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2, code='return -1;')
-    mc = hoomd.hpmc.integrate.Sphere()
-    mc.shape['A'] = dict(diameter=0)
-    mc.potential = patch
-
-    # create simulation & attach objects
-    sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = mc
-
-    # create C++ mirror classes and set parameters
-    sim.run(0)
-
     # validate the params were set properly
-    setattr(patch, attr, value)
-    assert getattr(patch, attr) == value
-
-
-@pytest.mark.serial
-@pytest.mark.parametrize("attr,val", attr_error)
-@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_raise_attr_error_cpp_potential(device, attr, val, simulation_factory,
-                                        two_particle_snapshot_factory):
-    """Test that CPPPotential raises AttributeError if we \
-            try to set certain attributes after attaching."""
-    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2, code='return 0;')
-    mc = hoomd.hpmc.integrate.Sphere()
-    mc.shape['A'] = dict(diameter=0)
-    mc.potential = patch
-
-    # create simulation & attach objects
-    sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = mc
     sim.run(0)
+    setattr(patch, attr_set, value_set)
+    assert getattr(patch, attr_set) == value_set
 
-    # try to reset when attached
+    # make sure we can't set properties than can't be set
+    sim.run(0)
     with pytest.raises(AttributeError):
-        setattr(patch, attr, val)
+        setattr(patch, err_attr, err_val)
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize("positions,orientations,result",
                          positions_orientations_result)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_cpp_potential(device, positions, orientations, result,
                        simulation_factory, two_particle_snapshot_factory):
-    """Test that CPPPotential computes the correct.
+    """Test that CPPPotential computes the correct energy.
 
     Here, we test the interaction between point dipoles and ensure the energy
     is what we expect.
@@ -176,7 +139,7 @@ def test_cpp_potential(device, positions, orientations, result,
 
     sim = simulation_factory(two_particle_snapshot_factory(d=2, L=100))
 
-    r_cut = sim.state.box.Lx / 2.
+    r_cut = sim.state.box.Lx / 2. * 0.4
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=r_cut,
                                               code=dipole_dipole.format(r_cut))
     mc = hoomd.hpmc.integrate.Sphere()
@@ -184,17 +147,19 @@ def test_cpp_potential(device, positions, orientations, result,
     mc.potential = patch
 
     sim.operations.integrator = mc
-    with sim.state.cpu_local_snapshot as data:
-        data.particles.position[0, :] = positions[0]
-        data.particles.position[1, :] = positions[1]
-        data.particles.orientation[0, :] = orientations[0]
-        data.particles.orientation[1, :] = orientations[1]
+
+    snap = sim.state.get_snapshot()
+    if snap.communicator.rank == 0:
+        snap.particles.position[0, :] = positions[0]
+        snap.particles.position[1, :] = positions[1]
+        snap.particles.orientation[0, :] = orientations[0]
+        snap.particles.orientation[1, :] = orientations[1]
+    sim.state.set_snapshot(snap)
     sim.run(0)
 
     assert np.isclose(patch.energy, result)
 
 
-@pytest.mark.serial
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
     """Test passing in parameter arrays to the patch object.
@@ -221,7 +186,7 @@ def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
                          }}
                      """
 
-    sim = simulation_factory(two_particle_snapshot_factory())
+    sim = simulation_factory(two_particle_snapshot_factory(L=50))
 
     r_cut = 5
     params = dict(code=lennard_jones, param_array=[2.5, 1.2, 1.0], r_cut=r_cut)
@@ -233,9 +198,12 @@ def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = mc
 
     dist = 1
-    with sim.state.cpu_local_snapshot as data:
-        data.particles.position[0, :] = (0, 0, 0)
-        data.particles.position[1, :] = (dist, 0, 0)
+
+    snap = sim.state.get_snapshot()
+    if snap.communicator.rank == 0:
+        snap.particles.position[0] = [0, 0, 0]
+        snap.particles.position[1] = [dist, 0, 0]
+    sim.state.set_snapshot(snap)
 
     sim.run(0)
     # set alpha to sensible LJ values: [rcut, sigma, epsilon]

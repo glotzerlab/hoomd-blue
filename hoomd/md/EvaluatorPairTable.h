@@ -77,7 +77,12 @@ class EvaluatorPairTable
 
             if (V_py.size() != F_py.size())
                 {
-                throw std::runtime_error("The length of V and F arrays must be equal");
+                throw std::runtime_error("The length of V and F arrays must be equal.");
+                }
+
+            if (V_py.size() == 0)
+                {
+                throw std::runtime_error("The length of V and F must not be zero.");
                 }
 
             size_t width = V_py.size();

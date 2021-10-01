@@ -436,7 +436,7 @@ uint3 PPPMForceCompute::computeGhostCellNum()
 
 // extra ghost cells to accommodate skin layer (max 1/2 ghost layer width)
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         Scalar r_buff = m_nlist->getRBuff() / 2.0;
 

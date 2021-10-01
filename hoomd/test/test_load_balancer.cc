@@ -71,12 +71,12 @@ void test_load_balancer_basic(std::shared_ptr<ExecutionConfiguration> exec_conf,
         new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
     std::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
     pdata->setDomainDecomposition(decomposition);
+    sysdef->setCommunicator(comm);
 
     pdata->initializeFromSnapshot(snap);
 
     auto trigger = std::make_shared<PeriodicTrigger>(1);
     std::shared_ptr<LoadBalancer> lb(new LB(sysdef, trigger));
-    lb->setCommunicator(comm);
     lb->setMaxIterations(2);
 
     // migrate atoms
@@ -179,12 +179,12 @@ void test_load_balancer_multi(std::shared_ptr<ExecutionConfiguration> exec_conf,
         new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
     std::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
     pdata->setDomainDecomposition(decomposition);
+    sysdef->setCommunicator(comm);
 
     pdata->initializeFromSnapshot(snap);
 
     auto trigger = std::make_shared<PeriodicTrigger>(1);
     std::shared_ptr<LoadBalancer> lb(new LB(sysdef, trigger));
-    lb->setCommunicator(comm);
     lb->enableDimension(1, false);
     lb->setMaxIterations(100);
 
@@ -316,12 +316,12 @@ void test_load_balancer_ghost(std::shared_ptr<ExecutionConfiguration> exec_conf,
         new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
     std::shared_ptr<Communicator> comm(new Communicator(sysdef, decomposition));
     pdata->setDomainDecomposition(decomposition);
+    sysdef->setCommunicator(comm);
 
     pdata->initializeFromSnapshot(snap);
 
     auto trigger = std::make_shared<PeriodicTrigger>(1);
     std::shared_ptr<LoadBalancer> lb(new LB(sysdef, trigger));
-    lb->setCommunicator(comm);
 
     // migrate atoms and check placement
     comm->migrateParticles();

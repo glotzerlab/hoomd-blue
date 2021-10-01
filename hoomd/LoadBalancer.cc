@@ -46,12 +46,16 @@ LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
     m_decomposition = sysdef->getParticleData()->getDomainDecomposition();
 
     // default initialize the load balancing based on domain grid
-    if (m_decomposition)
+    if (m_sysdef->isDomainDecomposed())
         {
         const Index3D& di = m_decomposition->getDomainIndexer();
         m_enable_x = (di.getW() > 1);
         m_enable_y = (di.getH() > 1);
         m_enable_z = (di.getD() > 1);
+
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
         }
     else
 #endif // ENABLE_MPI
@@ -77,7 +81,7 @@ void LoadBalancer::update(uint64_t timestep)
 
 #ifdef ENABLE_MPI
     // do nothing if this run is not on MPI with more than 1 rank
-    if (!m_comm)
+    if (!m_sysdef->isDomainDecomposed())
         return;
 
     if (m_prof)

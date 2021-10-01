@@ -127,6 +127,8 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
                                 args.d_reject_out,
                                 args.seed,
                                 args.timestep,
+                                args.select,
+                                args.rank,
                                 args.num_types,
                                 args.box,
                                 args.ghost_width,

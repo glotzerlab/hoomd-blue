@@ -163,6 +163,7 @@ def test_electric_field(device, orientations, charge, result,
 
 @pytest.mark.cpu
 @pytest.mark.serial
+@pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_gravity(device, simulation_factory, lattice_snapshot_factory):
     """Test that particles "fall" in a gravitaional field.

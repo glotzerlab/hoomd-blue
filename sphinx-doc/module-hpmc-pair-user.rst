@@ -10,9 +10,16 @@ hpmc.pair.user
 
     CPPPotentialBase
     CPPPotential
+    CPPUnionPotential
 
 .. rubric:: Details
 
 .. automodule:: hoomd.hpmc.pair.user
     :synopsis: User defined pair potentials for Monte Carlo.
-    :members: CPPPotentialBase, CPPPotential
+
+    .. autoclass:: CPPPotentialBase
+        :inherited-members:
+    .. autoclass:: CPPPotential
+        :show-inheritance:
+    .. autoclass:: CPPUnionPotential
+        :show-inheritance:

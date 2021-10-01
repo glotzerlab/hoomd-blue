@@ -127,7 +127,7 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         // ghost layer padding
         Scalar ghost_layer_width(0.0);
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             ghost_layer_width = m_comm->getGhostLayerMaxWidth();
 #endif
 
