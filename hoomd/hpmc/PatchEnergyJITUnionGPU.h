@@ -47,9 +47,9 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
                            jit::union_params_t(),
                            managed_allocator<jit::union_params_t>(m_exec_conf->isCUDAEnabled()))
         {
-        m_gpu_factory.setAlphaPtr(&m_param_array.front());
-        m_gpu_factory.setAlphaUnionPtr(&m_param_array_constituent.front());
-        m_gpu_factory.setUnionParamsPtr(&m_d_union_params.front());
+        m_gpu_factory.setAlphaPtr(m_param_array.data());
+        m_gpu_factory.setAlphaUnionPtr(m_param_array_constituent.data());
+        m_gpu_factory.setUnionParamsPtr(m_d_union_params.data());
         m_gpu_factory.setRCutUnion(float(m_r_cut_constituent));
 
         // tuning params for patch narrow phase
@@ -79,77 +79,65 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
 
     virtual ~PatchEnergyJITUnionGPU() { }
 
+    virtual void buildOBBTree(unsigned int type_id)
+        {
+        PatchEnergyJITUnion::buildOBBTree(type_id);
+        m_d_union_params[type_id].tree = m_tree[type_id];
+        }
+
     //! Set per-type typeid of constituent particles
     virtual void setTypeids(std::string type, pybind11::list typeids)
         {
-        unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+        unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         unsigned int N = (unsigned int)pybind11::len(typeids);
-        m_type[pid].resize(N);
-
-        jit::union_params_t params(N, true);
-        if (m_d_union_params[pid].N == N)
-            {
-            params = m_d_union_params[pid];
-            }
+        m_type[type_id].resize(N);
+        ManagedArray<unsigned int> new_type_ids(N, true);
 
         for (unsigned int i = 0; i < N; i++)
             {
             unsigned int t = pybind11::cast<unsigned int>(typeids[i]);
-            m_type[pid][i] = t;
-            params.mtype[i] = t;
+            m_type[type_id][i] = t;
+            new_type_ids[i] = t;
             }
+
         // store result
-        m_d_union_params[pid] = params;
+        m_d_union_params[type_id].mtype = new_type_ids;
         // cudaMemadviseReadMostly
-        m_d_union_params[pid].set_memory_hint();
+        m_d_union_params[type_id].set_memory_hint();
         }
 
     //! Set per-type positions of the constituent particles
     virtual void setPositions(std::string type, pybind11::list position)
         {
-        unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+        unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         unsigned int N = (unsigned int)pybind11::len(position);
-        m_position[pid].resize(N);
+        m_position[type_id].resize(N);
 
-        jit::union_params_t params(N, true);
-        if (m_d_union_params[pid].N == N)
-            {
-            params = m_d_union_params[pid];
-            }
+        ManagedArray<vec3<float>> new_positions(N, true);
 
         for (unsigned int i = 0; i < N; i++)
             {
             pybind11::tuple p_i = position[i];
             vec3<float> pos(p_i[0].cast<float>(), p_i[1].cast<float>(), p_i[2].cast<float>());
-            m_position[pid][i] = pos;
-            params.mpos[i] = pos;
+            m_position[type_id][i] = pos;
+            new_positions[i] = pos;
             }
 
-        if (std::find(m_updated_types.begin(), m_updated_types.end(), pid) == m_updated_types.end())
-            {
-            m_updated_types.push_back(pid);
-            }
-
-        // m_build_obb = true;
-        buildOBBTree();
         // store result
-        m_d_union_params[pid] = params;
+        m_d_union_params[type_id].mpos = new_positions;
         // cudaMemadviseReadMostly
-        m_d_union_params[pid].set_memory_hint();
+        m_d_union_params[type_id].set_memory_hint();
+        buildOBBTree(type_id);
         }
 
     //! Set per-type positions of the constituent particles
     virtual void setOrientations(std::string type, pybind11::list orientation)
         {
-        unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+        unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         unsigned int N = (unsigned int)pybind11::len(orientation);
-        m_orientation[pid].resize(N);
+        m_orientation[type_id].resize(N);
 
-        jit::union_params_t params(N, true);
-        if (m_d_union_params[pid].N == N)
-            {
-            params = m_d_union_params[pid];
-            }
+        ManagedArray<quat<float>> new_orientations(N, true);
 
         for (unsigned int i = 0; i < N; i++)
             {
@@ -159,73 +147,58 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             float y = q_i[2].cast<float>();
             float z = q_i[3].cast<float>();
             quat<float> ort(s, vec3<float>(x, y, z));
-            m_orientation[pid][i] = ort;
-            params.morientation[i] = ort;
+            m_orientation[type_id][i] = ort;
+            new_orientations[i] = ort;
             }
 
         // store result
-        m_d_union_params[pid] = params;
+        m_d_union_params[type_id].morientation = new_orientations;
         // cudaMemadviseReadMostly
-        m_d_union_params[pid].set_memory_hint();
+        m_d_union_params[type_id].set_memory_hint();
         }
 
     //! Set per-type diameters of the constituent particles
     virtual void setDiameters(std::string type, pybind11::list diameter)
         {
-        unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+        unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         unsigned int N = (unsigned int)pybind11::len(diameter);
-        m_diameter[pid].resize(N);
+        m_diameter[type_id].resize(N);
 
-        jit::union_params_t params(N, true);
-        if (m_d_union_params[pid].N == N)
-            {
-            params = m_d_union_params[pid];
-            }
+        ManagedArray<float> new_diameters(N, true);
 
         for (unsigned int i = 0; i < N; i++)
             {
             float d = diameter[i].cast<float>();
-            m_diameter[pid][i] = d;
-            params.mdiameter[i] = d;
+            m_diameter[type_id][i] = d;
+            new_diameters[i] = d;
             }
 
-        if (std::find(m_updated_types.begin(), m_updated_types.end(), pid) == m_updated_types.end())
-            {
-            m_updated_types.push_back(pid);
-            }
-
-        // m_build_obb = true;
-        buildOBBTree();
         // store result
-        m_d_union_params[pid] = params;
+        m_d_union_params[type_id].mdiameter = new_diameters;
         // cudaMemadviseReadMostly
-        m_d_union_params[pid].set_memory_hint();
+        m_d_union_params[type_id].set_memory_hint();
         }
 
     //! Set per-type charges of the constituent particles
     virtual void setCharges(std::string type, pybind11::list charge)
         {
-        unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+        unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         unsigned int N = (unsigned int)pybind11::len(charge);
-        m_charge[pid].resize(N);
+        m_charge[type_id].resize(N);
 
-        jit::union_params_t params(N, true);
-        if (m_d_union_params[pid].N == N)
-            {
-            params = m_d_union_params[pid];
-            }
+        ManagedArray<float> new_charges(N, true);
 
         for (unsigned int i = 0; i < N; i++)
             {
             float q = charge[i].cast<float>();
-            m_charge[pid][i] = q;
-            params.mcharge[i] = q;
+            m_charge[type_id][i] = q;
+            new_charges[i] = q;
             }
 
         // store result
-        m_d_union_params[pid] = params;
+        m_d_union_params[type_id].mcharge = new_charges;
         // cudaMemadviseReadMostly
-        m_d_union_params[pid].set_memory_hint();
+        m_d_union_params[type_id].set_memory_hint();
         }
 
     //! Asynchronously launch the JIT kernel

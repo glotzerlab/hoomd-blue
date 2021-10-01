@@ -154,7 +154,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
                         // these are allocated by the library
                         __device__ float *param_array;
-                        __device__ float *alpha_union;
+                        __device__ float *param_array_constituent;
 
                         __device__ inline float eval(const vec3<float>& r_ij,
                             unsigned int type_i,
@@ -468,8 +468,10 @@ class CPPUnionPotential(CPPPotentialBase):
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
+            """
             raise NotImplementedError("Running with a CPPUnionPotential \
                 on the GPU is not implemented")
+            """
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
             gpu_code_constituent = self._wrap_gpu_code(self._code_constituent)

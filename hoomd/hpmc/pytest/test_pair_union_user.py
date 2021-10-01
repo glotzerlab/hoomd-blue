@@ -92,21 +92,15 @@ def test_valid_construction_and_attach_cpp_union_potential(
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
 
-    # ensure we raise the right error on gpu
-    if isinstance(device, hoomd.device.GPU):
-        with pytest.raises(NotImplementedError):
-            sim.run(0)
+    # create C++ mirror classes and set parameters
+    sim.run(0)
 
-    else:
-        # create C++ mirror classes and set parameters
-        sim.run(0)
-
-        # validate the params were set properly
-        for attr, value in constructor_args.items():
-            try:
-                assert getattr(patch, attr) == value
-            except ValueError:  # array-like
-                assert all(getattr(patch, attr) == value)
+    # validate the params were set properly
+    for attr, value in constructor_args.items():
+        try:
+            assert getattr(patch, attr) == value
+        except ValueError:  # array-like
+            assert all(getattr(patch, attr) == value)
 
 
 @pytest.mark.parametrize("attr,value", valid_attrs)
@@ -148,12 +142,6 @@ def test_valid_setattr_attached_cpp_union_potential(
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
 
-    # ensure we raise the right error on gpu
-    if isinstance(device, hoomd.device.GPU):
-        with pytest.raises(NotImplementedError):
-            sim.run(0)
-        return
-
     # create C++ mirror classes and set parameters
     sim.run(0)
 
@@ -187,12 +175,6 @@ def test_raise_attr_error_cpp_union_potential(device, attr, val,
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
-
-    # ensure we raise the right error on gpu
-    if isinstance(device, hoomd.device.GPU):
-        with pytest.raises(NotImplementedError):
-            sim.run(0)
-        return
 
     # make sure the AttributeError gets raised when trying to change the
     # properties that cannot be changed after attachment
@@ -256,12 +238,6 @@ def test_param_array_union(device, simulation_factory,
                          orientations=[(1, 0, 0, 0), (1, 0, 0, 0)])
     mc.potential = patch
     sim.operations.integrator = mc
-
-    # ensure we raise the right error on gpu
-    if isinstance(device, hoomd.device.GPU):
-        with pytest.raises(NotImplementedError):
-            sim.run(0)
-        return
 
     # first test the case where r_cut_isotropic = 0, so particles only interact
     # through the constituent particles

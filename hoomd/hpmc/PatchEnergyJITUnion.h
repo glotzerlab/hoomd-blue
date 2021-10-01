@@ -69,7 +69,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     // //! Builds OBB tree based on geometric properties of the constituent particles
     // //! and the leaf capacity. To be called every time positions, diameters and/or leaf
     // //! leaf capacity are updated.
-    void buildOBBTree();
+    virtual void buildOBBTree(unsigned int type_id);
 
     //! Set per-type typeid of constituent particles
     virtual void setTypeids(std::string type, pybind11::list typeids)
@@ -111,7 +111,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             {
             m_updated_types.push_back(pid);
             }
-        buildOBBTree();
+        buildOBBTree(pid);
         }
 
     //! Get per-type positions of the constituent particles as a python list of 3-tuples
@@ -177,8 +177,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             {
             m_updated_types.push_back(pid);
             }
-        // m_build_obb = true;
-        buildOBBTree();
         }
 
     //! Get per-type diameters of the constituent particles as a python list
@@ -222,7 +220,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         {
         m_leaf_capacity = leaf_capacity;
         // m_build_obb = true;
-        buildOBBTree();
+        // buildOBBTree(); // TODO: loop over all types
         }
 
     //! Get OBB leaf_capacity
@@ -252,7 +250,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         {
         // return cutoff for constituent particle potentials
         m_r_cut_constituent = r_cut;
-        buildOBBTree();
+        // buildOBBTree();  // TODO: investigate if this is needed here
         }
 
     //! Get the cut-off for constituent particles
@@ -267,7 +265,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         {
         // return cutoff for constituent particle potentials
         m_r_cut_isotropic = r_cut;
-        buildOBBTree();
+        // buildOBBTree();  // TODO: investigate if this is needed here
         }
 
     //! Get the maximum geometric extent, which is added to the cutoff, per type
