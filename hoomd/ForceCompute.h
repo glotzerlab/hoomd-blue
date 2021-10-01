@@ -6,7 +6,7 @@
 #include "Compute.h"
 #include "Index1D.h"
 #include "ParticleGroup.h"
-
+#include "PythonLocalDataAccess.h"
 #include "GlobalArray.h"
 
 #ifdef ENABLE_HIP
@@ -132,14 +132,29 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         return m_force;
         }
 
+    const GlobalArray<Scalar4>& getForceArray() const
+        {
+        return m_force;
+        }
+
     //! Get the array of computed virials
     GlobalArray<Scalar>& getVirialArray()
         {
         return m_virial;
         }
 
+    const GlobalArray<Scalar>& getVirialArray() const
+        {
+        return m_virial;
+        }
+
     //! Get the array of computed torques
     GlobalArray<Scalar4>& getTorqueArray()
+        {
+        return m_torque;
+        }
+
+    const GlobalArray<Scalar4>& getTorqueArray() const
         {
         return m_torque;
         }
@@ -229,7 +244,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
 template<class Output>
 class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, ForceCompute>
     {
-    public;
+    public:
     LocalForceComputeData(ForceCompute& data)
         : LocalDataAccess<Output, ForceCompute>(data), m_force_handle(), m_torque_handle()
         //m_virial_handle()
@@ -283,8 +298,8 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, For
 
     private:
     std::unique_ptr<ArrayHandle<Scalar4>> m_force_handle;
-    std::unique_pts<ArrayHandle<Scalar4>> m_torque_handle;
-    }
+    std::unique_ptr<ArrayHandle<Scalar4>> m_torque_handle;
+    };
 
 
 //! Exports the ForceCompute class to python
@@ -302,7 +317,7 @@ template<class Output> void export_LocalForceComputeData(pybind11::module& m, st
         .def("getTorque", &LocalForceComputeData<Output>::getTorque)
         .def("enter", &LocalForceComputeData<Output>::enter)
         .def("exit", &LocalForceComputeData<Output>::exit);
-    }
+    };
 #endif
 
 #endif
