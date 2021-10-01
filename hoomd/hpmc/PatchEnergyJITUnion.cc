@@ -42,7 +42,6 @@ void PatchEnergyJITUnion::buildOBBTree(unsigned int type)
     tree.buildTree(obbs, N, m_leaf_capacity, false);
     delete[] obbs;
     m_tree[type] = hpmc::detail::GPUTree(tree, m_managed_memory);
-
     }
 
 float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
