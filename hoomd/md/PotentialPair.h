@@ -220,12 +220,11 @@ template<class evaluator> class PotentialPair : public ForceCompute
                 m_external_virial[dir] = Scalar(0.0);
                 for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
                     {
-                    Scalar mass_i = m_pdata->getMass(type_i);
-                    Scalar rho_i = num_particles_by_type[type_i] * mass_i / volume;
+                    // rho is the number density
+                    Scalar rho_i = num_particles_by_type[type_i] / volume;
                     for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
                         {
-                        Scalar mass_j = m_pdata->getMass(type_j);
-                        Scalar rho_j = num_particles_by_type[type_j] * mass_j / volume;
+                        Scalar rho_j = num_particles_by_type[type_j] / volume;
                         evaluator eval(Scalar(0.0),
                                        h_rcutsq.data[m_typpair_idx(type_i, type_j)],
                                        m_params[m_typpair_idx(type_i, type_j)]);
@@ -273,12 +272,12 @@ template<class evaluator> class PotentialPair : public ForceCompute
                 {
                 for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
                     {
-                    Scalar mass = m_pdata->getMass(type_j);
-                    Scalar rho = num_particles_by_type[type_j] * mass / volume;
+                    // rho is the number density
+                    Scalar rho_j = num_particles_by_type[type_j] / volume;
                     evaluator eval(Scalar(0.0),
                                    h_rcutsq.data[m_typpair_idx(type_i, type_j)],
                                    m_params[m_typpair_idx(type_i, type_j)]);
-                    m_external_energy += Scalar(2.0) * num_particles_by_type[type_i] * M_PI * rho
+                    m_external_energy += Scalar(2.0) * num_particles_by_type[type_i] * M_PI * rho_j
                                          * eval.evalEnergyLRCIntegral();
                     }
                 }
