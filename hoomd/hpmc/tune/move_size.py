@@ -314,7 +314,7 @@ class MoveSize(_InternalCustomTuner):
         requiring checking periodic images.
 
     Note:
-        In systems containing nonmonodisperse particle shapes and/or sizes, move
+        In systems containing disparate particle shapes and/or sizes, move
         sizes for the different types should be tuned independently so that the
         acceptances rates for the different particles are each near the target
         acceptance ratio. Otherwise, the *global* acceptance ratio, a weighted
