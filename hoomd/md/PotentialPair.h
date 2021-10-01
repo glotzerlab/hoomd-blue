@@ -230,8 +230,8 @@ template<class evaluator> class PotentialPair : public ForceCompute
                                        m_params[m_typpair_idx(type_i, type_j)]);
                         // The pressure LRC, where
                         // P = \frac{2 \cdot K_{trans} + W}{D \cdot  V}
-                        Scalar delta_pressure
-                            = Scalar(4.0) / Scalar(6.0) * rho_i * rho_j * M_PI * eval.evalPressureLRCIntegral();
+                        Scalar delta_pressure = Scalar(4.0) / Scalar(6.0) * rho_i * rho_j * M_PI
+                                                * eval.evalPressureLRCIntegral();
                         // \Delta W = \Delta P (D \cdot V)
                         // We will assume that the contribution to pressure is equal
                         // in x, y, and z, so we will add 1/3 \Delta W on the diagonal
