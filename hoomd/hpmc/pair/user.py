@@ -280,9 +280,9 @@ class CPPUnionPotential(CPPPotentialBase):
                 ``param_array`` in the compiled code.
 
     Note:
-        This class is not implemented to run on the GPU. When running on the
-        GPU, attempting to attach an object of this type will raise a
-        `NotImplemetedError`.
+        Code passed into ``code_isotropic`` is not used when executing on the
+        GPU. A `RuntimeError` is raised on attachment if code is passed into
+        this argument on the GPU.
 
     Note:
         This class uses an internal OBB tree for fast interaction queries
@@ -296,10 +296,10 @@ class CPPUnionPotential(CPPPotentialBase):
         `CPPPotentialBase` for the documentation of the parent class.
 
     Attributes:
-        positions (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`]]])  # noqa: E501,W505
+        positions (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`]]])  # noqa
             The positions of the constituent particles.
 
-        orientations (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`, `float`]]])  # noqa: E501,W505
+        orientations (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`, `float`]]])  # noqa
             The orientations of the constituent particles.
 
         diameters (`TypeParameter` [``particle type``, `list` [`float`]])
@@ -390,7 +390,7 @@ class CPPUnionPotential(CPPPotentialBase):
                  code_constituent,
                  param_array_constituent=None,
                  r_cut_isotropic=0,
-                 code_isotropic="return 0.0;",
+                 code_isotropic=None,
                  param_array=None):
 
         # initialize base class
@@ -468,10 +468,9 @@ class CPPUnionPotential(CPPPotentialBase):
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
-            """
-            raise NotImplementedError("Running with a CPPUnionPotential \
-                on the GPU is not implemented")
-            """
+            if self._code is not None:
+                raise RuntimeError('Code passed into code_isotropic when \
+                        executing on the GPU is unused.')
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
             gpu_code_constituent = self._wrap_gpu_code(self._code_constituent)
