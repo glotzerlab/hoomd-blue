@@ -469,8 +469,9 @@ class CPPUnionPotential(CPPPotentialBase):
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
             if self._code is not None:
-                raise RuntimeError('Code passed into code_isotropic when \
-                        executing on the GPU is unused.')
+                msg = 'Code passed into code_isotropic when excuting on the '
+                msg += 'GPU is unused'
+                raise RuntimeError(msg)
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
             gpu_code_constituent = self._wrap_gpu_code(self._code_constituent)

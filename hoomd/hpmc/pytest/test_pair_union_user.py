@@ -239,7 +239,12 @@ def test_param_array_union(device, simulation_factory,
     mc.potential = patch
     sim.operations.integrator = mc
 
-    # first test the case where r_cut_isotropic = 0, so particles only interact
+    # catch the error if running on the GPU
+    if isinstance(device, hoomd.device.GPU):
+        with pytest.raises(RuntimeError):
+            sim.run(0)
+
+    # test the case where r_cut_isotropic = 0, so particles only interact
     # through the constituent particles
     # there's 2 cases here, one where they interact with only 1 other
     # constituent particle, and then where the interact with all of the
