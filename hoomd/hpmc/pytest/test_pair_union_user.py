@@ -328,7 +328,6 @@ def test_param_array_union_gpu(device, simulation_factory,
 
     # set up the system and patches
     sim = simulation_factory(two_particle_snapshot_factory(L=40))
-    r_cut_iso = 5
     params = dict(
         code_isotropic=None,
         code_constituent=square_well_constituent,
