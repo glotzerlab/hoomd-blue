@@ -462,16 +462,21 @@ class CPPUnionPotential(CPPPotentialBase):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        cpu_code_constituent = self._wrap_cpu_code(self._code_constituent)
-        cpu_code_isotropic = self._wrap_cpu_code(self._code)
-        cpu_include_options = _compile.get_cpu_include_options()
-
-        device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
             if self._code is not None:
                 msg = 'Code passed into code_isotropic when excuting on the '
                 msg += 'GPU is unused'
                 raise RuntimeError(msg)
+
+        cpu_code_constituent = self._wrap_cpu_code(self._code_constituent)
+        if self._code is not None:
+            cpu_code_isotropic = self._wrap_cpu_code(self._code)
+        else:
+            cpu_code_isotropic = self._wrap_cpu_code('return 0;')
+        cpu_include_options = _compile.get_cpu_include_options()
+
+        device = self._simulation.device
+        if isinstance(self._simulation.device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
             gpu_code_constituent = self._wrap_gpu_code(self._code_constituent)
