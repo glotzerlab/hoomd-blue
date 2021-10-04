@@ -8,7 +8,6 @@
 
 #include <functional>
 
-#include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/TableAngleForceCompute.h"
 #ifdef ENABLE_HIP
 #include "hoomd/md/TableAngleForceComputeGPU.h"

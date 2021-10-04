@@ -8,7 +8,6 @@
 
 #include <functional>
 
-#include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/HarmonicImproperForceCompute.h"
 #ifdef ENABLE_HIP
 #include "hoomd/md/HarmonicImproperForceComputeGPU.h"

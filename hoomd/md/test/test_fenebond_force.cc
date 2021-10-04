@@ -8,7 +8,6 @@
 
 #include <functional>
 
-#include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/AllBondPotentials.h"
 
 #include "hoomd/Initializers.h"
