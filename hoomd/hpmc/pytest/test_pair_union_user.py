@@ -206,7 +206,7 @@ def test_raise_attr_error_cpp_union_potential(device, attr, val,
 @pytest.mark.cpu
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_param_array_union_cpu(device, simulation_factory,
-                           two_particle_snapshot_factory):
+                               two_particle_snapshot_factory):
     """Test passing in parameter arrays to the union patch objects.
 
     This test tests that changes to the parameter array are reflected on the
@@ -307,7 +307,7 @@ def test_param_array_union_cpu(device, simulation_factory,
 @pytest.mark.gpu
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_param_array_union_gpu(device, simulation_factory,
-                           two_particle_snapshot_factory):
+                               two_particle_snapshot_factory):
     """Test passing in parameter arrays to the union patch objects.
 
     This test tests that changes to the parameter array are reflected on the
