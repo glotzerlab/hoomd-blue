@@ -17,6 +17,7 @@
 #include "ComputeThermo.h"
 #include "ComputeThermoHMA.h"
 #include "CosineSqAngleForceCompute.h"
+#include "CustomForceCompute.h"
 #include "EvaluatorRevCross.h"
 #include "EvaluatorSquareDensity.h"
 #include "EvaluatorTersoff.h"
@@ -289,6 +290,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialBond<PotentialBondTether>(m, "PotentialBondTether");
     export_PotentialSpecialPair<PotentialSpecialPairLJ>(m, "PotentialSpecialPairLJ");
     export_PotentialSpecialPair<PotentialSpecialPairCoulomb>(m, "PotentialSpecialPairCoulomb");
+    export_LocalForceComputeData<HOOMDHostBuffer>(m, "LocalForceComputeDataHost");
     export_NeighborList(m);
     export_NeighborListBinned(m);
     export_NeighborListStencil(m);
@@ -386,6 +388,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialSpecialPairGPU<PotentialSpecialPairCoulombGPU, PotentialSpecialPairCoulomb>(
         m,
         "PotentialSpecialPairCoulombGPU");
+    export_LocalForceComputeData<HOOMDHostBuffer>(m, "LocalForceComputeDataHost");
+    export_LocalForceComputeData<HOOMDDeviceBuffer>(m, "LocalForceComputeDataDevice");
     export_BondTablePotentialGPU(m);
     export_HarmonicAngleForceComputeGPU(m);
     export_CosineSqAngleForceComputeGPU(m);

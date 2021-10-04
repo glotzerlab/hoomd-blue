@@ -8,6 +8,7 @@ set(_md_sources module-md.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
                    CosineSqAngleForceCompute.cc
+                   CustomForceCompute.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
@@ -72,6 +73,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMATypes.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
+                CustomForceCompute.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
                 EvaluatorBondTether.h

@@ -63,7 +63,6 @@ set(_hoomd_sources Analyzer.cc
                    Communicator.cc
                    CommunicatorGPU.cc
                    Compute.cc
-                   ConstForceCompute.cc
                    DCDDumpWriter.cc
                    DomainDecomposition.cc
                    ExecutionConfiguration.cc
@@ -135,7 +134,6 @@ set(_hoomd_headers
     CommunicatorGPU.h
     Communicator.h
     Compute.h
-    ConstForceCompute.h
     DCDDumpWriter.h
     DomainDecomposition.h
     ExecutionConfiguration.h

@@ -3,6 +3,7 @@
 
 // Maintainer: joaander
 
+#include "hoomd/PythonLocalDataAccess.h"
 #include "CustomForceCompute.h"
 
 namespace py = pybind11;
@@ -86,5 +87,5 @@ void export_CustomForceCompute(py::module& m)
         m,
         "CustomForceCompute")
         .def(py::init<std::shared_ptr<SystemDefinition>>())
-        .def("setCallback", &ConstForceCompute::setCallback);
+        .def("setCallback", &CustomForceCompute::setCallback);
     }
