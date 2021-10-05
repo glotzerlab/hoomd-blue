@@ -54,6 +54,16 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
         return m_torque;
         }
 
+    unsigned int getN() const
+        {
+        return m_pdata->getN();
+        }
+
+    unsigned int getNGhosts() const
+        {
+        return m_pdata->getNGhosts();
+        }
+
     protected:
     //! Function that is called on every particle sort
     void rearrangeForces();
@@ -142,7 +152,7 @@ template<class Output> void export_LocalForceComputeData(pybind11::module& m, st
     pybind11::class_<LocalForceComputeData<Output>, std::shared_ptr<LocalForceComputeData<Output>>>(
         m,
         name.c_str())
-        .def(pybind11::init<ForceCompute&>())
+        .def(pybind11::init<CustomForceCompute&>())
         .def("getForce", &LocalForceComputeData<Output>::getForce)
         .def("getPotentialEnergy", &LocalForceComputeData<Output>::getPotentialEnergy)
         .def("getTorque", &LocalForceComputeData<Output>::getTorque)
