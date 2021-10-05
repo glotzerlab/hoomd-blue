@@ -21,6 +21,9 @@ namespace py = pybind11;
 #include <iostream>
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 /*! \param num_iters Number of iterations to average for the benchmark
     \returns Milliseconds of execution time per calculation
 
@@ -96,7 +99,7 @@ bool NeighborListGPU::distanceCheck(uint64_t timestep)
 
         m_exec_conf->beginMultiGPU();
 
-        gpu_nlist_needs_update_check_new(d_flags.data,
+        kernel::gpu_nlist_needs_update_check_new(d_flags.data,
                                          d_last_pos.data,
                                          d_pos.data,
                                          m_pdata->getN(),
@@ -166,7 +169,7 @@ void NeighborListGPU::filterNlist()
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
 
     m_tuner_filter->begin();
-    gpu_nlist_filter(d_n_neigh.data,
+    kernel::gpu_nlist_filter(d_n_neigh.data,
                      d_nlist.data,
                      d_head_list.data,
                      d_n_ex_idx.data,
@@ -206,7 +209,7 @@ void NeighborListGPU::updateExListIdx()
                                             access_location::device,
                                             access_mode::overwrite);
 
-    gpu_update_exclusion_list(d_tag.data,
+    kernel::gpu_update_exclusion_list(d_tag.data,
                               d_rtag.data,
                               d_n_ex_tag.data,
                               d_ex_list_tag.data,
@@ -256,7 +259,7 @@ void NeighborListGPU::buildHeadList()
                                                    access_mode::readwrite);
 
         m_tuner_head_list->begin();
-        gpu_nlist_build_head_list(d_head_list.data,
+        kernel::gpu_nlist_build_head_list(d_head_list.data,
                                   d_req_size_nlist.data,
                                   d_Nmax.data,
                                   d_pos.data,
@@ -286,6 +289,8 @@ void NeighborListGPU::buildHeadList()
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_NeighborListGPU(py::module& m)
     {
     py::class_<NeighborListGPU, NeighborList, std::shared_ptr<NeighborListGPU>>(m,
@@ -293,3 +298,7 @@ void export_NeighborListGPU(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

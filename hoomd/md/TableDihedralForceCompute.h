@@ -23,6 +23,9 @@
 #ifndef __TABLEDIHEDRALFORCECOMPUTE_H__
 #define __TABLEDIHEDRALFORCECOMPUTE_H__
 
+namespace hoomd {
+namespace md {
+
 //! Computes the potential and force on dihedrals based on values given in a table
 /*! \b Overview
     Bond potentials and forces are evaluated for all dihedraled particle pairs in the system.
@@ -100,7 +103,14 @@ class PYBIND11_EXPORT TableDihedralForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail {
+
 //! Exports the TablePotential class to python
 void export_TableDihedralForceCompute(pybind11::module& m);
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
+
 
 #endif

@@ -26,6 +26,9 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd {
+namespace md {
+
 //! Template class for computing pair potentials on the GPU
 /*! Derived from PotentialPair, this class provides exactly the same interface for computing pair
    potentials and forces. In the same way as PotentialPair, this class serves as a shell dealing
@@ -44,7 +47,7 @@
     \sa export_PotentialPairGPU()
 */
 template<class evaluator,
-         hipError_t gpu_cgpf(const pair_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::pair_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 class PotentialPairGPU : public PotentialPair<evaluator>
     {
@@ -85,7 +88,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
     };
 
 template<class evaluator,
-         hipError_t gpu_cgpf(const pair_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::pair_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 PotentialPairGPU<evaluator, gpu_cgpf>::PotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                         std::shared_ptr<NeighborList> nlist)
@@ -122,7 +125,7 @@ PotentialPairGPU<evaluator, gpu_cgpf>::PotentialPairGPU(std::shared_ptr<SystemDe
     }
 
 template<class evaluator,
-         hipError_t gpu_cgpf(const pair_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::pair_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     {
@@ -182,7 +185,7 @@ void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
-    gpu_cgpf(pair_args_t(d_force.data,
+    gpu_cgpf(kernel::pair_args_t(d_force.data,
                          d_virial.data,
                          this->m_virial.getPitch(),
                          this->m_pdata->getN(),
@@ -217,6 +220,8 @@ void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
         this->m_prof->pop(this->m_exec_conf);
     }
 
+namespace detail {
+
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPairGPU class template.
@@ -230,6 +235,11 @@ void export_PotentialPairGPU(pybind11::module& m, const std::string& name)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setTuningParam", &T::setTuningParam);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
+
 
 #endif // ENABLE_HIP
 #endif // __POTENTIAL_PAIR_GPU_H__

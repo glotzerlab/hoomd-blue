@@ -21,6 +21,9 @@ namespace py = pybind11;
 #include <iostream>
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
     \param temperature The temperature that governs sampling of the integrator
@@ -194,6 +197,8 @@ void ComputeThermoHMA::reduceProperties()
     }
 #endif
 
+namespace detail {
+
 void export_ComputeThermoHMA(py::module& m)
     {
     py::class_<ComputeThermoHMA, Compute, std::shared_ptr<ComputeThermoHMA>>(m, "ComputeThermoHMA")
@@ -208,3 +213,7 @@ void export_ComputeThermoHMA(py::module& m)
         .def_property_readonly("potential_energy", &ComputeThermoHMA::getPotentialEnergyHMA)
         .def_property_readonly("pressure", &ComputeThermoHMA::getPressureHMA);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

@@ -20,6 +20,9 @@ using namespace std;
     \brief Contains code for the IntegrationMethodTwoStep class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \post The method is constructed with the given particle data and a NULL profiler.
@@ -194,6 +197,8 @@ void IntegrationMethodTwoStep::validateGroup()
         }
     }
 
+namespace detail {
+
 void export_IntegrationMethodTwoStep(py::module& m)
     {
     py::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>>(
@@ -205,3 +210,7 @@ void export_IntegrationMethodTwoStep(py::module& m)
                                [](const std::shared_ptr<IntegrationMethodTwoStep> method)
                                { return method->getGroup()->getFilter(); });
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

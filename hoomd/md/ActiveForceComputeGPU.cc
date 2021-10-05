@@ -14,6 +14,10 @@ using namespace std;
     \brief Contains code for the ActiveForceComputeGPU class
 */
 
+namespace hoomd {
+namespace md {
+
+
 /*! \param f_list An array of (x,y,z) tuples for the active force vector for each individual
    particle. \param orientation_link if True then forces and torques are applied in the particle's
    reference frame. If false, then the box reference fra    me is used. Only relevant for
@@ -102,7 +106,7 @@ void ActiveForceComputeGPU::setForces()
     // compute the forces on the GPU
     m_tuner_force->begin();
 
-    gpu_compute_active_force_set_forces(group_size,
+    kernel::gpu_compute_active_force_set_forces(group_size,
                                         d_index_array.data,
                                         d_force.data,
                                         d_torque.data,
@@ -147,7 +151,7 @@ void ActiveForceComputeGPU::rotationalDiffusion(Scalar rotational_diffusion, uin
     // perform the update on the GPU
     m_tuner_diffusion->begin();
 
-    gpu_compute_active_force_rotational_diffusion(group_size,
+    kernel::gpu_compute_active_force_rotational_diffusion(group_size,
                                                   d_tag.data,
                                                   d_index_array.data,
                                                   d_pos.data,
@@ -165,6 +169,8 @@ void ActiveForceComputeGPU::rotationalDiffusion(Scalar rotational_diffusion, uin
     m_tuner_diffusion->end();
     }
 
+namespace detail {
+
 void export_ActiveForceComputeGPU(py::module& m)
     {
     py::class_<ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU>>(
@@ -172,3 +178,7 @@ void export_ActiveForceComputeGPU(py::module& m)
         "ActiveForceComputeGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

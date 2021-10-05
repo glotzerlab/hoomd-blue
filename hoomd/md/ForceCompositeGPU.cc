@@ -14,6 +14,9 @@ namespace py = pybind11;
     \brief Contains code for the ForceCompositeGPU class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
@@ -202,7 +205,7 @@ void ForceCompositeGPU::computeForces(uint64_t timestep)
         unsigned int n_bodies_per_block = param / 10000;
 
         // launch GPU kernel
-        gpu_rigid_force(d_force.data,
+        kernel::gpu_rigid_force(d_force.data,
                         d_torque.data,
                         d_molecule_length.data,
                         d_molecule_list.data,
@@ -283,7 +286,7 @@ void ForceCompositeGPU::computeForces(uint64_t timestep)
         unsigned int n_bodies_per_block = param / 10000;
 
         // launch GPU kernel
-        gpu_rigid_virial(d_virial.data,
+        kernel::gpu_rigid_virial(d_virial.data,
                          d_molecule_length.data,
                          d_molecule_list.data,
                          d_molecule_idx.data,
@@ -378,7 +381,7 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
         m_tuner_update->begin();
         unsigned int block_size = m_tuner_update->getParam();
 
-        gpu_update_composite(m_pdata->getN(),
+        kernel::gpu_update_composite(m_pdata->getN(),
                              m_pdata->getNGhosts(),
                              d_postype.data,
                              d_orientation.data,
@@ -488,7 +491,7 @@ void ForceCompositeGPU::findRigidCenters()
                                               access_mode::overwrite);
 
     unsigned int n_rigid = 0;
-    gpu_find_rigid_centers(d_body.data,
+    kernel::gpu_find_rigid_centers(d_body.data,
                            d_tag.data,
                            d_rtag.data,
                            m_pdata->getN(),
@@ -502,6 +505,8 @@ void ForceCompositeGPU::findRigidCenters()
     m_gpu_partition.setN(n_rigid);
     }
 
+namespace detail {
+
 void export_ForceCompositeGPU(py::module& m)
     {
     py::class_<ForceCompositeGPU, ForceComposite, std::shared_ptr<ForceCompositeGPU>>(
@@ -509,3 +514,7 @@ void export_ForceCompositeGPU(py::module& m)
         "ForceCompositeGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

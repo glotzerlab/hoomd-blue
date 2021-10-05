@@ -26,6 +26,10 @@
 #define DEVICE
 #define HOSTDEVICE
 #endif
+
+namespace hoomd {
+namespace md {
+
 //! Class for evaluating the Ewald pair potential
 /*! <b>General Overview</b>
 
@@ -181,5 +185,8 @@ class EvaluatorPairEwald
     Scalar alpha;  //!< Debye screening parameter
     Scalar qiqj;   //!< product of qi and qj
     };
+
+} // end namespace md
+} // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EWALD_H__

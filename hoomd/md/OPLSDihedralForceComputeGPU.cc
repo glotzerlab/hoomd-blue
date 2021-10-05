@@ -13,6 +13,9 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System to compute bond forces on
  */
 OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
@@ -65,7 +68,7 @@ void OPLSDihedralForceComputeGPU::computeForces(uint64_t timestep)
 
     // run the kernel in parallel on all GPUs
     this->m_tuner->begin();
-    gpu_compute_opls_dihedral_forces(d_force.data,
+    kernel::gpu_compute_opls_dihedral_forces(d_force.data,
                                      d_virial.data,
                                      m_virial.getPitch(),
                                      m_pdata->getN(),
@@ -87,6 +90,8 @@ void OPLSDihedralForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_OPLSDihedralForceComputeGPU(py::module& m)
     {
     py::class_<OPLSDihedralForceComputeGPU,
@@ -94,3 +99,7 @@ void export_OPLSDihedralForceComputeGPU(py::module& m)
                std::shared_ptr<OPLSDihedralForceComputeGPU>>(m, "OPLSDihedralForceComputeGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

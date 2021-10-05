@@ -15,6 +15,9 @@ namespace py = pybind11;
     \brief Contains code for the ForceDistanceConstraintGPU class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(std::shared_ptr<SystemDefinition> sysdef)
@@ -179,7 +182,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(uint64_t timestep)
 
         // launch GPU kernel
         m_tuner_fill->begin();
-        gpu_fill_matrix_vector(n_constraint,
+        kernel::gpu_fill_matrix_vector(n_constraint,
                                m_pdata->getN() + m_pdata->getNGhosts(),
                                d_cmatrix.data,
                                d_cvec.data,
@@ -264,7 +267,7 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
             m_nnz_tot = 0;
 
             // count non zeros
-            gpu_count_nnz(n_constraint,
+            kernel::gpu_count_nnz(n_constraint,
                           d_cmatrix.data,
                           d_nnz.data,
                           m_nnz_tot,
@@ -297,7 +300,7 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                              access_mode::overwrite);
 
             // count zeros and convert matrix
-            gpu_dense2sparse(n_constraint,
+            kernel::gpu_dense2sparse(n_constraint,
                              d_cmatrix.data,
                              d_nnz.data,
                              m_cusparse_handle,
@@ -720,7 +723,7 @@ void ForceDistanceConstraintGPU::computeConstraintForces(uint64_t timestep)
 
     // compute constraint forces by solving linear system of equations
     m_tuner_force->begin();
-    gpu_compute_constraint_forces(d_pos.data,
+    kernel::gpu_compute_constraint_forces(d_pos.data,
                                   d_gpu_clist.data,
                                   gpu_table_indexer,
                                   d_gpu_n_constraints.data,
@@ -742,6 +745,8 @@ void ForceDistanceConstraintGPU::computeConstraintForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_ForceDistanceConstraintGPU(py::module& m)
     {
     py::class_<ForceDistanceConstraintGPU,
@@ -749,3 +754,7 @@ void export_ForceDistanceConstraintGPU(py::module& m)
                std::shared_ptr<ForceDistanceConstraintGPU>>(m, "ForceDistanceConstraintGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

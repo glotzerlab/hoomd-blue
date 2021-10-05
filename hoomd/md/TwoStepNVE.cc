@@ -13,6 +13,9 @@ namespace py = pybind11;
     \brief Contains code for the TwoStepNVE class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param skip_restart Skip initialization of the restart information
@@ -400,6 +403,7 @@ void TwoStepNVE::integrateStepTwo(uint64_t timestep)
         m_prof->pop();
     }
 
+namespace detail {
 void export_TwoStepNVE(py::module& m)
     {
     py::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE>>(m, "TwoStepNVE")
@@ -407,3 +411,6 @@ void export_TwoStepNVE(py::module& m)
         .def_property("limit", &TwoStepNVE::getLimit, &TwoStepNVE::setLimit)
         .def_property("zero_force", &TwoStepNVE::getZeroForce, &TwoStepNVE::setZeroForce);
     }
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

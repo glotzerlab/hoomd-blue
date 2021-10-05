@@ -18,8 +18,10 @@
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
 
-const Scalar EPS_HOC(1.0e-7);
+namespace hoomd {
+namespace md {
 
+const Scalar EPS_HOC(1.0e-7);
 const unsigned int PPPM_MAX_ORDER = 7;
 
 /*! Compute the long-ranged part of the particle-particle particle-mesh Ewald sum (PPPM)
@@ -245,6 +247,12 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
     Scalar gf_denom(Scalar x, Scalar y, Scalar z);
     };
 
+namespace detail {
+
 void export_PPPMForceCompute(pybind11::module& m);
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
 
 #endif

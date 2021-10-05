@@ -10,11 +10,14 @@ namespace py = pybind11;
 #endif
 
 #include <pybind11/stl_bind.h>
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<IntegrationMethodTwoStep>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceConstraint>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceCompute>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::md::IntegrationMethodTwoStep>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceConstraint>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceCompute>>);
 
 using namespace std;
+
+namespace hoomd {
+namespace md {
 
 IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
     : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false), m_aniso_mode(Automatic)
@@ -469,6 +472,8 @@ bool IntegratorTwoStep::getAnisotropic()
     return is_anisotropic;
     }
 
+namespace detail {
+
 void export_IntegratorTwoStep(py::module& m)
     {
     py::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
@@ -488,3 +493,7 @@ void export_IntegratorTwoStep(py::module& m)
                       &IntegratorTwoStep::getAnisotropicMode,
                       &IntegratorTwoStep::setAnisotropicMode);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

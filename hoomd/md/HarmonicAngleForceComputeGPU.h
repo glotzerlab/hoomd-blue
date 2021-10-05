@@ -20,6 +20,9 @@
 #ifndef __HARMONICANGLEFORCECOMPUTEGPU_H__
 #define __HARMONICANGLEFORCECOMPUTEGPU_H__
 
+namespace hoomd {
+namespace md {
+
 //! Implements the harmonic angle force calculation on the GPU
 /*! HarmonicAngleForceComputeGPU implements the same calculations as HarmonicAngleForceCompute,
     but executing on the GPU.
@@ -62,7 +65,14 @@ class PYBIND11_EXPORT HarmonicAngleForceComputeGPU : public HarmonicAngleForceCo
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail {
+
 //! Export the AngleForceComputeGPU class to python
 void export_HarmonicAngleForceComputeGPU(pybind11::module& m);
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
+
 
 #endif

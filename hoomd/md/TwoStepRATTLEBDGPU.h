@@ -24,6 +24,9 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 //! Implements Brownian dynamics on the GPU
 /*! GPU accelerated version of TwoStepBD
 
@@ -138,7 +141,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
                                   access_location::device,
                                   access_mode::readwrite);
 
-    rattle_bd_step_one_args args;
+    kernel::rattle_bd_step_one_args args;
     args.d_gamma = d_gamma.data;
     args.n_types = this->m_gamma.getNumElements();
     args.use_alpha = this->m_use_alpha;
@@ -170,7 +173,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
     this->m_exec_conf->beginMultiGPU();
 
     // perform the update on the GPU
-    gpu_rattle_brownian_step_one(d_pos.data,
+    kernel::gpu_rattle_brownian_step_one(d_pos.data,
                                  d_image.data,
                                  d_vel.data,
                                  this->m_pdata->getBox(),
@@ -231,7 +234,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
 
     size_t net_virial_pitch = net_virial.getPitch();
 
-    rattle_bd_step_one_args args;
+    kernel::rattle_bd_step_one_args args;
     args.d_gamma = d_gamma.data;
     args.n_types = this->m_gamma.getNumElements();
     args.use_alpha = this->m_use_alpha;
@@ -258,7 +261,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
     this->m_exec_conf->beginMultiGPU();
 
     // perform the update on the GPU
-    gpu_include_rattle_force_bd<Manifold>(d_pos.data,
+    kernel::gpu_include_rattle_force_bd<Manifold>(d_pos.data,
                                           d_net_force.data,
                                           d_net_virial.data,
                                           d_diameter.data,
@@ -282,6 +285,8 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
         this->m_prof->pop(this->m_exec_conf);
     }
 
+namespace detail {
+
 //! Exports the TwoStepRATTLEBDGPU class to python
 template<class Manifold> void export_TwoStepRATTLEBDGPU(py::module& m, const std::string& name)
     {
@@ -296,4 +301,9 @@ template<class Manifold> void export_TwoStepRATTLEBDGPU(py::module& m, const std
                       bool,
                       Scalar>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
+
 #endif // ENABLE_HIP

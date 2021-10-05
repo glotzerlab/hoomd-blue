@@ -16,6 +16,9 @@ namespace py = pybind11;
 #include "hoomd/Communicator.h"
 #endif
 
+namespace hoomd {
+namespace md {
+
 NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> sysdef,
                                              Scalar r_buff)
     : NeighborListGPU(sysdef, r_buff), m_cl(std::make_shared<CellListGPU>(sysdef)), m_param(0)
@@ -163,7 +166,7 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
-    gpu_compute_nlist_binned(d_nlist.data,
+    kernel::gpu_compute_nlist_binned(d_nlist.data,
                              d_n_neigh.data,
                              d_last_pos.data,
                              d_conditions.data,
@@ -203,6 +206,8 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_NeighborListGPUBinned(py::module& m)
     {
     py::class_<NeighborListGPUBinned, NeighborListGPU, std::shared_ptr<NeighborListGPUBinned>>(
@@ -214,3 +219,7 @@ void export_NeighborListGPUBinned(py::module& m)
                       &NeighborListGPUBinned::getDeterministic,
                       &NeighborListGPUBinned::setDeterministic);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

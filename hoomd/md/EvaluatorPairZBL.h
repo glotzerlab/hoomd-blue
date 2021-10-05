@@ -24,6 +24,9 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd {
+namespace md {
+
 //! Class for evaluating the ZBL pair potential.
 /*! EvaluatorPairZBL evaluates the function
     \f{eqnarray*}
@@ -150,5 +153,8 @@ class EvaluatorPairZBL
     Scalar Zsq;    //!< Zsq parameter extracted from the params passed to the constructor
     Scalar aF;     //!< aF parameter extracted from the params passed to the constructor
     };
+
+} // end namespace md
+} // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_ZBL__

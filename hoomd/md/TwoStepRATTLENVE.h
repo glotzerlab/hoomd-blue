@@ -19,6 +19,9 @@
 #include "hoomd/VectorMath.h"
 #include <pybind11/pybind11.h>
 
+namespace hoomd {
+namespace md {
+
 constexpr unsigned int maxiteration = 10;
 
 inline Scalar maxNorm(Scalar3 vec, Scalar resid)
@@ -672,6 +675,7 @@ template<class Manifold> void TwoStepRATTLENVE<Manifold>::includeRATTLEForce(uin
         }
     }
 
+namespace detail {
 template<class Manifold> void export_TwoStepRATTLENVE(py::module& m, const std::string& name)
     {
     py::class_<TwoStepRATTLENVE<Manifold>,
@@ -692,5 +696,8 @@ template<class Manifold> void export_TwoStepRATTLENVE(py::module& m, const std::
                       &TwoStepRATTLENVE<Manifold>::getTolerance,
                       &TwoStepRATTLENVE<Manifold>::setTolerance);
     }
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_RATTLENVE_H__

@@ -21,6 +21,9 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd {
+namespace md {
+
 //! Implements Langevin dynamics on the GPU
 /*! GPU accelerated version of TwoStepLangevin
 
@@ -160,7 +163,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(uint64_t timestep)
     this->m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
     // perform the update on the GPU
-    gpu_rattle_nve_step_one(d_pos.data,
+    kernel::gpu_rattle_nve_step_one(d_pos.data,
                             d_vel.data,
                             d_accel.data,
                             d_image.data,
@@ -196,7 +199,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(uint64_t timestep)
         this->m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
 
-        gpu_rattle_nve_angular_step_one(d_orientation.data,
+        kernel::gpu_rattle_nve_angular_step_one(d_orientation.data,
                                         d_angmom.data,
                                         d_inertia.data,
                                         d_net_torque.data,
@@ -265,7 +268,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         m_num_blocks = group_size / m_block_size + 1;
 
         // perform the update on the GPU
-        rattle_langevin_step_two_args args;
+        kernel::rattle_langevin_step_two_args args;
         args.d_gamma = d_gamma.data;
         args.n_types = this->m_gamma.getNumElements();
         args.use_alpha = this->m_use_alpha;
@@ -282,7 +285,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         args.noiseless_r = this->m_noiseless_r;
         args.tally = this->m_tally;
 
-        gpu_rattle_langevin_step_two<Manifold>(d_pos.data,
+        kernel::gpu_rattle_langevin_step_two<Manifold>(d_pos.data,
                                                d_vel.data,
                                                d_accel.data,
                                                d_diameter.data,
@@ -315,7 +318,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
                                            access_mode::read);
 
             unsigned int group_size = this->m_group->getNumMembers();
-            gpu_rattle_langevin_angular_step_two(d_pos.data,
+            kernel::gpu_rattle_langevin_angular_step_two(d_pos.data,
                                                  d_orientation.data,
                                                  d_angmom.data,
                                                  d_inertia.data,
@@ -384,7 +387,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
     // perform the update on the GPU
     this->m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
-    gpu_include_rattle_force_nve<Manifold>(d_pos.data,
+    kernel::gpu_include_rattle_force_nve<Manifold>(d_pos.data,
                                            d_vel.data,
                                            d_accel.data,
                                            d_net_force.data,
@@ -405,6 +408,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
     this->m_exec_conf->endMultiGPU();
     }
 
+namespace detail {
 template<class Manifold>
 void export_TwoStepRATTLELangevinGPU(py::module& m, const std::string& name)
     {
@@ -417,4 +421,8 @@ void export_TwoStepRATTLELangevinGPU(py::module& m, const std::string& name)
                       std::shared_ptr<Variant>,
                       Scalar>());
     }
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
+
 #endif // ENABLE_HIP

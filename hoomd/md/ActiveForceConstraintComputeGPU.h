@@ -25,6 +25,9 @@
 namespace py = pybind11;
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 //! Adds an active force to a number of particles with confinement on the GPU
 /*! \ingroup computes
  */
@@ -173,7 +176,7 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForc
 
     // compute the forces on the GPU
     this->m_tuner_force->begin();
-    gpu_compute_active_force_set_forces(group_size,
+    kernel::gpu_compute_active_force_set_forces(group_size,
                                         d_index_array.data,
                                         d_force.data,
                                         d_torque.data,
@@ -222,7 +225,7 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(Scalar rotat
     // perform the update on the GPU
     this->m_tuner_diffusion->begin();
 
-    gpu_compute_active_force_constraint_rotational_diffusion<Manifold>(
+    kernel::gpu_compute_active_force_constraint_rotational_diffusion<Manifold>(
         group_size,
         d_tag.data,
         d_index_array.data,
@@ -266,7 +269,7 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setCons
     // perform the update on the GPU
     this->m_tuner_constraint->begin();
 
-    gpu_compute_active_force_set_constraints<Manifold>(group_size,
+    kernel::gpu_compute_active_force_set_constraints<Manifold>(group_size,
                                                        d_index_array.data,
                                                        d_pos.data,
                                                        d_orientation.data,
@@ -280,6 +283,8 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setCons
     this->m_tuner_constraint->end();
     }
 
+namespace detail {
+
 template<class Manifold>
 void export_ActiveForceConstraintComputeGPU(py::module& m, const std::string& name)
     {
@@ -290,4 +295,9 @@ void export_ActiveForceConstraintComputeGPU(py::module& m, const std::string& na
                       std::shared_ptr<ParticleGroup>,
                       Manifold>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
+
 #endif

@@ -26,6 +26,9 @@ namespace py = pybind11;
 using namespace std;
 using namespace hoomd;
 
+namespace hoomd {
+namespace md {
+
 //! Integrates part of the system forward in two steps with Langevin dynamics
 /*! Implements Langevin dynamics.
 
@@ -740,6 +743,7 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::includeRATTLEForc
         }
     }
 
+namespace detail {
 template<class Manifold> void export_TwoStepRATTLELangevin(py::module& m, const std::string& name)
     {
     py::class_<TwoStepRATTLELangevin<Manifold>,
@@ -757,5 +761,8 @@ template<class Manifold> void export_TwoStepRATTLELangevin(py::module& m, const 
                       &TwoStepRATTLELangevin<Manifold>::getTolerance,
                       &TwoStepRATTLELangevin<Manifold>::setTolerance);
     }
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_RATTLE_LANGEVIN_H__

@@ -13,6 +13,9 @@ using namespace std;
     \brief Contains code for the FIREEnergyMinimizerGPU class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param dt Default step size
@@ -116,7 +119,7 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
             ArrayHandle<Scalar> d_sumE(m_sum, access_location::device, access_mode::overwrite);
 
             unsigned int num_blocks = group_size / m_block_size + 1;
-            gpu_fire_compute_sum_pe(d_index_array.data,
+            kernel::gpu_fire_compute_sum_pe(d_index_array.data,
                                     group_size,
                                     d_net_force.data,
                                     d_sumE.data,
@@ -200,7 +203,7 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
 
             unsigned int num_blocks = group_size / m_block_size + 1;
 
-            gpu_fire_compute_sum_all(m_pdata->getN(),
+            kernel::gpu_fire_compute_sum_all(m_pdata->getN(),
                                      d_vel.data,
                                      d_accel.data,
                                      d_index_array.data,
@@ -253,7 +256,7 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
 
                 unsigned int num_blocks = group_size / m_block_size + 1;
 
-                gpu_fire_compute_sum_all_angular(m_pdata->getN(),
+                kernel::gpu_fire_compute_sum_all_angular(m_pdata->getN(),
                                                  d_orientation.data,
                                                  d_inertia.data,
                                                  d_angmom.data,
@@ -380,7 +383,7 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
                                      access_location::device,
                                      access_mode::read);
 
-        gpu_fire_update_v(d_vel.data,
+        kernel::gpu_fire_update_v(d_vel.data,
                           d_accel.data,
                           d_index_array.data,
                           group_size,
@@ -405,7 +408,7 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
                                            access_location::device,
                                            access_mode::read);
 
-            gpu_fire_update_angmom(d_net_torque.data,
+            kernel::gpu_fire_update_angmom(d_net_torque.data,
                                    d_orientation.data,
                                    d_inertia.data,
                                    d_angmom.data,
@@ -455,7 +458,7 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
                                        access_location::device,
                                        access_mode::readwrite);
 
-            gpu_fire_zero_v(d_vel.data, d_index_array.data, group_size);
+            kernel::gpu_fire_zero_v(d_vel.data, d_index_array.data, group_size);
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
 
@@ -464,7 +467,7 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
                 ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(),
                                               access_location::device,
                                               access_mode::readwrite);
-                gpu_fire_zero_angmom(d_angmom.data, d_index_array.data, group_size);
+                kernel::gpu_fire_zero_angmom(d_angmom.data, d_index_array.data, group_size);
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 }
@@ -478,6 +481,8 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
     m_old_energy = energy;
     }
 
+namespace detail {
+
 void export_FIREEnergyMinimizerGPU(py::module& m)
     {
     py::class_<FIREEnergyMinimizerGPU,
@@ -485,3 +490,7 @@ void export_FIREEnergyMinimizerGPU(py::module& m)
                std::shared_ptr<FIREEnergyMinimizerGPU>>(m, "FIREEnergyMinimizerGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

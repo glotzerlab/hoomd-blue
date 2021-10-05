@@ -23,6 +23,9 @@ using namespace hoomd;
 #ifndef __TWO_STEP_RATTLE_LANGEVIN_GPU_CUH__
 #define __TWO_STEP_RATTLE_LANGEVIN_GPU_CUH__
 
+namespace hoomd {
+namespace md {
+namespace kernel {
 //! Temporary holder struct to limit the number of arguments passed to
 //! gpu_rattle_langevin_step_two()
 struct rattle_langevin_step_two_args
@@ -404,5 +407,10 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4* d_pos,
     }
 
 #endif
+
+} // end namespace kernel
+} // end namespace md
+} // end namespace hoomd
+
 
 #endif //__TWO_STEP_RATTLE_LANGEVIN_GPU_CUH__

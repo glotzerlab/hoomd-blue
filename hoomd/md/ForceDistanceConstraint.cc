@@ -13,6 +13,9 @@ namespace py = pybind11;
     \brief Contains code for the ForceDistanceConstraint class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinition> sysdef)
@@ -673,6 +676,8 @@ void ForceDistanceConstraint::assignMoleculeTags()
     m_n_molecules_global = molecule;
     }
 
+namespace detail {
+
 void export_ForceDistanceConstraint(py::module& m)
     {
     py::class_<ForceDistanceConstraint,
@@ -683,3 +688,7 @@ void export_ForceDistanceConstraint(py::module& m)
                       &ForceDistanceConstraint::getRelativeTolerance,
                       &ForceDistanceConstraint::setRelativeTolerance);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

@@ -23,6 +23,10 @@ class LBVH;
 class LBVHTraverser;
     } // namespace neighbor
 
+namespace hoomd {
+namespace md {
+namespace kernel {
+
 //! Sentinel for an invalid particle (e.g., ghost)
 const unsigned int NeighborListTypeSentinel = 0xffffffff;
 
@@ -160,5 +164,10 @@ class LBVHTraverserWrapper
     private:
     std::shared_ptr<neighbor::LBVHTraverser> trav_; //!< Underlying neighbor::LBVHTraverser
     };
+
+} // end namespace kernel
+} // end namespace md
+} // end namespace hoomd
+
 
 #endif //__NEIGHBORLISTGPUTREE_CUH__

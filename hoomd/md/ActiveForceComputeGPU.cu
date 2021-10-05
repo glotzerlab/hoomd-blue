@@ -7,7 +7,6 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/TextureTools.h"
-using namespace hoomd;
 
 #include <assert.h>
 
@@ -15,6 +14,10 @@ using namespace hoomd;
     \brief Declares GPU kernel code for calculating active forces forces on the GPU. Used by
    ActiveForceComputeGPU.
 */
+
+namespace hoomd {
+namespace md {
+namespace kernel {
 
 //! Kernel for setting active force vectors on the GPU
 /*! \param group_size number of particles
@@ -199,3 +202,7 @@ hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int grou
                        seed);
     return hipSuccess;
     }
+
+} // end namespace kernel
+} // end namespace md
+} // end namespace hoomd

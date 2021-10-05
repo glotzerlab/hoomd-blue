@@ -28,6 +28,10 @@ using namespace hoomd;
 #ifndef __TWO_STEP_RATTLE_BD_GPU_CUH__
 #define __TWO_STEP_RATTLE_BD_GPU_CUH__
 
+namespace hoomd {
+namespace md {
+namespace kernel {
+
 //! Temporary holder struct to limit the number of arguments passed to gpu_rattle_bd_step_one()
 struct rattle_bd_step_one_args
     {
@@ -667,4 +671,8 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
     }
 
 #endif
+} // end namespace kernel
+} // end namespace md
+} // end namespace hoomd
+
 #endif //__TWO_STEP_RATTLE_BD_GPU_CUH__

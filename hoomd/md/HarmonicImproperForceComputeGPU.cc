@@ -12,6 +12,9 @@
 namespace py = pybind11;
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System to compute improper forces on
  */
 HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(
@@ -91,7 +94,7 @@ void HarmonicImproperForceComputeGPU::computeForces(uint64_t timestep)
 
     // run the kernel in parallel on all GPUs
     m_tuner->begin();
-    gpu_compute_harmonic_improper_forces(d_force.data,
+    kernel::gpu_compute_harmonic_improper_forces(d_force.data,
                                          d_virial.data,
                                          m_virial.getPitch(),
                                          m_pdata->getN(),
@@ -113,6 +116,8 @@ void HarmonicImproperForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_HarmonicImproperForceComputeGPU(py::module& m)
     {
     py::class_<HarmonicImproperForceComputeGPU,
@@ -121,3 +126,7 @@ void export_HarmonicImproperForceComputeGPU(py::module& m)
                                                                  "HarmonicImproperForceComputeGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

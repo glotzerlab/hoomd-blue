@@ -18,6 +18,10 @@ using namespace hoomd;
     \brief Defines GPU kernel code for Brownian integration on the GPU. Used by TwoStepBDGPU.
 */
 
+namespace hoomd {
+namespace md {
+namespace kernel {
+
 //! Takes the second half-step forward in the Langevin integration on a group of particles with
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
@@ -48,7 +52,7 @@ using namespace hoomd;
 
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
-extern "C" __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
+__global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
                                                         Scalar4* d_vel,
                                                         int3* d_image,
                                                         const BoxDim box,
@@ -374,3 +378,7 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
 
     return hipSuccess;
     }
+
+} // end namespace kernel
+} // end namespace md
+} // end namespace hoomd

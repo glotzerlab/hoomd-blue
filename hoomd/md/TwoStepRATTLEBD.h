@@ -26,6 +26,9 @@ using namespace hoomd;
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd {
+namespace md {
+
 //! Integrates part of the system forward in two steps with Brownian dynamics
 /*! Implements RATTLE applied on Brownian dynamics.
 
@@ -552,6 +555,7 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint
         }
     }
 
+namespace detail {
 template<class Manifold> void export_TwoStepRATTLEBD(py::module& m, const std::string& name)
     {
     py::class_<TwoStepRATTLEBD<Manifold>,
@@ -568,5 +572,8 @@ template<class Manifold> void export_TwoStepRATTLEBD(py::module& m, const std::s
                       &TwoStepRATTLEBD<Manifold>::getTolerance,
                       &TwoStepRATTLEBD<Manifold>::setTolerance);
     }
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_RATTLE_BD_H__

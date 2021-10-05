@@ -20,6 +20,9 @@
 #ifndef __COSINESQANGLEFORCECOMPUTE_H__
 #define __COSINESQANGLEFORCECOMPUTE_H__
 
+namespace hoomd {
+namespace md {
+
 struct cosinesq_params
     {
     Scalar k;
@@ -94,7 +97,13 @@ class PYBIND11_EXPORT CosineSqAngleForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail {
+
 //! Exports the AngleForceCompute class to python
 void export_CosineSqAngleForceCompute(pybind11::module& m);
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
 
 #endif

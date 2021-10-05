@@ -10,6 +10,9 @@
 namespace py = pybind11;
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 /** @param sysdef SystemDefinition this method will act on. Must not be NULL.
     @param group The group of particles this integration method is to work on
     @param T Temperature set point as a function of time
@@ -141,6 +144,8 @@ pybind11::object TwoStepLangevinBase::getAlpha()
     return result;
     }
 
+namespace detail {
+
 void export_TwoStepLangevinBase(py::module& m)
     {
     py::class_<TwoStepLangevinBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepLangevinBase>>(
@@ -156,3 +161,6 @@ void export_TwoStepLangevinBase(py::module& m)
         .def("getGammaR", &TwoStepLangevinBase::getGammaR)
         .def_property("alpha", &TwoStepLangevinBase::getAlpha, &TwoStepLangevinBase::setAlpha);
     }
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

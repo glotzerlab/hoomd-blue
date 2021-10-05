@@ -21,6 +21,9 @@ using namespace std;
     \brief Defines the NeighborList class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System the neighborlist is to compute neighbors for
     \param _r_cut Cutoff radius for all pairs under which particles are considered neighbors
     \param r_buff Buffer radius around \a r_cut in which neighbors will be included
@@ -1801,6 +1804,8 @@ void NeighborList::updateMemoryMapping()
     }
 #endif
 
+namespace detail {
+
 void export_NeighborList(py::module& m)
     {
     py::class_<NeighborList, Compute, std::shared_ptr<NeighborList>> nlist(m, "NeighborList");
@@ -1833,3 +1838,7 @@ void export_NeighborList(py::module& m)
         .value("full", NeighborList::storageMode::full)
         .export_values();
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

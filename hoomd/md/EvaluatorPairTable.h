@@ -19,6 +19,9 @@
 #ifndef __TABLEPOTENTIAL_H__
 #define __TABLEPOTENTIAL_H__
 
+namespace hoomd {
+namespace md {
+
 //! Computes the result of a tabulated pair potential
 /*! The potential and force values are provided the tables V(r) and F(r) at N_table discreet \a r
     values between \a rmin and \a rcut. Evaluations are performed by simple linear interpolation.
@@ -222,5 +225,8 @@ class EvaluatorPairTable
     ManagedArray<Scalar> V_table; //!< the tabulated energy
     ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
     };
+
+} // end namespace md
+} // end namespace hoomd
 
 #endif

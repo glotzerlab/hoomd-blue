@@ -20,6 +20,9 @@
 #ifndef __TABLEDIHEDRALFORCECOMPUTEGPU_H__
 #define __TABLEDIHEDRALFORCECOMPUTEGPU_H__
 
+namespace hoomd {
+namespace md {
+
 //! Compute table based bond potentials on the GPU
 /*! Calculates exactly the same thing as TableDihedralForceCompute, but on the GPU
 
@@ -54,7 +57,12 @@ class PYBIND11_EXPORT TableDihedralForceComputeGPU : public TableDihedralForceCo
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail {
 //! Exports the TableDihedralForceComputeGPU class to python
 void export_TableDihedralForceComputeGPU(pybind11::module& m);
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
 
 #endif

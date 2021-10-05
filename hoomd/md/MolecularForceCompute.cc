@@ -21,6 +21,9 @@ namespace py = pybind11;
     \brief Contains code for the MolecularForceCompute class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> sysdef)
@@ -121,7 +124,7 @@ void MolecularForceCompute::initMoleculesGPU()
             m_exec_conf->getCachedAllocator(),
             m_molecule_tag.getNumElements());
 
-        gpu_sort_by_molecule(nptl_local,
+        kernel::gpu_sort_by_molecule(nptl_local,
                              d_tag.data,
                              d_molecule_tag.data,
                              d_local_molecule_tags.data,
@@ -174,7 +177,7 @@ void MolecularForceCompute::initMoleculesGPU()
         m_tuner_fill->begin();
         unsigned int block_size = m_tuner_fill->getParam();
 
-        gpu_fill_molecule_table(nptl_local,
+        kernel::gpu_fill_molecule_table(nptl_local,
                                 n_local_ptls_in_molecules,
                                 m_molecule_indexer,
                                 d_molecule_idx.data,
@@ -436,6 +439,8 @@ void MolecularForceCompute::initMolecules()
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_MolecularForceCompute(py::module& m)
     {
     py::class_<MolecularForceCompute, ForceConstraint, std::shared_ptr<MolecularForceCompute>>(
@@ -443,3 +448,7 @@ void export_MolecularForceCompute(py::module& m)
         "MolecularForceCompute")
         .def(py::init<std::shared_ptr<SystemDefinition>>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

@@ -20,6 +20,9 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd {
+namespace md {
+
 //! Template class for computing three-body potentials and forces on the GPU
 /*! Derived from PotentialTersoff, this class provides exactly the same interface for computing
     the three-body potentials and forces.  In the same way as PotentialTersoff, this class serves
@@ -32,7 +35,7 @@
     \sa export_PotentialTersoffGPU()
 */
 template<class evaluator,
-         hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::tersoff_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     {
@@ -62,7 +65,7 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     };
 
 template<class evaluator,
-         hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::tersoff_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 PotentialTersoffGPU<evaluator, gpu_cgpf>::PotentialTersoffGPU(
     std::shared_ptr<SystemDefinition> sysdef,
@@ -102,7 +105,7 @@ PotentialTersoffGPU<evaluator, gpu_cgpf>::PotentialTersoffGPU(
     }
 
 template<class evaluator,
-         hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::tersoff_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 PotentialTersoffGPU<evaluator, gpu_cgpf>::~PotentialTersoffGPU()
     {
@@ -110,7 +113,7 @@ PotentialTersoffGPU<evaluator, gpu_cgpf>::~PotentialTersoffGPU()
     }
 
 template<class evaluator,
-         hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::tersoff_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 void PotentialTersoffGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     {
@@ -165,7 +168,7 @@ void PotentialTersoffGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
-    gpu_cgpf(tersoff_args_t(d_force.data,
+    gpu_cgpf(kernel::tersoff_args_t(d_force.data,
                             this->m_pdata->getN(),
                             this->m_pdata->getNGhosts(),
                             d_virial.data,
@@ -193,6 +196,8 @@ void PotentialTersoffGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
         this->m_prof->pop(this->m_exec_conf);
     }
 
+namespace detail {
+
 //! Export this three-body potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialTersoffGPU class template.
@@ -205,6 +210,10 @@ void export_PotentialTersoffGPU(pybind11::module& m, const std::string& name)
     pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif

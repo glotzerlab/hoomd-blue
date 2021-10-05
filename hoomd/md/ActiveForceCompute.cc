@@ -9,7 +9,8 @@
 
 #include <vector>
 
-using namespace hoomd;
+namespace hoomd {
+namespace md {
 
 /*! \file ActiveForceCompute.cc
     \brief Contains code for the ActiveForceCompute class
@@ -318,6 +319,8 @@ void ActiveForceCompute::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_ActiveForceCompute(pybind11::module& m)
     {
     pybind11::class_<ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute>>(
@@ -332,3 +335,7 @@ void export_ActiveForceCompute(pybind11::module& m)
                                [](ActiveForceCompute& force)
                                { return force.getGroup()->getFilter(); });
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

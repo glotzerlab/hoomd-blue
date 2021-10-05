@@ -19,6 +19,9 @@ using namespace std;
     \brief Contains code for the CosineSqAngleForceCompute class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
@@ -268,6 +271,8 @@ void CosineSqAngleForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
+namespace detail {
+
 void export_CosineSqAngleForceCompute(py::module& m)
     {
     py::class_<CosineSqAngleForceCompute, ForceCompute, std::shared_ptr<CosineSqAngleForceCompute>>(
@@ -277,3 +282,7 @@ void export_CosineSqAngleForceCompute(py::module& m)
         .def("getParams", &CosineSqAngleForceCompute::getParams)
         .def("setParams", &CosineSqAngleForceCompute::setParamsPython);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

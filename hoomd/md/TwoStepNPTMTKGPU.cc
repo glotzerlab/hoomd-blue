@@ -20,6 +20,9 @@ using namespace std;
     \brief Contains code for the TwoStepNPTMTKGPU class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
@@ -197,7 +200,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         m_tuner_rescale->begin();
 
         // perform the particle update on the GPU
-        gpu_npt_mtk_rescale(m_pdata->getGPUPartition(),
+        kernel::gpu_npt_mtk_rescale(m_pdata->getGPUPartition(),
                             d_pos.data,
                             m_mat_exp_r[0],
                             m_mat_exp_r[1],
@@ -237,7 +240,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         m_exec_conf->beginMultiGPU();
         m_tuner_one->begin();
 
-        gpu_npt_mtk_step_one(d_pos.data,
+        kernel::gpu_npt_mtk_step_one(d_pos.data,
                              d_vel.data,
                              d_accel.data,
                              d_index_array.data,
@@ -272,7 +275,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         m_exec_conf->beginMultiGPU();
         m_tuner_wrap->begin();
 
-        gpu_npt_mtk_wrap(m_pdata->getGPUPartition(),
+        kernel::gpu_npt_mtk_wrap(m_pdata->getGPUPartition(),
                          d_pos.data,
                          d_image.data,
                          box,
@@ -308,7 +311,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
 
-        gpu_nve_angular_step_one(d_orientation.data,
+        kernel::gpu_nve_angular_step_one(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
                                  d_net_torque.data,
@@ -385,7 +388,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
         m_exec_conf->beginMultiGPU();
         m_tuner_two->begin();
 
-        gpu_npt_mtk_step_two(d_vel.data,
+        kernel::gpu_npt_mtk_step_two(d_vel.data,
                              d_accel.data,
                              d_index_array.data,
                              m_group->getGPUPartition(),
@@ -428,7 +431,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
 
-        gpu_nve_angular_step_two(d_orientation.data,
+        kernel::gpu_nve_angular_step_two(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
                                  d_net_torque.data,
@@ -453,6 +456,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
         m_prof->pop();
     }
 
+namespace detail {
 void export_TwoStepNPTMTKGPU(py::module& m)
     {
     py::class_<TwoStepNPTMTKGPU, TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTKGPU>>(
@@ -470,3 +474,6 @@ void export_TwoStepNPTMTKGPU(py::module& m)
                       const std::vector<bool>&,
                       const bool>());
     }
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

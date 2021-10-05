@@ -12,6 +12,10 @@
     \brief CUDA kernels for BerendsenGPU
 */
 
+namespace hoomd {
+namespace md {
+namespace kernel {
+
 // First, the kernel code for the Berendsen thermostat
 //! Kernel that applies the first step of a Berendsen integration to a group of particles
 /*! \param d_pos array of particle positions
@@ -27,7 +31,7 @@
     This kernel executes one thread per particle and applies the thermostat to each each. It can be
     run with any 1D block size as long as block_size * num_blocks is >= the number of particles.
 */
-extern "C" __global__ void gpu_berendsen_step_one_kernel(Scalar4* d_pos,
+__global__ void gpu_berendsen_step_one_kernel(Scalar4* d_pos,
                                                          Scalar4* d_vel,
                                                          const Scalar3* d_accel,
                                                          int3* d_image,
@@ -81,7 +85,7 @@ extern "C" __global__ void gpu_berendsen_step_one_kernel(Scalar4* d_pos,
     This kernel executes one thread per particle and applies the thermostat to each each. It can be
     run with any 1D block size as long as block_size * num_blocks is >= the number of particles.
 */
-extern "C" __global__ void gpu_berendsen_step_two_kernel(Scalar4* d_vel,
+__global__ void gpu_berendsen_step_two_kernel(Scalar4* d_vel,
                                                          Scalar3* d_accel,
                                                          unsigned int* d_group_members,
                                                          const unsigned int group_size,
@@ -176,3 +180,7 @@ hipError_t gpu_berendsen_step_two(Scalar4* d_vel,
 
     return hipSuccess;
     }
+
+} // end namespace kernel
+} // end namespace md
+} // end namespace hoomd

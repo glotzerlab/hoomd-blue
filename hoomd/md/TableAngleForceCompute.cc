@@ -21,6 +21,9 @@ using namespace std;
 // SMALL a relatively small number
 #define SMALL 0.001f
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -294,6 +297,8 @@ void TableAngleForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
+namespace detail {
+
 //! Exports the TableAngleForceCompute class to python
 void export_TableAngleForceCompute(py::module& m)
     {
@@ -303,3 +308,7 @@ void export_TableAngleForceCompute(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>())
         .def("setTable", &TableAngleForceCompute::setTable);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

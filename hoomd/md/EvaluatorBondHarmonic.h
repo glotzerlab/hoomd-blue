@@ -25,6 +25,9 @@
 #define DEVICE
 #endif
 
+namespace hoomd {
+namespace md {
+
 struct harmonic_params
     {
     Scalar k;
@@ -147,5 +150,8 @@ class EvaluatorBondHarmonic
     Scalar K;   //!< K parameter
     Scalar r_0; //!< r_0 parameter
     };
+
+} // end namespace md
+} // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_HARMONIC_H__

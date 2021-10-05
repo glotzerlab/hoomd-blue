@@ -14,6 +14,9 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -82,7 +85,7 @@ void BondTablePotentialGPU::computeForces(uint64_t timestep)
 
         // run the kernel on all GPUs in parallel
         m_tuner->begin();
-        gpu_compute_bondtable_forces(d_force.data,
+        kernel::gpu_compute_bondtable_forces(d_force.data,
                                      d_virial.data,
                                      m_virial.getPitch(),
                                      m_pdata->getN(),
@@ -119,6 +122,8 @@ void BondTablePotentialGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_BondTablePotentialGPU(py::module& m)
     {
     py::class_<BondTablePotentialGPU, BondTablePotential, std::shared_ptr<BondTablePotentialGPU>>(
@@ -126,3 +131,7 @@ void export_BondTablePotentialGPU(py::module& m)
         "BondTablePotentialGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

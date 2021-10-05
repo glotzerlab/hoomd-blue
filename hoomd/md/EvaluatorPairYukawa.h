@@ -27,6 +27,9 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd {
+namespace md {
+
 //! Class for evaluating the Yukawa pair potential
 /*! <b>General Overview</b>
 
@@ -189,5 +192,8 @@ class EvaluatorPairYukawa
     Scalar epsilon; //!< epsilon parameter extracted from the params passed to the constructor
     Scalar kappa;   //!< kappa parameter extracted from the params passed to the constructor
     };
+
+} // end namespace md
+} // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_YUKAWA_H__

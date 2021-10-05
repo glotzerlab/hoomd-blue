@@ -23,6 +23,9 @@
 #define DEVICE
 #endif
 
+namespace hoomd {
+namespace md {
+
 //! Class for constructing the Ellipsoid surface
 /*! <b>General Overview</b>
 
@@ -139,7 +142,14 @@ class ManifoldEllipsoid
     Scalar inv_c2;
     };
 
+namespace detail {
+
 //! Exports the Ellipsoid manifold class to python
 void export_ManifoldEllipsoid(pybind11::module& m);
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
+
 
 #endif // __MANIFOLD_CLASS_ELLIPSOID_H__

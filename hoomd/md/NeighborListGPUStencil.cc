@@ -16,6 +16,9 @@ namespace py = pybind11;
 #include "hoomd/Communicator.h"
 #endif
 
+namespace hoomd {
+namespace md {
+
 /*!
  * \param sysdef System definition
  * \param r_cut Default cutoff radius
@@ -123,7 +126,7 @@ void NeighborListGPUStencil::sortTypes()
     ScopedAllocation<unsigned int> d_types_alt(m_exec_conf->getCachedAllocator(), m_pdata->getN());
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    gpu_compute_nlist_stencil_fill_types(d_pids.data, d_types(), d_pos.data, m_pdata->getN());
+    kernel::gpu_compute_nlist_stencil_fill_types(d_pids.data, d_types(), d_pos.data, m_pdata->getN());
 
     // only sort with more than one type
     if (m_pdata->getNTypes() > 1)
@@ -132,7 +135,7 @@ void NeighborListGPUStencil::sortTypes()
         void* d_tmp_storage = NULL;
         size_t tmp_storage_bytes = 0;
         bool swap = false;
-        gpu_compute_nlist_stencil_sort_types(d_pids.data,
+        kernel::gpu_compute_nlist_stencil_sort_types(d_pids.data,
                                              d_pids_alt(),
                                              d_types(),
                                              d_types_alt(),
@@ -146,7 +149,7 @@ void NeighborListGPUStencil::sortTypes()
         ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), alloc_size);
         d_tmp_storage = (void*)d_alloc();
 
-        gpu_compute_nlist_stencil_sort_types(d_pids.data,
+        kernel::gpu_compute_nlist_stencil_sort_types(d_pids.data,
                                              d_pids_alt(),
                                              d_types(),
                                              d_types_alt(),
@@ -295,7 +298,7 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
     unsigned int threads_per_particle = param % 10000;
 
     // launch neighbor list kernel
-    gpu_compute_nlist_stencil(d_nlist.data,
+    kernel::gpu_compute_nlist_stencil(d_nlist.data,
                               d_n_neigh.data,
                               d_last_pos.data,
                               d_conditions.data,
@@ -335,6 +338,8 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_NeighborListGPUStencil(py::module& m)
     {
     py::class_<NeighborListGPUStencil, NeighborListGPU, std::shared_ptr<NeighborListGPUStencil>>(
@@ -343,3 +348,7 @@ void export_NeighborListGPUStencil(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("setCellWidth", &NeighborListGPUStencil::setCellWidth);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

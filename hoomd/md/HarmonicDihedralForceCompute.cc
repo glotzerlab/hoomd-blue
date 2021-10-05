@@ -21,6 +21,9 @@ using namespace std;
     \brief Contains code for the HarmonicDihedralForceCompute class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
@@ -366,6 +369,8 @@ void HarmonicDihedralForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
+namespace detail {
+
 void export_HarmonicDihedralForceCompute(py::module& m)
     {
     py::class_<HarmonicDihedralForceCompute,
@@ -375,3 +380,7 @@ void export_HarmonicDihedralForceCompute(py::module& m)
         .def("setParams", &HarmonicDihedralForceCompute::setParamsPython)
         .def("getParams", &HarmonicDihedralForceCompute::getParams);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

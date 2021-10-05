@@ -13,6 +13,8 @@ using namespace std;
     \brief Contains code for the TwoStepNVEGPU class
 */
 
+namespace hoomd {
+namespace md {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
 */
@@ -73,7 +75,7 @@ void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
     // perform the update on the GPU
     m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
-    gpu_nve_step_one(d_pos.data,
+    kernel::gpu_nve_step_one(d_pos.data,
                      d_vel.data,
                      d_accel.data,
                      d_image.data,
@@ -111,7 +113,7 @@ void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
 
-        gpu_nve_angular_step_one(d_orientation.data,
+        kernel::gpu_nve_angular_step_one(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
                                  d_net_torque.data,
@@ -160,7 +162,7 @@ void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
     m_exec_conf->beginMultiGPU();
     m_tuner_two->begin();
 
-    gpu_nve_step_two(d_vel.data,
+    kernel::gpu_nve_step_two(d_vel.data,
                      d_accel.data,
                      d_index_array.data,
                      m_group->getGPUPartition(),
@@ -196,7 +198,7 @@ void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
 
-        gpu_nve_angular_step_two(d_orientation.data,
+        kernel::gpu_nve_angular_step_two(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
                                  d_net_torque.data,
@@ -218,8 +220,12 @@ void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
 void export_TwoStepNVEGPU(py::module& m)
     {
     py::class_<TwoStepNVEGPU, TwoStepNVE, std::shared_ptr<TwoStepNVEGPU>>(m, "TwoStepNVEGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

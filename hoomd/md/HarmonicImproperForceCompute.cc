@@ -20,6 +20,9 @@ namespace py = pybind11;
     \brief Contains code for the HarmonicImproperForceCompute class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
@@ -294,6 +297,8 @@ void HarmonicImproperForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
+namespace detail {
+
 void export_HarmonicImproperForceCompute(py::module& m)
     {
     py::class_<HarmonicImproperForceCompute,
@@ -302,3 +307,7 @@ void export_HarmonicImproperForceCompute(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &HarmonicImproperForceCompute::setParams);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

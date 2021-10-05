@@ -13,6 +13,9 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System to compute angle forces on
  */
 HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
@@ -87,7 +90,7 @@ void HarmonicAngleForceComputeGPU::computeForces(uint64_t timestep)
 
     // run the kernel on the GPU
     m_tuner->begin();
-    gpu_compute_harmonic_angle_forces(d_force.data,
+    kernel::gpu_compute_harmonic_angle_forces(d_force.data,
                                       d_virial.data,
                                       m_virial.getPitch(),
                                       m_pdata->getN(),
@@ -109,6 +112,8 @@ void HarmonicAngleForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_HarmonicAngleForceComputeGPU(py::module& m)
     {
     py::class_<HarmonicAngleForceComputeGPU,
@@ -116,3 +121,7 @@ void export_HarmonicAngleForceComputeGPU(py::module& m)
                std::shared_ptr<HarmonicAngleForceComputeGPU>>(m, "HarmonicAngleForceComputeGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

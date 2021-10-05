@@ -12,6 +12,9 @@
 namespace py = pybind11;
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System to compute bond forces on
  */
 HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(
@@ -99,7 +102,7 @@ void HarmonicDihedralForceComputeGPU::computeForces(uint64_t timestep)
 
     // run the kernel in parallel on all GPUs
     this->m_tuner->begin();
-    gpu_compute_harmonic_dihedral_forces(d_force.data,
+    kernel::gpu_compute_harmonic_dihedral_forces(d_force.data,
                                          d_virial.data,
                                          m_virial.getPitch(),
                                          m_pdata->getN(),
@@ -121,6 +124,8 @@ void HarmonicDihedralForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_HarmonicDihedralForceComputeGPU(py::module& m)
     {
     py::class_<HarmonicDihedralForceComputeGPU,
@@ -129,3 +134,7 @@ void export_HarmonicDihedralForceComputeGPU(py::module& m)
                                                                  "HarmonicDihedralForceComputeGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

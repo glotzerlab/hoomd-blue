@@ -12,7 +12,9 @@
 /*! \file TwoStepNVEGPU.cu
     \brief Defines GPU kernel code for NVE integration on the GPU. Used by TwoStepNVEGPU.
 */
-
+namespace hoomd {
+namespace md {
+namespace kernel {
 //! Takes the first half-step forward in the velocity-verlet NVE integration on a group of particles
 /*! \param d_pos array of particle positions
     \param d_vel array of particle velocities
@@ -37,7 +39,7 @@
    sorts the index list the writes will be as contiguous as possible leading to fewer memory
    transactions on compute 1.3 hardware and more cache hits on Fermi.
 */
-extern "C" __global__ void gpu_nve_step_one_kernel(Scalar4* d_pos,
+__global__ void gpu_nve_step_one_kernel(Scalar4* d_pos,
                                                    Scalar4* d_vel,
                                                    const Scalar3* d_accel,
                                                    int3* d_image,
@@ -374,7 +376,7 @@ hipError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for
    design details.
 */
-extern "C" __global__ void gpu_nve_step_two_kernel(Scalar4* d_vel,
+__global__ void gpu_nve_step_two_kernel(Scalar4* d_vel,
                                                    Scalar3* d_accel,
                                                    unsigned int* d_group_members,
                                                    const unsigned int nwork,
@@ -612,3 +614,7 @@ hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
 
     return hipSuccess;
     }
+
+} // end namespace kernel
+} // end namespace md
+} // end namespace hoomd

@@ -12,6 +12,9 @@ using namespace std;
 #ifdef ENABLE_HIP
 #include "MuellerPlatheFlowGPU.cuh"
 
+namespace hoomd {
+namespace md {
+
 MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
                                            std::shared_ptr<ParticleGroup> group,
                                            std::shared_ptr<Variant> flow_target,
@@ -83,7 +86,7 @@ void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
     const BoxDim& gl_box = m_pdata->getGlobalBox();
 
     m_tuner->begin();
-    gpu_search_min_max_velocity(group_size,
+    kernel::gpu_search_min_max_velocity(group_size,
                                 d_vel.data,
                                 d_pos.data,
                                 d_tag.data,
@@ -120,7 +123,7 @@ void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
                                access_mode::readwrite);
     const unsigned int Ntotal = m_pdata->getN() + m_pdata->getNGhosts();
 
-    gpu_update_min_max_velocity(d_rtag.data,
+    kernel::gpu_update_min_max_velocity(d_rtag.data,
                                 d_vel.data,
                                 Ntotal,
                                 m_last_max_vel,
@@ -133,6 +136,8 @@ void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
     if (m_prof)
         m_prof->pop();
     }
+
+namespace detail {
 
 void export_MuellerPlatheFlowGPU(py::module& m)
     {
@@ -149,4 +154,9 @@ void export_MuellerPlatheFlowGPU(py::module& m)
                       const unsigned int,
                       Scalar>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
+
 #endif // ENABLE_HIP

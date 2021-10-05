@@ -17,6 +17,9 @@ using namespace hoomd;
 namespace py = pybind11;
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 /** @param sysdef SystemDefinition this method will act on. Must not be NULL.
     @param group The group of particles this integration method is to work on
     @param T Temperature set point as a function of time
@@ -260,6 +263,8 @@ void TwoStepBD::integrateStepTwo(uint64_t timestep)
     // there is no step 2 in Brownian dynamics.
     }
 
+namespace detail {
+
 void export_TwoStepBD(py::module& m)
     {
     py::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD>>(m, "TwoStepBD")
@@ -269,3 +274,7 @@ void export_TwoStepBD(py::module& m)
                       bool,
                       bool>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

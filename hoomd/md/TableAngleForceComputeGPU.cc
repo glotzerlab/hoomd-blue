@@ -14,6 +14,9 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -75,7 +78,7 @@ void TableAngleForceComputeGPU::computeForces(uint64_t timestep)
 
         // run the kernel on all GPUs in parallel
         m_tuner->begin();
-        gpu_compute_table_angle_forces(d_force.data,
+        kernel::gpu_compute_table_angle_forces(d_force.data,
                                        d_virial.data,
                                        m_virial.getPitch(),
                                        m_pdata->getN(),
@@ -101,6 +104,8 @@ void TableAngleForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_TableAngleForceComputeGPU(py::module& m)
     {
     py::class_<TableAngleForceComputeGPU,
@@ -108,3 +113,7 @@ void export_TableAngleForceComputeGPU(py::module& m)
                std::shared_ptr<TableAngleForceComputeGPU>>(m, "TableAngleForceComputeGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

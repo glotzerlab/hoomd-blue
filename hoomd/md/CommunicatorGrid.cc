@@ -20,6 +20,9 @@ typedef cufftComplex hipfftComplex;
 #endif
 #endif
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef The system definition
  *  \param dim Dimensions of 3dim grid
  *  \param embed Embedding dimensions
@@ -281,5 +284,8 @@ inline hipfftComplex operator+(hipfftComplex& lhs, hipfftComplex& rhs)
 
 template class PYBIND11_EXPORT CommunicatorGrid<hipfftComplex>;
 #endif
+
+} // end namespace md
+} // end namespace hoomd
 
 #endif // ENABLE_MPI

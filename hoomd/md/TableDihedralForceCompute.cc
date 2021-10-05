@@ -22,6 +22,9 @@ using namespace std;
 // SMALL a relatively small number
 #define SMALL 0.001f
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -335,6 +338,8 @@ void TableDihedralForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
+namespace detail {
+
 //! Exports the TableDihedralForceCompute class to python
 void export_TableDihedralForceCompute(py::module& m)
     {
@@ -345,3 +350,7 @@ void export_TableDihedralForceCompute(py::module& m)
         .def("setTable", &TableDihedralForceCompute::setTable)
         .def("getEntry", &TableDihedralForceCompute::getEntry);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

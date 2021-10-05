@@ -31,6 +31,9 @@
 #include "hoomd/Communicator.h"
 #endif
 
+namespace hoomd {
+namespace md {
+
 //! Computes a Neighborlist from the particles
 /*! \b Overview:
 
@@ -675,7 +678,14 @@ class PYBIND11_EXPORT NeighborList : public Compute
 #endif
     };
 
+namespace detail {
+
 //! Exports NeighborList to python
 void export_NeighborList(pybind11::module& m);
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
+
 
 #endif

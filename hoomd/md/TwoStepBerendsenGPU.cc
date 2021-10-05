@@ -15,6 +15,9 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System to which the Berendsen thermostat will be applied
     \param group Group of particles to which the Berendsen thermostat will be applied
     \param thermo Compute for thermodynamic properties
@@ -75,7 +78,7 @@ void TwoStepBerendsenGPU::integrateStepOne(uint64_t timestep)
                                             access_mode::read);
 
     // perform the integration on the GPU
-    gpu_berendsen_step_one(d_pos.data,
+    kernel::gpu_berendsen_step_one(d_pos.data,
                            d_vel.data,
                            d_accel.data,
                            d_image.data,
@@ -117,7 +120,7 @@ void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
                                             access_mode::read);
 
     // perform the second step of the integration on the GPU
-    gpu_berendsen_step_two(d_vel.data,
+    kernel::gpu_berendsen_step_two(d_vel.data,
                            d_accel.data,
                            d_index_array.data,
                            group_size,
@@ -133,6 +136,8 @@ void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
         m_prof->pop();
     }
 
+namespace detail {
+
 void export_BerendsenGPU(py::module& m)
     {
     py::class_<TwoStepBerendsenGPU, TwoStepBerendsen, std::shared_ptr<TwoStepBerendsenGPU>>(
@@ -144,3 +149,7 @@ void export_BerendsenGPU(py::module& m)
                       Scalar,
                       std::shared_ptr<Variant>>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

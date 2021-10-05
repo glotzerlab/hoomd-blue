@@ -12,6 +12,10 @@
     \brief Defines GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTGPU.
 */
 
+namespace hoomd {
+namespace md {
+namespace kernel {
+
 //! Takes the first 1/2 step forward in the NVT integration step
 /*! \param d_pos array of particle positions
     \param d_vel array of particle velocities
@@ -29,7 +33,7 @@
     See gpu_nve_step_one_kernel() for some performance notes on how to handle the group data reads
    efficiently.
 */
-extern "C" __global__ void gpu_nvt_mtk_step_one_kernel(Scalar4* d_pos,
+__global__ void gpu_nvt_mtk_step_one_kernel(Scalar4* d_pos,
                                                        Scalar4* d_vel,
                                                        const Scalar3* d_accel,
                                                        int3* d_image,
@@ -147,7 +151,7 @@ hipError_t gpu_nvt_mtk_step_one(Scalar4* d_pos,
     \param deltaT Amount of real time to step forward in one time step
     \param offset The offset of this GPU into the list of particles
 */
-extern "C" __global__ void gpu_nvt_mtk_step_two_kernel(Scalar4* d_vel,
+__global__ void gpu_nvt_mtk_step_two_kernel(Scalar4* d_vel,
                                                        Scalar3* d_accel,
                                                        unsigned int* d_group_members,
                                                        unsigned int work_size,
@@ -243,4 +247,6 @@ hipError_t gpu_nvt_mtk_step_two(Scalar4* d_vel,
     return hipSuccess;
     }
 
-// vim:syntax=cpp
+} // end namespace kernel
+} // end namespace md
+} // end namespace hoomd

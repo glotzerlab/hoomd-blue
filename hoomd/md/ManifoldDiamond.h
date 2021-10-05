@@ -25,6 +25,9 @@
 #define DEVICE
 #endif
 
+namespace hoomd {
+namespace md {
+
 //! Class for constructing the Diamond minimal surface
 /*! <b>General Overview</b>
 
@@ -127,7 +130,14 @@ class ManifoldDiamond
     Scalar epsilon;
     };
 
+namespace detail {
+
 //! Exports the Diamond manifold class to python
 void export_ManifoldDiamond(pybind11::module& m);
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
+
 
 #endif // __MANIFOLD_CLASS_DIAMOND_H__

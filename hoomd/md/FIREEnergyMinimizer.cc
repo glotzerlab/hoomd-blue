@@ -12,6 +12,9 @@ namespace py = pybind11;
     \brief Contains code for the FIREEnergyMinimizer class
 */
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param dt maximum step size
 
@@ -471,6 +474,8 @@ void FIREEnergyMinimizer::update(uint64_t timestep)
     m_old_energy = energy;
     }
 
+namespace detail {
+
 void export_FIREEnergyMinimizer(py::module& m)
     {
     py::class_<FIREEnergyMinimizer, IntegratorTwoStep, std::shared_ptr<FIREEnergyMinimizer>>(
@@ -498,3 +503,7 @@ void export_FIREEnergyMinimizer(py::module& m)
                       &FIREEnergyMinimizer::getMinSteps,
                       &FIREEnergyMinimizer::setMinSteps);
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd

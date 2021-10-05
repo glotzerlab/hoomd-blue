@@ -15,6 +15,10 @@
     CosineSqAngleForceComputeGPU.
 */
 
+namespace hoomd {
+namespace md {
+namespace kernel {
+
 //! Kernel for calculating cosine squared angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -27,7 +31,7 @@
     \param pitch Pitch of 2D angles list
     \param n_angles_list List of numbers of angles stored on the GPU
 */
-extern "C" __global__ void
+__global__ void
 gpu_compute_cosinesq_angle_forces_kernel(Scalar4* d_force,
                                          Scalar* d_virial,
                                          const size_t virial_pitch,
@@ -257,3 +261,7 @@ hipError_t gpu_compute_cosinesq_angle_forces(Scalar4* d_force,
 
     return hipSuccess;
     }
+
+} // end namespace kernel
+} // end namespace md
+} // end namespace hoomd

@@ -21,10 +21,12 @@ namespace py = pybind11;
 #include <iostream>
 using namespace std;
 
+namespace hoomd {
+namespace md {
+
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
 */
-
 ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
                                    std::shared_ptr<ParticleGroup> group)
     : ComputeThermo(sysdef, group), m_scratch(m_exec_conf), m_scratch_pressure_tensor(m_exec_conf),
@@ -163,7 +165,7 @@ void ComputeThermoGPU::computeProperties()
         m_exec_conf->beginMultiGPU();
 
         // build up args list
-        compute_thermo_args args;
+        kernel::compute_thermo_args args;
         args.n_blocks = num_blocks;
         args.d_net_force = d_net_force.data;
         args.d_net_virial = d_net_virial.data;
@@ -229,6 +231,8 @@ void ComputeThermoGPU::computeProperties()
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_ComputeThermoGPU(py::module& m)
     {
     py::class_<ComputeThermoGPU, ComputeThermo, std::shared_ptr<ComputeThermoGPU>>(
@@ -236,3 +240,7 @@ void export_ComputeThermoGPU(py::module& m)
         "ComputeThermoGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }
+
+} // end namespace detail
+} // end namespace md
+} // end namespace hoomd
