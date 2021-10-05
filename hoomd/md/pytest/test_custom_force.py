@@ -4,19 +4,18 @@ import hoomd
 from hoomd import md
 
 
-class MyCustomForce(md.force.Custom):
+class MyConstantForce(md.force.Custom):
 
-    def __init__(self, filter, magnitude):
-        super().__init__()  # if we could make this work without this, that'd be great
-        self._filt = filter
+    def __init__(self, magnitude):
+        super().__init__()
         self._mag = magnitude
+        self._direction = np.array([1, 0, 0])
 
     def set_forces(self, timestep):
-        tags = self._filt(self._state)
         with self._state.cpu_local_snapshot as snap, self.cpu_local_force_arrays as arrays:
-            for tag in tags:
-                position = snap.particles.position[tag]
-                arrays.force[tag] = np.array([1, 0, 0]) * self._mag
-                arrays.potential_energy[tag] = -self._mag * position[tag][0]
-                arrays.torque[tag] = np.cross(position, self.forces[tag])
-                arrays.virial[tag] = ...
+            rtags = snap.particles.rtag
+            position = snap.particles.position[rtags]
+            arrays.force[rtags] = self._direction * self._mag
+            arrays.potential_energy[rtags] = -self._mag * position[rtags][0]
+            arrays.torque[rtags] = np.cross(position, self.forces[rtags])
+            arrays.virial[rtags] = ...
