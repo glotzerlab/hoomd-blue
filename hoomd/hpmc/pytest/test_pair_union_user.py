@@ -92,6 +92,11 @@ def test_valid_construction_and_attach_cpp_union_potential(
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
 
+    # catch the error if running on the GPU
+    if isinstance(device, hoomd.device.GPU):
+        with pytest.raises(RuntimeError):
+            sim.run(0)
+
     # create C++ mirror classes and set parameters
     sim.run(0)
 
@@ -142,6 +147,12 @@ def test_valid_setattr_attached_cpp_union_potential(
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
 
+    # catch the error if running on the GPU
+    if isinstance(device, hoomd.device.GPU):
+        with pytest.raises(RuntimeError):
+            sim.run(0)
+        return
+
     # create C++ mirror classes and set parameters
     sim.run(0)
 
@@ -176,6 +187,12 @@ def test_raise_attr_error_cpp_union_potential(device, attr, val,
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
 
+    # catch the error if running on the GPU
+    if isinstance(device, hoomd.device.GPU):
+        with pytest.raises(RuntimeError):
+            sim.run(0)
+        return
+
     # make sure the AttributeError gets raised when trying to change the
     # properties that cannot be changed after attachment
     # in this case, this is the jit-compiled code, because it gets compiled
@@ -186,14 +203,16 @@ def test_raise_attr_error_cpp_union_potential(device, attr, val,
         setattr(patch, attr, val)
 
 
+@pytest.mark.cpu
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_param_array_union(device, simulation_factory,
-                           two_particle_snapshot_factory):
+def test_param_array_union_cpu(device, simulation_factory,
+                               two_particle_snapshot_factory):
     """Test passing in parameter arrays to the union patch objects.
 
     This test tests that changes to the parameter array are reflected on the
     energy calculation. It therefore also tests that the energies are computed
-    correctly.
+    correctly. This test is for the CPU, where we can pass code into
+    code_isotropic.
 
     """
     square_well_isotropic = """
@@ -239,9 +258,9 @@ def test_param_array_union(device, simulation_factory,
     mc.potential = patch
     sim.operations.integrator = mc
 
-    # first test the case where r_cut_isotropic = 0, so particles only interact
+    # test the case where r_cut_isotropic = 0, so particles only interact
     # through the constituent particles
-    # there's 2 cases here, one where they interact with only 1 other
+    # there are 2 cases here, one where they interact with only 1 other
     # constituent particle, and then where the interact with all of the
     # neighboring constituent particles
 
@@ -283,3 +302,65 @@ def test_param_array_union(device, simulation_factory,
     patch.param_array[0] = 0
     sim.run(0)
     assert (np.isclose(patch.energy, 0.0))
+
+
+@pytest.mark.gpu
+@pytest.mark.validate
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_param_array_union_gpu(device, simulation_factory,
+                               two_particle_snapshot_factory):
+    """Test passing in parameter arrays to the union patch objects.
+
+    This test tests that changes to the parameter array are reflected on the
+    energy calculation. It therefore also tests that the energies are computed
+    correctly. We test this on the GPU where code_isotropic is unused, so we do
+    not pass any code into that argument of the patch constructor.
+
+    """
+    square_well_constituent = """
+                   float rsq = dot(r_ij, r_ij);
+                   float rcut = param_array_constituent[0];
+                   if (rsq < rcut*rcut)
+                       return param_array_constituent[1];
+                   else
+                       return 0.0f;
+                  """
+
+    # set up the system and patches
+    sim = simulation_factory(two_particle_snapshot_factory(L=40))
+    params = dict(
+        code_isotropic=None,
+        code_constituent=square_well_constituent,
+        param_array_constituent=[1.5, 3.0],
+        r_cut_constituent=1.5,
+    )
+    patch = hoomd.hpmc.pair.user.CPPUnionPotential(**params)
+    const_particle_pos = [(0.0, -0.5, 0), (0.0, 0.5, 0)]
+    patch.positions['A'] = const_particle_pos
+    patch.orientations['A'] = [(1, 0, 0, 0), (1, 0, 0, 0)]
+    patch.diameters['A'] = [1.0, 1.0]
+    patch.typeids['A'] = [0, 0]
+    patch.charges['A'] = [0, 0]
+    mc = hoomd.hpmc.integrate.SphereUnion()
+    sphere1 = dict(diameter=1)
+    mc.shape["A"] = dict(shapes=[sphere1, sphere1],
+                         positions=const_particle_pos,
+                         orientations=[(1, 0, 0, 0), (1, 0, 0, 0)])
+    mc.potential = patch
+    sim.operations.integrator = mc
+
+    # there are 2 cases here, one where they interact with only 1 other
+    # constituent particle, and then where the interact with all of the
+    # neighboring constituent particles
+
+    # first, only interact with nearest neighboring constituent particle
+    patch.param_array_constituent[0] = 1.1
+    patch.param_array_constituent[1] = -1.0
+    sim.run(0)
+    assert (np.isclose(patch.energy, -2.0))  # 2 interacting pairs
+
+    # now extend r_cut_constituent so that all constituent particles interact
+    # with all other constituent particles
+    patch.param_array_constituent[0] = np.sqrt(2) + 0.1
+    sim.run(0)
+    assert (np.isclose(patch.energy, -4.0))  # 4 interacting pairs this time
