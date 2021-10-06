@@ -34,12 +34,12 @@ namespace py = pybind11;
 
 #include "hoomd/Variant.h"
 
-using namespace hoomd;
-
 #include <math.h>
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file test_npt_mtk_integrator.cc
     \brief Implements unit tests for NPTMTKpdater and descendants

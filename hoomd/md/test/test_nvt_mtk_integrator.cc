@@ -24,6 +24,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file nvt_updater_test.cc
     \brief Implements unit tests for NVTUpdater and descendants
