@@ -320,9 +320,10 @@ class MoveSize(_InternalCustomTuner):
         acceptance ratio. Otherwise, the *global* acceptance ratio, a weighted
         average of the acceptance ratios for each individual particle type, will
         approach the target value, while the per-type acceptance ratios may not
-        be close to the target value. This requires creating move size tuners
-        for each type and leveraging the ``ignore_statistics`` flag of the shape
-        property of the HPMC integrator.
+        be close to the target value. This requires setting the ``types`` attribute
+        to be one type at a type while setting the ``ignore_statistics`` flag of
+        the shape property of the HPMC integrator for all other types to
+        ``True``.
 
     """
     _internal_class = _InternalMoveSize
