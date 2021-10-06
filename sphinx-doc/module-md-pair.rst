@@ -28,6 +28,7 @@ md.pair
     OPP
     ReactionField
     SLJ
+    ExpandedLJ
     Table
     TWF
     Yukawa
@@ -57,6 +58,7 @@ md.pair
         OPP,
         ReactionField,
         SLJ,
+        ExpandedLJ,
         Table,
         TWF,
         Yukawa,

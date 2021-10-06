@@ -457,17 +457,18 @@ class ExpandedLJ(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+        delta (float): The horizontal shift of pair's interaction :math:`[\mathrm{length}]`.
         mode (str): Energy shifting mode.
 
-    `SLJ` specifies that a shifted Lennard-Jones type pair potential
-    should be applied between every non-excluded particle pair in the
-    simulation.
+    `ExpandedLJ` specifies that a horizontally shifted Lennard-Jones
+    type pair potential should be applied between every non-excluded
+    particle pair in the simulation.
 
     .. math::
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{SLJ}}(r)  = & 4 \varepsilon \left[ \left(
+        V_{\mathrm{ExpandedLJ}}(r)  = & 4 \varepsilon \left[ \left(
                                 \frac{\sigma}{r - \Delta} \right)^{12} -
                                 \left( \frac{\sigma}{r - \Delta}
                                 \right)^{6} \right]; & r < (r_{\mathrm{cut}}
@@ -475,19 +476,16 @@ class ExpandedLJ(Pair):
                              = & 0; & r \ge (r_{\mathrm{cut}} + \Delta) \\
         \end{eqnarray*}
 
-    where :math:`\Delta = (d_i + d_j)/2 - 1` and :math:`d_i` is the diameter of
-    particle :math:`i`.
-
     See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.
 
     Attention:
-        Due to the way that `SLJ` modifies the cutoff criteria, a smoothing mode
+        Due to the way that `ExpandedLJ` modifies the cutoff criteria, a smoothing mode
         of *xplor* is not supported.
 
     Set the ``max_diameter`` property of the neighbor list object to the largest
     particle diameter in the system (where **diameter** is a per-particle
-    property of the same name in `hoomd.State`).
+    property of the same name in `hoomd.State`). TODO: fix this warning
 
     Warning:
         Failure to set ``max_diameter`` will result in missing pair
@@ -501,6 +499,8 @@ class ExpandedLJ(Pair):
           :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
           :math:`[\mathrm{length}]`
+        * ``delta`` (`float`, **required**) - horizontal shift
+          :math:`\Delta` :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -512,17 +512,21 @@ class ExpandedLJ(Pair):
         slj = pair.SLJ(default_r_cut=3.0, nlist=nl)
         slj.params[('A', 'B')] = dict(epsilon=2.0, r_cut=3.0)
         slj.r_cut[('B', 'B')] = 2**(1.0/6.0)
+
     """
-    _cpp_class_name = 'PotentialPairSLJ'
+    _cpp_class_name = 'PotentialPairExpandedLJ'
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
         if mode == 'xplor':
-            raise ValueError("xplor is not a valid mode for SLJ potential")
+            raise ValueError("xplor is not a valid mode for ExpandedLJ potential")
 
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
+            TypeParameterDict(epsilon=float,
+                              sigma=float,
+                              delta=float,
+                              len_keys=2))
         self._add_typeparam(params)
 
         # mode not allowed to be xplor, so re-do param dict entry without that

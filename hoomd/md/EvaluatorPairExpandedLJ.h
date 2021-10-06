@@ -3,8 +3,8 @@
 
 // Maintainer: joaander
 
-#ifndef __PAIR_EVALUATOR_SLJ_H__
-#define __PAIR_EVALUATOR_SLJ_H__
+#ifndef __PAIR_EVALUATOR_ExpandedLJ_H__
+#define __PAIR_EVALUATOR_ExpandedLJ_H__
 
 #ifndef __HIPCC__
 #include <string>
@@ -33,25 +33,24 @@
 
     See EvaluatorPairExpandedLJ
 
-    <b>SLJ specifics</b>
+    <b>ExpandedLJ specifics</b>
 
-    EvaluatorPairSLJ evaluates the function:
+    EvaluatorPairExpandedLJ evaluates the function:
     \f{eqnarray*}
     V_{\mathrm{SLJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} -
                            \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] & r <
    (r_{\mathrm{cut}} + \Delta) \\
                          = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
     \f}
-    where \f$ \Delta = (d_i + d_j)/2 - 1 \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
 
-    The SLJ potential does not need charge, but does need diameter. Two parameters are specified and
+    The ExpandedLJ potential does not need charge. Two parameters are specified and
    stored in a Scalar2. \a lj1 is placed in \a params.x and \a lj2 is in \a params.y.
 
     These are related to the standard lj parameters sigma and epsilon by:
-    - \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
+    - \a lj1 = 4.0 * epsilon * pow(sigma,12.0);
     - \a lj2 = 4.0 * epsilon * pow(sigma,6.0);
 
-    Due to the way that SLJ modifies the cutoff condition, it will not function properly with the
+    Due to the way that ExpandedLJ modifies the cutoff condition, it will not function properly with the
    xplor shifting mode.
 */
 class EvaluatorPairExpandedLJ
@@ -74,26 +73,23 @@ class EvaluatorPairExpandedLJ
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairSLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+    DEVICE EvaluatorPairExpandedLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
         : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
         {
         }
 
-    //! SLJ uses diameter
+    //! ExpandedLJ does not use diameter
     DEVICE static bool needsDiameter()
         {
-        return true;
+        return false;
         }
     //! Accept the optional diameter values
     /*! \param di Diameter of particle i
         \param dj Diameter of particle j
     */
-    DEVICE void setDiameter(Scalar di, Scalar dj)
-        {
-        delta = (di + dj) / Scalar(2.0) - Scalar(1.0);
-        }
+    DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
-    //! SLJ doesn't use charge
+    //! ExpandedLJ does not use charge
     DEVICE static bool needsCharge()
         {
         return false;
@@ -151,7 +147,7 @@ class EvaluatorPairExpandedLJ
      */
     static std::string getName()
         {
-        return std::string("slj");
+        return std::string("expandedlj");
         }
 
     std::string getShapeSpec() const
@@ -165,7 +161,7 @@ class EvaluatorPairExpandedLJ
     Scalar rcutsq; //!< Stored rcutsq from the constructor
     Scalar lj1;    //!< lj1 parameter extracted from the params passed to the constructor
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
-    Scalar delta;  //!< Delta parameter extracted from the call to setDiameter
+    //Scalar delta;  //!< Delta parameter extracted from the call to setDiameter
     };
 
 #endif // __PAIR_EVALUATOR_SLJ_H__
