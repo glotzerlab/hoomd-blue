@@ -27,4 +27,3 @@ class MyConstantForce(md.force.Custom):
             arrays.virial[rtags][:, 3] = force[1] * position[:, 0]
             arrays.virial[rtags][:, 4] = force[1] * position[:, 1]
             arrays.virial[rtags][:, 5] = force[2] * position[:, 2]
-
