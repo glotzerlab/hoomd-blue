@@ -64,6 +64,11 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
         return m_pdata->getNGhosts();
         }
 
+    const GlobalArray<unsigned int>& getRTags() const
+        {
+        return m_pdata->getRTags();
+        }
+
     protected:
     //! Function that is called on every particle sort
     void rearrangeForces();
@@ -83,6 +88,9 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
     };
 
 
+/** Make the local particle data available to python via zero-copy access
+ *
+ * */
 template<class Output>
 class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, CustomForceCompute>
     {
@@ -94,6 +102,12 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
         }
 
     virtual ~LocalForceComputeData() = default;
+
+    Output getRTags()
+        {
+        return this->template getGlobalBuffer<unsigned int>(m_rtag_handle,
+                                                            &CustomForceCompute::getRTags);
+        }
 
     Output getForce(GhostDataFlag flag)
         {
@@ -135,12 +149,14 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
         m_force_handle.reset(nullptr);
         m_torque_handle.reset(nullptr);
         m_virial_handle.reset(nullptr);
+        m_rtag_handle.reset(nullptr);
         }
 
     private:
     std::unique_ptr<ArrayHandle<Scalar4>> m_force_handle;
     std::unique_ptr<ArrayHandle<Scalar4>> m_torque_handle;
     std::unique_ptr<ArrayHandle<Scalar>> m_virial_handle;
+    std::unique_ptr<ArrayHandle<unsigned int>> m_rtag_handle;
     };
 
 
