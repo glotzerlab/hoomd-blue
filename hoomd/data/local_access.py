@@ -416,31 +416,29 @@ class _LocalSnapshot:
         self._pairs._exit()
 
 
-class LocalForceArraysBase:
+class ForceLocalAccessBase(_LocalAccess):
+
+    @property
+    @abstractmethod
+    def _cpp_cls(self):
+        pass
+
+    _fields = {
+        'force': 'getForce',
+        'potential_energy': 'getPotentialEnergy',
+        'torque': 'getTorque',
+        'virial': 'getVirial'
+    }
 
     def __init__(self, force_obj):
         super().__init__()
-        self._state = force_obj._simulation.state
-        self._box = state.box
-        self._local_box = state._cpp_sys_def.getParticleData().getBox()
+        self._force_obj = force_obj
         self._cpp_obj = self._cpp_class(force_obj._cpp_obj)
 
-    @property
-    def force(self):
-        return self._cpp_obj.getForce()
-
-    @property
-    def potential_energy(self):
-        return self._cpp_obj.getPotentialEnergy()
-
-    @property
-    def torque(self):
-        return self._cpp_obj.getTorque()
-
     def __enter__(self):
-        self._state._in_context_manager = True
+        self._force_obj._in_context_manager = True
         self._enter()
 
     def __exit__(self, type, value, traceback):
-        self._state._in_context_manager = False
+        self._force_obj._in_context_manager = False
         self._exit()
