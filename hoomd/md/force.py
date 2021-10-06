@@ -4,6 +4,8 @@
 
 """Apply forces to particles."""
 
+from abc import abstractmethod
+
 import hoomd
 from hoomd import _hoomd
 from hoomd.md import _md
@@ -123,17 +125,17 @@ class Custom(Force):
         self._in_context_manager = False
 
     def _attach(self):
-        self._cpp_obj = _hoomd.CustomForceCompute(self._simulation._cpp_sys_def)
+        self._cpp_obj = _md.CustomForceCompute(self._simulation._cpp_sys_def)
         self._cpp_obj.setCallback(self.set_forces)
         super()._attach()
 
     @property
     def cpu_local_force_arrays(self):
         if self._in_context_manager:
-            raise RuntimeError("Cannot enter cpu_local_force_arrays context
-                               manager inside another local_force_arrays context
-                               manager")
-        return LocalForceArrays(self)
+            raise RuntimeError("Cannot enter cpu_local_force_arrays context "
+                               "manager inside another local_force_arrays "
+                               "context manager")
+        return ForceLocalAccess(self)
 
     @property
     def gpu_local_force_arrays(self):
