@@ -4,13 +4,10 @@
 
 """Implement local access classes for the CPU."""
 
-from hoomd.data.local_access import (ParticleLocalAccessBase,
-                                     BondLocalAccessBase, AngleLocalAccessBase,
-                                     DihedralLocalAccessBase,
-                                     ImproperLocalAccessBase,
-                                     ConstraintLocalAccessBase,
-                                     PairLocalAccessBase, _LocalSnapshot,
-                                     ForceLocalAccessBase)
+from hoomd.data.local_access import (
+    ParticleLocalAccessBase, BondLocalAccessBase, AngleLocalAccessBase,
+    DihedralLocalAccessBase, ImproperLocalAccessBase, ConstraintLocalAccessBase,
+    PairLocalAccessBase, _LocalSnapshot, ForceLocalAccessBase)
 from hoomd.data.array import HOOMDArray
 from hoomd import _hoomd
 from hoomd.md import _md
