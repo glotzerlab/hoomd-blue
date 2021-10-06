@@ -433,6 +433,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     //! Prepare for the run
     virtual void prepRun(uint64_t timestep)
         {
+        Integrator::prepRun(timestep);
         m_past_first_run = true;
         }
 

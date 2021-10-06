@@ -312,6 +312,7 @@ const std::string IntegratorTwoStep::getAnisotropicMode()
 */
 void IntegratorTwoStep::prepRun(uint64_t timestep)
     {
+    Integrator::prepRun(timestep);
     bool aniso = false;
 
     // set (an-)isotropic integration mode

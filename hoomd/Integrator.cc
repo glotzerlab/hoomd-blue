@@ -921,7 +921,20 @@ void Integrator::update(uint64_t timestep)
 
     The base class does nothing, it is up to derived classes to implement the correct behavior.
 */
-void Integrator::prepRun(uint64_t timestep) { }
+void Integrator::prepRun(uint64_t timestep)
+    {
+    // ensure that all forces have updated delta t values at the start of step 0
+
+    for (auto& force : m_forces)
+        {
+        force->setDeltaT(m_deltaT);
+        }
+
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        constraint_force->setDeltaT(m_deltaT);
+        }
+    }
 
 #ifdef ENABLE_MPI
 /** @param tstep Time step for which to determine the flags
