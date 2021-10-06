@@ -13,6 +13,10 @@ namespace py = pybind11;
 #include "Communicator.h"
 #endif
 
+#include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceConstraint>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceCompute>>);
+
 using namespace std;
 
 namespace hoomd {
@@ -975,6 +979,8 @@ namespace detail {
 
 void export_Integrator(py::module& m)
     {
+    py::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
+    py::bind_vector<std::vector<std::shared_ptr<ForceConstraint>>>(m, "ForceConstraintList");
     py::class_<Integrator, Updater, std::shared_ptr<Integrator>>(m, "Integrator")
         .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("updateGroupDOF", &Integrator::updateGroupDOF)
