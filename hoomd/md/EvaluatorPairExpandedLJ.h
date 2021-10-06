@@ -14,7 +14,7 @@
 #include "hoomd/HOOMDMath.h"
 
 /*! \file EvaluatorPairExpandedLJ.h
-    \brief Defines the pair evaluator class for shifted Lennard-Jones potentials
+    \brief Defines the pair evaluator class for Expanded LJ potentials
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -43,12 +43,15 @@
                          = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
     \f}
 
-    The ExpandedLJ potential does not need charge. Two parameters are specified and
-   stored in a Scalar2. \a lj1 is placed in \a params.x and \a lj2 is in \a params.y.
+    The ExpandedLJ potential does not need charge or diameter. Three parameters are specified and
+   stored in a Scalar3. \a lj1 is placed in \a params.x, \a lj2 is in \a params.y, and \a delta
+   is in params.z.
+
 
     These are related to the standard lj parameters sigma and epsilon by:
     - \a lj1 = 4.0 * epsilon * pow(sigma,12.0);
     - \a lj2 = 4.0 * epsilon * pow(sigma,6.0);
+    - \a delta = delta
 
     Due to the way that ExpandedLJ modifies the cutoff condition, it will not function properly with the
    xplor shifting mode.
@@ -74,7 +77,7 @@ class EvaluatorPairExpandedLJ
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairExpandedLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
+        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2), delta(_params.delta)
         {
         }
 
@@ -87,7 +90,7 @@ class EvaluatorPairExpandedLJ
     /*! \param di Diameter of particle i
         \param dj Diameter of particle j
     */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
+    DEVICE void setDiameter(Scalar di, Scalar dj) const { }
 
     //! ExpandedLJ does not use charge
     DEVICE static bool needsCharge()
@@ -98,7 +101,7 @@ class EvaluatorPairExpandedLJ
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */
-    DEVICE void setCharge(Scalar qi, Scalar qj) { }
+    DEVICE void setCharge(Scalar qi, Scalar qj) const { }
 
     //! Evaluate the force and energy
     /*! \param force_divr Output parameter to write the computed force divided by r.
@@ -118,7 +121,7 @@ class EvaluatorPairExpandedLJ
         Scalar rcut = Scalar(1.0) / rcutinv;
 
         // compute the force divided by r in force_divr
-        if (r < (rcut + delta) && lj1 != 0)
+        if (r < rcut && lj1 != 0)
             {
             Scalar rmd = r - delta;
             Scalar rmdinv = Scalar(1.0) / rmd;
@@ -143,11 +146,12 @@ class EvaluatorPairExpandedLJ
 
 #ifndef __HIPCC__
     //! Get the name of this potential
-    /*! \returns The potential name.
+    /*! \returns The potential name. Must be short and all lowercase, as this is the name energies
+       will be logged as via analyze.log.
      */
     static std::string getName()
         {
-        return std::string("expandedlj");
+        return std::string("expanded_lj");
         }
 
     std::string getShapeSpec() const
@@ -161,7 +165,7 @@ class EvaluatorPairExpandedLJ
     Scalar rcutsq; //!< Stored rcutsq from the constructor
     Scalar lj1;    //!< lj1 parameter extracted from the params passed to the constructor
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
-    //Scalar delta;  //!< Delta parameter extracted from the call to setDiameter
+    Scalar delta;  //!< outward radial shift to apply to LJ potential
     };
 
-#endif // __PAIR_EVALUATOR_SLJ_H__
+#endif // __PAIR_EVALUATOR_EXPANDEDLJ_H__
