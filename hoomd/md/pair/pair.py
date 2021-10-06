@@ -518,7 +518,8 @@ class ExpandedLJ(Pair):
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
         if mode == 'xplor':
-            raise ValueError("xplor is not a valid mode for ExpandedLJ potential")
+            raise ValueError(
+                "xplor is not a valid mode for ExpandedLJ potential")
 
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
