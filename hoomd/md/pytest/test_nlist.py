@@ -125,8 +125,9 @@ def test_auto_detach_simulation(simulation_factory,
 
 
 def test_logging():
-    logging_check(hoomd.md.nlist.NList, ('md', 'nlist'), 
-                  {'shortest_rebuild': {
-                      'category': LoggerCategories.scalar,
-                      'default' : True
-                  }})
+    logging_check(hoomd.md.nlist.NList, ('md', 'nlist'), {
+        'shortest_rebuild': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

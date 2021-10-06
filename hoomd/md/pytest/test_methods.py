@@ -617,28 +617,26 @@ def test_pickling(method_base_params, simulation_factory,
 
 
 def test_logging():
-    logging_check(hoomd.md.methods.NPH, ('md', 'methods'),
-                  {
-                      'barostat_energy': {
-                          'category' : LoggerCategories.scalar,
-                          'default' : True
-                      }
-                  })
-    logging_check(hoomd.md.methods.NPT, ('md', 'methods'),
-                  {
-                      'barostat_energy': {
-                          'category' : LoggerCategories.scalar,
-                          'default' : True
-                      },
-                      'thermostat_energy' : {
-                          'category' : LoggerCategories.scalar,
-                          'default' : True
-                      }
-                  })
-    logging_check(hoomd.md.methods.NVT, ('md', 'methods'),
-                  {
-                      'thermostat_energy': {
-                          'category' : LoggerCategories.scalar,
-                          'default' : True
-                      }
-                  })
+    logging_check(hoomd.md.methods.NPH, ('md', 'methods'), {
+        'barostat_energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })
+    logging_check(
+        hoomd.md.methods.NPT, ('md', 'methods'), {
+            'barostat_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'thermostat_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })
+    logging_check(hoomd.md.methods.NVT, ('md', 'methods'), {
+        'thermostat_energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

@@ -170,14 +170,14 @@ def test_validate_methods(lattice_snapshot_factory, simulation_factory):
 
 
 def test_logging():
-    logging_check(hoomd.md.minimize.FIRE, ('md', 'minimize', 'fire'),
-                  {
-                      'converged': {
-                          'category' : LoggerCategories.scalar,
-                          'default' : False
-                      },
-                      'energy' : {
-                          'category' : LoggerCategories.scalar,
-                          'default' : True
-                      }
-                  })
+    logging_check(
+        hoomd.md.minimize.FIRE, ('md', 'minimize', 'fire'), {
+            'converged': {
+                'category': LoggerCategories.scalar,
+                'default': False
+            },
+            'energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })

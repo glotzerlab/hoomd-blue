@@ -81,11 +81,10 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
 
 
 def test_logging():
-    logging_check(hoomd.md.update.ReversePerturbationFlow,
-    ('md', 'update'), {
-        'summed_exchanged_momentum': {
-            'category': LoggerCategories.scalar,
-            'default' : True
-        }
-
-    })
+    logging_check(
+        hoomd.md.update.ReversePerturbationFlow, ('md', 'update'), {
+            'summed_exchanged_momentum': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })
