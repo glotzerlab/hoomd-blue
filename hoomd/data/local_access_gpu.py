@@ -65,6 +65,7 @@ if hoomd.version.gpu_enabled:
             self._constraints = ConstraintLocalAccessGPU(state)
 
     class ForceLocalAccessGPU(ForceLocalAccessBase):
+        """Access force array data on the GPU."""
         _cpp_cls = _md.LocalForceComputeDataDevice
         _array_cls = HOOMDGPUArray
 
@@ -104,6 +105,7 @@ else:
         pass
 
     class ForceLocalAccessGPU(_NoGPU):
+        """GPU data access is not available in CPU builds."""
         pass
 
 
@@ -128,5 +130,7 @@ ghost particles) in a read only array.
 All array-like properties return a `hoomd.array.HOOMDGPUArray` object which
 prevents invalid memory accesses.
 """
+
+# TODO should I add a section here for the ForceLocalAccess?
 
 LocalSnapshotGPU.__doc__ = _gpu_snapshot_docs
