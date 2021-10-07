@@ -88,7 +88,9 @@ EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::str
         return;
         }
 
-    m_eval = (EvalFnPtr)(long unsigned int)(eval->getAddress());
+    m_eval = static_cast<EvalFnPtr>(static_cast<long unsigned int>(eval->getAddress()));
+    m_alpha = static_cast<float**>(alpha->getAddress());
+    m_alpha_union = static_cast<float**>(alpha_union->getAddress());
     m_alpha = (float**)(alpha->getAddress());
     m_alpha_union = (float**)(alpha_union->getAddress());
     }

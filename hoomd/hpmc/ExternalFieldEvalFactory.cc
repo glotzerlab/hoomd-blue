@@ -73,5 +73,6 @@ ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& cpp_code,
         return;
         }
 
-    m_eval = (ExternalFieldEvalFnPtr)(long unsigned int)(eval->getAddress());
+    m_eval
+        = static_cast<ExternalFieldEvalFnPtr>(static_cast<long unsigned int>(eval->getAddress()));
     }

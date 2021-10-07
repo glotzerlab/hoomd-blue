@@ -94,8 +94,9 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     static pybind11::object getParamArray(pybind11::object self)
         {
         auto self_cpp = self.cast<PatchEnergyJIT*>();
-        unsigned int array_size = (unsigned int)self_cpp->m_param_array.size();
-        return pybind11::array(array_size, self_cpp->m_factory->getAlphaArray(), self);
+        return pybind11::array(self_cpp->m_param_array.size(),
+                               self_cpp->m_factory->getAlphaArray(),
+                               self);
         }
 
 #ifdef ENABLE_MPI
