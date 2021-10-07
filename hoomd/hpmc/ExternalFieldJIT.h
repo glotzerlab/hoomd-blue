@@ -110,7 +110,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         if (this->m_pdata->getDomainDecomposition())
             {
             MPI_Allreduce(MPI_IN_PLACE,
-                          &total_enegy,
+                          &total_energy,
                           1,
                           MPI_HOOMD_SCALAR,
                           MPI_SUM,
