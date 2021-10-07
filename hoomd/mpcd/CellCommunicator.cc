@@ -12,8 +12,8 @@
 
 #include "CellCommunicator.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 // initialize with zero instances of the communicator
 unsigned int mpcd::CellCommunicator::num_instances = 0;
 
@@ -378,6 +378,6 @@ void mpcd::CellCommunicator::initialize()
         h_recv_end.data[cell_idx] = idx;
         }
     }
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI

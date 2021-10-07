@@ -21,8 +21,8 @@
 #include <string>
 #include <vector>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Updates domain decompositions to balance the load
 /*!
  * Adjusts the boundaries of the processor domains to distribute the load close to evenly between
@@ -224,11 +224,11 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
     uint64_t m_n_rebalances;      //!< The actual number of rebalances (migrations) performed
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Export the LoadBalancer to python
 void export_LoadBalancer(pybind11::module& m);
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

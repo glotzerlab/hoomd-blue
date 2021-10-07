@@ -13,9 +13,10 @@ namespace py = pybind11;
     \brief Contains code for the TwoStepNPTMTK class
 */
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Coefficients of f(x) = sinh(x)/x = a_0 + a_2 * x^2 + a_4 * x^4 + a_6 * x^6 + a_8 * x^8 + a_10 *
 //! x^10
 const Scalar f_coeff[] = {Scalar(1.0),
@@ -1244,8 +1245,8 @@ Scalar TwoStepNPTMTK::getBarostatEnergy(uint64_t timestep)
     return barostat_energy;
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_TwoStepNPTMTK(py::module& m)
     {
     py::class_<TwoStepNPTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTK>>
@@ -1285,6 +1286,6 @@ void export_TwoStepNPTMTK(py::module& m)
         .def("getBarostatEnergy", &TwoStepNPTMTK::getBarostatEnergy);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

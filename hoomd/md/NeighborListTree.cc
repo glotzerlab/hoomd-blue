@@ -18,9 +18,10 @@ namespace py = pybind11;
 
 using namespace std;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 NeighborListTree::NeighborListTree(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
     : NeighborList(sysdef, r_buff), m_box_changed(true), m_max_num_changed(true),
       m_remap_particles(true), m_types_allocated(false), m_n_images(0)
@@ -212,7 +213,9 @@ void NeighborListTree::buildTree()
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::read);
-    ArrayHandle<hoomd::detail::AABB> h_aabbs(m_aabbs, access_location::host, access_mode::readwrite);
+    ArrayHandle<hoomd::detail::AABB> h_aabbs(m_aabbs,
+                                             access_location::host,
+                                             access_mode::readwrite);
 
     const BoxDim& box = m_pdata->getBox();
     Scalar ghost_layer_width(0.0);
@@ -434,8 +437,8 @@ void NeighborListTree::traverseTree()
         this->m_prof->pop();
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_NeighborListTree(py::module& m)
     {
     py::class_<NeighborListTree, NeighborList, std::shared_ptr<NeighborListTree>>(
@@ -444,6 +447,6 @@ void export_NeighborListTree(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

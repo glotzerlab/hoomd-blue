@@ -22,9 +22,10 @@
 #define HOSTDEVICE
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the oscillating pair potential
 /*! <b>General Overview</b>
 
@@ -191,7 +192,7 @@ class EvaluatorPairOPP
     param_type params; /// Stored pair parameters for a given type pair
     };
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_OPP_H__

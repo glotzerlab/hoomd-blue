@@ -24,9 +24,10 @@
 #define DEVICE
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 struct tether_params
     {
     Scalar k_b;
@@ -193,7 +194,7 @@ class EvaluatorBondTether
     Scalar l_max; //!< l_max parameter
     };
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_TETHER_H__

@@ -29,9 +29,10 @@
 #define HOSTDEVICE
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Buckingham pair potential
 /*! <b>General Overview</b>
 
@@ -194,7 +195,7 @@ class EvaluatorPairBuckingham
     Scalar C;      //!< Buckingham parameter extracted from the params passed to the constructor
     };
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_BUCKINGHAM_H__

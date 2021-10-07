@@ -22,9 +22,10 @@
 #ifndef __OPLSDIHEDRALFORCECOMPUTE_H__
 #define __OPLSDIHEDRALFORCECOMPUTE_H__
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 struct dihedral_opls_params
     {
     Scalar k1;
@@ -98,14 +99,13 @@ class PYBIND11_EXPORT OPLSDihedralForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the DihedralForceCompute class to python
 void export_OPLSDihedralForceCompute(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
-
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

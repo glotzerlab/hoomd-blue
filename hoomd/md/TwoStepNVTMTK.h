@@ -20,9 +20,10 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps in the NVT ensemble
 /*! Implements Martyna-Tobias-Klein (MTK) NVT integration through the IntegrationMethodTwoStep
    interface
@@ -150,14 +151,13 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     void advanceThermostat(uint64_t timestep, bool broadcast = true);
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the TwoStepNVTMTK class to python
 void export_TwoStepNVTMTK(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
-
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NVT_MTK_H__

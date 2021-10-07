@@ -26,9 +26,10 @@
 
 #ifdef ENABLE_HIP
 
-namespace hoomd {
-namespace dem {
-
+namespace hoomd
+    {
+namespace dem
+    {
 //! Computes DEM2D forces on each particle using the GPU
 /*! Calculates the same forces as DEM2DForceCompute, but on the GPU.
 
@@ -76,8 +77,8 @@ class DEM2DForceComputeGPU : public DEM2DForceCompute<Real, Real4, Potential>
     size_t maxVertices() const;
     };
 
-} // end namespace dem
-} // end namespace hoomd
+    } // end namespace dem
+    } // end namespace hoomd
 
 #include "DEM2DForceComputeGPU.cc"
 

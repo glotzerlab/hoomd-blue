@@ -11,8 +11,8 @@
 #include "SlitPoreGeometryFillerGPU.h"
 #include "SlitPoreGeometryFillerGPU.cuh"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 mpcd::SlitPoreGeometryFillerGPU::SlitPoreGeometryFillerGPU(
     std::shared_ptr<mpcd::SystemData> sysdata,
     Scalar density,
@@ -87,4 +87,4 @@ void mpcd::detail::export_SlitPoreGeometryFillerGPU(pybind11::module& m)
                       std::shared_ptr<const mpcd::detail::SlitPoreGeometry>>());
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

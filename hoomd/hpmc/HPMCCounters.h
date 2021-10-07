@@ -6,7 +6,8 @@
 
 #include "hoomd/HOOMDMath.h"
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 /*! \file IntegratorHPMCMonoGPU.cuh
@@ -415,6 +416,6 @@ DEVICE inline hpmc_clusters_counters_t operator-(const hpmc_clusters_counters_t&
     }
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // _HPMC_COUNTERS_H_

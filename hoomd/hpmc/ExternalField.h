@@ -18,8 +18,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
-namespace hoomd {
-
+namespace hoomd
+    {
 namespace hpmc
     {
 class ExternalField : public Compute
@@ -88,8 +88,8 @@ template<class Shape> class ExternalFieldMono : public ExternalField
     virtual void reset(uint64_t timestep) { }
     };
 
-namespace detail {
-
+namespace detail
+    {
 template<class Shape> void export_ExternalFieldInterface(pybind11::module& m, std::string name)
     {
     pybind11::class_<ExternalFieldMono<Shape>, Compute, std::shared_ptr<ExternalFieldMono<Shape>>>(
@@ -102,7 +102,7 @@ template<class Shape> void export_ExternalFieldInterface(pybind11::module& m, st
         .def("calculateDeltaE", &ExternalFieldMono<Shape>::calculateDeltaE);
     }
 
-} // end namespace detail
-    } // end namespace hpmc
-} // end namespace hoomd
+    }      // end namespace detail
+    }      // end namespace hpmc
+    }      // end namespace hoomd
 #endif // end inclusion guard

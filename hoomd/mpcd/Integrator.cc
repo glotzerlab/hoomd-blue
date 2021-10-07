@@ -14,8 +14,8 @@
 #include "hoomd/Communicator.h"
 #endif
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /*!
  * \param sysdata MPCD system data
  * \param deltaT Fundamental integration timestep
@@ -241,4 +241,4 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
 #endif // ENABLE_MPI
         ;
     }
-} // end namespace hoomd
+    } // end namespace hoomd

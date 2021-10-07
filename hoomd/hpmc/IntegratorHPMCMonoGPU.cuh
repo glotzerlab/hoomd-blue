@@ -24,7 +24,8 @@
 
 #include <cassert>
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -542,7 +543,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
 #undef MAX_BLOCK_SIZE
 #undef MIN_BLOCK_SIZE
 
-    } // end namespace hoomd
-    } // end namespace gpu
+    } // namespace gpu
+    } // namespace hpmc
 
-    } // end namespace hpmc
+    } // namespace hoomd

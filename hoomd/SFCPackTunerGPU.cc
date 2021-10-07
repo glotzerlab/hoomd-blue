@@ -21,8 +21,8 @@
 using namespace std;
 namespace py = pybind11;
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Constructor
 /*! \param sysdef System to perform sorts on
  */
@@ -137,14 +137,14 @@ void SFCPackTunerGPU::getSortedOrder3D()
 
     // put the particles in the bins and sort
     kernel::gpu_generate_sorted_order(m_pdata->getN(),
-                              d_pos.data,
-                              d_gpu_particle_bins.data,
-                              d_traversal_order.data,
-                              m_grid,
-                              d_gpu_sort_order.data,
-                              box,
-                              m_sysdef->getNDimensions() == 2,
-                              m_exec_conf->getCachedAllocator());
+                                      d_pos.data,
+                                      d_gpu_particle_bins.data,
+                                      d_traversal_order.data,
+                                      m_grid,
+                                      d_gpu_sort_order.data,
+                                      box,
+                                      m_sysdef->getNDimensions() == 2,
+                                      m_exec_conf->getCachedAllocator());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -256,38 +256,38 @@ void SFCPackTunerGPU::applySortOrder()
 
         // apply sorted order and re-build rtags
         kernel::gpu_apply_sorted_order(m_pdata->getN(),
-                               m_pdata->getNGhosts(),
-                               d_gpu_sort_order.data,
-                               d_pos.data,
-                               d_pos_alt.data,
-                               d_vel.data,
-                               d_vel_alt.data,
-                               d_accel.data,
-                               d_accel_alt.data,
-                               d_charge.data,
-                               d_charge_alt.data,
-                               d_diameter.data,
-                               d_diameter_alt.data,
-                               d_image.data,
-                               d_image_alt.data,
-                               d_body.data,
-                               d_body_alt.data,
-                               d_tag.data,
-                               d_tag_alt.data,
-                               d_orientation.data,
-                               d_orientation_alt.data,
-                               d_angmom.data,
-                               d_angmom_alt.data,
-                               d_inertia.data,
-                               d_inertia_alt.data,
-                               d_net_virial.data,
-                               d_net_virial_alt.data,
-                               m_pdata->getNetVirial().getPitch(),
-                               d_net_force.data,
-                               d_net_force_alt.data,
-                               d_net_torque.data,
-                               d_net_torque_alt.data,
-                               d_rtag.data);
+                                       m_pdata->getNGhosts(),
+                                       d_gpu_sort_order.data,
+                                       d_pos.data,
+                                       d_pos_alt.data,
+                                       d_vel.data,
+                                       d_vel_alt.data,
+                                       d_accel.data,
+                                       d_accel_alt.data,
+                                       d_charge.data,
+                                       d_charge_alt.data,
+                                       d_diameter.data,
+                                       d_diameter_alt.data,
+                                       d_image.data,
+                                       d_image_alt.data,
+                                       d_body.data,
+                                       d_body_alt.data,
+                                       d_tag.data,
+                                       d_tag_alt.data,
+                                       d_orientation.data,
+                                       d_orientation_alt.data,
+                                       d_angmom.data,
+                                       d_angmom_alt.data,
+                                       d_inertia.data,
+                                       d_inertia_alt.data,
+                                       d_net_virial.data,
+                                       d_net_virial_alt.data,
+                                       m_pdata->getNetVirial().getPitch(),
+                                       d_net_force.data,
+                                       d_net_force_alt.data,
+                                       d_net_torque.data,
+                                       d_net_torque_alt.data,
+                                       d_rtag.data);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -310,8 +310,8 @@ void SFCPackTunerGPU::applySortOrder()
     m_pdata->swapNetTorque();
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_SFCPackTunerGPU(py::module& m)
     {
     py::class_<SFCPackTunerGPU, SFCPackTuner, std::shared_ptr<SFCPackTunerGPU>>(m,
@@ -319,8 +319,8 @@ void export_SFCPackTunerGPU(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif

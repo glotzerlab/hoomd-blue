@@ -10,7 +10,8 @@
 
 #include "StreamingGeometry.h"
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace detail
@@ -51,4 +52,4 @@ void export_SlitPoreGeometry(pybind11::module& m)
 
     } // end namespace detail
     } // end namespace mpcd
-} // end namespace hoomd
+    } // end namespace hoomd

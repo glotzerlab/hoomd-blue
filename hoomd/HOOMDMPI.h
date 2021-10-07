@@ -156,8 +156,8 @@ inline void load(Archive& ar, tbb::concurrent_unordered_set<K, H, KE, A>& unorde
 #endif
     } // namespace cereal
 
-namespace hoomd {
-
+namespace hoomd
+    {
 #ifdef SINGLE_PRECISION
 //! Define MPI_FLOAT as Scalar MPI data type
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_FLOAT;
@@ -487,7 +487,7 @@ template<typename T> void recv(T& val, const unsigned int src, const MPI_Comm mp
     delete[] buf;
     }
 
-} // namespace hoomd
+    } // namespace hoomd
 
 #endif // ENABLE_MPI
 #endif // __HOOMD_MPI_H__

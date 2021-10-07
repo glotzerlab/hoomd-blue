@@ -14,7 +14,8 @@ using namespace std;
     \brief Definition of common methods for HPMC integrators
 */
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
@@ -228,7 +229,8 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
     return result;
     }
 
-namespace detail {
+namespace detail
+    {
 void export_IntegratorHPMC(py::module& m)
     {
     py::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m, "IntegratorHPMC")
@@ -259,6 +261,6 @@ void export_IntegratorHPMC(py::module& m)
         .def_property_readonly("rotate", &hpmc_counters_t::getRotateCounts);
     }
 
-} // end namespace detail
+    } // end namespace detail
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd

@@ -4,7 +4,8 @@
 #include "IntegratorHPMCMonoGPUTypes.cuh"
 #include "hoomd/GPUPartition.cuh"
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -268,4 +269,4 @@ void hpmc_check_convergence(const unsigned int* d_trial_move_type,
 
     } // end namespace gpu
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd

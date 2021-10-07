@@ -21,9 +21,10 @@
 #ifndef __NEIGHBORLISTGPUTREE_H__
 #define __NEIGHBORLISTGPUTREE_H__
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Efficient neighbor list build on the GPU using BVH trees
 /*!
  * GPU methods mostly make use of the neighbor library to do the traversal.
@@ -169,12 +170,13 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     // @}
     };
 
-namespace detail {
+namespace detail
+    {
 //! Exports NeighborListGPUTree to python
 void export_NeighborListGPUTree(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__NEIGHBORLISTGPUTREE_H__

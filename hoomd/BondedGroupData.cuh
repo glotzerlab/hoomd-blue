@@ -13,8 +13,8 @@
 #ifndef __BONDED_GROUP_DATA_CUH__
 #define __BONDED_GROUP_DATA_CUH__
 
-namespace hoomd {
-
+namespace hoomd
+    {
 #ifdef __HIPCC__
 //! Sentinel value
 const unsigned int GROUP_NOT_LOCAL = 0xffffffff;
@@ -71,5 +71,5 @@ void gpu_update_group_table(const unsigned int n_groups,
                             bool has_type_mapping,
                             CachedAllocator& alloc);
 
-} // end namespace hoomd
+    }      // end namespace hoomd
 #endif // __BONDED_GROUP_DATA_CUH__

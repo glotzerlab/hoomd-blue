@@ -15,10 +15,12 @@
 #include "EvaluatorSpecialPairLJ.h"
 #include "PotentialBondGPU.cuh"
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Compute LJ bond forces on the GPU with BondEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
 gpu_compute_lj_forces(const bond_args_t& bond_args,
@@ -31,8 +33,8 @@ gpu_compute_coulomb_forces(const bond_args_t& bond_args,
                            const special_coulomb_params* d_params,
                            unsigned int* d_flags);
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

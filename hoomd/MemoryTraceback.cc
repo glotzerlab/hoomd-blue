@@ -19,8 +19,8 @@
 //! Maximum number of symbols to trace back
 #define MAX_TRACEBACK 4
 
-namespace hoomd {
-
+namespace hoomd
+    {
 void MemoryTraceback::registerAllocation(const void* ptr,
                                          size_t nbytes,
                                          const std::string& type_hint,
@@ -154,4 +154,4 @@ void MemoryTraceback::outputTraces(std::shared_ptr<Messenger> msg) const
         }
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

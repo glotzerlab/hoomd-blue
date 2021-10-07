@@ -11,13 +11,14 @@
     \brief Declaration of CUDA kernels for ExampleUpdater
 */
 
-namespace hoomd {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace kernel
+    {
 //! Zeros velocities on the GPU
 hipError_t gpu_zero_velocities(Scalar4* d_vel, unsigned int N);
 
-} // end namespace kernel
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace hoomd
 
 #endif // _EXAMPLE_UPDATER_CUH_

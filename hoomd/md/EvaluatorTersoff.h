@@ -22,9 +22,10 @@
 #define HOSTDEVICE
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Tersoff three-body potential
 class EvaluatorTersoff
     {
@@ -455,7 +456,7 @@ class EvaluatorTersoff
     Scalar cutoff_alpha; //!< \a alpha in the cutoff smoothing function
     };
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

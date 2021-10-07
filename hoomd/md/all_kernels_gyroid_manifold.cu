@@ -7,10 +7,12 @@
 
 #include "ManifoldGyroid.h"
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 template hipError_t
 gpu_rattle_brownian_step_one<ManifoldGyroid>(Scalar4* d_pos,
                                              int3* d_image,
@@ -92,6 +94,6 @@ template hipError_t gpu_include_rattle_force_nve<ManifoldGyroid>(const Scalar4* 
                                                                  bool zero_force,
                                                                  unsigned int block_size);
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

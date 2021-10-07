@@ -6,10 +6,12 @@
 #include "ManifoldEllipsoid.h"
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-namespace md {
-namespace detail {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 //! Exports the Ellipsoid manifold class to python
 void export_ManifoldEllipsoid(pybind11::module& m)
     {
@@ -21,6 +23,6 @@ void export_ManifoldEllipsoid(pybind11::module& m)
         .def_property_readonly("P", &ManifoldEllipsoid::getP);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

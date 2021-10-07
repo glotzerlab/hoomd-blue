@@ -42,9 +42,10 @@
 #ifndef __ForceComposite_H__
 #define __ForceComposite_H__
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     {
     public:
@@ -262,14 +263,13 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     bool m_global_max_d_changed; //!< True if we updated any rigid body
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the ForceComposite to python
 void export_ForceComposite(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
-
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

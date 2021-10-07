@@ -24,9 +24,10 @@
 
 using namespace std;
 
-namespace hoomd {
-namespace dem {
-
+namespace hoomd
+    {
+namespace dem
+    {
 /*! \param sysdef System to compute forces on
   \param nlist Neighborlist to use for computing the forces
   \param r_cut Cutoff radius beyond which the force is 0
@@ -266,8 +267,8 @@ void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(uint64_t timest
         this->m_prof->pop(this->m_exec_conf, flops, mem_transfer);
     }
 
-} // end namespace dem
-} // end namespace hoomd
+    } // end namespace dem
+    } // end namespace hoomd
 
 #endif
 

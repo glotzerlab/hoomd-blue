@@ -10,8 +10,8 @@
 
 #include "VirtualParticleFiller.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 mpcd::VirtualParticleFiller::VirtualParticleFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                                                    Scalar density,
                                                    unsigned int type,
@@ -94,4 +94,4 @@ void mpcd::detail::export_VirtualParticleFiller(pybind11::module& m)
         .def("setTemperature", &mpcd::VirtualParticleFiller::setTemperature);
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

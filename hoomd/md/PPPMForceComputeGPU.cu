@@ -13,10 +13,12 @@
 
 #define GPU_PPPM_MAX_ORDER 7
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 // workaround for HIP bug
 #ifdef __HIP_PLATFORM_HCC__
 inline __device__ float myAtomicAdd(float* address, float val)
@@ -1476,6 +1478,6 @@ hipError_t gpu_fix_exclusions(Scalar4* d_force,
     return hipSuccess;
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

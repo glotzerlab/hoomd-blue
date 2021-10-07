@@ -11,8 +11,8 @@
 #include "ATCollisionMethodGPU.h"
 #include "ATCollisionMethodGPU.cuh"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 mpcd::ATCollisionMethodGPU::ATCollisionMethodGPU(
     std::shared_ptr<mpcd::SystemData> sysdata,
     uint64_t cur_timestep,
@@ -190,4 +190,4 @@ void mpcd::detail::export_ATCollisionMethodGPU(pybind11::module& m)
                       std::shared_ptr<Variant>>());
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

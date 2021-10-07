@@ -23,7 +23,8 @@
 // pybind11
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Computes the cell (thermodynamic) properties on the GPU
@@ -90,6 +91,6 @@ namespace detail
 void export_CellThermoComputeGPU(pybind11::module& m);
     } // end namespace detail
     } // end namespace mpcd
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // MPCD_CELL_THERMO_COMPUTE_GPU_H_

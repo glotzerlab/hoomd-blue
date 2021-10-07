@@ -3,8 +3,8 @@
 
 #include "Variant.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //* Trampoline for classes inherited in python
 class VariantPy : public Variant
     {
@@ -42,8 +42,8 @@ class VariantPy : public Variant
         }
     };
 
-namespace detail {
-
+namespace detail
+    {
 // These testVariant{Method} functions allow us to test that Python custom
 // variants work properly in C++. This ensures we can test that the function
 // itself can be called in C++ when defined in Python.
@@ -183,6 +183,6 @@ void export_Variant(pybind11::module& m)
     m.def("_test_variant_max", &testVariantMax);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

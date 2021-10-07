@@ -16,9 +16,10 @@
 using namespace std;
 namespace py = pybind11;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*!
  * \param sysdef System definition
  * \param r_cut Default cutoff radius
@@ -334,8 +335,8 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_NeighborListStencil(py::module& m)
     {
     py::class_<NeighborListStencil, NeighborList, std::shared_ptr<NeighborListStencil>>(
@@ -350,6 +351,6 @@ void export_NeighborListStencil(py::module& m)
                       &NeighborListStencil::setDeterministic);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

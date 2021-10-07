@@ -19,8 +19,8 @@
 using namespace std;
 namespace py = pybind11;
 
-namespace hoomd {
-
+namespace hoomd
+    {
 // 27 neighbors is the maximum in 3 dimensions
 const unsigned int mpcd::Communicator::neigh_max = 27;
 
@@ -705,5 +705,5 @@ void mpcd::detail::export_Communicator(py::module& m)
         .def(py::init<std::shared_ptr<mpcd::SystemData>>());
     }
 
-} // end namespace hoomd
+    }      // end namespace hoomd
 #endif // ENABLE_MPI

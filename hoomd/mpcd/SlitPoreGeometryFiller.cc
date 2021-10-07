@@ -14,8 +14,8 @@
 
 #include <array>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 mpcd::SlitPoreGeometryFiller::SlitPoreGeometryFiller(
     std::shared_ptr<mpcd::SystemData> sysdata,
     Scalar density,
@@ -233,4 +233,4 @@ void mpcd::detail::export_SlitPoreGeometryFiller(pybind11::module& m)
         .def("setGeometry", &mpcd::SlitPoreGeometryFiller::setGeometry);
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

@@ -20,9 +20,10 @@ using namespace std;
     \brief Contains code for the TwoStepNPTMTKGPU class
 */
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
@@ -201,14 +202,14 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
 
         // perform the particle update on the GPU
         kernel::gpu_npt_mtk_rescale(m_pdata->getGPUPartition(),
-                            d_pos.data,
-                            m_mat_exp_r[0],
-                            m_mat_exp_r[1],
-                            m_mat_exp_r[2],
-                            m_mat_exp_r[3],
-                            m_mat_exp_r[4],
-                            m_mat_exp_r[5],
-                            m_tuner_rescale->getParam());
+                                    d_pos.data,
+                                    m_mat_exp_r[0],
+                                    m_mat_exp_r[1],
+                                    m_mat_exp_r[2],
+                                    m_mat_exp_r[3],
+                                    m_mat_exp_r[4],
+                                    m_mat_exp_r[5],
+                                    m_tuner_rescale->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -241,17 +242,17 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         m_tuner_one->begin();
 
         kernel::gpu_npt_mtk_step_one(d_pos.data,
-                             d_vel.data,
-                             d_accel.data,
-                             d_index_array.data,
-                             m_group->getGPUPartition(),
-                             exp_thermo_fac,
-                             m_mat_exp_v,
-                             m_mat_exp_r,
-                             m_mat_exp_r_int,
-                             m_deltaT,
-                             m_rescale_all,
-                             m_tuner_one->getParam());
+                                     d_vel.data,
+                                     d_accel.data,
+                                     d_index_array.data,
+                                     m_group->getGPUPartition(),
+                                     exp_thermo_fac,
+                                     m_mat_exp_v,
+                                     m_mat_exp_r,
+                                     m_mat_exp_r_int,
+                                     m_deltaT,
+                                     m_rescale_all,
+                                     m_tuner_one->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -276,10 +277,10 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         m_tuner_wrap->begin();
 
         kernel::gpu_npt_mtk_wrap(m_pdata->getGPUPartition(),
-                         d_pos.data,
-                         d_image.data,
-                         box,
-                         m_tuner_wrap->getParam());
+                                 d_pos.data,
+                                 d_image.data,
+                                 box,
+                                 m_tuner_wrap->getParam());
 
         m_tuner_wrap->end();
         m_exec_conf->endMultiGPU();
@@ -312,14 +313,14 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         m_tuner_angular_one->begin();
 
         kernel::gpu_nve_angular_step_one(d_orientation.data,
-                                 d_angmom.data,
-                                 d_inertia.data,
-                                 d_net_torque.data,
-                                 d_index_array.data,
-                                 m_group->getGPUPartition(),
-                                 m_deltaT,
-                                 exp_thermo_fac_rot,
-                                 m_tuner_angular_one->getParam());
+                                         d_angmom.data,
+                                         d_inertia.data,
+                                         d_net_torque.data,
+                                         d_index_array.data,
+                                         m_group->getGPUPartition(),
+                                         m_deltaT,
+                                         exp_thermo_fac_rot,
+                                         m_tuner_angular_one->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -389,14 +390,14 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
         m_tuner_two->begin();
 
         kernel::gpu_npt_mtk_step_two(d_vel.data,
-                             d_accel.data,
-                             d_index_array.data,
-                             m_group->getGPUPartition(),
-                             d_net_force.data,
-                             m_mat_exp_v,
-                             m_deltaT,
-                             exp_thermo_fac,
-                             m_tuner_two->getParam());
+                                     d_accel.data,
+                                     d_index_array.data,
+                                     m_group->getGPUPartition(),
+                                     d_net_force.data,
+                                     m_mat_exp_v,
+                                     m_deltaT,
+                                     exp_thermo_fac,
+                                     m_tuner_two->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -432,14 +433,14 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
         m_tuner_angular_two->begin();
 
         kernel::gpu_nve_angular_step_two(d_orientation.data,
-                                 d_angmom.data,
-                                 d_inertia.data,
-                                 d_net_torque.data,
-                                 d_index_array.data,
-                                 m_group->getGPUPartition(),
-                                 m_deltaT,
-                                 exp_thermo_fac_rot,
-                                 m_tuner_angular_two->getParam());
+                                         d_angmom.data,
+                                         d_inertia.data,
+                                         d_net_torque.data,
+                                         d_index_array.data,
+                                         m_group->getGPUPartition(),
+                                         m_deltaT,
+                                         exp_thermo_fac_rot,
+                                         m_tuner_angular_two->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -456,7 +457,8 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
         m_prof->pop();
     }
 
-namespace detail {
+namespace detail
+    {
 void export_TwoStepNPTMTKGPU(py::module& m)
     {
     py::class_<TwoStepNPTMTKGPU, TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTKGPU>>(
@@ -474,6 +476,6 @@ void export_TwoStepNPTMTKGPU(py::module& m)
                       const std::vector<bool>&,
                       const bool>());
     }
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

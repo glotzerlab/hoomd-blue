@@ -17,10 +17,12 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/ParticleData.cuh"
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver for gpu_nlist_needs_update_check_new_kernel()
 hipError_t gpu_nlist_needs_update_check_new(unsigned int* d_result,
                                             const Scalar4* d_last_pos,
@@ -65,9 +67,8 @@ hipError_t gpu_update_exclusion_list(const unsigned int* d_tag,
                                      const Index2D& ex_list_indexer,
                                      const unsigned int N);
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
-
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

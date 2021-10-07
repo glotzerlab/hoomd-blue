@@ -11,7 +11,8 @@
 #include <thrust/execution_policy.h>
 #include <thrust/reduce.h>
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -409,4 +410,4 @@ void hpmc_depletants_accept(const uint16_t seed,
     }
     } // end namespace gpu
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd

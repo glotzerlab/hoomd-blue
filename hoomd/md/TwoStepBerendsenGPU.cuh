@@ -13,10 +13,12 @@
     \brief Declaration of CUDA kernels for Berendsen thermostat on the GPU
 */
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver for gpu_berendsen_step_one_kernel
 hipError_t gpu_berendsen_step_one(Scalar4* d_pos,
                                   Scalar4* d_vel,
@@ -38,9 +40,8 @@ hipError_t gpu_berendsen_step_two(Scalar4* d_vel,
                                   unsigned int block_size,
                                   Scalar deltaT);
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
-
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // _BERENDSEN_GPU_CUH_

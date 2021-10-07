@@ -33,10 +33,10 @@ using namespace std;
 
 namespace py = pybind11;
 
-namespace hoomd {
-
-namespace detail {
-
+namespace hoomd
+    {
+namespace detail
+    {
 std::string getDefaultTypeName(unsigned int id)
     {
     const char default_name[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -52,7 +52,7 @@ std::string getDefaultTypeName(unsigned int id)
     return result;
     }
 
-} // end namespace detail
+    } // end namespace detail
 
 ////////////////////////////////////////////////////////////////////////////
 // ParticleData members
@@ -2661,8 +2661,8 @@ unsigned int ParticleData::getNthTag(unsigned int n)
     return m_cached_tag_set[n];
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_BoxDim(py::module& m)
     {
     void (BoxDim::*wrap_overload)(Scalar3&, int3&, char3) const = &BoxDim::wrap;
@@ -2712,7 +2712,7 @@ string print_ParticleData(ParticleData* pdata)
     return s.str();
     }
 
-} // end namespace detail
+    } // end namespace detail
 
 // instantiate both float and double methods for snapshots
 template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot,
@@ -2735,8 +2735,8 @@ ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float>& s
 template std::map<unsigned int, unsigned int>
 ParticleData::takeSnapshot<float>(SnapshotParticleData<float>& snapshot);
 
-namespace detail {
-
+namespace detail
+    {
 void export_ParticleData(py::module& m)
     {
     py::class_<ParticleData, std::shared_ptr<ParticleData>>(m, "ParticleData")
@@ -2799,7 +2799,7 @@ void export_ParticleData(py::module& m)
         .def("getTypes", &ParticleData::getTypesPy);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
 //! Constructor for SnapshotParticleData
 template<class Real>
@@ -3141,7 +3141,8 @@ void ParticleData::addParticles(const std::vector<detail::pdata_element>& in)
         unsigned int net_virial_pitch = (unsigned int)m_net_virial.getPitch();
         // add new particles at the end
         unsigned int n = old_nparticles;
-        for (std::vector<detail::pdata_element>::const_iterator it = in.begin(); it != in.end(); ++it)
+        for (std::vector<detail::pdata_element>::const_iterator it = in.begin(); it != in.end();
+             ++it)
             {
             detail::pdata_element p = *it;
             h_pos.data[n] = p.pos;
@@ -3294,7 +3295,9 @@ void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
 
             {
             // Access output array
-            ArrayHandle<detail::pdata_element> d_out(out, access_location::device, access_mode::overwrite);
+            ArrayHandle<detail::pdata_element> d_out(out,
+                                                     access_location::device,
+                                                     access_mode::overwrite);
             ArrayHandle<unsigned int> d_comm_flags_out(comm_flags,
                                                        access_location::device,
                                                        access_mode::overwrite);
@@ -3305,43 +3308,43 @@ void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
             m_exec_conf->beginMultiGPU();
 
             n_out = kernel::gpu_pdata_remove(getN(),
-                                     d_pos.data,
-                                     d_vel.data,
-                                     d_accel.data,
-                                     d_charge.data,
-                                     d_diameter.data,
-                                     d_image.data,
-                                     d_body.data,
-                                     d_orientation.data,
-                                     d_angmom.data,
-                                     d_inertia.data,
-                                     d_net_force.data,
-                                     d_net_torque.data,
-                                     d_net_virial.data,
-                                     (unsigned int)getNetVirial().getPitch(),
-                                     d_tag.data,
-                                     d_rtag.data,
-                                     d_pos_alt.data,
-                                     d_vel_alt.data,
-                                     d_accel_alt.data,
-                                     d_charge_alt.data,
-                                     d_diameter_alt.data,
-                                     d_image_alt.data,
-                                     d_body_alt.data,
-                                     d_orientation_alt.data,
-                                     d_angmom_alt.data,
-                                     d_inertia_alt.data,
-                                     d_net_force_alt.data,
-                                     d_net_torque_alt.data,
-                                     d_net_virial_alt.data,
-                                     d_tag_alt.data,
-                                     d_out.data,
-                                     d_comm_flags.data,
-                                     d_comm_flags_out.data,
-                                     max_n_out,
-                                     d_tmp.data,
-                                     m_exec_conf->getCachedAllocatorManaged(),
-                                     m_gpu_partition);
+                                             d_pos.data,
+                                             d_vel.data,
+                                             d_accel.data,
+                                             d_charge.data,
+                                             d_diameter.data,
+                                             d_image.data,
+                                             d_body.data,
+                                             d_orientation.data,
+                                             d_angmom.data,
+                                             d_inertia.data,
+                                             d_net_force.data,
+                                             d_net_torque.data,
+                                             d_net_virial.data,
+                                             (unsigned int)getNetVirial().getPitch(),
+                                             d_tag.data,
+                                             d_rtag.data,
+                                             d_pos_alt.data,
+                                             d_vel_alt.data,
+                                             d_accel_alt.data,
+                                             d_charge_alt.data,
+                                             d_diameter_alt.data,
+                                             d_image_alt.data,
+                                             d_body_alt.data,
+                                             d_orientation_alt.data,
+                                             d_angmom_alt.data,
+                                             d_inertia_alt.data,
+                                             d_net_force_alt.data,
+                                             d_net_torque_alt.data,
+                                             d_net_virial_alt.data,
+                                             d_tag_alt.data,
+                                             d_out.data,
+                                             d_comm_flags.data,
+                                             d_comm_flags_out.data,
+                                             max_n_out,
+                                             d_tmp.data,
+                                             m_exec_conf->getCachedAllocatorManaged(),
+                                             m_gpu_partition);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -3389,8 +3392,7 @@ void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
     }
 
 //! Add new particle data (GPU version)
-void ParticleData::addParticlesGPU(const GlobalVector<detail::
-                                   pdata_element>& in)
+void ParticleData::addParticlesGPU(const GlobalVector<detail::pdata_element>& in)
     {
     if (m_prof)
         m_prof->push(m_exec_conf, "unpack");
@@ -3450,25 +3452,25 @@ void ParticleData::addParticlesGPU(const GlobalVector<detail::
 
         // add new particles on GPU
         kernel::gpu_pdata_add_particles(old_nparticles,
-                                num_add_ptls,
-                                d_pos.data,
-                                d_vel.data,
-                                d_accel.data,
-                                d_charge.data,
-                                d_diameter.data,
-                                d_image.data,
-                                d_body.data,
-                                d_orientation.data,
-                                d_angmom.data,
-                                d_inertia.data,
-                                d_net_force.data,
-                                d_net_torque.data,
-                                d_net_virial.data,
-                                (unsigned int)getNetVirial().getPitch(),
-                                d_tag.data,
-                                d_rtag.data,
-                                d_in.data,
-                                d_comm_flags.data);
+                                        num_add_ptls,
+                                        d_pos.data,
+                                        d_vel.data,
+                                        d_accel.data,
+                                        d_charge.data,
+                                        d_diameter.data,
+                                        d_image.data,
+                                        d_body.data,
+                                        d_orientation.data,
+                                        d_angmom.data,
+                                        d_inertia.data,
+                                        d_net_force.data,
+                                        d_net_torque.data,
+                                        d_net_virial.data,
+                                        (unsigned int)getNetVirial().getPitch(),
+                                        d_tag.data,
+                                        d_rtag.data,
+                                        d_in.data,
+                                        d_comm_flags.data);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -4030,8 +4032,8 @@ template<class Real> void SnapshotParticleData<Real>::bcast(unsigned int root, M
 template struct SnapshotParticleData<float>;
 template struct SnapshotParticleData<double>;
 
-namespace detail {
-
+namespace detail
+    {
 void export_SnapshotParticleData(py::module& m)
     {
     py::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float>>>(
@@ -4083,6 +4085,6 @@ void export_SnapshotParticleData(py::module& m)
         .def_readonly("is_accel_set", &SnapshotParticleData<double>::is_accel_set);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

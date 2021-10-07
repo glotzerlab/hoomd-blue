@@ -31,9 +31,10 @@
 #define ALIGN_SCALAR 8
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 struct __attribute__((visibility("default"))) SphereWall
     {
     SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0, 0.0, 0.0), bool ins = true)
@@ -214,6 +215,6 @@ DEVICE inline Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& positio
     d = (wall.inside) ? d : -d;
     return d;
     };
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 #endif

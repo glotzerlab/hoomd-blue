@@ -12,9 +12,12 @@
 /*! \file TwoStepNVEGPU.cu
     \brief Defines GPU kernel code for NVE integration on the GPU. Used by TwoStepNVEGPU.
 */
-namespace hoomd {
-namespace md {
-namespace kernel {
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Takes the first half-step forward in the velocity-verlet NVE integration on a group of particles
 /*! \param d_pos array of particle positions
     \param d_vel array of particle velocities
@@ -40,17 +43,17 @@ namespace kernel {
    transactions on compute 1.3 hardware and more cache hits on Fermi.
 */
 __global__ void gpu_nve_step_one_kernel(Scalar4* d_pos,
-                                                   Scalar4* d_vel,
-                                                   const Scalar3* d_accel,
-                                                   int3* d_image,
-                                                   unsigned int* d_group_members,
-                                                   const unsigned int nwork,
-                                                   const unsigned int offset,
-                                                   BoxDim box,
-                                                   Scalar deltaT,
-                                                   bool limit,
-                                                   Scalar limit_val,
-                                                   bool zero_force)
+                                        Scalar4* d_vel,
+                                        const Scalar3* d_accel,
+                                        int3* d_image,
+                                        unsigned int* d_group_members,
+                                        const unsigned int nwork,
+                                        const unsigned int offset,
+                                        BoxDim box,
+                                        Scalar deltaT,
+                                        bool limit,
+                                        Scalar limit_val,
+                                        bool zero_force)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -377,15 +380,15 @@ hipError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
    design details.
 */
 __global__ void gpu_nve_step_two_kernel(Scalar4* d_vel,
-                                                   Scalar3* d_accel,
-                                                   unsigned int* d_group_members,
-                                                   const unsigned int nwork,
-                                                   const unsigned int offset,
-                                                   Scalar4* d_net_force,
-                                                   Scalar deltaT,
-                                                   bool limit,
-                                                   Scalar limit_val,
-                                                   bool zero_force)
+                                        Scalar3* d_accel,
+                                        unsigned int* d_group_members,
+                                        const unsigned int nwork,
+                                        const unsigned int offset,
+                                        Scalar4* d_net_force,
+                                        Scalar deltaT,
+                                        bool limit,
+                                        Scalar limit_val,
+                                        bool zero_force)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -615,6 +618,6 @@ hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
     return hipSuccess;
     }
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

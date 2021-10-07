@@ -15,10 +15,12 @@
 #ifndef __ACTIVE_FORCE_COMPUTE_GPU_CUH__
 #define __ACTIVE_FORCE_COMPUTE_GPU_CUH__
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                                unsigned int* d_index_array,
                                                Scalar4* d_force,
@@ -42,8 +44,8 @@ hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int grou
                                                          const uint16_t seed,
                                                          unsigned int block_size);
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

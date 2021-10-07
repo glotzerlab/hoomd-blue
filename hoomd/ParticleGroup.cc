@@ -19,8 +19,8 @@
 using namespace std;
 namespace py = pybind11;
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /*! \param sysdef System the particles are to be selected from
     \param rigid true selects particles that are in bodies, false selects particles that are not
    part of a body
@@ -756,16 +756,19 @@ void ParticleGroup::rebuildIndexListGPU() const
     // reset membership properties
     if (m_member_tags.getNumElements() > 0)
         {
-        kernel::gpu_rebuild_index_list(m_pdata->getN(), d_is_member_tag.data, d_is_member.data, d_tag.data);
+        kernel::gpu_rebuild_index_list(m_pdata->getN(),
+                                       d_is_member_tag.data,
+                                       d_is_member.data,
+                                       d_tag.data);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
         kernel::gpu_compact_index_list(m_pdata->getN(),
-                               d_is_member.data,
-                               d_member_idx.data,
-                               m_num_local_members,
-                               d_tmp.data,
-                               m_pdata->getExecConf()->getCachedAllocator());
+                                       d_is_member.data,
+                                       d_member_idx.data,
+                                       m_num_local_members,
+                                       d_tmp.data,
+                                       m_pdata->getExecConf()->getCachedAllocator());
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
@@ -891,8 +894,8 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         }
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_ParticleGroup(py::module& m)
     {
     py::class_<ParticleGroup, std::shared_ptr<ParticleGroup>>(m, "ParticleGroup")
@@ -916,6 +919,6 @@ void export_ParticleGroup(py::module& m)
         .def_property_readonly("member_tags", &ParticleGroup::getMemberTags);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

@@ -8,10 +8,12 @@
 #include "AllDriverPotentialPairGPU.cuh"
 #include "EvaluatorPairForceShiftedLJ.h"
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t
 gpu_compute_force_shifted_lj_forces(const pair_args_t& args,
                                     const EvaluatorPairForceShiftedLJ::param_type* d_params)
@@ -19,6 +21,6 @@ gpu_compute_force_shifted_lj_forces(const pair_args_t& args,
     return gpu_compute_pair_forces<EvaluatorPairForceShiftedLJ>(args, d_params);
     }
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

@@ -18,9 +18,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing dpd thermostat and LJ pair potential
 /*! <b>Overview:</b>
     TODO - Revise Documentation Below
@@ -294,8 +295,8 @@ CommFlags PotentialPairDPDThermo<evaluator>::getRequestedCommFlags(uint64_t time
     }
 #endif
 
-namespace detail {
-
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPairDPDThermo class
@@ -310,9 +311,8 @@ void export_PotentialPairDPDThermo(pybind11::module& m, const std::string& name)
         .def_property("kT", &T::getT, &T::setT);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
-
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_H__

@@ -19,8 +19,8 @@
 using namespace std;
 namespace py = pybind11;
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /*! \param sysdef System to perform sorts on
  */
 SFCPackTuner::SFCPackTuner(std::shared_ptr<SystemDefinition> sysdef,
@@ -293,8 +293,8 @@ void SFCPackTuner::applySortOrder()
     delete[] int3_tmp;
     }
 
-namespace detail {
-
+namespace detail
+    {
 //! x walking table for the hilbert curve
 static int istep[] = {0, 0, 0, 0, 1, 1, 1, 1};
 //! y walking table for the hilbert curve
@@ -447,7 +447,7 @@ void permute(unsigned int result[8], const unsigned int in[8], int p)
         }
     }
 
-} // end namespace detail
+    } // end namespace detail
 
 //! recursive function for generating hilbert curve traversal order
 /*! \param i Current x coordinate in grid
@@ -692,8 +692,8 @@ void SFCPackTuner::writeTraversalOrder(const std::string& fname,
         }
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_SFCPackTuner(py::module& m)
     {
     py::class_<SFCPackTuner, Tuner, std::shared_ptr<SFCPackTuner>>(m, "SFCPackTuner")
@@ -701,6 +701,6 @@ void export_SFCPackTuner(py::module& m)
         .def_property("grid", &SFCPackTuner::getGrid, &SFCPackTuner::setGridPython);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

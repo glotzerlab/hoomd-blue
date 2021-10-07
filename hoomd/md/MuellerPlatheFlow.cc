@@ -10,9 +10,10 @@ using namespace std;
 
 //! \file MuellerPlatheFlow.cc Implementation of CPU version of MuellerPlatheFlow.
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 const unsigned int INVALID_TAG = UINT_MAX;
 const Scalar INVALID_VEL = FLT_MAX; // should be ok, even for double.
 
@@ -469,8 +470,8 @@ void MuellerPlatheFlow::mpiExchangeVelocity(void)
 
 #endif // ENABLE_MPI
 
-namespace detail {
-
+namespace detail
+    {
 void export_MuellerPlatheFlow(py::module& m)
     {
     py::class_<MuellerPlatheFlow, Updater, std::shared_ptr<MuellerPlatheFlow>> flow(
@@ -498,6 +499,6 @@ void export_MuellerPlatheFlow(py::module& m)
                                &MuellerPlatheFlow::getSummedExchangedMomentum);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

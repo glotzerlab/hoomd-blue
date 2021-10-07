@@ -11,9 +11,10 @@
 
 #define EXTERNAL_FIELD_JIT_LOG_NAME "jit_energy"
 
-namespace hoomd {
-namespace hpmc {
-
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Evaluate external field forces via runtime generated code
 /*! This class enables the widest possible use-cases of external fields in HPMC with low energy
    barriers for users to add custom forces that execute with high performance. It provides a generic
@@ -241,6 +242,6 @@ template<class Shape> void export_ExternalFieldJIT(pybind11::module& m, std::str
         .def("computeEnergy", &ExternalFieldJIT<Shape>::computeEnergy);
     }
 
-} // end namespace hpmc
-} // end namespace hoomd
+    }      // end namespace hpmc
+    }      // end namespace hoomd
 #endif // _EXTERNAL_FIELD_ENERGY_JIT_H_

@@ -10,7 +10,8 @@
 
 #include "CellListGPU.cuh"
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -376,4 +377,4 @@ cudaError_t mpcd::gpu::cell_apply_sort(unsigned int* d_cell_list,
     return cudaSuccess;
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

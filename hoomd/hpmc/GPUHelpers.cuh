@@ -8,7 +8,7 @@
 
 #pragma once
 namespace hoomd
-{
+    {
 namespace hpmc
     {
 namespace gpu
@@ -57,4 +57,4 @@ __device__ inline unsigned int computeParticleCell(const Scalar3& p,
     } // namespace kernel
     } // end namespace gpu
     } // namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd

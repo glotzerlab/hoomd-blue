@@ -16,9 +16,10 @@
 using namespace std;
 namespace py = pybind11;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 NeighborListBinned::NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
     : NeighborList(sysdef, r_buff), m_cl(std::make_shared<CellList>(sysdef))
     {
@@ -202,8 +203,8 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_NeighborListBinned(py::module& m)
     {
     py::class_<NeighborListBinned, NeighborList, std::shared_ptr<NeighborListBinned>>(
@@ -215,6 +216,6 @@ void export_NeighborListBinned(py::module& m)
                       &NeighborListBinned::setDeterministic);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

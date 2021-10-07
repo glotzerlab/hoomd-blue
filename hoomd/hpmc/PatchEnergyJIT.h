@@ -11,9 +11,10 @@
 
 #include <pybind11/numpy.h>
 
-namespace hoomd {
-namespace hpmc {
-
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Evaluate patch energies via runtime generated code
 /*! This class enables the widest possible use-cases of patch energies in HPMC with low energy
    barriers for users to add custom interactions that execute with high performance. It provides a
@@ -134,13 +135,13 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     std::string m_cpu_code; //!< the C++ code
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the PatchEnergyJIT class to python
 void export_PatchEnergyJIT(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // _PATCH_ENERGY_JIT_H_

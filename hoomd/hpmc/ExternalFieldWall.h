@@ -28,7 +28,8 @@
 #define DEVICE
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 struct SphereWall
@@ -960,8 +961,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
     BoxDim m_box;                                    //!< the current box
     };
 
-namespace detail {
-
+namespace detail
+    {
 template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ExternalFieldWall<Shape>,
@@ -996,8 +997,8 @@ template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const s
         .def("SetCurrBox", &ExternalFieldWall<Shape>::SetCurrBox);
     }
 
-} // end namespace detail
+    } // end namespace detail
     } // namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 #undef DEVICE
 #endif // inclusion guard

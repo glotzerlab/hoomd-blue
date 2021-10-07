@@ -21,7 +21,8 @@
 #include "hoomd/SystemDefinition.h"
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 class PYBIND11_EXPORT SystemData
@@ -88,10 +89,10 @@ class PYBIND11_EXPORT SystemData
         }
 
     private:
-    std::shared_ptr<hoomd::SystemDefinition> m_sysdef;    //!< HOOMD system definition
-    std::shared_ptr<mpcd::ParticleData> m_particles; //!< MPCD particle data
-    std::shared_ptr<mpcd::CellList> m_cl;            //!< MPCD cell list
-    const BoxDim m_global_box;                       //!< Global simulation box
+    std::shared_ptr<hoomd::SystemDefinition> m_sysdef; //!< HOOMD system definition
+    std::shared_ptr<mpcd::ParticleData> m_particles;   //!< MPCD particle data
+    std::shared_ptr<mpcd::CellList> m_cl;              //!< MPCD cell list
+    const BoxDim m_global_box;                         //!< Global simulation box
 
     //! Check that the simulation box has not changed from the cached value on initialization
     void checkBox() const
@@ -121,6 +122,6 @@ namespace detail
 void export_SystemData(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-} // end namespace hoomd
+    }      // end namespace mpcd
+    }      // end namespace hoomd
 #endif // MPCD_SYSTEM_DATA_H_

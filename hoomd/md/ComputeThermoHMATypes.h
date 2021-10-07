@@ -11,9 +11,10 @@
     \brief Data structures common to both CPU and GPU implementations of ComputeThermoHMA
     */
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Enum for indexing the GPUArray of computed values
 struct thermoHMA_index
     {
@@ -26,6 +27,6 @@ struct thermoHMA_index
         };
     };
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 #endif

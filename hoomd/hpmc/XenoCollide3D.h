@@ -22,7 +22,8 @@
 #define DEVICE
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -284,6 +285,6 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
     } // namespace detail
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // __XENOCOLLIDE_3D_H__

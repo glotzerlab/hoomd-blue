@@ -16,8 +16,10 @@
 #include <string>
 #include <vector>
 
-namespace hoomd { namespace hpmc {
-
+namespace hoomd
+    {
+namespace hpmc
+    {
 /** Class that compiles C++ code strings to LLVM IR with clang.
 
     There are several one time LLVM initialization functions. This class uses the singleton pattern
@@ -47,5 +49,5 @@ class ClangCompiler
     static std::shared_ptr<ClangCompiler> m_clang_compiler;
     };
 
-} // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hpmc
+    } // end namespace hoomd

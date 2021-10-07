@@ -13,9 +13,10 @@ namespace py = pybind11;
 
 using namespace std;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute bond forces on
  */
 OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
@@ -69,19 +70,19 @@ void OPLSDihedralForceComputeGPU::computeForces(uint64_t timestep)
     // run the kernel in parallel on all GPUs
     this->m_tuner->begin();
     kernel::gpu_compute_opls_dihedral_forces(d_force.data,
-                                     d_virial.data,
-                                     m_virial.getPitch(),
-                                     m_pdata->getN(),
-                                     d_pos.data,
-                                     box,
-                                     d_gpu_dihedral_list.data,
-                                     d_dihedrals_ABCD.data,
-                                     m_dihedral_data->getGPUTableIndexer().getW(),
-                                     d_n_dihedrals.data,
-                                     d_params.data,
-                                     m_dihedral_data->getNTypes(),
-                                     this->m_tuner->getParam(),
-                                     m_exec_conf->dev_prop.warpSize);
+                                             d_virial.data,
+                                             m_virial.getPitch(),
+                                             m_pdata->getN(),
+                                             d_pos.data,
+                                             box,
+                                             d_gpu_dihedral_list.data,
+                                             d_dihedrals_ABCD.data,
+                                             m_dihedral_data->getGPUTableIndexer().getW(),
+                                             d_n_dihedrals.data,
+                                             d_params.data,
+                                             m_dihedral_data->getNTypes(),
+                                             this->m_tuner->getParam(),
+                                             m_exec_conf->dev_prop.warpSize);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     this->m_tuner->end();
@@ -90,8 +91,8 @@ void OPLSDihedralForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_OPLSDihedralForceComputeGPU(py::module& m)
     {
     py::class_<OPLSDihedralForceComputeGPU,
@@ -100,6 +101,6 @@ void export_OPLSDihedralForceComputeGPU(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

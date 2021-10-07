@@ -15,10 +15,12 @@
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
-namespace hoomd {
-namespace dem {
-namespace detail {
-
+namespace hoomd
+    {
+namespace dem
+    {
+namespace detail
+    {
 void export_NF_WCA_3D(py::module& m)
     {
     typedef WCAPotential<Scalar, Scalar4, NoFriction<Scalar>> WCA;
@@ -49,6 +51,6 @@ void export_NF_WCA_3D(py::module& m)
 #endif
     }
 
-} // end namespace detail
-} // end namespace dem
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace dem
+    } // end namespace hoomd

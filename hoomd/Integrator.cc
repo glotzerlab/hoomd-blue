@@ -19,8 +19,8 @@ PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceCompute>>);
 
 using namespace std;
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /** @param sysdef System to update
     @param deltaT Time step to use
 */
@@ -988,8 +988,8 @@ bool Integrator::getAnisotropic()
     return aniso;
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_Integrator(py::module& m)
     {
     py::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
@@ -1002,6 +1002,6 @@ void export_Integrator(py::module& m)
         .def_property_readonly("constraints", &Integrator::getConstraintForces);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

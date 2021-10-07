@@ -25,8 +25,8 @@
 #define HOSTDEVICE
 #endif
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Index a 2D array
 /*! Row major mapping of 2D onto 1D
     \ingroup utils
@@ -219,7 +219,7 @@ struct Index2DUpperTriangular
     unsigned int m_term; //!< Precomputed term of the equation for efficiency
     };
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #undef HOSTDEVICE
 #endif

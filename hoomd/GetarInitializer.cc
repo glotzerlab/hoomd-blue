@@ -6,7 +6,8 @@
 
 namespace py = pybind11;
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace getardump
     {
 using std::auto_ptr;
@@ -1241,4 +1242,4 @@ void export_GetarInitializer(py::module& m)
     }
 
     } // namespace getardump
-} // end namespace hoomd
+    } // end namespace hoomd

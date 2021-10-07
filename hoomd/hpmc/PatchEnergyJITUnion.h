@@ -6,9 +6,10 @@
 #include "hoomd/hpmc/GPUTree.h"
 #include "hoomd/managed_allocator.h"
 
-namespace hoomd {
-namespace hpmc {
-
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Evaluate patch energies via runtime generated code, using a tree accelerator structure for
 //! unions of particles
 class PatchEnergyJITUnion : public PatchEnergyJIT
@@ -33,9 +34,10 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                          r_cut_isotropic,
                          param_array_isotropic),
           m_r_cut_constituent(r_cut_constituent),
-          m_param_array_constituent(param_array_constituent.data(),
-                                    param_array_constituent.data() + param_array_constituent.size(),
-                                    hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
+          m_param_array_constituent(
+              param_array_constituent.data(),
+              param_array_constituent.data() + param_array_constituent.size(),
+              hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
         {
         // build the JIT.
         m_factory_constituent
@@ -349,12 +351,12 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         m_updated_types; //!< List of types whose geometric properties were updated
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the PatchEnergyJITUnion class to python
 void export_PatchEnergyJITUnion(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace hpmc
-} // end namespace hoomd
+    }      // end namespace detail
+    }      // end namespace hpmc
+    }      // end namespace hoomd
 #endif // _PATCH_ENERGY_JIT_UNION_H_

@@ -20,9 +20,10 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
 
@@ -194,14 +195,13 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
     private:
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the FIREEnergyMinimizer class to python
 void export_FIREEnergyMinimizer(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
-
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_H__

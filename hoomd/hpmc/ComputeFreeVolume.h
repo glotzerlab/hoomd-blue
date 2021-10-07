@@ -23,7 +23,8 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 //! Template class for a free volume integration analyzer
@@ -305,8 +306,8 @@ template<class Shape> Scalar ComputeFreeVolume<Shape>::getFreeVolume()
     return V_free;
     }
 
-namespace detail {
-
+namespace detail
+    {
 //! Export this hpmc analyzer to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of ComputeFreeVolume<Shape> will be exported
@@ -328,8 +329,8 @@ template<class Shape> void export_ComputeFreeVolume(pybind11::module& m, const s
         .def_property_readonly("free_volume", &ComputeFreeVolume<Shape>::getFreeVolume);
     }
 
-} // end namespace detail
+    } // end namespace detail
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // __COMPUTE_FREE_VOLUME__H__

@@ -22,9 +22,10 @@
 #ifndef __POTENTIAL_EXTERNAL_H__
 #define __POTENTIAL_EXTERNAL_H__
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Applys an external force to particles based on position
 /*! \ingroup computes
  */
@@ -208,8 +209,8 @@ template<class evaluator> void PotentialExternal<evaluator>::setField(field_type
     *(h_field.data) = field;
     }
 
-namespace detail {
-
+namespace detail
+    {
 //! Export this external potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialExternal class template.
@@ -223,8 +224,8 @@ template<class T> void export_PotentialExternal(pybind11::module& m, const std::
         .def("setField", &T::setField);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

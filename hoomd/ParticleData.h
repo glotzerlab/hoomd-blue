@@ -67,8 +67,8 @@
 //! Feature-define for HOOMD API
 #define HOOMD_SUPPORTS_ADD_REMOVE_PARTICLES
 
-namespace hoomd {
-
+namespace hoomd
+    {
 // Forward declaration of Profiler
 class Profiler;
 
@@ -114,7 +114,7 @@ const unsigned int MIN_FLOPPY = 0x80000000;
 //! processor
 const unsigned int NOT_LOCAL = 0xffffffff;
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #ifdef ENABLE_MPI
 namespace cereal
@@ -139,14 +139,14 @@ void serialize(Archive& ar, hoomd::quat<Real>& q, const unsigned int version)
     } // namespace cereal
 #endif
 
-namespace hoomd {
-
-namespace detail {
-
+namespace hoomd
+    {
+namespace detail
+    {
 /// Get a default type name given a type id
 std::string getDefaultTypeName(unsigned int id);
 
-} // end namespace detail
+    } // end namespace detail
 
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
@@ -260,8 +260,8 @@ template<class Real> struct PYBIND11_EXPORT SnapshotParticleData
     bool is_accel_set; //!< Flag indicating if accel is set
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Structure to store packed particle data
 /* pdata_element is used for compact storage of particle data, mainly for communication.
  */
@@ -283,7 +283,7 @@ struct pdata_element
     Scalar net_virial[6]; //!< net virial
     };
 
-} // end namespace detail
+    } // end namespace detail
 
 //! Manages all of the data arrays for the particles
 /*! <h1> General </h1>
@@ -1216,7 +1216,8 @@ class PYBIND11_EXPORT ParticleData
      *        are invalidated. (call removeAllGhostAtoms() before or after
      *        this method).
      */
-    void removeParticles(std::vector<detail::pdata_element>& out, std::vector<unsigned int>& comm_flags);
+    void removeParticles(std::vector<detail::pdata_element>& out,
+                         std::vector<unsigned int>& comm_flags);
 
     //! Add new local particles
     /*! \param in List of particle data elements to fill the particle data with
@@ -1628,8 +1629,8 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
     std::unique_ptr<ArrayHandle<Scalar4>> m_net_torque_handle;
     };
 
-namespace detail {
-
+namespace detail
+    {
 #ifndef __HIPCC__
 //! Exports the BoxDim class to python
 void export_BoxDim(pybind11::module& m);
@@ -1667,8 +1668,8 @@ template<class Output> void export_LocalParticleData(pybind11::module& m, std::s
 void export_SnapshotParticleData(pybind11::module& m);
 #endif
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif

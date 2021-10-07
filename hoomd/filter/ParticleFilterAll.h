@@ -3,8 +3,8 @@
 
 #include "ParticleFilter.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Select all particles
 class PYBIND11_EXPORT ParticleFilterAll : public ParticleFilter
     {
@@ -37,5 +37,5 @@ class PYBIND11_EXPORT ParticleFilterAll : public ParticleFilter
         }
     };
 
-} // end namespace hoomd
+    } // end namespace hoomd
 #endif

@@ -28,7 +28,8 @@
 #define DEVICE
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -521,6 +522,6 @@ inline unsigned int OBBTree::allocateNode()
     } // end namespace detail
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif //__OBB_TREE_H__

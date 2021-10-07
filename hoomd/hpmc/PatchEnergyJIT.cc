@@ -3,9 +3,10 @@
 
 #include <sstream>
 
-namespace hoomd {
-namespace hpmc {
-
+namespace hoomd
+    {
+namespace hpmc
+    {
 /*! \param exec_conf The execution configuration (used for messages and MPI communication).
     \param cpu_code C++ code to compile.
     \param compiler_args Additional arguments to pass to the compiler.
@@ -47,8 +48,8 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
     m_factory->setAlphaArray(&m_param_array.front());
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_PatchEnergyJIT(pybind11::module& m)
     {
     pybind11::class_<hpmc::PatchEnergy, std::shared_ptr<hpmc::PatchEnergy>>(m, "PatchEnergy")
@@ -71,6 +72,6 @@ void export_PatchEnergyJIT(pybind11::module& m)
         ;
     }
 
-} // end namespace detail
-} // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd

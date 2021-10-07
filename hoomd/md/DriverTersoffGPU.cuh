@@ -13,10 +13,12 @@
 #include "EvaluatorTersoff.h"
 #include "PotentialTersoffGPU.cuh"
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Compute Tersoff forces on the GPU with EvaluatorTersoff
 hipError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
                                       const EvaluatorTersoff::param_type* d_params);
@@ -29,9 +31,8 @@ hipError_t gpu_compute_sq_density_forces(const tersoff_args_t& pair_args,
 hipError_t gpu_compute_revcross_forces(const tersoff_args_t& pair_args,
                                        const EvaluatorRevCross::param_type* d_params);
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
-
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

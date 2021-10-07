@@ -18,8 +18,8 @@
 
 #pragma once
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /// Recomputes ParticleGroups of associated filters.
 /** The updater takes in a vector of particle filters updates ParticleGroups for each ParticleFilter
  * when triggered.
@@ -48,12 +48,11 @@ class PYBIND11_EXPORT ParticleFilterUpdater : public Updater
     std::vector<std::shared_ptr<ParticleGroup>> m_groups; //!< Selected groups to update
     };
 
-namespace detail {
-
+namespace detail
+    {
 /// Export the BoxResizeUpdater to python
 void export_ParticleFilterUpdater(pybind11::module& m);
 
+    } // end namespace detail
 
-} // end namespace detail
-
-} // end namespace hoomd
+    } // end namespace hoomd

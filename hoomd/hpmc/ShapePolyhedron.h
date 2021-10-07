@@ -38,7 +38,8 @@
 // uncomment for parallel overlap checks
 //#define LEAVES_AGAINST_TREE_TRAVERSAL
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -1199,6 +1200,6 @@ template<> inline std::string getShapeSpec(const ShapePolyhedron& s)
 #endif
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 #undef DEVICE
 #undef HOSTDEVICE

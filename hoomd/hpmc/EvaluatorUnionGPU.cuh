@@ -17,8 +17,10 @@
 #define DEVICE
 #endif
 
-namespace hoomd { namespace hpmc {
-
+namespace hoomd
+    {
+namespace hpmc
+    {
 namespace jit
     {
 //! Data structure for shape composed of a union of multiple shapes
@@ -258,5 +260,5 @@ __device__ inline float eval_union(const union_params_t* params,
 #undef DEVICE
     } // end namespace jit
 
-} // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hpmc
+    } // end namespace hoomd

@@ -31,8 +31,8 @@
 #ifndef __PARTICLE_GROUP_H__
 #define __PARTICLE_GROUP_H__
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Select particles in the space defined by a cuboid
 class PYBIND11_EXPORT ParticleFilterCuboid : public ParticleFilter
     {
@@ -442,14 +442,13 @@ class PYBIND11_EXPORT ParticleGroup
 #endif
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the ParticleGroup class to python
 void export_ParticleGroup(pybind11::module& m);
 
+    } // end namespace detail
 
-} // end namespace detail
-
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif

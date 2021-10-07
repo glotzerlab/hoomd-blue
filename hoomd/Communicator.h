@@ -44,8 +44,8 @@
 //! a define to indicate API requirements
 #define HOOMD_COMM_GHOST_LAYER_WIDTH_REQUEST
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Forward declarations for some classes
 class SystemDefinition;
 class Profiler;
@@ -702,12 +702,13 @@ class PYBIND11_EXPORT Communicator
         }
     };
 
-namespace detail {
+namespace detail
+    {
 //! Declaration of python export function
 void export_Communicator(pybind11::module& m);
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    }      // end namespace hoomd
 #endif // __COMMUNICATOR_H__
 #endif // ENABLE_MPI

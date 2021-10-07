@@ -27,8 +27,8 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 #ifdef ENABLE_MPI
 //! Forward declarations
 class Communicator;
@@ -224,13 +224,13 @@ class PYBIND11_EXPORT System
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the System class to python
 void export_System(pybind11::module& m);
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif

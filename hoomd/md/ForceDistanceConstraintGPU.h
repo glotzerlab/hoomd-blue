@@ -36,9 +36,10 @@
 
 #include "hoomd/GPUVector.h"
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! Implements a pairwise distance constraint on the GPU
 
     See Integrator for detailed documentation on constraint force implementation.
@@ -125,13 +126,13 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
     virtual void computeConstraintForces(uint64_t timestep);
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the ForceDistanceConstraint to python
 void export_ForceDistanceConstraintGPU(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

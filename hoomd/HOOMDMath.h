@@ -47,8 +47,8 @@
 #define DEVICE
 #endif
 
-namespace hoomd {
-
+namespace hoomd
+    {
 #ifndef ENABLE_HIP
 //! Define complex type
 typedef float2 hipfftComplex;
@@ -196,9 +196,10 @@ HOSTDEVICE inline int __scalar_as_int(Scalar b)
 //! Export relevant hoomd math functions to python
 #ifndef __HIPCC__
 #ifndef HOOMD_LLVMJIT_BUILD
-namespace detail {
+namespace detail
+    {
 void export_hoomd_math_functions(pybind11::module& m);
-}
+    }
 #endif
 #endif
 
@@ -613,7 +614,7 @@ inline HOSTDEVICE float rint(float x)
     }
     } // namespace slow
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 // ------------ Vector math functions --------------------------
 //! Comparison operator needed for export of std::vector<uint2>

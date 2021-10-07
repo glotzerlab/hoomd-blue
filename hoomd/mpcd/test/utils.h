@@ -8,8 +8,8 @@
 
 #include "hoomd/mpcd/CellThermoCompute.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Request object for all available thermo flags
 class AllThermoRequest
     {
@@ -52,6 +52,6 @@ class AllThermoRequest
     std::shared_ptr<mpcd::CellThermoCompute> m_thermo;
     };
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // MPCD_TEST_UTILS_H_

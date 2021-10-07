@@ -5,8 +5,8 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //* Trampoline for classes inherited in python
 class TriggerPy : public Trigger
     {
@@ -25,8 +25,8 @@ class TriggerPy : public Trigger
         }
     };
 
-namespace detail {
-
+namespace detail
+    {
 //* Method to enable unit testing of C++ trigger calls from pytest
 bool testTriggerCall(std::shared_ptr<Trigger> t, uint64_t step)
     {
@@ -87,6 +87,6 @@ void export_Trigger(pybind11::module& m)
     m.def("_test_trigger_call", &testTriggerCall);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

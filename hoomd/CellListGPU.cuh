@@ -19,8 +19,8 @@
     \brief Declares GPU kernel code for cell list generation on the GPU
 */
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Kernel driver for gpu_compute_cell_list_kernel()
 void gpu_compute_cell_list(unsigned int* d_cell_size,
                            Scalar4* d_xyzf,
@@ -77,5 +77,5 @@ hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
                               const Index3D ci,
                               const Index2D cli);
 
-} // end namespace hoomd
+    } // end namespace hoomd
 #endif

@@ -12,7 +12,8 @@ namespace py = pybind11;
     \brief Definition of UpdaterBoxMC
 */
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
@@ -837,8 +838,8 @@ hpmc_boxmc_counters_t UpdaterBoxMC::getCounters(unsigned int mode)
     return result;
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_UpdaterBoxMC(py::module& m)
     {
     py::class_<UpdaterBoxMC, Updater, std::shared_ptr<UpdaterBoxMC>>(m, "UpdaterBoxMC")
@@ -888,7 +889,7 @@ void export_UpdaterBoxMC(py::module& m)
                                });
     }
 
-} // end namespace detail
+    } // end namespace detail
 
 void UpdaterBoxMC::updateChangedWeights()
     {
@@ -903,4 +904,4 @@ void UpdaterBoxMC::updateChangedWeights()
     }
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd

@@ -15,9 +15,10 @@ namespace py = pybind11;
     \brief Definition of Berendsen thermostat
 */
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to zero the velocities of
     \param group Group of particles on which this method will act
     \param thermo compute for thermodynamic quantities
@@ -158,8 +159,8 @@ void TwoStepBerendsen::integrateStepTwo(uint64_t timestep)
         }
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_Berendsen(py::module& m)
     {
     py::class_<TwoStepBerendsen, IntegrationMethodTwoStep, std::shared_ptr<TwoStepBerendsen>>(
@@ -174,6 +175,6 @@ void export_Berendsen(py::module& m)
         .def_property("tau", &TwoStepBerendsen::getTau, &TwoStepBerendsen::setTau);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

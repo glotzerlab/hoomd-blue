@@ -10,9 +10,10 @@
     \ingroup unit_tests
 */
 
-namespace hoomd {
-namespace test {
-
+namespace hoomd
+    {
+namespace test
+    {
 /*! \param d_data Device pointer to the array where the data is held
     \param num Number of elements in the array
 
@@ -83,5 +84,5 @@ hipError_t gpu_fill_test_pattern(int* d_data, size_t num)
     return hipGetLastError();
     }
 
-} // end namespace test
-} // end namespace hoomd
+    } // end namespace test
+    } // end namespace hoomd

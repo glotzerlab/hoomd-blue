@@ -22,9 +22,10 @@
 #ifndef __EAMForceComputeGPU_H__
 #define __EAMForceComputeGPU_H__
 
-namespace hoomd {
-namespace metal {
-
+namespace hoomd
+    {
+namespace metal
+    {
 //! Computes EAM forces on each particle using the GPU
 /*! Calculates the same forces as EAMForceCompute, but on the GPU by using texture
  * memory(CUDAArray).
@@ -51,18 +52,18 @@ class EAMForceComputeGPU : public EAMForceCompute
 
     protected:
     GlobalArray<kernel::EAMTexInterData> m_eam_data; //!< EAM parameters to be communicated
-    std::unique_ptr<Autotuner> m_tuner;      //!< autotuner for block size
+    std::unique_ptr<Autotuner> m_tuner;              //!< autotuner for block size
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the EAMForceComputeGPU class to python
 void export_EAMForceComputeGPU(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace metal
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace metal
+    } // end namespace hoomd
 
 #endif

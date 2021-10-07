@@ -3,8 +3,8 @@
 
 #include "ParticleFilter.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 class PYBIND11_EXPORT ParticleFilterCustom : public ParticleFilter
     {
     public:
@@ -32,5 +32,5 @@ class PYBIND11_EXPORT ParticleFilterCustom : public ParticleFilter
     pybind11::object m_state;     /// Python hoomd.State object
     };
 
-} // end namespace hoomd
+    }      // end namespace hoomd
 #endif // __PARTICLE_FILTER_CUSTOM_H__

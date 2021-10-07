@@ -16,9 +16,10 @@ namespace py = pybind11;
 
 using namespace std;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -253,8 +254,8 @@ void BondTablePotential::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the BondTablePotential class to python
 void export_BondTablePotential(py::module& m)
     {
@@ -265,6 +266,6 @@ void export_BondTablePotential(py::module& m)
         .def("setTable", &BondTablePotential::setTable);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

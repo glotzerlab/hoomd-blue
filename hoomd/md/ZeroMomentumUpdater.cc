@@ -16,9 +16,10 @@
 using namespace std;
 namespace py = pybind11;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to zero the momentum of
  */
 ZeroMomentumUpdater::ZeroMomentumUpdater(std::shared_ptr<SystemDefinition> sysdef) : Updater(sysdef)
@@ -123,7 +124,8 @@ void ZeroMomentumUpdater::update(uint64_t timestep)
         m_prof->pop();
     }
 
-namespace detail {
+namespace detail
+    {
 void export_ZeroMomentumUpdater(py::module& m)
     {
     py::class_<ZeroMomentumUpdater, Updater, std::shared_ptr<ZeroMomentumUpdater>>(
@@ -131,6 +133,6 @@ void export_ZeroMomentumUpdater(py::module& m)
         "ZeroMomentumUpdater")
         .def(py::init<std::shared_ptr<SystemDefinition>>());
     }
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

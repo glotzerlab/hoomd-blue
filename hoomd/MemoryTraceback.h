@@ -15,8 +15,8 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 class PYBIND11_EXPORT MemoryTraceback
     {
     public:
@@ -53,4 +53,4 @@ class PYBIND11_EXPORT MemoryTraceback
         m_tags; //!< Tags of memory allocations
     };
 
-} // end namespace hoomd
+    } // end namespace hoomd

@@ -25,10 +25,10 @@ using namespace std;
 
 namespace py = pybind11;
 
-namespace hoomd {
-
-namespace detail {
-
+namespace hoomd
+    {
+namespace detail
+    {
 #ifdef ENABLE_MPI
 //! Class that supports writing to a shared log file using MPI-IO
 class mpi_io : public std::streambuf
@@ -60,7 +60,7 @@ class mpi_io : public std::streambuf
     };
 #endif
 
-} // end namespace detail
+    } // end namespace detail
 
 /*! \post Warning and error streams are set to cerr
     \post The notice stream is set to cout
@@ -438,8 +438,7 @@ int detail::mpi_io::overflow(int ch)
     return 0;
     }
 
-void detail::
-mpi_io::close()
+void detail::mpi_io::close()
     {
     if (m_file_open)
         MPI_File_close(&m_file);
@@ -449,8 +448,8 @@ mpi_io::close()
 
 #endif
 
-namespace detail {
-
+namespace detail
+    {
 void export_Messenger(py::module& m)
     {
     py::class_<Messenger, std::shared_ptr<Messenger>>(m, "Messenger")
@@ -477,6 +476,6 @@ void export_Messenger(py::module& m)
         .def("openStd", &Messenger::openStd);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

@@ -12,7 +12,8 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -290,4 +291,4 @@ cudaError_t srd_rotate(Scalar4* d_vel,
 
     } // end namespace gpu
     } // end namespace mpcd
-} // end namespace hoomd
+    } // end namespace hoomd

@@ -19,10 +19,12 @@
 #include <iterator>
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-namespace dem {
-namespace detail {
-
+namespace hoomd
+    {
+namespace dem
+    {
+namespace detail
+    {
 void export_NF_WCA_2D(pybind11::module& m);
 void export_NF_WCA_3D(pybind11::module& m);
 void export_NF_SWCA_3D(pybind11::module& m);
@@ -40,9 +42,9 @@ void export_params(pybind11::module& m)
     pybind11::class_<SWCA>(m, "SWCAPotential").def(pybind11::init<Scalar, NoFriction<Scalar>>());
     }
 
-} // end namespace detail
-} // end namespace dem
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace dem
+    } // end namespace hoomd
 
 PYBIND11_MODULE(_dem, m)
     {

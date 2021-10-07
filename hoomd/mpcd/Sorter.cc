@@ -10,8 +10,8 @@
 
 #include "Sorter.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /*!
  * \param sysdata MPCD system data
  */
@@ -198,4 +198,4 @@ void mpcd::detail::export_Sorter(pybind11::module& m)
         .def("setPeriod", &mpcd::Sorter::setPeriod);
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

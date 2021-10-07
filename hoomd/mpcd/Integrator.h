@@ -28,7 +28,8 @@
 #include "hoomd/md/IntegratorTwoStep.h"
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
@@ -177,7 +178,7 @@ namespace detail
     {
 //! Exports the mpcd::Integrator to python
 void export_Integrator(pybind11::module& m);
-    } // end namespace detail
-    } // end namespace mpcd
-} // end namespace hoomd
+    }      // end namespace detail
+    }      // end namespace mpcd
+    }      // end namespace hoomd
 #endif // MPCD_INTEGRATOR_H_

@@ -28,8 +28,10 @@
 #include <iostream>
 #include <sstream>
 
-namespace hoomd { namespace hpmc {
-
+namespace hoomd
+    {
+namespace hpmc
+    {
 std::shared_ptr<ClangCompiler> ClangCompiler::m_clang_compiler = nullptr;
 
 /** Returns a shared pointer to the clang compiler singleton instance
@@ -209,5 +211,5 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     return module;
     }
 
-} // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hpmc
+    } // end namespace hoomd

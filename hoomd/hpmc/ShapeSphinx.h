@@ -19,7 +19,8 @@
 
 #include "SphinxOverlap.h"
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -1191,7 +1192,7 @@ initVolume(bool disjoint,
     } // namespace detail
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

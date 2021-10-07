@@ -18,7 +18,8 @@
 #include "ATCollisionMethod.h"
 #include "hoomd/Autotuner.h"
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
@@ -66,6 +67,6 @@ namespace detail
 void export_ATCollisionMethodGPU(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-} // end namespace hoomd
+    }      // end namespace mpcd
+    }      // end namespace hoomd
 #endif // MPCD_AT_COLLISION_METHOD_GPU_H_

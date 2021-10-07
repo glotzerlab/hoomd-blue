@@ -19,9 +19,10 @@
 #ifndef __ACTIVEFORCECOMPUTE_GPU_H__
 #define __ACTIVEFORCECOMPUTE_GPU_H__
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Adds an active force to a number of particles on the GPU
 /*! \ingroup computes
  */
@@ -56,12 +57,12 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     virtual void rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep);
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the ActiveForceComputeGPU Class to python
 void export_ActiveForceComputeGPU(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 #endif

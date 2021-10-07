@@ -15,10 +15,12 @@
    ComputeThermoGPU.
 */
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Perform partial sums of the thermo properties on the GPU
 /*! \param d_scratch Scratch space to hold partial sums. One element is written per block
     \param d_net_force Net force / pe array from ParticleData
@@ -729,6 +731,6 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
     return hipSuccess;
     }
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

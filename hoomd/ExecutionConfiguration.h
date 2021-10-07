@@ -46,8 +46,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 #if defined(ENABLE_HIP)
 //! Forward declaration
 class CachedAllocator;
@@ -444,13 +444,14 @@ class PYBIND11_EXPORT ExecutionConfiguration
 #define CHECK_CUDA_ERROR()
 #endif
 
-namespace detail {
+namespace detail
+    {
 //! Exports ExecutionConfiguration to python
 #ifndef __HIPCC__
 void export_ExecutionConfiguration(pybind11::module& m);
 #endif
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif

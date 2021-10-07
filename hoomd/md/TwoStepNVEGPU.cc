@@ -13,8 +13,10 @@ using namespace std;
     \brief Contains code for the TwoStepNVEGPU class
 */
 
-namespace hoomd {
-namespace md {
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
 */
@@ -76,17 +78,17 @@ void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
     m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
     kernel::gpu_nve_step_one(d_pos.data,
-                     d_vel.data,
-                     d_accel.data,
-                     d_image.data,
-                     d_index_array.data,
-                     m_group->getGPUPartition(),
-                     box,
-                     m_deltaT,
-                     m_limit,
-                     m_limit_val,
-                     m_zero_force,
-                     m_tuner_one->getParam());
+                             d_vel.data,
+                             d_accel.data,
+                             d_image.data,
+                             d_index_array.data,
+                             m_group->getGPUPartition(),
+                             box,
+                             m_deltaT,
+                             m_limit,
+                             m_limit_val,
+                             m_zero_force,
+                             m_tuner_one->getParam());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -114,14 +116,14 @@ void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
         m_tuner_angular_one->begin();
 
         kernel::gpu_nve_angular_step_one(d_orientation.data,
-                                 d_angmom.data,
-                                 d_inertia.data,
-                                 d_net_torque.data,
-                                 d_index_array.data,
-                                 m_group->getGPUPartition(),
-                                 m_deltaT,
-                                 1.0,
-                                 m_tuner_angular_one->getParam());
+                                         d_angmom.data,
+                                         d_inertia.data,
+                                         d_net_torque.data,
+                                         d_index_array.data,
+                                         m_group->getGPUPartition(),
+                                         m_deltaT,
+                                         1.0,
+                                         m_tuner_angular_one->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -163,15 +165,15 @@ void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
     m_tuner_two->begin();
 
     kernel::gpu_nve_step_two(d_vel.data,
-                     d_accel.data,
-                     d_index_array.data,
-                     m_group->getGPUPartition(),
-                     d_net_force.data,
-                     m_deltaT,
-                     m_limit,
-                     m_limit_val,
-                     m_zero_force,
-                     m_tuner_two->getParam());
+                             d_accel.data,
+                             d_index_array.data,
+                             m_group->getGPUPartition(),
+                             d_net_force.data,
+                             m_deltaT,
+                             m_limit,
+                             m_limit_val,
+                             m_zero_force,
+                             m_tuner_two->getParam());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -199,14 +201,14 @@ void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
         m_tuner_angular_two->begin();
 
         kernel::gpu_nve_angular_step_two(d_orientation.data,
-                                 d_angmom.data,
-                                 d_inertia.data,
-                                 d_net_torque.data,
-                                 d_index_array.data,
-                                 m_group->getGPUPartition(),
-                                 m_deltaT,
-                                 1.0,
-                                 m_tuner_angular_two->getParam());
+                                         d_angmom.data,
+                                         d_inertia.data,
+                                         d_net_torque.data,
+                                         d_index_array.data,
+                                         m_group->getGPUPartition(),
+                                         m_deltaT,
+                                         1.0,
+                                         m_tuner_angular_two->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -220,12 +222,13 @@ void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-namespace detail {
+namespace detail
+    {
 void export_TwoStepNVEGPU(py::module& m)
     {
     py::class_<TwoStepNVEGPU, TwoStepNVE, std::shared_ptr<TwoStepNVEGPU>>(m, "TwoStepNVEGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

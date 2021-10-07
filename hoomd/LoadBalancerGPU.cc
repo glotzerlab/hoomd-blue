@@ -18,8 +18,8 @@ using namespace std;
 
 namespace py = pybind11;
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /*!
  * \param sysdef System definition
  * \param decomposition Domain decomposition
@@ -66,13 +66,13 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
 
         m_tuner->begin();
         kernel::gpu_load_balance_mark_rank(d_comm_flag.data,
-                                   d_pos.data,
-                                   d_cart_ranks.data,
-                                   m_decomposition->getGridPos(),
-                                   m_pdata->getBox(),
-                                   m_decomposition->getDomainIndexer(),
-                                   m_pdata->getN(),
-                                   m_tuner->getParam());
+                                           d_pos.data,
+                                           d_cart_ranks.data,
+                                           m_decomposition->getGridPos(),
+                                           m_pdata->getBox(),
+                                           m_decomposition->getDomainIndexer(),
+                                           m_pdata->getN(),
+                                           m_tuner->getParam());
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner->end();
@@ -89,10 +89,11 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
                                               access_mode::overwrite);
 
         // size the temporary storage
-        const unsigned int n_off_rank = kernel::gpu_load_balance_select_off_rank(d_off_ranks.data,
-                                                                         d_comm_flag.data,
-                                                                         m_pdata->getN(),
-                                                                         m_exec_conf->getRank());
+        const unsigned int n_off_rank
+            = kernel::gpu_load_balance_select_off_rank(d_off_ranks.data,
+                                                       d_comm_flag.data,
+                                                       m_pdata->getN(),
+                                                       m_exec_conf->getRank());
 
         // copy just the subset of particles that are off rank on the device into host memory
         // this can save substantially on the memcpy if there are many particles on a rank
@@ -111,8 +112,8 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
     }
 #endif // ENABLE_MPI
 
-namespace detail {
-
+namespace detail
+    {
 void export_LoadBalancerGPU(py::module& m)
     {
     py::class_<LoadBalancerGPU, LoadBalancer, std::shared_ptr<LoadBalancerGPU>>(m,
@@ -120,8 +121,8 @@ void export_LoadBalancerGPU(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP

@@ -27,7 +27,8 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -299,7 +300,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                        access_location::host,
                                        access_mode::read);
 
-    const std::vector<param_type, hoomd::detail::managed_allocator<param_type>>& params = m_mc->getParams();
+    const std::vector<param_type, hoomd::detail::managed_allocator<param_type>>& params
+        = m_mc->getParams();
 
     // loop through N particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -315,7 +317,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
         hoomd::detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0),
-                                  shape_i.getCircumsphereDiameter() / Scalar(2) + extra_width);
+                                         shape_i.getCircumsphereDiameter() / Scalar(2)
+                                             + extra_width);
 
         size_t n_images = image_list.size();
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -437,7 +440,8 @@ size_t ComputeSDF<Shape>::computeBin(const vec3<Scalar>& r_ij,
     return L;
     }
 
-namespace detail {
+namespace detail
+    {
 //! Export this hpmc compute to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of ComputeSDFe<Shape> will be exported
@@ -455,9 +459,9 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
         .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF);
     }
 
-} // end namespace detail
+    } // end namespace detail
     } // end namespace hpmc
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // __COMPUTE_SDF__H__

@@ -17,10 +17,12 @@
    (MTK) equations. Used by TwoStepNPTMTKGPU.
 */
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver for the the first step of the computation
 hipError_t gpu_npt_mtk_step_one(Scalar4* d_pos,
                                 Scalar4* d_vel,
@@ -64,9 +66,8 @@ void gpu_npt_mtk_rescale(const GPUPartition& gpu_partition,
                          Scalar mat_exp_r_zz,
                          const unsigned int block_size);
 
-
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

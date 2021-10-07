@@ -5,8 +5,8 @@
 #include <pybind11/pybind11.h>
 #include <vector>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /// Utility class to select particles based on given conditions
 /** \b Overview
 
@@ -46,4 +46,4 @@ class PYBIND11_EXPORT ParticleFilter
         }
     };
 
-} // end namespace hoomd
+    } // end namespace hoomd

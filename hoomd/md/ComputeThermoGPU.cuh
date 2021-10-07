@@ -15,10 +15,12 @@
     \brief Kernel driver function declarations for ComputeThermoGPU
     */
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Holder for arguments to gpu_compute_thermo
 struct compute_thermo_args
     {
@@ -70,9 +72,8 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
                                     bool compute_pressure_tensor,
                                     bool compute_rotational_energy);
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
-
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

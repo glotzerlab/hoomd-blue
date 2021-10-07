@@ -29,10 +29,12 @@
 
 namespace py = pybind11;
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
-namespace detail {
+namespace detail
+    {
 // NOTE: I am only exporting 3d shapes for now because I think the 2d ones need some tweaking (how
 // to do this generally?)
 
@@ -90,6 +92,6 @@ void export_external_fields(py::module& m)
     // export wall fields
     export_walls(m);
     }
-} // namespace detail
+    } // namespace detail
     } // namespace hpmc
-} // namespace hoomd
+    } // namespace hoomd

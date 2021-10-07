@@ -25,9 +25,10 @@
 namespace py = pybind11;
 using namespace std;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Adds an active force to a number of particles with confinement on the GPU
 /*! \ingroup computes
  */
@@ -177,15 +178,15 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForc
     // compute the forces on the GPU
     this->m_tuner_force->begin();
     kernel::gpu_compute_active_force_set_forces(group_size,
-                                        d_index_array.data,
-                                        d_force.data,
-                                        d_torque.data,
-                                        d_pos.data,
-                                        d_orientation.data,
-                                        d_f_actVec.data,
-                                        d_t_actVec.data,
-                                        N,
-                                        this->m_tuner_force->getParam());
+                                                d_index_array.data,
+                                                d_force.data,
+                                                d_torque.data,
+                                                d_pos.data,
+                                                d_orientation.data,
+                                                d_f_actVec.data,
+                                                d_t_actVec.data,
+                                                N,
+                                                this->m_tuner_force->getParam());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -269,13 +270,14 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setCons
     // perform the update on the GPU
     this->m_tuner_constraint->begin();
 
-    kernel::gpu_compute_active_force_set_constraints<Manifold>(group_size,
-                                                       d_index_array.data,
-                                                       d_pos.data,
-                                                       d_orientation.data,
-                                                       d_f_actVec.data,
-                                                       this->m_manifold,
-                                                       this->m_tuner_constraint->getParam());
+    kernel::gpu_compute_active_force_set_constraints<Manifold>(
+        group_size,
+        d_index_array.data,
+        d_pos.data,
+        d_orientation.data,
+        d_f_actVec.data,
+        this->m_manifold,
+        this->m_tuner_constraint->getParam());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -283,8 +285,8 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setCons
     this->m_tuner_constraint->end();
     }
 
-namespace detail {
-
+namespace detail
+    {
 template<class Manifold>
 void export_ActiveForceConstraintComputeGPU(py::module& m, const std::string& name)
     {
@@ -296,8 +298,8 @@ void export_ActiveForceConstraintComputeGPU(py::module& m, const std::string& na
                       Manifold>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

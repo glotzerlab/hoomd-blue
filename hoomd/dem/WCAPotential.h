@@ -20,9 +20,10 @@
 #define DEVICE
 #endif
 
-namespace hoomd {
-namespace dem {
-
+namespace hoomd
+    {
+namespace dem
+    {
 /*! Pluggable potential for a WCA interaction.
 
   The potential evaluated between contact points is:
@@ -133,8 +134,8 @@ template<typename Real, typename Real4, typename FrictionModel> class WCAPotenti
     FrictionModel m_frictionParams;
     };
 
-} // end namespace dem
-} // end namespace hoomd
+    } // end namespace dem
+    } // end namespace hoomd
 
 #include "WCAPotential.cc"
 

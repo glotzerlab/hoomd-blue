@@ -11,8 +11,8 @@
 #include "SlitGeometryFillerGPU.h"
 #include "SlitGeometryFillerGPU.cuh"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 mpcd::SlitGeometryFillerGPU::SlitGeometryFillerGPU(
     std::shared_ptr<mpcd::SystemData> sysdata,
     Scalar density,
@@ -82,4 +82,4 @@ void mpcd::detail::export_SlitGeometryFillerGPU(pybind11::module& m)
                       std::shared_ptr<const mpcd::detail::SlitGeometry>>());
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

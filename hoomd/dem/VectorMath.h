@@ -19,9 +19,10 @@
 #define DEVICE
 #endif
 
-namespace hoomd {
-namespace dem {
-
+namespace hoomd
+    {
+namespace dem
+    {
 template<typename Real> DEVICE vec2<Real> vec_from_scalar2(const Scalar2& v)
     {
     return vec2<Real>(v.x, v.y);
@@ -38,7 +39,7 @@ template<class Real> DEVICE inline Real cross(const vec2<Real>& a, const vec2<Re
     return a.x * b.y - a.y * b.x;
     }
 
-} // end namespace dem
-} // end namespace hoomd
+    } // end namespace dem
+    } // end namespace hoomd
 
 #endif //__DEM_VECTOR_MATH_H__

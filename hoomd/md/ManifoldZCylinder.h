@@ -23,9 +23,10 @@
 #define DEVICE
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for constructing the Cylinder surface
 /*! <b>General Overview</b>
 
@@ -117,14 +118,13 @@ class ManifoldZCylinder
     Scalar R_sq;
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the Cylinder manifold class to python
 void export_ManifoldZCylinder(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
-
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_Z_CYLINDER_H__

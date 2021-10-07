@@ -16,7 +16,8 @@
 #include <thrust/execution_policy.h>
 #pragma GCC diagnostic pop
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -291,4 +292,4 @@ cudaError_t sort_gen_reverse(unsigned int* d_rorder,
     } // end namespace gpu
     } // end namespace mpcd
 
-} // end namespace hoomd
+    } // end namespace hoomd

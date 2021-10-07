@@ -21,8 +21,8 @@ namespace py = pybind11;
 
 #include <vector>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 template<class group_data>
 Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm,
                                                                std::shared_ptr<group_data> gdata)
@@ -3496,7 +3496,8 @@ const BoxDim Communicator::getShiftedBox() const
     return shifted_box;
     }
 
-namespace detail {
+namespace detail
+    {
 //! Export Communicator class to python
 void export_Communicator(py::module& m)
     {
@@ -3504,7 +3505,7 @@ void export_Communicator(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition>>())
         .def_property_readonly("domain_decomposition", &Communicator::getDomainDecomposition);
     }
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    }      // end namespace hoomd
 #endif // ENABLE_MPI

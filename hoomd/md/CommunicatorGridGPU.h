@@ -9,9 +9,10 @@
 #ifdef ENABLE_HIP
 #include "CommunicatorGrid.h"
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 #ifdef ENABLE_MPI
 /*! Class to communicate the boundary layer of a regular grid (GPU version)
  */
@@ -41,8 +42,8 @@ template<typename T> class CommunicatorGridGPU : public CommunicatorGrid<T>
     GlobalArray<unsigned int> m_cell_recv_end;   //!< End of recv indices per cell
     };
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI
 #endif // __COMMUNICATOR_GRID_GPU_H__

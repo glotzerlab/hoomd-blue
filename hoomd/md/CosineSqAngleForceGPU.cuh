@@ -13,10 +13,12 @@
 #ifndef __COSINESQANGLEFORCEGPU_CUH__
 #define __COSINESQANGLEFORCEGPU_CUH__
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver that computes cosine squared angle forces for CosineSqAngleForceComputeGPU
 hipError_t gpu_compute_cosinesq_angle_forces(Scalar4* d_force,
                                              Scalar* d_virial,
@@ -32,8 +34,8 @@ hipError_t gpu_compute_cosinesq_angle_forces(Scalar4* d_force,
                                              unsigned int n_angle_types,
                                              int block_size);
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

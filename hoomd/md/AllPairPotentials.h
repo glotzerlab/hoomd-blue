@@ -46,9 +46,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Pair potential force compute for lj forces
 typedef PotentialPair<EvaluatorPairLJ> PotentialPairLJ;
 //! Pair potential force compute for gaussian forces
@@ -103,19 +104,25 @@ typedef PotentialPair<EvaluatorPairTable> PotentialPairTable;
 //! Pair potential force compute for lj forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairLJ, kernel::gpu_compute_ljtemp_forces> PotentialPairLJGPU;
 //! Pair potential force compute for gaussian forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairGauss, kernel::gpu_compute_gauss_forces> PotentialPairGaussGPU;
+typedef PotentialPairGPU<EvaluatorPairGauss, kernel::gpu_compute_gauss_forces>
+    PotentialPairGaussGPU;
 //! Pair potential force compute for slj forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairSLJ, kernel::gpu_compute_slj_forces> PotentialPairSLJGPU;
 //! Pair potential force compute for yukawa forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairYukawa, kernel::gpu_compute_yukawa_forces> PotentialPairYukawaGPU;
+typedef PotentialPairGPU<EvaluatorPairYukawa, kernel::gpu_compute_yukawa_forces>
+    PotentialPairYukawaGPU;
 //! Pair potential force compute for ewald forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairEwald, kernel::gpu_compute_ewald_forces> PotentialPairEwaldGPU;
+typedef PotentialPairGPU<EvaluatorPairEwald, kernel::gpu_compute_ewald_forces>
+    PotentialPairEwaldGPU;
 //! Pair potential force compute for morse forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairMorse, kernel::gpu_compute_morse_forces> PotentialPairMorseGPU;
+typedef PotentialPairGPU<EvaluatorPairMorse, kernel::gpu_compute_morse_forces>
+    PotentialPairMorseGPU;
 //! Pair potential force compute for dpd conservative forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairDPDThermo, kernel::gpu_compute_dpdthermo_forces> PotentialPairDPDGPU;
+typedef PotentialPairGPU<EvaluatorPairDPDThermo, kernel::gpu_compute_dpdthermo_forces>
+    PotentialPairDPDGPU;
 //! Pair potential force compute for Moliere forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairMoliere, kernel::gpu_compute_moliere_forces> PotentialPairMoliereGPU;
+typedef PotentialPairGPU<EvaluatorPairMoliere, kernel::gpu_compute_moliere_forces>
+    PotentialPairMoliereGPU;
 //! Pair potential force compute for ZBL forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairZBL, kernel::gpu_compute_zbl_forces> PotentialPairZBLGPU;
 //! Pair potential force compute for dpd thermostat and conservative forces on the GPU
@@ -125,7 +132,8 @@ typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, kernel::gpu_compute_dp
 typedef PotentialPairGPU<EvaluatorPairDPDLJThermo, kernel::gpu_compute_dpdljthermo_forces>
     PotentialPairDPDLJGPU;
 //! Pair potential force compute for dpd thermostat and LJ conservative forces on the GPU
-typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDLJThermo, kernel::gpu_compute_dpdljthermodpd_forces>
+typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDLJThermo,
+                                  kernel::gpu_compute_dpdljthermodpd_forces>
     PotentialPairDPDLJThermoDPDGPU;
 //! Pair potential force compute for force shifted LJ on the GPU
 typedef PotentialPairGPU<EvaluatorPairForceShiftedLJ, kernel::gpu_compute_force_shifted_lj_forces>
@@ -142,24 +150,28 @@ typedef PotentialPairGPU<EvaluatorPairReactionField, kernel::gpu_compute_reactio
 typedef PotentialPairGPU<EvaluatorPairBuckingham, kernel::gpu_compute_buckingham_forces>
     PotentialPairBuckinghamGPU;
 //! Pair potential force compute for lj1208 forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairLJ1208, kernel::gpu_compute_lj1208_forces> PotentialPairLJ1208GPU;
+typedef PotentialPairGPU<EvaluatorPairLJ1208, kernel::gpu_compute_lj1208_forces>
+    PotentialPairLJ1208GPU;
 //! Pair potential force compute for lj0804 forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairLJ0804, kernel::gpu_compute_lj0804_forces> PotentialPairLJ0804GPU;
+typedef PotentialPairGPU<EvaluatorPairLJ0804, kernel::gpu_compute_lj0804_forces>
+    PotentialPairLJ0804GPU;
 //! Pair potential force compute for DLVO forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairDLVO, kernel::gpu_compute_dlvo_forces> PotentialPairDLVOGPU;
 //! Pair potential force compute for Fourier forces on the gpu
-typedef PotentialPairGPU<EvaluatorPairFourier, kernel::gpu_compute_fourier_forces> PotentialPairFourierGPU;
+typedef PotentialPairGPU<EvaluatorPairFourier, kernel::gpu_compute_fourier_forces>
+    PotentialPairFourierGPU;
 //! Pair potential force compute for oscillating pair potential
 typedef PotentialPairGPU<EvaluatorPairOPP, kernel::gpu_compute_opp_forces> PotentialPairOPPGPU;
 //! Pair potential force compute for Table pair potential on the GPU
-typedef PotentialPairGPU<EvaluatorPairTable, kernel::gpu_compute_table_forces> PotentialPairTableGPU;
+typedef PotentialPairGPU<EvaluatorPairTable, kernel::gpu_compute_table_forces>
+    PotentialPairTableGPU;
 /// Pair potential force compute for Ten wolde and Frenkels globular protein
 /// model
 typedef PotentialPairGPU<EvaluatorPairTWF, kernel::gpu_compute_twf_forces> PotentialPairTWFGPU;
 
 #endif
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_POTENTIALS_H__

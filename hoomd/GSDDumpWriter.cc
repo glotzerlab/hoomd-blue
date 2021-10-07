@@ -22,8 +22,8 @@ using namespace std;
 using namespace hoomd::detail;
 namespace py = pybind11;
 
-namespace hoomd {
-
+namespace hoomd
+    {
 std::list<std::string> GSDDumpWriter::particle_chunks {"particles/typeid",
                                                        "particles/mass",
                                                        "particles/charge",
@@ -1113,8 +1113,8 @@ void GSDDumpWriter::populateNonDefault()
     gsd_close(&m_handle);
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_GSDDumpWriter(py::module& m)
     {
     py::bind_map<std::map<std::string, pybind11::function>>(m, "MapStringFunction");
@@ -1140,6 +1140,6 @@ void export_GSDDumpWriter(py::module& m)
                                { return gsd->getGroup()->getFilter(); });
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

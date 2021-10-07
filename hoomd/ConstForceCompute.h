@@ -22,8 +22,8 @@
 #ifndef __CONSTFORCECOMPUTE_H__
 #define __CONSTFORCECOMPUTE_H__
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Adds a constant force to a number of particles
 /*! \ingroup computes
  */
@@ -107,10 +107,11 @@ class PYBIND11_EXPORT ConstForceCompute : public ForceCompute
     pybind11::object m_callback;
     };
 
-namespace detail {
+namespace detail
+    {
 //! Exports the ConstForceComputeClass to python
 void export_ConstForceCompute(pybind11::module& m);
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd
 #endif

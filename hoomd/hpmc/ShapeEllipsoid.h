@@ -29,7 +29,8 @@
 #define ELLIPSOID_OVERLAP_PRECISION 1e-6
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 /** Ellipsoid parameters
@@ -490,7 +491,7 @@ template<> inline std::string getShapeSpec(const ShapeEllipsoid& ellipsoid)
 #endif
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

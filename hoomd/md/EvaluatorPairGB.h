@@ -32,9 +32,10 @@
 #define HOSTDEVICE
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*!
  * Gay-Berne potential as formulated by Allen and Germano,
  * with shape-independent energy parameter, for identical uniaxial particles.
@@ -314,8 +315,8 @@ class EvaluatorPairGB
     // const param_type &params;  //!< The pair potential parameters
     };
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #undef HOOMD_GB_MIN
 #undef HOOMD_GB_MAX

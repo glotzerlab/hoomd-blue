@@ -19,9 +19,10 @@ namespace py = pybind11;
     \brief Contains code for the TwoStepNVTMTK class
 */
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param thermo compute for thermodynamic quantities
@@ -590,8 +591,8 @@ Scalar TwoStepNVTMTK::getThermostatEnergy(uint64_t timestep)
     return thermostat_energy;
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_TwoStepNVTMTK(py::module& m)
     {
     py::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK>>(
@@ -616,6 +617,6 @@ void export_TwoStepNVTMTK(py::module& m)
         .def("getThermostatEnergy", &TwoStepNVTMTK::getThermostatEnergy);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

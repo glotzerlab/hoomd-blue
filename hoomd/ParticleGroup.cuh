@@ -10,10 +10,10 @@
 #ifndef __PARTICLE_GROUP_CUH__
 #define __PARTICLE_GROUP_CUH__
 
-namespace hoomd {
-
-namespace kernel {
-
+namespace hoomd
+    {
+namespace kernel
+    {
 //! GPU method for rebuilding the index list of a ParticleGroup
 hipError_t gpu_rebuild_index_list(unsigned int N,
                                   unsigned int* d_is_member_tag,
@@ -35,9 +35,8 @@ hipError_t gpu_compact_index_list(unsigned int N,
                                   unsigned int* d_tmp,
                                   CachedAllocator& alloc);
 
+    } // namespace kernel
 
-} // end namespace detail
-
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif

@@ -4,10 +4,12 @@
 #include "ActiveForceConstraintComputeGPU.cuh"
 #include "ManifoldXYPlane.h"
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 template hipError_t
 gpu_compute_active_force_set_constraints<ManifoldXYPlane>(const unsigned int group_size,
                                                           unsigned int* d_index_array,
@@ -30,6 +32,6 @@ template hipError_t gpu_compute_active_force_constraint_rotational_diffusion<Man
     const uint16_t seed,
     unsigned int block_size);
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

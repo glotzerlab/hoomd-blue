@@ -20,9 +20,10 @@
 #ifndef __ACTIVEFORCECONSTRAINTCOMPUTE_H__
 #define __ACTIVEFORCECONSTRAINTCOMPUTE_H__
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Adds an active force to a number of particles
 /*! \ingroup computes
  */
@@ -215,8 +216,8 @@ void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-namespace detail {
-
+namespace detail
+    {
 template<class Manifold>
 void export_ActiveForceConstraintCompute(pybind11::module& m, const std::string& name)
     {
@@ -228,8 +229,8 @@ void export_ActiveForceConstraintCompute(pybind11::module& m, const std::string&
                             Manifold>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

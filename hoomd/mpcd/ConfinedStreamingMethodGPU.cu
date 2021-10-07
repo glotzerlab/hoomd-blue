@@ -19,7 +19,8 @@
 #include "ExternalField.h"
 #include "hoomd/GPUPolymorph.cuh"
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -41,4 +42,4 @@ confined_stream<mpcd::detail::SlitPoreGeometry>(const stream_args_t& args,
 
     } // end namespace gpu
     } // end namespace mpcd
-} // end namespace hoomd
+    } // end namespace hoomd

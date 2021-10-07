@@ -9,10 +9,12 @@
 #include "EvaluatorPairDPDThermo.h"
 #include "PotentialPairDPDThermoGPU.cuh"
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_compute_dpdthermodpd_forces(const dpd_pair_args_t& args,
                                            const EvaluatorPairDPDThermo::param_type* d_params)
     {
@@ -25,6 +27,6 @@ hipError_t gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
     return gpu_compute_pair_forces<EvaluatorPairDPDThermo>(pair_args, d_params);
     }
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

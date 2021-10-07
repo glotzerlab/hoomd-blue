@@ -4,8 +4,8 @@
 #include "ParticleFilter.h"
 #include <algorithm>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 class PYBIND11_EXPORT ParticleFilterUnion : public ParticleFilter
     {
     public:
@@ -50,5 +50,5 @@ class PYBIND11_EXPORT ParticleFilterUnion : public ParticleFilter
     std::shared_ptr<ParticleFilter> m_g;
     };
 
-} // end namespace hoomd
+    } // end namespace hoomd
 #endif

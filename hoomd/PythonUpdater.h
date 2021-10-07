@@ -4,8 +4,8 @@
 
 #include "Updater.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 class PYBIND11_EXPORT PythonUpdater : public Updater
     {
     public:
@@ -27,10 +27,10 @@ class PYBIND11_EXPORT PythonUpdater : public Updater
     PDataFlags m_flags;
     };
 
-namespace detail {
-
+namespace detail
+    {
 void export_PythonUpdater(pybind11::module& m);
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

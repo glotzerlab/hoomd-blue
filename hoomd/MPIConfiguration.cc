@@ -17,8 +17,8 @@
     \brief Defines MPIConfiguration and related classes
 */
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Default constructor
 MPIConfiguration::MPIConfiguration(
 #ifdef ENABLE_MPI
@@ -84,8 +84,8 @@ unsigned int MPIConfiguration::getNRanks() const
 #endif
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_MPIConfiguration(pybind11::module& m)
     {
     pybind11::class_<MPIConfiguration, std::shared_ptr<MPIConfiguration>> mpiconfiguration(
@@ -111,6 +111,6 @@ void export_MPIConfiguration(pybind11::module& m)
         ;
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

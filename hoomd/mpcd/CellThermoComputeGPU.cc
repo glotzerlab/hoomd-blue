@@ -11,8 +11,8 @@
 #include "CellThermoComputeGPU.h"
 #include "ReductionOperators.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /*!
  * \param sysdef System definition
  * \param cl MPCD cell list
@@ -377,4 +377,4 @@ void mpcd::detail::export_CellThermoComputeGPU(pybind11::module& m)
         .def(py::init<std::shared_ptr<mpcd::SystemData>>());
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

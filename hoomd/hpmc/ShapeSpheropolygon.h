@@ -25,7 +25,8 @@
 #include <iostream>
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -221,7 +222,7 @@ template<> inline std::string getShapeSpec(const ShapeSpheropolygon& spoly)
 #endif
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #undef HOSTDEVICE
 #undef DEVICE

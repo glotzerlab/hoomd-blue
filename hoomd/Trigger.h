@@ -11,8 +11,8 @@
 #include <stdexcept>
 #include <vector>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /** Defines on what time steps operations should be performed
  *
  *  System schedules Analyzer and Updater instances to be executed only on specific time steps.
@@ -312,11 +312,11 @@ class PYBIND11_EXPORT OrTrigger : public Trigger
     std::vector<std::shared_ptr<Trigger>> m_triggers;
     };
 
-namespace detail {
-
+namespace detail
+    {
 /// Export Trigger classes to Python
 void export_Trigger(pybind11::module& m);
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

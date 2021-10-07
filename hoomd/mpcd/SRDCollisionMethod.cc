@@ -12,8 +12,8 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
                                              unsigned int cur_timestep,
                                              unsigned int period,
@@ -274,4 +274,4 @@ void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
         .def("unsetTemperature", &mpcd::SRDCollisionMethod::unsetTemperature);
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

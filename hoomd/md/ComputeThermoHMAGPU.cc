@@ -21,9 +21,10 @@ namespace py = pybind11;
 #include <iostream>
 using namespace std;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
     \param temperature The temperature that governs sampling of the integrator
@@ -207,8 +208,8 @@ void ComputeThermoHMAGPU::computeProperties()
         m_prof->pop(m_exec_conf);
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_ComputeThermoHMAGPU(py::module& m)
     {
     py::class_<ComputeThermoHMAGPU, ComputeThermoHMA, std::shared_ptr<ComputeThermoHMAGPU>>(
@@ -220,6 +221,6 @@ void export_ComputeThermoHMAGPU(py::module& m)
                       const double>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

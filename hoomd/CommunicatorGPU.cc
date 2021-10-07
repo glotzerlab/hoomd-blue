@@ -17,8 +17,8 @@
 namespace py = pybind11;
 #include <algorithm>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<DomainDecomposition> decomposition)
@@ -1842,8 +1842,8 @@ void CommunicatorGPU::migrateParticles()
             m_send_keys.resize(m_gpu_sendbuf.size());
 
             ArrayHandle<detail::pdata_element> d_gpu_sendbuf(m_gpu_sendbuf,
-                                                     access_location::device,
-                                                     access_mode::readwrite);
+                                                             access_location::device,
+                                                             access_mode::readwrite);
             ArrayHandle<unsigned int> d_send_keys(m_send_keys,
                                                   access_location::device,
                                                   access_mode::overwrite);
@@ -1978,18 +1978,18 @@ void CommunicatorGPU::migrateParticles()
 
 #if defined(ENABLE_MPI_CUDA)
             ArrayHandle<detail::pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf,
-                                                          access_location::device,
-                                                          access_mode::read);
+                                                                  access_location::device,
+                                                                  access_mode::read);
             ArrayHandle<detail::pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf,
-                                                          access_location::device,
-                                                          access_mode::overwrite);
+                                                                  access_location::device,
+                                                                  access_mode::overwrite);
 #else
             ArrayHandle<detail::pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf,
-                                                          access_location::host,
-                                                          access_mode::read);
+                                                                  access_location::host,
+                                                                  access_mode::read);
             ArrayHandle<detail::pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf,
-                                                          access_location::host,
-                                                          access_mode::overwrite);
+                                                                  access_location::host,
+                                                                  access_mode::overwrite);
 #endif
 
             std::vector<MPI_Request> reqs;
@@ -2051,8 +2051,8 @@ void CommunicatorGPU::migrateParticles()
 
             {
             ArrayHandle<detail::pdata_element> d_gpu_recvbuf(m_gpu_recvbuf,
-                                                     access_location::device,
-                                                     access_mode::readwrite);
+                                                             access_location::device,
+                                                             access_mode::readwrite);
             const BoxDim shifted_box = getShiftedBox();
 
             // Apply boundary conditions
@@ -3903,7 +3903,8 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-namespace detail {
+namespace detail
+    {
 //! Export CommunicatorGPU class to python
 void export_CommunicatorGPU(py::module& m)
     {
@@ -3912,9 +3913,9 @@ void export_CommunicatorGPU(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition>>())
         .def("setMaxStages", &CommunicatorGPU::setMaxStages);
     }
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI

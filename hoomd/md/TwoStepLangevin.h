@@ -11,9 +11,10 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /** Integrates part of the system forward in two steps with Langevin dynamics
 
     Langevin dynamics modifies standard NVE integration with two additional forces, a random force
@@ -76,11 +77,11 @@ class PYBIND11_EXPORT TwoStepLangevin : public TwoStepLangevinBase
     bool m_noiseless_r;
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the TwoStepLangevin class to python
 void export_TwoStepLangevin(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

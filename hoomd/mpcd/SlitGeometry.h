@@ -23,7 +23,8 @@
 #include <string>
 #endif // __HIPCC__
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace detail
@@ -195,7 +196,7 @@ class __attribute__((visibility("default"))) SlitGeometry
 
     } // end namespace detail
     } // end namespace mpcd
-} // end namespace hoomd
+    } // end namespace hoomd
 #undef HOSTDEVICE
 
 #endif // MPCD_SLIT_GEOMETRY_H_

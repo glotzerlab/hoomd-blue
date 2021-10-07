@@ -22,9 +22,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing special pair potentials on the GPU
 /*!
     \tparam evaluator EvaluatorSpecialPair class used to evaluate V(r) and F(r)/r
@@ -155,19 +156,19 @@ void PotentialSpecialPairGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timest
 
         this->m_tuner->begin();
         gpu_cgbf(kernel::bond_args_t(d_force.data,
-                             d_virial.data,
-                             this->m_virial.getPitch(),
-                             this->m_pdata->getN(),
-                             this->m_pdata->getMaxN(),
-                             d_pos.data,
-                             d_charge.data,
-                             d_diameter.data,
-                             box,
-                             d_gpu_bondlist.data,
-                             gpu_table_indexer,
-                             d_gpu_n_bonds.data,
-                             this->m_pair_data->getNTypes(),
-                             this->m_tuner->getParam()),
+                                     d_virial.data,
+                                     this->m_virial.getPitch(),
+                                     this->m_pdata->getN(),
+                                     this->m_pdata->getMaxN(),
+                                     d_pos.data,
+                                     d_charge.data,
+                                     d_diameter.data,
+                                     box,
+                                     d_gpu_bondlist.data,
+                                     gpu_table_indexer,
+                                     d_gpu_n_bonds.data,
+                                     this->m_pair_data->getNTypes(),
+                                     this->m_tuner->getParam()),
                  d_params.data,
                  d_flags.data);
         }
@@ -194,8 +195,8 @@ void PotentialSpecialPairGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timest
         this->m_prof->pop(this->m_exec_conf);
     }
 
-namespace detail {
-
+namespace detail
+    {
 //! Export this special pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPairGPU class template.
@@ -209,9 +210,9 @@ void export_PotentialSpecialPairGPU(pybind11::module& m, const std::string& name
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __POTENTIAL_SPECIAL_PAIR_GPU_H__

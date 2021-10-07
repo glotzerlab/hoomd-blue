@@ -12,8 +12,8 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
                                            uint64_t cur_timestep,
                                            uint64_t period,
@@ -244,4 +244,4 @@ void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
         .def("setTemperature", &mpcd::ATCollisionMethod::setTemperature);
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

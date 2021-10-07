@@ -14,10 +14,10 @@
 #include <iostream>
 #include <memory>
 
-namespace hoomd {
-
-namespace detail {
-
+namespace hoomd
+    {
+namespace detail
+    {
 template<class T> class managed_allocator
     {
     public:
@@ -234,6 +234,6 @@ bool operator!=(const managed_allocator<T>& lhs, const managed_allocator<U>& rhs
     return lhs.usesDevice() != rhs.usesDevice();
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

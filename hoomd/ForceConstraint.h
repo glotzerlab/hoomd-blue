@@ -19,8 +19,8 @@
 #ifndef __ForceConstraint_H__
 #define __ForceConstraint_H__
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Base class for all constraint forces
 /*! See Integrator for detailed documentation on constraint force implementation.
     \ingroup computes
@@ -45,10 +45,11 @@ class PYBIND11_EXPORT ForceConstraint : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
-namespace detail {
+namespace detail
+    {
 //! Exports the ForceConstraint to python
 void export_ForceConstraint(pybind11::module& m);
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd
 #endif

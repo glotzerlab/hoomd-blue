@@ -20,9 +20,10 @@
 #ifndef __NEIGHBORLISTGPUBINNED_H__
 #define __NEIGHBORLISTGPUBINNED_H__
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Neighbor list build on the GPU
 /*! Implements the O(N) neighbor list build on the GPU using a cell list.
 
@@ -91,13 +92,13 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
     virtual void buildNlist(uint64_t timestep);
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports NeighborListGPUBinned to python
 void export_NeighborListGPUBinned(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

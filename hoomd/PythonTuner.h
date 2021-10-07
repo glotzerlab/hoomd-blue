@@ -4,9 +4,8 @@
 
 #include "Tuner.h"
 
-
-namespace hoomd {
-
+namespace hoomd
+    {
 class PYBIND11_EXPORT PythonTuner : public Tuner
     {
     public:
@@ -30,10 +29,10 @@ class PYBIND11_EXPORT PythonTuner : public Tuner
     PDataFlags m_flags;
     };
 
-namespace detail {
-
+namespace detail
+    {
 void export_PythonTuner(pybind11::module& m);
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

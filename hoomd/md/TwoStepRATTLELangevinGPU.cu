@@ -12,10 +12,12 @@ using namespace hoomd;
 
 #include <assert.h>
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! NO_SQUISH angular part of the second half step
 /*!
     \param d_pos array of particle positions (4th dimension is particle type)
@@ -272,6 +274,6 @@ __global__ void gpu_rattle_bdtally_reduce_partial_sum_kernel(Scalar* d_sum,
     if (threadIdx.x == 0)
         *d_sum = sum;
     }
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

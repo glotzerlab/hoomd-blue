@@ -12,9 +12,10 @@ using namespace std;
 #ifdef ENABLE_HIP
 #include "MuellerPlatheFlowGPU.cuh"
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
                                            std::shared_ptr<ParticleGroup> group,
                                            std::shared_ptr<Variant> flow_target,
@@ -87,22 +88,22 @@ void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
 
     m_tuner->begin();
     kernel::gpu_search_min_max_velocity(group_size,
-                                d_vel.data,
-                                d_pos.data,
-                                d_tag.data,
-                                d_rtag.data,
-                                d_group_members.data,
-                                gl_box,
-                                this->getNSlabs(),
-                                this->getMaxSlab(),
-                                this->getMinSlab(),
-                                &m_last_max_vel,
-                                &m_last_min_vel,
-                                this->hasMaxSlab(),
-                                this->hasMinSlab(),
-                                m_tuner->getParam(),
-                                m_flow_direction,
-                                m_slab_direction);
+                                        d_vel.data,
+                                        d_pos.data,
+                                        d_tag.data,
+                                        d_rtag.data,
+                                        d_group_members.data,
+                                        gl_box,
+                                        this->getNSlabs(),
+                                        this->getMaxSlab(),
+                                        this->getMinSlab(),
+                                        &m_last_max_vel,
+                                        &m_last_min_vel,
+                                        this->hasMaxSlab(),
+                                        this->hasMinSlab(),
+                                        m_tuner->getParam(),
+                                        m_flow_direction,
+                                        m_slab_direction);
     m_tuner->end();
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -124,11 +125,11 @@ void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
     const unsigned int Ntotal = m_pdata->getN() + m_pdata->getNGhosts();
 
     kernel::gpu_update_min_max_velocity(d_rtag.data,
-                                d_vel.data,
-                                Ntotal,
-                                m_last_max_vel,
-                                m_last_min_vel,
-                                m_flow_direction);
+                                        d_vel.data,
+                                        Ntotal,
+                                        m_last_max_vel,
+                                        m_last_min_vel,
+                                        m_flow_direction);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -137,8 +138,8 @@ void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
         m_prof->pop();
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_MuellerPlatheFlowGPU(py::module& m)
     {
     py::class_<MuellerPlatheFlowGPU, MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlowGPU>>(
@@ -155,8 +156,8 @@ void export_MuellerPlatheFlowGPU(py::module& m)
                       Scalar>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP

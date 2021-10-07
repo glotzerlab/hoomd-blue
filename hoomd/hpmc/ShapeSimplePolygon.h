@@ -24,7 +24,8 @@
 #define HOSTDEVICE
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 //! Simple Polygon shape template
@@ -359,7 +360,7 @@ template<> inline std::string getShapeSpec(const ShapeSimplePolygon& poly)
 #endif
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVCE

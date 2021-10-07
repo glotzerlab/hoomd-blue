@@ -54,7 +54,8 @@
 // Check against zero with absolute tolerance
 #define CHECK_ZERO(x, abs_tol) ((x < abs_tol && x >= 0) || (-x < abs_tol && x < 0))
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -1088,7 +1089,7 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
     } // end namespace detail
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef DEFAULT_MASK

@@ -9,8 +9,8 @@
 
 #include "IntegratorData.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 unsigned int IntegratorData::registerIntegrator()
     {
     // assign the next available slot
@@ -27,4 +27,4 @@ unsigned int IntegratorData::registerIntegrator()
     return i;
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

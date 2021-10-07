@@ -25,7 +25,8 @@
     \brief Implements a connected components algorithm on the GPU
 */
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -366,4 +367,4 @@ void connected_components(uint2* d_adj,
 
     } // end namespace gpu
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd

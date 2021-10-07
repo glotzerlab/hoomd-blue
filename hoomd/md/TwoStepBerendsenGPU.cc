@@ -15,9 +15,10 @@ namespace py = pybind11;
 
 using namespace std;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to which the Berendsen thermostat will be applied
     \param group Group of particles to which the Berendsen thermostat will be applied
     \param thermo Compute for thermodynamic properties
@@ -79,15 +80,15 @@ void TwoStepBerendsenGPU::integrateStepOne(uint64_t timestep)
 
     // perform the integration on the GPU
     kernel::gpu_berendsen_step_one(d_pos.data,
-                           d_vel.data,
-                           d_accel.data,
-                           d_image.data,
-                           d_index_array.data,
-                           group_size,
-                           box,
-                           m_block_size,
-                           lambda,
-                           m_deltaT);
+                                   d_vel.data,
+                                   d_accel.data,
+                                   d_image.data,
+                                   d_index_array.data,
+                                   group_size,
+                                   box,
+                                   m_block_size,
+                                   lambda,
+                                   m_deltaT);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -121,12 +122,12 @@ void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
 
     // perform the second step of the integration on the GPU
     kernel::gpu_berendsen_step_two(d_vel.data,
-                           d_accel.data,
-                           d_index_array.data,
-                           group_size,
-                           d_net_force.data,
-                           m_block_size,
-                           m_deltaT);
+                                   d_accel.data,
+                                   d_index_array.data,
+                                   group_size,
+                                   d_net_force.data,
+                                   m_block_size,
+                                   m_deltaT);
 
     // check if an error occurred
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -136,8 +137,8 @@ void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
         m_prof->pop();
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_BerendsenGPU(py::module& m)
     {
     py::class_<TwoStepBerendsenGPU, TwoStepBerendsen, std::shared_ptr<TwoStepBerendsenGPU>>(
@@ -150,6 +151,6 @@ void export_BerendsenGPU(py::module& m)
                       std::shared_ptr<Variant>>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

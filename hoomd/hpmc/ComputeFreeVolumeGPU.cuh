@@ -19,7 +19,8 @@
 #include "hoomd/TextureTools.h"
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -447,6 +448,6 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
 
     } // end namespace hpmc
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // _COMPUTE_FREE_VOLUME_CUH_

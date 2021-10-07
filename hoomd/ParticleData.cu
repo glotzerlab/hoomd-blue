@@ -21,10 +21,10 @@
 #include <thrust/scatter.h>
 #pragma GCC diagnostic pop
 
-namespace hoomd {
-
-namespace kernel {
-
+namespace hoomd
+    {
+namespace kernel
+    {
 //! Kernel to partition particle data
 __global__ void gpu_scatter_particle_data_kernel(const unsigned int nwork,
                                                  const Scalar4* d_pos,
@@ -489,8 +489,8 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                        d_comm_flags);
     }
 
-} // end namespace kernel
+    } // end namespace kernel
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI

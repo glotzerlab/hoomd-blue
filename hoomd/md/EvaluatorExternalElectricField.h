@@ -27,9 +27,10 @@
 #define DEVICE
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating an electric field
 /*! <b>General Overview</b>
     The external potential \f$V(\vec{r}) \f$ is implemented using the following formula:
@@ -151,7 +152,7 @@ class EvaluatorExternalElectricField
     Scalar3 m_E;   //!< the field vector
     };
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__

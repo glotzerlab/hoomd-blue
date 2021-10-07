@@ -15,10 +15,12 @@
 #ifndef __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
 #define __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                                   unsigned int nptl_local,
                                   double* d_matrix,
@@ -73,6 +75,6 @@ hipError_t gpu_compute_constraint_forces(const Scalar4* d_pos,
                                          double* d_lagrange);
 #endif
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

@@ -3,8 +3,8 @@
 
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ParticleGroup>>);
 
-namespace hoomd {
-
+namespace hoomd
+    {
 ParticleFilterUpdater::ParticleFilterUpdater(std::shared_ptr<SystemDefinition> sysdef,
                                              std::vector<std::shared_ptr<ParticleGroup>> groups)
     : Updater(sysdef), m_groups(groups)
@@ -25,8 +25,8 @@ void ParticleFilterUpdater::update(uint64_t timestep)
         }
     }
 
-namespace detail {
-
+namespace detail
+    {
 /// Export the BoxResizeUpdater to python
 void export_ParticleFilterUpdater(pybind11::module& m)
     {
@@ -38,6 +38,6 @@ void export_ParticleFilterUpdater(pybind11::module& m)
         .def_property_readonly("groups", &ParticleFilterUpdater::getGroups);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

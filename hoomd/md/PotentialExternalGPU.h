@@ -21,9 +21,10 @@
 #ifndef __POTENTIAL_EXTERNAL_GPU_H__
 #define __POTENTIAL_EXTERNAL_GPU_H__
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Applys a constraint force to keep a group of particles on a sphere
 /*! \ingroup computes
  */
@@ -104,16 +105,16 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
 
     this->m_tuner->begin();
     kernel::gpu_cpef<evaluator>(kernel::external_potential_args_t(d_force.data,
-                                                  d_virial.data,
-                                                  this->m_virial.getPitch(),
-                                                  this->m_pdata->getN(),
-                                                  d_pos.data,
-                                                  d_diameter.data,
-                                                  d_charge.data,
-                                                  box,
-                                                  this->m_tuner->getParam()),
-                        d_params.data,
-                        d_field.data);
+                                                                  d_virial.data,
+                                                                  this->m_virial.getPitch(),
+                                                                  this->m_pdata->getN(),
+                                                                  d_pos.data,
+                                                                  d_diameter.data,
+                                                                  d_charge.data,
+                                                                  box,
+                                                                  this->m_tuner->getParam()),
+                                d_params.data,
+                                d_field.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -135,8 +136,8 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
         }
     }
 
-namespace detail {
-
+namespace detail
+    {
 //! Export this external potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialExternalGPU class template.
@@ -149,8 +150,8 @@ void export_PotentialExternalGPU(pybind11::module& m, const std::string& name)
         .def("setField", &T::setField);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

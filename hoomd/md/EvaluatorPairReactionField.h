@@ -27,9 +27,10 @@
 #define HOSTDEVICE
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Onsager reaction field pair potential
 /*! <b>General Overview</b>
 
@@ -191,7 +192,7 @@ class EvaluatorPairReactionField
     Scalar qiqj;     //!< Product of charges
     };
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_REACTION_FIELD_H__

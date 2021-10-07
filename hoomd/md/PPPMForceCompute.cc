@@ -6,9 +6,10 @@
 
 namespace py = pybind11;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 bool is_pow2(unsigned int n)
     {
     while (n && n % 2 == 0)
@@ -1835,8 +1836,8 @@ Scalar PPPMForceCompute::getQ2Sum()
     return q2;
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_PPPMForceCompute(py::module& m)
     {
     py::class_<PPPMForceCompute, ForceCompute, std::shared_ptr<PPPMForceCompute>>(
@@ -1855,6 +1856,6 @@ void export_PPPMForceCompute(py::module& m)
         .def_property_readonly("alpha", &PPPMForceCompute::getAlpha);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

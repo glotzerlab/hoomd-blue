@@ -23,9 +23,10 @@
 
 using namespace std;
 
-namespace hoomd {
-namespace dem {
-
+namespace hoomd
+    {
+namespace dem
+    {
 /*! \param sysdef System to compute forces on
   \param nlist Neighborlist to use for computing the forces
   \param r_cut Cutoff radius beyond which the force is 0
@@ -161,28 +162,29 @@ void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::computeForces(uint64_t
 
     // run the kernel on all GPUs in parallel
     m_tuner->begin();
-    kernel::gpu_compute_dem2d_forces<Real, Real2, Real4, Evaluator>(d_force.data,
-                                                            d_torque.data,
-                                                            d_virial.data,
-                                                            this->m_virial.getPitch(),
-                                                            this->m_pdata->getN(),
-                                                            this->m_pdata->getNGhosts(),
-                                                            d_pos.data,
-                                                            d_quat.data,
-                                                            d_vertices.data,
-                                                            d_num_shape_vertices.data,
-                                                            d_diam.data,
-                                                            d_velocity.data,
-                                                            (unsigned int)numVertices(),
-                                                            box,
-                                                            d_n_neigh.data,
-                                                            d_nlist.data,
-                                                            d_head_list.data,
-                                                            this->m_evaluator,
-                                                            this->m_r_cut * this->m_r_cut,
-                                                            (unsigned int)this->m_shapes.size(),
-                                                            (unsigned int)particlesPerBlock,
-                                                            (unsigned int)this->maxVertices());
+    kernel::gpu_compute_dem2d_forces<Real, Real2, Real4, Evaluator>(
+        d_force.data,
+        d_torque.data,
+        d_virial.data,
+        this->m_virial.getPitch(),
+        this->m_pdata->getN(),
+        this->m_pdata->getNGhosts(),
+        d_pos.data,
+        d_quat.data,
+        d_vertices.data,
+        d_num_shape_vertices.data,
+        d_diam.data,
+        d_velocity.data,
+        (unsigned int)numVertices(),
+        box,
+        d_n_neigh.data,
+        d_nlist.data,
+        d_head_list.data,
+        this->m_evaluator,
+        this->m_r_cut * this->m_r_cut,
+        (unsigned int)this->m_shapes.size(),
+        (unsigned int)particlesPerBlock,
+        (unsigned int)this->maxVertices());
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
@@ -262,8 +264,8 @@ size_t DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::maxVertices() const
     return result;
     }
 
-} // end namespace dem
-} // end namespace hoomd
+    } // end namespace dem
+    } // end namespace hoomd
 
 #endif
 

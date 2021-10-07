@@ -21,8 +21,8 @@
 using namespace std;
 namespace py = pybind11;
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Names of bonded groups
 char name_bond_data[] = "bond";
 char name_angle_data[] = "angle";
@@ -1291,8 +1291,8 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
     }
 #endif
 
-namespace detail {
-
+namespace detail
+    {
 template<class T, typename Group>
 void export_BondedGroupData(py::module& m,
                             std::string name,
@@ -1345,7 +1345,7 @@ void export_BondedGroupData(py::module& m,
         }
     }
 
-} // end namespace detail
+    } // end namespace detail
 
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::replicate(
@@ -1467,8 +1467,8 @@ template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
 template class PYBIND11_EXPORT BondedGroupData<2, Constraint, name_constraint_data, false>;
 template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_pair_data>;
 
-namespace detail {
-
+namespace detail
+    {
 template void export_BondedGroupData<BondData, Bond>(py::module& m,
                                                      std::string name,
                                                      std::string snapshot_name,
@@ -1499,6 +1499,6 @@ template void export_BondedGroupData<PairData, Bond>(py::module& m,
                                                      std::string snapshot_name,
                                                      bool export_struct);
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

@@ -20,8 +20,8 @@ using namespace std;
     \brief Defines a few initializers for setting up ParticleData instances
 */
 
-namespace hoomd {
-
+namespace hoomd
+    {
 ////////////////////////////////////////////////////////////////////////////////
 // Simple Cubic Initializer
 
@@ -186,4 +186,4 @@ std::shared_ptr<SnapshotSystemData<Scalar>> RandomInitializer::getSnapshot() con
     return snapshot;
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

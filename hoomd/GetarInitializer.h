@@ -19,7 +19,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace getardump
     {
 /// Object to use to restore HOOMD system snapshots
@@ -103,5 +104,5 @@ void export_GetarInitializer(pybind11::module& m);
 #endif
 
     } // namespace getardump
-} // end namespace hoomd
+    } // end namespace hoomd
 #endif

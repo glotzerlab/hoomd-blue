@@ -19,7 +19,8 @@
 #include "hoomd/Autotuner.h"
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Adds virtual particles to the MPCD particle data for SlitGeometry using the GPU
@@ -60,5 +61,5 @@ namespace detail
 void export_SlitGeometryFillerGPU(pybind11::module& m);
     }      // end namespace detail
     }      // end namespace mpcd
-} // end namespace hoomd
+    }      // end namespace hoomd
 #endif // MPCD_SLIT_GEOMETRY_FILLER_GPU_H_

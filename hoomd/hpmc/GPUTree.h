@@ -28,7 +28,8 @@
 
 #include "hoomd/ManagedArray.h"
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -643,6 +644,6 @@ DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a,
 
     } // end namespace hpmc
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // __GPU_TREE_H__

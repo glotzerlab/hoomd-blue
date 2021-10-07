@@ -24,9 +24,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! External potential to impose periodic structure
 typedef PotentialExternal<EvaluatorExternalPeriodic> PotentialExternalPeriodic;
 
@@ -57,7 +58,7 @@ typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMorse>> WallsPotentialM
 
 #endif
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __EXTERNAL_POTENTIALS_H__

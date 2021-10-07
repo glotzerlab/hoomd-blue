@@ -21,9 +21,10 @@ using namespace std;
     \brief Contains code for the HarmonicAngleForceCompute class
 */
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
@@ -276,8 +277,8 @@ void HarmonicAngleForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_HarmonicAngleForceCompute(py::module& m)
     {
     py::class_<HarmonicAngleForceCompute, ForceCompute, std::shared_ptr<HarmonicAngleForceCompute>>(
@@ -288,6 +289,6 @@ void export_HarmonicAngleForceCompute(py::module& m)
         .def("getParams", &HarmonicAngleForceCompute::getParams);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

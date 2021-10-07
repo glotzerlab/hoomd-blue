@@ -13,8 +13,8 @@ using namespace std;
     \brief Contains code for the ConstForceCompute class
 */
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
     \param fx x-component of the force
     \param fy y-component of the force
@@ -257,7 +257,8 @@ void ConstForceCompute::computeForces(uint64_t timestep)
         }
     }
 
-namespace detail {
+namespace detail
+    {
 void export_ConstForceCompute(py::module& m)
     {
     py::class_<ConstForceCompute, ForceCompute, std::shared_ptr<ConstForceCompute>>(
@@ -283,6 +284,6 @@ void export_ConstForceCompute(py::module& m)
         .def("setParticleForce", &ConstForceCompute::setParticleForce)
         .def("setCallback", &ConstForceCompute::setCallback);
     }
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

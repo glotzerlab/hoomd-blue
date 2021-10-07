@@ -1,9 +1,9 @@
 #include "PythonLocalDataAccess.h"
 
-namespace hoomd {
-
-namespace detail {
-
+namespace hoomd
+    {
+namespace detail
+    {
 void export_GhostDataFlag(pybind11::module& m)
     {
     pybind11::enum_<GhostDataFlag>(m, "GhostDataFlag")
@@ -33,6 +33,6 @@ void export_HOOMDDeviceBuffer(pybind11::module& m)
 
 #endif
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

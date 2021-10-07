@@ -27,9 +27,10 @@ class Communicator;
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps
 /*! \b Overview
     A large class of integrators can be implemented in two steps:
@@ -244,13 +245,13 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
     bool m_valid_restart;         //!< True if the restart info was valid when loading
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the IntegrationMethodTwoStep class to python
 void export_IntegrationMethodTwoStep(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __INTEGRATION_METHOD_TWO_STEP_H__

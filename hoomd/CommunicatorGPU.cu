@@ -29,8 +29,8 @@
 
 #include <cassert>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Select a particle for migration
 __global__ void gpu_select_particle_migrate(unsigned int N,
                                             const Scalar4* d_postype,
@@ -250,8 +250,9 @@ void gpu_sort_migrating_particles(const size_t nsend,
     thrust::upper_bound(keys_ptr, keys_ptr + nsend, neighbors_ptr, neighbors_ptr + nneigh, end_ptr);
     }
 
-__global__ void
-gpu_wrap_particles_kernel(const unsigned int n_recv, detail::pdata_element* d_recv, const BoxDim box)
+__global__ void gpu_wrap_particles_kernel(const unsigned int n_recv,
+                                          detail::pdata_element* d_recv,
+                                          const BoxDim box)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -2822,5 +2823,5 @@ template void gpu_exchange_ghost_groups_copy_buf<2>(unsigned int nrecv,
                                                     unsigned int& n_keep,
                                                     CachedAllocator& alloc);
 
-} // end namespace hoomd
+    }      // end namespace hoomd
 #endif // ENABLE_MPI

@@ -16,9 +16,10 @@ namespace py = pybind11;
 #include "hoomd/Communicator.h"
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*!
  * \param sysdef System definition.
  * \param r_cut The default cutoff.
@@ -256,15 +257,15 @@ void NeighborListGPUTree::buildTree()
 
             m_mark_tuner->begin();
             kernel::gpu_nlist_mark_types(d_types.data,
-                                 d_indexes.data,
-                                 m_lbvh_errors.getDeviceFlags(),
-                                 d_last_pos.data,
-                                 d_pos.data,
-                                 m_pdata->getN(),
-                                 m_pdata->getNGhosts(),
-                                 box,
-                                 ghost_width,
-                                 m_mark_tuner->getParam());
+                                         d_indexes.data,
+                                         m_lbvh_errors.getDeviceFlags(),
+                                         d_last_pos.data,
+                                         d_pos.data,
+                                         m_pdata->getN(),
+                                         m_pdata->getNGhosts(),
+                                         box,
+                                         ghost_width,
+                                         m_mark_tuner->getParam());
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             m_mark_tuner->end();
@@ -314,13 +315,13 @@ void NeighborListGPUTree::buildTree()
             void* d_tmp = NULL;
             size_t tmp_bytes = 0;
             kernel::gpu_nlist_sort_types(d_tmp,
-                                 tmp_bytes,
-                                 d_types.data,
-                                 d_sorted_types.data,
-                                 d_indexes.data,
-                                 d_sorted_indexes.data,
-                                 m_pdata->getN() + m_pdata->getNGhosts(),
-                                 m_type_bits);
+                                         tmp_bytes,
+                                         d_types.data,
+                                         d_sorted_types.data,
+                                         d_indexes.data,
+                                         d_sorted_indexes.data,
+                                         m_pdata->getN() + m_pdata->getNGhosts(),
+                                         m_type_bits);
 
             // make requested temporary allocation (1 char = 1B)
             size_t alloc_size = (tmp_bytes > 0) ? tmp_bytes : 4;
@@ -329,13 +330,13 @@ void NeighborListGPUTree::buildTree()
 
             // perform the sort
             swap = kernel::gpu_nlist_sort_types(d_tmp,
-                                        tmp_bytes,
-                                        d_types.data,
-                                        d_sorted_types.data,
-                                        d_indexes.data,
-                                        d_sorted_indexes.data,
-                                        m_pdata->getN() + m_pdata->getNGhosts(),
-                                        m_type_bits);
+                                                tmp_bytes,
+                                                d_types.data,
+                                                d_sorted_types.data,
+                                                d_indexes.data,
+                                                d_sorted_indexes.data,
+                                                m_pdata->getN() + m_pdata->getNGhosts(),
+                                                m_type_bits);
             }
         if (swap.x)
             m_sorted_types.swap(m_types);
@@ -362,11 +363,11 @@ void NeighborListGPUTree::buildTree()
 
         m_count_tuner->begin();
         kernel::gpu_nlist_count_types(d_type_first.data,
-                              d_type_last.data,
-                              d_sorted_types.data,
-                              m_pdata->getNTypes(),
-                              m_pdata->getN() + m_pdata->getNGhosts(),
-                              m_count_tuner->getParam());
+                                      d_type_last.data,
+                                      d_sorted_types.data,
+                                      m_pdata->getNTypes(),
+                                      m_pdata->getN() + m_pdata->getNGhosts(),
+                                      m_count_tuner->getParam());
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_count_tuner->end();
@@ -468,10 +469,10 @@ void NeighborListGPUTree::buildTree()
                 auto d_primitives = m_lbvhs[i]->getPrimitives();
                 m_copy_tuner->begin();
                 kernel::gpu_nlist_copy_primitives(d_traverse_order.data + first,
-                                          d_sorted_indexes.data + first,
-                                          d_primitives,
-                                          Ni,
-                                          m_copy_tuner->getParam());
+                                                  d_sorted_indexes.data + first,
+                                                  d_primitives,
+                                                  Ni,
+                                                  m_copy_tuner->getParam());
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 m_copy_tuner->end();
@@ -674,8 +675,8 @@ void NeighborListGPUTree::updateImageVectors()
         }
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_NeighborListGPUTree(py::module& m)
     {
     py::class_<NeighborListGPUTree, NeighborListGPU, std::shared_ptr<NeighborListGPUTree>>(
@@ -684,6 +685,6 @@ void export_NeighborListGPUTree(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

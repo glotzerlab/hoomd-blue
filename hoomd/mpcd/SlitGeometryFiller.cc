@@ -12,8 +12,8 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 mpcd::SlitGeometryFiller::SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                                              Scalar density,
                                              unsigned int type,
@@ -155,4 +155,4 @@ void mpcd::detail::export_SlitGeometryFiller(pybind11::module& m)
         .def("setGeometry", &mpcd::SlitGeometryFiller::setGeometry);
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

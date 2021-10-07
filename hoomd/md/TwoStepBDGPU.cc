@@ -12,9 +12,10 @@ namespace py = pybind11;
 
 using namespace std;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param T Temperature set point as a function of time
@@ -166,8 +167,8 @@ void TwoStepBDGPU::integrateStepTwo(uint64_t timestep)
     // there is no step 2
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_TwoStepBDGPU(py::module& m)
     {
     py::class_<TwoStepBDGPU, TwoStepBD, std::shared_ptr<TwoStepBDGPU>>(m, "TwoStepBDGPU")
@@ -178,6 +179,6 @@ void export_TwoStepBDGPU(py::module& m)
                       bool>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

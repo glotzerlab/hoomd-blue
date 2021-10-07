@@ -15,10 +15,12 @@
 #ifndef __OPLSDIHEDRALFORCEGPU_CUH__
 #define __OPLSDIHEDRALFORCEGPU_CUH__
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver that computes OPLS dihedral forces for OPLSDihedralForceComputeGPU
 hipError_t gpu_compute_opls_dihedral_forces(Scalar4* d_force,
                                             Scalar* d_virial,
@@ -35,8 +37,8 @@ hipError_t gpu_compute_opls_dihedral_forces(Scalar4* d_force,
                                             const int block_size,
                                             const int warp_size);
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

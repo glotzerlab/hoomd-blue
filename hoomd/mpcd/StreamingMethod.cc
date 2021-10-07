@@ -10,8 +10,8 @@
 
 #include "StreamingMethod.h"
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /*!
  * \param sysdata MPCD system data
  * \param cur_timestep Current system timestep
@@ -126,4 +126,4 @@ void mpcd::detail::export_StreamingMethod(pybind11::module& m)
         .def("removeField", &mpcd::StreamingMethod::removeField);
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

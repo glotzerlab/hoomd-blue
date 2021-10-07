@@ -8,9 +8,10 @@
     \brief CUDA kernels for ExampleUpdater
 */
 
-namespace hoomd {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace kernel
+    {
 // First, the kernel code for zeroing the velocities on the GPU
 //! Kernel that zeroes velocities on the GPU
 /*! \param d_vel Velocity-mass array from the ParticleData
@@ -51,5 +52,5 @@ hipError_t gpu_zero_velocities(Scalar4* d_vel, unsigned int N)
     return hipSuccess;
     }
 
-} // end namespace kernel
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace hoomd

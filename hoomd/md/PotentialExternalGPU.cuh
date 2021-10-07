@@ -16,10 +16,12 @@
 #ifndef __POTENTIAL_EXTERNAL_GPU_CUH__
 #define __POTENTIAL_EXTERNAL_GPU_CUH__
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Wraps arguments to gpu_cpef
 struct external_potential_args_t
     {
@@ -200,8 +202,8 @@ hipError_t gpu_cpef(const kernel::external_potential_args_t& external_potential_
     };
 #endif // __HIPCC__
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_GPU_CUH__

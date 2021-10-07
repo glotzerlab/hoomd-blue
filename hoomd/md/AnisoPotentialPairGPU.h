@@ -23,9 +23,10 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing anisotropic pair potentials on the GPU
 /*! Derived from AnisoPotentialPair, this class provides exactly the same interface for computing
    anisotropic pair potentials, forces and torques.  In the same way as PotentialPair, this class
@@ -205,29 +206,29 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
     bool first = true;
 
     gpu_cgpf(kernel::a_pair_args_t(d_force.data,
-                           d_torque.data,
-                           d_virial.data,
-                           this->m_virial.getPitch(),
-                           this->m_pdata->getN(),
-                           this->m_pdata->getMaxN(),
-                           d_pos.data,
-                           d_diameter.data,
-                           d_charge.data,
-                           d_orientation.data,
-                           d_tag.data,
-                           box,
-                           d_n_neigh.data,
-                           d_nlist.data,
-                           d_head_list.data,
-                           d_rcutsq.data,
-                           this->m_pdata->getNTypes(),
-                           block_size,
-                           this->m_shift_mode,
-                           flags[pdata_flag::pressure_tensor],
-                           threads_per_particle,
-                           this->m_pdata->getGPUPartition(),
-                           this->m_exec_conf->dev_prop,
-                           first),
+                                   d_torque.data,
+                                   d_virial.data,
+                                   this->m_virial.getPitch(),
+                                   this->m_pdata->getN(),
+                                   this->m_pdata->getMaxN(),
+                                   d_pos.data,
+                                   d_diameter.data,
+                                   d_charge.data,
+                                   d_orientation.data,
+                                   d_tag.data,
+                                   box,
+                                   d_n_neigh.data,
+                                   d_nlist.data,
+                                   d_head_list.data,
+                                   d_rcutsq.data,
+                                   this->m_pdata->getNTypes(),
+                                   block_size,
+                                   this->m_shift_mode,
+                                   flags[pdata_flag::pressure_tensor],
+                                   threads_per_particle,
+                                   this->m_pdata->getGPUPartition(),
+                                   this->m_exec_conf->dev_prop,
+                                   first),
              d_params.data,
              d_shape_params.data);
     if (!m_param)
@@ -242,8 +243,8 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
         this->m_prof->pop(this->m_exec_conf);
     }
 
-namespace detail {
-
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated AnisoPotentialPairGPU class template.
@@ -258,9 +259,9 @@ void export_AnisoPotentialPairGPU(pybind11::module& m, const std::string& name)
         .def("setTuningParam", &T::setTuningParam);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __ANISO_POTENTIAL_PAIR_GPU_H__

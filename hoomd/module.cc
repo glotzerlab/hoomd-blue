@@ -78,10 +78,10 @@
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
-namespace hoomd {
-
-namespace detail {
-
+namespace hoomd
+    {
+namespace detail
+    {
 void mpi_barrier_world()
     {
 #ifdef ENABLE_MPI
@@ -156,9 +156,9 @@ std::string mpi_bcast_str(pybind11::object string,
 #endif
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 using namespace std;
 using namespace hoomd;

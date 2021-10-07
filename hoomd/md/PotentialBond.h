@@ -20,9 +20,10 @@
 #ifndef __POTENTIALBOND_H__
 #define __POTENTIALBOND_H__
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! Bond potential with evaluator support
 
     \ingroup computes
@@ -338,8 +339,8 @@ CommFlags PotentialBond<evaluator>::getRequestedCommFlags(uint64_t timestep)
     }
 #endif
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the PotentialBond class to python
 /*! \param name Name of the class in the exported python module
     \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
@@ -352,9 +353,8 @@ template<class T> void export_PotentialBond(pybind11::module& m, const std::stri
         .def("getParams", &T::getParams);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
-
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

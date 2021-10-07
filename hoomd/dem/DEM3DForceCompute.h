@@ -23,9 +23,10 @@
 #ifndef __DEM3DFORCECOMPUTE_H__
 #define __DEM3DFORCECOMPUTE_H__
 
-namespace hoomd {
-namespace dem {
-
+namespace hoomd
+    {
+namespace dem
+    {
 //! Computes DEM 3D forces on each particle
 /*! The total pair force is summed for each particle when compute() is called. Forces are only
   summed between neighboring particles with a separation distance less than \c r_cut. A NeighborList
@@ -135,7 +136,7 @@ class DEM3DForceCompute : public ForceCompute
 
     protected:
     std::shared_ptr<md::NeighborList> m_nlist; //!< The neighborlist to use for the computation
-    Real m_r_cut;                          //!< Cutoff radius beyond which the force is set to 0
+    Real m_r_cut;                              //!< Cutoff radius beyond which the force is set to 0
     DEMEvaluator<Real, Real4, Potential>
         m_evaluator; //!< Object holding parameters and computation method for the potential
     GPUArray<unsigned int> m_nextFace;      //! face->next face
@@ -163,8 +164,8 @@ class DEM3DForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
-} // end namespace dem
-} // end namespace hoomd
+    } // end namespace dem
+    } // end namespace hoomd
 
 #include "DEM3DForceCompute.cc"
 

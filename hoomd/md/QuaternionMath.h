@@ -21,9 +21,10 @@
 #define DEVICE
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Normalize a quaternion
 /*!
     \param q Quaternion to be normalized
@@ -486,7 +487,7 @@ DEVICE inline void quatToR(const Scalar4& q, Scalar* R)
     R[8] = q0_2 - q1_2 - q2_2 + q3_2;
     }
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

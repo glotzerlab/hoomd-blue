@@ -18,9 +18,10 @@ using namespace std;
     \brief Contains code for the OPLSDihedralForceCompute class
 */
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
@@ -367,8 +368,8 @@ void OPLSDihedralForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_OPLSDihedralForceCompute(py::module& m)
     {
     py::class_<OPLSDihedralForceCompute, ForceCompute, std::shared_ptr<OPLSDihedralForceCompute>>(
@@ -379,6 +380,6 @@ void export_OPLSDihedralForceCompute(py::module& m)
         .def("getParams", &OPLSDihedralForceCompute::getParams);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -16,8 +16,8 @@ using namespace std;
     \brief Contains code for the Compute class
 */
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /*! \param sysdef SystemDefinition this compute will act on. Must not be NULL.
     \post The Compute is constructed with the given particle data and a NULL profiler.
 */
@@ -117,7 +117,8 @@ void Compute::forceCompute(uint64_t timestep)
     compute(timestep);
     }
 
-namespace detail {
+namespace detail
+    {
 void export_Compute(py::module& m)
     {
     py::class_<Compute, std::shared_ptr<Compute>>(m, "Compute")
@@ -127,6 +128,6 @@ void export_Compute(py::module& m)
         .def("setProfiler", &Compute::setProfiler)
         .def("notifyDetach", &Compute::notifyDetach);
     }
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

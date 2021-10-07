@@ -18,8 +18,8 @@
 // The factor with which the array size is incremented
 #define RESIZE_FACTOR 9.f / 8.f
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Forward declarations
 template<class T> class GPUVector;
 
@@ -447,4 +447,4 @@ template<class T> class GlobalVector : public GPUVectorBase<T, GlobalArray<T>>
         }
     };
 
-} // end namespace hoomd
+    } // end namespace hoomd

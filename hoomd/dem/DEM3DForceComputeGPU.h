@@ -24,9 +24,10 @@
 
 #ifdef ENABLE_HIP
 
-namespace hoomd {
-namespace dem {
-
+namespace hoomd
+    {
+namespace dem
+    {
 //! Computes DEM3D forces on each particle using the GPU
 /*! Calculates the same forces as DEM3DForceCompute, but on the GPU.
 
@@ -63,8 +64,8 @@ class DEM3DForceComputeGPU : public DEM3DForceCompute<Real, Real4, Potential>
     virtual void computeForces(uint64_t timestep);
     };
 
-} // end namespace dem
-} // end namespace hoomd
+    } // end namespace dem
+    } // end namespace hoomd
 
 #include "DEM3DForceComputeGPU.cc"
 

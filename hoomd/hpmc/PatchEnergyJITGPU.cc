@@ -6,9 +6,10 @@
 #include "PatchEnergyJITGPU.h"
 #include "hoomd/hpmc/IntegratorHPMC.h"
 
-namespace hoomd {
-namespace hpmc {
-
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Kernel driver for kernel::hpmc_narrow_phase_patch
 void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
     {
@@ -147,6 +148,6 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
 #endif
     }
 
-} // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif

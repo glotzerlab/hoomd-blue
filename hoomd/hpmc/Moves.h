@@ -26,7 +26,8 @@
 #define DEVICE
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 //! hpmc namespace
 namespace hpmc
     {
@@ -323,7 +324,7 @@ DEVICE inline vec3<Scalar> lineReflection(vec3<Scalar> pos, vec3<Scalar> p, quat
     }
 
     }; // end namespace hpmc
-} // namespace hoomd
+    }  // namespace hoomd
 
 #undef DEVICE
 

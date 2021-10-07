@@ -22,8 +22,8 @@
 #include <random>
 using namespace std;
 
-namespace hoomd {
-
+namespace hoomd
+    {
 // 9/8 factor for amortized growth
 const float mpcd::ParticleData::resize_factor = 9. / 8.;
 
@@ -1303,4 +1303,4 @@ void mpcd::detail::export_ParticleData(pybind11::module& m)
         .def_property("mass", &mpcd::ParticleData::getMass, &mpcd::ParticleData::setMass);
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd

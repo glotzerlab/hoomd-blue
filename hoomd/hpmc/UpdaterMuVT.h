@@ -15,7 +15,8 @@
 #include <pybind11/stl.h>
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 /*!
@@ -1056,7 +1057,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
                 {
                 const std::vector<typename Shape::param_type,
-                                  hoomd::detail::managed_allocator<typename Shape::param_type>>& params
+                                  hoomd::detail::managed_allocator<typename Shape::param_type>>&
+                    params
                     = m_mc->getParams();
                 const typename Shape::param_type& param = params[type];
 
@@ -1711,7 +1713,8 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                 Scalar r_cut_patch = patch->getRCut() + 0.5 * patch->getAdditiveCutoff(type);
 
                 Scalar R_query = std::max(0.0, r_cut_patch - m_mc->getMinCoreDiameter() / 2.0);
-                hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
+                hoomd::detail::AABB aabb_local
+                    = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
 
                 Scalar r_cut_self = r_cut_patch + 0.5 * patch->getAdditiveCutoff(type);
 
@@ -3098,8 +3101,8 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep,
     return n_overlap;
     }
 
-namespace detail {
-
+namespace detail
+    {
 //! Export the UpdaterMuVT class to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of UpdaterMuVT<Shape> will be exported
@@ -3136,9 +3139,8 @@ inline void export_hpmc_muvt_counters(pybind11::module& m)
         .def_property_readonly("volume", &hpmc_muvt_counters_t::getVolumeCounts);
     }
 
-
-} // end namespace detail
-} // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif

@@ -28,8 +28,8 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Sleep for for a time
 /*! \param msec Number of milliseconds to sleep for
     \ingroup utils
@@ -69,13 +69,14 @@ inline int64_t ClockSource::getTime() const
     return nsec - m_start_time;
     }
 
-namespace detail {
+namespace detail
+    {
 //! Exports the ClockSource class to python
 #ifndef __HIPCC__
 void export_ClockSource(pybind11::module& m);
 #endif
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd
 #endif

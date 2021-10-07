@@ -17,10 +17,12 @@
     minimization iteration on the GPU. Used by FIREEnergyMinimizerGPU.
 */
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! The kernel function to zeros velocities, called by gpu_fire_zero_v()
 /*! \param d_vel device array of particle velocities
     \param d_group_members Device array listing the indices of the members of the group to zero
@@ -51,8 +53,8 @@ gpu_fire_zero_v_kernel(Scalar4* d_vel, unsigned int* d_group_members, unsigned i
 
 //! The kernel function to zero angular momenta, called by gpu_fire_zero_angmom()
 __global__ void gpu_fire_zero_angmom_kernel(Scalar4* d_angmom,
-                                                       unsigned int* d_group_members,
-                                                       unsigned int group_size)
+                                            unsigned int* d_group_members,
+                                            unsigned int group_size)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -121,9 +123,9 @@ gpu_fire_zero_angmom(Scalar4* d_angmom, unsigned int* d_group_members, unsigned 
     \param d_partial_sum_pe Placeholder for the partial sum
 */
 __global__ void gpu_fire_reduce_pe_partial_kernel(unsigned int* d_group_members,
-                                                             unsigned int group_size,
-                                                             Scalar4* d_net_force,
-                                                             Scalar* d_partial_sum_pe)
+                                                  unsigned int group_size,
+                                                  Scalar4* d_net_force,
+                                                  Scalar* d_partial_sum_pe)
     {
     extern __shared__ Scalar fire_sdata[];
 
@@ -257,10 +259,10 @@ hipError_t gpu_fire_compute_sum_pe(unsigned int* d_group_members,
     \param d_partial_sum_P Array to hold the partial sum
 */
 __global__ void gpu_fire_reduce_P_partial_kernel(const Scalar4* d_vel,
-                                                            const Scalar3* d_accel,
-                                                            unsigned int* d_group_members,
-                                                            unsigned int group_size,
-                                                            Scalar* d_partial_sum_P)
+                                                 const Scalar3* d_accel,
+                                                 unsigned int* d_group_members,
+                                                 unsigned int group_size,
+                                                 Scalar* d_partial_sum_P)
     {
     extern __shared__ Scalar fire_sdata[];
 
@@ -413,9 +415,9 @@ __global__ void gpu_fire_reduce_wnorm_partial_kernel(const Scalar4* d_angmom,
     \param d_partial_sum_vsq Array to hold the partial sum
 */
 __global__ void gpu_fire_reduce_vsq_partial_kernel(const Scalar4* d_vel,
-                                                              unsigned int* d_group_members,
-                                                              unsigned int group_size,
-                                                              Scalar* d_partial_sum_vsq)
+                                                   unsigned int* d_group_members,
+                                                   unsigned int group_size,
+                                                   Scalar* d_partial_sum_vsq)
     {
     extern __shared__ Scalar fire_vsq_sdata[];
 
@@ -457,9 +459,9 @@ __global__ void gpu_fire_reduce_vsq_partial_kernel(const Scalar4* d_vel,
     \param d_partial_sum_asq Array to hold the partial sum
 */
 __global__ void gpu_fire_reduce_asq_partial_kernel(const Scalar3* d_accel,
-                                                              unsigned int* d_group_members,
-                                                              unsigned int group_size,
-                                                              Scalar* d_partial_sum_asq)
+                                                   unsigned int* d_group_members,
+                                                   unsigned int group_size,
+                                                   Scalar* d_partial_sum_asq)
     {
     extern __shared__ Scalar fire_partial_sdata[];
 
@@ -746,11 +748,11 @@ hipError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
     \param factor_t Combined factor vnorm/fnorm*alpha, or 1 if fnorm==0
 */
 __global__ void gpu_fire_update_v_kernel(Scalar4* d_vel,
-                                                    const Scalar3* d_accel,
-                                                    unsigned int* d_group_members,
-                                                    unsigned int group_size,
-                                                    Scalar alpha,
-                                                    Scalar factor_t)
+                                         const Scalar3* d_accel,
+                                         unsigned int* d_group_members,
+                                         unsigned int group_size,
+                                         Scalar alpha,
+                                         Scalar factor_t)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -884,6 +886,6 @@ hipError_t gpu_fire_update_angmom(const Scalar4* d_net_torque,
     return hipSuccess;
     }
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

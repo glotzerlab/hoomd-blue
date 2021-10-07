@@ -15,8 +15,8 @@
 #ifndef __GSD_INITIALIZER_H__
 #define __GSD_INITIALIZER_H__
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Forward declarations
 template<class Real> struct SnapshotSystemData;
 
@@ -137,13 +137,13 @@ class PYBIND11_EXPORT GSDStateReader
     gsd_handle m_handle;
     };
 
-namespace detail {
-
+namespace detail
+    {
 /// Exports GSDReader and GSDStateReader to python
 void export_GSDReader(pybind11::module& m);
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif

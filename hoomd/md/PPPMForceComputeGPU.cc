@@ -8,9 +8,10 @@
 
 namespace py = pybind11;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef The system definition
     \param nlist Neighbor list
     \param group Particle group to apply forces to
@@ -322,21 +323,21 @@ void PPPMForceComputeGPU::assignParticles()
     unsigned int block_size = m_tuner_assign->getParam();
 
     kernel::gpu_assign_particles(m_mesh_points,
-                         m_n_ghost_cells,
-                         m_grid_dim,
-                         group_size,
-                         d_index_array.data,
-                         d_postype.data,
-                         d_charge.data,
-                         d_mesh.data,
-                         d_mesh_scratch.data,
-                         (unsigned int)m_mesh.getNumElements(),
-                         m_order,
-                         m_pdata->getBox(),
-                         block_size,
-                         d_rho_coeff.data,
-                         m_exec_conf->dev_prop,
-                         m_group->getGPUPartition());
+                                 m_n_ghost_cells,
+                                 m_grid_dim,
+                                 group_size,
+                                 d_index_array.data,
+                                 d_postype.data,
+                                 d_charge.data,
+                                 d_mesh.data,
+                                 d_mesh_scratch.data,
+                                 (unsigned int)m_mesh.getNumElements(),
+                                 m_order,
+                                 m_pdata->getBox(),
+                                 block_size,
+                                 d_rho_coeff.data,
+                                 m_exec_conf->dev_prop,
+                                 m_group->getGPUPartition());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -348,10 +349,10 @@ void PPPMForceComputeGPU::assignParticles()
         {
         m_tuner_reduce_mesh->begin();
         kernel::gpu_reduce_meshes((unsigned int)m_mesh.getNumElements(),
-                          d_mesh_scratch.data,
-                          d_mesh.data,
-                          m_exec_conf->getNumActiveGPUs(),
-                          m_tuner_reduce_mesh->getParam());
+                                  d_mesh_scratch.data,
+                                  d_mesh.data,
+                                  m_exec_conf->getNumActiveGPUs(),
+                                  m_tuner_reduce_mesh->getParam());
         m_tuner_reduce_mesh->end();
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -442,14 +443,14 @@ void PPPMForceComputeGPU::updateMeshes()
         unsigned int block_size = m_tuner_update->getParam();
         m_tuner_update->begin();
         kernel::gpu_update_meshes(m_n_inner_cells,
-                          d_mesh.data + m_ghost_offset,
-                          d_inv_fourier_mesh_x.data + m_ghost_offset,
-                          d_inv_fourier_mesh_y.data + m_ghost_offset,
-                          d_inv_fourier_mesh_z.data + m_ghost_offset,
-                          d_inf_f.data,
-                          d_k.data,
-                          m_global_dim.x * m_global_dim.y * m_global_dim.z,
-                          block_size);
+                                  d_mesh.data + m_ghost_offset,
+                                  d_inv_fourier_mesh_x.data + m_ghost_offset,
+                                  d_inv_fourier_mesh_y.data + m_ghost_offset,
+                                  d_inv_fourier_mesh_z.data + m_ghost_offset,
+                                  d_inf_f.data,
+                                  d_k.data,
+                                  m_global_dim.x * m_global_dim.y * m_global_dim.z,
+                                  block_size);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -626,23 +627,23 @@ void PPPMForceComputeGPU::interpolateForces()
     unsigned int block_size = m_tuner_force->getParam();
     m_tuner_force->begin();
     kernel::gpu_compute_forces(m_pdata->getN(),
-                       d_postype.data,
-                       d_force.data,
-                       d_inv_fourier_mesh_x.data,
-                       d_inv_fourier_mesh_y.data,
-                       d_inv_fourier_mesh_z.data,
-                       m_grid_dim,
-                       m_n_ghost_cells,
-                       d_charge.data,
-                       m_pdata->getBox(),
-                       m_order,
-                       d_index_array.data,
-                       m_group->getGPUPartition(),
-                       m_pdata->getGPUPartition(),
-                       d_rho_coeff.data,
-                       block_size,
-                       m_local_fft,
-                       m_n_cells + m_ghost_offset);
+                               d_postype.data,
+                               d_force.data,
+                               d_inv_fourier_mesh_x.data,
+                               d_inv_fourier_mesh_y.data,
+                               d_inv_fourier_mesh_z.data,
+                               m_grid_dim,
+                               m_n_ghost_cells,
+                               d_charge.data,
+                               m_pdata->getBox(),
+                               m_order,
+                               d_index_array.data,
+                               m_group->getGPUPartition(),
+                               m_pdata->getGPUPartition(),
+                               d_rho_coeff.data,
+                               block_size,
+                               m_local_fft,
+                               m_n_cells + m_ghost_offset);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -676,12 +677,12 @@ void PPPMForceComputeGPU::computeVirial()
 #endif
 
     kernel::gpu_compute_mesh_virial(m_n_inner_cells,
-                            d_mesh.data + m_ghost_offset,
-                            d_inf_f.data,
-                            d_virial_mesh.data,
-                            d_k.data,
-                            exclude_dc,
-                            m_kappa);
+                                    d_mesh.data + m_ghost_offset,
+                                    d_inf_f.data,
+                                    d_virial_mesh.data,
+                                    d_k.data,
+                                    exclude_dc,
+                                    m_kappa);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -695,10 +696,10 @@ void PPPMForceComputeGPU::computeVirial()
                                                  access_mode::overwrite);
 
         kernel::gpu_compute_virial(m_n_inner_cells,
-                           d_sum_virial_partial.data,
-                           d_sum_virial.data,
-                           d_virial_mesh.data,
-                           m_block_size);
+                                   d_sum_virial_partial.data,
+                                   d_sum_virial.data,
+                                   d_virial_mesh.data,
+                                   m_block_size);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -738,13 +739,13 @@ Scalar PPPMForceComputeGPU::computePE()
 #endif
 
     kernel::gpu_compute_pe(m_n_inner_cells,
-                   d_sum_partial.data,
-                   m_sum.getDeviceFlags(),
-                   d_mesh.data + m_ghost_offset,
-                   d_inf_f.data,
-                   m_block_size,
-                   m_mesh_points,
-                   exclude_dc);
+                           d_sum_partial.data,
+                           m_sum.getDeviceFlags(),
+                           d_mesh.data + m_ghost_offset,
+                           d_inf_f.data,
+                           m_block_size,
+                           m_mesh_points,
+                           exclude_dc);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -821,19 +822,19 @@ void PPPMForceComputeGPU::computeInfluenceFunction()
     unsigned int block_size = m_tuner_influence->getParam();
     m_tuner_influence->begin();
     kernel::gpu_compute_influence_function(m_mesh_points,
-                                   global_dim,
-                                   d_inf_f.data,
-                                   d_k.data,
-                                   m_pdata->getGlobalBox(),
-                                   m_local_fft,
-                                   pidx,
-                                   pdim,
-                                   EPS_HOC,
-                                   m_kappa,
-                                   m_alpha,
-                                   d_gf_b.data,
-                                   m_order,
-                                   block_size);
+                                           global_dim,
+                                           d_inf_f.data,
+                                           d_k.data,
+                                           m_pdata->getGlobalBox(),
+                                           m_local_fft,
+                                           pidx,
+                                           pdim,
+                                           EPS_HOC,
+                                           m_kappa,
+                                           m_alpha,
+                                           d_gf_b.data,
+                                           m_order,
+                                           block_size);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -873,20 +874,20 @@ void PPPMForceComputeGPU::fixExclusions()
     Index2D nex = m_nlist->getExListIndexer();
 
     kernel::gpu_fix_exclusions(d_force.data,
-                       d_virial.data,
-                       m_virial.getPitch(),
-                       m_pdata->getN() + m_pdata->getNGhosts(),
-                       d_postype.data,
-                       d_charge.data,
-                       m_pdata->getBox(),
-                       d_n_ex.data,
-                       d_exlist.data,
-                       nex,
-                       m_kappa,
-                       m_alpha,
-                       d_index_array.data,
-                       group_size,
-                       m_block_size);
+                               d_virial.data,
+                               m_virial.getPitch(),
+                               m_pdata->getN() + m_pdata->getNGhosts(),
+                               d_postype.data,
+                               d_charge.data,
+                               m_pdata->getBox(),
+                               d_n_ex.data,
+                               d_exlist.data,
+                               nex,
+                               m_kappa,
+                               m_alpha,
+                               d_index_array.data,
+                               group_size,
+                               m_block_size);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -895,8 +896,8 @@ void PPPMForceComputeGPU::fixExclusions()
         m_prof->pop(m_exec_conf);
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_PPPMForceComputeGPU(py::module& m)
     {
     py::class_<PPPMForceComputeGPU, PPPMForceCompute, std::shared_ptr<PPPMForceComputeGPU>>(
@@ -907,8 +908,8 @@ void export_PPPMForceComputeGPU(py::module& m)
                       std::shared_ptr<ParticleGroup>>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP

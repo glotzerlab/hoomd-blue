@@ -14,9 +14,10 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /// Integrates the system forward one step with possibly multiple methods
 /** See IntegrationMethodTwoStep for most of the design notes regarding group integration.
    IntegratorTwoStep merely implements most of the things discussed there.
@@ -139,11 +140,11 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     AnisotropicMode m_aniso_mode; //!< Anisotropic mode for this integrator
     };
 
-namespace detail {
-
+namespace detail
+    {
 /// Exports the IntegratorTwoStep class to python
 void export_IntegratorTwoStep(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

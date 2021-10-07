@@ -36,8 +36,8 @@ using namespace std;
     \brief Defines ExecutionConfiguration and related classes
 */
 
-namespace hoomd {
-
+namespace hoomd
+    {
 // initialize static variables
 bool ExecutionConfiguration::s_gpu_scan_complete = false;
 std::vector<std::string> ExecutionConfiguration::s_gpu_scan_messages;
@@ -657,7 +657,8 @@ int ExecutionConfiguration::guessLocalRank(bool& found)
 #endif
     }
 
-namespace detail {
+namespace detail
+    {
 void export_ExecutionConfiguration(py::module& m)
     {
     py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration>>
@@ -698,6 +699,6 @@ void export_ExecutionConfiguration(py::module& m)
         .value("AUTO", ExecutionConfiguration::executionMode::AUTO)
         .export_values();
     }
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

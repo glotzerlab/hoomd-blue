@@ -3,9 +3,10 @@
 
 #pragma once
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /// Struct to embed the enum out of the global scope
 struct flow_enum
     {
@@ -18,5 +19,5 @@ struct flow_enum
         };
     };
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd

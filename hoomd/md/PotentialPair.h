@@ -39,9 +39,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing pair potentials
 /*! <b>Overview:</b>
     PotentialPair computes standard pair potentials (and forces) between all particle pairs in the
@@ -916,8 +917,8 @@ Scalar PotentialPair<evaluator>::computeEnergyBetweenSetsPythonList(
     return eng;
     }
 
-namespace detail {
-
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
@@ -939,8 +940,8 @@ template<class T> void export_PotentialPair(pybind11::module& m, const std::stri
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_H__

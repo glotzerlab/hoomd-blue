@@ -36,7 +36,6 @@ namespace hoomd
     {
 namespace detail
     {
-
 #if defined(__SSE__) && !defined(__HIPCC__)
 inline __m128 sse_load_vec3_float(const vec3<float>& value)
     {

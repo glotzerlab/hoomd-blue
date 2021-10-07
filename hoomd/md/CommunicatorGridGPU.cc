@@ -17,9 +17,10 @@
 typedef cufftComplex hipfftComplex;
 #endif
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef The system definition
  *  \param dim Dimensions of 3dim grid
  *  \param embed Embedding dimensions
@@ -124,9 +125,9 @@ template<typename T> void CommunicatorGridGPU<T>::communicate(const GlobalArray<
         ArrayHandle<T> d_grid(grid, access_location::device, access_mode::read);
 
         kernel::gpu_gridcomm_scatter_send_cells<T>((unsigned int)this->m_send_buf.getNumElements(),
-                                           d_send_idx.data,
-                                           d_grid.data,
-                                           d_send_buf.data);
+                                                   d_send_idx.data,
+                                                   d_grid.data,
+                                                   d_send_buf.data);
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
@@ -201,13 +202,13 @@ template<typename T> void CommunicatorGridGPU<T>::communicate(const GlobalArray<
                                              access_mode::read);
 
         kernel::gpu_gridcomm_scatter_add_recv_cells<T>(m_n_unique_recv_cells,
-                                               d_recv_buf.data,
-                                               d_grid.data,
-                                               d_cell_recv.data,
-                                               d_cell_recv_begin.data,
-                                               d_cell_recv_end.data,
-                                               d_recv_idx.data,
-                                               this->m_add_outer);
+                                                       d_recv_buf.data,
+                                                       d_grid.data,
+                                                       d_cell_recv.data,
+                                                       d_cell_recv_begin.data,
+                                                       d_cell_recv_end.data,
+                                                       d_recv_idx.data,
+                                                       this->m_add_outer);
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
@@ -219,7 +220,7 @@ template class PYBIND11_EXPORT CommunicatorGridGPU<unsigned int>;
 template class PYBIND11_EXPORT CommunicatorGridGPU<hipfftComplex>;
 #endif // ENABLE_HIP
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI

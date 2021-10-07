@@ -14,9 +14,10 @@ using namespace std;
 
 namespace py = pybind11;
 
-namespace hoomd {
-namespace metal {
-
+namespace hoomd
+    {
+namespace metal
+    {
 /*! \file EAMForceCompute.cc
  \brief Defines the EAMForceCompute class
  */
@@ -591,8 +592,8 @@ Scalar EAMForceCompute::get_r_cut()
     return m_r_cut;
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_EAMForceCompute(py::module& m)
     {
     py::class_<EAMForceCompute, ForceCompute, std::shared_ptr<EAMForceCompute>>(m,
@@ -602,6 +603,6 @@ void export_EAMForceCompute(py::module& m)
         .def("get_r_cut", &EAMForceCompute::get_r_cut);
     }
 
-} // end namespace detail
-} // end namespace metal
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace metal
+    } // end namespace hoomd

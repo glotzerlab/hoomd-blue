@@ -30,7 +30,8 @@
 #include <vector>
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 //! Convex (Sphero)Polyhedron shape template
@@ -225,7 +226,7 @@ template<> inline std::string getShapeSpec(const ShapeSpheropolyhedron& spoly)
 #endif
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

@@ -32,9 +32,10 @@ const unsigned int MAX_N_SWALLS = 20;
 const unsigned int MAX_N_CWALLS = 20;
 const unsigned int MAX_N_PWALLS = 60;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 struct wall_type
     {
     unsigned int numSpheres; // these data types come first, since the structs are aligned already
@@ -346,7 +347,7 @@ make_wall_params(typename evaluator::param_type p, Scalar rcutsq, Scalar rextrap
     return params;
     }
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__EVALUATOR__WALLS_H__

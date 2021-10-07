@@ -34,9 +34,10 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing pair potentials
 /*! <b>Overview:</b>
     AnisoPotentialPair computes standard pair potentials (and forces) between all particle pairs in
@@ -728,8 +729,8 @@ CommFlags AnisoPotentialPair<aniso_evaluator>::getRequestedCommFlags(uint64_t ti
     }
 #endif
 
-namespace detail {
-
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated AnisoPotentialPair class template.
@@ -751,8 +752,8 @@ template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std:
         .def("getTypeShapesPy", &T::getTypeShapesPy);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __ANISO_POTENTIAL_PAIR_H__

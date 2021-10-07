@@ -44,8 +44,8 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
 #include <string>
 #include <vector>
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Storage data type for group members
 /*! We use a union to emphasize it that can contain either particle
  * tags or particle indices or other information */
@@ -73,7 +73,7 @@ template<unsigned int group_size> struct packed_storage
     };
 #endif
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #ifdef ENABLE_MPI
 namespace cereal
@@ -88,20 +88,23 @@ template<class Archive> void serialize(Archive& ar, hoomd::typeval_t& t, const u
     }
 
 //! Serialization of group_storage<2> (bonds)
-template<class Archive> void serialize(Archive& ar, hoomd::group_storage<2>& s, const unsigned int version)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<2>& s, const unsigned int version)
     {
     ar& s.tag[0];
     ar& s.tag[1];
     }
 //! Serialization of group_storage<3> (angles)
-template<class Archive> void serialize(Archive& ar, hoomd::group_storage<3>& s, const unsigned int version)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<3>& s, const unsigned int version)
     {
     ar& s.tag[0];
     ar& s.tag[1];
     ar& s.tag[2];
     }
 //! Serialization of group_storage<4> (dihedrals and impropers)
-template<class Archive> void serialize(Archive& ar, hoomd::group_storage<4>& s, const unsigned int version)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<4>& s, const unsigned int version)
     {
     ar& s.tag[0];
     ar& s.tag[1];
@@ -111,8 +114,8 @@ template<class Archive> void serialize(Archive& ar, hoomd::group_storage<4>& s, 
     } // namespace cereal
 #endif
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /*! BondedGroupData is a generic storage class for small particle groups of fixed
  *  size N=2,3,4..., such as bonds, angles or dihedrals, which form part of a molecule.
  *
@@ -703,8 +706,8 @@ class BondedGroupData
 #endif
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports BondData to python
 template<class T, class Group>
 void export_BondedGroupData(pybind11::module& m,
@@ -712,7 +715,7 @@ void export_BondedGroupData(pybind11::module& m,
                             std::string snapshot_name,
                             bool export_struct = true);
 
-} // end namespace detail
+    } // end namespace detail
 
 /*!
  * Typedefs for template instantiations
@@ -1084,5 +1087,5 @@ template<class Output, class Data> void export_LocalGroupData(pybind11::module& 
         .def("exit", &LocalGroupData<Output, Data>::exit);
     }
 
-} // end namespace hoomd
+    } // end namespace hoomd
 #endif

@@ -13,9 +13,10 @@ namespace py = pybind11;
 
 using namespace std;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute angle forces on
  */
 HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
@@ -91,18 +92,18 @@ void HarmonicAngleForceComputeGPU::computeForces(uint64_t timestep)
     // run the kernel on the GPU
     m_tuner->begin();
     kernel::gpu_compute_harmonic_angle_forces(d_force.data,
-                                      d_virial.data,
-                                      m_virial.getPitch(),
-                                      m_pdata->getN(),
-                                      d_pos.data,
-                                      box,
-                                      d_gpu_anglelist.data,
-                                      d_gpu_angle_pos_list.data,
-                                      m_angle_data->getGPUTableIndexer().getW(),
-                                      d_gpu_n_angles.data,
-                                      d_params.data,
-                                      m_angle_data->getNTypes(),
-                                      m_tuner->getParam());
+                                              d_virial.data,
+                                              m_virial.getPitch(),
+                                              m_pdata->getN(),
+                                              d_pos.data,
+                                              box,
+                                              d_gpu_anglelist.data,
+                                              d_gpu_angle_pos_list.data,
+                                              m_angle_data->getGPUTableIndexer().getW(),
+                                              d_gpu_n_angles.data,
+                                              d_params.data,
+                                              m_angle_data->getNTypes(),
+                                              m_tuner->getParam());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -112,8 +113,8 @@ void HarmonicAngleForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_HarmonicAngleForceComputeGPU(py::module& m)
     {
     py::class_<HarmonicAngleForceComputeGPU,
@@ -122,6 +123,6 @@ void export_HarmonicAngleForceComputeGPU(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

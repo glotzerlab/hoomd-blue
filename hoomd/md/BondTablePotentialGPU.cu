@@ -14,10 +14,12 @@
    BondTablePotentialGPU.
 */
 
-namespace hoomd {
-namespace md {
-namespace kernel {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 /*!  This kernel is called to calculate the table pair forces on all N particles
 
     \param d_force Device memory to write computed forces
@@ -242,6 +244,6 @@ hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
     return hipSuccess;
     }
 
-} // end namespace kernel
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

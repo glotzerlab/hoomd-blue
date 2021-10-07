@@ -11,7 +11,8 @@
 #define HOSTDEVICE
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 // put a few misc math functions here as they don't have any better home
@@ -71,9 +72,9 @@ template<unsigned int> struct int2type
     {
     };
 
-    } // end namespace hoomd
     } // namespace detail
+    } // namespace hpmc
 
-    } // end namespace hpmc
+    } // namespace hoomd
 
 #undef HOSTDEVICE

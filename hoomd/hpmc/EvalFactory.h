@@ -7,8 +7,10 @@
 
 #include "KaleidoscopeJIT.h"
 
-namespace hoomd { namespace hpmc {
-
+namespace hoomd
+    {
+namespace hpmc
+    {
 class EvalFactory
     {
     public:
@@ -69,5 +71,5 @@ class EvalFactory
     std::string m_error_msg; //!< The error message if initialization fails
     };
 
-} // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hpmc
+    } // end namespace hoomd

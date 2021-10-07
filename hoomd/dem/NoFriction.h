@@ -22,9 +22,10 @@
 #define DEVICE
 #endif
 
-namespace hoomd {
-namespace dem {
-
+namespace hoomd
+    {
+namespace dem
+    {
 template<typename Real> class NoFriction
     {
     public:
@@ -46,7 +47,7 @@ template<typename Real> class NoFriction
         }
     };
 
-} // end namespace dem
-} // end namespace hoomd
+    } // end namespace dem
+    } // end namespace hoomd
 
 #endif

@@ -22,9 +22,10 @@
 #ifndef __EAMFORCECOMPUTE_H__
 #define __EAMFORCECOMPUTE_H__
 
-namespace hoomd {
-namespace metal {
-
+namespace hoomd
+    {
+namespace metal
+    {
 //! Computes the potential and force on each particle based on values given in a EAM potential
 /*! \b Overview
  The total potential and force is computed for each particle when compute() is called. Potentials
@@ -67,11 +68,11 @@ class EAMForceCompute : public ForceCompute
 
     protected:
     std::shared_ptr<md::NeighborList> m_nlist; //!< the neighborlist to use for the computation
-    Scalar m_r_cut;                        //!< cut-off radius
-    unsigned int m_ntypes;                 //!< number of potential element types
-    unsigned int nrho;                     //!< number of tabulated values of interpolated F(rho)
-    Scalar drho;                           //!< interval of rho in interpolated table
-    Scalar rdrho;                          //!< 1.0 / drho
+    Scalar m_r_cut;                            //!< cut-off radius
+    unsigned int m_ntypes;                     //!< number of potential element types
+    unsigned int nrho;          //!< number of tabulated values of interpolated F(rho)
+    Scalar drho;                //!< interval of rho in interpolated table
+    Scalar rdrho;               //!< 1.0 / drho
     unsigned int nr;            //!< number of tabulated values of interpolated rho(r), r*phi(r)
     Scalar dr;                  //!< interval of r in interpolated table
     Scalar rdr;                 //!< 1.0 / dr
@@ -101,13 +102,13 @@ class EAMForceCompute : public ForceCompute
                                ArrayHandle<Scalar4>* df);
     };
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the EAMForceCompute class to python
 void export_EAMForceCompute(pybind11::module& m);
 
-} // end namespace detail
-} // end namespace metal
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace metal
+    } // end namespace hoomd
 
 #endif

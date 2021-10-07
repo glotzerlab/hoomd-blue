@@ -14,9 +14,10 @@ namespace py = pybind11;
 using namespace std;
 using namespace hoomd;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 TwoStepLangevin::TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<ParticleGroup> group,
                                  std::shared_ptr<Variant> T)
@@ -436,8 +437,8 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
         m_prof->pop();
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_TwoStepLangevin(py::module& m)
     {
     py::class_<TwoStepLangevin, TwoStepLangevinBase, std::shared_ptr<TwoStepLangevin>>(
@@ -452,6 +453,6 @@ void export_TwoStepLangevin(py::module& m)
         .def_property_readonly("reservoir_energy", &TwoStepLangevin::getReservoirEnergy);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

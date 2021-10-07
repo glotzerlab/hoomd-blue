@@ -15,7 +15,8 @@
 // base data types
 #include "IntegratorHPMCMonoGPUTypes.cuh"
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -93,4 +94,4 @@ void reduce_counters(const unsigned int ngpu,
     } // end namespace gpu
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd

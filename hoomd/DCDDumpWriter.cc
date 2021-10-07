@@ -27,9 +27,10 @@ using namespace std;
 // File position of NSTEP in DCD header
 #define NSTEP_POS 20L
 
-namespace hoomd {
-namespace detail {
-
+namespace hoomd
+    {
+namespace detail
+    {
 //! simple helper function to write an integer
 /*! \param file file to write to
     \param val integer to write
@@ -49,7 +50,7 @@ static unsigned int read_int(fstream& file)
     file.read((char*)&val, sizeof(unsigned int));
     return val;
     }
-} // end namespace detail
+    } // end namespace detail
 
 /*! Constructs the DCDDumpWriter. After construction, settings are set. No file operations are
     attempted until analyze() is called.
@@ -432,7 +433,8 @@ void DCDDumpWriter::write_updated_header(std::fstream& file, uint64_t timestep)
         m_exec_conf->msg->warning() << "DCD: Truncating timestep to lower 32 bits" << endl;
     }
 
-namespace detail {
+namespace detail
+    {
 void export_DCDDumpWriter(py::module& m)
     {
     py::class_<DCDDumpWriter, Analyzer, std::shared_ptr<DCDDumpWriter>>(m, "DCDDumpWriter")
@@ -448,6 +450,6 @@ void export_DCDDumpWriter(py::module& m)
         .def_property("angle_z", &DCDDumpWriter::getAngleZ, &DCDDumpWriter::setAngleZ)
         .def_property_readonly("overwrite", &DCDDumpWriter::getOverwrite);
     }
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

@@ -11,7 +11,8 @@
 #include "ExternalField.h"
 #include "hoomd/GPUPolymorph.h"
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace detail
@@ -37,4 +38,4 @@ void export_ExternalFieldPolymorph(pybind11::module& m)
 
     } // end namespace detail
     } // end namespace mpcd
-} // end namespace hoomd
+    } // end namespace hoomd

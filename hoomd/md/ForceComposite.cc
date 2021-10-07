@@ -15,9 +15,10 @@ namespace py = pybind11;
     \brief Contains code for the ForceComposite class
 */
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
@@ -1020,8 +1021,8 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         }
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_ForceComposite(py::module& m)
     {
     py::class_<ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite>>(
@@ -1035,6 +1036,6 @@ void export_ForceComposite(py::module& m)
         .def("updateCompositeParticles", &ForceComposite::updateCompositeParticles);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -6,10 +6,12 @@
 #include "ManifoldSphere.h"
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-namespace md {
-namespace detail {
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 //! Exports the Sphere manifold class to python
 void export_ManifoldSphere(pybind11::module& m)
     {
@@ -19,6 +21,6 @@ void export_ManifoldSphere(pybind11::module& m)
         .def_property_readonly("P", &ManifoldSphere::getP);
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -25,9 +25,10 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps in the NVE ensemble on the GPU
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface, runs
 on the GPU \ingroup updaters
@@ -157,16 +158,16 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
     this->m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
     kernel::gpu_rattle_nve_step_one(d_pos.data,
-                            d_vel.data,
-                            d_accel.data,
-                            d_image.data,
-                            d_index_array.data,
-                            this->m_group->getGPUPartition(),
-                            this->m_pdata->getBox(),
-                            this->m_deltaT,
-                            this->m_limit,
-                            this->m_limit_val,
-                            m_tuner_one->getParam());
+                                    d_vel.data,
+                                    d_accel.data,
+                                    d_image.data,
+                                    d_index_array.data,
+                                    this->m_group->getGPUPartition(),
+                                    this->m_pdata->getBox(),
+                                    this->m_deltaT,
+                                    this->m_limit,
+                                    this->m_limit_val,
+                                    m_tuner_one->getParam());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -194,14 +195,14 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
         m_tuner_angular_one->begin();
 
         kernel::gpu_rattle_nve_angular_step_one(d_orientation.data,
-                                        d_angmom.data,
-                                        d_inertia.data,
-                                        d_net_torque.data,
-                                        d_index_array.data,
-                                        this->m_group->getGPUPartition(),
-                                        this->m_deltaT,
-                                        1.0,
-                                        m_tuner_angular_one->getParam());
+                                                d_angmom.data,
+                                                d_inertia.data,
+                                                d_net_torque.data,
+                                                d_index_array.data,
+                                                this->m_group->getGPUPartition(),
+                                                this->m_deltaT,
+                                                1.0,
+                                                m_tuner_angular_one->getParam());
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -246,18 +247,18 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
     m_tuner_two->begin();
 
     kernel::gpu_rattle_nve_step_two<Manifold>(d_pos.data,
-                                      d_vel.data,
-                                      d_accel.data,
-                                      d_index_array.data,
-                                      this->m_group->getGPUPartition(),
-                                      d_net_force.data,
-                                      this->m_manifold,
-                                      this->m_tolerance,
-                                      this->m_deltaT,
-                                      this->m_limit,
-                                      this->m_limit_val,
-                                      this->m_zero_force,
-                                      m_tuner_two->getParam());
+                                              d_vel.data,
+                                              d_accel.data,
+                                              d_index_array.data,
+                                              this->m_group->getGPUPartition(),
+                                              d_net_force.data,
+                                              this->m_manifold,
+                                              this->m_tolerance,
+                                              this->m_deltaT,
+                                              this->m_limit,
+                                              this->m_limit_val,
+                                              this->m_zero_force,
+                                              m_tuner_two->getParam());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -285,14 +286,14 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
         m_tuner_angular_two->begin();
 
         kernel::gpu_rattle_nve_angular_step_two(d_orientation.data,
-                                        d_angmom.data,
-                                        d_inertia.data,
-                                        d_net_torque.data,
-                                        d_index_array.data,
-                                        this->m_group->getGPUPartition(),
-                                        this->m_deltaT,
-                                        1.0,
-                                        m_tuner_angular_two->getParam());
+                                                d_angmom.data,
+                                                d_inertia.data,
+                                                d_net_torque.data,
+                                                d_index_array.data,
+                                                this->m_group->getGPUPartition(),
+                                                this->m_deltaT,
+                                                1.0,
+                                                m_tuner_angular_two->getParam());
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -334,18 +335,18 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(
     this->m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
     kernel::gpu_include_rattle_force_nve<Manifold>(d_pos.data,
-                                           d_vel.data,
-                                           d_accel.data,
-                                           d_net_force.data,
-                                           d_net_virial.data,
-                                           d_index_array.data,
-                                           this->m_group->getGPUPartition(),
-                                           net_virial_pitch,
-                                           this->m_manifold,
-                                           this->m_tolerance,
-                                           this->m_deltaT,
-                                           this->m_zero_force,
-                                           m_tuner_one->getParam());
+                                                   d_vel.data,
+                                                   d_accel.data,
+                                                   d_net_force.data,
+                                                   d_net_virial.data,
+                                                   d_index_array.data,
+                                                   this->m_group->getGPUPartition(),
+                                                   net_virial_pitch,
+                                                   this->m_manifold,
+                                                   this->m_tolerance,
+                                                   this->m_deltaT,
+                                                   this->m_zero_force,
+                                                   m_tuner_one->getParam());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -354,8 +355,8 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(
     this->m_exec_conf->endMultiGPU();
     }
 
-namespace detail {
-
+namespace detail
+    {
 template<class Manifold> void export_TwoStepRATTLENVEGPU(py::module& m, const std::string& name)
     {
     py::class_<TwoStepRATTLENVEGPU<Manifold>,
@@ -368,9 +369,9 @@ template<class Manifold> void export_TwoStepRATTLENVEGPU(py::module& m, const st
                       Scalar>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // #ifndef __TWO_STEP_RATTLE_NVE_GPU_H__

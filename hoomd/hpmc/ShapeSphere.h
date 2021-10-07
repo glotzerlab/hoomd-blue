@@ -29,7 +29,8 @@
 
 #define SMALL 1e-5
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
 /** HPMC shape parameter base class
@@ -742,7 +743,7 @@ template<> inline std::string getShapeSpec(const ShapeSphere& sphere)
 #endif
 
     } // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

@@ -8,10 +8,12 @@
 #include <pybind11/pybind11.h>
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace hpmc
     {
-namespace detail {
+namespace detail
+    {
 void export_sphere(pybind11::module& m);
 void export_convex_polygon(pybind11::module& m);
 void export_simple_polygon(pybind11::module& m);
@@ -27,8 +29,8 @@ void export_convex_polyhedron(pybind11::module& m);
 void export_convex_spheropolyhedron(pybind11::module& m);
 
 void export_external_fields(pybind11::module& m);
-} // namespace detail
+    } // namespace detail
     } // namespace hpmc
-} // namespace hoomd
+    } // namespace hoomd
 
 #endif // __MODULES__

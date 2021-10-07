@@ -21,9 +21,10 @@
     \brief Handy list of typedefs for all of the templated pair potentials in hoomd
 */
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Pair potential force compute for Gay-Berne forces and torques
 typedef AnisoPotentialPair<EvaluatorPairGB> AnisoPotentialPairGB;
 //! Pair potential force compute for dipole forces and torques
@@ -38,7 +39,7 @@ typedef AnisoPotentialPairGPU<EvaluatorPairDipole, kernel::gpu_compute_pair_anis
     AnisoPotentialPairDipoleGPU;
 #endif
 
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __ALL_ANISO_PAIR_POTENTIALS_H__

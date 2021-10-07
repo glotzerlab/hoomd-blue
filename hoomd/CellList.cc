@@ -15,8 +15,8 @@
 using namespace std;
 namespace py = pybind11;
 
-namespace hoomd {
-
+namespace hoomd
+    {
 /*! \param sysdef system to compute the cell list of
  */
 CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
@@ -687,8 +687,8 @@ uint3 CellList::readConditions()
     return *h_conditions.data;
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_CellList(py::module& m)
     {
     py::class_<CellList, Compute, std::shared_ptr<CellList>>(m, "CellList")
@@ -704,6 +704,6 @@ void export_CellList(py::module& m)
         .def("benchmark", &CellList::benchmark);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

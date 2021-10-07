@@ -14,10 +14,10 @@ using namespace std;
     \brief Contains code for the ActiveForceComputeGPU class
 */
 
-namespace hoomd {
-namespace md {
-
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param f_list An array of (x,y,z) tuples for the active force vector for each individual
    particle. \param orientation_link if True then forces and torques are applied in the particle's
    reference frame. If false, then the box reference fra    me is used. Only relevant for
@@ -107,15 +107,15 @@ void ActiveForceComputeGPU::setForces()
     m_tuner_force->begin();
 
     kernel::gpu_compute_active_force_set_forces(group_size,
-                                        d_index_array.data,
-                                        d_force.data,
-                                        d_torque.data,
-                                        d_pos.data,
-                                        d_orientation.data,
-                                        d_f_actVec.data,
-                                        d_t_actVec.data,
-                                        N,
-                                        m_tuner_force->getParam());
+                                                d_index_array.data,
+                                                d_force.data,
+                                                d_torque.data,
+                                                d_pos.data,
+                                                d_orientation.data,
+                                                d_f_actVec.data,
+                                                d_t_actVec.data,
+                                                N,
+                                                m_tuner_force->getParam());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -152,16 +152,16 @@ void ActiveForceComputeGPU::rotationalDiffusion(Scalar rotational_diffusion, uin
     m_tuner_diffusion->begin();
 
     kernel::gpu_compute_active_force_rotational_diffusion(group_size,
-                                                  d_tag.data,
-                                                  d_index_array.data,
-                                                  d_pos.data,
-                                                  d_orientation.data,
-                                                  d_f_actVec.data,
-                                                  is2D,
-                                                  rotation_constant,
-                                                  timestep,
-                                                  m_sysdef->getSeed(),
-                                                  m_tuner_diffusion->getParam());
+                                                          d_tag.data,
+                                                          d_index_array.data,
+                                                          d_pos.data,
+                                                          d_orientation.data,
+                                                          d_f_actVec.data,
+                                                          is2D,
+                                                          rotation_constant,
+                                                          timestep,
+                                                          m_sysdef->getSeed(),
+                                                          m_tuner_diffusion->getParam());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -169,8 +169,8 @@ void ActiveForceComputeGPU::rotationalDiffusion(Scalar rotational_diffusion, uin
     m_tuner_diffusion->end();
     }
 
-namespace detail {
-
+namespace detail
+    {
 void export_ActiveForceComputeGPU(py::module& m)
     {
     py::class_<ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU>>(
@@ -179,6 +179,6 @@ void export_ActiveForceComputeGPU(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

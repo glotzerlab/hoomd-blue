@@ -20,7 +20,8 @@
 #define HOSTDEVICE
 #endif // __HIPCC__
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Operators
@@ -74,7 +75,7 @@ struct BitwiseOr
     } // end namespace ops
 
     } // end namespace mpcd
-} // end namespace hoomd
+    } // end namespace hoomd
 #undef HOSTDEVICE
 
 #endif // MPCD_REDUCTION_OPERATORS_H_

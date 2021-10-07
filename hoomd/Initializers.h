@@ -16,8 +16,8 @@
 #ifndef __INITIALIZERS_H__
 #define __INITIALIZERS_H__
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Forward declaration of SnapshotSystemData
 template<class Real> struct SnapshotSystemData;
 
@@ -71,6 +71,6 @@ class PYBIND11_EXPORT RandomInitializer
     std::string m_type_name; //!< Name of the particle type created
     };
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif

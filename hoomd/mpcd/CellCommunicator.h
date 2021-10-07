@@ -34,7 +34,8 @@
 #include <map>
 #include <set>
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Communicates properties across the MPCD cell list
@@ -114,7 +115,7 @@ class PYBIND11_EXPORT CellCommunicator
     const unsigned int m_id;           //!< Id for this communicator to use in tags
 
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< System definition
-    std::shared_ptr<hoomd::ParticleData> m_pdata;                   //!< HOOMD particle data
+    std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     const MPI_Comm m_mpi_comm;                                 //!< MPI Communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition
@@ -467,7 +468,7 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, const Pac
     }
 #endif // ENABLE_HIP
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // MPCD_CELL_COMMUNICATOR_H_
 

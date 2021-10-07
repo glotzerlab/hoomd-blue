@@ -24,9 +24,10 @@ namespace py = pybind11;
 
 using namespace std;
 
-namespace hoomd {
-namespace md {
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Implements Brownian dynamics on the GPU
 /*! GPU accelerated version of TwoStepBD
 
@@ -174,27 +175,27 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
 
     // perform the update on the GPU
     kernel::gpu_rattle_brownian_step_one(d_pos.data,
-                                 d_image.data,
-                                 d_vel.data,
-                                 this->m_pdata->getBox(),
-                                 d_diameter.data,
-                                 d_tag.data,
-                                 d_index_array.data,
-                                 group_size,
-                                 d_net_force.data,
-                                 d_gamma_r.data,
-                                 d_orientation.data,
-                                 d_torque.data,
-                                 d_inertia.data,
-                                 d_angmom.data,
-                                 args,
-                                 this->m_manifold,
-                                 aniso,
-                                 this->m_deltaT,
-                                 D,
-                                 this->m_noiseless_t,
-                                 this->m_noiseless_r,
-                                 this->m_group->getGPUPartition());
+                                         d_image.data,
+                                         d_vel.data,
+                                         this->m_pdata->getBox(),
+                                         d_diameter.data,
+                                         d_tag.data,
+                                         d_index_array.data,
+                                         group_size,
+                                         d_net_force.data,
+                                         d_gamma_r.data,
+                                         d_orientation.data,
+                                         d_torque.data,
+                                         d_inertia.data,
+                                         d_angmom.data,
+                                         args,
+                                         this->m_manifold,
+                                         aniso,
+                                         this->m_deltaT,
+                                         D,
+                                         this->m_noiseless_t,
+                                         this->m_noiseless_r,
+                                         this->m_group->getGPUPartition());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -262,18 +263,18 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
 
     // perform the update on the GPU
     kernel::gpu_include_rattle_force_bd<Manifold>(d_pos.data,
-                                          d_net_force.data,
-                                          d_net_virial.data,
-                                          d_diameter.data,
-                                          d_tag.data,
-                                          d_index_array.data,
-                                          group_size,
-                                          args,
-                                          this->m_manifold,
-                                          net_virial_pitch,
-                                          this->m_deltaT,
-                                          this->m_noiseless_t,
-                                          this->m_group->getGPUPartition());
+                                                  d_net_force.data,
+                                                  d_net_virial.data,
+                                                  d_diameter.data,
+                                                  d_tag.data,
+                                                  d_index_array.data,
+                                                  group_size,
+                                                  args,
+                                                  this->m_manifold,
+                                                  net_virial_pitch,
+                                                  this->m_deltaT,
+                                                  this->m_noiseless_t,
+                                                  this->m_group->getGPUPartition());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -285,8 +286,8 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
         this->m_prof->pop(this->m_exec_conf);
     }
 
-namespace detail {
-
+namespace detail
+    {
 //! Exports the TwoStepRATTLEBDGPU class to python
 template<class Manifold> void export_TwoStepRATTLEBDGPU(py::module& m, const std::string& name)
     {
@@ -302,8 +303,8 @@ template<class Manifold> void export_TwoStepRATTLEBDGPU(py::module& m, const std
                       Scalar>());
     }
 
-} // end namespace detail
-} // end namespace md
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP

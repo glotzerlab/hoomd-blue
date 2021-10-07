@@ -19,8 +19,8 @@
 #ifndef __CELLLISTSTENCIL_H__
 #define __CELLLISTSTENCIL_H__
 
-namespace hoomd {
-
+namespace hoomd
+    {
 //! Calculates a stencil for a given cell list
 /*!
  * Generates a list of translation vectors to check from a CellList for a given search radius.
@@ -106,12 +106,13 @@ class PYBIND11_EXPORT CellListStencil : public Compute
     bool m_compute_stencil;             //!< Flag if stencil should be recomputed
     };
 
-namespace detail {
+namespace detail
+    {
 //! Exports CellListStencil to python
 #ifndef __HIPCC__
 void export_CellListStencil(pybind11::module& m);
 #endif
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace hoomd
+    }      // end namespace hoomd
 #endif // __CELLLISTSTENCIL_H__

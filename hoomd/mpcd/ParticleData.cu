@@ -23,7 +23,8 @@
 #endif
 #pragma GCC diagnostic pop
 
-namespace hoomd {
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -305,5 +306,5 @@ void mpcd::gpu::add_particles(unsigned int old_nparticles,
                                                                d_in,
                                                                mask);
     }
-} // end namespace hoomd
+    }      // end namespace hoomd
 #endif // ENABLE_MPI
