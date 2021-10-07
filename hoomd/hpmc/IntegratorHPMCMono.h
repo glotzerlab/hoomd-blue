@@ -386,14 +386,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
                     }
                 }
 
-            //! Update the OBB tree if necessary
-            /*
-            if (m_patch)
-                {
-                m_patch->buildOBBTree();
-                }
-            */
-
             updateCellWidth(); // make sure the cell width is up-to-date and forces a rebuild of the AABB tree and image list
 
             communicate(true);
@@ -800,6 +792,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
             if (m_patch)
                 {
+                r_cut_patch = static_cast<OverlapReal>(m_patch->getRCut()) + static_cast<OverlapReal>(0.5) * 
+                    static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_i));
                 r_cut_patch = (OverlapReal) m_patch->getRCut() + OverlapReal(0.5) * (OverlapReal) m_patch->getAdditiveCutoff(typ_i);
                 }
 
@@ -865,7 +859,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
                                 Scalar rcut = 0.0;
                                 if (m_patch)
-                                    rcut = r_cut_patch + 0.5 * (OverlapReal)m_patch->getAdditiveCutoff(typ_j);
+                                    rcut = r_cut_patch + 0.5 * 
+                                        static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_j));
 
                                 counters.overlap_checks++;
                                 if (h_overlaps.data[m_overlap_idx(typ_i, typ_j)]
@@ -1533,7 +1528,8 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
 
             Scalar r_cut_patch_i(0.0);
             if (m_patch)
-                r_cut_patch_i = (Scalar)m_patch->getRCut() + 0.5*(OverlapReal)m_patch->getAdditiveCutoff(typ_i);
+                r_cut_patch_i = static_cast<Scalar>(m_patch->getRCut()) + 
+                    0.5*static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_i));
 
             Scalar range_i(0.0);
             for (unsigned int typ_j = 0; typ_j < this->m_pdata->getNTypes(); typ_j++)

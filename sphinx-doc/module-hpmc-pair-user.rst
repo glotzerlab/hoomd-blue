@@ -10,7 +10,7 @@ hpmc.pair.user
 
     CPPPotentialBase
     CPPPotential
-    CPPUnionPotential
+    CPPPotentialUnion
 
 .. rubric:: Details
 
@@ -21,5 +21,5 @@ hpmc.pair.user
         :inherited-members:
     .. autoclass:: CPPPotential
         :show-inheritance:
-    .. autoclass:: CPPUnionPotential
+    .. autoclass:: CPPPotentialUnion
         :show-inheritance:

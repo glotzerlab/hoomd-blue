@@ -2,7 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Test hoomd.hpmc.pair.user.CPPUnionPotential."""
+"""Test hoomd.hpmc.pair.user.CPPPotentialUnion."""
 
 import hoomd
 import pytest
@@ -60,15 +60,12 @@ positions_orientations_result = [
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_cpp_union_potential(device, constructor_args):
-    """Test that CPPUnionPotential can be constructed with valid arguments."""
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(**constructor_args)
+    """Test that CPPPotentialUnion can be constructed with valid arguments."""
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**constructor_args)
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        try:
-            assert getattr(patch, attr) == value
-        except ValueError:
-            assert all(getattr(patch, attr) == value)
+        assert np.all(getattr(patch, attr) == value)
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -76,9 +73,9 @@ def test_valid_construction_cpp_union_potential(device, constructor_args):
 def test_valid_construction_and_attach_cpp_union_potential(
         device, simulation_factory, two_particle_snapshot_factory,
         constructor_args):
-    """Test that CPPUnionPotential can be attached with valid arguments."""
+    """Test that CPPPotentialUnion can be attached with valid arguments."""
     # create objects
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(**constructor_args)
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**constructor_args)
     patch.positions['A'] = [(0, 0, 0)]
     patch.orientations['A'] = [(1, 0, 0, 0)]
     patch.diameters['A'] = [1.0]
@@ -102,17 +99,14 @@ def test_valid_construction_and_attach_cpp_union_potential(
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        try:
-            assert getattr(patch, attr) == value
-        except ValueError:  # array-like
-            assert all(getattr(patch, attr) == value)
+        assert np.all(getattr(patch, attr) == value)
 
 
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_cpp_union_potential(device, attr, value):
-    """Test that CPPUnionPotential can get and set attributes before \
+    """Test that CPPPotentialUnion can get and set attributes before \
             attached."""
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
         r_cut_isotropic=1.4,
         r_cut_constituent=1.0,
         code_isotropic='return 5;',
@@ -127,8 +121,8 @@ def test_valid_setattr_cpp_union_potential(device, attr, value):
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_valid_setattr_attached_cpp_union_potential(
         device, attr, value, simulation_factory, two_particle_snapshot_factory):
-    """Test that CPPUnionPotential can get and set attributes after attached."""
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(
+    """Test that CPPPotentialUnion can get and set attributes after attached."""
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
         r_cut_isotropic=1.4,
         r_cut_constituent=1.0,
         code_isotropic='return 5;',
@@ -166,9 +160,9 @@ def test_valid_setattr_attached_cpp_union_potential(
 def test_raise_attr_error_cpp_union_potential(device, attr, val,
                                               simulation_factory,
                                               two_particle_snapshot_factory):
-    """Test that CPPUnionPotential raises AttributeError if we \
+    """Test that CPPPotentialUnion raises AttributeError if we \
             try to set certain attributes after attaching."""
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
         r_cut_isotropic=1.4,
         r_cut_constituent=1.0,
         code_isotropic='return 5;',
@@ -243,7 +237,7 @@ def test_param_array_union_cpu(device, simulation_factory,
         param_array_constituent=[1.5, 3.0],
         r_cut_constituent=1.5,
     )
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(**params)
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**params)
     const_particle_pos = [(0.0, -0.5, 0), (0.0, 0.5, 0)]
     patch.positions['A'] = const_particle_pos
     patch.orientations['A'] = [(1, 0, 0, 0), (1, 0, 0, 0)]
@@ -305,7 +299,7 @@ def test_param_array_union_cpu(device, simulation_factory,
 
 
 @pytest.mark.gpu
-@pytest.mark.validate
+#@pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_param_array_union_gpu(device, simulation_factory,
                                two_particle_snapshot_factory):
@@ -334,7 +328,7 @@ def test_param_array_union_gpu(device, simulation_factory,
         param_array_constituent=[1.5, 3.0],
         r_cut_constituent=1.5,
     )
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(**params)
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**params)
     const_particle_pos = [(0.0, -0.5, 0), (0.0, 0.5, 0)]
     patch.positions['A'] = const_particle_pos
     patch.orientations['A'] = [(1, 0, 0, 0), (1, 0, 0, 0)]
@@ -364,3 +358,10 @@ def test_param_array_union_gpu(device, simulation_factory,
     patch.param_array_constituent[0] = np.sqrt(2) + 0.1
     sim.run(0)
     assert (np.isclose(patch.energy, -4.0))  # 4 interacting pairs this time
+
+    # change the depth of the square well to make sure it's getting read on the
+    # GPU
+    old_energy = patch.energy
+    scale_factor = 3.0
+    patch.param_array_constituent[1] *= scale_factor
+    assert (np.isclose(old_energy*scale_factor, patch.energy))

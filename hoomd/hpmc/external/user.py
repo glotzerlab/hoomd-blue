@@ -21,8 +21,8 @@ class CPPExternalField(_HOOMDBaseObject):
 
     Potentials added using external.CPPExternalField are added to the total
     energy calculation in :py:mod:`hpmc <hoomd.hpmc>` integrators. The
-    :py:class:`CPPExternalField` external field takes C++ code, JIT compiles it
-    at run time and executes the code natively in the MC loop with full
+    :py:class:`CPPExternalField` external field takes C++ code, compiles it
+    at runtime, and executes the code natively in the MC loop with full
     performance. It enables researchers to quickly and easily implement custom
     energetic field intractions without the need to modify and recompile HOOMD.
 
@@ -44,7 +44,8 @@ class CPPExternalField(_HOOMDBaseObject):
         )
 
     * ``vec3`` and ``quat`` are defined in HOOMDMath.h.
-    * *box* is the system box.
+    * *box* is the system box. `BoxDim` is defined in :file:`BoxDim.h` in the
+    HOOMD-blue source code.
     * *type_i* is the (integer) particle type.
     * *r_i* is the particle position
     * *q_i* the quaternion representing the particle orientation.
@@ -61,6 +62,10 @@ class CPPExternalField(_HOOMDBaseObject):
 
     Note:
         `CPPExternalField` does not support execution on GPUs.
+
+    Warning:
+        ``CPPExternalField`` is **experimental** and subject to change in future
+        minor releases.
 
     """
 

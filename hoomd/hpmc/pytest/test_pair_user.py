@@ -54,16 +54,14 @@ def test_valid_behavior_before_attach_cpp_potential(device, constructor_args,
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        try:
-            assert getattr(patch, attr) == value
-        except ValueError:
-            assert all(getattr(patch, attr) == value)
+        assert np.all(getattr(patch, attr) == value)
 
     # ensure we can set properties
     setattr(patch, attr, value)
     assert getattr(patch, attr) == value
 
 
+@pytest.mark.validate
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 @pytest.mark.parametrize("attr_set,value_set", valid_attrs_after_attach)
 @pytest.mark.parametrize("err_attr,err_val", attr_error)
@@ -87,10 +85,7 @@ def test_valid_behavior_after_attach_cpp_potential(
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        try:
-            assert getattr(patch, attr) == value
-        except ValueError:  # array-like
-            assert all(getattr(patch, attr) == value)
+        assert np.all(getattr(patch, attr) == value)
 
     # validate the params were set properly
     sim.run(0)
@@ -103,6 +98,7 @@ def test_valid_behavior_after_attach_cpp_potential(
         setattr(patch, err_attr, err_val)
 
 
+@pytest.mark.validate
 @pytest.mark.parametrize("positions,orientations,result",
                          positions_orientations_result)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
@@ -160,6 +156,7 @@ def test_cpp_potential(device, positions, orientations, result,
     assert np.isclose(patch.energy, result)
 
 
+@pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
     """Test passing in parameter arrays to the patch object.

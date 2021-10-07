@@ -21,20 +21,19 @@ class CPPPotentialBase(_HOOMDBaseObject):
     """Base class for interaction between pairs of particles given in C++.
 
     Pair potential energies define energetic interactions between pairs of
-    shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.  Shapes within a cutoff
-    distance are interact and the energy of interaction is a function the type
-    and orientation of the particles and the vector pointing from the *i*
+    particles in :py:mod:`hpmc <hoomd.hpmc>` integrators.  Particles within a
+    cutoff distance interact with an energy that is a function the
+    type and orientation of the particles and the vector pointing from the *i*
     particle to the *j* particle center.
 
-    Classes derived from :py:class:`CPPPotentialBase` take C++ code, compiles it
-    at run time and executes the code natively in the MC loop. Adjust parameters
+    Classes derived from :py:class:`CPPPotentialBase` take C++ code, compile it
+    at runtime, and execute the code natively in the MC loop. Adjust parameters
     to the code with the `param_array` attribute without requiring a recompile.
     These arrays are **read-only** during function evaluation.
 
     Warning:
-        The user interface for this class and its derived classes is not
-        guaranteed to be stable. Usage is subject to change in future (minor)
-        releases.
+        `CPPPotentialBase` is **experimental** and subject to change in future
+        minor releases.
 
     .. rubric:: C++ code
 
@@ -44,7 +43,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
     .. code::
 
-        float eval(const vec3<float>& r_ij,  // r_ij.x = x-component of r_ij
+        float eval(const vec3<float>& r_ij,
                    unsigned int type_i,
                    const quat<float>& q_i,
                    float d_i,
@@ -66,7 +65,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
     * ``d_j`` is the diameter of particle *j*
     * ``charge_j`` is the charge of particle *j*
     * Your code *must* return a value.
-    * ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h`.
+    * ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h` in the HOOMD-blue
+    source code.
 
     Args:
         r_cut (float): Particle center to center distance cutoff beyond which
@@ -77,12 +77,12 @@ class CPPPotentialBase(_HOOMDBaseObject):
             in the compiled code.
     """
 
-    def __init__(self, r_cut, code, param_array=None):
+    def __init__(self, r_cut, code, param_array):
         param_dict = ParameterDict(r_cut=float)
         param_dict['r_cut'] = r_cut
         param_dict['param_array'] = NDArrayValidator(dtype=np.float32,
                                                      shape=(None,))
-        if param_array is None:
+        if param_array is None or len(param_array) == 0:
             param_dict['param_array'] = np.array([])
         else:
             param_dict['param_array'] = param_array
@@ -101,8 +101,6 @@ class CPPPotentialBase(_HOOMDBaseObject):
         """
         integrator = self._simulation.operations.integrator
         timestep = self._simulation.timestep
-        if not self._attached:
-            return None
         return integrator._cpp_obj.computePatchEnergy(timestep)
 
     def _wrap_cpu_code(self, code):
@@ -188,6 +186,10 @@ class CPPPotential(CPPPotentialBase):
     See Also:
         `CPPPotentialBase` for the documentation of the parent class.
 
+    Warning:
+        `CPPPotential` is **experimental** and subject to change in future minor
+        releases.
+
     Examples:
         .. code-block:: python
 
@@ -202,7 +204,7 @@ class CPPPotential(CPPPotentialBase):
             sim.run(1000)
     """
 
-    def __init__(self, r_cut, code, param_array=None):
+    def __init__(self, r_cut, code, param_array):
         super().__init__(r_cut=r_cut, code=code, param_array=param_array)
 
     def _attach(self):
@@ -262,7 +264,7 @@ class CPPPotential(CPPPotentialBase):
             self._code = code
 
 
-class CPPUnionPotential(CPPPotentialBase):
+class CPPPotentialUnion(CPPPotentialBase):
     r"""Define an arbitrary energetic interaction between unions of particles.
 
     Args:
@@ -271,18 +273,19 @@ class CPPUnionPotential(CPPPotentialBase):
                 0.
         code_constituent (`str`): C++ code defining the custom pair
                 interactions between constituent particles.
+        r_cut_isotropic (`float`): Cut-off for isotropic interaction between
+                centers of union particles.
+        code_isotropic (`str`): C++ code for isotropic part of the interaction.
+                Must be ``None`` when executing on a GPU.
         param_array_constituent (list[float]): Parameter values to pass into
                 ``param_array_constituent`` in the compiled code.
-        r_cut_isotropic (`float`, **default** 0): Cut-off for isotropic
-                interaction between centers of union particles.
-        code_isotropic (`str`): C++ code for isotropic part of the interaction.
         param_array (list[float]): Parameter values to pass into
                 ``param_array`` in the compiled code.
 
     Note:
         Code passed into ``code_isotropic`` is not used when executing on the
         GPU. A `RuntimeError` is raised on attachment if code is passed into
-        this argument on the GPU.
+        this argument on the GPU. On the CPU, ``None`` implies ``return 0.0f``.
 
     Note:
         This class uses an internal OBB tree for fast interaction queries
@@ -295,13 +298,26 @@ class CPPUnionPotential(CPPPotentialBase):
     See Also:
         `CPPPotentialBase` for the documentation of the parent class.
 
+    Warning:
+        `CPPPotentialUnion` is **experimental** and subject to change in future
+        minor releases.
+
+
+    .. py:attribute:: positions
+
+        The positions of the constituent particles.
+
+        Type: `TypeParameter` [``particle type``, `list` [`tuple` [`float`,
+        `float`, `float`]]]
+
+    .. py:attribue:: orientations
+
+        The orientations of the constituent particles.
+
+        Type: `TypeParameter` [``particle type``, `list` [`tuple` [`float`,
+        `float`, `float`, `float`]]]
+
     Attributes:
-        positions (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`]]])  # noqa
-            The positions of the constituent particles.
-
-        orientations (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`, `float`]]])  # noqa
-            The orientations of the constituent particles.
-
         diameters (`TypeParameter` [``particle type``, `list` [`float`]])
             The diameters of the constituent particles.
 
@@ -332,7 +348,7 @@ class CPPUnionPotential(CPPPotentialBase):
                             else
                                 return 0.0f;
                       '''
-        patch = hoomd.hpmc.pair.user.CPPUnionPotential(
+        patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
             r_cut_constituent=1.1,
             r_cut_isotropic=0.0
             code_constituent=square_well,
@@ -367,7 +383,7 @@ class CPPUnionPotential(CPPPotentialBase):
                                     return 0.0f;
                          '''
 
-        patch = hoomd.hpmc.pair.user.CPPUnionPotential(
+        patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
             r_cut_constituent=2.5,
             r_cut_isotropic=5.0,
             code_union=square_well,
@@ -388,10 +404,10 @@ class CPPUnionPotential(CPPPotentialBase):
     def __init__(self,
                  r_cut_constituent,
                  code_constituent,
-                 param_array_constituent=None,
-                 r_cut_isotropic=0,
-                 code_isotropic=None,
-                 param_array=None):
+                 r_cut_isotropic,
+                 code_isotropic,
+                 param_array_constituent,
+                 param_array):
 
         # initialize base class
         super().__init__(r_cut=r_cut_isotropic,
@@ -402,12 +418,14 @@ class CPPUnionPotential(CPPPotentialBase):
             r_cut_constituent=float(r_cut_constituent),
             r_cut_isotropic=float(r_cut_isotropic),
             leaf_capacity=int(4),
+            param_array_constituent=NDArrayValidator(dtype=np.float32,
+                shape=(None,)),
         )
 
         param_dict['param_array_constituent'] = NDArrayValidator(
             dtype=np.float32, shape=(None,))
 
-        if param_array_constituent is None:
+        if param_array_constituent is None or len(param_array_constituent) == 0:
             param_dict['param_array_constituent'] = np.array([])
         else:
             param_dict['param_array_constituent'] = param_array_constituent
@@ -417,13 +435,14 @@ class CPPUnionPotential(CPPPotentialBase):
         typeparam_positions = TypeParameter(
             'positions',
             type_kind='particle_types',
-            param_dict=TypeParameterDict([tuple], len_keys=1),
+            param_dict=TypeParameterDict([(float, float, float)], len_keys=1),
         )
 
         typeparam_orientations = TypeParameter(
             'orientations',
             type_kind='particle_types',
-            param_dict=TypeParameterDict([tuple], len_keys=1),
+            param_dict=TypeParameterDict([(float, float, float, float)],
+                len_keys=1),
         )
 
         typeparam_diameters = TypeParameter(
