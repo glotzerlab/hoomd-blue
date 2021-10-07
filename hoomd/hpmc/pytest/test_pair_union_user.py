@@ -372,4 +372,4 @@ def test_param_array_union_gpu(device, simulation_factory,
     old_energy = patch.energy
     scale_factor = 3.0
     patch.param_array_constituent[1] *= scale_factor
-    assert (np.isclose(old_energy*scale_factor, patch.energy))
+    assert (np.isclose(old_energy * scale_factor, patch.energy))

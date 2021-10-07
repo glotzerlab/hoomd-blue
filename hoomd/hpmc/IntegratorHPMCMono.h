@@ -792,7 +792,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
             if (m_patch)
                 {
-                r_cut_patch = static_cast<OverlapReal>(m_patch->getRCut()) + static_cast<OverlapReal>(0.5) * 
+                r_cut_patch = static_cast<OverlapReal>(m_patch->getRCut()) + static_cast<OverlapReal>(0.5) *
                     static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_i));
                 r_cut_patch = (OverlapReal) m_patch->getRCut() + OverlapReal(0.5) * (OverlapReal) m_patch->getAdditiveCutoff(typ_i);
                 }
@@ -859,7 +859,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
                                 Scalar rcut = 0.0;
                                 if (m_patch)
-                                    rcut = r_cut_patch + 0.5 * 
+                                    rcut = r_cut_patch + 0.5 *
                                         static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_j));
 
                                 counters.overlap_checks++;
@@ -1528,7 +1528,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
 
             Scalar r_cut_patch_i(0.0);
             if (m_patch)
-                r_cut_patch_i = static_cast<Scalar>(m_patch->getRCut()) + 
+                r_cut_patch_i = static_cast<Scalar>(m_patch->getRCut()) +
                     0.5*static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_i));
 
             Scalar range_i(0.0);
