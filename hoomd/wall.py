@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from copy import copy
 from collections.abc import MutableSequence
-from hoomd.data.syncedlist import SyncedList
+from hoomd.data.syncedlist import identity, SyncedList
 
 from hoomd.operation import _HOOMDGetSetAttrBase
 from hoomd.data.parameterdicts import ParameterDict
@@ -228,33 +228,6 @@ class _MetaListIndex:
         return f"_MetaListIndex(type={self.type}, index={self.index})"
 
 
-# TODO: remove before merging (implemented in another PR)
-def _islice_index(sequence, *args):
-    if len(args) == 1:
-        start, stop, step = args[0].start, args[0].stop, args[0].step
-    elif len(args) < 3:
-        args.extend((None,) * 3 - len(args))
-        start, stop, step = args
-    if step is None:
-        step = 1
-    if start is None:
-        start = 0 if step > 0 else len(sequence)
-    if stop is None:
-        stop = 0 if step < 0 else len(sequence)
-    yield from range(start, stop, step)
-
-
-# TODO: remove before merging (implemented in another PR)
-def _islice(sequence, *args):
-    for i in _islice_index(sequence, *args):
-        yield sequence[i]
-
-
-def _to_cpp_wall(wall):
-    """Converts a Python `WallGeometry` object to a C++ wall object."""
-    pass
-
-
 class _WallsMetaList(MutableSequence):
     """Creates a lists that sieves its items into multiple backend lists.
 
@@ -291,22 +264,18 @@ class _WallsMetaList(MutableSequence):
                 C++ wall lists.
     """
 
-    def __init__(self, walls=None):
+    def __init__(self, walls=None, to_cpp=identity):
         self._walls = []
         self._backend_list_index = []
         self._backend_lists = {
             Sphere:
-                SyncedList(Sphere,
-                           to_synced_list=_to_cpp_wall,
-                           attach_members=False),
+                SyncedList(Sphere, to_synced_list=to_cpp, attach_members=False),
             Cylinder:
                 SyncedList(Cylinder,
-                           to_synced_list=_to_cpp_wall,
+                           to_synced_list=to_cpp,
                            attach_members=False),
             Plane:
-                SyncedList(Plane,
-                           to_synced_list=_to_cpp_wall,
-                           attach_members=False)
+                SyncedList(Plane, to_synced_list=to_cpp, attach_members=False)
         }
 
         if walls is None:
@@ -340,7 +309,7 @@ class _WallsMetaList(MutableSequence):
 
     def __delitem__(self, index):
         if isinstance(index, slice):
-            for i in _islice_index(self, slice.start, slice.stop, slice.step):
+            for i in reversed(sorted(range(len(self))[index])):
                 self.__delitem__(i)
             return
         del self._walls[index]
@@ -382,7 +351,7 @@ class _WallsMetaList(MutableSequence):
                 `hoomd.data.array_view._ArrayView` or pybind11 exported
                 std::vector).
         """
-        for wall_type, wall_list in sync_lists:
+        for wall_type, wall_list in sync_lists.items():
             # simulation is unnecessary here since the SyncedList instance is
             # not user facing.
             self._backend_lists[wall_type]._sync(None, wall_list)
@@ -401,9 +370,7 @@ class _WallsMetaList(MutableSequence):
         backend_index = None
         # Check for next index that is of the same type as the new wall,
         # while incrementing or decrementing the indices of the appropriate
-        # type. Don't use _islice here since we have to iterate over the
-        # entire slice and would only increase run-time by adding a layer of
-        # abstraction.
+        # type.
         for bi in self._backend_list_index[frontend_index:]:
             if bi.type == new_type:
                 if backend_index is None:
@@ -416,9 +383,7 @@ class _WallsMetaList(MutableSequence):
         if backend_index is not None:
             return backend_index
 
-        for bi in _islice(self._backend_list_index,
-                          start=frontend_index - 1,
-                          step=-1):
+        for bi in self._backend_list_index[frontend_index - 1::-1]:
             if bi.type == new_type:
                 backend_index = copy(bi)
                 backend_index.index += 1
