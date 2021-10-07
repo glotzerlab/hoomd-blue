@@ -62,6 +62,19 @@ class _DynamicIntegrator(BaseIntegrator):
             self.rigid._attach()
             self._cpp_obj.rigid = self.rigid._cpp_obj
 
+    def _detach(self):
+        self._forces._unsync()
+        self._methods._unsync()
+        self._constraints._unsync()
+        if self.rigid is not None:
+            self.rigid._detach()
+        super()._detach()
+
+    def _remove(self):
+        if self.rigid is not None:
+            self.rigid._remove()
+        super()._remove()
+
     def _add(self, simulation):
         super()._add(simulation)
         if self.rigid is not None:
@@ -114,30 +127,36 @@ class _DynamicIntegrator(BaseIntegrator):
             return
         super()._setattr_param(attr, value)
 
-    def _set_rigid(self, value):
+    def _set_rigid(self, new_rigid):
         """Handles the adding and detaching of potential Rigid objects."""
         # this generally only happens when attaching and we can ignore it since
         # we attach the rigid body in _attach.
-        if value is self.rigid:
+        if new_rigid is self.rigid:
             return
 
         old_rigid = self.rigid
-        self._param_dict["rigid"] = value
 
-        if self.rigid is not None and self.rigid._added:
+        if new_rigid is not None and new_rigid._added:
             raise ValueError("Cannot add Rigid object to multiple integrators.")
 
-        if old_rigid is not None and self._attached:
-            old_rigid._detach()
+        if old_rigid is not None:
+            if self._attached:
+                old_rigid._detach()
+            if self._added:
+                old_rigid._remove()
+
+        if new_rigid is None:
+            self._param_dict["rigid"] = None
+            if self._attached:
+                self._cpp_obj.rigid = None
+            return
 
         if self._added:
-            if old_rigid is not None:
-                old_rigid._remove()
-            self.rigid._add(self._simulation)
-
+            new_rigid._add(self._simulation)
         if self._attached:
             self.rigid._attach()
-            self._cpp_obj.rigid = value._cpp_obj
+            self._cpp_obj.rigid = new_rigid._cpp_obj
+        self._param_dict["rigid"] = new_rigid
 
 
 class Integrator(_DynamicIntegrator):
@@ -169,13 +188,10 @@ class Integrator(_DynamicIntegrator):
             rigid bodies in the simulation.
 
 
-    The following classes can be used as elements in `methods`
+    Classes of the following modules can be used as elements in `methods`:
 
-    - `hoomd.md.methods.Brownian`
-    - `hoomd.md.methods.Langevin`
-    - `hoomd.md.methods.NVE`
-    - `hoomd.md.methods.NVT`
-    - `hoomd.md.methods.NPT`
+    - `hoomd.md.methods`
+    - `hoomd.md.methods.rattle`
 
     The classes of following modules can be used as elements in `forces`
 
@@ -193,6 +209,7 @@ class Integrator(_DynamicIntegrator):
     The classes of the following module can be used as elements in `constraints`
 
     - `hoomd.md.constrain`
+
 
     Examples::
 

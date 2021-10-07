@@ -127,7 +127,7 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.0)
     sim.run(100)
 
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
 
     if snap.communicator.rank == 0:
         # compute bond lengths in unwrapped particle coordinates

@@ -7,6 +7,7 @@
 ``conftest`` is not part of HOOMD-blue's public API.
 """
 
+import logging
 import pickle
 import pytest
 import hoomd
@@ -18,6 +19,8 @@ import math
 import warnings
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
+
+logger = logging.getLogger()
 
 pytest_plugins = ("hoomd.pytest_plugin_validate",)
 
@@ -324,10 +327,81 @@ def logging_check(cls, expected_namespace, expected_loggables):
         check_loggable(cls, name, properties)
 
 
+def _check_obj_attr_compatibility(a, b):
+    """Check key compatibility."""
+    a_keys = set(a.__dict__.keys())
+    b_keys = set(b.__dict__.keys())
+    different_keys = a_keys.symmetric_difference(b_keys) - a._skip_for_equality
+    if different_keys == {}:
+        return True
+    # Check through reserved attributes with defaults to ensure that the
+    # difference isn't an initialized default.
+    compatible = True
+    filtered_differences = set(different_keys)
+    for key in different_keys:
+        if key in a._reserved_default_attrs:
+            default = a._reserved_default_attrs[key]()
+            if getattr(a, key, default) == getattr(b, key, default):
+                filtered_differences.remove(key)
+                continue
+        else:
+            compatible = False
+
+    if compatible:
+        return True
+
+    logger.debug(f"In equality check, incompatible attrs found "
+                 f"{filtered_differences}.")
+    return False
+
+
+def equality_check(a, b):
+    """Check equality between to instances of _HOOMDBaseObject."""
+
+    def check_item(x, y, attr):
+        if isinstance(x, hoomd.operation._HOOMDGetSetAttrBase):
+            equal = equality_check(x, y)
+        else:
+            equal = numpy.all(x == y)
+        if not equal:
+            logger.debug(
+                f"In equality check, attr '{attr}' not equal: {x} != {y}.")
+            return False
+        return True
+
+    if not isinstance(a, hoomd.operation._HOOMDGetSetAttrBase):
+        return a == b
+    if type(a) != type(b):
+        return False
+
+    _check_obj_attr_compatibility(a, b)
+
+    for attr in a.__dict__:
+        if attr in a._skip_for_equality:
+            continue
+
+        if attr == "_param_dict":
+            param_keys = a._param_dict.keys()
+            b_param_keys = b._param_dict.keys()
+            # Check key equality
+            if param_keys != b_param_keys:
+                logger.debug(
+                    f"In equality check, incompatible param_dict keys: "
+                    f"{param_keys}, {b_param_keys}")
+                return False
+            # Check item equality
+            for key in param_keys:
+                check_item(a._param_dict[key], b._param_dict[key], key)
+            continue
+
+        check_item(a.__dict__[attr], b.__dict__[attr], attr)
+    return True
+
+
 def pickling_check(instance):
     """Test that an instance can be pickled and unpickled."""
     pkled_instance = pickle.loads(pickle.dumps(instance))
-    assert instance == pkled_instance
+    assert equality_check(instance, pkled_instance)
 
 
 def operation_pickling_check(instance, sim):

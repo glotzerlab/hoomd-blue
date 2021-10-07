@@ -2,6 +2,7 @@
 set(files __init__.py
     aniso_forces_and_energies.json
     test_active.py
+    test_active_rotational_diffusion.py
     test_angle.py
     test_aniso_pair.py
     test_constrain_distance.py
@@ -15,6 +16,7 @@ set(files __init__.py
     test_pppm_coulomb.py
     test_manifolds.py
     test_methods.py
+    test_minimize_fire.py
     test_reverse_perturbation_flow.py
     test_table_pressure.py
     test_thermo.py

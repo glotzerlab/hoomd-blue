@@ -324,8 +324,8 @@ hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
                                             const Scalar4* d_drphi,
                                             const unsigned int block_size)
     {
-    static unsigned int max_block_size_1 = UINT_MAX;
-    static unsigned int max_block_size_2 = UINT_MAX;
+    unsigned int max_block_size_1;
+    unsigned int max_block_size_2;
 
     hipFuncAttributes attr1;
     hipFuncGetAttributes(&attr1, reinterpret_cast<const void*>(gpu_kernel_1));

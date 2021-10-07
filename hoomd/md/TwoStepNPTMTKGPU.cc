@@ -331,7 +331,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         }
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
         v = getIntegratorVariables();

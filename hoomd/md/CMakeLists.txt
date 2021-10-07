@@ -2,6 +2,7 @@
 
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc
+                   ActiveRotationalDiffusionUpdater.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
@@ -47,6 +48,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceConstraintCompute.h
                 ActiveForceConstraintComputeGPU.h
 		ActiveForceConstraintComputeGPU.cuh
+                ActiveRotationalDiffusionUpdater.h
                 AllAnisoPairPotentials.h
                 AllBondPotentials.h
                 AllExternalPotentials.h
@@ -79,6 +81,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
+                EvaluatorPairDLVO.h
                 EvaluatorPairDPDLJThermo.h
                 EvaluatorPairDPDThermo.h
                 EvaluatorPairEwald.h
@@ -336,7 +339,6 @@ set(files __init__.py
           integrate.py
           manifold.py
           many_body.py
-          methods.py
           nlist.py
           update.py
           special_pair.py
@@ -354,8 +356,13 @@ install(FILES ${_md_headers}
        )
 
 add_subdirectory(pair)
+
+add_subdirectory(methods)
+
 add_subdirectory(long_range)
+
 add_subdirectory(external)
+add_subdirectory(minimize)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

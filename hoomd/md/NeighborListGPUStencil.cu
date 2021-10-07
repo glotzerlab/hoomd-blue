@@ -353,10 +353,9 @@ inline void stencil_launcher(unsigned int* d_nlist,
         {
         if (!diameter_shift && !filter_body)
             {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size
-                    = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<0, cur_tpp>);
+            unsigned int max_block_size;
+            max_block_size
+                = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<0, cur_tpp>);
 
             unsigned int run_block_size
                 = (block_size < max_block_size) ? block_size : max_block_size;
@@ -393,10 +392,9 @@ inline void stencil_launcher(unsigned int* d_nlist,
             }
         else if (!diameter_shift && filter_body)
             {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size
-                    = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<1, cur_tpp>);
+            unsigned int max_block_size;
+            max_block_size
+                = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<1, cur_tpp>);
 
             unsigned int run_block_size
                 = (block_size < max_block_size) ? block_size : max_block_size;
@@ -433,10 +431,9 @@ inline void stencil_launcher(unsigned int* d_nlist,
             }
         else if (diameter_shift && !filter_body)
             {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size
-                    = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<2, cur_tpp>);
+            unsigned int max_block_size;
+            max_block_size
+                = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<2, cur_tpp>);
 
             unsigned int run_block_size
                 = (block_size < max_block_size) ? block_size : max_block_size;
@@ -473,10 +470,9 @@ inline void stencil_launcher(unsigned int* d_nlist,
             }
         else if (diameter_shift && filter_body)
             {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size
-                    = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<3, cur_tpp>);
+            unsigned int max_block_size;
+            max_block_size
+                = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<3, cur_tpp>);
 
             unsigned int run_block_size
                 = (block_size < max_block_size) ? block_size : max_block_size;

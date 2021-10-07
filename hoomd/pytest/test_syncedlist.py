@@ -78,7 +78,7 @@ def test_getitem(synced_list):
 
 def test_synced(synced_list):
     assert not synced_list._synced
-    synced_list._synced_list = None
+    synced_list._sync(None, [])
     assert synced_list._synced
 
 
@@ -87,8 +87,7 @@ def test_attach_value(synced_list):
     synced_list._attach_value(op)
     assert not op._attached
     assert op._added
-    synced_list._synced_list = []
-    synced_list._simulation = DummySimulation()
+    synced_list._sync(DummySimulation(), [])
     op = DummyOperation()
     synced_list._attach_value(op)
     assert op._attached
@@ -165,7 +164,8 @@ def test_setitem(synced_list, op_list):
 
     # Check when attached
     sync_list = []
-    synced_list._sync(None, sync_list)
+    # need a non-None dummy simulation 1 works
+    synced_list._sync(1, sync_list)
     new_op = DummyOperation()
     old_op = synced_list[1]
     synced_list[1] = new_op
@@ -177,7 +177,8 @@ def test_setitem(synced_list, op_list):
 def test_synced_iter(synced_list):
     synced_list._simulation = None
     synced_list._synced_list = [1, 2, 3]
-    assert all([i == j for i, j in zip(range(1, 4), synced_list.synced_iter())])
+    assert all(
+        [i == j for i, j in zip(range(1, 4), synced_list._synced_iter())])
 
 
 class OpInt(int):

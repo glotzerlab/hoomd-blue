@@ -215,7 +215,7 @@ void NeighborListTree::buildTree()
     const BoxDim& box = m_pdata->getBox();
     Scalar ghost_layer_width(0.0);
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         ghost_layer_width = m_comm->getGhostLayerMaxWidth();
 #endif
 

@@ -300,6 +300,7 @@ template<class T> class ManagedArray
             {
             managed_allocator<T>::deallocate_destroy_aligned(ptr, N, managed, allocation_ptr);
             }
+        ptr = nullptr;
         }
 #endif
 

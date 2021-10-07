@@ -120,7 +120,8 @@ Molecular dynamics:
     tutorial/00-Introducing-HOOMD-blue/00-index
     tutorial/01-Introducing-Molecular-Dynamics/00-index
     tutorial/02-Logging/00-index
-    tutorial/03-Custom-Actions-In-Python/00-index
+    tutorial/03-Parallel-Simulations-With-MPI/00-index
+    tutorial/04-Custom-Actions-In-Python/00-index
 
 .. toctree::
    :maxdepth: 3

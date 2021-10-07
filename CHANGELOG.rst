@@ -4,8 +4,32 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.9 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.10 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``hoomd.md.minimize.FIRE`` - MD integrator that minimized the system's potential energy.
+- AKMA and MD unit conversion factors to the documentation.
+
+*Changed*
+
+- Improved error messages when setting operation parameters.
+- Added note on dependencies for building the documentation.
+
+*Fixed*
+
+- Calling ``hoomd.Operations.__len__`` no longer raises a ``RecursionError``.
+- RATTLE integration methods execute on the GPU.
+- Include ``EvaluatorPairDLVO.h`` in the installation for plugins.
+- Bug in setting zero sized ``ManagedArrays``.
+
+*Deprecated*
+
+*Removed*
+
+v3.0.0-beta.9 (2021-09-08)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
@@ -18,19 +42,45 @@ v3.0.0-beta.9 (not yet released)
   the domain decomposition.
 - ``hoomd.update.FilterUpdater`` - an updater that evaluates the particles associated with a
   `hoomd.filter.ParticleFilter` instance.
+- ``hoomd.update.RemoveDrift`` - Remove the average drift from a system restrained on a lattice.
+- Developer documentation for HOOMD-blue's Python object data model in ``ARCHITECTURE.md``.
+- Autocomplete support for interactive notebooks.
+- ``hoomd.md.methods.OverdampedViscous`` - Overdamped integrator with a drag force but no random
+  force .
+- ``MutabilityError`` exception when setting read-only operation parameters.
 
 *Changed*
 
 - Improved documentation.
+- [breaking] Moved ``manifold_constrant`` to separate integration method classes in
+  ``hoomd.md.methods.rattle``.
+- [breaking] Moved ``trigger`` to first argument position in `hoomd.update.BoxResize`,
+  `hoomd.write.DCD`, and `hoomd.write.GSD`.
+- [breaking] ``hoomd.data.LocalSnapshot`` particle data API now matches ``Snapshot``. Changes to
+  angular momentum, moment of intertia, and rigid body id attributes.
+- ``hoomd.write.CustomWriter`` now exposes action through the ``writer`` attribute.
+- [breaking] Active force rotational diffusion is managed by
+  ``hoomd.md.update.ActiveRotationalDiffusion``.
 
 *Fixed*
 
-- ``TypeParameter`` can now set multiple parameters after calling ``hoomd.Simulation.run``.
-- ``tune.LoadBalancer`` can now be used in a simulation.
+- ``TypeParameter`` can set multiple parameters after calling ``hoomd.Simulation.run``.
+- ``tune.LoadBalancer`` can be used in a simulation.
+- ``hoomd.md.pair.Pair`` ``r_cut`` type parameter can be set to 0.
+- MD integration methods can be removed from the integrator's method list.
+- Neighborlist exclusions update when the number of bonds change.
+- Errors related to equality checks between HOOMD operations.
+- The integrator can be removed from a simulation after running.
+- ``hoomd.md.constrain.Rigid.create_bodies`` method correctly assigns the body attribute.
+- Setting rigid attribute of a MD integrator to ``None`` is allowed.
 
 *Deprecated*
 
 *Removed*
+
+- ``Snapshot.exists`` - use ``snapshot.communicator.rank == 0``
+- ``State.snapshot`` - use ``get_snapshot`` and ``set_snapshot``
+-   The ``State.box`` property setter - use ``State.set_box``
 
 v3.0.0-beta.8 (2021-08-03)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
