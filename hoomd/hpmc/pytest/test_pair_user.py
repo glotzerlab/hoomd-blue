@@ -137,7 +137,8 @@ def test_cpp_potential(device, positions, orientations, result,
 
     r_cut = sim.state.box.Lx / 2. * 0.4
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=r_cut,
-                                              code=dipole_dipole.format(r_cut))
+                                              code=dipole_dipole.format(r_cut),
+                                              param_array=None)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.potential = patch

@@ -111,6 +111,8 @@ def test_valid_setattr_cpp_union_potential(device, attr, value):
         r_cut_constituent=1.0,
         code_isotropic='return 5;',
         code_constituent='return 6;',
+        param_array_constituent=None,
+        param_array=None,
     )
 
     setattr(patch, attr, value)
@@ -127,6 +129,8 @@ def test_valid_setattr_attached_cpp_union_potential(
         r_cut_constituent=1.0,
         code_isotropic='return 5;',
         code_constituent='return 6;',
+        param_array_constituent=None,
+        param_array=None,
     )
     patch.positions['A'] = [(0, 0, 0)]
     patch.orientations['A'] = [(1, 0, 0, 0)]
@@ -167,6 +171,8 @@ def test_raise_attr_error_cpp_union_potential(device, attr, val,
         r_cut_constituent=1.0,
         code_isotropic='return 5;',
         code_constituent='return 6;',
+        param_array_constituent=None,
+        param_array=None,
     )
     patch.positions['A'] = [(0, 0, 0)]
     patch.orientations['A'] = [(1, 0, 0, 0)]
@@ -299,7 +305,7 @@ def test_param_array_union_cpu(device, simulation_factory,
 
 
 @pytest.mark.gpu
-#@pytest.mark.validate
+@pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_param_array_union_gpu(device, simulation_factory,
                                two_particle_snapshot_factory):
@@ -327,6 +333,8 @@ def test_param_array_union_gpu(device, simulation_factory,
         code_constituent=square_well_constituent,
         param_array_constituent=[1.5, 3.0],
         r_cut_constituent=1.5,
+        r_cut_isotropic=0,
+        param_array=None,
     )
     patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**params)
     const_particle_pos = [(0.0, -0.5, 0), (0.0, 0.5, 0)]
