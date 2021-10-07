@@ -15,6 +15,10 @@
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
+namespace hoomd {
+namespace dem {
+namespace detail {
+
 void export_NF_WCA_3D(py::module& m)
     {
     typedef WCAPotential<Scalar, Scalar4, NoFriction<Scalar>> WCA;
@@ -22,7 +26,7 @@ void export_NF_WCA_3D(py::module& m)
 
     py::class_<WCA_DEM_3D, ForceCompute, std::shared_ptr<WCA_DEM_3D>>(m, "WCADEM3D")
         .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<NeighborList>,
+                      std::shared_ptr<md::NeighborList>,
                       Scalar,
                       WCA>())
         .def("setParams", &WCA_DEM_3D::setParams)
@@ -36,7 +40,7 @@ void export_NF_WCA_3D(py::module& m)
 
     py::class_<WCA_DEM_3D_GPU, WCA_DEM_3D, std::shared_ptr<WCA_DEM_3D_GPU>>(m, "WCADEM3DGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<NeighborList>,
+                      std::shared_ptr<md::NeighborList>,
                       Scalar,
                       WCA>())
         .def("setParams", &WCA_DEM_3D_GPU::setParams)
@@ -44,3 +48,7 @@ void export_NF_WCA_3D(py::module& m)
         .def("setAutotunerParams", &WCA_DEM_3D_GPU::setAutotunerParams);
 #endif
     }
+
+} // end namespace detail
+} // end namespace dem
+} // end namespace hoomd

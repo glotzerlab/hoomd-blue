@@ -15,6 +15,10 @@
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
+namespace hoomd {
+namespace dem {
+namespace detail {
+
 void export_NF_SWCA_2D(py::module& m)
     {
     typedef SWCAPotential<Scalar, Scalar4, NoFriction<Scalar>> SWCA;
@@ -22,7 +26,7 @@ void export_NF_SWCA_2D(py::module& m)
 
     py::class_<SWCA_DEM_2D, ForceCompute, std::shared_ptr<SWCA_DEM_2D>>(m, "SWCADEM2D")
         .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<NeighborList>,
+                      std::shared_ptr<md::NeighborList>,
                       Scalar,
                       SWCA>())
         .def("setParams", &SWCA_DEM_2D::setParams)
@@ -36,7 +40,7 @@ void export_NF_SWCA_2D(py::module& m)
 
     py::class_<SWCA_DEM_2D_GPU, SWCA_DEM_2D, std::shared_ptr<SWCA_DEM_2D_GPU>>(m, "SWCADEM2DGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<NeighborList>,
+                      std::shared_ptr<md::NeighborList>,
                       Scalar,
                       SWCA>())
         .def("setParams", &SWCA_DEM_2D_GPU::setParams)
@@ -44,3 +48,7 @@ void export_NF_SWCA_2D(py::module& m)
         .def("setAutotunerParams", &SWCA_DEM_2D_GPU::setAutotunerParams);
 #endif
     }
+
+} // end namespace detail
+} // end namespace dem
+} // end namespace hoomd

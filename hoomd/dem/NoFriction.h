@@ -22,6 +22,9 @@
 #define DEVICE
 #endif
 
+namespace hoomd {
+namespace dem {
+
 template<typename Real> class NoFriction
     {
     public:
@@ -42,5 +45,8 @@ template<typename Real> class NoFriction
         return force;
         }
     };
+
+} // end namespace dem
+} // end namespace hoomd
 
 #endif
