@@ -65,8 +65,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
     * ``d_j`` is the diameter of particle *j*
     * ``charge_j`` is the charge of particle *j*
     * Your code *must* return a value.
-    * ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h` in the HOOMD-blue
-    source code.
+    * ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h` in the \
+            HOOMD-blue source code.
 
     Args:
         r_cut (float): Particle center to center distance cutoff beyond which
@@ -310,7 +310,7 @@ class CPPPotentialUnion(CPPPotentialBase):
         Type: `TypeParameter` [``particle type``, `list` [`tuple` [`float`,
         `float`, `float`]]]
 
-    .. py:attribue:: orientations
+    .. py:attribute:: orientations
 
         The orientations of the constituent particles.
 

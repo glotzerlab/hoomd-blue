@@ -14,7 +14,7 @@ from hoomd.logging import log
 
 
 class CPPExternalField(_HOOMDBaseObject):
-    r"""Define an external field imposed on all particles in the system.
+    """Define an external field imposed on all particles in the system.
 
     Args:
         code (str): C++ function body to compile.
@@ -37,21 +37,22 @@ class CPPExternalField(_HOOMDBaseObject):
 
         float eval(const BoxDim& box,
                    unsigned int type_i,
-                   const vec3<Scalar>& r_i, // r_i.x = x-component of r_i
+                   const vec3<Scalar>& r_i,
                    const quat<Scalar>& q_i
                    Scalar diameter,
                    Scalar charge
         )
 
-    * ``vec3`` and ``quat`` are defined in HOOMDMath.h.
-    * *box* is the system box. `BoxDim` is defined in :file:`BoxDim.h` in the
-    HOOMD-blue source code.
+    * *box* is the system box.
     * *type_i* is the (integer) particle type.
     * *r_i* is the particle position
     * *q_i* the quaternion representing the particle orientation.
     * *diameter* the particle diameter.
     * *charge* the particle charge.
     * Your code *must* return a value.
+    * `BoxDim` is defined in :file:`BoxDim.h` in the HOOMD-blue source code.
+    * ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h` in the \
+            HOOMD-blue source code.
 
     Example:
         .. code-block:: python
