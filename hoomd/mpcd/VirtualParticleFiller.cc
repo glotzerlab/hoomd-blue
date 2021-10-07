@@ -10,10 +10,12 @@
 
 #include "VirtualParticleFiller.h"
 
+namespace hoomd {
+
 mpcd::VirtualParticleFiller::VirtualParticleFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                                                    Scalar density,
                                                    unsigned int type,
-                                                   std::shared_ptr<::Variant> T)
+                                                   std::shared_ptr<Variant> T)
     : m_sysdef(sysdata->getSystemDefinition()), m_pdata(m_sysdef->getParticleData()),
       m_exec_conf(m_pdata->getExecConf()), m_mpcd_pdata(sysdata->getParticleData()),
       m_cl(sysdata->getCellList()), m_density(density), m_type(type), m_T(T), m_N_fill(0),
@@ -86,8 +88,10 @@ void mpcd::detail::export_VirtualParticleFiller(pybind11::module& m)
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       Scalar,
                       unsigned int,
-                      std::shared_ptr<::Variant>>())
+                      std::shared_ptr<Variant>>())
         .def("setDensity", &mpcd::VirtualParticleFiller::setDensity)
         .def("setType", &mpcd::VirtualParticleFiller::setType)
         .def("setTemperature", &mpcd::VirtualParticleFiller::setTemperature);
     }
+
+} // end namespace hoomd

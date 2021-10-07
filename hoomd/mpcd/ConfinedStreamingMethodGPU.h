@@ -19,6 +19,7 @@
 #include "ConfinedStreamingMethodGPU.cuh"
 #include "hoomd/Autotuner.h"
 
+namespace hoomd {
 namespace mpcd
     {
 //! MPCD confined geometry streaming method
@@ -136,4 +137,5 @@ template<class Geometry> void export_ConfinedStreamingMethodGPU(pybind11::module
     }
     }      // end namespace detail
     }      // end namespace mpcd
+} // end namespace hoomd
 #endif // MPCD_CONFINED_STREAMING_METHOD_GPU_H_

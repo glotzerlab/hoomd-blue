@@ -17,6 +17,7 @@
 #include "ParticleDataUtilities.h"
 #include "hoomd/BoxDim.h"
 
+namespace hoomd {
 namespace mpcd
     {
 namespace gpu
@@ -59,7 +60,7 @@ void add_particles(unsigned int old_nparticles,
                    const unsigned int block_size);
     } // end namespace gpu
     } // end namespace mpcd
-
+} // end namespace hoomd
 #endif // ENABLE_MPI
 
 #endif // MPCD_PARTICLE_DATA_CUH_

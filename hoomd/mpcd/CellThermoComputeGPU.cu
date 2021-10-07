@@ -19,6 +19,7 @@
 
 #include "hoomd/WarpTools.cuh"
 
+namespace hoomd {
 namespace mpcd
     {
 namespace gpu
@@ -805,3 +806,4 @@ unpack_cell_buffer(double3* d_props,
 
     } // end namespace gpu
     } // end namespace mpcd
+} // end namespace hoomd

@@ -18,6 +18,7 @@
 #include "ATCollisionMethod.h"
 #include "hoomd/Autotuner.h"
 
+namespace hoomd {
 namespace mpcd
     {
 class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
@@ -30,7 +31,7 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
                          int phase,
                          std::shared_ptr<mpcd::CellThermoCompute> thermo,
                          std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
-                         std::shared_ptr<::Variant> T);
+                         std::shared_ptr<Variant> T);
 
     //! Set autotuner parameters
     /*!
@@ -66,5 +67,5 @@ void export_ATCollisionMethodGPU(pybind11::module& m);
     } // end namespace detail
 
     } // end namespace mpcd
-
+} // end namespace hoomd
 #endif // MPCD_AT_COLLISION_METHOD_GPU_H_

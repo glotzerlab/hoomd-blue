@@ -19,6 +19,7 @@
 #include "hoomd/Autotuner.h"
 #include "hoomd/GPUFlags.h"
 
+namespace hoomd {
 namespace mpcd
     {
 //! Sorts MPCD particles on the GPU
@@ -69,5 +70,5 @@ namespace detail
 void export_SorterGPU(pybind11::module& m);
     } // end namespace detail
     } // end namespace mpcd
-
+} // end namespace hoomd
 #endif // MPCD_SORTER_GPU_H_

@@ -11,6 +11,8 @@
 #include "CellThermoCompute.h"
 #include "ReductionOperators.h"
 
+namespace hoomd {
+
 /*!
  * \param sysdata MPCD system data
  */
@@ -596,3 +598,5 @@ void mpcd::detail::export_CellThermoCompute(pybind11::module& m)
         "CellThermoCompute")
         .def(py::init<std::shared_ptr<mpcd::SystemData>>());
     }
+
+} // end namespace hoomd

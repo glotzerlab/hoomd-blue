@@ -13,11 +13,13 @@
 #include "CellListGPU.h"
 #endif // ENABLE_HIP
 
+namespace hoomd {
+
 /*!
  * \param sysdef System definition
  * \param particles MPCD ParticleData
  */
-mpcd::SystemData::SystemData(std::shared_ptr<::SystemDefinition> sysdef,
+mpcd::SystemData::SystemData(std::shared_ptr<hoomd::SystemDefinition> sysdef,
                              std::shared_ptr<mpcd::ParticleData> particles)
     : m_sysdef(sysdef), m_particles(particles),
       m_global_box(m_sysdef->getParticleData()->getGlobalBox())
@@ -120,10 +122,12 @@ void mpcd::detail::export_SystemData(pybind11::module& m)
     namespace py = pybind11;
 
     py::class_<mpcd::SystemData, std::shared_ptr<mpcd::SystemData>>(m, "SystemData")
-        .def(py::init<std::shared_ptr<::SystemDefinition>, std::shared_ptr<mpcd::ParticleData>>())
+        .def(py::init<std::shared_ptr<hoomd::SystemDefinition>, std::shared_ptr<mpcd::ParticleData>>())
         .def(py::init<std::shared_ptr<mpcd::SystemDataSnapshot>>())
         .def("getParticleData", &mpcd::SystemData::getParticleData)
         .def("getCellList", &mpcd::SystemData::getCellList)
         .def("takeSnapshot", &mpcd::SystemData::takeSnapshot)
         .def("initializeFromSnapshot", &mpcd::SystemData::initializeFromSnapshot);
     }
+
+} // end namespace hoomd

@@ -17,6 +17,7 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
+namespace hoomd {
 namespace mpcd
     {
 namespace gpu
@@ -42,5 +43,5 @@ cudaError_t slit_draw_particles(Scalar4* d_pos,
 
     } // end namespace gpu
     } // end namespace mpcd
-
+} // end namespace hoomd
 #endif // MPCD_SLIT_GEOMETRY_FILLER_GPU_CUH_

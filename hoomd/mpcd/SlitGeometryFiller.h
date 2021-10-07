@@ -20,6 +20,7 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd {
 namespace mpcd
     {
 //! Adds virtual particles to the MPCD particle data for SlitGeometry
@@ -33,7 +34,7 @@ class PYBIND11_EXPORT SlitGeometryFiller : public mpcd::VirtualParticleFiller
     SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                        Scalar density,
                        unsigned int type,
-                       std::shared_ptr<::Variant> T,
+                       std::shared_ptr<Variant> T,
                        std::shared_ptr<const mpcd::detail::SlitGeometry> geom);
 
     virtual ~SlitGeometryFiller();
@@ -63,4 +64,5 @@ namespace detail
 void export_SlitGeometryFiller(pybind11::module& m);
     }      // end namespace detail
     }      // end namespace mpcd
+} // end namespace hoomd
 #endif // MPCD_SLIT_GEOMETRY_FILLER_H_

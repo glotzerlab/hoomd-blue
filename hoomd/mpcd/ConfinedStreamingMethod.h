@@ -18,6 +18,7 @@
 #include "StreamingMethod.h"
 #include <pybind11/pybind11.h>
 
+namespace hoomd {
 namespace mpcd
     {
 //! MPCD confined streaming method
@@ -244,4 +245,5 @@ template<class Geometry> void export_ConfinedStreamingMethod(pybind11::module& m
     }
     }      // end namespace detail
     }      // end namespace mpcd
+} // end namespace hoomd
 #endif // MPCD_CONFINED_STREAMING_METHOD_H_

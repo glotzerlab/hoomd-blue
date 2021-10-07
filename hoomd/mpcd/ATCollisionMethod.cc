@@ -12,13 +12,15 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+namespace hoomd {
+
 mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
                                            uint64_t cur_timestep,
                                            uint64_t period,
                                            int phase,
                                            std::shared_ptr<mpcd::CellThermoCompute> thermo,
                                            std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
-                                           std::shared_ptr<::Variant> T)
+                                           std::shared_ptr<Variant> T)
     : mpcd::CollisionMethod(sysdata, cur_timestep, period, phase), m_thermo(thermo),
       m_rand_thermo(rand_thermo), m_T(T)
     {
@@ -238,6 +240,8 @@ void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
                       int,
                       std::shared_ptr<mpcd::CellThermoCompute>,
                       std::shared_ptr<mpcd::CellThermoCompute>,
-                      std::shared_ptr<::Variant>>())
+                      std::shared_ptr<Variant>>())
         .def("setTemperature", &mpcd::ATCollisionMethod::setTemperature);
     }
+
+} // end namespace hoomd

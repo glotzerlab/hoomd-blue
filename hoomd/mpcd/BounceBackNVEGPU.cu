@@ -12,6 +12,7 @@
 #include "BounceBackNVEGPU.cuh"
 #include "StreamingGeometry.h"
 
+namespace hoomd {
 namespace mpcd
     {
 namespace gpu
@@ -110,3 +111,4 @@ cudaError_t nve_bounce_step_two(Scalar4* d_vel,
 
     } // end namespace gpu
     } // end namespace mpcd
+} // end namespace hoomd

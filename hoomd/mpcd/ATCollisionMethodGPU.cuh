@@ -16,6 +16,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 
+namespace hoomd {
 namespace mpcd
     {
 namespace gpu
@@ -50,5 +51,5 @@ cudaError_t at_apply_velocity(Scalar4* d_vel,
 
     } // end namespace gpu
     } // end namespace mpcd
-
+} // end namespace hoomd
 #endif // MPCD_AT_COLLISION_METHOD_GPU_CUH_

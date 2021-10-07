@@ -11,6 +11,8 @@
 #include "CellListGPU.h"
 #include "CellListGPU.cuh"
 
+namespace hoomd {
+
 mpcd::CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
     : mpcd::CellList(sysdef, mpcd_pdata)
@@ -208,3 +210,5 @@ void mpcd::detail::export_CellListGPU(pybind11::module& m)
                                                                                       "CellListGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData>>());
     }
+
+} // end namespace hoomd

@@ -10,6 +10,8 @@
 
 #include "SystemDataSnapshot.h"
 
+namespace hoomd {
+
 void mpcd::SystemDataSnapshot::replicate(unsigned int nx, unsigned int ny, unsigned int nz)
     {
     assert(nx > 0);
@@ -37,7 +39,9 @@ void mpcd::detail::export_SystemDataSnapshot(pybind11::module& m)
     py::class_<mpcd::SystemDataSnapshot, std::shared_ptr<mpcd::SystemDataSnapshot>>(
         m,
         "SystemDataSnapshot")
-        .def(py::init<std::shared_ptr<::SystemDefinition>>())
+        .def(py::init<std::shared_ptr<hoomd::SystemDefinition>>())
         .def("replicate", &mpcd::SystemDataSnapshot::replicate)
         .def_readonly("particles", &mpcd::SystemDataSnapshot::particles);
     }
+
+} // end namespace hoomd

@@ -14,6 +14,8 @@
 #include "hoomd/Communicator.h"
 #endif
 
+namespace hoomd {
+
 /*!
  * \param sysdata MPCD system data
  * \param deltaT Fundamental integration timestep
@@ -222,7 +224,7 @@ void mpcd::Integrator::addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> fi
 void mpcd::detail::export_Integrator(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::Integrator, ::IntegratorTwoStep, std::shared_ptr<mpcd::Integrator>>(
+    py::class_<mpcd::Integrator, hoomd::md::IntegratorTwoStep, std::shared_ptr<mpcd::Integrator>>(
         m,
         "Integrator")
         .def(py::init<std::shared_ptr<mpcd::SystemData>, Scalar>())
@@ -239,3 +241,4 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
 #endif // ENABLE_MPI
         ;
     }
+} // end namespace hoomd

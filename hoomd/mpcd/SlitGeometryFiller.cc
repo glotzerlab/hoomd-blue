@@ -12,10 +12,12 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+namespace hoomd {
+
 mpcd::SlitGeometryFiller::SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                                              Scalar density,
                                              unsigned int type,
-                                             std::shared_ptr<::Variant> T,
+                                             std::shared_ptr<Variant> T,
                                              std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
     : mpcd::VirtualParticleFiller(sysdata, density, type, T), m_geom(geom)
     {
@@ -148,7 +150,9 @@ void mpcd::detail::export_SlitGeometryFiller(pybind11::module& m)
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       Scalar,
                       unsigned int,
-                      std::shared_ptr<::Variant>,
+                      std::shared_ptr<Variant>,
                       std::shared_ptr<const mpcd::detail::SlitGeometry>>())
         .def("setGeometry", &mpcd::SlitGeometryFiller::setGeometry);
     }
+
+} // end namespace hoomd

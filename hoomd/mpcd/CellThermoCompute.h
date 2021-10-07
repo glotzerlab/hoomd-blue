@@ -26,6 +26,7 @@
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 #include <pybind11/pybind11.h>
 
+namespace hoomd {
 namespace mpcd
     {
 //! Computes the cell (thermodynamic) properties
@@ -214,4 +215,5 @@ void export_CellThermoCompute(pybind11::module& m);
     } // end namespace detail
 
     }      // end namespace mpcd
+} // end namespace hoomd
 #endif // #define MPCD_CELL_THERMO_COMPUTE_H_

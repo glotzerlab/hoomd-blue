@@ -17,6 +17,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 
+namespace hoomd {
 namespace mpcd
     {
 namespace gpu
@@ -62,5 +63,5 @@ cudaError_t cell_apply_sort(unsigned int* d_cell_list,
 
     } // end namespace gpu
     } // end namespace mpcd
-
+} // end namespace hoomd
 #endif // MPCD_CELL_LIST_GPU_CUH_

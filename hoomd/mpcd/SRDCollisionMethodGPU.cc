@@ -11,6 +11,8 @@
 #include "SRDCollisionMethodGPU.h"
 #include "SRDCollisionMethodGPU.cuh"
 
+namespace hoomd {
+
 mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
                                                    unsigned int cur_timestep,
                                                    unsigned int period,
@@ -163,3 +165,5 @@ void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
                       unsigned int,
                       std::shared_ptr<mpcd::CellThermoCompute>>());
     }
+
+} // end namespace hoomd

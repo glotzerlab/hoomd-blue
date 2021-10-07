@@ -15,6 +15,8 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 //! Test for correct calculation of MPCD grid dimensions
 /*!
  * \param exec_conf Execution configuration

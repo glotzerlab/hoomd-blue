@@ -23,6 +23,7 @@
 #include <string>
 #endif // __HIPCC__
 
+namespace hoomd {
 namespace mpcd
     {
 namespace detail
@@ -228,7 +229,7 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
 
     } // end namespace detail
     } // end namespace mpcd
-
+} // end namespace hoomd
 #undef HOSTDEVICE
 
 #endif // MPCD_SLIT_PORE_GEOMETRY_H_

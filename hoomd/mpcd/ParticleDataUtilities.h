@@ -19,6 +19,7 @@
  */
 
 #include "hoomd/HOOMDMath.h"
+namespace hoomd {
 namespace mpcd
     {
 namespace detail
@@ -45,5 +46,5 @@ struct pdata_element
 
     } // end namespace detail
     } // end namespace mpcd
-
+} // end namespace hoomd
 #endif // MPCD_PARTICLE_DATA_UTILITIES_H_

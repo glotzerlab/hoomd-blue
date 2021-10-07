@@ -11,6 +11,8 @@
 #include "SorterGPU.h"
 #include "SorterGPU.cuh"
 
+namespace hoomd {
+
 /*!
  * \param sysdata MPCD system data
  */
@@ -185,3 +187,5 @@ void mpcd::detail::export_SorterGPU(pybind11::module& m)
     py::class_<mpcd::SorterGPU, mpcd::Sorter, std::shared_ptr<mpcd::SorterGPU>>(m, "SorterGPU")
         .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>());
     }
+
+} // end namespace hoomd

@@ -13,6 +13,7 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+namespace hoomd {
 namespace mpcd
     {
 namespace gpu
@@ -188,3 +189,4 @@ cudaError_t slit_pore_draw_particles(Scalar4* d_pos,
 
     } // end namespace gpu
     } // end namespace mpcd
+} // end namespace hoomd

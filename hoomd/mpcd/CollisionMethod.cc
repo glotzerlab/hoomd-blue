@@ -12,6 +12,8 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+namespace hoomd {
+
 /*!
  * \param sysdata MPCD system data
  * \param cur_timestep Current system timestep
@@ -179,3 +181,5 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
                       &mpcd::CollisionMethod::getInstance,
                       &mpcd::CollisionMethod::setInstance);
     }
+
+} // end namespace hoomd

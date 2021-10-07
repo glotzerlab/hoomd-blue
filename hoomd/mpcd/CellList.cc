@@ -15,6 +15,8 @@
  * \brief Definition of mpcd::CellList
  */
 
+namespace hoomd {
+
 mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
     : Compute(sysdef), m_mpcd_pdata(mpcd_pdata), m_cell_size(1.0), m_cell_np_max(4),
@@ -950,3 +952,5 @@ void mpcd::detail::export_CellList(pybind11::module& m)
         .def("setEmbeddedGroup", &mpcd::CellList::setEmbeddedGroup)
         .def("removeEmbeddedGroup", &mpcd::CellList::removeEmbeddedGroup);
     }
+
+} // end namespace hoomd

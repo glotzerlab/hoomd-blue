@@ -19,6 +19,8 @@
 namespace py = pybind11;
 #include <algorithm>
 
+namespace hoomd {
+
 /*!
  * \param sysdef System definition the communicator is associated with
  * \param mpcd_sys MPCD system data
@@ -423,6 +425,8 @@ void mpcd::detail::export_CommunicatorGPU(py::module& m)
         .def(py::init<std::shared_ptr<mpcd::SystemData>>())
         .def("setMaxStages", &mpcd::CommunicatorGPU::setMaxStages);
     }
+
+} // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI

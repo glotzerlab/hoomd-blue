@@ -14,11 +14,13 @@
 
 #include <array>
 
+namespace hoomd {
+
 mpcd::SlitPoreGeometryFiller::SlitPoreGeometryFiller(
     std::shared_ptr<mpcd::SystemData> sysdata,
     Scalar density,
     unsigned int type,
-    std::shared_ptr<::Variant> T,
+    std::shared_ptr<Variant> T,
     uint16_t seed,
     std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom)
     : mpcd::VirtualParticleFiller(sysdata, density, type, T), m_num_boxes(0),
@@ -225,8 +227,10 @@ void mpcd::detail::export_SlitPoreGeometryFiller(pybind11::module& m)
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       Scalar,
                       unsigned int,
-                      std::shared_ptr<::Variant>,
+                      std::shared_ptr<Variant>,
                       unsigned int,
                       std::shared_ptr<const mpcd::detail::SlitPoreGeometry>>())
         .def("setGeometry", &mpcd::SlitPoreGeometryFiller::setGeometry);
     }
+
+} // end namespace hoomd

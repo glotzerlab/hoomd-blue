@@ -11,6 +11,7 @@
 #ifndef MPCD_BOUNDARY_CONDITION_H_
 #define MPCD_BOUNDARY_CONDITION_H_
 
+namespace hoomd {
 namespace mpcd
     {
 namespace detail
@@ -30,5 +31,5 @@ enum struct boundary : unsigned char
 
     } // end namespace detail
     } // end namespace mpcd
-
+} // end namespace hoomd
 #endif // MPCD_BOUNDARY_CONDITION_H_

@@ -21,6 +21,7 @@
 #include <string>
 #endif // __HIPCC__
 
+namespace hoomd {
 namespace mpcd
     {
 namespace detail
@@ -82,6 +83,7 @@ class __attribute__((visibility("default"))) BulkGeometry
 
     } // end namespace detail
     } // end namespace mpcd
+} // end namespace hoomd
 
 #undef HOSTDEVICE
 

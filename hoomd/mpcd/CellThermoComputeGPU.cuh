@@ -17,6 +17,7 @@
 
 #include <cuda_runtime.h>
 
+namespace hoomd {
 namespace mpcd
     {
 namespace detail
@@ -131,5 +132,5 @@ cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element* d_reduced,
 
     } // end namespace gpu
     } // end namespace mpcd
-
+} // end namespace hoomd
 #endif // MPCD_CELL_THERMO_COMPUTE_GPU_CUH_

@@ -12,6 +12,7 @@
 #ifndef MPCD_COMMUNICATOR_UTILITIES_H_
 #define MPCD_COMMUNICATOR_UTILITIES_H_
 
+namespace hoomd {
 namespace mpcd
     {
 namespace detail
@@ -38,6 +39,6 @@ enum struct send_mask : unsigned int
 
     } // end namespace detail
     } // end namespace mpcd
-
+} // end namespace hoomd
 #endif // MPCD_COMMUNICATOR_UTILITIES_H_
 #endif // ENABLE_MPI
