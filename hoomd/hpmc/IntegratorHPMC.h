@@ -413,12 +413,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_external_base;
         }
 
-    //! Returns the patch energy interaction
-    std::shared_ptr<PatchEnergy> getPatchInteraction()
-        {
-        return m_patch;
-        }
-
     //! Compute the energy due to patch interactions
     /*! \param timestep the current time step
      * \returns the total patch energy

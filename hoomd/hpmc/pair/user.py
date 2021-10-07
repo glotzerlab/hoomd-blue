@@ -422,9 +422,6 @@ class CPPPotentialUnion(CPPPotentialBase):
                 shape=(None,)),
         )
 
-        param_dict['param_array_constituent'] = NDArrayValidator(
-            dtype=np.float32, shape=(None,))
-
         if param_array_constituent is None or len(param_array_constituent) == 0:
             param_dict['param_array_constituent'] = np.array([])
         else:

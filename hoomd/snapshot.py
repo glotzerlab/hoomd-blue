@@ -370,6 +370,6 @@ class Snapshot:
                 box = list(gsd_snap.configuration.box)
                 if gsd_snap.configuration.dimensions == 2:
                     box[2] = 0
-                snap.configuration.box = tuple(box)
+                snap.configuration.box = box
 
         return snap
