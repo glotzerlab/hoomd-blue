@@ -18,6 +18,9 @@
 namespace py = pybind11;
 using namespace std;
 
+namespace hoomd {
+namespace metal {
+
 /*! \param sysdef System to compute forces on
  \param filename Name of EAM potential file to load
  \param type_of_file EAM/Alloy=0, EAM/FS=1
@@ -42,10 +45,10 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     // allocate the coefficients data on the GPU
     loadFile(filename, type_of_file);
-    GlobalArray<EAMTexInterData> eam_data(1, m_exec_conf);
+    GlobalArray<kernel::EAMTexInterData> eam_data(1, m_exec_conf);
     std::swap(eam_data, m_eam_data);
 
-    ArrayHandle<EAMTexInterData> h_eam_data(m_eam_data,
+    ArrayHandle<kernel::EAMTexInterData> h_eam_data(m_eam_data,
                                             access_location::host,
                                             access_mode::overwrite);
     h_eam_data.data->nr = nr;     //!< number of tabulated values of interpolated rho(r), r*phi(r)
@@ -71,7 +74,7 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->push(m_exec_conf, "EAM pair");
 
     // The GPU implementation CANNOT handle a half neighborlist, error out now
-    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+    bool third_law = m_nlist->getStorageMode() == md::NeighborList::half;
     if (third_law)
         {
         m_exec_conf->msg->error() << "EAMForceComputeGPU cannot handle a half neighborlist" << endl;
@@ -104,7 +107,7 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> d_drho(m_drho, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_rphi(m_rphi, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_drphi(m_drphi, access_location::device, access_mode::read);
-    ArrayHandle<EAMTexInterData> d_eam_data(m_eam_data, access_location::device, access_mode::read);
+    ArrayHandle<kernel::EAMTexInterData> d_eam_data(m_eam_data, access_location::device, access_mode::read);
 
     // Derivative Embedding Function for each atom
     GPUArray<Scalar> t_dFdP(m_pdata->getN(), m_exec_conf);
@@ -113,7 +116,7 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
 
     // Compute energy and forces in GPU
     m_tuner->begin();
-    gpu_compute_eam_tex_inter_forces(d_force.data,
+    kernel::gpu_compute_eam_tex_inter_forces(d_force.data,
                                      d_virial.data,
                                      m_virial.getPitch(),
                                      m_pdata->getN(),
@@ -141,6 +144,8 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
+namespace detail {
+
 void export_EAMForceComputeGPU(py::module& m)
     {
     py::class_<EAMForceComputeGPU, EAMForceCompute, std::shared_ptr<EAMForceComputeGPU>>(
@@ -148,3 +153,7 @@ void export_EAMForceComputeGPU(py::module& m)
         "EAMForceComputeGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>, char*, int>());
     }
+
+} // end namespace detail
+} // end namespace metal
+} // end namespace hoomd

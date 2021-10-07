@@ -13,6 +13,10 @@
  \brief Defines GPU kernel code for calculating the EAM forces. Used by EAMForceComputeGPU.
  */
 
+namespace hoomd {
+namespace metal {
+namespace kernel {
+
 //! Kernel for computing EAM forces on the GPU
 __global__ void gpu_kernel_1(Scalar4* d_force,
                              Scalar* d_virial,
@@ -394,3 +398,7 @@ hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
 
     return hipSuccess;
     }
+
+} // end namespace kernel
+} // end namespace metal
+} // end namespace hoomd
