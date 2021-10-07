@@ -401,13 +401,8 @@ class CPPPotentialUnion(CPPPotentialBase):
 
     """
 
-    def __init__(self,
-                 r_cut_constituent,
-                 code_constituent,
-                 r_cut_isotropic,
-                 code_isotropic,
-                 param_array_constituent,
-                 param_array):
+    def __init__(self, r_cut_constituent, code_constituent, r_cut_isotropic,
+                 code_isotropic, param_array_constituent, param_array):
 
         # initialize base class
         super().__init__(r_cut=r_cut_isotropic,
@@ -419,7 +414,7 @@ class CPPPotentialUnion(CPPPotentialBase):
             r_cut_isotropic=float(r_cut_isotropic),
             leaf_capacity=int(4),
             param_array_constituent=NDArrayValidator(dtype=np.float32,
-                shape=(None,)),
+                                                     shape=(None,)),
         )
 
         if param_array_constituent is None or len(param_array_constituent) == 0:
@@ -439,7 +434,7 @@ class CPPPotentialUnion(CPPPotentialBase):
             'orientations',
             type_kind='particle_types',
             param_dict=TypeParameterDict([(float, float, float, float)],
-                len_keys=1),
+                                         len_keys=1),
         )
 
         typeparam_diameters = TypeParameter(
