@@ -270,5 +270,3 @@ size_t DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::maxVertices() const
 #ifdef WIN32
 #pragma warning(pop)
 #endif
-
-
