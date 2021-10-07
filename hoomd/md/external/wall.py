@@ -20,12 +20,24 @@ and half-spaces.
     The current wall force implementation does not support NPT integrators.
 """
 
+from hoomd.md import force
 from hoomd.data.array_view import _ArrayViewWrapper
 from hoomd.md import _md
 import hoomd
 
 
-class WallPotential(hoomd.operation._HOOMDBaseObject):
+def _to_md_cpp_wall(wall):
+    if isinstance(wall, hoomd.wall.Sphere):
+        return _md.SphereWall(wall.radius, wall.origin, wall.inside)
+    if isinstance(wall, hoomd.wall.Cylinder):
+        return _md.CylinderWall(wall.radius, wall.origin, wall.axis,
+                                wall.inside)
+    if isinstance(wall, hoomd.wall.Plane):
+        return _md.PlaneWall(wall.origin, wall.normal, wall.inside)
+    raise TypeError(f"Unknown wall type encountered {type(wall)}.")
+
+
+class WallPotential(force.Force):
     r"""Generic wall potential.
 
     Warning:
@@ -159,27 +171,18 @@ class WallPotential(hoomd.operation._HOOMDBaseObject):
 
         The cut off distance for the wall potential per particle type.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
 
     .. py:attribute:: r_extrap
 
         The distance to extrapolate the potential per type.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
-    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
-        self.walls = self.wall._MetaWallList(walls)
-        r_cut = hoomd.data.typeparam.TypeParameter(
-            "r_cut", "particle_type",
-            hoomd.data.parameterdicts.TypeParameter(float, len_keys=1))
-        r_extrap = hoomd.data.typeparam.TypeParameter(
-            "r_r_extrap", "particle_type",
-            hoomd.data.parameterdicts.TypeParameter(float, len_keys=1))
-        self._extend_typeparam((r_cut, r_extrap))
-        if r_cut_default is not None:
-            self.r_cut.default = r_cut_default
-        self.r_extrap.default = r_extrap_default
+    def __init__(self, walls):
+        self._walls = None
+        self.walls = hoomd.wall._WallsMetaList(walls, _to_md_cpp_wall)
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
@@ -208,11 +211,9 @@ class WallPotential(hoomd.operation._HOOMDBaseObject):
 
     @walls.setter
     def walls(self, wall_list):
-        # handle if passed an existing wall list by copying wall object. We
-        # don't have to copy individual walls since they are immutable.
-        if isinstance(wall_list, hoomd.wall._MetaWallList):
-            self._walls = hoomd.wall._MetaListIndex(wall_list)
-        self._walls = hoomd.wall._MetaWallList(wall_list)
+        if self._walls is wall_list:
+            return
+        self._walls = hoomd.wall._WallsMetaList(wall_list, _to_md_cpp_wall)
 
 
 class _WallArrayViewFactory:
@@ -226,7 +227,7 @@ class _WallArrayViewFactory:
         }[wall_type]
 
     def __call__(self):
-        return getattr(self.cpp_obj, self.func_name)()
+        return getattr(self.cpp_obj.getField(), self.func_name)()
 
 
 class LJ(WallPotential):
@@ -235,11 +236,6 @@ class LJ(WallPotential):
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
             to use for the potential.
-        default_r_cut (float): The default cut off radius for the potential
-            :math:`[\mathrm{length}]`.
-        default_r_extrap (float): The default ``r_extrap`` value to use.
-            Defaults to 0. This only has an effect in the extrapolated mode
-            :math:`[\mathrm{length}]`.
 
     Wall force evaluated using the Lennard-Jones potential.  See
     `hoomd.md.pair.LJ` for force details and base parameters and `WallPotential`
@@ -271,32 +267,34 @@ class LJ(WallPotential):
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
 
-        Type: `TypeParameter` [``particle_type``, `dict`]
+        Type: `TypeParameter` [``particle_types``, `dict`]
 
     .. py:attribute:: r_cut
 
         The cut off distance for the wall potential per particle type.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
 
     .. py:attribute:: r_extrap
 
         The distance to extrapolate the potential per type.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialLJ"
 
-    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
+    def __init__(self, walls):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
+        super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_type",
+            "params", "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
                                                         sigma=float,
+                                                        r_cut=float,
+                                                        r_extrap=0.0,
                                                         len_keys=1))
         self._add_typeparam(params)
 
@@ -341,32 +339,32 @@ class Gauss(WallPotential):
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
 
-        Type: `TypeParameter` [``particle_type``, `dict`]
+        Type: `TypeParameter` [``particle_types``, `dict`]
 
     .. py:attribute:: r_cut
 
         The cut off distance for the wall potential per particle type
         :math:`[\mathrm{length}]`.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
 
     .. py:attribute:: r_extrap
 
         The distance to extrapolate the potential per type
         :math:`[\mathrm{length}]`.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialGauss"
 
-    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
+    def __init__(self, walls):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
+        super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_type",
+            "params", "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
                                                         sigma=float,
                                                         len_keys=1))
@@ -418,32 +416,32 @@ class SLJ(WallPotential):
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
 
-        Type: `TypeParameter` [``particle_type``, `dict`]
+        Type: `TypeParameter` [``particle_types``, `dict`]
 
     .. py:attribute:: r_cut
 
         The cut off distance for the wall potential per particle type
         :math:`[\mathrm{length}]`.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
 
     .. py:attribute:: r_extrap
 
         The distance to extrapolate the potential per type
         :math:`[\mathrm{length}]`.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialSLJ"
 
-    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
+    def __init__(self, walls):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
+        super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_type",
+            "params", "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
                                                         sigma=float,
                                                         len_keys=1))
@@ -490,32 +488,32 @@ class Yukawa(WallPotential):
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
 
-        Type: `TypeParameter` [``particle_type``, `dict`]
+        Type: `TypeParameter` [``particle_types``, `dict`]
 
     .. py:attribute:: r_cut
 
         The cut off distance for the wall potential per particle type
         :math:`[\mathrm{length}]`.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
 
     .. py:attribute:: r_extrap
 
         The distance to extrapolate the potential per type
         :math:`[\mathrm{length}]`.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialYukawa"
 
-    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
+    def __init__(self, walls):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
+        super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_type",
+            "params", "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
                                                         kappa=float,
                                                         len_keys=1))
@@ -562,32 +560,32 @@ class Morse(WallPotential):
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
 
-        Type: `TypeParameter` [``particle_type``, `dict`]
+        Type: `TypeParameter` [``particle_types``, `dict`]
 
     .. py:attribute:: r_cut
 
         The cut off distance for the wall potential per particle type
         :math:`[\mathrm{length}]`.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
 
     .. py:attribute:: r_extrap
 
         The distance to extrapolate the potential per type
         :math:`[\mathrm{length}]`.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialMorse"
 
-    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
+    def __init__(self, walls):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
+        super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_type",
+            "params", "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
                                                         sigma=float,
                                                         len_keys=1))
@@ -635,32 +633,32 @@ class ForceShiftedLJ(WallPotential):
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
 
-        Type: `TypeParameter` [``particle_type``, `dict`]
+        Type: `TypeParameter` [``particle_types``, `dict`]
 
     .. py:attribute:: r_cut
 
         The cut off distance for the wall potential per particle type
         :math:`[\mathrm{length}]`.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
 
     .. py:attribute:: r_extrap
 
         The distance to extrapolate the potential per type
         :math:`[\mathrm{length}]`.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialForceShiftedLJ"
 
-    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
+    def __init__(self, walls):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
+        super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_type",
+            "params", "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
                                                         sigma=float,
                                                         len_keys=1))
@@ -707,32 +705,32 @@ class Mie(WallPotential):
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
 
-        Type: `TypeParameter` [``particle_type``, `dict`]
+        Type: `TypeParameter` [``particle_types``, `dict`]
 
     .. py:attribute:: r_cut
 
         The cut off distance for the wall potential per particle type
         :math:`[\mathrm{length}]`.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
 
     .. py:attribute:: r_extrap
 
         The distance to extrapolate the potential per type
         :math:`[\mathrm{length}]`.
 
-        Type: `hoomd.data.TypeParameter` [``particle_type``, `float` ]
+        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialMie"
 
-    def __init__(self, walls, r_cut_default=None, r_extrap_default=0.0):
+    def __init__(self, walls):
 
         # initialize the base class
-        WallPotential.__init__(self, walls, r_cut_default, r_extrap_default)
+        super().__init__(walls)
 
         params = hoomd.data.typeparam.TypeParameter(
-            "params", "particle_type",
+            "params", "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
                                                         sigma=float,
                                                         m=float,
