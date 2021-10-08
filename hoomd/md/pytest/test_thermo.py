@@ -179,54 +179,54 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
 
 
 def test_logging():
-    logging_check(hoomd.md.compute.ThermodynamicQuantities, ('md', 'compute'),
-                {
-                    'kinetic_temperature': {
-                        'category': LoggerCategories.scalar,
-                        'default' : True
-                    },
-                    'pressure': {
-                        'category': LoggerCategories.scalar,
-                        'default' : True
-                    },
-                    'pressure_tensor': {
-                        'category': LoggerCategories.sequence,
-                        'default' : True
-                    },
-                    'kinetic_energy': {
-                        'category': LoggerCategories.scalar,
-                        'default' : True
-                    },
-                    'translational_kinetic_energy': {
-                        'category': LoggerCategories.scalar,
-                        'default' : True
-                    },
-                    'rotational_kinetic_energy': {
-                        'category': LoggerCategories.scalar,
-                        'default' : True
-                    },
-                    'potential_energy': {
-                        'category': LoggerCategories.scalar,
-                        'default' : True
-                    },
-                    'degrees_of_freedom': {
-                        'category': LoggerCategories.scalar,
-                        'default' : True
-                    },
-                    'translational_degrees_of_freedom': {
-                        'category': LoggerCategories.scalar,
-                        'default' : True
-                    },
-                    'rotational_degrees_of_freedom': {
-                        'category': LoggerCategories.scalar,
-                        'default' : True
-                    },
-                    'num_particles': {
-                        'category': LoggerCategories.scalar,
-                        'default' : True
-                    },
-                    'volume': {
-                        'category': LoggerCategories.scalar,
-                        'default' : True
-                    }
-                })
+    logging_check(
+        hoomd.md.compute.ThermodynamicQuantities, ('md', 'compute'), {
+            'kinetic_temperature': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'pressure': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'pressure_tensor': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'kinetic_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'translational_kinetic_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'rotational_kinetic_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'potential_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'degrees_of_freedom': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'translational_degrees_of_freedom': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'rotational_degrees_of_freedom': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'num_particles': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'volume': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })

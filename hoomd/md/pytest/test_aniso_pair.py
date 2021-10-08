@@ -399,10 +399,9 @@ def test_pickling(make_two_particle_simulation, pair_potential_spec):
 
 
 def test_logging():
-    logging_check(hoomd.md.pair.aniso.GayBerne,
-    ('md', 'pair', 'aniso'),{
-        'type_shapes': {
-            'category' : LoggerCategories.object,
+    logging_check(
+        hoomd.md.pair.aniso.GayBerne, ('md', 'pair', 'aniso'),
+        {'type_shapes': {
+            'category': LoggerCategories.object,
             'default': True
-        }
-    })
+        }})
