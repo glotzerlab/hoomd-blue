@@ -14,7 +14,6 @@
 
 // clang-format on
 
-
 #define XSTR(x) #x
 #define STR(x) XSTR(x)
 #include STR(SHAPE_INCLUDE)
