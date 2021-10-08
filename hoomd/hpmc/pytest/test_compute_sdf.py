@@ -199,37 +199,37 @@ def test_values(simulation_factory, lattice_snapshot_factory):
 
 
 def test_logging():
-    logging_check(hoomd.hpmc.compute.SDF, ('hpmc', 'compute'),
-                {
-                    'betaP': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    },
-                    'sdf': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    }
-                })
-    logging_check(hoomd.hpmc.integrate.HPMCIntegrator, ('hpmc', 'integrate'),
-                {
-                    'map_overlaps': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    },
-                    'mps': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    },
-                    'overlaps': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    },
-                    'rotate_moves': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    },
-                    'translate_moves': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    }
-                })
+    logging_check(
+        hoomd.hpmc.compute.SDF, ('hpmc', 'compute'), {
+            'betaP': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'sdf': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
+        })
+    logging_check(
+        hoomd.hpmc.integrate.HPMCIntegrator, ('hpmc', 'integrate'), {
+            'map_overlaps': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'mps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'overlaps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'rotate_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'translate_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
+        })

@@ -410,26 +410,26 @@ def test_mutability_error(simulation_factory, two_particle_snapshot_factory,
 
 
 def test_logging():
-    logging_check(hoomd.Simulation, (),
-                {
-                    'final_timestep': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    },
-                    'seed': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    },
-                    'timestep': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    },
-                    'tps': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    },
-                    'walltime': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    }
-                })
+    logging_check(
+        hoomd.Simulation, (), {
+            'final_timestep': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'seed': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'timestep': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'tps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'walltime': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })

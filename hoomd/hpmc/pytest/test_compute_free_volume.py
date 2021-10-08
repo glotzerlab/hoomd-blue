@@ -75,10 +75,9 @@ def test_validation_systems(simulation_factory, two_particle_snapshot_factory,
 
 
 def test_logging():
-    logging_check(hoomd.hpmc.compute.FreeVolume, ('hpmc', 'compute'),
-                {
-                    'free_volume': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    }
-                })
+    logging_check(
+        hoomd.hpmc.compute.FreeVolume, ('hpmc', 'compute'),
+        {'free_volume': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }})
