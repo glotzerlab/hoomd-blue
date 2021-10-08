@@ -31,7 +31,7 @@ class ClangCompiler
     void operator=(const ClangCompiler&) = delete;
 
     /// Get an instance to the singleton class
-    static std::shared_ptr<ClangCompiler> createClangCompiler();
+    static std::shared_ptr<ClangCompiler> getClangCompiler();
 
     /// Compile the provided C++ code and return the LLVM module
     std::unique_ptr<llvm::Module> compileCode(const std::string& code,
