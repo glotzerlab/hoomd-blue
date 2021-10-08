@@ -239,7 +239,6 @@ def test_cpp_potential_sticky_spheres(device, simulation_factory,
     remain within range of the attraction.
 
     """
-    # interaction between point dipoles
     max_r_interact = 1.003
     square_well = r'''float rsq = dot(r_ij, r_ij);
                     float epsilon = 100.0f;

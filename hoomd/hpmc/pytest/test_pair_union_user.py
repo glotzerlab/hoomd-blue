@@ -373,3 +373,66 @@ def test_param_array_union_gpu(device, simulation_factory,
     scale_factor = 3.0
     patch.param_array_constituent[1] *= scale_factor
     assert (np.isclose(old_energy * scale_factor, patch.energy))
+
+
+@pytest.mark.validate
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
+                                      two_particle_snapshot_factory):
+    """Validate the behavior of the CPPPotentialUnion class for sticky spheres.
+
+    This test is analogous to the test_cpp_potential_sticky_sheres in
+    test_pair_user, but instead a constituent particle is placed at the center
+    of each "union" (just a union of 1 particle). The idea is that if the
+    particles are sticky enough, they should never move out of each others'
+    range of interaction.
+
+    """
+    max_r_interact = 1.003
+    square_well = r'''float rsq = dot(r_ij, r_ij);
+                    float epsilon = 100.0f;
+                    float rcut = {:.16f}f;
+                    if (rsq > rcut * rcut)
+                        return 0.0f;
+                    else
+                        return -epsilon;
+    '''.format(max_r_interact)
+
+    sim = simulation_factory(two_particle_snapshot_factory(d=2, L=100))
+    mc = hoomd.hpmc.integrate.SphereUnion()
+    r_cut = 1.5
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
+            code_constituent=square_well,
+            r_cut_constituent=r_cut,
+            param_array_constituent=None,
+            r_cut_isotropic=0,
+            code_isotropic=None,
+            param_array=None,
+            )
+
+    origin = [0, 0, 0]
+    patch.positions['A'] = [origin]
+    patch.orientations['A'] = [(1, 0, 0, 0)]
+    patch.diameters['A'] = [1.0]
+    patch.typeids['A'] = [0]
+    patch.charges['A'] = [0]
+    sphere1 = dict(diameter=1)
+    mc.shape["A"] = dict(shapes=[sphere1],
+                         positions=[origin],
+                         orientations=[(1, 0, 0, 0)])
+    mc.potential = patch
+
+    sim.operations.integrator = mc
+
+    snap = sim.state.get_snapshot()
+    separation = 1.001
+    if snap.communicator.rank == 0:
+        snap.particles.position[0, :] = [-separation / 2, 0, 0]
+        snap.particles.position[1, :] = [separation / 2, 0, 0]
+    sim.state.set_snapshot(snap)
+    for step in range(10):
+        sim.run(100)
+        snap = sim.state.get_snapshot()
+        dist = np.linalg.norm(snap.particles.position[0]
+                              - snap.particles.position[1])
+        assert dist < max_r_interact
