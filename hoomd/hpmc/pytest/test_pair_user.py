@@ -224,3 +224,53 @@ def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
     patch.param_array[0] = 0
     sim.run(0)
     assert np.isclose(patch.energy, 0.0)
+
+
+@pytest.mark.validate
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_cpp_potential_sticky_spheres(device, simulation_factory,
+                       two_particle_snapshot_factory):
+    """Validate the behavior of the CPPPotential class for sticky spheres
+
+    This test constructs a system of 2 hard spheres with a very deep, very
+    short-ranged square well attraction at the surface of the sphere. Given the
+    depth of the attracive well, any move that separates the particles beyond
+    their range of attraction should be rejected, and the particles will always
+    remain within range of the attraction.
+
+    """
+    # interaction between point dipoles
+    max_r_interact = 1.003
+    square_well = r'''float rsq = dot(r_ij, r_ij);
+                    float epsilon = 100.0f;
+                    float rcut = {:.16f}f;
+                    if (rsq > rcut * rcut)
+                        return 0.0f;
+                    else
+                        return -epsilon;
+    '''.format(max_r_interact)
+
+    sim = simulation_factory(two_particle_snapshot_factory(d=2, L=100))
+
+    r_cut = 1.5
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=r_cut,
+                                              code=square_well,
+                                              param_array=None)
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1)
+    mc.potential = patch
+
+    sim.operations.integrator = mc
+
+    snap = sim.state.get_snapshot()
+    separation = 1.001
+    if snap.communicator.rank == 0:
+        snap.particles.position[0, :] = [-separation/2, 0, 0]
+        snap.particles.position[1, :] = [separation/2, 0, 0]
+    sim.state.set_snapshot(snap)
+    for step in range(10):
+        sim.run(100)
+        snap = sim.state.get_snapshot()
+        dist = np.linalg.norm(
+                snap.particles.position[0] - snap.particles.position[1])
+        assert dist < max_r_interact
