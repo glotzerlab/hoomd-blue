@@ -45,7 +45,6 @@ electric_field_params = [
 ]
 
 @pytest.mark.cpu
-@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_cpp_external(device, constructor_args):
     """Test that CPPExternalField can be constructed with valid arguments."""
@@ -57,7 +56,6 @@ def test_valid_construction_cpp_external(device, constructor_args):
 
 
 @pytest.mark.cpu
-@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_valid_construction_and_attach_cpp_external(
@@ -83,7 +81,6 @@ def test_valid_construction_and_attach_cpp_external(
 
 
 @pytest.mark.cpu
-@pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_cpp_external(device, attr, value):
     """Test that CPPExternalField can get and set attributes before attached."""
@@ -94,7 +91,6 @@ def test_valid_setattr_cpp_external(device, attr, value):
 
 
 @pytest.mark.cpu
-@pytest.mark.serial
 @pytest.mark.parametrize("attr,val", attr_error)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
@@ -117,7 +113,6 @@ def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
 
 
 @pytest.mark.cpu
-@pytest.mark.serial
 @pytest.mark.parametrize("orientations,charge, result", electric_field_params)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_electric_field(device, orientations, charge, result,
@@ -145,16 +140,18 @@ def test_electric_field(device, orientations, charge, result,
 
     sim.operations.integrator = mc
     with sim.state.cpu_local_snapshot as data:
-        data.particles.orientation[0, :] = orientations[0]
-        data.particles.orientation[1, :] = orientations[1]
         data.particles.charge[:] = charge
+        N = len(data.particles.position)
+        for global_idx in [0, 1]:
+            idx = data.particles.rtag[global_idx]
+            if idx < N:
+                data.particles.orientation[idx, :] = orientations[global_idx]
     sim.run(0)
 
     assert np.isclose(ext.energy, result)
 
 
 @pytest.mark.cpu
-@pytest.mark.serial
 @pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_gravity(device, simulation_factory, lattice_snapshot_factory):
