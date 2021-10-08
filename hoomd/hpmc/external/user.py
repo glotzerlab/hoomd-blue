@@ -157,3 +157,20 @@ class CPPExternalField(_HOOMDBaseObject):
         """
         timestep = self._simulation.timestep
         return self._cpp_obj.computeEnergy(timestep)
+
+    @property
+    def code(self):
+        """str: The C++ code defines the external field.
+
+        This returns the code that was passed into the class constructor, which
+        contains only the body of the external field energy kernel.
+        """
+        return self._code
+
+    @code.setter
+    def code(self, code):
+        if self._attached:
+            raise AttributeError("This attribute can only be set before the \
+                                  object is attached.")
+        else:
+            self._code = code
