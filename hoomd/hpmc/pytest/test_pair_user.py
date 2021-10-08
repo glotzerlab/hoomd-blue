@@ -265,7 +265,7 @@ def test_cpp_potential_sticky_spheres(device, simulation_factory,
     separation = 1.001
     with sim.state.cpu_local_snapshot as snapshot:
         N = len(snapshot.particles.position)
-        for global_idx, r_x in zip([0, 1], [-separation/2, separation/2]):
+        for global_idx, r_x in zip([0, 1], [-separation / 2, separation / 2]):
             idx = snapshot.particles.rtag[global_idx]
             if idx < N:
                 snapshot.particles.position[idx, :] = [r_x, 0, 0]
