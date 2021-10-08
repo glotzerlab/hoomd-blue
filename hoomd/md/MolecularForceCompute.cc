@@ -15,8 +15,6 @@
 #include <map>
 #include <string.h>
 
-
-
 /*! \file MolecularForceCompute.cc
     \brief Contains code for the MolecularForceCompute class
 */
@@ -444,9 +442,9 @@ namespace detail
     {
 void export_MolecularForceCompute(pybind11::module& m)
     {
-    pybind11::class_<MolecularForceCompute, ForceConstraint, std::shared_ptr<MolecularForceCompute>>(
-        m,
-        "MolecularForceCompute")
+    pybind11::class_<MolecularForceCompute,
+                     ForceConstraint,
+                     std::shared_ptr<MolecularForceCompute>>(m, "MolecularForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 

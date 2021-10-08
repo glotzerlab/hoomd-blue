@@ -3,8 +3,6 @@
 
 #include "IntegratorTwoStep.h"
 
-
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif

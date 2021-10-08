@@ -560,15 +560,15 @@ namespace detail
 template<class Manifold> void export_TwoStepRATTLEBD(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<TwoStepRATTLEBD<Manifold>,
-               TwoStepLangevinBase,
-               std::shared_ptr<TwoStepRATTLEBD<Manifold>>>(m, name.c_str())
+                     TwoStepLangevinBase,
+                     std::shared_ptr<TwoStepRATTLEBD<Manifold>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Manifold,
-                      std::shared_ptr<Variant>,
-                      bool,
-                      bool,
-                      Scalar>())
+                            std::shared_ptr<ParticleGroup>,
+                            Manifold,
+                            std::shared_ptr<Variant>,
+                            bool,
+                            bool,
+                            Scalar>())
         .def_property("tolerance",
                       &TwoStepRATTLEBD<Manifold>::getTolerance,
                       &TwoStepRATTLEBD<Manifold>::setTolerance);

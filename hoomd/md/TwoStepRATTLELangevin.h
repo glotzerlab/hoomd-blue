@@ -742,16 +742,17 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::includeRATTLEForc
 
 namespace detail
     {
-template<class Manifold> void export_TwoStepRATTLELangevin(pybind11::module& m, const std::string& name)
+template<class Manifold>
+void export_TwoStepRATTLELangevin(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<TwoStepRATTLELangevin<Manifold>,
-               TwoStepLangevinBase,
-               std::shared_ptr<TwoStepRATTLELangevin<Manifold>>>(m, name.c_str())
+                     TwoStepLangevinBase,
+                     std::shared_ptr<TwoStepRATTLELangevin<Manifold>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Manifold,
-                      std::shared_ptr<Variant>,
-                      Scalar>())
+                            std::shared_ptr<ParticleGroup>,
+                            Manifold,
+                            std::shared_ptr<Variant>,
+                            Scalar>())
         .def_property("tally_reservoir_energy",
                       &TwoStepRATTLELangevin<Manifold>::getTallyReservoirEnergy,
                       &TwoStepRATTLELangevin<Manifold>::setTallyReservoirEnergy)

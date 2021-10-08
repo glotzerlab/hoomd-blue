@@ -8,7 +8,6 @@
 
 using namespace std;
 
-
 /*! \file TwoStepNVE.h
     \brief Contains code for the TwoStepNVE class
 */
@@ -408,8 +407,11 @@ namespace detail
     {
 void export_TwoStepNVE(pybind11::module& m)
     {
-    pybind11::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE>>(m, "TwoStepNVE")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool>())
+    pybind11::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE>>(
+        m,
+        "TwoStepNVE")
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool>())
         .def_property("limit", &TwoStepNVE::getLimit, &TwoStepNVE::setLimit)
         .def_property("zero_force", &TwoStepNVE::getZeroForce, &TwoStepNVE::setZeroForce);
     }

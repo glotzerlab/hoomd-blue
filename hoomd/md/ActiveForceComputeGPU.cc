@@ -173,9 +173,9 @@ namespace detail
     {
 void export_ActiveForceComputeGPU(pybind11::module& m)
     {
-    pybind11::class_<ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU>>(
-        m,
-        "ActiveForceComputeGPU")
+    pybind11::class_<ActiveForceComputeGPU,
+                     ActiveForceCompute,
+                     std::shared_ptr<ActiveForceComputeGPU>>(m, "ActiveForceComputeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }
 

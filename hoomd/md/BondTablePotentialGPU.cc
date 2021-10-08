@@ -5,7 +5,6 @@
 
 #include "BondTablePotentialGPU.h"
 
-
 #include <stdexcept>
 
 /*! \file BondTablePotentialGPU.cc
@@ -127,9 +126,9 @@ namespace detail
     {
 void export_BondTablePotentialGPU(pybind11::module& m)
     {
-    pybind11::class_<BondTablePotentialGPU, BondTablePotential, std::shared_ptr<BondTablePotentialGPU>>(
-        m,
-        "BondTablePotentialGPU")
+    pybind11::class_<BondTablePotentialGPU,
+                     BondTablePotential,
+                     std::shared_ptr<BondTablePotentialGPU>>(m, "BondTablePotentialGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
 

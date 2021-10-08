@@ -4,8 +4,6 @@
 // Maintainer: joaander
 #include "Tuner.h"
 
-
-
 /*! \file Updater.cc
     \brief Defines a base class for all tuners
 */

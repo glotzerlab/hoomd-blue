@@ -14,7 +14,6 @@
 
 #include <pybind11/pybind11.h>
 
-
 namespace hoomd
     {
 namespace dem
@@ -28,9 +27,9 @@ void export_NF_WCA_2D(pybind11::module& m)
 
     pybind11::class_<WCA_DEM_2D, ForceCompute, std::shared_ptr<WCA_DEM_2D>>(m, "WCADEM2D")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<md::NeighborList>,
-                      Scalar,
-                      WCA>())
+                            std::shared_ptr<md::NeighborList>,
+                            Scalar,
+                            WCA>())
         .def("setParams", &WCA_DEM_2D::setParams)
         .def("setRcut", &WCA_DEM_2D::setRcut)
         .def("connectDEMGSDShapeSpec", &WCA_DEM_2D::connectDEMGSDShapeSpec)
@@ -42,9 +41,9 @@ void export_NF_WCA_2D(pybind11::module& m)
 
     pybind11::class_<WCA_DEM_2D_GPU, WCA_DEM_2D, std::shared_ptr<WCA_DEM_2D_GPU>>(m, "WCADEM2DGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<md::NeighborList>,
-                      Scalar,
-                      WCA>())
+                            std::shared_ptr<md::NeighborList>,
+                            Scalar,
+                            WCA>())
         .def("setParams", &WCA_DEM_2D_GPU::setParams)
         .def("setRcut", &WCA_DEM_2D_GPU::setRcut)
         .def("setAutotunerParams", &WCA_DEM_2D_GPU::setAutotunerParams);

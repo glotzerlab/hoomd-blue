@@ -174,11 +174,11 @@ template<class Geometry> void export_BounceBackNVEGPU(pybind11::module& m)
     const std::string name = "BounceBackNVE" + Geometry::getName() + "GPU";
 
     pybind11::class_<BounceBackNVEGPU<Geometry>,
-               BounceBackNVE<Geometry>,
-               std::shared_ptr<BounceBackNVEGPU<Geometry>>>(m, name.c_str())
+                     BounceBackNVE<Geometry>,
+                     std::shared_ptr<BounceBackNVEGPU<Geometry>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<const Geometry>>());
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<const Geometry>>());
     }
     }      // end namespace detail
     }      // end namespace mpcd

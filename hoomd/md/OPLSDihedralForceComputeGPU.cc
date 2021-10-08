@@ -9,8 +9,6 @@
 
 #include "OPLSDihedralForceComputeGPU.h"
 
-
-
 using namespace std;
 
 namespace hoomd
@@ -96,8 +94,8 @@ namespace detail
 void export_OPLSDihedralForceComputeGPU(pybind11::module& m)
     {
     pybind11::class_<OPLSDihedralForceComputeGPU,
-               OPLSDihedralForceCompute,
-               std::shared_ptr<OPLSDihedralForceComputeGPU>>(m, "OPLSDihedralForceComputeGPU")
+                     OPLSDihedralForceCompute,
+                     std::shared_ptr<OPLSDihedralForceComputeGPU>>(m, "OPLSDihedralForceComputeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 

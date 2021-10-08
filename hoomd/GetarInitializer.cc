@@ -4,8 +4,6 @@
 #include "GetarInitializer.h"
 #include <iostream>
 
-
-
 namespace hoomd
     {
 namespace getardump

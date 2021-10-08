@@ -6,8 +6,6 @@
 #include "TableDihedralForceCompute.h"
 #include "hoomd/VectorMath.h"
 
-
-
 #include <stdexcept>
 
 /*! \file TableDihedralForceCompute.cc
@@ -344,9 +342,9 @@ namespace detail
 //! Exports the TableDihedralForceCompute class to python
 void export_TableDihedralForceCompute(pybind11::module& m)
     {
-    pybind11::class_<TableDihedralForceCompute, ForceCompute, std::shared_ptr<TableDihedralForceCompute>>(
-        m,
-        "TableDihedralForceCompute")
+    pybind11::class_<TableDihedralForceCompute,
+                     ForceCompute,
+                     std::shared_ptr<TableDihedralForceCompute>>(m, "TableDihedralForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
         .def("setTable", &TableDihedralForceCompute::setTable)
         .def("getEntry", &TableDihedralForceCompute::getEntry);

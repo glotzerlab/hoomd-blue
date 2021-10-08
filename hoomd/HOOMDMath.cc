@@ -10,8 +10,6 @@
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 
-
-
 namespace hoomd
     {
 namespace detail

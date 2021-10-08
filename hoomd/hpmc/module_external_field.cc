@@ -27,8 +27,6 @@
 
 #include "UpdaterExternalFieldWall.h"
 
-
-
 namespace hoomd
     {
 namespace hpmc
@@ -47,7 +45,8 @@ SphereWall make_sphere_wall(Scalar r, pybind11::list origin, bool inside)
     return SphereWall(r, orig, inside);
     }
 
-CylinderWall make_cylinder_wall(Scalar r, pybind11::list origin, pybind11::list orientation, bool inside)
+CylinderWall
+make_cylinder_wall(Scalar r, pybind11::list origin, pybind11::list orientation, bool inside)
     {
     vec3<Scalar> orig;
     orig.x = pybind11::cast<Scalar>(origin[0]);

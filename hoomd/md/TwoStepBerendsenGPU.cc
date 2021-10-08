@@ -10,7 +10,6 @@
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepBerendsenGPU.cuh"
 
-
 #include <functional>
 
 using namespace std;
@@ -145,10 +144,10 @@ void export_BerendsenGPU(pybind11::module& m)
         m,
         "TwoStepBerendsenGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<ComputeThermo>,
-                      Scalar,
-                      std::shared_ptr<Variant>>());
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            std::shared_ptr<Variant>>());
     }
 
     } // end namespace detail

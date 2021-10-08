@@ -5,7 +5,6 @@
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/HOOMDMath.h"
 
-
 using namespace std;
 
 //! \file MuellerPlatheFlow.cc Implementation of CPU version of MuellerPlatheFlow.
@@ -478,14 +477,14 @@ void export_MuellerPlatheFlow(pybind11::module& m)
         m,
         "MuellerPlatheFlow");
     flow.def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>,
-                      std::string,
-                      std::string,
-                      const unsigned int,
-                      const unsigned int,
-                      const unsigned int,
-                      Scalar>())
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
+                            std::string,
+                            std::string,
+                            const unsigned int,
+                            const unsigned int,
+                            const unsigned int,
+                            Scalar>())
         .def_property_readonly("n_slabs", &MuellerPlatheFlow::getNSlabs)
         .def_property_readonly("min_slab", &MuellerPlatheFlow::getMinSlab)
         .def_property_readonly("max_slab", &MuellerPlatheFlow::getMaxSlab)

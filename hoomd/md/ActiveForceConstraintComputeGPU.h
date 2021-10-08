@@ -289,11 +289,11 @@ template<class Manifold>
 void export_ActiveForceConstraintComputeGPU(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ActiveForceConstraintComputeGPU<Manifold>,
-               ActiveForceConstraintCompute<Manifold>,
-               std::shared_ptr<ActiveForceConstraintComputeGPU<Manifold>>>(m, name.c_str())
+                     ActiveForceConstraintCompute<Manifold>,
+                     std::shared_ptr<ActiveForceConstraintComputeGPU<Manifold>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Manifold>());
+                            std::shared_ptr<ParticleGroup>,
+                            Manifold>());
     }
 
     } // end namespace detail

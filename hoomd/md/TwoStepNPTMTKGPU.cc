@@ -13,7 +13,6 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-
 using namespace std;
 
 /*! \file TwoStepNPTMTKGPU.h
@@ -465,16 +464,16 @@ void export_TwoStepNPTMTKGPU(pybind11::module& m)
         m,
         "TwoStepNPTMTKGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<ComputeThermo>,
-                      std::shared_ptr<ComputeThermo>,
-                      Scalar,
-                      Scalar,
-                      std::shared_ptr<Variant>,
-                      const std::vector<std::shared_ptr<Variant>>&,
-                      const std::string&,
-                      const std::vector<bool>&,
-                      const bool>());
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            Scalar,
+                            std::shared_ptr<Variant>,
+                            const std::vector<std::shared_ptr<Variant>>&,
+                            const std::string&,
+                            const std::vector<bool>&,
+                            const bool>());
     }
     } // end namespace detail
     } // end namespace md

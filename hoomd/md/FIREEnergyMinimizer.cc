@@ -7,7 +7,6 @@
 
 using namespace std;
 
-
 /*! \file FIREEnergyMinimizer.h
     \brief Contains code for the FIREEnergyMinimizer class
 */

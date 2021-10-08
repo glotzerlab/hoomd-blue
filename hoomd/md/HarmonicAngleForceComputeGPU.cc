@@ -9,8 +9,6 @@
 
 #include "HarmonicAngleForceComputeGPU.h"
 
-
-
 using namespace std;
 
 namespace hoomd
@@ -118,8 +116,9 @@ namespace detail
 void export_HarmonicAngleForceComputeGPU(pybind11::module& m)
     {
     pybind11::class_<HarmonicAngleForceComputeGPU,
-               HarmonicAngleForceCompute,
-               std::shared_ptr<HarmonicAngleForceComputeGPU>>(m, "HarmonicAngleForceComputeGPU")
+                     HarmonicAngleForceCompute,
+                     std::shared_ptr<HarmonicAngleForceComputeGPU>>(m,
+                                                                    "HarmonicAngleForceComputeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 

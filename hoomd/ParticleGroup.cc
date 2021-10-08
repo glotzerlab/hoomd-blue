@@ -18,7 +18,6 @@
 #include <iostream>
 using namespace std;
 
-
 namespace hoomd
     {
 /*! \param sysdef System the particles are to be selected from
@@ -899,7 +898,8 @@ namespace detail
 void export_ParticleGroup(pybind11::module& m)
     {
     pybind11::class_<ParticleGroup, std::shared_ptr<ParticleGroup>>(m, "ParticleGroup")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>, bool>())
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>, bool>())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>>())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, const std::vector<unsigned int>&>())
         .def(pybind11::init<>())

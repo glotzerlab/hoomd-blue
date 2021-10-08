@@ -15,7 +15,6 @@
 
 using namespace std;
 
-
 namespace hoomd
     {
 namespace md

@@ -13,8 +13,6 @@
 using namespace std;
 using namespace hoomd::detail;
 
-
-
 namespace hoomd
     {
 /*! \param exec_conf The execution configuration
@@ -467,9 +465,9 @@ void export_GSDReader(pybind11::module& m)
     {
     pybind11::class_<GSDReader, std::shared_ptr<GSDReader>>(m, "GSDReader")
         .def(pybind11::init<std::shared_ptr<const ExecutionConfiguration>,
-                      const string&,
-                      const uint64_t,
-                      bool>())
+                            const string&,
+                            const uint64_t,
+                            bool>())
         .def("getTimeStep", &GSDReader::getTimeStep)
         .def("getSnapshot", &GSDReader::getSnapshot)
         .def("clearSnapshot", &GSDReader::clearSnapshot)

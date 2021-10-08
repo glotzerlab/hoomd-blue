@@ -10,8 +10,6 @@
 #include "NeighborListTree.h"
 #include "hoomd/SystemDefinition.h"
 
-
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif

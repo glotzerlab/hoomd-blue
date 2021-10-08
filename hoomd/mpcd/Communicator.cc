@@ -18,7 +18,6 @@
 
 using namespace std;
 
-
 namespace hoomd
     {
 // 27 neighbors is the maximum in 3 dimensions

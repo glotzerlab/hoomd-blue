@@ -14,7 +14,6 @@
 
 using namespace std;
 
-
 namespace hoomd
     {
 /*! \file Autotuner.cc
@@ -369,12 +368,12 @@ void export_Autotuner(pybind11::module& m)
     {
     pybind11::class_<Autotuner>(m, "Autotuner")
         .def(pybind11::init<unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      const std::string&,
-                      std::shared_ptr<ExecutionConfiguration>>())
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            const std::string&,
+                            std::shared_ptr<ExecutionConfiguration>>())
         .def("getParam", &Autotuner::getParam)
         .def("setEnabled", &Autotuner::setEnabled)
         .def("setMoveRatio", &Autotuner::isComplete)

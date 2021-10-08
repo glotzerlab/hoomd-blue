@@ -8,8 +8,6 @@
 
 #include "ForceCompositeGPU.cuh"
 
-
-
 /*! \file ForceCompositeGPU.cc
     \brief Contains code for the ForceCompositeGPU class
 */

@@ -118,8 +118,9 @@ bool mpcd::StreamingMethod::shouldStream(uint64_t timestep)
  */
 void mpcd::detail::export_StreamingMethod(pybind11::module& m)
     {
-
-    pybind11::class_<mpcd::StreamingMethod, std::shared_ptr<mpcd::StreamingMethod>>(m, "StreamingMethod")
+    pybind11::class_<mpcd::StreamingMethod, std::shared_ptr<mpcd::StreamingMethod>>(
+        m,
+        "StreamingMethod")
         .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int>())
         .def("setPeriod", &mpcd::StreamingMethod::setPeriod)
         .def("setField", &mpcd::StreamingMethod::setField)

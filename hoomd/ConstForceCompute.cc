@@ -5,8 +5,6 @@
 
 #include "ConstForceCompute.h"
 
-
-
 using namespace std;
 
 /*! \file ConstForceCompute.cc
@@ -265,20 +263,20 @@ void export_ConstForceCompute(pybind11::module& m)
         m,
         "ConstForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      Scalar,
-                      Scalar,
-                      Scalar,
-                      Scalar,
-                      Scalar,
-                      Scalar>())
+                            Scalar,
+                            Scalar,
+                            Scalar,
+                            Scalar,
+                            Scalar,
+                            Scalar>())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Scalar,
-                      Scalar,
-                      Scalar,
-                      Scalar,
-                      Scalar,
-                      Scalar>())
+                            std::shared_ptr<ParticleGroup>,
+                            Scalar,
+                            Scalar,
+                            Scalar,
+                            Scalar,
+                            Scalar,
+                            Scalar>())
         .def("setForce", &ConstForceCompute::setForce)
         .def("setGroupForce", &ConstForceCompute::setGroupForce)
         .def("setParticleForce", &ConstForceCompute::setParticleForce)

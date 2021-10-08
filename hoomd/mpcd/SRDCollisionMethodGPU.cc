@@ -154,16 +154,15 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
  */
 void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
     {
-
     pybind11::class_<mpcd::SRDCollisionMethodGPU,
-               mpcd::SRDCollisionMethod,
-               std::shared_ptr<mpcd::SRDCollisionMethodGPU>>(m, "SRDCollisionMethodGPU")
+                     mpcd::SRDCollisionMethod,
+                     std::shared_ptr<mpcd::SRDCollisionMethodGPU>>(m, "SRDCollisionMethodGPU")
         .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
-                      unsigned int,
-                      unsigned int,
-                      int,
-                      unsigned int,
-                      std::shared_ptr<mpcd::CellThermoCompute>>());
+                            unsigned int,
+                            unsigned int,
+                            int,
+                            unsigned int,
+                            std::shared_ptr<mpcd::CellThermoCompute>>());
     }
 
     } // end namespace hoomd

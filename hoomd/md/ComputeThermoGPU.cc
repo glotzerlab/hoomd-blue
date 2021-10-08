@@ -11,8 +11,6 @@
 #include "ComputeThermoGPU.cuh"
 #include "hoomd/GPUPartition.cuh"
 
-
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #include "hoomd/HOOMDMPI.h"

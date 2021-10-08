@@ -285,18 +285,19 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
 namespace detail
     {
 //! Exports the TwoStepRATTLEBDGPU class to python
-template<class Manifold> void export_TwoStepRATTLEBDGPU(pybind11::module& m, const std::string& name)
+template<class Manifold>
+void export_TwoStepRATTLEBDGPU(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<TwoStepRATTLEBDGPU<Manifold>,
-               TwoStepRATTLEBD<Manifold>,
-               std::shared_ptr<TwoStepRATTLEBDGPU<Manifold>>>(m, name.c_str())
+                     TwoStepRATTLEBD<Manifold>,
+                     std::shared_ptr<TwoStepRATTLEBDGPU<Manifold>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Manifold,
-                      std::shared_ptr<Variant>,
-                      bool,
-                      bool,
-                      Scalar>());
+                            std::shared_ptr<ParticleGroup>,
+                            Manifold,
+                            std::shared_ptr<Variant>,
+                            bool,
+                            bool,
+                            Scalar>());
     }
 
     } // end namespace detail

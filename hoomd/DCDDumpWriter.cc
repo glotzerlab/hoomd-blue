@@ -18,8 +18,6 @@
 #include <limits>
 #include <stdexcept>
 
-
-
 using namespace std;
 
 // File position of NFILE in DCD header
@@ -439,10 +437,10 @@ void export_DCDDumpWriter(pybind11::module& m)
     {
     pybind11::class_<DCDDumpWriter, Analyzer, std::shared_ptr<DCDDumpWriter>>(m, "DCDDumpWriter")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::string,
-                      unsigned int,
-                      std::shared_ptr<ParticleGroup>,
-                      bool>())
+                            std::string,
+                            unsigned int,
+                            std::shared_ptr<ParticleGroup>,
+                            bool>())
         .def_property("unwrap_full", &DCDDumpWriter::getUnwrapFull, &DCDDumpWriter::setUnwrapFull)
         .def_property("unwrap_rigid",
                       &DCDDumpWriter::getUnwrapRigid,

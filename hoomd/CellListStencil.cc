@@ -9,7 +9,6 @@
 
 #include "CellListStencil.h"
 
-
 #include <algorithm>
 
 using namespace std;
@@ -210,7 +209,8 @@ namespace detail
     {
 void export_CellListStencil(pybind11::module& m)
     {
-    pybind11::class_<CellListStencil, Compute, std::shared_ptr<CellListStencil>>(m, "CellListStencil")
+    pybind11::class_<CellListStencil, Compute, std::shared_ptr<CellListStencil>>(m,
+                                                                                 "CellListStencil")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>>());
     }
     } // end namespace detail

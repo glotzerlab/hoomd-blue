@@ -4,7 +4,6 @@
 #include "MuellerPlatheFlowGPU.h"
 #include "hoomd/HOOMDMPI.h"
 
-
 using namespace std;
 
 //! \file MuellerPlatheFlowGPU.cc Implementation of GPU version of MuellerPlatheFlow.
@@ -142,18 +141,18 @@ namespace detail
     {
 void export_MuellerPlatheFlowGPU(pybind11::module& m)
     {
-    pybind11::class_<MuellerPlatheFlowGPU, MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlowGPU>>(
-        m,
-        "MuellerPlatheFlowGPU")
+    pybind11::class_<MuellerPlatheFlowGPU,
+                     MuellerPlatheFlow,
+                     std::shared_ptr<MuellerPlatheFlowGPU>>(m, "MuellerPlatheFlowGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>,
-                      std::string,
-                      std::string,
-                      const unsigned int,
-                      const unsigned int,
-                      const unsigned int,
-                      Scalar>());
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
+                            std::string,
+                            std::string,
+                            const unsigned int,
+                            const unsigned int,
+                            const unsigned int,
+                            Scalar>());
     }
 
     } // end namespace detail

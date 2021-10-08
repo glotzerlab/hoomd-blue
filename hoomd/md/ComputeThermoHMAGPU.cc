@@ -11,8 +11,6 @@
 #include "ComputeThermoHMAGPU.cuh"
 #include "hoomd/GPUPartition.cuh"
 
-
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #include "hoomd/HOOMDMPI.h"
@@ -216,9 +214,9 @@ void export_ComputeThermoHMAGPU(pybind11::module& m)
         m,
         "ComputeThermoHMAGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      const double,
-                      const double>());
+                            std::shared_ptr<ParticleGroup>,
+                            const double,
+                            const double>());
     }
 
     } // end namespace detail

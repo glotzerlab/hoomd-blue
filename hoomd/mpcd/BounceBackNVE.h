@@ -302,11 +302,11 @@ template<class Geometry> void export_BounceBackNVE(pybind11::module& m)
     const std::string name = "BounceBackNVE" + Geometry::getName();
 
     pybind11::class_<BounceBackNVE<Geometry>,
-               hoomd::md::IntegrationMethodTwoStep,
-               std::shared_ptr<BounceBackNVE<Geometry>>>(m, name.c_str())
+                     hoomd::md::IntegrationMethodTwoStep,
+                     std::shared_ptr<BounceBackNVE<Geometry>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<const Geometry>>())
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<const Geometry>>())
         .def_property("geometry",
                       &BounceBackNVE<Geometry>::getGeometry,
                       &BounceBackNVE<Geometry>::setGeometry);

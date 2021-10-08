@@ -14,7 +14,6 @@ using namespace hoomd;
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-
 using namespace std;
 
 namespace hoomd
@@ -270,10 +269,10 @@ void export_TwoStepBD(pybind11::module& m)
     {
     pybind11::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD>>(m, "TwoStepBD")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>,
-                      bool,
-                      bool>());
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
+                            bool,
+                            bool>());
     }
 
     } // end namespace detail

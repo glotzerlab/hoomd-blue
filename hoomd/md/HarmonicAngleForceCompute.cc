@@ -5,8 +5,6 @@
 
 #include "HarmonicAngleForceCompute.h"
 
-
-
 #include <iostream>
 #include <math.h>
 #include <sstream>
@@ -281,9 +279,9 @@ namespace detail
     {
 void export_HarmonicAngleForceCompute(pybind11::module& m)
     {
-    pybind11::class_<HarmonicAngleForceCompute, ForceCompute, std::shared_ptr<HarmonicAngleForceCompute>>(
-        m,
-        "HarmonicAngleForceCompute")
+    pybind11::class_<HarmonicAngleForceCompute,
+                     ForceCompute,
+                     std::shared_ptr<HarmonicAngleForceCompute>>(m, "HarmonicAngleForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &HarmonicAngleForceCompute::setParamsPython)
         .def("getParams", &HarmonicAngleForceCompute::getParams);

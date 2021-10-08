@@ -232,13 +232,13 @@ template<class Geometry> void export_ConfinedStreamingMethod(pybind11::module& m
     {
     const std::string name = "ConfinedStreamingMethod" + Geometry::getName();
     pybind11::class_<mpcd::ConfinedStreamingMethod<Geometry>,
-               mpcd::StreamingMethod,
-               std::shared_ptr<mpcd::ConfinedStreamingMethod<Geometry>>>(m, name.c_str())
+                     mpcd::StreamingMethod,
+                     std::shared_ptr<mpcd::ConfinedStreamingMethod<Geometry>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
-                      unsigned int,
-                      unsigned int,
-                      int,
-                      std::shared_ptr<const Geometry>>())
+                            unsigned int,
+                            unsigned int,
+                            int,
+                            std::shared_ptr<const Geometry>>())
         .def_property("geometry",
                       &mpcd::ConfinedStreamingMethod<Geometry>::getGeometry,
                       &mpcd::ConfinedStreamingMethod<Geometry>::setGeometry);

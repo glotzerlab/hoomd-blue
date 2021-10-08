@@ -14,7 +14,6 @@
 
 using namespace std;
 
-
 namespace hoomd
     {
 /*! A newly constructed ClockSource should read ~0 when getTime() is called. There is no other way

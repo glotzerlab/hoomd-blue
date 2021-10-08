@@ -19,10 +19,11 @@ namespace detail
     {
 void export_ExternalFieldPolymorph(pybind11::module& m)
     {
-
     typedef hoomd::GPUPolymorph<mpcd::ExternalField> ExternalFieldPolymorph;
 
-    pybind11::class_<ExternalFieldPolymorph, std::shared_ptr<ExternalFieldPolymorph>>(m, "ExternalField")
+    pybind11::class_<ExternalFieldPolymorph, std::shared_ptr<ExternalFieldPolymorph>>(
+        m,
+        "ExternalField")
         .def(pybind11::init<std::shared_ptr<const hoomd::ExecutionConfiguration>>())
         // each field needs to get at least one (factory) method
         .def("BlockForce",

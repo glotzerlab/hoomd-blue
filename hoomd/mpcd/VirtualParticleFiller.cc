@@ -81,14 +81,13 @@ void mpcd::VirtualParticleFiller::setType(unsigned int type)
  */
 void mpcd::detail::export_VirtualParticleFiller(pybind11::module& m)
     {
-
     pybind11::class_<mpcd::VirtualParticleFiller, std::shared_ptr<mpcd::VirtualParticleFiller>>(
         m,
         "VirtualParticleFiller")
         .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
-                      Scalar,
-                      unsigned int,
-                      std::shared_ptr<Variant>>())
+                            Scalar,
+                            unsigned int,
+                            std::shared_ptr<Variant>>())
         .def("setDensity", &mpcd::VirtualParticleFiller::setDensity)
         .def("setType", &mpcd::VirtualParticleFiller::setType)
         .def("setTemperature", &mpcd::VirtualParticleFiller::setTemperature);

@@ -8,7 +8,6 @@
 #include <string.h>
 using namespace Eigen;
 
-
 /*! \file ForceDistanceConstraint.cc
     \brief Contains code for the ForceDistanceConstraint class
 */
@@ -682,8 +681,8 @@ namespace detail
 void export_ForceDistanceConstraint(pybind11::module& m)
     {
     pybind11::class_<ForceDistanceConstraint,
-               MolecularForceCompute,
-               std::shared_ptr<ForceDistanceConstraint>>(m, "ForceDistanceConstraint")
+                     MolecularForceCompute,
+                     std::shared_ptr<ForceDistanceConstraint>>(m, "ForceDistanceConstraint")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def_property("tolerance",
                       &ForceDistanceConstraint::getRelativeTolerance,

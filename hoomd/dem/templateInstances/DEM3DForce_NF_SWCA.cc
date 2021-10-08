@@ -14,7 +14,6 @@
 
 #include <pybind11/pybind11.h>
 
-
 namespace hoomd
     {
 namespace dem
@@ -28,9 +27,9 @@ void export_NF_SWCA_3D(pybind11::module& m)
 
     pybind11::class_<SWCA_DEM_3D, ForceCompute, std::shared_ptr<SWCA_DEM_3D>>(m, "SWCADEM3D")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<md::NeighborList>,
-                      Scalar,
-                      SWCA>())
+                            std::shared_ptr<md::NeighborList>,
+                            Scalar,
+                            SWCA>())
         .def("setParams", &SWCA_DEM_3D::setParams)
         .def("setRcut", &SWCA_DEM_3D::setRcut)
         .def("connectDEMGSDShapeSpec", &SWCA_DEM_3D::connectDEMGSDShapeSpec)
@@ -40,11 +39,12 @@ void export_NF_SWCA_3D(pybind11::module& m)
 #ifdef ENABLE_HIP
     typedef DEM3DForceComputeGPU<Scalar, Scalar4, SWCA> SWCA_DEM_3D_GPU;
 
-    pybind11::class_<SWCA_DEM_3D_GPU, SWCA_DEM_3D, std::shared_ptr<SWCA_DEM_3D_GPU>>(m, "SWCADEM3DGPU")
+    pybind11::class_<SWCA_DEM_3D_GPU, SWCA_DEM_3D, std::shared_ptr<SWCA_DEM_3D_GPU>>(m,
+                                                                                     "SWCADEM3DGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<md::NeighborList>,
-                      Scalar,
-                      SWCA>())
+                            std::shared_ptr<md::NeighborList>,
+                            Scalar,
+                            SWCA>())
         .def("setParams", &SWCA_DEM_3D_GPU::setParams)
         .def("setRcut", &SWCA_DEM_3D_GPU::setRcut)
         .def("setAutotunerParams", &SWCA_DEM_3D_GPU::setAutotunerParams);

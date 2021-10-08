@@ -204,11 +204,11 @@ bool mpcd::CellListGPU::needsEmbedMigrate(uint64_t timestep)
 
 void mpcd::detail::export_CellListGPU(pybind11::module& m)
     {
-
-
-    pybind11::class_<mpcd::CellListGPU, mpcd::CellList, std::shared_ptr<mpcd::CellListGPU>>(m,
-                                                                                      "CellListGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData>>());
+    pybind11::class_<mpcd::CellListGPU, mpcd::CellList, std::shared_ptr<mpcd::CellListGPU>>(
+        m,
+        "CellListGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<mpcd::ParticleData>>());
     }
 
     } // end namespace hoomd

@@ -11,7 +11,6 @@
 
 using namespace std;
 
-
 namespace hoomd
     {
 namespace md
@@ -51,8 +50,8 @@ namespace detail
 void export_ActiveRotationalDiffusionUpdater(pybind11::module& m)
     {
     pybind11::class_<ActiveRotationalDiffusionUpdater,
-               Updater,
-               std::shared_ptr<ActiveRotationalDiffusionUpdater>>(
+                     Updater,
+                     std::shared_ptr<ActiveRotationalDiffusionUpdater>>(
         m,
         "ActiveRotationalDiffusionUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,

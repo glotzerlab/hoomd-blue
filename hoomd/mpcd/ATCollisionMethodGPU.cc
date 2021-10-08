@@ -177,17 +177,16 @@ void mpcd::ATCollisionMethodGPU::applyVelocities()
  */
 void mpcd::detail::export_ATCollisionMethodGPU(pybind11::module& m)
     {
-
     pybind11::class_<mpcd::ATCollisionMethodGPU,
-               mpcd::ATCollisionMethod,
-               std::shared_ptr<mpcd::ATCollisionMethodGPU>>(m, "ATCollisionMethodGPU")
+                     mpcd::ATCollisionMethod,
+                     std::shared_ptr<mpcd::ATCollisionMethodGPU>>(m, "ATCollisionMethodGPU")
         .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
-                      uint64_t,
-                      uint64_t,
-                      int,
-                      std::shared_ptr<mpcd::CellThermoCompute>,
-                      std::shared_ptr<mpcd::CellThermoCompute>,
-                      std::shared_ptr<Variant>>());
+                            uint64_t,
+                            uint64_t,
+                            int,
+                            std::shared_ptr<mpcd::CellThermoCompute>,
+                            std::shared_ptr<mpcd::CellThermoCompute>,
+                            std::shared_ptr<Variant>>());
     }
 
     } // end namespace hoomd

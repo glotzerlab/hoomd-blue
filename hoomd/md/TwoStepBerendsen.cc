@@ -10,7 +10,6 @@
 
 using namespace std;
 
-
 /*! \file TwoStepBerendsen.cc
     \brief Definition of Berendsen thermostat
 */
@@ -167,10 +166,10 @@ void export_Berendsen(pybind11::module& m)
         m,
         "TwoStepBerendsen")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<ComputeThermo>,
-                      Scalar,
-                      std::shared_ptr<Variant>>())
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            std::shared_ptr<Variant>>())
         .def_property("kT", &TwoStepBerendsen::getT, &TwoStepBerendsen::setT)
         .def_property("tau", &TwoStepBerendsen::getTau, &TwoStepBerendsen::setTau);
     }

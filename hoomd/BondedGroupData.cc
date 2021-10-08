@@ -20,7 +20,6 @@
 
 using namespace std;
 
-
 namespace hoomd
     {
 //! Names of bonded groups
@@ -1425,7 +1424,8 @@ pybind11::object BondedGroupData<group_size, Group, name, has_type_mapping>::Sna
    snapshot
 */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
-pybind11::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getBondedTagsNP(
+pybind11::object
+BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getBondedTagsNP(
     pybind11::object self)
     {
     auto self_cpp
@@ -1452,7 +1452,8 @@ pybind11::list BondedGroupData<group_size, Group, name, has_type_mapping>::Snaps
 /*! \param types Python list of type names to set
  */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
-void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTypes(pybind11::list types)
+void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTypes(
+    pybind11::list types)
     {
     type_mapping.resize(len(types));
 

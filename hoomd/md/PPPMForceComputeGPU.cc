@@ -6,8 +6,6 @@
 #ifdef ENABLE_HIP
 #include "PPPMForceComputeGPU.cuh"
 
-
-
 namespace hoomd
     {
 namespace md
@@ -904,8 +902,8 @@ void export_PPPMForceComputeGPU(pybind11::module& m)
         m,
         "PPPMForceComputeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<NeighborList>,
-                      std::shared_ptr<ParticleGroup>>());
+                            std::shared_ptr<NeighborList>,
+                            std::shared_ptr<ParticleGroup>>());
     }
 
     } // end namespace detail

@@ -8,7 +8,6 @@
 
 using namespace std;
 
-
 /*! \file TwoStepNPTMTK.cc
     \brief Contains code for the TwoStepNPTMTK class
 */
@@ -1253,16 +1252,16 @@ void export_TwoStepNPTMTK(pybind11::module& m)
         twostepnptmtk(m, "TwoStepNPTMTK");
     twostepnptmtk
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<ComputeThermo>,
-                      std::shared_ptr<ComputeThermo>,
-                      Scalar,
-                      Scalar,
-                      std::shared_ptr<Variant>,
-                      const std::vector<std::shared_ptr<Variant>>&,
-                      const string&,
-                      const std::vector<bool>&,
-                      const bool>())
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            Scalar,
+                            std::shared_ptr<Variant>,
+                            const std::vector<std::shared_ptr<Variant>>&,
+                            const string&,
+                            const std::vector<bool>&,
+                            const bool>())
         .def_property("kT", &TwoStepNPTMTK::getT, &TwoStepNPTMTK::setT)
         .def_property("S", &TwoStepNPTMTK::getS, &TwoStepNPTMTK::setS)
         .def_property("tau", &TwoStepNPTMTK::getTau, &TwoStepNPTMTK::setTau)

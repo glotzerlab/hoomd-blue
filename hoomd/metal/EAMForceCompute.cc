@@ -12,8 +12,6 @@ using namespace std;
 
 #include <stdexcept>
 
-
-
 namespace hoomd
     {
 namespace metal
@@ -596,8 +594,9 @@ namespace detail
     {
 void export_EAMForceCompute(pybind11::module& m)
     {
-    pybind11::class_<EAMForceCompute, ForceCompute, std::shared_ptr<EAMForceCompute>>(m,
-                                                                                "EAMForceCompute")
+    pybind11::class_<EAMForceCompute, ForceCompute, std::shared_ptr<EAMForceCompute>>(
+        m,
+        "EAMForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, char*, int>())
         .def("set_neighbor_list", &EAMForceCompute::set_neighbor_list)
         .def("get_r_cut", &EAMForceCompute::get_r_cut);

@@ -21,7 +21,6 @@
 
 using namespace std;
 
-
 // the typedef works around an issue with older versions of the preprocessor
 PYBIND11_MAKE_OPAQUE(
     std::vector<std::pair<std::shared_ptr<hoomd::Analyzer>, std::shared_ptr<hoomd::Trigger>>>)
@@ -317,10 +316,12 @@ namespace detail
     {
 void export_System(pybind11::module& m)
     {
-    pybind11::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>>(
+    pybind11::bind_vector<
+        std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>>(
         m,
         "AnalyzerTriggerList");
-    pybind11::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>>>>(
+    pybind11::bind_vector<
+        std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>>>>(
         m,
         "UpdaterTriggerList");
     pybind11::bind_vector<std::vector<std::shared_ptr<Tuner>>>(m, "TunerList");

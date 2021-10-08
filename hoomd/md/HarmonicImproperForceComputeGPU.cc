@@ -9,7 +9,6 @@
 
 #include "HarmonicImproperForceComputeGPU.h"
 
-
 using namespace std;
 
 namespace hoomd
@@ -122,9 +121,10 @@ namespace detail
 void export_HarmonicImproperForceComputeGPU(pybind11::module& m)
     {
     pybind11::class_<HarmonicImproperForceComputeGPU,
-               HarmonicImproperForceCompute,
-               std::shared_ptr<HarmonicImproperForceComputeGPU>>(m,
-                                                                 "HarmonicImproperForceComputeGPU")
+                     HarmonicImproperForceCompute,
+                     std::shared_ptr<HarmonicImproperForceComputeGPU>>(
+        m,
+        "HarmonicImproperForceComputeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 

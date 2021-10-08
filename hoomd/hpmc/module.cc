@@ -37,7 +37,6 @@ using namespace hoomd::hpmc;
 using namespace hoomd::hpmc::detail;
 using namespace std;
 
-
 //! Define the _hpmc python module exports
 PYBIND11_MODULE(_hpmc, m)
     {
@@ -73,7 +72,8 @@ PYBIND11_MODULE(_hpmc, m)
     pybind11::class_<TriangleMesh, std::shared_ptr<TriangleMesh>>(m, "TriangleMesh")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &TriangleMesh::asDict);
-    pybind11::class_<PolyhedronVertices, std::shared_ptr<PolyhedronVertices>>(m, "PolyhedronVertices")
+    pybind11::class_<PolyhedronVertices, std::shared_ptr<PolyhedronVertices>>(m,
+                                                                              "PolyhedronVertices")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &PolyhedronVertices::asDict);
     pybind11::class_<FacetedEllipsoidParams, std::shared_ptr<FacetedEllipsoidParams>>(
@@ -86,17 +86,20 @@ PYBIND11_MODULE(_hpmc, m)
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &SphinxParams::asDict);
     pybind11::class_<ShapeUnion<ShapeSphere>::param_type,
-               std::shared_ptr<ShapeUnion<ShapeSphere>::param_type>>(m, "SphereUnionParams")
+                     std::shared_ptr<ShapeUnion<ShapeSphere>::param_type>>(m, "SphereUnionParams")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &ShapeUnion<ShapeSphere>::param_type::asDict);
 
     pybind11::class_<ShapeUnion<ShapeSpheropolyhedron>::param_type,
-               std::shared_ptr<ShapeUnion<ShapeSpheropolyhedron>::param_type>>(m, "mpoly3d_params")
+                     std::shared_ptr<ShapeUnion<ShapeSpheropolyhedron>::param_type>>(
+        m,
+        "mpoly3d_params")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &ShapeUnion<ShapeSpheropolyhedron>::param_type::asDict);
     pybind11::class_<ShapeUnion<ShapeFacetedEllipsoid>::param_type,
-               std::shared_ptr<ShapeUnion<ShapeFacetedEllipsoid>::param_type>>(m,
-                                                                               "mfellipsoid_params")
+                     std::shared_ptr<ShapeUnion<ShapeFacetedEllipsoid>::param_type>>(
+        m,
+        "mfellipsoid_params")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &ShapeUnion<ShapeFacetedEllipsoid>::param_type::asDict);
 

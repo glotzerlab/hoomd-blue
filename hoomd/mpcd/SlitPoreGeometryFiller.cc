@@ -220,16 +220,15 @@ void mpcd::SlitPoreGeometryFiller::drawParticles(uint64_t timestep)
  */
 void mpcd::detail::export_SlitPoreGeometryFiller(pybind11::module& m)
     {
-
     pybind11::class_<mpcd::SlitPoreGeometryFiller,
-               mpcd::VirtualParticleFiller,
-               std::shared_ptr<mpcd::SlitPoreGeometryFiller>>(m, "SlitPoreGeometryFiller")
+                     mpcd::VirtualParticleFiller,
+                     std::shared_ptr<mpcd::SlitPoreGeometryFiller>>(m, "SlitPoreGeometryFiller")
         .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
-                      Scalar,
-                      unsigned int,
-                      std::shared_ptr<Variant>,
-                      unsigned int,
-                      std::shared_ptr<const mpcd::detail::SlitPoreGeometry>>())
+                            Scalar,
+                            unsigned int,
+                            std::shared_ptr<Variant>,
+                            unsigned int,
+                            std::shared_ptr<const mpcd::detail::SlitPoreGeometry>>())
         .def("setGeometry", &mpcd::SlitPoreGeometryFiller::setGeometry);
     }
 

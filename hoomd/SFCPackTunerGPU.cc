@@ -20,7 +20,6 @@
 
 using namespace std;
 
-
 namespace hoomd
     {
 //! Constructor
@@ -314,8 +313,9 @@ namespace detail
     {
 void export_SFCPackTunerGPU(pybind11::module& m)
     {
-    pybind11::class_<SFCPackTunerGPU, SFCPackTuner, std::shared_ptr<SFCPackTunerGPU>>(m,
-                                                                                "SFCPackTunerGPU")
+    pybind11::class_<SFCPackTunerGPU, SFCPackTuner, std::shared_ptr<SFCPackTunerGPU>>(
+        m,
+        "SFCPackTunerGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 

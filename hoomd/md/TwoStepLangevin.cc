@@ -10,7 +10,6 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-
 using namespace std;
 using namespace hoomd;
 
@@ -445,8 +444,8 @@ void export_TwoStepLangevin(pybind11::module& m)
         m,
         "TwoStepLangevin")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>>())
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>>())
         .def_property("tally_reservoir_energy",
                       &TwoStepLangevin::getTallyReservoirEnergy,
                       &TwoStepLangevin::setTallyReservoirEnergy)

@@ -138,22 +138,27 @@ wall_type make_wall_field_params(pybind11::object walls,
         for (unsigned int i = 0; i < w.numSpheres; i++)
             {
             Scalar r = pybind11::cast<Scalar>(pybind11::object(walls_spheres[i]).attr("r"));
-            Scalar3 origin = pybind11::cast<Scalar3>(pybind11::object(walls_spheres[i]).attr("_origin"));
+            Scalar3 origin
+                = pybind11::cast<Scalar3>(pybind11::object(walls_spheres[i]).attr("_origin"));
             bool inside = pybind11::cast<bool>(pybind11::object(walls_spheres[i]).attr("inside"));
             w.Spheres[i] = SphereWall(r, origin, inside);
             }
         for (unsigned int i = 0; i < w.numCylinders; i++)
             {
             Scalar r = pybind11::cast<Scalar>(pybind11::object(walls_cylinders[i]).attr("r"));
-            Scalar3 origin = pybind11::cast<Scalar3>(pybind11::object(walls_cylinders[i]).attr("_origin"));
-            Scalar3 axis = pybind11::cast<Scalar3>(pybind11::object(walls_cylinders[i]).attr("_axis"));
+            Scalar3 origin
+                = pybind11::cast<Scalar3>(pybind11::object(walls_cylinders[i]).attr("_origin"));
+            Scalar3 axis
+                = pybind11::cast<Scalar3>(pybind11::object(walls_cylinders[i]).attr("_axis"));
             bool inside = pybind11::cast<bool>(pybind11::object(walls_cylinders[i]).attr("inside"));
             w.Cylinders[i] = CylinderWall(r, origin, axis, inside);
             }
         for (unsigned int i = 0; i < w.numPlanes; i++)
             {
-            Scalar3 origin = pybind11::cast<Scalar3>(pybind11::object(walls_planes[i]).attr("_origin"));
-            Scalar3 normal = pybind11::cast<Scalar3>(pybind11::object(walls_planes[i]).attr("_normal"));
+            Scalar3 origin
+                = pybind11::cast<Scalar3>(pybind11::object(walls_planes[i]).attr("_origin"));
+            Scalar3 normal
+                = pybind11::cast<Scalar3>(pybind11::object(walls_planes[i]).attr("_normal"));
             bool inside = pybind11::cast<bool>(pybind11::object(walls_planes[i]).attr("inside"));
             w.Planes[i] = PlaneWall(origin, normal, inside);
             }
@@ -165,7 +170,7 @@ wall_type make_wall_field_params(pybind11::object walls,
 template<class evaluator> void export_wall_params_helpers(pybind11::module& m)
     {
     pybind11::class_<typename EvaluatorWalls<evaluator>::param_type,
-               std::shared_ptr<typename EvaluatorWalls<evaluator>::param_type>>(
+                     std::shared_ptr<typename EvaluatorWalls<evaluator>::param_type>>(
         m,
         (EvaluatorWalls<evaluator>::getName() + "_params").c_str())
         .def(pybind11::init<>())
@@ -177,7 +182,8 @@ template<class evaluator> void export_wall_params_helpers(pybind11::module& m)
     }
 
 //! Combines exports of evaluators and parameter helper functions
-template<class evaluator> void export_PotentialExternalWall(pybind11::module& m, const std::string& name)
+template<class evaluator>
+void export_PotentialExternalWall(pybind11::module& m, const std::string& name)
     {
     export_PotentialExternal<PotentialExternal<EvaluatorWalls<evaluator>>>(m, name);
     export_wall_params_helpers<evaluator>(m);

@@ -23,8 +23,6 @@
 #include <sstream>
 using namespace std;
 
-
-
 namespace hoomd
     {
 namespace detail

@@ -10,8 +10,6 @@
 #include "NeighborListGPU.h"
 #include "NeighborListGPU.cuh"
 
-
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
@@ -294,8 +292,9 @@ namespace detail
     {
 void export_NeighborListGPU(pybind11::module& m)
     {
-    pybind11::class_<NeighborListGPU, NeighborList, std::shared_ptr<NeighborListGPU>>(m,
-                                                                                "NeighborListGPU")
+    pybind11::class_<NeighborListGPU, NeighborList, std::shared_ptr<NeighborListGPU>>(
+        m,
+        "NeighborListGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter);
     }

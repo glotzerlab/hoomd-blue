@@ -5,8 +5,6 @@
 
 #include "ForceConstraint.h"
 
-
-
 using namespace std;
 
 /*! \file ForceConstraint.cc
@@ -29,8 +27,9 @@ namespace detail
     {
 void export_ForceConstraint(pybind11::module& m)
     {
-    pybind11::class_<ForceConstraint, ForceCompute, std::shared_ptr<ForceConstraint>>(m,
-                                                                                "ForceConstraint")
+    pybind11::class_<ForceConstraint, ForceCompute, std::shared_ptr<ForceConstraint>>(
+        m,
+        "ForceConstraint")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
     } // end namespace detail

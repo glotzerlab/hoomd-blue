@@ -12,7 +12,6 @@
 
 using namespace std;
 
-
 // SMALL a relatively small number
 #define SMALL Scalar(0.001)
 
@@ -303,8 +302,9 @@ namespace detail
 void export_HarmonicImproperForceCompute(pybind11::module& m)
     {
     pybind11::class_<HarmonicImproperForceCompute,
-               ForceCompute,
-               std::shared_ptr<HarmonicImproperForceCompute>>(m, "HarmonicImproperForceCompute")
+                     ForceCompute,
+                     std::shared_ptr<HarmonicImproperForceCompute>>(m,
+                                                                    "HarmonicImproperForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &HarmonicImproperForceCompute::setParams);
     }

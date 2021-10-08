@@ -10,7 +10,6 @@
 #include <sstream>
 #include <string.h>
 
-
 /*! \file ForceComposite.cc
     \brief Contains code for the ForceComposite class
 */

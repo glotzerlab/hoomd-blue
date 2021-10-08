@@ -10,7 +10,6 @@
 
 #include <string.h>
 
-
 /*! \file ForceDistanceConstraintGPU.cc
     \brief Contains code for the ForceDistanceConstraintGPU class
 */
@@ -751,8 +750,8 @@ namespace detail
 void export_ForceDistanceConstraintGPU(pybind11::module& m)
     {
     pybind11::class_<ForceDistanceConstraintGPU,
-               ForceDistanceConstraint,
-               std::shared_ptr<ForceDistanceConstraintGPU>>(m, "ForceDistanceConstraintGPU")
+                     ForceDistanceConstraint,
+                     std::shared_ptr<ForceDistanceConstraintGPU>>(m, "ForceDistanceConstraintGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 

@@ -18,7 +18,6 @@
 
 using namespace std;
 
-
 #include <vector>
 
 namespace hoomd
@@ -3502,7 +3501,8 @@ namespace detail
 void export_Communicator(pybind11::module& m)
     {
     pybind11::class_<Communicator, std::shared_ptr<Communicator>>(m, "Communicator")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<DomainDecomposition>>())
         .def_property_readonly("domain_decomposition", &Communicator::getDomainDecomposition);
     }
     } // end namespace detail

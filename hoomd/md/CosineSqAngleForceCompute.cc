@@ -3,8 +3,6 @@
 
 #include "CosineSqAngleForceCompute.h"
 
-
-
 #include <iostream>
 #include <math.h>
 #include <sstream>
@@ -276,9 +274,9 @@ namespace detail
     {
 void export_CosineSqAngleForceCompute(pybind11::module& m)
     {
-    pybind11::class_<CosineSqAngleForceCompute, ForceCompute, std::shared_ptr<CosineSqAngleForceCompute>>(
-        m,
-        "CosineSqAngleForceCompute")
+    pybind11::class_<CosineSqAngleForceCompute,
+                     ForceCompute,
+                     std::shared_ptr<CosineSqAngleForceCompute>>(m, "CosineSqAngleForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("getParams", &CosineSqAngleForceCompute::getParams)
         .def("setParams", &CosineSqAngleForceCompute::setParamsPython);

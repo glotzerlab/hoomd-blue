@@ -10,8 +10,6 @@
 #include "CellListGPU.h"
 #include "CellListGPU.cuh"
 
-
-
 using namespace std;
 
 namespace hoomd

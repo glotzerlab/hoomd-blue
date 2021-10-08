@@ -5,8 +5,6 @@
 
 #include "TableAngleForceCompute.h"
 
-
-
 #include <stdexcept>
 
 /*! \file TableAngleForceCompute.cc

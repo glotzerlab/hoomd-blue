@@ -15,8 +15,6 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-
-
 #include <iomanip>
 #include <iostream>
 using namespace std;
@@ -202,11 +200,13 @@ namespace detail
     {
 void export_ComputeThermoHMA(pybind11::module& m)
     {
-    pybind11::class_<ComputeThermoHMA, Compute, std::shared_ptr<ComputeThermoHMA>>(m, "ComputeThermoHMA")
+    pybind11::class_<ComputeThermoHMA, Compute, std::shared_ptr<ComputeThermoHMA>>(
+        m,
+        "ComputeThermoHMA")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      const double,
-                      const double>())
+                            std::shared_ptr<ParticleGroup>,
+                            const double,
+                            const double>())
         .def_property("kT", &ComputeThermoHMA::getTemperature, &ComputeThermoHMA::setTemperature)
         .def_property("harmonic_pressure",
                       &ComputeThermoHMA::getHarmonicPressure,

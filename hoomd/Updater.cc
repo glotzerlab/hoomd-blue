@@ -4,8 +4,6 @@
 // Maintainer: joaander
 #include "Updater.h"
 
-
-
 /*! \file Updater.cc
     \brief Defines a base class for all updaters
 */

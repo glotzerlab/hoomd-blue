@@ -31,8 +31,6 @@
 
 using namespace std;
 
-
-
 namespace hoomd
     {
 namespace detail
@@ -2741,9 +2739,9 @@ void export_ParticleData(pybind11::module& m)
     {
     pybind11::class_<ParticleData, std::shared_ptr<ParticleData>>(m, "ParticleData")
         .def(pybind11::init<unsigned int,
-                      const BoxDim&,
-                      unsigned int,
-                      std::shared_ptr<ExecutionConfiguration>>())
+                            const BoxDim&,
+                            unsigned int,
+                            std::shared_ptr<ExecutionConfiguration>>())
         .def("getGlobalBox",
              &ParticleData::getGlobalBox,
              pybind11::return_value_policy::reference_internal)
@@ -3893,7 +3891,8 @@ template<class Real> pybind11::object SnapshotParticleData<Real>::getChargeNP(py
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> pybind11::object SnapshotParticleData<Real>::getDiameterNP(pybind11::object self)
+template<class Real>
+pybind11::object SnapshotParticleData<Real>::getDiameterNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3935,7 +3934,8 @@ template<class Real> pybind11::object SnapshotParticleData<Real>::getBodyNP(pybi
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> pybind11::object SnapshotParticleData<Real>::getOrientationNP(pybind11::object self)
+template<class Real>
+pybind11::object SnapshotParticleData<Real>::getOrientationNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data

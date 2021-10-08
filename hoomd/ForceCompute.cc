@@ -18,8 +18,6 @@ using namespace std;
 
 #include <pybind11/numpy.h>
 
-
-
 #include <memory>
 
 namespace hoomd

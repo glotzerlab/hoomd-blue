@@ -14,7 +14,6 @@
 
 using namespace std;
 
-
 namespace hoomd
     {
 /*! \param sysdef system to compute the cell list of

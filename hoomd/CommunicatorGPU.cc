@@ -14,7 +14,6 @@
 #include "Profiler.h"
 #include "System.h"
 
-
 #include <algorithm>
 
 namespace hoomd
@@ -3908,9 +3907,11 @@ namespace detail
 //! Export CommunicatorGPU class to python
 void export_CommunicatorGPU(pybind11::module& m)
     {
-    pybind11::class_<CommunicatorGPU, Communicator, std::shared_ptr<CommunicatorGPU>>(m,
-                                                                                "CommunicatorGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition>>())
+    pybind11::class_<CommunicatorGPU, Communicator, std::shared_ptr<CommunicatorGPU>>(
+        m,
+        "CommunicatorGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<DomainDecomposition>>())
         .def("setMaxStages", &CommunicatorGPU::setMaxStages);
     }
     } // end namespace detail

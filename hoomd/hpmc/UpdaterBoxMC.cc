@@ -6,8 +6,6 @@
 #include <numeric>
 #include <vector>
 
-
-
 /*! \file UpdaterBoxMC.cc
     \brief Definition of UpdaterBoxMC
 */
@@ -844,8 +842,8 @@ void export_UpdaterBoxMC(pybind11::module& m)
     {
     pybind11::class_<UpdaterBoxMC, Updater, std::shared_ptr<UpdaterBoxMC>>(m, "UpdaterBoxMC")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<IntegratorHPMC>,
-                      std::shared_ptr<Variant>>())
+                            std::shared_ptr<IntegratorHPMC>,
+                            std::shared_ptr<Variant>>())
         .def_property("volume", &UpdaterBoxMC::getVolumeParams, &UpdaterBoxMC::setVolumeParams)
         .def_property("length", &UpdaterBoxMC::getLengthParams, &UpdaterBoxMC::setLengthParams)
         .def_property("shear", &UpdaterBoxMC::getShearParams, &UpdaterBoxMC::setShearParams)

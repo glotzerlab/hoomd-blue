@@ -15,7 +15,6 @@
 
 using namespace std;
 
-
 namespace hoomd
     {
 /*! \param sysdef System definition containing the particle data to set the box size on
@@ -158,7 +157,9 @@ BoxDim& getBoxDimFromPyObject(pybind11::object box)
 
 void export_BoxResizeUpdater(pybind11::module& m)
     {
-    pybind11::class_<BoxResizeUpdater, Updater, std::shared_ptr<BoxResizeUpdater>>(m, "BoxResizeUpdater")
+    pybind11::class_<BoxResizeUpdater, Updater, std::shared_ptr<BoxResizeUpdater>>(
+        m,
+        "BoxResizeUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             pybind11::object,
                             pybind11::object,

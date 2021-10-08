@@ -10,7 +10,6 @@
 #include "SnapshotSystemData.h"
 #include <pybind11/pybind11.h>
 
-
 namespace hoomd
     {
 template<class Real>

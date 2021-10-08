@@ -15,8 +15,6 @@
 #include "Communicator.h"
 #endif
 
-
-
 using namespace std;
 
 namespace hoomd
@@ -192,32 +190,32 @@ void export_SystemDefinition(pybind11::module& m)
     pybind11::class_<SystemDefinition, std::shared_ptr<SystemDefinition>>(m, "SystemDefinition")
         .def(pybind11::init<>())
         .def(pybind11::init<unsigned int,
-                      const BoxDim&,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      std::shared_ptr<ExecutionConfiguration>>())
+                            const BoxDim&,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            std::shared_ptr<ExecutionConfiguration>>())
         .def(pybind11::init<unsigned int,
-                      const BoxDim&,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      std::shared_ptr<ExecutionConfiguration>,
-                      std::shared_ptr<DomainDecomposition>>())
+                            const BoxDim&,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            std::shared_ptr<ExecutionConfiguration>,
+                            std::shared_ptr<DomainDecomposition>>())
         .def(pybind11::init<std::shared_ptr<SnapshotSystemData<float>>,
-                      std::shared_ptr<ExecutionConfiguration>,
-                      std::shared_ptr<DomainDecomposition>>())
+                            std::shared_ptr<ExecutionConfiguration>,
+                            std::shared_ptr<DomainDecomposition>>())
         .def(pybind11::init<std::shared_ptr<SnapshotSystemData<float>>,
-                      std::shared_ptr<ExecutionConfiguration>>())
+                            std::shared_ptr<ExecutionConfiguration>>())
         .def(pybind11::init<std::shared_ptr<SnapshotSystemData<double>>,
-                      std::shared_ptr<ExecutionConfiguration>,
-                      std::shared_ptr<DomainDecomposition>>())
+                            std::shared_ptr<ExecutionConfiguration>,
+                            std::shared_ptr<DomainDecomposition>>())
         .def(pybind11::init<std::shared_ptr<SnapshotSystemData<double>>,
-                      std::shared_ptr<ExecutionConfiguration>>())
+                            std::shared_ptr<ExecutionConfiguration>>())
         .def("setNDimensions", &SystemDefinition::setNDimensions)
         .def("getNDimensions", &SystemDefinition::getNDimensions)
         .def("getParticleData", &SystemDefinition::getParticleData)

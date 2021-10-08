@@ -71,15 +71,14 @@ void mpcd::SlitGeometryFillerGPU::drawParticles(uint64_t timestep)
  */
 void mpcd::detail::export_SlitGeometryFillerGPU(pybind11::module& m)
     {
-
     pybind11::class_<mpcd::SlitGeometryFillerGPU,
-               mpcd::SlitGeometryFiller,
-               std::shared_ptr<mpcd::SlitGeometryFillerGPU>>(m, "SlitGeometryFillerGPU")
+                     mpcd::SlitGeometryFiller,
+                     std::shared_ptr<mpcd::SlitGeometryFillerGPU>>(m, "SlitGeometryFillerGPU")
         .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
-                      Scalar,
-                      unsigned int,
-                      std::shared_ptr<Variant>,
-                      std::shared_ptr<const mpcd::detail::SlitGeometry>>());
+                            Scalar,
+                            unsigned int,
+                            std::shared_ptr<Variant>,
+                            std::shared_ptr<const mpcd::detail::SlitGeometry>>());
     }
 
     } // end namespace hoomd

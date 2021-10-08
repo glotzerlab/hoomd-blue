@@ -9,7 +9,6 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-
 using namespace std;
 
 namespace hoomd
@@ -296,8 +295,8 @@ void export_TwoStepLangevinGPU(pybind11::module& m)
         m,
         "TwoStepLangevinGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>>());
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>>());
     }
 
     } // end namespace detail

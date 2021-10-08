@@ -5,8 +5,6 @@
 
 #include "TableDihedralForceComputeGPU.h"
 
-
-
 #include <stdexcept>
 
 /*! \file TableDihedralForceComputeGPU.cc
@@ -112,8 +110,9 @@ namespace detail
 void export_TableDihedralForceComputeGPU(pybind11::module& m)
     {
     pybind11::class_<TableDihedralForceComputeGPU,
-               TableDihedralForceCompute,
-               std::shared_ptr<TableDihedralForceComputeGPU>>(m, "TableDihedralForceComputeGPU")
+                     TableDihedralForceCompute,
+                     std::shared_ptr<TableDihedralForceComputeGPU>>(m,
+                                                                    "TableDihedralForceComputeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
 

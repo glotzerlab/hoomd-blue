@@ -7,8 +7,6 @@
 
 #include "CosineSqAngleForceComputeGPU.h"
 
-
-
 using namespace std;
 
 namespace hoomd
@@ -116,8 +114,9 @@ namespace detail
 void export_CosineSqAngleForceComputeGPU(pybind11::module& m)
     {
     pybind11::class_<CosineSqAngleForceComputeGPU,
-               CosineSqAngleForceCompute,
-               std::shared_ptr<CosineSqAngleForceComputeGPU>>(m, "CosineSqAngleForceComputeGPU")
+                     CosineSqAngleForceCompute,
+                     std::shared_ptr<CosineSqAngleForceComputeGPU>>(m,
+                                                                    "CosineSqAngleForceComputeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 

@@ -119,11 +119,9 @@ void mpcd::SystemData::initializeFromSnapshot(std::shared_ptr<mpcd::SystemDataSn
  */
 void mpcd::detail::export_SystemData(pybind11::module& m)
     {
-
-
     pybind11::class_<mpcd::SystemData, std::shared_ptr<mpcd::SystemData>>(m, "SystemData")
         .def(pybind11::init<std::shared_ptr<hoomd::SystemDefinition>,
-                      std::shared_ptr<mpcd::ParticleData>>())
+                            std::shared_ptr<mpcd::ParticleData>>())
         .def(pybind11::init<std::shared_ptr<mpcd::SystemDataSnapshot>>())
         .def("getParticleData", &mpcd::SystemData::getParticleData)
         .def("getCellList", &mpcd::SystemData::getCellList)

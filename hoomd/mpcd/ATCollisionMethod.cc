@@ -230,17 +230,16 @@ void mpcd::ATCollisionMethod::applyVelocities()
  */
 void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
     {
-
     pybind11::class_<mpcd::ATCollisionMethod,
-               mpcd::CollisionMethod,
-               std::shared_ptr<mpcd::ATCollisionMethod>>(m, "ATCollisionMethod")
+                     mpcd::CollisionMethod,
+                     std::shared_ptr<mpcd::ATCollisionMethod>>(m, "ATCollisionMethod")
         .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
-                      uint64_t,
-                      uint64_t,
-                      int,
-                      std::shared_ptr<mpcd::CellThermoCompute>,
-                      std::shared_ptr<mpcd::CellThermoCompute>,
-                      std::shared_ptr<Variant>>())
+                            uint64_t,
+                            uint64_t,
+                            int,
+                            std::shared_ptr<mpcd::CellThermoCompute>,
+                            std::shared_ptr<mpcd::CellThermoCompute>,
+                            std::shared_ptr<Variant>>())
         .def("setTemperature", &mpcd::ATCollisionMethod::setTemperature);
     }
 

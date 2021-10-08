@@ -6,8 +6,6 @@
 #include "BondTablePotential.h"
 #include "hoomd/BondedGroupData.h"
 
-
-
 #include <stdexcept>
 
 /*! \file BondTablePotential.cc

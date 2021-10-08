@@ -6,8 +6,6 @@
 #include "Compute.h"
 #include "Communicator.h"
 
-
-
 #include <iostream>
 #include <stdexcept>
 using namespace std;

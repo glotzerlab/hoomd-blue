@@ -9,8 +9,6 @@
 
 #include "Analyzer.h"
 
-
-
 namespace hoomd
     {
 /*! \param sysdef System definition this analyzer will act on. Must not be NULL.

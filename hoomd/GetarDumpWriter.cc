@@ -8,8 +8,6 @@
 #include <cstdio>
 #include <iostream>
 
-
-
 namespace hoomd
     {
 namespace getardump
@@ -982,11 +980,12 @@ void GetarDumpWriter::writeStr(const std::string& name,
 
 void export_GetarDumpWriter(pybind11::module& m)
     {
-    pybind11::class_<GetarDumpWriter, Analyzer, std::shared_ptr<GetarDumpWriter>>(m, "GetarDumpWriter")
+    pybind11::class_<GetarDumpWriter, Analyzer, std::shared_ptr<GetarDumpWriter>>(m,
+                                                                                  "GetarDumpWriter")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::string,
-                      getardump::GetarDumpMode,
-                      unsigned int>())
+                            std::string,
+                            getardump::GetarDumpMode,
+                            unsigned int>())
         .def("close", &GetarDumpWriter::close)
         .def("getPeriod", &GetarDumpWriter::getPeriod)
         .def("setPeriod", &GetarDumpWriter::setPeriod)

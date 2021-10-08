@@ -415,13 +415,13 @@ template<class Manifold>
 void export_TwoStepRATTLELangevinGPU(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<TwoStepRATTLELangevinGPU<Manifold>,
-               TwoStepRATTLELangevin<Manifold>,
-               std::shared_ptr<TwoStepRATTLELangevinGPU<Manifold>>>(m, name.c_str())
+                     TwoStepRATTLELangevin<Manifold>,
+                     std::shared_ptr<TwoStepRATTLELangevinGPU<Manifold>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Manifold,
-                      std::shared_ptr<Variant>,
-                      Scalar>());
+                            std::shared_ptr<ParticleGroup>,
+                            Manifold,
+                            std::shared_ptr<Variant>,
+                            Scalar>());
     }
     } // end namespace detail
     } // end namespace md

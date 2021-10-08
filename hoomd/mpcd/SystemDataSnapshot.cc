@@ -34,8 +34,6 @@ void mpcd::SystemDataSnapshot::replicate(unsigned int nx, unsigned int ny, unsig
  */
 void mpcd::detail::export_SystemDataSnapshot(pybind11::module& m)
     {
-
-
     pybind11::class_<mpcd::SystemDataSnapshot, std::shared_ptr<mpcd::SystemDataSnapshot>>(
         m,
         "SystemDataSnapshot")

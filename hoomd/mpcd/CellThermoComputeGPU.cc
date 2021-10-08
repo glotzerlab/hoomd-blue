@@ -369,11 +369,9 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
 
 void mpcd::detail::export_CellThermoComputeGPU(pybind11::module& m)
     {
-
-
     pybind11::class_<mpcd::CellThermoComputeGPU,
-               mpcd::CellThermoCompute,
-               std::shared_ptr<mpcd::CellThermoComputeGPU>>(m, "CellThermoComputeGPU")
+                     mpcd::CellThermoCompute,
+                     std::shared_ptr<mpcd::CellThermoComputeGPU>>(m, "CellThermoComputeGPU")
         .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>());
     }
 

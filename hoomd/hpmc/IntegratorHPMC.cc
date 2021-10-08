@@ -3,8 +3,6 @@
 
 #include "IntegratorHPMC.h"
 
-
-
 #include "hoomd/VectorMath.h"
 #include <sstream>
 
@@ -233,7 +231,8 @@ namespace detail
     {
 void export_IntegratorHPMC(pybind11::module& m)
     {
-    pybind11::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m, "IntegratorHPMC")
+    pybind11::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m,
+                                                                                  "IntegratorHPMC")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setD", &IntegratorHPMC::setD)
         .def("setA", &IntegratorHPMC::setA)

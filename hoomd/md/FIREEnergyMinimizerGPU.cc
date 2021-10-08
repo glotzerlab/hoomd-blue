@@ -6,7 +6,6 @@
 #include "FIREEnergyMinimizerGPU.h"
 #include "FIREEnergyMinimizerGPU.cuh"
 
-
 using namespace std;
 
 /*! \file FIREEnergyMinimizerGPU.h
@@ -487,8 +486,8 @@ namespace detail
 void export_FIREEnergyMinimizerGPU(pybind11::module& m)
     {
     pybind11::class_<FIREEnergyMinimizerGPU,
-               FIREEnergyMinimizer,
-               std::shared_ptr<FIREEnergyMinimizerGPU>>(m, "FIREEnergyMinimizerGPU")
+                     FIREEnergyMinimizer,
+                     std::shared_ptr<FIREEnergyMinimizerGPU>>(m, "FIREEnergyMinimizerGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>());
     }
 

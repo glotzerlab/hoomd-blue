@@ -25,7 +25,6 @@
 #include "UpdaterClustersGPU.h"
 #endif
 
-
 namespace hoomd
     {
 namespace hpmc

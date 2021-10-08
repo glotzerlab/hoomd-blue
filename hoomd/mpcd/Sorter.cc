@@ -192,7 +192,6 @@ bool mpcd::Sorter::shouldSort(uint64_t timestep)
  */
 void mpcd::detail::export_Sorter(pybind11::module& m)
     {
-
     pybind11::class_<mpcd::Sorter, std::shared_ptr<mpcd::Sorter>>(m, "Sorter")
         .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>())
         .def("setPeriod", &mpcd::Sorter::setPeriod);

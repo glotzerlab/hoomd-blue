@@ -5,7 +5,6 @@
 
 #include "TableAngleForceComputeGPU.h"
 
-
 #include <stdexcept>
 
 /*! \file TableAngleForceComputeGPU.cc
@@ -110,8 +109,8 @@ namespace detail
 void export_TableAngleForceComputeGPU(pybind11::module& m)
     {
     pybind11::class_<TableAngleForceComputeGPU,
-               TableAngleForceCompute,
-               std::shared_ptr<TableAngleForceComputeGPU>>(m, "TableAngleForceComputeGPU")
+                     TableAngleForceCompute,
+                     std::shared_ptr<TableAngleForceComputeGPU>>(m, "TableAngleForceComputeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
 

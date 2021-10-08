@@ -10,8 +10,6 @@
 #include "NeighborList.h"
 #include "hoomd/BondedGroupData.h"
 
-
-
 #include <iostream>
 #include <stdexcept>
 

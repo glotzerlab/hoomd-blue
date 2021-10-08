@@ -3,8 +3,6 @@
 
 #include "Integrator.h"
 
-
-
 #ifdef ENABLE_HIP
 #include "Integrator.cuh"
 #endif

@@ -8,8 +8,6 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
-
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif

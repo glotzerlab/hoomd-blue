@@ -18,7 +18,6 @@
 #include "HOOMDMPI.h"
 #endif
 
-
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
@@ -665,9 +664,9 @@ void export_ExecutionConfiguration(pybind11::module& m)
         executionconfiguration(m, "ExecutionConfiguration");
     executionconfiguration
         .def(pybind11::init<ExecutionConfiguration::executionMode,
-                      std::vector<int>,
-                      std::shared_ptr<MPIConfiguration>,
-                      std::shared_ptr<Messenger>>())
+                            std::vector<int>,
+                            std::shared_ptr<MPIConfiguration>,
+                            std::shared_ptr<Messenger>>())
         .def("getMPIConfig", &ExecutionConfiguration::getMPIConfig)
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)

@@ -21,7 +21,6 @@
 using namespace std;
 using namespace hoomd::detail;
 
-
 namespace hoomd
     {
 std::list<std::string> GSDDumpWriter::particle_chunks {"particles/typeid",
@@ -1121,10 +1120,10 @@ void export_GSDDumpWriter(pybind11::module& m)
 
     pybind11::class_<GSDDumpWriter, Analyzer, std::shared_ptr<GSDDumpWriter>>(m, "GSDDumpWriter")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::string,
-                      std::shared_ptr<ParticleGroup>,
-                      std::string,
-                      bool>())
+                            std::string,
+                            std::shared_ptr<ParticleGroup>,
+                            std::string,
+                            bool>())
         .def("setWriteAttribute", &GSDDumpWriter::setWriteAttribute)
         .def("setWriteProperty", &GSDDumpWriter::setWriteProperty)
         .def("setWriteMomentum", &GSDDumpWriter::setWriteMomentum)

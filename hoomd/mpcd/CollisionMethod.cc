@@ -171,8 +171,9 @@ void mpcd::CollisionMethod::drawGridShift(uint64_t timestep)
  */
 void mpcd::detail::export_CollisionMethod(pybind11::module& m)
     {
-
-    pybind11::class_<mpcd::CollisionMethod, std::shared_ptr<mpcd::CollisionMethod>>(m, "CollisionMethod")
+    pybind11::class_<mpcd::CollisionMethod, std::shared_ptr<mpcd::CollisionMethod>>(
+        m,
+        "CollisionMethod")
         .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, uint64_t, uint64_t, int>())
         .def("enableGridShifting", &mpcd::CollisionMethod::enableGridShifting)
         .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup)

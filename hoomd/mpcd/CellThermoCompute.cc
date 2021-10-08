@@ -591,8 +591,6 @@ void mpcd::CellThermoCompute::reallocate(unsigned int ncells)
  */
 void mpcd::detail::export_CellThermoCompute(pybind11::module& m)
     {
-
-
     pybind11::class_<mpcd::CellThermoCompute, Compute, std::shared_ptr<mpcd::CellThermoCompute>>(
         m,
         "CellThermoCompute")

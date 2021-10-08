@@ -678,13 +678,13 @@ namespace detail
 template<class Manifold> void export_TwoStepRATTLENVE(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<TwoStepRATTLENVE<Manifold>,
-               IntegrationMethodTwoStep,
-               std::shared_ptr<TwoStepRATTLENVE<Manifold>>>(m, name.c_str())
+                     IntegrationMethodTwoStep,
+                     std::shared_ptr<TwoStepRATTLENVE<Manifold>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Manifold,
-                      bool,
-                      Scalar>())
+                            std::shared_ptr<ParticleGroup>,
+                            Manifold,
+                            bool,
+                            Scalar>())
         .def_property("limit",
                       &TwoStepRATTLENVE<Manifold>::getLimit,
                       &TwoStepRATTLENVE<Manifold>::setLimit)

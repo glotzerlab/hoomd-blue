@@ -10,8 +10,6 @@
 #include "NeighborListGPUStencil.h"
 #include "NeighborListGPUStencil.cuh"
 
-
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
@@ -346,9 +344,9 @@ namespace detail
     {
 void export_NeighborListGPUStencil(pybind11::module& m)
     {
-    pybind11::class_<NeighborListGPUStencil, NeighborListGPU, std::shared_ptr<NeighborListGPUStencil>>(
-        m,
-        "NeighborListGPUStencil")
+    pybind11::class_<NeighborListGPUStencil,
+                     NeighborListGPU,
+                     std::shared_ptr<NeighborListGPUStencil>>(m, "NeighborListGPUStencil")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("setCellWidth", &NeighborListGPUStencil::setCellWidth);
     }

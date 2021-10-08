@@ -18,7 +18,6 @@
 
 using namespace std;
 
-
 namespace hoomd
     {
 /*! \param sysdef System to perform sorts on

@@ -5,8 +5,6 @@
 
 #include "HarmonicDihedralForceCompute.h"
 
-
-
 #include <iostream>
 #include <math.h>
 #include <sstream>
@@ -375,8 +373,9 @@ namespace detail
 void export_HarmonicDihedralForceCompute(pybind11::module& m)
     {
     pybind11::class_<HarmonicDihedralForceCompute,
-               ForceCompute,
-               std::shared_ptr<HarmonicDihedralForceCompute>>(m, "HarmonicDihedralForceCompute")
+                     ForceCompute,
+                     std::shared_ptr<HarmonicDihedralForceCompute>>(m,
+                                                                    "HarmonicDihedralForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &HarmonicDihedralForceCompute::setParamsPython)
         .def("getParams", &HarmonicDihedralForceCompute::getParams);

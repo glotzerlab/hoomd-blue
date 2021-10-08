@@ -18,7 +18,6 @@ namespace detail
     {
 void export_boundary(pybind11::module& m)
     {
-
     pybind11::enum_<boundary>(m, "boundary")
         .value("no_slip", boundary::no_slip)
         .value("slip", boundary::slip);
@@ -26,13 +25,12 @@ void export_boundary(pybind11::module& m)
 
 void export_BulkGeometry(pybind11::module& m)
     {
-
-    pybind11::class_<BulkGeometry, std::shared_ptr<BulkGeometry>>(m, "BulkGeometry").def(pybind11::init<>());
+    pybind11::class_<BulkGeometry, std::shared_ptr<BulkGeometry>>(m, "BulkGeometry")
+        .def(pybind11::init<>());
     }
 
 void export_SlitGeometry(pybind11::module& m)
     {
-
     pybind11::class_<SlitGeometry, std::shared_ptr<SlitGeometry>>(m, "SlitGeometry")
         .def(pybind11::init<Scalar, Scalar, boundary>())
         .def("getH", &SlitGeometry::getH)
@@ -42,7 +40,6 @@ void export_SlitGeometry(pybind11::module& m)
 
 void export_SlitPoreGeometry(pybind11::module& m)
     {
-
     pybind11::class_<SlitPoreGeometry, std::shared_ptr<SlitPoreGeometry>>(m, "SlitPoreGeometry")
         .def(pybind11::init<Scalar, Scalar, boundary>())
         .def("getH", &SlitPoreGeometry::getH)

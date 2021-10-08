@@ -10,8 +10,6 @@
 #include "NeighborListGPUBinned.h"
 #include "NeighborListGPUBinned.cuh"
 
-
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
@@ -212,9 +210,9 @@ namespace detail
     {
 void export_NeighborListGPUBinned(pybind11::module& m)
     {
-    pybind11::class_<NeighborListGPUBinned, NeighborListGPU, std::shared_ptr<NeighborListGPUBinned>>(
-        m,
-        "NeighborListGPUBinned")
+    pybind11::class_<NeighborListGPUBinned,
+                     NeighborListGPU,
+                     std::shared_ptr<NeighborListGPUBinned>>(m, "NeighborListGPUBinned")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
         .def_property("deterministic",

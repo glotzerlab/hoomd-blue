@@ -10,8 +10,6 @@
 #include "NeighborListGPUTree.h"
 #include "NeighborListGPUTree.cuh"
 
-
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif

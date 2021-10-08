@@ -6,7 +6,6 @@
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVEGPU.cuh"
 
-
 using namespace std;
 
 /*! \file TwoStepNVEGPU.h

@@ -15,8 +15,6 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-
-
 #include <iostream>
 using namespace std;
 

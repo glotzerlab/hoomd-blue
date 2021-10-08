@@ -22,7 +22,6 @@
 
 using namespace std;
 
-
 namespace hoomd
     {
 //! Constructor
@@ -720,18 +719,20 @@ namespace detail
 //! Export DomainDecomposition class to python
 void export_DomainDecomposition(pybind11::module& m)
     {
-    pybind11::class_<DomainDecomposition, std::shared_ptr<DomainDecomposition>>(m, "DomainDecomposition")
+    pybind11::class_<DomainDecomposition, std::shared_ptr<DomainDecomposition>>(
+        m,
+        "DomainDecomposition")
         .def(pybind11::init<std::shared_ptr<ExecutionConfiguration>,
-                      Scalar3,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      bool>())
+                            Scalar3,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            bool>())
         .def(pybind11::init<std::shared_ptr<ExecutionConfiguration>,
-                      Scalar3,
-                      const std::vector<Scalar>&,
-                      const std::vector<Scalar>&,
-                      const std::vector<Scalar>&>())
+                            Scalar3,
+                            const std::vector<Scalar>&,
+                            const std::vector<Scalar>&,
+                            const std::vector<Scalar>&>())
         .def("getCumulativeFractions", &DomainDecomposition::getCumulativeFractions);
     }
     } // end namespace detail
