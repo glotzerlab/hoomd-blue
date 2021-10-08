@@ -20,6 +20,15 @@ typedef cufftComplex hipfftComplex;
 #endif
 #endif
 
+//! Define plus operator for complex data type (needed by CommunicatorMesh)
+inline kiss_fft_cpx operator+(kiss_fft_cpx& lhs, kiss_fft_cpx& rhs)
+    {
+    kiss_fft_cpx res;
+    res.r = lhs.r + rhs.r;
+    res.i = lhs.i + rhs.i;
+    return res;
+    }
+
 namespace hoomd
     {
 namespace md
@@ -261,16 +270,6 @@ template<typename T> void CommunicatorGrid<T>::communicate(const GlobalArray<T>&
 //! Explicit template instantiations
 template class PYBIND11_EXPORT CommunicatorGrid<Scalar>;
 template class PYBIND11_EXPORT CommunicatorGrid<unsigned int>;
-
-//! Define plus operator for complex data type (needed by CommunicatorMesh)
-inline kiss_fft_cpx operator+(kiss_fft_cpx& lhs, kiss_fft_cpx& rhs)
-    {
-    kiss_fft_cpx res;
-    res.r = lhs.r + rhs.r;
-    res.i = lhs.i + rhs.i;
-    return res;
-    }
-
 template class PYBIND11_EXPORT CommunicatorGrid<kiss_fft_cpx>;
 
 #ifdef ENABLE_HIP
