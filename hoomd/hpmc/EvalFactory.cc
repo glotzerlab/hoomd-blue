@@ -88,6 +88,8 @@ EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::str
         return;
         }
 
+    /// these casts are like this because 1) it works correctly like this and
+    /// 2) trying to use static_cast or reinterpret_cast gives compilation errors
     m_eval = (EvalFnPtr)(long unsigned int)(eval->getAddress());
     m_alpha = (float**)(alpha->getAddress());
     m_alpha_union = (float**)(alpha_union->getAddress());
