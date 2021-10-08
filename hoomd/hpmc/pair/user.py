@@ -87,7 +87,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
         else:
             param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
-        self._param_dict['_code'] = code
+        self._code = code
 
     @log(requires_run=True)
     def energy(self):
@@ -457,7 +457,7 @@ class CPPPotentialUnion(CPPPotentialBase):
             typeparam_charges, typeparam_typeids
         ])
 
-        self._param_array['_code_constituent'] = code_constituent
+        self._code_constituent = code_constituent
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
