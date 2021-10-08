@@ -261,25 +261,29 @@ def test_cpp_potential_sticky_spheres(device, simulation_factory,
 
     sim.operations.integrator = mc
 
-    snap = sim.state.get_snapshot()
+    # set the particle positions
     separation = 1.001
-    if snap.communicator.rank == 0:
-        snap.particles.position[0, :] = [-separation / 2, 0, 0]
-        snap.particles.position[1, :] = [separation / 2, 0, 0]
-    sim.state.set_snapshot(snap)
+    with sim.state.cpu_local_snapshot as snapshot:
+        N = len(snapshot.particles.position)
+        for global_idx, r_x in zip([0, 1], [-separation/2, separation/2]):
+            idx = snapshot.particles.rtag[global_idx]
+            if idx < N:
+                snapshot.particles.position[idx, :] = [r_x, 0, 0]
+
     # first make sure the particles remain stuck together
     for step in range(10):
-        sim.run(100)
         snap = sim.state.get_snapshot()
-        dist = np.linalg.norm(snap.particles.position[0]
-                              - snap.particles.position[1])
-        assert dist < max_r_interact
+        if snap.communicator.rank == 0:
+            dist = np.linalg.norm(snap.particles.position[0]
+                                  - snap.particles.position[1])
+            assert dist < max_r_interact
 
     # now make the interaction repulsive and make sure the particles separate
     patch.param_array[0] = -100.0
     for step in range(10):
         sim.run(100)
         snap = sim.state.get_snapshot()
-        dist = np.linalg.norm(snap.particles.position[0]
-                              - snap.particles.position[1])
-        assert dist > max_r_interact
+        if snap.communicator.rank == 0:
+            dist = np.linalg.norm(snap.particles.position[0]
+                                  - snap.particles.position[1])
+            assert dist > max_r_interact
