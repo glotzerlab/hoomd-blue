@@ -64,11 +64,10 @@ def test_valid_behavior_before_attach_cpp_potential(device, constructor_args,
 @pytest.mark.validate
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 @pytest.mark.parametrize("attr_set,value_set", valid_attrs_after_attach)
-@pytest.mark.parametrize("err_attr,err_val", attr_error)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_valid_behavior_after_attach_cpp_potential(
+def test_modify_after_attach_cpp_potential(
         device, simulation_factory, two_particle_snapshot_factory,
-        constructor_args, attr_set, value_set, err_attr, err_val):
+        constructor_args, attr_set, value_set):
     """Test that CPPPotential can be attached with valid arguments."""
     # create objects
     patch = hoomd.hpmc.pair.user.CPPPotential(**constructor_args)
@@ -91,6 +90,32 @@ def test_valid_behavior_after_attach_cpp_potential(
     sim.run(0)
     setattr(patch, attr_set, value_set)
     assert getattr(patch, attr_set) == value_set
+
+
+@pytest.mark.validate
+@pytest.mark.parametrize("constructor_args", valid_constructor_args)
+@pytest.mark.parametrize("err_attr,err_val", attr_error)
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_error_after_attach_cpp_potential(
+        device, simulation_factory, two_particle_snapshot_factory,
+        constructor_args, err_attr, err_val):
+    """Test that CPPPotential can be attached with valid arguments."""
+    # create objects
+    patch = hoomd.hpmc.pair.user.CPPPotential(**constructor_args)
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1)
+    mc.potential = patch
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+
+    # create C++ mirror classes and set parameters
+    sim.run(0)
+
+    # validate the params were set properly
+    for attr, value in constructor_args.items():
+        assert np.all(getattr(patch, attr) == value)
 
     # make sure we can't set properties than can't be set
     sim.run(0)
