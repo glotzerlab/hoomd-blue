@@ -44,6 +44,7 @@ electric_field_params = [
       (0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2)], -3, -6),
 ]
 
+
 @pytest.mark.cpu
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
