@@ -378,7 +378,7 @@ def test_param_array_union_gpu(device, simulation_factory,
 @pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
-                                      two_particle_snapshot_factory):
+                                            two_particle_snapshot_factory):
     """Validate the behavior of the CPPPotentialUnion class for sticky spheres.
 
     This test is analogous to the test_cpp_potential_sticky_sheres in
@@ -402,13 +402,13 @@ def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
     mc = hoomd.hpmc.integrate.SphereUnion()
     r_cut = 1.5
     patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
-            code_constituent=square_well,
-            r_cut_constituent=r_cut,
-            param_array_constituent=None,
-            r_cut_isotropic=0,
-            code_isotropic=None,
-            param_array=None,
-            )
+        code_constituent=square_well,
+        r_cut_constituent=r_cut,
+        param_array_constituent=None,
+        r_cut_isotropic=0,
+        code_isotropic=None,
+        param_array=None,
+    )
 
     origin = [0, 0, 0]
     patch.positions['A'] = [origin]
