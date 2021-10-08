@@ -149,7 +149,8 @@ def test_electric_field(device, orientations, charge, result,
                 data.particles.orientation[idx, :] = orientations[global_idx]
     sim.run(0)
 
-    assert np.isclose(ext.energy, result)
+    energy = ext.energy
+    assert np.isclose(energy, result)
 
 
 @pytest.mark.cpu
