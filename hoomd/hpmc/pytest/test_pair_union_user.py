@@ -329,7 +329,7 @@ def test_param_array_union_gpu(device, simulation_factory,
     # set up the system and patches
     sim = simulation_factory(two_particle_snapshot_factory(L=40))
     params = dict(
-        code_isotropic=None,
+        code_isotropic='',
         code_constituent=square_well_constituent,
         param_array_constituent=[1.5, 3.0],
         r_cut_constituent=1.5,
@@ -406,7 +406,7 @@ def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
         r_cut_constituent=r_cut,
         param_array_constituent=None,
         r_cut_isotropic=0,
-        code_isotropic=None,
+        code_isotropic='',
         param_array=None,
     )
 

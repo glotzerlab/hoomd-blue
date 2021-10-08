@@ -10,6 +10,7 @@ from hoomd.hpmc import integrate
 if hoomd.version.llvm_enabled:
     from hoomd.hpmc import _jit
 from hoomd.operation import _HOOMDBaseObject
+from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 
 
@@ -71,7 +72,15 @@ class CPPExternalField(_HOOMDBaseObject):
     """
 
     def __init__(self, code):
-        self._code = code
+        param_dict = ParameterDict(code=str)
+        self._param_dict = param_dict
+        self.code = code
+
+    def _getattr_param(self, attr):
+        code_attrs = ['code']
+        if attr in code_attrs:
+            return self._param_dict[attr]
+        return super()._getattr_param(attr)
 
     def _wrap_cpu_code(self, code):
         """Helper function to wrap the provided code into a function \
@@ -141,7 +150,7 @@ class CPPExternalField(_HOOMDBaseObject):
         if cpp_cls is None:
             raise RuntimeError("Unsupported integrator.\n")
 
-        cpu_code = self._wrap_cpu_code(self._code)
+        cpu_code = self._wrap_cpu_code(self.code)
         cpu_include_options = _compile.get_cpu_include_options()
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
@@ -157,20 +166,3 @@ class CPPExternalField(_HOOMDBaseObject):
         """
         timestep = self._simulation.timestep
         return self._cpp_obj.computeEnergy(timestep)
-
-    @property
-    def code(self):
-        """str: The C++ code defines the external field.
-
-        This returns the code that was passed into the class constructor, which
-        contains only the body of the external field energy kernel.
-        """
-        return self._code
-
-    @code.setter
-    def code(self, code):
-        if self._attached:
-            raise AttributeError("This attribute can only be set before the \
-                                  object is attached.")
-        else:
-            self._code = code

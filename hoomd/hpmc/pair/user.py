@@ -12,7 +12,7 @@ if hoomd.version.llvm_enabled:
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import NDArrayValidator
+from hoomd.data.typeconverter import NDArrayValidator, OnlyTypes
 from hoomd.logging import log
 import numpy as np
 
@@ -75,19 +75,28 @@ class CPPPotentialBase(_HOOMDBaseObject):
             between particles.
         param_array (list[float]): Parameter values to pass into ``param_array``
             in the compiled code.
+
+    Attributes:
+        code (str): The C++ code that defines the body of the patch energy
+            function.
+        param_array (``ndarray<float>``): Numpy array containing dynamically
+                adjustable elements in the potential energy function as
+                defined by the user. After running zero or more steps, the array
+                cannot be set, although individual values can still be changed.
     """
 
     def __init__(self, r_cut, code, param_array):
         param_dict = ParameterDict(r_cut=float,
                                    param_array=NDArrayValidator(
-                                       dtype=np.float32, shape=(None,)))
+                                       dtype=np.float32, shape=(None,)),
+                                   code=OnlyTypes(str, allow_none=True))
         param_dict['r_cut'] = r_cut
         if param_array is None or len(param_array) == 0:
             param_dict['param_array'] = np.array([])
         else:
             param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
-        self._code = code
+        self.code = code
 
     @log(requires_run=True)
     def energy(self):
@@ -187,6 +196,14 @@ class CPPPotential(CPPPotentialBase):
         `CPPPotential` is **experimental** and subject to change in future minor
         releases.
 
+    Attributes:
+        code (str): The C++ code that defines the body of the patch energy
+            function.
+        param_array (``ndarray<float>``): Numpy array containing dynamically
+                adjustable elements in the potential energy function as
+                defined by the user. After running zero or more steps, the array
+                cannot be set, although individual values can still be changed.
+
     Examples:
         .. code-block:: python
 
@@ -203,6 +220,12 @@ class CPPPotential(CPPPotentialBase):
 
     def __init__(self, r_cut, code, param_array):
         super().__init__(r_cut=r_cut, code=code, param_array=param_array)
+
+    def _getattr_param(self, attr):
+        code_attrs = ['code']
+        if attr in code_attrs:
+            return self._param_dict[attr]
+        return super()._getattr_param(attr)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -246,19 +269,6 @@ class CPPPotential(CPPPotentialBase):
             )
         # attach patch object to the integrator
         super()._attach()
-
-    @property
-    def code(self):
-        """str: the code defining the isotropic pair interactions."""
-        return self._code
-
-    @code.setter
-    def code(self, code):
-        if self._attached:
-            raise AttributeError("This attribute can only be set before the \
-                                  object is attached.")
-        else:
-            self._code = code
 
 
 class CPPPotentialUnion(CPPPotentialBase):
@@ -327,13 +337,22 @@ class CPPPotentialUnion(CPPPotentialBase):
         leaf_capacity (`int`) : The number of particles in a
                 leaf of the internal tree data structure (**default:** 4).
 
+        code_constituent (str): The C++ code that defines the body of the patch
+            energy function between the constituent particles.
+
+        code_isotropic (str): The C++ code that defines the body of the patch
+            energy function between the centers of the particles.
+
         param_array (``ndarray<float>``): Numpy array containing dynamically
                 adjustable elements in the isotropic part of the potential as
-                defined by the user.
+                defined by the user. After running zero or more steps, the array
+                cannot be set, although individual values can still be changed.
 
         param_array_constituent (``ndarray<float>``): Numpy array containing
                 dynamically adjustable elements in the constituent part of the
-                potential part of the potential as defined by the user.
+                potential part of the potential as defined by the user. After
+                running zero or more steps, the array cannot be set, although
+                individual values can still be changed.
 
     Example without isotropic interactions:
 
@@ -412,6 +431,8 @@ class CPPPotentialUnion(CPPPotentialBase):
             leaf_capacity=int(4),
             param_array_constituent=NDArrayValidator(dtype=np.float32,
                                                      shape=(None,)),
+            code_constituent=OnlyTypes(str, allow_none=True),
+            code_isotropic=OnlyTypes(str, allow_none=True),
         )
 
         if param_array_constituent is None or len(param_array_constituent) == 0:
@@ -457,7 +478,14 @@ class CPPPotentialUnion(CPPPotentialBase):
             typeparam_charges, typeparam_typeids
         ])
 
-        self._code_constituent = code_constituent
+        self.code_constituent = code_constituent
+        self.code_isotropic = code_isotropic
+
+    def _getattr_param(self, attr):
+        code_attrs = ['code_isotropic', 'code_constituent']
+        if attr in code_attrs:
+            return self._param_dict[attr]
+        return super()._getattr_param(attr)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -468,14 +496,14 @@ class CPPPotentialUnion(CPPPotentialBase):
             raise RuntimeError("Integrator is not attached yet.")
 
         if isinstance(self._simulation.device, hoomd.device.GPU):
-            if self._code is not None:
+            if not self.code in [None, '']:
                 msg = 'Code passed into code_isotropic when excuting on the '
                 msg += 'GPU is unused'
                 raise RuntimeError(msg)
 
-        cpu_code_constituent = self._wrap_cpu_code(self._code_constituent)
-        if self._code is not None:
-            cpu_code_isotropic = self._wrap_cpu_code(self._code)
+        cpu_code_constituent = self._wrap_cpu_code(self.code_constituent)
+        if not self.code in [None, '']:
+            cpu_code_isotropic = self._wrap_cpu_code(self.code)
         else:
             cpu_code_isotropic = self._wrap_cpu_code('return 0;')
         cpu_include_options = _compile.get_cpu_include_options()
@@ -484,7 +512,7 @@ class CPPPotentialUnion(CPPPotentialBase):
         if isinstance(self._simulation.device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
-            gpu_code_constituent = self._wrap_gpu_code(self._code_constituent)
+            gpu_code_constituent = self._wrap_gpu_code(self.code_constituent)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
                 self._simulation.state._cpp_sys_def,
                 device._cpp_exec_conf,
@@ -509,39 +537,3 @@ class CPPPotentialUnion(CPPPotentialBase):
                 self.param_array_constituent)
         # attach patch object to the integrator
         super()._attach()
-
-    @property
-    def code_constituent(self):
-        """str: The C++ code defining the custom pair interactions between \
-        constituent particles.
-
-        This returns the code that was passed into the class constructor, which
-        contains only the body of the patch energy kernel.
-        """
-        return self._code_constituent
-
-    @code_constituent.setter
-    def code_constituent(self, code):
-        if self._attached:
-            raise AttributeError("This attribute can only be set before the \
-                                  object is attached.")
-        else:
-            self._code_constituent = code
-
-    @property
-    def code_isotropic(self):
-        """str: The C++ code defining the custom pair interactions between \
-        the central particles of union objects.
-
-        This returns the code that was passed into the class constructor, which
-        contains only the body of the patch energy kernel.
-        """
-        return self._code
-
-    @code_isotropic.setter
-    def code_isotropic(self, code):
-        if self._attached:
-            raise AttributeError("This attribute can only be set before the \
-                                  object is attached.")
-        else:
-            self._code = code

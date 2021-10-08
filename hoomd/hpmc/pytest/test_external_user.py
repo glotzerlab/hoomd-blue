@@ -44,11 +44,6 @@ electric_field_params = [
       (0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2)], -3, -6),
 ]
 
-attr_translator = {
-    'code': '_code',
-}
-
-
 @pytest.mark.cpu
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -58,7 +53,6 @@ def test_valid_construction_cpp_external(device, constructor_args):
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        attr = attr_translator.get(attr, attr)
         assert getattr(ext, attr) == value
 
 
@@ -85,7 +79,6 @@ def test_valid_construction_and_attach_cpp_external(
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        attr = attr_translator.get(attr, attr)
         assert getattr(ext, attr) == value
 
 
