@@ -20,10 +20,10 @@ class CPPExternalField(_HOOMDBaseObject):
     Args:
         code (str): C++ function body to compile.
 
-    Potentials added using external.CPPExternalField are added to the total
-    energy calculation in :py:mod:`hpmc <hoomd.hpmc>` integrators. The
-    :py:class:`CPPExternalField` external field takes C++ code, compiles it
-    at runtime, and executes the code natively in the MC loop with full
+    Potentials added using :py:class:`CPPExternalField` are added to the total
+    energy calculation in :py:mod:`hpmc <hoomd.hpmc>` integrators.  The
+    :py:class:`CPPExternalField` external field takes C++ code, compiles it at
+    runtime, and executes the code natively in the MC loop with full
     performance. It enables researchers to quickly and easily implement custom
     energetic field intractions without the need to modify and recompile HOOMD.
 
@@ -52,8 +52,11 @@ class CPPExternalField(_HOOMDBaseObject):
     * *charge* the particle charge.
     * Your code *must* return a value.
     * `BoxDim` is defined in :file:`BoxDim.h` in the HOOMD-blue source code.
-    * ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h` in the \
+    * ``vec3`` and ``quat`` are defined in the file `VectorMath.h`_ in the \
             HOOMD-blue source code.
+
+    .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
+            v3.0.0-beta.9/hoomd/VectorMath.h
 
     Example:
         .. code-block:: python
@@ -68,6 +71,10 @@ class CPPExternalField(_HOOMDBaseObject):
     Warning:
         ``CPPExternalField`` is **experimental** and subject to change in future
         minor releases.
+
+    Attributes:
+        code (str): The code of the body of the external field energy function.
+            After running zero or more steps, this property cannot be modified.
 
     """
 

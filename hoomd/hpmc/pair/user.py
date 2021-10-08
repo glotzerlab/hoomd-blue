@@ -65,8 +65,11 @@ class CPPPotentialBase(_HOOMDBaseObject):
     * ``d_j`` is the diameter of particle *j*
     * ``charge_j`` is the charge of particle *j*
     * Your code *must* return a value.
-    * ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h` in the \
+    * ``vec3`` and ``quat`` are defined in the file `VectorMath.h`_ in the \
             HOOMD-blue source code.
+
+    .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
+            v3.0.0-beta.9/hoomd/VectorMath.h
 
     Args:
         r_cut (float): Particle center to center distance cutoff beyond which
@@ -78,7 +81,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
     Attributes:
         code (str): The C++ code that defines the body of the patch energy
-            function.
+            function. This code cannot be changed after any calls to
+            run of zero or more steps.
         param_array (``ndarray<float>``): Numpy array containing dynamically
                 adjustable elements in the potential energy function as
                 defined by the user. After running zero or more steps, the array
@@ -198,7 +202,8 @@ class CPPPotential(CPPPotentialBase):
 
     Attributes:
         code (str): The C++ code that defines the body of the patch energy
-            function.
+            function. After running zero or more steps, this property cannot be
+            changed.
         param_array (``ndarray<float>``): Numpy array containing dynamically
                 adjustable elements in the potential energy function as
                 defined by the user. After running zero or more steps, the array
@@ -338,10 +343,12 @@ class CPPPotentialUnion(CPPPotentialBase):
                 leaf of the internal tree data structure (**default:** 4).
 
         code_constituent (str): The C++ code that defines the body of the patch
-            energy function between the constituent particles.
+            energy function between the constituent particles. This property
+            cannot be modified after running for zero or more steps.
 
         code_isotropic (str): The C++ code that defines the body of the patch
-            energy function between the centers of the particles.
+            energy function between the centers of the particles. This property
+            cannot be modified after running for zero or more steps.
 
         param_array (``ndarray<float>``): Numpy array containing dynamically
                 adjustable elements in the isotropic part of the potential as
