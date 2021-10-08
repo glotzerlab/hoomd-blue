@@ -229,7 +229,7 @@ def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
 @pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_cpp_potential_sticky_spheres(device, simulation_factory,
-                       two_particle_snapshot_factory):
+                                      two_particle_snapshot_factory):
     """Validate the behavior of the CPPPotential class for sticky spheres
 
     This test constructs a system of 2 hard spheres with a very deep, very
@@ -265,12 +265,12 @@ def test_cpp_potential_sticky_spheres(device, simulation_factory,
     snap = sim.state.get_snapshot()
     separation = 1.001
     if snap.communicator.rank == 0:
-        snap.particles.position[0, :] = [-separation/2, 0, 0]
-        snap.particles.position[1, :] = [separation/2, 0, 0]
+        snap.particles.position[0, :] = [-separation / 2, 0, 0]
+        snap.particles.position[1, :] = [separation / 2, 0, 0]
     sim.state.set_snapshot(snap)
     for step in range(10):
         sim.run(100)
         snap = sim.state.get_snapshot()
-        dist = np.linalg.norm(
-                snap.particles.position[0] - snap.particles.position[1])
+        dist = np.linalg.norm(snap.particles.position[0]
+                              - snap.particles.position[1])
         assert dist < max_r_interact
