@@ -65,9 +65,10 @@ def test_valid_behavior_before_attach_cpp_potential(device, constructor_args,
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 @pytest.mark.parametrize("attr_set,value_set", valid_attrs_after_attach)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_modify_after_attach_cpp_potential(
-        device, simulation_factory, two_particle_snapshot_factory,
-        constructor_args, attr_set, value_set):
+def test_modify_after_attach_cpp_potential(device, simulation_factory,
+                                           two_particle_snapshot_factory,
+                                           constructor_args, attr_set,
+                                           value_set):
     """Test that CPPPotential can be attached with valid arguments."""
     # create objects
     patch = hoomd.hpmc.pair.user.CPPPotential(**constructor_args)
@@ -96,9 +97,9 @@ def test_modify_after_attach_cpp_potential(
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 @pytest.mark.parametrize("err_attr,err_val", attr_error)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_error_after_attach_cpp_potential(
-        device, simulation_factory, two_particle_snapshot_factory,
-        constructor_args, err_attr, err_val):
+def test_error_after_attach_cpp_potential(device, simulation_factory,
+                                          two_particle_snapshot_factory,
+                                          constructor_args, err_attr, err_val):
     """Test that CPPPotential can be attached with valid arguments."""
     # create objects
     patch = hoomd.hpmc.pair.user.CPPPotential(**constructor_args)
