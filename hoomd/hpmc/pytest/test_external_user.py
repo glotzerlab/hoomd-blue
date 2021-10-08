@@ -179,12 +179,16 @@ def test_gravity(device, simulation_factory, lattice_snapshot_factory):
     mc.field = ext
     sim.operations.integrator = mc
 
-    old_avg_z = np.mean(sim.state.get_snapshot().particles.position[:, 2])
+    snapshot = sim.state.get_snapshot()
+    if snapshot.communicator.rank == 0:
+        old_avg_z = np.mean(snapshot.particles.position[:, 2])
     sim.run(0)
     old_energy = ext.energy
 
     sim.run(6e3)
 
-    new_avg_z = np.mean(sim.state.get_snapshot().particles.position[:, 2])
-    assert new_avg_z < old_avg_z
+    snapshot = sim.state.get_snapshot()
+    if snapshot.communicator.rank == 0:
+        new_avg_z = np.mean(snapshot.particles.position[:, 2])
+        assert new_avg_z < old_avg_z
     assert ext.energy < old_energy
