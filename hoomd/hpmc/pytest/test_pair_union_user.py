@@ -390,7 +390,7 @@ def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
     """
     max_r_interact = 1.003
     square_well = r'''float rsq = dot(r_ij, r_ij);
-                    float epsilon = 100.0f;
+                    float epsilon = param_array_constituent[0];
                     float rcut = {:.16f}f;
                     if (rsq > rcut * rcut)
                         return 0.0f;
@@ -404,7 +404,7 @@ def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
     patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
         code_constituent=square_well,
         r_cut_constituent=r_cut,
-        param_array_constituent=None,
+        param_array_constituent=[100.0],
         r_cut_isotropic=0,
         code_isotropic='',
         param_array=None,
@@ -430,9 +430,19 @@ def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
         snap.particles.position[0, :] = [-separation / 2, 0, 0]
         snap.particles.position[1, :] = [separation / 2, 0, 0]
     sim.state.set_snapshot(snap)
+    # first make sure particles remain "stuck"
     for step in range(10):
         sim.run(100)
         snap = sim.state.get_snapshot()
         dist = np.linalg.norm(snap.particles.position[0]
                               - snap.particles.position[1])
         assert dist < max_r_interact
+
+    # now make the potential repulsive and make sure the particles move apart
+    patch.param_array_constituent[0] = -100.0
+    for step in range(10):
+        sim.run(100)
+        snap = sim.state.get_snapshot()
+        dist = np.linalg.norm(snap.particles.position[0]
+                              - snap.particles.position[1])
+        assert dist > max_r_interact

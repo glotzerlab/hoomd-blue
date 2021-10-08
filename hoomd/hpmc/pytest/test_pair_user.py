@@ -241,7 +241,7 @@ def test_cpp_potential_sticky_spheres(device, simulation_factory,
     """
     max_r_interact = 1.003
     square_well = r'''float rsq = dot(r_ij, r_ij);
-                    float epsilon = 100.0f;
+                    float epsilon = param_array[0];
                     float rcut = {:.16f}f;
                     if (rsq > rcut * rcut)
                         return 0.0f;
@@ -254,7 +254,7 @@ def test_cpp_potential_sticky_spheres(device, simulation_factory,
     r_cut = 1.5
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=r_cut,
                                               code=square_well,
-                                              param_array=None)
+                                              param_array=[100.0])
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
     mc.potential = patch
@@ -267,9 +267,19 @@ def test_cpp_potential_sticky_spheres(device, simulation_factory,
         snap.particles.position[0, :] = [-separation / 2, 0, 0]
         snap.particles.position[1, :] = [separation / 2, 0, 0]
     sim.state.set_snapshot(snap)
+    # first make sure the particles remain stuck together
     for step in range(10):
         sim.run(100)
         snap = sim.state.get_snapshot()
         dist = np.linalg.norm(snap.particles.position[0]
                               - snap.particles.position[1])
         assert dist < max_r_interact
+
+    # now make the interaction repulsive and make sure the particles separate
+    patch.param_array[0] = -100.0
+    for step in range(10):
+        sim.run(100)
+        snap = sim.state.get_snapshot()
+        dist = np.linalg.norm(snap.particles.position[0]
+                              - snap.particles.position[1])
+        assert dist > max_r_interact
