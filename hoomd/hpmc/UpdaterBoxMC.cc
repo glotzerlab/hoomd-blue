@@ -244,7 +244,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
 
     BoxDim curBox = m_pdata->getGlobalBox();
 
-    if (m_mc->getPatchInteraction())
+    if (m_mc->getPatchEnergy())
         {
         // energy of old configuration
         deltaE -= m_mc->computePatchEnergy(timestep);
@@ -258,7 +258,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
 
     bool allowed = m_mc->attemptBoxResize(timestep, newBox);
 
-    if (allowed && m_mc->getPatchInteraction())
+    if (allowed && m_mc->getPatchEnergy())
         {
         deltaE += m_mc->computePatchEnergy(timestep);
         }

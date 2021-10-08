@@ -2,7 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Test hoomd.hpmc.pair.user.CPPUnionPotential."""
+"""Test hoomd.hpmc.pair.user.CPPPotentialUnion."""
 
 import hoomd
 import pytest
@@ -60,15 +60,12 @@ positions_orientations_result = [
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_cpp_union_potential(device, constructor_args):
-    """Test that CPPUnionPotential can be constructed with valid arguments."""
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(**constructor_args)
+    """Test that CPPPotentialUnion can be constructed with valid arguments."""
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**constructor_args)
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        try:
-            assert getattr(patch, attr) == value
-        except ValueError:
-            assert all(getattr(patch, attr) == value)
+        assert np.all(getattr(patch, attr) == value)
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -76,9 +73,9 @@ def test_valid_construction_cpp_union_potential(device, constructor_args):
 def test_valid_construction_and_attach_cpp_union_potential(
         device, simulation_factory, two_particle_snapshot_factory,
         constructor_args):
-    """Test that CPPUnionPotential can be attached with valid arguments."""
+    """Test that CPPPotentialUnion can be attached with valid arguments."""
     # create objects
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(**constructor_args)
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**constructor_args)
     patch.positions['A'] = [(0, 0, 0)]
     patch.orientations['A'] = [(1, 0, 0, 0)]
     patch.diameters['A'] = [1.0]
@@ -102,21 +99,20 @@ def test_valid_construction_and_attach_cpp_union_potential(
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        try:
-            assert getattr(patch, attr) == value
-        except ValueError:  # array-like
-            assert all(getattr(patch, attr) == value)
+        assert np.all(getattr(patch, attr) == value)
 
 
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_cpp_union_potential(device, attr, value):
-    """Test that CPPUnionPotential can get and set attributes before \
+    """Test that CPPPotentialUnion can get and set attributes before \
             attached."""
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
         r_cut_isotropic=1.4,
         r_cut_constituent=1.0,
         code_isotropic='return 5;',
         code_constituent='return 6;',
+        param_array_constituent=None,
+        param_array=None,
     )
 
     setattr(patch, attr, value)
@@ -127,12 +123,14 @@ def test_valid_setattr_cpp_union_potential(device, attr, value):
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_valid_setattr_attached_cpp_union_potential(
         device, attr, value, simulation_factory, two_particle_snapshot_factory):
-    """Test that CPPUnionPotential can get and set attributes after attached."""
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(
+    """Test that CPPPotentialUnion can get and set attributes after attached."""
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
         r_cut_isotropic=1.4,
         r_cut_constituent=1.0,
         code_isotropic='return 5;',
         code_constituent='return 6;',
+        param_array_constituent=None,
+        param_array=None,
     )
     patch.positions['A'] = [(0, 0, 0)]
     patch.orientations['A'] = [(1, 0, 0, 0)]
@@ -166,13 +164,15 @@ def test_valid_setattr_attached_cpp_union_potential(
 def test_raise_attr_error_cpp_union_potential(device, attr, val,
                                               simulation_factory,
                                               two_particle_snapshot_factory):
-    """Test that CPPUnionPotential raises AttributeError if we \
+    """Test that CPPPotentialUnion raises AttributeError if we \
             try to set certain attributes after attaching."""
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
         r_cut_isotropic=1.4,
         r_cut_constituent=1.0,
         code_isotropic='return 5;',
         code_constituent='return 6;',
+        param_array_constituent=None,
+        param_array=None,
     )
     patch.positions['A'] = [(0, 0, 0)]
     patch.orientations['A'] = [(1, 0, 0, 0)]
@@ -243,7 +243,7 @@ def test_param_array_union_cpu(device, simulation_factory,
         param_array_constituent=[1.5, 3.0],
         r_cut_constituent=1.5,
     )
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(**params)
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**params)
     const_particle_pos = [(0.0, -0.5, 0), (0.0, 0.5, 0)]
     patch.positions['A'] = const_particle_pos
     patch.orientations['A'] = [(1, 0, 0, 0), (1, 0, 0, 0)]
@@ -333,8 +333,10 @@ def test_param_array_union_gpu(device, simulation_factory,
         code_constituent=square_well_constituent,
         param_array_constituent=[1.5, 3.0],
         r_cut_constituent=1.5,
+        r_cut_isotropic=0,
+        param_array=None,
     )
-    patch = hoomd.hpmc.pair.user.CPPUnionPotential(**params)
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**params)
     const_particle_pos = [(0.0, -0.5, 0), (0.0, 0.5, 0)]
     patch.positions['A'] = const_particle_pos
     patch.orientations['A'] = [(1, 0, 0, 0), (1, 0, 0, 0)]
@@ -364,3 +366,73 @@ def test_param_array_union_gpu(device, simulation_factory,
     patch.param_array_constituent[0] = np.sqrt(2) + 0.1
     sim.run(0)
     assert (np.isclose(patch.energy, -4.0))  # 4 interacting pairs this time
+
+    # change the depth of the square well to make sure it's getting read on the
+    # GPU
+    old_energy = patch.energy
+    scale_factor = 3.0
+    patch.param_array_constituent[1] *= scale_factor
+    assert (np.isclose(old_energy * scale_factor, patch.energy))
+
+
+@pytest.mark.validate
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
+                                            two_particle_snapshot_factory):
+    """Validate the behavior of the CPPPotentialUnion class for sticky spheres.
+
+    This test is analogous to the test_cpp_potential_sticky_sheres in
+    test_pair_user, but instead a constituent particle is placed at the center
+    of each "union" (just a union of 1 particle). The idea is that if the
+    particles are sticky enough, they should never move out of each others'
+    range of interaction.
+
+    """
+    max_r_interact = 1.003
+    square_well = r'''float rsq = dot(r_ij, r_ij);
+                    float epsilon = 100.0f;
+                    float rcut = {:.16f}f;
+                    if (rsq > rcut * rcut)
+                        return 0.0f;
+                    else
+                        return -epsilon;
+    '''.format(max_r_interact)
+
+    sim = simulation_factory(two_particle_snapshot_factory(d=2, L=100))
+    mc = hoomd.hpmc.integrate.SphereUnion()
+    r_cut = 1.5
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
+        code_constituent=square_well,
+        r_cut_constituent=r_cut,
+        param_array_constituent=None,
+        r_cut_isotropic=0,
+        code_isotropic=None,
+        param_array=None,
+    )
+
+    origin = [0, 0, 0]
+    patch.positions['A'] = [origin]
+    patch.orientations['A'] = [(1, 0, 0, 0)]
+    patch.diameters['A'] = [1.0]
+    patch.typeids['A'] = [0]
+    patch.charges['A'] = [0]
+    sphere1 = dict(diameter=1)
+    mc.shape["A"] = dict(shapes=[sphere1],
+                         positions=[origin],
+                         orientations=[(1, 0, 0, 0)])
+    mc.potential = patch
+
+    sim.operations.integrator = mc
+
+    snap = sim.state.get_snapshot()
+    separation = 1.001
+    if snap.communicator.rank == 0:
+        snap.particles.position[0, :] = [-separation / 2, 0, 0]
+        snap.particles.position[1, :] = [separation / 2, 0, 0]
+    sim.state.set_snapshot(snap)
+    for step in range(10):
+        sim.run(100)
+        snap = sim.state.get_snapshot()
+        dist = np.linalg.norm(snap.particles.position[0]
+                              - snap.particles.position[1])
+        assert dist < max_r_interact

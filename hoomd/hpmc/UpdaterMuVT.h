@@ -527,7 +527,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
 
     extra_ndof = 0;
 
-    auto patch = m_mc->getPatchInteraction();
+    auto patch = m_mc->getPatchEnergy();
 
     if (patch)
         {
@@ -1663,7 +1663,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
         bool is_local = this->m_pdata->isParticleLocal(tag);
 
         // do we have to compute energetic contribution?
-        auto patch = m_mc->getPatchInteraction();
+        auto patch = m_mc->getPatchEnergy();
 
         // if not, no overlaps generated
         if (patch)
@@ -1932,7 +1932,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                            Scalar& lnboltzmann)
     {
     // do we have to compute energetic contribution?
-    auto patch = m_mc->getPatchInteraction();
+    auto patch = m_mc->getPatchEnergy();
 
     lnboltzmann = Scalar(0.0);
 

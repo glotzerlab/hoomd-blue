@@ -112,10 +112,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             vec3<float> pos(p_i[0].cast<float>(), p_i[1].cast<float>(), p_i[2].cast<float>());
             m_position[pid][i] = pos;
             }
-        if (std::find(m_updated_types.begin(), m_updated_types.end(), pid) == m_updated_types.end())
-            {
-            m_updated_types.push_back(pid);
-            }
         buildOBBTree(pid);
         }
 
@@ -177,10 +173,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         for (unsigned int i = 0; i < N; i++)
             {
             m_diameter[pid][i] = diameter[i].cast<float>();
-            }
-        if (std::find(m_updated_types.begin(), m_updated_types.end(), pid) == m_updated_types.end())
-            {
-            m_updated_types.push_back(pid);
             }
         }
 
@@ -347,8 +339,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     Scalar m_r_cut_constituent; //!< Cutoff on constituent particles
     std::vector<float, hoomd::detail::managed_allocator<float>>
         m_param_array_constituent; //!< Data array for constituent particles
-    std::vector<unsigned int>
-        m_updated_types; //!< List of types whose geometric properties were updated
     };
 
 namespace detail

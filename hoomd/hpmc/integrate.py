@@ -234,29 +234,6 @@ class HPMCIntegrator(BaseIntegrator):
 
         return self._cpp_obj.mapOverlaps()
 
-    @log(category='sequence', requires_run=True)
-    def map_energies(self):
-        """Build an energy map of the system.
-
-        Returns:
-            List of tuples. The i,j entry contains the pairwise interaction
-            energy of the ith and jth particles (by tag)
-
-        Note:
-            :py:meth:`map_energies` does not support MPI parallel simulations.
-
-        Attention:
-            `map_energies` is not yet implemented in HOOMD v3.x.
-
-        Example:
-            mc = hpmc.integrate.shape(...)
-            mc.shape_param.set(...)
-            energy_map = np.asarray(mc.map_energies())
-        """
-        if self._simulation.device.communicator.num_ranks > 1:
-            return None
-        return self._cpp_obj.mapEnergies()
-
     @log(requires_run=True)
     def overlaps(self):
         """int: Number of overlapping particle pairs."""

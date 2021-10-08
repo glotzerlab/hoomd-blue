@@ -1174,7 +1174,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
     // clear the local bond and rejection lists
     m_overlap.clear();
 
-    auto patch = m_mc->getPatchInteraction();
+    auto patch = m_mc->getPatchEnergy();
 
     Scalar r_cut_patch(0.0);
     if (patch)
@@ -1686,7 +1686,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         m_prof->pop();
 
 
-    if (m_mc->getPatchInteraction())
+    if (m_mc->getPatchEnergy())
         {
         // sum up interaction energies
         #ifdef ENABLE_TBB_TASK
