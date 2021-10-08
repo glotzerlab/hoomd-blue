@@ -44,6 +44,7 @@ electric_field_params = [
       (0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2)], -3, -6),
 ]
 
+
 @pytest.mark.cpu
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_cpp_external(device, constructor_args):
