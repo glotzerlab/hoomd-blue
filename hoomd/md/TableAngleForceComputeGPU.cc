@@ -5,7 +5,7 @@
 
 #include "TableAngleForceComputeGPU.h"
 
-namespace py = pybind11;
+
 #include <stdexcept>
 
 /*! \file TableAngleForceComputeGPU.cc
@@ -107,12 +107,12 @@ void TableAngleForceComputeGPU::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_TableAngleForceComputeGPU(py::module& m)
+void export_TableAngleForceComputeGPU(pybind11::module& m)
     {
-    py::class_<TableAngleForceComputeGPU,
+    pybind11::class_<TableAngleForceComputeGPU,
                TableAngleForceCompute,
                std::shared_ptr<TableAngleForceComputeGPU>>(m, "TableAngleForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
 
     } // end namespace detail

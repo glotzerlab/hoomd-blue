@@ -16,7 +16,7 @@
 
 using namespace std;
 
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -114,11 +114,11 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
 
 namespace detail
     {
-void export_LoadBalancerGPU(py::module& m)
+void export_LoadBalancerGPU(pybind11::module& m)
     {
-    py::class_<LoadBalancerGPU, LoadBalancer, std::shared_ptr<LoadBalancerGPU>>(m,
+    pybind11::class_<LoadBalancerGPU, LoadBalancer, std::shared_ptr<LoadBalancerGPU>>(m,
                                                                                 "LoadBalancerGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
     } // end namespace detail

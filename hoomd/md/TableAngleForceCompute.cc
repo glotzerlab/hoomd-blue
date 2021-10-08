@@ -5,7 +5,7 @@
 
 #include "TableAngleForceCompute.h"
 
-namespace py = pybind11;
+
 
 #include <stdexcept>
 
@@ -301,12 +301,12 @@ void TableAngleForceCompute::computeForces(uint64_t timestep)
 namespace detail
     {
 //! Exports the TableAngleForceCompute class to python
-void export_TableAngleForceCompute(py::module& m)
+void export_TableAngleForceCompute(pybind11::module& m)
     {
-    py::class_<TableAngleForceCompute, ForceCompute, std::shared_ptr<TableAngleForceCompute>>(
+    pybind11::class_<TableAngleForceCompute, ForceCompute, std::shared_ptr<TableAngleForceCompute>>(
         m,
         "TableAngleForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
         .def("setTable", &TableAngleForceCompute::setTable);
     }
 

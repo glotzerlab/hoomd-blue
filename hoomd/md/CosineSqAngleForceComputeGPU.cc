@@ -7,7 +7,7 @@
 
 #include "CosineSqAngleForceComputeGPU.h"
 
-namespace py = pybind11;
+
 
 using namespace std;
 
@@ -113,12 +113,12 @@ void CosineSqAngleForceComputeGPU::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_CosineSqAngleForceComputeGPU(py::module& m)
+void export_CosineSqAngleForceComputeGPU(pybind11::module& m)
     {
-    py::class_<CosineSqAngleForceComputeGPU,
+    pybind11::class_<CosineSqAngleForceComputeGPU,
                CosineSqAngleForceCompute,
                std::shared_ptr<CosineSqAngleForceComputeGPU>>(m, "CosineSqAngleForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     } // end namespace detail

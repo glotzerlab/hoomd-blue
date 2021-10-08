@@ -6,7 +6,7 @@
 #include "BondTablePotential.h"
 #include "hoomd/BondedGroupData.h"
 
-namespace py = pybind11;
+
 
 #include <stdexcept>
 
@@ -257,12 +257,12 @@ void BondTablePotential::computeForces(uint64_t timestep)
 namespace detail
     {
 //! Exports the BondTablePotential class to python
-void export_BondTablePotential(py::module& m)
+void export_BondTablePotential(pybind11::module& m)
     {
-    py::class_<BondTablePotential, ForceCompute, std::shared_ptr<BondTablePotential>>(
+    pybind11::class_<BondTablePotential, ForceCompute, std::shared_ptr<BondTablePotential>>(
         m,
         "BondTablePotential")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
         .def("setTable", &BondTablePotential::setTable);
     }
 

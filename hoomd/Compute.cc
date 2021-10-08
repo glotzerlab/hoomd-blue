@@ -6,7 +6,7 @@
 #include "Compute.h"
 #include "Communicator.h"
 
-namespace py = pybind11;
+
 
 #include <iostream>
 #include <stdexcept>
@@ -119,10 +119,10 @@ void Compute::forceCompute(uint64_t timestep)
 
 namespace detail
     {
-void export_Compute(py::module& m)
+void export_Compute(pybind11::module& m)
     {
-    py::class_<Compute, std::shared_ptr<Compute>>(m, "Compute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+    pybind11::class_<Compute, std::shared_ptr<Compute>>(m, "Compute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("compute", &Compute::compute)
         .def("benchmark", &Compute::benchmark)
         .def("setProfiler", &Compute::setProfiler)

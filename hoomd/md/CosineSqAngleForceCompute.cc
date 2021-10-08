@@ -3,7 +3,7 @@
 
 #include "CosineSqAngleForceCompute.h"
 
-namespace py = pybind11;
+
 
 #include <iostream>
 #include <math.h>
@@ -274,12 +274,12 @@ void CosineSqAngleForceCompute::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_CosineSqAngleForceCompute(py::module& m)
+void export_CosineSqAngleForceCompute(pybind11::module& m)
     {
-    py::class_<CosineSqAngleForceCompute, ForceCompute, std::shared_ptr<CosineSqAngleForceCompute>>(
+    pybind11::class_<CosineSqAngleForceCompute, ForceCompute, std::shared_ptr<CosineSqAngleForceCompute>>(
         m,
         "CosineSqAngleForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("getParams", &CosineSqAngleForceCompute::getParams)
         .def("setParams", &CosineSqAngleForceCompute::setParamsPython);
     }

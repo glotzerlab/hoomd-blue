@@ -23,7 +23,7 @@
 #include <sstream>
 using namespace std;
 
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -450,10 +450,10 @@ void detail::mpi_io::close()
 
 namespace detail
     {
-void export_Messenger(py::module& m)
+void export_Messenger(pybind11::module& m)
     {
-    py::class_<Messenger, std::shared_ptr<Messenger>>(m, "Messenger")
-        .def(py::init<std::shared_ptr<MPIConfiguration>>())
+    pybind11::class_<Messenger, std::shared_ptr<Messenger>>(m, "Messenger")
+        .def(pybind11::init<std::shared_ptr<MPIConfiguration>>())
         .def("error", &Messenger::errorStr)
         .def("warning", &Messenger::warningStr)
         .def("notice", &Messenger::noticeStr)
@@ -461,15 +461,15 @@ void export_Messenger(py::module& m)
         .def("setNoticeLevel", &Messenger::setNoticeLevel)
         .def("getErrorPrefix",
              &Messenger::getErrorPrefix,
-             py::return_value_policy::reference_internal)
+             pybind11::return_value_policy::reference_internal)
         .def("setErrorPrefix", &Messenger::setErrorPrefix)
         .def("getWarningPrefix",
              &Messenger::getWarningPrefix,
-             py::return_value_policy::reference_internal)
+             pybind11::return_value_policy::reference_internal)
         .def("setWarningPrefix", &Messenger::setWarningPrefix)
         .def("getNoticePrefix",
              &Messenger::getNoticePrefix,
-             py::return_value_policy::reference_internal)
+             pybind11::return_value_policy::reference_internal)
         .def("setWarningPrefix", &Messenger::setWarningPrefix)
         .def("openFile", &Messenger::openFile)
         .def("openPython", &Messenger::openPython)

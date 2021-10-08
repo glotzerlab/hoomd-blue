@@ -10,7 +10,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
+
 using namespace std;
 using namespace hoomd;
 
@@ -439,12 +439,12 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
 
 namespace detail
     {
-void export_TwoStepLangevin(py::module& m)
+void export_TwoStepLangevin(pybind11::module& m)
     {
-    py::class_<TwoStepLangevin, TwoStepLangevinBase, std::shared_ptr<TwoStepLangevin>>(
+    pybind11::class_<TwoStepLangevin, TwoStepLangevinBase, std::shared_ptr<TwoStepLangevin>>(
         m,
         "TwoStepLangevin")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<Variant>>())
         .def_property("tally_reservoir_energy",

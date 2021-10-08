@@ -259,11 +259,11 @@ void mpcd::SRDCollisionMethod::rotate(uint64_t timestep)
  */
 void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::SRDCollisionMethod,
+
+    pybind11::class_<mpcd::SRDCollisionMethod,
                mpcd::CollisionMethod,
                std::shared_ptr<mpcd::SRDCollisionMethod>>(m, "SRDCollisionMethod")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
                       unsigned int,
                       unsigned int,
                       int,

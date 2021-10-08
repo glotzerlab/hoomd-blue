@@ -17,7 +17,7 @@
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
 #endif
-namespace py = pybind11;
+
 
 #include <algorithm>
 #include <iomanip>
@@ -659,12 +659,12 @@ int ExecutionConfiguration::guessLocalRank(bool& found)
 
 namespace detail
     {
-void export_ExecutionConfiguration(py::module& m)
+void export_ExecutionConfiguration(pybind11::module& m)
     {
-    py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration>>
+    pybind11::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration>>
         executionconfiguration(m, "ExecutionConfiguration");
     executionconfiguration
-        .def(py::init<ExecutionConfiguration::executionMode,
+        .def(pybind11::init<ExecutionConfiguration::executionMode,
                       std::vector<int>,
                       std::shared_ptr<MPIConfiguration>,
                       std::shared_ptr<Messenger>>())
@@ -693,7 +693,7 @@ void export_ExecutionConfiguration(py::module& m)
         .def_static("getScanMessages", &ExecutionConfiguration::getScanMessages)
         .def("getActiveDevices", &ExecutionConfiguration::getActiveDevices);
 
-    py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration, "executionMode")
+    pybind11::enum_<ExecutionConfiguration::executionMode>(executionconfiguration, "executionMode")
         .value("GPU", ExecutionConfiguration::executionMode::GPU)
         .value("CPU", ExecutionConfiguration::executionMode::CPU)
         .value("AUTO", ExecutionConfiguration::executionMode::AUTO)

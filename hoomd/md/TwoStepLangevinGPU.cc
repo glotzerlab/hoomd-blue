@@ -9,7 +9,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
+
 using namespace std;
 
 namespace hoomd
@@ -290,12 +290,12 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
 
 namespace detail
     {
-void export_TwoStepLangevinGPU(py::module& m)
+void export_TwoStepLangevinGPU(pybind11::module& m)
     {
-    py::class_<TwoStepLangevinGPU, TwoStepLangevin, std::shared_ptr<TwoStepLangevinGPU>>(
+    pybind11::class_<TwoStepLangevinGPU, TwoStepLangevin, std::shared_ptr<TwoStepLangevinGPU>>(
         m,
         "TwoStepLangevinGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<Variant>>());
     }

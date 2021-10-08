@@ -13,7 +13,7 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
+
 
 /*! \file TwoStepNVTMTK.h
     \brief Contains code for the TwoStepNVTMTK class
@@ -593,12 +593,12 @@ Scalar TwoStepNVTMTK::getThermostatEnergy(uint64_t timestep)
 
 namespace detail
     {
-void export_TwoStepNVTMTK(py::module& m)
+void export_TwoStepNVTMTK(pybind11::module& m)
     {
-    py::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK>>(
+    pybind11::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK>>(
         m,
         "TwoStepNVTMTK")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<ComputeThermo>,
                       Scalar,

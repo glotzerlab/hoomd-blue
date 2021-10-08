@@ -26,7 +26,7 @@
 #include "UpdaterClustersGPU.h"
 #endif
 
-namespace py = pybind11;
+
 namespace hoomd
     {
 namespace hpmc
@@ -34,7 +34,7 @@ namespace hpmc
 namespace detail
     {
 //! Export the base HPMCMono integrators
-void export_sphinx(py::module& m)
+void export_sphinx(pybind11::module& m)
     {
     export_IntegratorHPMCMono<ShapeSphinx>(m, "IntegratorHPMCMonoSphinx");
     export_ComputeFreeVolume<ShapeSphinx>(m, "ComputeFreeVolumeSphinx");

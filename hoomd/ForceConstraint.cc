@@ -5,7 +5,7 @@
 
 #include "ForceConstraint.h"
 
-namespace py = pybind11;
+
 
 using namespace std;
 
@@ -27,11 +27,11 @@ void ForceConstraint::computeForces(uint64_t timestep) { }
 
 namespace detail
     {
-void export_ForceConstraint(py::module& m)
+void export_ForceConstraint(pybind11::module& m)
     {
-    py::class_<ForceConstraint, ForceCompute, std::shared_ptr<ForceConstraint>>(m,
+    pybind11::class_<ForceConstraint, ForceCompute, std::shared_ptr<ForceConstraint>>(m,
                                                                                 "ForceConstraint")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
     } // end namespace detail
 

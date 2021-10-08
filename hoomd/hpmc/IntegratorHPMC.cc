@@ -3,7 +3,7 @@
 
 #include "IntegratorHPMC.h"
 
-namespace py = pybind11;
+
 
 #include "hoomd/VectorMath.h"
 #include <sstream>
@@ -231,10 +231,10 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
 
 namespace detail
     {
-void export_IntegratorHPMC(py::module& m)
+void export_IntegratorHPMC(pybind11::module& m)
     {
-    py::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m, "IntegratorHPMC")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+    pybind11::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m, "IntegratorHPMC")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setD", &IntegratorHPMC::setD)
         .def("setA", &IntegratorHPMC::setA)
         .def("setTranslationMoveProbability", &IntegratorHPMC::setTranslationMoveProbability)
@@ -254,7 +254,7 @@ void export_IntegratorHPMC(py::module& m)
                       &IntegratorHPMC::getTranslationMoveProbability,
                       &IntegratorHPMC::setTranslationMoveProbability);
 
-    py::class_<hpmc_counters_t>(m, "hpmc_counters_t")
+    pybind11::class_<hpmc_counters_t>(m, "hpmc_counters_t")
         .def_readonly("overlap_checks", &hpmc_counters_t::overlap_checks)
         .def_readonly("overlap_errors", &hpmc_counters_t::overlap_err_count)
         .def_property_readonly("translate", &hpmc_counters_t::getTranslateCounts)

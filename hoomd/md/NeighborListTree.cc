@@ -10,7 +10,7 @@
 #include "NeighborListTree.h"
 #include "hoomd/SystemDefinition.h"
 
-namespace py = pybind11;
+
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -439,12 +439,12 @@ void NeighborListTree::traverseTree()
 
 namespace detail
     {
-void export_NeighborListTree(py::module& m)
+void export_NeighborListTree(pybind11::module& m)
     {
-    py::class_<NeighborListTree, NeighborList, std::shared_ptr<NeighborListTree>>(
+    pybind11::class_<NeighborListTree, NeighborList, std::shared_ptr<NeighborListTree>>(
         m,
         "NeighborListTree")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>());
     }
 
     } // end namespace detail

@@ -230,11 +230,11 @@ void mpcd::ATCollisionMethod::applyVelocities()
  */
 void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::ATCollisionMethod,
+
+    pybind11::class_<mpcd::ATCollisionMethod,
                mpcd::CollisionMethod,
                std::shared_ptr<mpcd::ATCollisionMethod>>(m, "ATCollisionMethod")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
                       uint64_t,
                       uint64_t,
                       int,

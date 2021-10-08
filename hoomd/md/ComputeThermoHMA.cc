@@ -15,7 +15,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
+
 
 #include <iomanip>
 #include <iostream>
@@ -200,10 +200,10 @@ void ComputeThermoHMA::reduceProperties()
 
 namespace detail
     {
-void export_ComputeThermoHMA(py::module& m)
+void export_ComputeThermoHMA(pybind11::module& m)
     {
-    py::class_<ComputeThermoHMA, Compute, std::shared_ptr<ComputeThermoHMA>>(m, "ComputeThermoHMA")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+    pybind11::class_<ComputeThermoHMA, Compute, std::shared_ptr<ComputeThermoHMA>>(m, "ComputeThermoHMA")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       const double,
                       const double>())

@@ -17,7 +17,7 @@
 #include <pybind11/stl.h>
 
 using namespace std;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -699,10 +699,10 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_Communicator(py::module& m)
+void mpcd::detail::export_Communicator(pybind11::module& m)
     {
-    py::class_<mpcd::Communicator, std::shared_ptr<mpcd::Communicator>>(m, "Communicator")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>>());
+    pybind11::class_<mpcd::Communicator, std::shared_ptr<mpcd::Communicator>>(m, "Communicator")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>());
     }
 
     }      // end namespace hoomd

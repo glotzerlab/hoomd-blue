@@ -21,7 +21,7 @@
 #include <vector>
 
 using namespace std;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -639,10 +639,10 @@ void LoadBalancer::resetStats()
 
 namespace detail
     {
-void export_LoadBalancer(py::module& m)
+void export_LoadBalancer(pybind11::module& m)
     {
-    py::class_<LoadBalancer, Tuner, std::shared_ptr<LoadBalancer>>(m, "LoadBalancer")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
+    pybind11::class_<LoadBalancer, Tuner, std::shared_ptr<LoadBalancer>>(m, "LoadBalancer")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
         .def_property("tolerance", &LoadBalancer::getTolerance, &LoadBalancer::setTolerance)
         .def_property("max_iterations",
                       &LoadBalancer::getMaxIterations,

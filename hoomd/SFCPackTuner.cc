@@ -17,7 +17,7 @@
 #include <stdexcept>
 
 using namespace std;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -694,10 +694,10 @@ void SFCPackTuner::writeTraversalOrder(const std::string& fname,
 
 namespace detail
     {
-void export_SFCPackTuner(py::module& m)
+void export_SFCPackTuner(pybind11::module& m)
     {
-    py::class_<SFCPackTuner, Tuner, std::shared_ptr<SFCPackTuner>>(m, "SFCPackTuner")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
+    pybind11::class_<SFCPackTuner, Tuner, std::shared_ptr<SFCPackTuner>>(m, "SFCPackTuner")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
         .def_property("grid", &SFCPackTuner::getGrid, &SFCPackTuner::setGridPython);
     }
 

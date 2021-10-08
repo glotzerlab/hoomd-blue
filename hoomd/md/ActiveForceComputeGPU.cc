@@ -7,7 +7,7 @@
 #include "ActiveForceComputeGPU.cuh"
 
 #include <vector>
-namespace py = pybind11;
+
 using namespace std;
 
 /*! \file ActiveForceComputeGPU.cc
@@ -171,12 +171,12 @@ void ActiveForceComputeGPU::rotationalDiffusion(Scalar rotational_diffusion, uin
 
 namespace detail
     {
-void export_ActiveForceComputeGPU(py::module& m)
+void export_ActiveForceComputeGPU(pybind11::module& m)
     {
-    py::class_<ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU>>(
+    pybind11::class_<ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU>>(
         m,
         "ActiveForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }
 
     } // end namespace detail

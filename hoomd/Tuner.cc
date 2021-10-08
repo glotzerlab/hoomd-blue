@@ -4,7 +4,7 @@
 // Maintainer: joaander
 #include "Tuner.h"
 
-namespace py = pybind11;
+
 
 /*! \file Updater.cc
     \brief Defines a base class for all tuners
@@ -22,10 +22,10 @@ Tuner::Tuner(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> 
 
 namespace detail
     {
-void export_Tuner(py::module& m)
+void export_Tuner(pybind11::module& m)
     {
-    py::class_<Tuner, Updater, std::shared_ptr<Tuner>>(m, "Tuner")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
+    pybind11::class_<Tuner, Updater, std::shared_ptr<Tuner>>(m, "Tuner")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
         .def_property("trigger", &Tuner::getTrigger, &Tuner::setTrigger);
     }
 

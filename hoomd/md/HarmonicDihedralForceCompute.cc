@@ -5,7 +5,7 @@
 
 #include "HarmonicDihedralForceCompute.h"
 
-namespace py = pybind11;
+
 
 #include <iostream>
 #include <math.h>
@@ -372,12 +372,12 @@ void HarmonicDihedralForceCompute::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_HarmonicDihedralForceCompute(py::module& m)
+void export_HarmonicDihedralForceCompute(pybind11::module& m)
     {
-    py::class_<HarmonicDihedralForceCompute,
+    pybind11::class_<HarmonicDihedralForceCompute,
                ForceCompute,
                std::shared_ptr<HarmonicDihedralForceCompute>>(m, "HarmonicDihedralForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &HarmonicDihedralForceCompute::setParamsPython)
         .def("getParams", &HarmonicDihedralForceCompute::getParams);
     }

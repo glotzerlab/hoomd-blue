@@ -19,7 +19,7 @@
 #include <stdexcept>
 
 using namespace std;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -312,11 +312,11 @@ void SFCPackTunerGPU::applySortOrder()
 
 namespace detail
     {
-void export_SFCPackTunerGPU(py::module& m)
+void export_SFCPackTunerGPU(pybind11::module& m)
     {
-    py::class_<SFCPackTunerGPU, SFCPackTuner, std::shared_ptr<SFCPackTunerGPU>>(m,
+    pybind11::class_<SFCPackTunerGPU, SFCPackTuner, std::shared_ptr<SFCPackTunerGPU>>(m,
                                                                                 "SFCPackTunerGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
     } // end namespace detail

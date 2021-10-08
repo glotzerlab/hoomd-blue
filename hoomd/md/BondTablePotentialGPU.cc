@@ -5,7 +5,7 @@
 
 #include "BondTablePotentialGPU.h"
 
-namespace py = pybind11;
+
 #include <stdexcept>
 
 /*! \file BondTablePotentialGPU.cc
@@ -125,12 +125,12 @@ void BondTablePotentialGPU::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_BondTablePotentialGPU(py::module& m)
+void export_BondTablePotentialGPU(pybind11::module& m)
     {
-    py::class_<BondTablePotentialGPU, BondTablePotential, std::shared_ptr<BondTablePotentialGPU>>(
+    pybind11::class_<BondTablePotentialGPU, BondTablePotential, std::shared_ptr<BondTablePotentialGPU>>(
         m,
         "BondTablePotentialGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
 
     } // end namespace detail

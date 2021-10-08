@@ -13,7 +13,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
+
 using namespace std;
 
 /*! \file TwoStepNPTMTKGPU.h
@@ -459,12 +459,12 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
 
 namespace detail
     {
-void export_TwoStepNPTMTKGPU(py::module& m)
+void export_TwoStepNPTMTKGPU(pybind11::module& m)
     {
-    py::class_<TwoStepNPTMTKGPU, TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTKGPU>>(
+    pybind11::class_<TwoStepNPTMTKGPU, TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTKGPU>>(
         m,
         "TwoStepNPTMTKGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<ComputeThermo>,
                       std::shared_ptr<ComputeThermo>,

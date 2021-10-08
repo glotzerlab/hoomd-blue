@@ -143,11 +143,11 @@ void mpcd::SlitGeometryFiller::drawParticles(uint64_t timestep)
  */
 void mpcd::detail::export_SlitGeometryFiller(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::SlitGeometryFiller,
+
+    pybind11::class_<mpcd::SlitGeometryFiller,
                mpcd::VirtualParticleFiller,
                std::shared_ptr<mpcd::SlitGeometryFiller>>(m, "SlitGeometryFiller")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
                       Scalar,
                       unsigned int,
                       std::shared_ptr<Variant>,

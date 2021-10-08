@@ -13,7 +13,7 @@
 #include <sstream>
 
 using namespace std;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -46,9 +46,9 @@ std::string ClockSource::formatHMS(int64_t t)
 #ifndef __HIP_DEVICE_COMPILE__
 namespace detail
     {
-void export_ClockSource(py::module& m)
+void export_ClockSource(pybind11::module& m)
     {
-    py::class_<ClockSource>(m, "ClockSource").def("getTime", &ClockSource::getTime);
+    pybind11::class_<ClockSource>(m, "ClockSource").def("getTime", &ClockSource::getTime);
     }
     } // namespace detail
 #endif

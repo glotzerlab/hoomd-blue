@@ -30,7 +30,7 @@
 #include "hoomd/RandomNumbers.h"
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
-namespace py = pybind11;
+
 
 #include "hoomd/Variant.h"
 
@@ -807,9 +807,9 @@ std::shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard {};
-    py::module::import("variant");
-    py::list S;
+    pybind11::scoped_interpreter guard {};
+    pybind11::module::import("variant");
+    pybind11::list S;
     S.append(P_variant);
     S.append(P_variant);
     S.append(P_variant);
@@ -837,16 +837,16 @@ std::shared_ptr<TwoStepNPTMTK> base_class_nph_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard {};
-    py::module::import("variant");
-    py::list S;
+    pybind11::scoped_interpreter guard {};
+    pybind11::module::import("variant");
+    pybind11::list S;
     S.append(P_variant);
     S.append(P_variant);
     S.append(P_variant);
     S.append(zero_variant);
     S.append(zero_variant);
     S.append(zero_variant);
-    std::cout << py::len(S) << std::endl;
+    std::cout << pybind11::len(S) << std::endl;
 
     std::shared_ptr<Variant> T_variant(new VariantConst(args.T));
     // for the tests, we can assume that group is the all group
@@ -870,9 +870,9 @@ std::shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard {};
-    py::module::import("variant");
-    py::list S;
+    pybind11::scoped_interpreter guard {};
+    pybind11::module::import("variant");
+    pybind11::list S;
     S.append(P_variant);
     S.append(P_variant);
     S.append(P_variant);
@@ -899,9 +899,9 @@ std::shared_ptr<TwoStepNPTMTK> gpu_nph_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard {};
-    py::module::import("variant");
-    py::list S;
+    pybind11::scoped_interpreter guard {};
+    pybind11::module::import("variant");
+    pybind11::list S;
     S.append(P_variant);
     S.append(P_variant);
     S.append(P_variant);

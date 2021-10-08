@@ -3,7 +3,7 @@
 
 #include "IntegratorTwoStep.h"
 
-namespace py = pybind11;
+
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -474,16 +474,16 @@ bool IntegratorTwoStep::getAnisotropic()
 
 namespace detail
     {
-void export_IntegratorTwoStep(py::module& m)
+void export_IntegratorTwoStep(pybind11::module& m)
     {
-    py::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
+    pybind11::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
         m,
         "IntegrationMethodList");
 
-    py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
+    pybind11::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
         m,
         "IntegratorTwoStep")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
         .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
         .def_property("aniso",

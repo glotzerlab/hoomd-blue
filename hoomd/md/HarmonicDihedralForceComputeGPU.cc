@@ -9,7 +9,7 @@
 
 #include "HarmonicDihedralForceComputeGPU.h"
 
-namespace py = pybind11;
+
 using namespace std;
 
 namespace hoomd
@@ -127,13 +127,13 @@ void HarmonicDihedralForceComputeGPU::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_HarmonicDihedralForceComputeGPU(py::module& m)
+void export_HarmonicDihedralForceComputeGPU(pybind11::module& m)
     {
-    py::class_<HarmonicDihedralForceComputeGPU,
+    pybind11::class_<HarmonicDihedralForceComputeGPU,
                HarmonicDihedralForceCompute,
                std::shared_ptr<HarmonicDihedralForceComputeGPU>>(m,
                                                                  "HarmonicDihedralForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     } // end namespace detail

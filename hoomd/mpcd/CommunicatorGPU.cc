@@ -16,7 +16,7 @@
 
 #include "hoomd/Profiler.h"
 
-namespace py = pybind11;
+
 #include <algorithm>
 
 namespace hoomd
@@ -417,12 +417,12 @@ void mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_CommunicatorGPU(py::module& m)
+void mpcd::detail::export_CommunicatorGPU(pybind11::module& m)
     {
-    py::class_<mpcd::CommunicatorGPU, mpcd::Communicator, std::shared_ptr<mpcd::CommunicatorGPU>>(
+    pybind11::class_<mpcd::CommunicatorGPU, mpcd::Communicator, std::shared_ptr<mpcd::CommunicatorGPU>>(
         m,
         "CommunicatorGPU")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>>())
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>())
         .def("setMaxStages", &mpcd::CommunicatorGPU::setMaxStages);
     }
 

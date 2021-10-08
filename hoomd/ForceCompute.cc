@@ -18,7 +18,7 @@ using namespace std;
 
 #include <pybind11/numpy.h>
 
-namespace py = pybind11;
+
 
 #include <memory>
 
@@ -664,10 +664,10 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
 
 namespace detail
     {
-void export_ForceCompute(py::module& m)
+void export_ForceCompute(pybind11::module& m)
     {
-    py::class_<ForceCompute, Compute, std::shared_ptr<ForceCompute>>(m, "ForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+    pybind11::class_<ForceCompute, Compute, std::shared_ptr<ForceCompute>>(m, "ForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("getForce", &ForceCompute::getForce)
         .def("getTorque", &ForceCompute::getTorque)
         .def("getVirial", &ForceCompute::getVirial)

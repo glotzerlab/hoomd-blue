@@ -10,7 +10,7 @@
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepBerendsenGPU.cuh"
 
-namespace py = pybind11;
+
 #include <functional>
 
 using namespace std;
@@ -139,12 +139,12 @@ void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
 
 namespace detail
     {
-void export_BerendsenGPU(py::module& m)
+void export_BerendsenGPU(pybind11::module& m)
     {
-    py::class_<TwoStepBerendsenGPU, TwoStepBerendsen, std::shared_ptr<TwoStepBerendsenGPU>>(
+    pybind11::class_<TwoStepBerendsenGPU, TwoStepBerendsen, std::shared_ptr<TwoStepBerendsenGPU>>(
         m,
         "TwoStepBerendsenGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<ComputeThermo>,
                       Scalar,

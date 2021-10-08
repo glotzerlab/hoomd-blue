@@ -7,7 +7,7 @@
 #include "hoomd/VectorMath.h"
 
 using namespace std;
-namespace py = pybind11;
+
 
 /*! \file TwoStepNPTMTK.cc
     \brief Contains code for the TwoStepNPTMTK class
@@ -1247,12 +1247,12 @@ Scalar TwoStepNPTMTK::getBarostatEnergy(uint64_t timestep)
 
 namespace detail
     {
-void export_TwoStepNPTMTK(py::module& m)
+void export_TwoStepNPTMTK(pybind11::module& m)
     {
-    py::class_<TwoStepNPTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTK>>
+    pybind11::class_<TwoStepNPTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTK>>
         twostepnptmtk(m, "TwoStepNPTMTK");
     twostepnptmtk
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<ComputeThermo>,
                       std::shared_ptr<ComputeThermo>,

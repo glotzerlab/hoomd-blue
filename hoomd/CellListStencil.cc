@@ -9,7 +9,7 @@
 
 #include "CellListStencil.h"
 
-namespace py = pybind11;
+
 #include <algorithm>
 
 using namespace std;
@@ -208,10 +208,10 @@ bool CellListStencil::shouldCompute(uint64_t timestep)
 
 namespace detail
     {
-void export_CellListStencil(py::module& m)
+void export_CellListStencil(pybind11::module& m)
     {
-    py::class_<CellListStencil, Compute, std::shared_ptr<CellListStencil>>(m, "CellListStencil")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>>());
+    pybind11::class_<CellListStencil, Compute, std::shared_ptr<CellListStencil>>(m, "CellListStencil")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>>());
     }
     } // end namespace detail
 

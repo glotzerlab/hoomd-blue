@@ -8,7 +8,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
-namespace py = pybind11;
+
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -200,12 +200,12 @@ void IntegrationMethodTwoStep::validateGroup()
 
 namespace detail
     {
-void export_IntegrationMethodTwoStep(py::module& m)
+void export_IntegrationMethodTwoStep(pybind11::module& m)
     {
-    py::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>>(
+    pybind11::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>>(
         m,
         "IntegrationMethodTwoStep")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
         .def_property_readonly("filter",
                                [](const std::shared_ptr<IntegrationMethodTwoStep> method)

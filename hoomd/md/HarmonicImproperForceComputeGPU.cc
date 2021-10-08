@@ -9,7 +9,7 @@
 
 #include "HarmonicImproperForceComputeGPU.h"
 
-namespace py = pybind11;
+
 using namespace std;
 
 namespace hoomd
@@ -119,13 +119,13 @@ void HarmonicImproperForceComputeGPU::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_HarmonicImproperForceComputeGPU(py::module& m)
+void export_HarmonicImproperForceComputeGPU(pybind11::module& m)
     {
-    py::class_<HarmonicImproperForceComputeGPU,
+    pybind11::class_<HarmonicImproperForceComputeGPU,
                HarmonicImproperForceCompute,
                std::shared_ptr<HarmonicImproperForceComputeGPU>>(m,
                                                                  "HarmonicImproperForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     } // end namespace detail

@@ -14,7 +14,7 @@ using namespace hoomd;
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
+
 using namespace std;
 
 namespace hoomd
@@ -266,10 +266,10 @@ void TwoStepBD::integrateStepTwo(uint64_t timestep)
 
 namespace detail
     {
-void export_TwoStepBD(py::module& m)
+void export_TwoStepBD(pybind11::module& m)
     {
-    py::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD>>(m, "TwoStepBD")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+    pybind11::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD>>(m, "TwoStepBD")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<Variant>,
                       bool,

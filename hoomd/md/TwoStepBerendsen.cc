@@ -9,7 +9,7 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
+
 
 /*! \file TwoStepBerendsen.cc
     \brief Definition of Berendsen thermostat
@@ -161,12 +161,12 @@ void TwoStepBerendsen::integrateStepTwo(uint64_t timestep)
 
 namespace detail
     {
-void export_Berendsen(py::module& m)
+void export_Berendsen(pybind11::module& m)
     {
-    py::class_<TwoStepBerendsen, IntegrationMethodTwoStep, std::shared_ptr<TwoStepBerendsen>>(
+    pybind11::class_<TwoStepBerendsen, IntegrationMethodTwoStep, std::shared_ptr<TwoStepBerendsen>>(
         m,
         "TwoStepBerendsen")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<ComputeThermo>,
                       Scalar,

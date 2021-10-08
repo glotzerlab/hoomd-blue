@@ -12,7 +12,7 @@ using namespace std;
 
 #include <stdexcept>
 
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -594,11 +594,11 @@ Scalar EAMForceCompute::get_r_cut()
 
 namespace detail
     {
-void export_EAMForceCompute(py::module& m)
+void export_EAMForceCompute(pybind11::module& m)
     {
-    py::class_<EAMForceCompute, ForceCompute, std::shared_ptr<EAMForceCompute>>(m,
+    pybind11::class_<EAMForceCompute, ForceCompute, std::shared_ptr<EAMForceCompute>>(m,
                                                                                 "EAMForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>, char*, int>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, char*, int>())
         .def("set_neighbor_list", &EAMForceCompute::set_neighbor_list)
         .def("get_r_cut", &EAMForceCompute::get_r_cut);
     }

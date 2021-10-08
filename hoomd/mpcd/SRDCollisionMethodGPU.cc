@@ -154,11 +154,11 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
  */
 void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::SRDCollisionMethodGPU,
+
+    pybind11::class_<mpcd::SRDCollisionMethodGPU,
                mpcd::SRDCollisionMethod,
                std::shared_ptr<mpcd::SRDCollisionMethodGPU>>(m, "SRDCollisionMethodGPU")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
                       unsigned int,
                       unsigned int,
                       int,

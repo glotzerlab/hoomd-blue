@@ -5,7 +5,7 @@
 
 #include "TableDihedralForceComputeGPU.h"
 
-namespace py = pybind11;
+
 
 #include <stdexcept>
 
@@ -109,12 +109,12 @@ void TableDihedralForceComputeGPU::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_TableDihedralForceComputeGPU(py::module& m)
+void export_TableDihedralForceComputeGPU(pybind11::module& m)
     {
-    py::class_<TableDihedralForceComputeGPU,
+    pybind11::class_<TableDihedralForceComputeGPU,
                TableDihedralForceCompute,
                std::shared_ptr<TableDihedralForceComputeGPU>>(m, "TableDihedralForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
 
     } // end namespace detail

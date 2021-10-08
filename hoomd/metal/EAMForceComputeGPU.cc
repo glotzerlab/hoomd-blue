@@ -15,7 +15,7 @@
 
 #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
+
 using namespace std;
 
 namespace hoomd
@@ -149,12 +149,12 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_EAMForceComputeGPU(py::module& m)
+void export_EAMForceComputeGPU(pybind11::module& m)
     {
-    py::class_<EAMForceComputeGPU, EAMForceCompute, std::shared_ptr<EAMForceComputeGPU>>(
+    pybind11::class_<EAMForceComputeGPU, EAMForceCompute, std::shared_ptr<EAMForceComputeGPU>>(
         m,
         "EAMForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, char*, int>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, char*, int>());
     }
 
     } // end namespace detail

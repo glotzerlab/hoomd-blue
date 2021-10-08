@@ -6,7 +6,7 @@
 #ifdef ENABLE_HIP
 #include "PPPMForceComputeGPU.cuh"
 
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -898,12 +898,12 @@ void PPPMForceComputeGPU::fixExclusions()
 
 namespace detail
     {
-void export_PPPMForceComputeGPU(py::module& m)
+void export_PPPMForceComputeGPU(pybind11::module& m)
     {
-    py::class_<PPPMForceComputeGPU, PPPMForceCompute, std::shared_ptr<PPPMForceComputeGPU>>(
+    pybind11::class_<PPPMForceComputeGPU, PPPMForceCompute, std::shared_ptr<PPPMForceComputeGPU>>(
         m,
         "PPPMForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<NeighborList>,
                       std::shared_ptr<ParticleGroup>>());
     }

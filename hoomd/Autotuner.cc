@@ -13,7 +13,7 @@
 #include <stdexcept>
 
 using namespace std;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -365,10 +365,10 @@ unsigned int Autotuner::computeOptimalParameter()
 
 namespace detail
     {
-void export_Autotuner(py::module& m)
+void export_Autotuner(pybind11::module& m)
     {
-    py::class_<Autotuner>(m, "Autotuner")
-        .def(py::init<unsigned int,
+    pybind11::class_<Autotuner>(m, "Autotuner")
+        .def(pybind11::init<unsigned int,
                       unsigned int,
                       unsigned int,
                       unsigned int,

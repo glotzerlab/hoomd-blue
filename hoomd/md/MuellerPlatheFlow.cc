@@ -5,7 +5,7 @@
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/HOOMDMath.h"
 
-namespace py = pybind11;
+
 using namespace std;
 
 //! \file MuellerPlatheFlow.cc Implementation of CPU version of MuellerPlatheFlow.
@@ -472,12 +472,12 @@ void MuellerPlatheFlow::mpiExchangeVelocity(void)
 
 namespace detail
     {
-void export_MuellerPlatheFlow(py::module& m)
+void export_MuellerPlatheFlow(pybind11::module& m)
     {
-    py::class_<MuellerPlatheFlow, Updater, std::shared_ptr<MuellerPlatheFlow>> flow(
+    pybind11::class_<MuellerPlatheFlow, Updater, std::shared_ptr<MuellerPlatheFlow>> flow(
         m,
         "MuellerPlatheFlow");
-    flow.def(py::init<std::shared_ptr<SystemDefinition>,
+    flow.def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<Variant>,
                       std::string,

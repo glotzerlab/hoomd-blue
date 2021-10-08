@@ -8,7 +8,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
+
 
 using namespace std;
 
@@ -169,10 +169,10 @@ void TwoStepBDGPU::integrateStepTwo(uint64_t timestep)
 
 namespace detail
     {
-void export_TwoStepBDGPU(py::module& m)
+void export_TwoStepBDGPU(pybind11::module& m)
     {
-    py::class_<TwoStepBDGPU, TwoStepBD, std::shared_ptr<TwoStepBDGPU>>(m, "TwoStepBDGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+    pybind11::class_<TwoStepBDGPU, TwoStepBD, std::shared_ptr<TwoStepBDGPU>>(m, "TwoStepBDGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<Variant>,
                       bool,

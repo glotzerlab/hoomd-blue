@@ -15,7 +15,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
+
 
 #include <iostream>
 using namespace std;
@@ -322,10 +322,10 @@ void ComputeThermo::reduceProperties()
 
 namespace detail
     {
-void export_ComputeThermo(py::module& m)
+void export_ComputeThermo(pybind11::module& m)
     {
-    py::class_<ComputeThermo, Compute, std::shared_ptr<ComputeThermo>>(m, "ComputeThermo")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
+    pybind11::class_<ComputeThermo, Compute, std::shared_ptr<ComputeThermo>>(m, "ComputeThermo")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
         .def_property_readonly("kinetic_temperature", &ComputeThermo::getTemperature)
         .def_property_readonly("pressure", &ComputeThermo::getPressure)
         .def_property_readonly("pressure_tensor", &ComputeThermo::getPressureTensorPython)

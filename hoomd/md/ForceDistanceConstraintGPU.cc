@@ -9,7 +9,7 @@
 #include <hip/hip_runtime.h>
 
 #include <string.h>
-namespace py = pybind11;
+
 
 /*! \file ForceDistanceConstraintGPU.cc
     \brief Contains code for the ForceDistanceConstraintGPU class
@@ -748,12 +748,12 @@ void ForceDistanceConstraintGPU::computeConstraintForces(uint64_t timestep)
 
 namespace detail
     {
-void export_ForceDistanceConstraintGPU(py::module& m)
+void export_ForceDistanceConstraintGPU(pybind11::module& m)
     {
-    py::class_<ForceDistanceConstraintGPU,
+    pybind11::class_<ForceDistanceConstraintGPU,
                ForceDistanceConstraint,
                std::shared_ptr<ForceDistanceConstraintGPU>>(m, "ForceDistanceConstraintGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     } // end namespace detail

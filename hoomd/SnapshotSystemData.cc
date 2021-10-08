@@ -9,7 +9,7 @@
 
 #include "SnapshotSystemData.h"
 #include <pybind11/pybind11.h>
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -125,12 +125,12 @@ template struct PYBIND11_EXPORT SnapshotSystemData<double>;
 
 namespace detail
     {
-void export_SnapshotSystemData(py::module& m)
+void export_SnapshotSystemData(pybind11::module& m)
     {
-    py::class_<SnapshotSystemData<float>, std::shared_ptr<SnapshotSystemData<float>>>(
+    pybind11::class_<SnapshotSystemData<float>, std::shared_ptr<SnapshotSystemData<float>>>(
         m,
         "SnapshotSystemData_float")
-        .def(py::init<>())
+        .def(pybind11::init<>())
         .def_readwrite("_dimensions", &SnapshotSystemData<float>::dimensions)
         .def_readwrite("_global_box", &SnapshotSystemData<float>::global_box)
         .def_readonly("particles", &SnapshotSystemData<float>::particle_data)
@@ -146,10 +146,10 @@ void export_SnapshotSystemData(py::module& m)
         .def("_broadcast", &SnapshotSystemData<float>::broadcast)
         .def("_broadcast_all", &SnapshotSystemData<float>::broadcast_all);
 
-    py::class_<SnapshotSystemData<double>, std::shared_ptr<SnapshotSystemData<double>>>(
+    pybind11::class_<SnapshotSystemData<double>, std::shared_ptr<SnapshotSystemData<double>>>(
         m,
         "SnapshotSystemData_double")
-        .def(py::init<>())
+        .def(pybind11::init<>())
         .def_readwrite("_dimensions", &SnapshotSystemData<double>::dimensions)
         .def_readwrite("_global_box", &SnapshotSystemData<double>::global_box)
         .def_readonly("particles", &SnapshotSystemData<double>::particle_data)

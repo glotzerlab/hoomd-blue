@@ -4,7 +4,7 @@
 // Maintainer: joaander
 #include "Updater.h"
 
-namespace py = pybind11;
+
 
 /*! \file Updater.cc
     \brief Defines a base class for all updaters
@@ -39,10 +39,10 @@ void Updater::setProfiler(std::shared_ptr<Profiler> prof)
 
 namespace detail
     {
-void export_Updater(py::module& m)
+void export_Updater(pybind11::module& m)
     {
-    py::class_<Updater, std::shared_ptr<Updater>>(m, "Updater")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+    pybind11::class_<Updater, std::shared_ptr<Updater>>(m, "Updater")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("update", &Updater::update)
         .def("setProfiler", &Updater::setProfiler)
         .def("notifyDetach", &Updater::notifyDetach);

@@ -7,7 +7,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
+
 using namespace std;
 
 namespace hoomd
@@ -147,12 +147,12 @@ pybind11::object TwoStepLangevinBase::getAlpha()
 
 namespace detail
     {
-void export_TwoStepLangevinBase(py::module& m)
+void export_TwoStepLangevinBase(pybind11::module& m)
     {
-    py::class_<TwoStepLangevinBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepLangevinBase>>(
+    pybind11::class_<TwoStepLangevinBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepLangevinBase>>(
         m,
         "TwoStepLangevinBase")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<Variant>>())
         .def_property("kT", &TwoStepLangevinBase::getT, &TwoStepLangevinBase::setT)

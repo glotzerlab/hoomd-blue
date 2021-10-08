@@ -17,7 +17,7 @@
 #include <pybind11/stl.h>
 
 using namespace std;
-namespace py = pybind11;
+
 
 #include <vector>
 
@@ -3499,10 +3499,10 @@ const BoxDim Communicator::getShiftedBox() const
 namespace detail
     {
 //! Export Communicator class to python
-void export_Communicator(py::module& m)
+void export_Communicator(pybind11::module& m)
     {
-    py::class_<Communicator, std::shared_ptr<Communicator>>(m, "Communicator")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition>>())
+    pybind11::class_<Communicator, std::shared_ptr<Communicator>>(m, "Communicator")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition>>())
         .def_property_readonly("domain_decomposition", &Communicator::getDomainDecomposition);
     }
     } // end namespace detail

@@ -5,7 +5,7 @@
 
 #include "OPLSDihedralForceCompute.h"
 
-namespace py = pybind11;
+
 
 #include <cmath>
 #include <iostream>
@@ -370,12 +370,12 @@ void OPLSDihedralForceCompute::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_OPLSDihedralForceCompute(py::module& m)
+void export_OPLSDihedralForceCompute(pybind11::module& m)
     {
-    py::class_<OPLSDihedralForceCompute, ForceCompute, std::shared_ptr<OPLSDihedralForceCompute>>(
+    pybind11::class_<OPLSDihedralForceCompute, ForceCompute, std::shared_ptr<OPLSDihedralForceCompute>>(
         m,
         "OPLSDihedralForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &OPLSDihedralForceCompute::setParamsPython)
         .def("getParams", &OPLSDihedralForceCompute::getParams);
     }

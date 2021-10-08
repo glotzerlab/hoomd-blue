@@ -6,7 +6,7 @@
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVEGPU.cuh"
 
-namespace py = pybind11;
+
 using namespace std;
 
 /*! \file TwoStepNVEGPU.h
@@ -224,10 +224,10 @@ void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
 
 namespace detail
     {
-void export_TwoStepNVEGPU(py::module& m)
+void export_TwoStepNVEGPU(pybind11::module& m)
     {
-    py::class_<TwoStepNVEGPU, TwoStepNVE, std::shared_ptr<TwoStepNVEGPU>>(m, "TwoStepNVEGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
+    pybind11::class_<TwoStepNVEGPU, TwoStepNVE, std::shared_ptr<TwoStepNVEGPU>>(m, "TwoStepNVEGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }
     } // end namespace detail
     } // end namespace md

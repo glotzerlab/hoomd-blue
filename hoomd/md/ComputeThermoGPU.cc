@@ -11,7 +11,7 @@
 #include "ComputeThermoGPU.cuh"
 #include "hoomd/GPUPartition.cuh"
 
-namespace py = pybind11;
+
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -234,12 +234,12 @@ void ComputeThermoGPU::computeProperties()
 
 namespace detail
     {
-void export_ComputeThermoGPU(py::module& m)
+void export_ComputeThermoGPU(pybind11::module& m)
     {
-    py::class_<ComputeThermoGPU, ComputeThermo, std::shared_ptr<ComputeThermoGPU>>(
+    pybind11::class_<ComputeThermoGPU, ComputeThermo, std::shared_ptr<ComputeThermoGPU>>(
         m,
         "ComputeThermoGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }
 
     } // end namespace detail

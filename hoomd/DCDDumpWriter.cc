@@ -18,7 +18,7 @@
 #include <limits>
 #include <stdexcept>
 
-namespace py = pybind11;
+
 
 using namespace std;
 
@@ -435,10 +435,10 @@ void DCDDumpWriter::write_updated_header(std::fstream& file, uint64_t timestep)
 
 namespace detail
     {
-void export_DCDDumpWriter(py::module& m)
+void export_DCDDumpWriter(pybind11::module& m)
     {
-    py::class_<DCDDumpWriter, Analyzer, std::shared_ptr<DCDDumpWriter>>(m, "DCDDumpWriter")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+    pybind11::class_<DCDDumpWriter, Analyzer, std::shared_ptr<DCDDumpWriter>>(m, "DCDDumpWriter")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::string,
                       unsigned int,
                       std::shared_ptr<ParticleGroup>,

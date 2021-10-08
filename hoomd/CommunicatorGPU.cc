@@ -14,7 +14,7 @@
 #include "Profiler.h"
 #include "System.h"
 
-namespace py = pybind11;
+
 #include <algorithm>
 
 namespace hoomd
@@ -3906,11 +3906,11 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
 namespace detail
     {
 //! Export CommunicatorGPU class to python
-void export_CommunicatorGPU(py::module& m)
+void export_CommunicatorGPU(pybind11::module& m)
     {
-    py::class_<CommunicatorGPU, Communicator, std::shared_ptr<CommunicatorGPU>>(m,
+    pybind11::class_<CommunicatorGPU, Communicator, std::shared_ptr<CommunicatorGPU>>(m,
                                                                                 "CommunicatorGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition>>())
         .def("setMaxStages", &CommunicatorGPU::setMaxStages);
     }
     } // end namespace detail

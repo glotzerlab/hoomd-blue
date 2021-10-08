@@ -20,7 +20,7 @@
 #include <string.h>
 using namespace std;
 using namespace hoomd::detail;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -1115,12 +1115,12 @@ void GSDDumpWriter::populateNonDefault()
 
 namespace detail
     {
-void export_GSDDumpWriter(py::module& m)
+void export_GSDDumpWriter(pybind11::module& m)
     {
-    py::bind_map<std::map<std::string, pybind11::function>>(m, "MapStringFunction");
+    pybind11::bind_map<std::map<std::string, pybind11::function>>(m, "MapStringFunction");
 
-    py::class_<GSDDumpWriter, Analyzer, std::shared_ptr<GSDDumpWriter>>(m, "GSDDumpWriter")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+    pybind11::class_<GSDDumpWriter, Analyzer, std::shared_ptr<GSDDumpWriter>>(m, "GSDDumpWriter")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::string,
                       std::shared_ptr<ParticleGroup>,
                       std::string,

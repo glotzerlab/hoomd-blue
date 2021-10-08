@@ -4,7 +4,7 @@
 #include "PPPMForceCompute.h"
 #include <map>
 
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -1838,12 +1838,12 @@ Scalar PPPMForceCompute::getQ2Sum()
 
 namespace detail
     {
-void export_PPPMForceCompute(py::module& m)
+void export_PPPMForceCompute(pybind11::module& m)
     {
-    py::class_<PPPMForceCompute, ForceCompute, std::shared_ptr<PPPMForceCompute>>(
+    pybind11::class_<PPPMForceCompute, ForceCompute, std::shared_ptr<PPPMForceCompute>>(
         m,
         "PPPMForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<NeighborList>,
                       std::shared_ptr<ParticleGroup>>())
         .def("setParams", &PPPMForceCompute::setParams)

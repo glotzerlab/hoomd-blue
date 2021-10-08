@@ -9,7 +9,7 @@
 
 #include "HarmonicAngleForceComputeGPU.h"
 
-namespace py = pybind11;
+
 
 using namespace std;
 
@@ -115,12 +115,12 @@ void HarmonicAngleForceComputeGPU::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_HarmonicAngleForceComputeGPU(py::module& m)
+void export_HarmonicAngleForceComputeGPU(pybind11::module& m)
     {
-    py::class_<HarmonicAngleForceComputeGPU,
+    pybind11::class_<HarmonicAngleForceComputeGPU,
                HarmonicAngleForceCompute,
                std::shared_ptr<HarmonicAngleForceComputeGPU>>(m, "HarmonicAngleForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     } // end namespace detail

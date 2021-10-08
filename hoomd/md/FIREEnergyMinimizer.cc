@@ -6,7 +6,7 @@
 #include "FIREEnergyMinimizer.h"
 
 using namespace std;
-namespace py = pybind11;
+
 
 /*! \file FIREEnergyMinimizer.h
     \brief Contains code for the FIREEnergyMinimizer class
@@ -477,12 +477,12 @@ void FIREEnergyMinimizer::update(uint64_t timestep)
 
 namespace detail
     {
-void export_FIREEnergyMinimizer(py::module& m)
+void export_FIREEnergyMinimizer(pybind11::module& m)
     {
-    py::class_<FIREEnergyMinimizer, IntegratorTwoStep, std::shared_ptr<FIREEnergyMinimizer>>(
+    pybind11::class_<FIREEnergyMinimizer, IntegratorTwoStep, std::shared_ptr<FIREEnergyMinimizer>>(
         m,
         "FIREEnergyMinimizer")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("reset", &FIREEnergyMinimizer::reset)
         .def_property_readonly("converged", &FIREEnergyMinimizer::hasConverged)
         .def_property_readonly("energy", &FIREEnergyMinimizer::getEnergy)

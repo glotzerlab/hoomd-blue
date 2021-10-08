@@ -9,7 +9,7 @@
 #include <map>
 #include <sstream>
 #include <string.h>
-namespace py = pybind11;
+
 
 /*! \file ForceComposite.cc
     \brief Contains code for the ForceComposite class
@@ -1023,12 +1023,12 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
 
 namespace detail
     {
-void export_ForceComposite(py::module& m)
+void export_ForceComposite(pybind11::module& m)
     {
-    py::class_<ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite>>(
+    pybind11::class_<ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite>>(
         m,
         "ForceComposite")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setBody", &ForceComposite::setBody)
         .def("getBody", &ForceComposite::getBody)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)

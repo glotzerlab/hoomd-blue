@@ -3,7 +3,7 @@
 
 #include "Integrator.h"
 
-namespace py = pybind11;
+
 
 #ifdef ENABLE_HIP
 #include "Integrator.cuh"
@@ -990,12 +990,12 @@ bool Integrator::getAnisotropic()
 
 namespace detail
     {
-void export_Integrator(py::module& m)
+void export_Integrator(pybind11::module& m)
     {
-    py::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
-    py::bind_vector<std::vector<std::shared_ptr<ForceConstraint>>>(m, "ForceConstraintList");
-    py::class_<Integrator, Updater, std::shared_ptr<Integrator>>(m, "Integrator")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+    pybind11::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<ForceConstraint>>>(m, "ForceConstraintList");
+    pybind11::class_<Integrator, Updater, std::shared_ptr<Integrator>>(m, "Integrator")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("updateGroupDOF", &Integrator::updateGroupDOF)
         .def_property("dt", &Integrator::getDeltaT, &Integrator::setDeltaT)
         .def_property_readonly("forces", &Integrator::getForces)

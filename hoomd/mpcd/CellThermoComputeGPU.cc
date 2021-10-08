@@ -369,12 +369,12 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
 
 void mpcd::detail::export_CellThermoComputeGPU(pybind11::module& m)
     {
-    namespace py = pybind11;
 
-    py::class_<mpcd::CellThermoComputeGPU,
+
+    pybind11::class_<mpcd::CellThermoComputeGPU,
                mpcd::CellThermoCompute,
                std::shared_ptr<mpcd::CellThermoComputeGPU>>(m, "CellThermoComputeGPU")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>>());
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>());
     }
 
     } // end namespace hoomd

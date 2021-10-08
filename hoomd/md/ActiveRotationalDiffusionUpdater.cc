@@ -10,7 +10,7 @@
 #include <iostream>
 
 using namespace std;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -48,9 +48,9 @@ void ActiveRotationalDiffusionUpdater::update(uint64_t timestep)
 
 namespace detail
     {
-void export_ActiveRotationalDiffusionUpdater(py::module& m)
+void export_ActiveRotationalDiffusionUpdater(pybind11::module& m)
     {
-    py::class_<ActiveRotationalDiffusionUpdater,
+    pybind11::class_<ActiveRotationalDiffusionUpdater,
                Updater,
                std::shared_ptr<ActiveRotationalDiffusionUpdater>>(
         m,

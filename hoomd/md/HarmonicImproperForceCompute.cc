@@ -11,7 +11,7 @@
 #include <stdexcept>
 
 using namespace std;
-namespace py = pybind11;
+
 
 // SMALL a relatively small number
 #define SMALL Scalar(0.001)
@@ -300,12 +300,12 @@ void HarmonicImproperForceCompute::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_HarmonicImproperForceCompute(py::module& m)
+void export_HarmonicImproperForceCompute(pybind11::module& m)
     {
-    py::class_<HarmonicImproperForceCompute,
+    pybind11::class_<HarmonicImproperForceCompute,
                ForceCompute,
                std::shared_ptr<HarmonicImproperForceCompute>>(m, "HarmonicImproperForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &HarmonicImproperForceCompute::setParams);
     }
 

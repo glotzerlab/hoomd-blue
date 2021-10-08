@@ -6,7 +6,7 @@
 #include <numeric>
 #include <vector>
 
-namespace py = pybind11;
+
 
 /*! \file UpdaterBoxMC.cc
     \brief Definition of UpdaterBoxMC
@@ -840,10 +840,10 @@ hpmc_boxmc_counters_t UpdaterBoxMC::getCounters(unsigned int mode)
 
 namespace detail
     {
-void export_UpdaterBoxMC(py::module& m)
+void export_UpdaterBoxMC(pybind11::module& m)
     {
-    py::class_<UpdaterBoxMC, Updater, std::shared_ptr<UpdaterBoxMC>>(m, "UpdaterBoxMC")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+    pybind11::class_<UpdaterBoxMC, Updater, std::shared_ptr<UpdaterBoxMC>>(m, "UpdaterBoxMC")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<IntegratorHPMC>,
                       std::shared_ptr<Variant>>())
         .def_property("volume", &UpdaterBoxMC::getVolumeParams, &UpdaterBoxMC::setVolumeParams)
@@ -854,7 +854,7 @@ void export_UpdaterBoxMC(py::module& m)
         .def("getCounters", &UpdaterBoxMC::getCounters)
         .def_property("instance", &UpdaterBoxMC::getInstance, &UpdaterBoxMC::setInstance);
 
-    py::class_<hpmc_boxmc_counters_t>(m, "hpmc_boxmc_counters_t")
+    pybind11::class_<hpmc_boxmc_counters_t>(m, "hpmc_boxmc_counters_t")
         .def_property_readonly("volume",
                                [](const hpmc_boxmc_counters_t& a)
                                {

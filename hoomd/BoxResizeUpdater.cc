@@ -14,7 +14,7 @@
 #include <stdexcept>
 
 using namespace std;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -156,9 +156,9 @@ BoxDim& getBoxDimFromPyObject(pybind11::object box)
     return box.attr("_cpp_obj").cast<BoxDim&>();
     }
 
-void export_BoxResizeUpdater(py::module& m)
+void export_BoxResizeUpdater(pybind11::module& m)
     {
-    py::class_<BoxResizeUpdater, Updater, std::shared_ptr<BoxResizeUpdater>>(m, "BoxResizeUpdater")
+    pybind11::class_<BoxResizeUpdater, Updater, std::shared_ptr<BoxResizeUpdater>>(m, "BoxResizeUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             pybind11::object,
                             pybind11::object,

@@ -10,7 +10,7 @@
 #include "NeighborListGPUTree.h"
 #include "NeighborListGPUTree.cuh"
 
-namespace py = pybind11;
+
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -677,12 +677,12 @@ void NeighborListGPUTree::updateImageVectors()
 
 namespace detail
     {
-void export_NeighborListGPUTree(py::module& m)
+void export_NeighborListGPUTree(pybind11::module& m)
     {
-    py::class_<NeighborListGPUTree, NeighborListGPU, std::shared_ptr<NeighborListGPUTree>>(
+    pybind11::class_<NeighborListGPUTree, NeighborListGPU, std::shared_ptr<NeighborListGPUTree>>(
         m,
         "NeighborListGPUTree")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>());
     }
 
     } // end namespace detail

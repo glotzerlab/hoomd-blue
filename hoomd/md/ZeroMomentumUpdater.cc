@@ -14,7 +14,7 @@
 #include <stdexcept>
 
 using namespace std;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -126,12 +126,12 @@ void ZeroMomentumUpdater::update(uint64_t timestep)
 
 namespace detail
     {
-void export_ZeroMomentumUpdater(py::module& m)
+void export_ZeroMomentumUpdater(pybind11::module& m)
     {
-    py::class_<ZeroMomentumUpdater, Updater, std::shared_ptr<ZeroMomentumUpdater>>(
+    pybind11::class_<ZeroMomentumUpdater, Updater, std::shared_ptr<ZeroMomentumUpdater>>(
         m,
         "ZeroMomentumUpdater")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
     } // end namespace detail
     } // end namespace md

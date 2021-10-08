@@ -7,7 +7,7 @@
 #include "hoomd/VectorMath.h"
 
 using namespace std;
-namespace py = pybind11;
+
 
 /*! \file TwoStepNVE.h
     \brief Contains code for the TwoStepNVE class
@@ -406,10 +406,10 @@ void TwoStepNVE::integrateStepTwo(uint64_t timestep)
 
 namespace detail
     {
-void export_TwoStepNVE(py::module& m)
+void export_TwoStepNVE(pybind11::module& m)
     {
-    py::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE>>(m, "TwoStepNVE")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool>())
+    pybind11::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE>>(m, "TwoStepNVE")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool>())
         .def_property("limit", &TwoStepNVE::getLimit, &TwoStepNVE::setLimit)
         .def_property("zero_force", &TwoStepNVE::getZeroForce, &TwoStepNVE::setZeroForce);
     }

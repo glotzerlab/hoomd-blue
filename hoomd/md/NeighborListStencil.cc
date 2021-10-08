@@ -14,7 +14,7 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -337,12 +337,12 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
 
 namespace detail
     {
-void export_NeighborListStencil(py::module& m)
+void export_NeighborListStencil(pybind11::module& m)
     {
-    py::class_<NeighborListStencil, NeighborList, std::shared_ptr<NeighborListStencil>>(
+    pybind11::class_<NeighborListStencil, NeighborList, std::shared_ptr<NeighborListStencil>>(
         m,
         "NeighborListStencil")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property("cell_width",
                       &NeighborListStencil::getCellWidth,
                       &NeighborListStencil::setCellWidth)

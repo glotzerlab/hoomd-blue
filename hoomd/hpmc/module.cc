@@ -36,7 +36,7 @@
 using namespace hoomd::hpmc;
 using namespace hoomd::hpmc::detail;
 using namespace std;
-namespace py = pybind11;
+
 
 //! Define the _hpmc python module exports
 PYBIND11_MODULE(_hpmc, m)
@@ -61,40 +61,40 @@ PYBIND11_MODULE(_hpmc, m)
     export_convex_polyhedron(m);
     export_convex_spheropolyhedron(m);
 
-    py::class_<SphereParams, std::shared_ptr<SphereParams>>(m, "SphereParams")
+    pybind11::class_<SphereParams, std::shared_ptr<SphereParams>>(m, "SphereParams")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &SphereParams::asDict);
-    py::class_<EllipsoidParams, std::shared_ptr<EllipsoidParams>>(m, "EllipsoidParams")
+    pybind11::class_<EllipsoidParams, std::shared_ptr<EllipsoidParams>>(m, "EllipsoidParams")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &EllipsoidParams::asDict);
-    py::class_<PolygonVertices, std::shared_ptr<PolygonVertices>>(m, "PolygonVertices")
+    pybind11::class_<PolygonVertices, std::shared_ptr<PolygonVertices>>(m, "PolygonVertices")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &PolygonVertices::asDict);
-    py::class_<TriangleMesh, std::shared_ptr<TriangleMesh>>(m, "TriangleMesh")
+    pybind11::class_<TriangleMesh, std::shared_ptr<TriangleMesh>>(m, "TriangleMesh")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &TriangleMesh::asDict);
-    py::class_<PolyhedronVertices, std::shared_ptr<PolyhedronVertices>>(m, "PolyhedronVertices")
+    pybind11::class_<PolyhedronVertices, std::shared_ptr<PolyhedronVertices>>(m, "PolyhedronVertices")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &PolyhedronVertices::asDict);
-    py::class_<FacetedEllipsoidParams, std::shared_ptr<FacetedEllipsoidParams>>(
+    pybind11::class_<FacetedEllipsoidParams, std::shared_ptr<FacetedEllipsoidParams>>(
         m,
         "FacetedEllipsoidParams")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &FacetedEllipsoidParams::asDict);
-    py::class_<SphinxParams, std::shared_ptr<SphinxParams>>(m, "SphinxParams")
+    pybind11::class_<SphinxParams, std::shared_ptr<SphinxParams>>(m, "SphinxParams")
         .def_readwrite("circumsphereDiameter", &SphinxParams::circumsphereDiameter)
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &SphinxParams::asDict);
-    py::class_<ShapeUnion<ShapeSphere>::param_type,
+    pybind11::class_<ShapeUnion<ShapeSphere>::param_type,
                std::shared_ptr<ShapeUnion<ShapeSphere>::param_type>>(m, "SphereUnionParams")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &ShapeUnion<ShapeSphere>::param_type::asDict);
 
-    py::class_<ShapeUnion<ShapeSpheropolyhedron>::param_type,
+    pybind11::class_<ShapeUnion<ShapeSpheropolyhedron>::param_type,
                std::shared_ptr<ShapeUnion<ShapeSpheropolyhedron>::param_type>>(m, "mpoly3d_params")
         .def(pybind11::init<pybind11::dict>())
         .def("asDict", &ShapeUnion<ShapeSpheropolyhedron>::param_type::asDict);
-    py::class_<ShapeUnion<ShapeFacetedEllipsoid>::param_type,
+    pybind11::class_<ShapeUnion<ShapeFacetedEllipsoid>::param_type,
                std::shared_ptr<ShapeUnion<ShapeFacetedEllipsoid>::param_type>>(m,
                                                                                "mfellipsoid_params")
         .def(pybind11::init<pybind11::dict>())

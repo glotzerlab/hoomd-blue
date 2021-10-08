@@ -4,7 +4,7 @@
 #include "MuellerPlatheFlowGPU.h"
 #include "hoomd/HOOMDMPI.h"
 
-namespace py = pybind11;
+
 using namespace std;
 
 //! \file MuellerPlatheFlowGPU.cc Implementation of GPU version of MuellerPlatheFlow.
@@ -140,12 +140,12 @@ void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
 
 namespace detail
     {
-void export_MuellerPlatheFlowGPU(py::module& m)
+void export_MuellerPlatheFlowGPU(pybind11::module& m)
     {
-    py::class_<MuellerPlatheFlowGPU, MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlowGPU>>(
+    pybind11::class_<MuellerPlatheFlowGPU, MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlowGPU>>(
         m,
         "MuellerPlatheFlowGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<Variant>,
                       std::string,

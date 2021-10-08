@@ -9,7 +9,7 @@
 
 #include "OPLSDihedralForceComputeGPU.h"
 
-namespace py = pybind11;
+
 
 using namespace std;
 
@@ -93,12 +93,12 @@ void OPLSDihedralForceComputeGPU::computeForces(uint64_t timestep)
 
 namespace detail
     {
-void export_OPLSDihedralForceComputeGPU(py::module& m)
+void export_OPLSDihedralForceComputeGPU(pybind11::module& m)
     {
-    py::class_<OPLSDihedralForceComputeGPU,
+    pybind11::class_<OPLSDihedralForceComputeGPU,
                OPLSDihedralForceCompute,
                std::shared_ptr<OPLSDihedralForceComputeGPU>>(m, "OPLSDihedralForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     } // end namespace detail

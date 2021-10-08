@@ -13,7 +13,7 @@
 #include "../WCAPotential.h"
 
 #include <pybind11/pybind11.h>
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -21,13 +21,13 @@ namespace dem
     {
 namespace detail
     {
-void export_NF_SWCA_3D(py::module& m)
+void export_NF_SWCA_3D(pybind11::module& m)
     {
     typedef SWCAPotential<Scalar, Scalar4, NoFriction<Scalar>> SWCA;
     typedef DEM3DForceCompute<Scalar, Scalar4, SWCA> SWCA_DEM_3D;
 
-    py::class_<SWCA_DEM_3D, ForceCompute, std::shared_ptr<SWCA_DEM_3D>>(m, "SWCADEM3D")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+    pybind11::class_<SWCA_DEM_3D, ForceCompute, std::shared_ptr<SWCA_DEM_3D>>(m, "SWCADEM3D")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<md::NeighborList>,
                       Scalar,
                       SWCA>())
@@ -40,8 +40,8 @@ void export_NF_SWCA_3D(py::module& m)
 #ifdef ENABLE_HIP
     typedef DEM3DForceComputeGPU<Scalar, Scalar4, SWCA> SWCA_DEM_3D_GPU;
 
-    py::class_<SWCA_DEM_3D_GPU, SWCA_DEM_3D, std::shared_ptr<SWCA_DEM_3D_GPU>>(m, "SWCADEM3DGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+    pybind11::class_<SWCA_DEM_3D_GPU, SWCA_DEM_3D, std::shared_ptr<SWCA_DEM_3D_GPU>>(m, "SWCADEM3DGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<md::NeighborList>,
                       Scalar,
                       SWCA>())

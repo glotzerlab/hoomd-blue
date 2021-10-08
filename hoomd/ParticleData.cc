@@ -31,7 +31,7 @@
 
 using namespace std;
 
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -2663,21 +2663,21 @@ unsigned int ParticleData::getNthTag(unsigned int n)
 
 namespace detail
     {
-void export_BoxDim(py::module& m)
+void export_BoxDim(pybind11::module& m)
     {
     void (BoxDim::*wrap_overload)(Scalar3&, int3&, char3) const = &BoxDim::wrap;
     Scalar3 (BoxDim::*minImage_overload)(const Scalar3&) const = &BoxDim::minImage;
     Scalar3 (BoxDim::*makeFraction_overload)(const Scalar3&, const Scalar3&) const
         = &BoxDim::makeFraction;
 
-    py::class_<BoxDim>(m, "BoxDim")
-        .def(py::init<Scalar>())
-        .def(py::init<Scalar, Scalar, Scalar>())
-        .def(py::init<Scalar3>())
-        .def(py::init<Scalar3, Scalar3, uchar3>())
-        .def(py::init<Scalar, Scalar, Scalar, Scalar>())
-        .def(py::self == py::self)
-        .def(py::self != py::self)
+    pybind11::class_<BoxDim>(m, "BoxDim")
+        .def(pybind11::init<Scalar>())
+        .def(pybind11::init<Scalar, Scalar, Scalar>())
+        .def(pybind11::init<Scalar3>())
+        .def(pybind11::init<Scalar3, Scalar3, uchar3>())
+        .def(pybind11::init<Scalar, Scalar, Scalar, Scalar>())
+        .def(pybind11::self == pybind11::self)
+        .def(pybind11::self != pybind11::self)
         .def("getPeriodic",
              [](const BoxDim& box)
              {
@@ -2737,17 +2737,17 @@ ParticleData::takeSnapshot<float>(SnapshotParticleData<float>& snapshot);
 
 namespace detail
     {
-void export_ParticleData(py::module& m)
+void export_ParticleData(pybind11::module& m)
     {
-    py::class_<ParticleData, std::shared_ptr<ParticleData>>(m, "ParticleData")
-        .def(py::init<unsigned int,
+    pybind11::class_<ParticleData, std::shared_ptr<ParticleData>>(m, "ParticleData")
+        .def(pybind11::init<unsigned int,
                       const BoxDim&,
                       unsigned int,
                       std::shared_ptr<ExecutionConfiguration>>())
         .def("getGlobalBox",
              &ParticleData::getGlobalBox,
-             py::return_value_policy::reference_internal)
-        .def("getBox", &ParticleData::getBox, py::return_value_policy::reference_internal)
+             pybind11::return_value_policy::reference_internal)
+        .def("getBox", &ParticleData::getBox, pybind11::return_value_policy::reference_internal)
         .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
         .def("setGlobalBox", &ParticleData::setGlobalBox)
         .def("getN", &ParticleData::getN)
@@ -3806,7 +3806,7 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx,
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getPosNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getPosNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3822,7 +3822,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getPosNP(pybind11::o
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getVelNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getVelNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3838,7 +3838,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getVelNP(pybind11::o
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getAccelNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getAccelNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3854,7 +3854,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getAccelNP(pybind11:
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getTypeNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getTypeNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3867,7 +3867,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getTypeNP(pybind11::
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getMassNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getMassNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3880,7 +3880,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getMassNP(pybind11::
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getChargeNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getChargeNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3893,7 +3893,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getChargeNP(pybind11
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getDiameterNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getDiameterNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3906,7 +3906,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getDiameterNP(pybind
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getImageNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getImageNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3922,7 +3922,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getImageNP(pybind11:
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getBodyNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getBodyNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3935,7 +3935,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getBodyNP(pybind11::
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getOrientationNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getOrientationNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3952,7 +3952,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getOrientationNP(pyb
    snapshot
 */
 template<class Real>
-py::object SnapshotParticleData<Real>::getMomentInertiaNP(pybind11::object self)
+pybind11::object SnapshotParticleData<Real>::getMomentInertiaNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3968,7 +3968,7 @@ py::object SnapshotParticleData<Real>::getMomentInertiaNP(pybind11::object self)
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getAngmomNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getAngmomNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3982,19 +3982,19 @@ template<class Real> py::object SnapshotParticleData<Real>::getAngmomNP(pybind11
 
 /*! \returns A python list of type names
  */
-template<class Real> py::list SnapshotParticleData<Real>::getTypes()
+template<class Real> pybind11::list SnapshotParticleData<Real>::getTypes()
     {
-    py::list types;
+    pybind11::list types;
 
     for (unsigned int i = 0; i < type_mapping.size(); i++)
-        types.append(py::str(type_mapping[i]));
+        types.append(pybind11::str(type_mapping[i]));
 
     return types;
     }
 
 /*! \param types Python list of type names to set
  */
-template<class Real> void SnapshotParticleData<Real>::setTypes(py::list types)
+template<class Real> void SnapshotParticleData<Real>::setTypes(pybind11::list types)
     {
     // set dirty
     is_accel_set = false;
@@ -4002,7 +4002,7 @@ template<class Real> void SnapshotParticleData<Real>::setTypes(py::list types)
     type_mapping.resize(len(types));
 
     for (unsigned int i = 0; i < len(types); i++)
-        type_mapping[i] = py::cast<string>(types[i]);
+        type_mapping[i] = pybind11::cast<string>(types[i]);
     }
 
 #ifdef ENABLE_MPI
@@ -4034,12 +4034,12 @@ template struct SnapshotParticleData<double>;
 
 namespace detail
     {
-void export_SnapshotParticleData(py::module& m)
+void export_SnapshotParticleData(pybind11::module& m)
     {
-    py::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float>>>(
+    pybind11::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float>>>(
         m,
         "SnapshotParticleData_float")
-        .def(py::init<unsigned int>())
+        .def(pybind11::init<unsigned int>())
         .def_property_readonly("position", &SnapshotParticleData<float>::getPosNP)
         .def_property_readonly("velocity", &SnapshotParticleData<float>::getVelNP)
         .def_property_readonly("acceleration", &SnapshotParticleData<float>::getAccelNP)
@@ -4060,10 +4060,10 @@ void export_SnapshotParticleData(py::module& m)
                       &SnapshotParticleData<float>::resize)
         .def_readonly("is_accel_set", &SnapshotParticleData<float>::is_accel_set);
 
-    py::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double>>>(
+    pybind11::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double>>>(
         m,
         "SnapshotParticleData_double")
-        .def(py::init<unsigned int>())
+        .def(pybind11::init<unsigned int>())
         .def_property_readonly("position", &SnapshotParticleData<double>::getPosNP)
         .def_property_readonly("velocity", &SnapshotParticleData<double>::getVelNP)
         .def_property_readonly("acceleration", &SnapshotParticleData<double>::getAccelNP)

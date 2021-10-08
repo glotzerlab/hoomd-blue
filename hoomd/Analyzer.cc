@@ -9,7 +9,7 @@
 
 #include "Analyzer.h"
 
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -40,10 +40,10 @@ void Analyzer::setProfiler(std::shared_ptr<Profiler> prof)
 
 namespace detail
     {
-void export_Analyzer(py::module& m)
+void export_Analyzer(pybind11::module& m)
     {
-    py::class_<Analyzer, std::shared_ptr<Analyzer>>(m, "Analyzer")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+    pybind11::class_<Analyzer, std::shared_ptr<Analyzer>>(m, "Analyzer")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("analyze", &Analyzer::analyze)
         .def("setProfiler", &Analyzer::setProfiler)
         .def("notifyDetach", &Analyzer::notifyDetach);

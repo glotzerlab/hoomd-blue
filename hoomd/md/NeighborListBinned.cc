@@ -14,7 +14,7 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -205,12 +205,12 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
 
 namespace detail
     {
-void export_NeighborListBinned(py::module& m)
+void export_NeighborListBinned(pybind11::module& m)
     {
-    py::class_<NeighborListBinned, NeighborList, std::shared_ptr<NeighborListBinned>>(
+    pybind11::class_<NeighborListBinned, NeighborList, std::shared_ptr<NeighborListBinned>>(
         m,
         "NeighborListBinned")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property("deterministic",
                       &NeighborListBinned::getDeterministic,
                       &NeighborListBinned::setDeterministic);

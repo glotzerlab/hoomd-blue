@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <iostream>
 using namespace std;
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -896,13 +896,13 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
 
 namespace detail
     {
-void export_ParticleGroup(py::module& m)
+void export_ParticleGroup(pybind11::module& m)
     {
-    py::class_<ParticleGroup, std::shared_ptr<ParticleGroup>>(m, "ParticleGroup")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>, bool>())
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>>())
-        .def(py::init<std::shared_ptr<SystemDefinition>, const std::vector<unsigned int>&>())
-        .def(py::init<>())
+    pybind11::class_<ParticleGroup, std::shared_ptr<ParticleGroup>>(m, "ParticleGroup")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>, bool>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, const std::vector<unsigned int>&>())
+        .def(pybind11::init<>())
         .def("getNumMembersGlobal", &ParticleGroup::getNumMembersGlobal)
         .def("getMemberTag", &ParticleGroup::getMemberTag)
         .def("getTotalMass", &ParticleGroup::getTotalMass)

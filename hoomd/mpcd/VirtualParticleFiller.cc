@@ -81,11 +81,11 @@ void mpcd::VirtualParticleFiller::setType(unsigned int type)
  */
 void mpcd::detail::export_VirtualParticleFiller(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::VirtualParticleFiller, std::shared_ptr<mpcd::VirtualParticleFiller>>(
+
+    pybind11::class_<mpcd::VirtualParticleFiller, std::shared_ptr<mpcd::VirtualParticleFiller>>(
         m,
         "VirtualParticleFiller")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
                       Scalar,
                       unsigned int,
                       std::shared_ptr<Variant>>())

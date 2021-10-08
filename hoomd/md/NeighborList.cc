@@ -10,7 +10,7 @@
 #include "NeighborList.h"
 #include "hoomd/BondedGroupData.h"
 
-namespace py = pybind11;
+
 
 #include <iostream>
 #include <stdexcept>
@@ -1807,10 +1807,10 @@ void NeighborList::updateMemoryMapping()
 
 namespace detail
     {
-void export_NeighborList(py::module& m)
+void export_NeighborList(pybind11::module& m)
     {
-    py::class_<NeighborList, Compute, std::shared_ptr<NeighborList>> nlist(m, "NeighborList");
-    nlist.def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+    pybind11::class_<NeighborList, Compute, std::shared_ptr<NeighborList>> nlist(m, "NeighborList");
+    nlist.def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property("buffer", &NeighborList::getRBuff, &NeighborList::setRBuff)
         .def_property("rebuild_check_delay",
                       &NeighborList::getRebuildCheckDelay,
@@ -1834,7 +1834,7 @@ void export_NeighborList(py::module& m)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
         .def("getNumExclusions", &NeighborList::getNumExclusions);
 
-    py::enum_<NeighborList::storageMode>(nlist, "storageMode")
+    pybind11::enum_<NeighborList::storageMode>(nlist, "storageMode")
         .value("half", NeighborList::storageMode::half)
         .value("full", NeighborList::storageMode::full)
         .export_values();

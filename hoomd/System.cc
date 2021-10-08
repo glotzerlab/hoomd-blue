@@ -20,7 +20,7 @@
 #include <time.h>
 
 using namespace std;
-namespace py = pybind11;
+
 
 // the typedef works around an issue with older versions of the preprocessor
 PYBIND11_MAKE_OPAQUE(
@@ -164,7 +164,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
         // propagate Python exceptions related to signals
         if (PyErr_CheckSignals() != 0)
             {
-            throw py::error_already_set();
+            throw pybind11::error_already_set();
             }
         }
 
@@ -315,19 +315,19 @@ PDataFlags System::determineFlags(uint64_t tstep)
 
 namespace detail
     {
-void export_System(py::module& m)
+void export_System(pybind11::module& m)
     {
-    py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>>(
+    pybind11::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>>(
         m,
         "AnalyzerTriggerList");
-    py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>>>>(
+    pybind11::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>>>>(
         m,
         "UpdaterTriggerList");
-    py::bind_vector<std::vector<std::shared_ptr<Tuner>>>(m, "TunerList");
-    py::bind_vector<std::vector<std::shared_ptr<Compute>>>(m, "ComputeList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<Tuner>>>(m, "TunerList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<Compute>>>(m, "ComputeList");
 
-    py::class_<System, std::shared_ptr<System>>(m, "System")
-        .def(py::init<std::shared_ptr<SystemDefinition>, uint64_t>())
+    pybind11::class_<System, std::shared_ptr<System>>(m, "System")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, uint64_t>())
 
         .def("setIntegrator", &System::setIntegrator)
         .def("getIntegrator", &System::getIntegrator)

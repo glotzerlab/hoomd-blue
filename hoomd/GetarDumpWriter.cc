@@ -8,7 +8,7 @@
 #include <cstdio>
 #include <iostream>
 
-namespace py = pybind11;
+
 
 namespace hoomd
     {
@@ -980,10 +980,10 @@ void GetarDumpWriter::writeStr(const std::string& name,
         m_archive->writeString(rec.getPath(), contents, gtar::FastCompress);
     }
 
-void export_GetarDumpWriter(py::module& m)
+void export_GetarDumpWriter(pybind11::module& m)
     {
-    py::class_<GetarDumpWriter, Analyzer, std::shared_ptr<GetarDumpWriter>>(m, "GetarDumpWriter")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+    pybind11::class_<GetarDumpWriter, Analyzer, std::shared_ptr<GetarDumpWriter>>(m, "GetarDumpWriter")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::string,
                       getardump::GetarDumpMode,
                       unsigned int>())
@@ -993,13 +993,13 @@ void export_GetarDumpWriter(py::module& m)
         .def("removeDump", &GetarDumpWriter::removeDump)
         .def("writeStr", &GetarDumpWriter::writeStr);
 
-    py::enum_<getardump::GetarDumpMode>(m, "GetarDumpMode")
+    pybind11::enum_<getardump::GetarDumpMode>(m, "GetarDumpMode")
         .value("Overwrite", getardump::Overwrite)
         .value("Append", getardump::Append)
         .value("OneShot", getardump::OneShot)
         .export_values();
 
-    py::enum_<getardump::Property>(m, "GetarProperty")
+    pybind11::enum_<getardump::Property>(m, "GetarProperty")
         .value("AngleNames", AngleNames)
         .value("AngleTags", AngleTags)
         .value("AngleTypes", AngleTypes)
@@ -1036,19 +1036,19 @@ void export_GetarDumpWriter(py::module& m)
         .value("Virial", Virial)
         .export_values();
 
-    py::enum_<getardump::Resolution>(m, "GetarResolution")
+    pybind11::enum_<getardump::Resolution>(m, "GetarResolution")
         .value("Text", Text)
         .value("Uniform", Uniform)
         .value("Individual", Individual)
         .export_values();
 
-    py::enum_<getardump::Behavior>(m, "GetarBehavior")
+    pybind11::enum_<getardump::Behavior>(m, "GetarBehavior")
         .value("Constant", Constant)
         .value("Discrete", Discrete)
         .value("Continuous", Continuous)
         .export_values();
 
-    py::enum_<getardump::CompressMode>(m, "GetarCompression")
+    pybind11::enum_<getardump::CompressMode>(m, "GetarCompression")
         .value("NoCompress", NoCompress)
         .value("FastCompress", FastCompress)
         .value("MediumCompress", MediumCompress)

@@ -10,7 +10,7 @@
 #include "NeighborListGPUBinned.h"
 #include "NeighborListGPUBinned.cuh"
 
-namespace py = pybind11;
+
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -210,12 +210,12 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
 
 namespace detail
     {
-void export_NeighborListGPUBinned(py::module& m)
+void export_NeighborListGPUBinned(pybind11::module& m)
     {
-    py::class_<NeighborListGPUBinned, NeighborListGPU, std::shared_ptr<NeighborListGPUBinned>>(
+    pybind11::class_<NeighborListGPUBinned, NeighborListGPU, std::shared_ptr<NeighborListGPUBinned>>(
         m,
         "NeighborListGPUBinned")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
         .def_property("deterministic",
                       &NeighborListGPUBinned::getDeterministic,

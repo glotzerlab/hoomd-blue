@@ -8,7 +8,7 @@
 
 #include "ForceCompositeGPU.cuh"
 
-namespace py = pybind11;
+
 
 /*! \file ForceCompositeGPU.cc
     \brief Contains code for the ForceCompositeGPU class
@@ -508,12 +508,12 @@ void ForceCompositeGPU::findRigidCenters()
 
 namespace detail
     {
-void export_ForceCompositeGPU(py::module& m)
+void export_ForceCompositeGPU(pybind11::module& m)
     {
-    py::class_<ForceCompositeGPU, ForceComposite, std::shared_ptr<ForceCompositeGPU>>(
+    pybind11::class_<ForceCompositeGPU, ForceComposite, std::shared_ptr<ForceCompositeGPU>>(
         m,
         "ForceCompositeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     } // end namespace detail
