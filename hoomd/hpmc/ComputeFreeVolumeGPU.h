@@ -4,8 +4,6 @@
 #ifndef __COMPUTE_FREE_VOLUME_GPU_H__
 #define __COMPUTE_FREE_VOLUME_GPU_H__
 
-using namespace std;
-
 #ifdef ENABLE_HIP
 
 #include "hoomd/Autotuner.h"
@@ -156,8 +154,8 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
         {
         this->m_exec_conf->msg->error() << "Simulation box too small for compute.free_volume() on "
                                            "GPU - increase it so the minimum image convention works"
-                                        << endl;
-        throw runtime_error("Error performing HPMC update");
+                                        << std::endl;
+        throw std::runtime_error("Error performing HPMC update");
         }
 
     // compute cell list

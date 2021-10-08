@@ -15,7 +15,6 @@
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
-using namespace hoomd;
 
 #include <assert.h>
 #include <type_traits>

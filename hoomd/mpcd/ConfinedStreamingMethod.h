@@ -230,12 +230,11 @@ namespace detail
  */
 template<class Geometry> void export_ConfinedStreamingMethod(pybind11::module& m)
     {
-    namespace py = pybind11;
     const std::string name = "ConfinedStreamingMethod" + Geometry::getName();
-    py::class_<mpcd::ConfinedStreamingMethod<Geometry>,
+    pybind11::class_<mpcd::ConfinedStreamingMethod<Geometry>,
                mpcd::StreamingMethod,
                std::shared_ptr<mpcd::ConfinedStreamingMethod<Geometry>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
                       unsigned int,
                       unsigned int,
                       int,

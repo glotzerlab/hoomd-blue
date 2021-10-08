@@ -22,10 +22,6 @@
 
 #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
-using namespace std;
-using namespace hoomd;
-
 namespace hoomd
     {
 namespace md
@@ -138,7 +134,7 @@ TwoStepRATTLELangevin<Manifold>::TwoStepRATTLELangevin(std::shared_ptr<SystemDef
       m_extra_energy_overdeltaT(0), m_tally(false), m_noiseless_t(false), m_noiseless_r(false),
       m_tolerance(tolerance), m_box_changed(false)
     {
-    m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLELangevin" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLELangevin" << std::endl;
 
     m_pdata->getBoxChangeSignal()
         .template connect<TwoStepRATTLELangevin<Manifold>,
@@ -155,7 +151,7 @@ template<class Manifold> TwoStepRATTLELangevin<Manifold>::~TwoStepRATTLELangevin
     m_pdata->getBoxChangeSignal()
         .template disconnect<TwoStepRATTLELangevin<Manifold>,
                              &TwoStepRATTLELangevin<Manifold>::setBoxChange>(this);
-    m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLELangevin" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLELangevin" << std::endl;
     }
 
 /*! \param timestep Current time step
@@ -508,9 +504,9 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(
         if (iteration == maxiteration)
             {
             m_exec_conf->msg->warning()
-                << "The RATTLE integrator needed an unusual high number of iterations!" << endl
+                << "The RATTLE integrator needed an unusual high number of iterations!" << std::endl
                 << "It is recomended to change the initial configuration or lower the step size."
-                << endl;
+                << std::endl;
             }
 
         // then, update the velocity
@@ -719,9 +715,9 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::includeRATTLEForc
         if (iteration == maxiteration)
             {
             m_exec_conf->msg->warning()
-                << "The RATTLE integrator needed an unusual high number of iterations!" << endl
+                << "The RATTLE integrator needed an unusual high number of iterations!" << std::endl
                 << "It is recomended to change the initial configuration or lower the step size."
-                << endl;
+                << std::endl;
             }
 
         h_net_force.data[j].x -= alpha * normal.x;
@@ -746,12 +742,12 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::includeRATTLEForc
 
 namespace detail
     {
-template<class Manifold> void export_TwoStepRATTLELangevin(py::module& m, const std::string& name)
+template<class Manifold> void export_TwoStepRATTLELangevin(pybind11::module& m, const std::string& name)
     {
-    py::class_<TwoStepRATTLELangevin<Manifold>,
+    pybind11::class_<TwoStepRATTLELangevin<Manifold>,
                TwoStepLangevinBase,
                std::shared_ptr<TwoStepRATTLELangevin<Manifold>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       Manifold,
                       std::shared_ptr<Variant>,

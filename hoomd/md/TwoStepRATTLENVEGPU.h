@@ -99,7 +99,7 @@ TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinit
     if (!this->m_exec_conf->isCUDAEnabled())
         {
         this->m_exec_conf->msg->error()
-            << "Creating a TwoStepRATTLENVEGPU when CUDA is disabled" << endl;
+            << "Creating a TwoStepRATTLENVEGPU when CUDA is disabled" << std::endl;
         throw std::runtime_error("Error initializing TwoStepRATTLENVEGPU");
         }
 
@@ -357,12 +357,12 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(
 
 namespace detail
     {
-template<class Manifold> void export_TwoStepRATTLENVEGPU(py::module& m, const std::string& name)
+template<class Manifold> void export_TwoStepRATTLENVEGPU(pybind11::module& m, const std::string& name)
     {
-    py::class_<TwoStepRATTLENVEGPU<Manifold>,
+    pybind11::class_<TwoStepRATTLENVEGPU<Manifold>,
                TwoStepRATTLENVE<Manifold>,
                std::shared_ptr<TwoStepRATTLENVEGPU<Manifold>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       Manifold,
                       bool,

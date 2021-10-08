@@ -10,8 +10,6 @@
 #include "hoomd/HOOMDMath.h"
 #include <pybind11/pybind11.h>
 
-// namespace py = pybind11;
-
 /*! \file ManifoldDiamond.h
     \brief Defines the manifold class for the Diamond minimal surface
 */

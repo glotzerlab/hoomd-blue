@@ -96,7 +96,7 @@ TwoStepRATTLELangevinGPU<Manifold>::TwoStepRATTLELangevinGPU(
     if (!this->m_exec_conf->isCUDAEnabled())
         {
         this->m_exec_conf->msg->error()
-            << "Creating a TwoStepRATTLELangevinGPU while CUDA is disabled" << endl;
+            << "Creating a TwoStepRATTLELangevinGPU while CUDA is disabled" << std::endl;
         throw std::runtime_error("Error initializing TwoStepRATTLELangevinGPU");
         }
 
@@ -412,12 +412,12 @@ void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
 namespace detail
     {
 template<class Manifold>
-void export_TwoStepRATTLELangevinGPU(py::module& m, const std::string& name)
+void export_TwoStepRATTLELangevinGPU(pybind11::module& m, const std::string& name)
     {
-    py::class_<TwoStepRATTLELangevinGPU<Manifold>,
+    pybind11::class_<TwoStepRATTLELangevinGPU<Manifold>,
                TwoStepRATTLELangevin<Manifold>,
                std::shared_ptr<TwoStepRATTLELangevinGPU<Manifold>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       Manifold,
                       std::shared_ptr<Variant>,

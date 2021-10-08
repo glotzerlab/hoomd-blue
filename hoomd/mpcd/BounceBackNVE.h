@@ -299,13 +299,12 @@ namespace detail
 //! Exports the BounceBackNVE class to python
 template<class Geometry> void export_BounceBackNVE(pybind11::module& m)
     {
-    namespace py = pybind11;
     const std::string name = "BounceBackNVE" + Geometry::getName();
 
-    py::class_<BounceBackNVE<Geometry>,
+    pybind11::class_<BounceBackNVE<Geometry>,
                hoomd::md::IntegrationMethodTwoStep,
                std::shared_ptr<BounceBackNVE<Geometry>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       std::shared_ptr<const Geometry>>())
         .def_property("geometry",

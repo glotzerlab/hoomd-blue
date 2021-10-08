@@ -22,8 +22,6 @@
 #define __ACTIVEFORCECONSTRAINTCOMPUTE_GPU_H__
 
 #include <vector>
-namespace py = pybind11;
-using namespace std;
 
 namespace hoomd
     {
@@ -99,7 +97,7 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
         {
         this->m_exec_conf->msg->error() << "Creating a ActiveForceConstraintComputeGPU with no GPU "
                                            "in the execution configuration"
-                                        << endl;
+                                        << std::endl;
         throw std::runtime_error("Error initializing ActiveForceConstraintComputeGPU");
         }
 
@@ -288,12 +286,12 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setCons
 namespace detail
     {
 template<class Manifold>
-void export_ActiveForceConstraintComputeGPU(py::module& m, const std::string& name)
+void export_ActiveForceConstraintComputeGPU(pybind11::module& m, const std::string& name)
     {
-    py::class_<ActiveForceConstraintComputeGPU<Manifold>,
+    pybind11::class_<ActiveForceConstraintComputeGPU<Manifold>,
                ActiveForceConstraintCompute<Manifold>,
                std::shared_ptr<ActiveForceConstraintComputeGPU<Manifold>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       Manifold>());
     }

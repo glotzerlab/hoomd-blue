@@ -20,10 +20,6 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-namespace py = pybind11;
-
-using namespace std;
-
 namespace hoomd
     {
 namespace md
@@ -78,7 +74,7 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
     if (!this->m_exec_conf->isCUDAEnabled())
         {
         this->m_exec_conf->msg->error()
-            << "Creating a TwoStepRATTLEBDGPU while CUDA is disabled" << endl;
+            << "Creating a TwoStepRATTLEBDGPU while CUDA is disabled" << std::endl;
         throw std::runtime_error("Error initializing TwoStepRATTLEBDGPU");
         }
 
@@ -289,12 +285,12 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
 namespace detail
     {
 //! Exports the TwoStepRATTLEBDGPU class to python
-template<class Manifold> void export_TwoStepRATTLEBDGPU(py::module& m, const std::string& name)
+template<class Manifold> void export_TwoStepRATTLEBDGPU(pybind11::module& m, const std::string& name)
     {
-    py::class_<TwoStepRATTLEBDGPU<Manifold>,
+    pybind11::class_<TwoStepRATTLEBDGPU<Manifold>,
                TwoStepRATTLEBD<Manifold>,
                std::shared_ptr<TwoStepRATTLEBDGPU<Manifold>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       Manifold,
                       std::shared_ptr<Variant>,
