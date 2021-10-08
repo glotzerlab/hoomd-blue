@@ -230,7 +230,7 @@ def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_cpp_potential_sticky_spheres(device, simulation_factory,
                                       two_particle_snapshot_factory):
-    """Validate the behavior of the CPPPotential class for sticky spheres
+    """Validate the behavior of the CPPPotential class for sticky spheres.
 
     This test constructs a system of 2 hard spheres with a very deep, very
     short-ranged square well attraction at the surface of the sphere. Given the
