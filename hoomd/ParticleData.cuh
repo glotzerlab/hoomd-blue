@@ -40,6 +40,7 @@ struct pdata_element
     int3 image;           //!< Image
     unsigned int body;    //!< Body id
     Scalar4 orientation;  //!< Orientation
+    Scalar4 quat_pos;  //!< PosQuaternion
     Scalar4 angmom;       //!< Angular momentum
     Scalar3 inertia;      //!< Moments of inertia
     unsigned int tag;     //!< global tag
@@ -62,6 +63,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                               const int3* d_image,
                               const unsigned int* d_body,
                               const Scalar4* d_orientation,
+                              const Scalar4* d_quat_pos,
                               const Scalar4* d_angmom,
                               const Scalar3* d_inertia,
                               const Scalar4* d_net_force,
@@ -78,6 +80,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                               int3* d_image_alt,
                               unsigned int* d_body_alt,
                               Scalar4* d_orientation_alt,
+                              Scalar4* d_quat_pos_alt,
                               Scalar4* d_angmom_alt,
                               Scalar3* d_inertia_alt,
                               Scalar4* d_net_force_alt,
@@ -103,6 +106,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                              int3* d_image,
                              unsigned int* d_body,
                              Scalar4* d_orientation,
+                             Scalar4* d_quat_pos,
                              Scalar4* d_angmom,
                              Scalar3* d_inertia,
                              Scalar4* d_net_force,

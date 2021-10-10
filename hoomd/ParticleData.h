@@ -25,6 +25,7 @@
 #endif
 
 #include "BoxDim.h"
+#include "Sphere.h"
 #include "ExecutionConfiguration.h"
 
 #include "HOOMDMPI.h"
@@ -155,7 +156,7 @@ std::string getDefaultTypeName(unsigned int id);
 template<class Real> struct PYBIND11_EXPORT SnapshotParticleData
     {
     //! Empty snapshot
-    SnapshotParticleData() : size(0), is_accel_set(false) { }
+    SnapshotParticleData() : size(0), is_accel_set(false), use_spherical_coord(false) { }
 
     //! constructor
     /*! \param N number of particles to allocate memory for
@@ -221,6 +222,8 @@ template<class Real> struct PYBIND11_EXPORT SnapshotParticleData
     static pybind11::object getBodyNP(pybind11::object self);
     //! Get orientation as a Python object
     static pybind11::object getOrientationNP(pybind11::object self);
+    //! Get quat_pos as a Python object
+    static pybind11::object getPosQuaternionNP(pybind11::object self);
     //! Get moment of inertia as a numpy array
     static pybind11::object getMomentInertiaNP(pybind11::object self);
     //! Get angular momentum as a numpy array
@@ -241,6 +244,7 @@ template<class Real> struct PYBIND11_EXPORT SnapshotParticleData
     std::vector<int3> image;             //!< images
     std::vector<unsigned int> body;      //!< body ids
     std::vector<quat<Real>> orientation; //!< orientations
+    std::vector<quat<Real>> quat_pos; //!< quat_pos
     std::vector<quat<Real>> angmom;      //!< angular momentum quaternion
     std::vector<vec3<Real>> inertia;     //!< principal moments of inertia
 
@@ -248,6 +252,7 @@ template<class Real> struct PYBIND11_EXPORT SnapshotParticleData
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
 
     bool is_accel_set; //!< Flag indicating if accel is set
+    bool use_spherical_coord;             //!< Flag indicating if spherical coordinates are used
     };
 
 //! Structure to store packed particle data
@@ -263,6 +268,7 @@ struct pdata_element
     int3 image;           //!< Image
     unsigned int body;    //!< Body id
     Scalar4 orientation;  //!< Orientation
+    Scalar4 quat_pos;  //!< Orientation
     Scalar4 angmom;       //!< Angular momentum
     Scalar3 inertia;      //!< Principal moments of inertia
     unsigned int tag;     //!< global tag
@@ -419,6 +425,13 @@ struct pdata_element
    acceleration data is valid. When it is not valid, the integrator will compute accelerations and
    make it valid in prepRun(). When it is valid, the integrator will do nothing. On initialization
    from a snapshot, ParticleData will inherit its valid flag.
+
+   ## Spherical coordinates
+    HOOMD supports cartesian coordinates (periodic boundary conditions) and spherical coordinates (can be used as spherical boundary conditions).
+    The type of coordinates is accessible using getCoordinateType(). For spherical coordinates,
+    the rotations on the sphere are stored in a unit quaternion, qpos. The position and orientation is not
+    used, except for the particle type.
+    Domain decomposition is currently only supported with periodic boundary conditions.
 */
 class PYBIND11_EXPORT ParticleData
     {
@@ -431,7 +444,7 @@ class PYBIND11_EXPORT ParticleData
                  std::shared_ptr<DomainDecomposition> decomposition
                  = std::shared_ptr<DomainDecomposition>());
 
-    //! Construct using a ParticleDataSnapshot
+    //! Construct using a ParticleDataSnapshot and cartesian coordinates
     template<class Real>
     ParticleData(const SnapshotParticleData<Real>& snapshot,
                  const BoxDim& global_box,
@@ -439,11 +452,47 @@ class PYBIND11_EXPORT ParticleData
                  std::shared_ptr<DomainDecomposition> decomposition
                  = std::shared_ptr<DomainDecomposition>());
 
+    //! Construct using a ParticleDataSnapshot and hyperspherical coordinates
+    template<class Real>
+    ParticleData(const SnapshotParticleData<Real>& snapshot,
+		const Sphere& sphere,
+		std::shared_ptr<ExecutionConfiguration> exec_conf);
+
     //! Destructor
     virtual ~ParticleData();
 
+
+    enum coordinate_Enum
+            {
+            cartesian = 0,
+            spherical
+            };
+
+     //! Get the type of coordinates
+     coordinate_Enum getCoordinateType() const
+            {
+            return m_coordinate;
+            }
+
     //! Get the simulation box
     const BoxDim& getBox() const;
+
+    //! Get the simulation sphere
+    /*! Only for spherical coordinates
+    */
+    const Sphere& getSphere() const
+        {
+        return m_sphere;
+        }
+
+    //! Set the spherical coordinate system
+    void setSphere(const Sphere& sphere)
+        {
+        m_sphere = sphere;
+
+        // using this signal for boxes and spheres
+        m_boxchange_signal.emit();
+        }
 
     //! Set the global simulation box
     void setGlobalBox(const BoxDim& box);
@@ -826,6 +875,18 @@ class PYBIND11_EXPORT ParticleData
         m_orientation.swap(m_orientation_alt);
         }
 
+    //! Get the quat_poss (alternate array)
+    const GlobalArray<Scalar4>& getAltPosQuaternionArray() const
+        {
+        return m_quat_pos_alt;
+        }
+
+    //! Swap in quat_poss
+    inline void swapPosQuaternions()
+        {
+        m_quat_pos.swap(m_quat_pos_alt);
+        }
+
     //! Get the angular momenta (alternate array)
     const GlobalArray<Scalar4>& getAltAngularMomentumArray() const
         {
@@ -955,6 +1016,12 @@ class PYBIND11_EXPORT ParticleData
         return m_orientation;
         }
 
+    //! Get the quat_pos array
+    const GlobalArray<Scalar4>& getPosQuaternionArray() const
+        {
+        return m_quat_pos;
+        }
+
     //! Get the angular momentum array
     const GlobalArray<Scalar4>& getAngularMomentumArray() const
         {
@@ -1047,6 +1114,9 @@ class PYBIND11_EXPORT ParticleData
     //! Get the orientation of a particle with a given tag
     Scalar4 getOrientation(unsigned int tag) const;
 
+    //! Get the quat_pos of a particle with a given tag
+    Scalar4 getPosQuaternion(unsigned int tag) const;
+
     //! Get the angular momentum of a particle with a given tag
     Scalar4 getAngularMomentum(unsigned int tag) const;
 
@@ -1090,6 +1160,9 @@ class PYBIND11_EXPORT ParticleData
 
     //! Set the orientation of a particle with a given tag
     void setOrientation(unsigned int tag, const Scalar4& orientation);
+
+    //! Set the quat_pos of a particle with a given tag
+    void setPosQuaternion(unsigned int tag, const Scalar4& quat_pos);
 
     //! Set the orientation of a particle with a given tag
     void setAngularMomentum(unsigned int tag, const Scalar4& angmom);
@@ -1323,6 +1396,8 @@ class PYBIND11_EXPORT ParticleData
     GlobalArray<unsigned int> m_body;  //!< rigid body ids
     GlobalArray<Scalar4>
         m_orientation; //!< Orientation quaternion for each particle (ignored if not anisotropic)
+    GlobalArray<Scalar4>
+        m_quat_pos; //!< PosQuaternion quaternion for each particle (ignored if not anisotropic)
     GlobalArray<Scalar4> m_angmom;          //!< Angular momementum quaternion for each particle
     GlobalArray<Scalar3> m_inertia;         //!< Principal moments of inertia for each particle
     GlobalArray<unsigned int> m_comm_flags; //!< Array of communication flags
@@ -1351,6 +1426,7 @@ class PYBIND11_EXPORT ParticleData
     GlobalArray<unsigned int> m_tag_alt;    //!< particle tags (swap-in)
     GlobalArray<unsigned int> m_body_alt;   //!< rigid body ids (swap-in)
     GlobalArray<Scalar4> m_orientation_alt; //!< orientations (swap-in)
+    GlobalArray<Scalar4> m_quat_pos_alt; //!< quat_poss (swap-in)
     GlobalArray<Scalar4> m_angmom_alt;      //!< angular momenta (swap-in)
     GlobalArray<Scalar3>
         m_inertia_alt; //!< Principal moments of inertia for each particle (swap-in)
@@ -1380,6 +1456,9 @@ class PYBIND11_EXPORT ParticleData
     GPUPartition m_gpu_partition; //!< The partition of the local number of particles across GPUs
     unsigned int m_memory_advice_last_Nmax; //!< Nmax at which memory hints were last set
 #endif
+
+    coordinate_Enum m_coordinate;                     //!< Type of coordinate system
+    Sphere m_sphere;                          //!< Dimension of simulation sphere
 
     //! Helper function to allocate particle data
     void allocate(unsigned int N);
@@ -1419,7 +1498,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
     {
     public:
     LocalParticleData(ParticleData& data)
-        : LocalDataAccess<Output, ParticleData>(data), m_position_handle(), m_orientation_handle(),
+        : LocalDataAccess<Output, ParticleData>(data), m_position_handle(), m_orientation_handle(), m_quat_pos_handle(),
           m_velocities_handle(), m_angular_momentum_handle(), m_acceleration_handle(),
           m_inertia_handle(), m_charge_handle(), m_diameter_handle(), m_image_handle(),
           m_tag_handle(), m_rtag_handle(), m_rigid_body_ids_handle(), m_net_force_handle(),
@@ -1475,6 +1554,14 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         {
         return this->template getBuffer<Scalar4, Scalar>(m_orientation_handle,
                                                          &ParticleData::getOrientationArray,
+                                                         flag,
+                                                         4);
+        }
+
+    Output getPosQuaternion(GhostDataFlag flag)
+        {
+        return this->template getBuffer<Scalar4, Scalar>(m_quat_pos_handle,
+                                                         &ParticleData::getPosQuaternionArray,
                                                          flag,
                                                          4);
         }
@@ -1577,6 +1664,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         {
         m_position_handle.reset(nullptr);
         m_orientation_handle.reset(nullptr);
+        m_quat_pos_handle.reset(nullptr);
         m_velocities_handle.reset(nullptr);
         m_angular_momentum_handle.reset(nullptr);
         m_acceleration_handle.reset(nullptr);
@@ -1599,6 +1687,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
     // then the implementation can be simplified.
     std::unique_ptr<ArrayHandle<Scalar4>> m_position_handle;
     std::unique_ptr<ArrayHandle<Scalar4>> m_orientation_handle;
+    std::unique_ptr<ArrayHandle<Scalar4>> m_quat_pos_handle;
     std::unique_ptr<ArrayHandle<Scalar4>> m_velocities_handle;
     std::unique_ptr<ArrayHandle<Scalar4>> m_angular_momentum_handle;
     std::unique_ptr<ArrayHandle<Scalar3>> m_acceleration_handle;
@@ -1617,6 +1706,8 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
 #ifndef __HIPCC__
 //! Exports the BoxDim class to python
 void export_BoxDim(pybind11::module& m);
+//! Exports the Sphere to python
+void export_Sphere(pybind11::module& m);
 //! Exports ParticleData to python
 void export_ParticleData(pybind11::module& m);
 /// Export local access to ParticleData

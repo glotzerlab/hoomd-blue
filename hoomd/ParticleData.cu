@@ -31,6 +31,7 @@ __global__ void gpu_scatter_particle_data_kernel(const unsigned int nwork,
                                                  const int3* d_image,
                                                  const unsigned int* d_body,
                                                  const Scalar4* d_orientation,
+                                                 const Scalar4* d_quat_pos,
                                                  const Scalar4* d_angmom,
                                                  const Scalar3* d_inertia,
                                                  const Scalar4* d_net_force,
@@ -47,6 +48,7 @@ __global__ void gpu_scatter_particle_data_kernel(const unsigned int nwork,
                                                  int3* d_image_alt,
                                                  unsigned int* d_body_alt,
                                                  Scalar4* d_orientation_alt,
+                                                 Scalar4* d_quat_pos_alt,
                                                  Scalar4* d_angmom_alt,
                                                  Scalar3* d_inertia_alt,
                                                  Scalar4* d_net_force_alt,
@@ -80,6 +82,7 @@ __global__ void gpu_scatter_particle_data_kernel(const unsigned int nwork,
         p.image = d_image[idx];
         p.body = d_body[idx];
         p.orientation = d_orientation[idx];
+        p.quat_pos = d_quat_pos[idx];
         p.angmom = d_angmom[idx];
         p.inertia = d_inertia[idx];
         p.net_force = d_net_force[idx];
@@ -106,6 +109,7 @@ __global__ void gpu_scatter_particle_data_kernel(const unsigned int nwork,
         d_image_alt[scan_keep] = d_image[idx];
         d_body_alt[scan_keep] = d_body[idx];
         d_orientation_alt[scan_keep] = d_orientation[idx];
+        d_quat_pos_alt[scan_keep] = d_quat_pos[idx];
         d_angmom_alt[scan_keep] = d_angmom[idx];
         d_inertia_alt[scan_keep] = d_inertia[idx];
         d_net_force_alt[scan_keep] = d_net_force[idx];
@@ -140,6 +144,7 @@ gpu_select_sent_particles(unsigned int N, unsigned int* d_comm_flags, unsigned i
     \param d_image Device array of particle images
     \param d_body Device array of particle body tags
     \param d_orientation Device array of particle orientations
+    \param d_quat_pos Device array of particle quat_poss
     \param d_angmom Device array of particle angular momenta
     \param d_inertia Device array of particle moments of inertia
     \param d_net_force Net force
@@ -156,6 +161,7 @@ gpu_select_sent_particles(unsigned int N, unsigned int* d_comm_flags, unsigned i
     \param d_image_alt Device array of particle images (output)
     \param d_body_alt Device array of particle body tags (output)
     \param d_orientation_alt Device array of particle orientations (output)
+    \param d_quat_pos_alt Device array of particle quat_poss (output)
     \param d_angmom_alt Device array of particle angular momenta (output)
     \param d_inertia Device array of particle moments of inertia (output)
     \param d_net_force Net force (output)
@@ -175,6 +181,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                               const int3* d_image,
                               const unsigned int* d_body,
                               const Scalar4* d_orientation,
+                              const Scalar4* d_quat_pos,
                               const Scalar4* d_angmom,
                               const Scalar3* d_inertia,
                               const Scalar4* d_net_force,
@@ -191,6 +198,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                               int3* d_image_alt,
                               unsigned int* d_body_alt,
                               Scalar4* d_orientation_alt,
+                              Scalar4* d_quat_pos_alt,
                               Scalar4* d_angmom_alt,
                               Scalar3* d_inertia_alt,
                               Scalar4* d_net_force_alt,
@@ -216,6 +224,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     assert(d_image);
     assert(d_body);
     assert(d_orientation);
+    assert(d_quat_pos);
     assert(d_angmom);
     assert(d_inertia);
     assert(d_net_force);
@@ -231,6 +240,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     assert(d_image_alt);
     assert(d_body_alt);
     assert(d_orientation_alt);
+    assert(d_quat_pos_alt);
     assert(d_angmom_alt);
     assert(d_inertia_alt);
     assert(d_net_force_alt);
@@ -312,6 +322,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                                d_image,
                                d_body,
                                d_orientation,
+                               d_quat_pos,
                                d_angmom,
                                d_inertia,
                                d_net_force,
@@ -328,6 +339,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                                d_image_alt,
                                d_body_alt,
                                d_orientation_alt,
+                               d_quat_pos_alt,
                                d_angmom_alt,
                                d_inertia_alt,
                                d_net_force_alt,
@@ -359,6 +371,7 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
                                                int3* d_image,
                                                unsigned int* d_body,
                                                Scalar4* d_orientation,
+                                               Scalar4* d_quat_pos,
                                                Scalar4* d_angmom,
                                                Scalar3* d_inertia,
                                                Scalar4* d_net_force,
@@ -386,6 +399,7 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
     d_image[add_idx] = p.image;
     d_body[add_idx] = p.body;
     d_orientation[add_idx] = p.orientation;
+    d_quat_pos[add_idx] = p.quat_pos;
     d_angmom[add_idx] = p.angmom;
     d_inertia[add_idx] = p.inertia;
     d_net_force[add_idx] = p.net_force;
@@ -407,6 +421,7 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
     \param d_image Device array of particle images
     \param d_body Device array of particle body tags
     \param d_orientation Device array of particle orientations
+    \param d_quat_pos Device array of particle quat_poss
     \param d_angmom Device array of particle angular momenta
     \param d_inertia Device array of particle moments of inertia
     \param d_net_force Net force
@@ -427,6 +442,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                              int3* d_image,
                              unsigned int* d_body,
                              Scalar4* d_orientation,
+                             Scalar4* d_quat_pos,
                              Scalar4* d_angmom,
                              Scalar3* d_inertia,
                              Scalar4* d_net_force,
@@ -446,6 +462,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
     assert(d_image);
     assert(d_body);
     assert(d_orientation);
+    assert(d_quat_pos);
     assert(d_angmom);
     assert(d_inertia);
     assert(d_net_force);
@@ -473,6 +490,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                        d_image,
                        d_body,
                        d_orientation,
+                       d_quat_pos,
                        d_angmom,
                        d_inertia,
                        d_net_force,

@@ -12,6 +12,11 @@
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 
+// Don't include MPI when compiling with __HIPCC__ or an LLVM JIT build
+#if defined(ENABLE_MPI) && !defined(__HIPCC__) && !defined(HOOMD_LLVMJIT_BUILD)
+#include "HOOMDMPI.h"
+#endif
+
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
@@ -31,7 +36,11 @@
     The standard position is a purely imaginary quaternion, (0,R,0,0).
  */
 
-struct __attribute__((visibility("default"))) Sphere
+struct
+#ifndef __HIPCC__
+    __attribute__((visibility("default")))
+#endif
+    Sphere
     {
     public:
         //! Default constructor
