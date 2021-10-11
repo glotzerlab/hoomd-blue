@@ -10,8 +10,6 @@ See hoomd/ArrayView.h for more information.
 from collections.abc import MutableSequence
 import functools
 
-import hoomd
-
 
 def _array_view_wrapper(method):
     """Provides the forwarding of methods to the C++ array_view."""
@@ -50,15 +48,14 @@ class _ArrayViewWrapper(MutableSequence):
         if not isinstance(index, slice):
             del array[index]
             return
-        for i in sorted([j for j in hoomd.wall._islice_index(array, index)],
-                        reverse=True):
+        for i in sorted([j for j in range(len(array))[index]], reverse=True):
             del array[i]
 
     def __getitem__(self, index):
         array = self._get_array_view()
         if not isinstance(index, slice):
             return array[index]
-        return [value for value in hoomd.wall._islice(array, index)]
+        return [value for value in range(len(array))[index]]
 
     @_array_view_wrapper
     def __setitem__(self, index, value):
