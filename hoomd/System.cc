@@ -21,12 +21,13 @@
 
 using namespace std;
 
-// gcc8 has issues preproccing split lines here
-// clang-format off
-PYBIND11_MAKE_OPAQUE(std::vector<std::pair<std::shared_ptr<hoomd::Analyzer>, std::shared_ptr<hoomd::Trigger>>>)
-PYBIND11_MAKE_OPAQUE(std::vector<std::pair<std::shared_ptr<hoomd::Updater>, std::shared_ptr<hoomd::Trigger>>>)
+// the typedef works around an issue with older versions of the preprocessor
+// specifically, gcc8
+typedef std::pair<std::shared_ptr<hoomd::Analyzer>, std::shared_ptr<hoomd::Trigger>> _analyzer_pair;
+PYBIND11_MAKE_OPAQUE(std::vector<_analyzer_pair>)
+typedef std::pair<std::shared_ptr<hoomd::Updater>, std::shared_ptr<hoomd::Trigger>> _updater_pair;
+PYBIND11_MAKE_OPAQUE(std::vector<_updater_pair>)
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::Tuner>>)
-// clang-format on
 
 namespace hoomd
     {
