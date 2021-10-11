@@ -86,8 +86,7 @@ class CPPExternalField(_HOOMDBaseObject):
         self.code = code
 
     def _getattr_param(self, attr):
-        code_attrs = ['code']
-        if attr in code_attrs:
+        if attr == 'code':
             return self._param_dict[attr]
         return super()._getattr_param(attr)
 
