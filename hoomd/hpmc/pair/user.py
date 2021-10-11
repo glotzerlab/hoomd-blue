@@ -95,7 +95,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
                                        dtype=np.float32, shape=(None,)),
                                    code=OnlyTypes(str, allow_none=True))
         param_dict['r_cut'] = r_cut
-        if param_array is None or len(param_array) == 0:
+        if param_array is None:
             param_dict['param_array'] = np.array([])
         else:
             param_dict['param_array'] = param_array
@@ -442,7 +442,7 @@ class CPPPotentialUnion(CPPPotentialBase):
             code_isotropic=OnlyTypes(str, allow_none=True),
         )
 
-        if param_array_constituent is None or len(param_array_constituent) == 0:
+        if param_array_constituent is None:
             param_dict['param_array_constituent'] = np.array([])
         else:
             param_dict['param_array_constituent'] = param_array_constituent
