@@ -7,8 +7,8 @@
     \brief Contains declarations for all types (currently Sphere, Cylinder, and
     Plane) of WallData and associated utilities.
  */
-#ifndef WALL_DATA_H
-#define WALL_DATA_H
+
+#pragma once
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
@@ -282,4 +282,3 @@ void export_wall_data(pybind11::module m)
             })
         .def_property_readonly("inside", [](const PlaneWall& wall) { return wall.inside; } );
     }
-#endif

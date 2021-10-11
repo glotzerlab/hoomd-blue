@@ -8,8 +8,7 @@
    system.
  */
 
-#ifndef __EVALUATOR_WALLS_H__
-#define __EVALUATOR_WALLS_H__
+#pragma once
 
 #ifndef __HIPCC__
 #include "hoomd/ArrayView.h"
@@ -433,4 +432,3 @@ void export_wall_field(pybind11::module m)
         .def_property_readonly("num_cylinders", &wall_type::getNumCylinders)
         .def_property_readonly("num_planes", &wall_type::getNumPlanes);
     }
-#endif
