@@ -65,8 +65,10 @@ class CPPPotentialBase(_HOOMDBaseObject):
     * ``d_j`` is the diameter of particle *j*
     * ``charge_j`` is the charge of particle *j*
     * Your code *must* return a value.
-    * ``vec3`` and ``quat`` are defined in the file `VectorMath.h`_ in the \
-            HOOMD-blue source code.
+
+    Note:
+        ``vec3`` and ``quat`` are defined in the file `VectorMath.h`_ in the \
+                HOOMD-blue source code.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
             v3.0.0-beta.9/hoomd/VectorMath.h
