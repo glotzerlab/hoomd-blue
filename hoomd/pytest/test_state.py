@@ -45,13 +45,6 @@ def snap(device):
         s.dihedrals.typeid[:] = numpy.random.randint(0, 3, size=s.dihedrals.N)
         s.dihedrals.types = ['dihedralA', 'dihedralB', 'dihedralC', 'dihedralD']
 
-        s.triangles.N = N - 2
-        for i in range(s.triangles.N):
-            s.triangles.group[i, :] = [i, i + 1, i + 2]
-
-        s.triangles.typeid[:] = numpy.random.randint(0, 3, size=s.triangles.N)
-        s.triangles.types = ['triangleA', 'triangleB', 'triangleC', 'triangleD']
-
         s.impropers.N = N - 3
         for i in range(s.impropers.N):
             s.impropers.group[i, :] = [i, i + 1, i + 2, i + 3]
@@ -122,11 +115,6 @@ def assert_snapshots_equal(s1, s2):
         numpy.testing.assert_equal(s1.dihedrals.typeid, s2.dihedrals.typeid)
         numpy.testing.assert_equal(s1.dihedrals.group, s2.dihedrals.group)
 
-        assert s1.triangles.N == s2.triangles.N
-        assert s1.triangles.types == s2.triangles.types
-        numpy.testing.assert_equal(s1.triangles.typeid, s2.triangles.typeid)
-        numpy.testing.assert_equal(s1.triangles.group, s2.triangles.group)
-
         assert s1.impropers.N == s2.impropers.N
         assert s1.impropers.types == s2.impropers.types
         numpy.testing.assert_equal(s1.impropers.typeid, s2.impropers.typeid)
@@ -151,7 +139,6 @@ def test_create_from_snapshot(simulation_factory, snap):
         assert sim.state.bond_types == snap.bonds.types
         assert sim.state.angle_types == snap.angles.types
         assert sim.state.dihedral_types == snap.dihedrals.types
-        assert sim.state.triangle_types == snap.triangles.types
         assert sim.state.improper_types == snap.impropers.types
         assert sim.state.special_pair_types == snap.pairs.types
         # TODO: test box, dimensions
@@ -176,7 +163,6 @@ def test_modify_snapshot(simulation_factory, snap):
         snap.bonds.N = snap.bonds.N // 4
         snap.angles.N = snap.angles.N // 4
         snap.dihedrals.N = snap.dihedrals.N // 4
-        snap.triangles.N = snap.triangles.N // 4
         snap.impropers.N = snap.impropers.N // 4
         snap.pairs.N = snap.pairs.N // 4
         snap.constraints.N = snap.constraints.N // 4

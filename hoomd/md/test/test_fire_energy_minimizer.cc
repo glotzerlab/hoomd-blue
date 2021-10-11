@@ -230,7 +230,7 @@ void fire_smallsystem_test(fire_creator fire_creator1,
     Scalar rho(Scalar(1.2));
     Scalar L = Scalar(pow((double)(N / rho), 1.0 / 3.0));
     std::shared_ptr<SystemDefinition> sysdef(
-        new SystemDefinition(N, BoxDim(L, L, L), 2, 0, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(N, BoxDim(L, L, L), 2, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     for (unsigned int i = 0; i < N; i++)
@@ -321,7 +321,7 @@ void fire_twoparticle_test(fire_creator fire_creator1,
     // Scalar rho(1.2);
     Scalar L = Scalar(20);
     std::shared_ptr<SystemDefinition> sysdef(
-        new SystemDefinition(N, BoxDim(L, L, L), 1, 0, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(N, BoxDim(L, L, L), 1, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     pdata->setPosition(0, make_scalar3(0.0, 0.0, 0.0));

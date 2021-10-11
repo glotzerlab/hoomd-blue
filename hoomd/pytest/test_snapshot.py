@@ -24,9 +24,7 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
     if not hoomd_snap.communicator.rank == 0:
         return True
     for attr in dir(hoomd_snap):
-        if attr[0] == '_' or attr in [
-                'exists', 'replicate', 'communicator', 'triangles'
-        ]:
+        if attr[0] == '_' or attr in ['exists', 'replicate', 'communicator']:
             continue
         for prop in dir(getattr(hoomd_snap, attr)):
             if prop[0] == '_':
@@ -101,11 +99,6 @@ def test_empty_snapshot(s):
         assert len(s.dihedrals.types) == 0
         assert len(s.dihedrals.typeid) == 0
         assert len(s.dihedrals.group) == 0
-
-        assert s.triangles.N == 0
-        assert len(s.triangles.types) == 0
-        assert len(s.triangles.typeid) == 0
-        assert len(s.triangles.group) == 0
 
         assert s.impropers.N == 0
         assert len(s.impropers.types) == 0
@@ -355,23 +348,6 @@ def test_dihedrals(s):
         assert s.dihedrals.group.dtype == numpy.uint32
 
 
-def test_triangles(s):
-    if s.communicator.rank == 0:
-        s.triangles.N = 3
-
-        assert s.triangles.N == 3
-        assert len(s.triangles.typeid) == 3
-        assert len(s.triangles.group) == 3
-
-        s.triangles.types = ['A', 'B']
-        assert s.triangles.types == ['A', 'B']
-
-        assert s.triangles.typeid.shape == (3,)
-        assert s.triangles.typeid.dtype == numpy.uint32
-        assert s.triangles.group.shape == (3, 3)
-        assert s.triangles.group.dtype == numpy.uint32
-
-
 def test_impropers(s):
     if s.communicator.rank == 0:
         s.impropers.N = 3
@@ -432,7 +408,7 @@ def test_from_gsd_snapshot_populated(s, device):
     if s.communicator.rank == 0:
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
         for section in ('particles', 'bonds', 'angles', 'dihedrals',
-                        'triangles', 'impropers', 'pairs'):
+                        'impropers', 'pairs'):
             setattr(getattr(s, section), 'N', 5)
             setattr(getattr(s, section), 'types', ['A', 'B'])
 
@@ -445,8 +421,7 @@ def test_from_gsd_snapshot_populated(s, device):
             else:
                 attr[:] = numpy.random.randint(3, size=attr.shape)
 
-        for section in ('bonds', 'angles', 'dihedrals', 'triangles',
-                        'impropers', 'pairs'):
+        for section in ('bonds', 'angles', 'dihedrals', 'impropers', 'pairs'):
             for prop in ('group', 'typeid'):
                 attr = getattr(getattr(s, section), prop)
                 attr[:] = numpy.random.randint(3, size=attr.shape)
@@ -495,7 +470,6 @@ def test_zero_particle_system(simulation_factory, lattice_snapshot_factory):
     ("bonds", 2),
     ("angles", 3),
     ("dihedrals", 4),
-    ("triangles", 3),
     ("impropers", 4),
     ("pairs", 2),
 ])

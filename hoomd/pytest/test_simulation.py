@@ -17,7 +17,7 @@ def make_gsd_snapshot(hoomd_snapshot):
     s = gsd.hoomd.Snapshot()
     for attr in dir(hoomd_snapshot):
         if attr[0] != '_' and attr not in [
-                'exists', 'replicate', 'communicator', 'triangles'
+                'exists', 'replicate', 'communicator'
         ]:
             if hoomd_snapshot.communicator.rank == 0:
                 for prop in dir(getattr(hoomd_snapshot, attr)):
@@ -53,7 +53,7 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
 
         for attr in dir(hoomd_snap):
             if attr[0] == '_' or attr in [
-                    'exists', 'replicate', 'communicator', 'triangles'
+                    'exists', 'replicate', 'communicator'
             ]:
                 continue
             for prop in dir(getattr(hoomd_snap, attr)):

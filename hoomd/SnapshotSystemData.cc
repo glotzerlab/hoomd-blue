@@ -34,7 +34,6 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
     bond_data.replicate(n, old_n);
     angle_data.replicate(n, old_n);
     dihedral_data.replicate(n, old_n);
-    triangle_data.replicate(n, old_n);
     improper_data.replicate(n, old_n);
     constraint_data.replicate(n, old_n);
     pair_data.replicate(n, old_n);
@@ -85,7 +84,6 @@ void SnapshotSystemData<Real>::broadcast(unsigned int root,
         bond_data.bcast(root, exec_conf->getMPICommunicator());
         angle_data.bcast(root, exec_conf->getMPICommunicator());
         dihedral_data.bcast(root, exec_conf->getMPICommunicator());
-        triangle_data.bcast(root, exec_conf->getMPICommunicator());
         improper_data.bcast(root, exec_conf->getMPICommunicator());
         constraint_data.bcast(root, exec_conf->getMPICommunicator());
         pair_data.bcast(root, exec_conf->getMPICommunicator());
@@ -112,7 +110,6 @@ void SnapshotSystemData<Real>::broadcast_all(unsigned int root,
         bond_data.bcast(root, hoomd_world);
         angle_data.bcast(root, hoomd_world);
         dihedral_data.bcast(root, hoomd_world);
-        triangle_data.bcast(root, hoomd_world);
         improper_data.bcast(root, hoomd_world);
         constraint_data.bcast(root, hoomd_world);
         pair_data.bcast(root, hoomd_world);
@@ -136,7 +133,6 @@ void export_SnapshotSystemData(py::module& m)
         .def_readonly("bonds", &SnapshotSystemData<float>::bond_data)
         .def_readonly("angles", &SnapshotSystemData<float>::angle_data)
         .def_readonly("dihedrals", &SnapshotSystemData<float>::dihedral_data)
-        .def_readonly("triangle", &SnapshotSystemData<float>::triangle_data)
         .def_readonly("impropers", &SnapshotSystemData<float>::improper_data)
         .def_readonly("constraints", &SnapshotSystemData<float>::constraint_data)
         .def_readonly("pairs", &SnapshotSystemData<float>::pair_data)
@@ -156,7 +152,6 @@ void export_SnapshotSystemData(py::module& m)
         .def_readonly("bonds", &SnapshotSystemData<double>::bond_data)
         .def_readonly("angles", &SnapshotSystemData<double>::angle_data)
         .def_readonly("dihedrals", &SnapshotSystemData<double>::dihedral_data)
-        .def_readonly("triangles", &SnapshotSystemData<double>::triangle_data)
         .def_readonly("impropers", &SnapshotSystemData<double>::improper_data)
         .def_readonly("constraints", &SnapshotSystemData<double>::constraint_data)
         .def_readonly("pairs", &SnapshotSystemData<double>::pair_data)

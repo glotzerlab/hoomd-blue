@@ -271,16 +271,6 @@ void GSDReader::readTopology()
         }
 
     N = 0;
-    readChunk(&N, m_frame, "triangles/N", 4);
-    if (N > 0)
-        {
-        m_snapshot->triangle_data.resize(N);
-        m_snapshot->triangle_data.type_mapping = readTypes(m_frame, "triangles/types");
-        readChunk(&m_snapshot->triangle_data.type_id[0], m_frame, "triangles/typeid", N * 4, N);
-        readChunk(&m_snapshot->triangle_data.groups[0], m_frame, "triangles/group", N * 16, N);
-        }
-
-    N = 0;
     readChunk(&N, m_frame, "impropers/N", 4);
     if (N > 0)
         {

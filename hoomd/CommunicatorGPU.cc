@@ -23,8 +23,6 @@ CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
     : Communicator(sysdef, decomposition), m_max_stages(1), m_num_stages(0), m_comm_mask(0),
       m_bond_comm(*this, m_sysdef->getBondData()), m_angle_comm(*this, m_sysdef->getAngleData()),
       m_dihedral_comm(*this, m_sysdef->getDihedralData()),
-      m_meshbond_comm(*this, m_sysdef->getMeshBondData()),
-      m_meshtriangle_comm(*this, m_sysdef->getMeshTraingleData()),
       m_improper_comm(*this, m_sysdef->getImproperData()),
       m_constraint_comm(*this, m_sysdef->getConstraintData()),
       m_pair_comm(*this, m_sysdef->getPairData())
@@ -1821,14 +1819,6 @@ void CommunicatorGPU::migrateParticles()
         m_dihedral_comm.migrateGroups(m_dihedrals_changed, true);
         m_dihedrals_changed = false;
 
-        // MeshBonds
-        m_meshbond_comm.migrateGroups(m_meshbonds_changed, true);
-        m_meshbonds_changed = false;
-
-        // MeshTraingles
-        m_meshtriangle_comm.migrateGroups(m_meshtriangles_changed, true);
-        m_meshtriangles_changed = false;
-
         // Impropers
         m_improper_comm.migrateGroups(m_impropers_changed, true);
         m_impropers_changed = false;
@@ -2198,12 +2188,6 @@ void CommunicatorGPU::exchangeGhosts()
 
         // dihedrals
         m_dihedral_comm.markGhostParticles(m_ghost_plan, m_comm_mask[stage]);
-
-        // meshbonds
-        m_meshbond_comm.markGhostParticles(m_ghost_plan, m_comm_mask[stage]);
-
-        // meshtriangles
-        m_meshtriangle_comm.markGhostParticles(m_ghost_plan, m_comm_mask[stage]);
 
         // impropers
         m_improper_comm.markGhostParticles(m_ghost_plan, m_comm_mask[stage]);

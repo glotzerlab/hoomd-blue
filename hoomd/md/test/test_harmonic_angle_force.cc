@@ -38,7 +38,7 @@ void angle_force_basic_tests(angleforce_creator af_creator,
     // start with the simplest possible test: 3 particles in a huge box with only one bond type !!!!
     // NO ANGLES
     std::shared_ptr<SystemDefinition> sysdef_3(
-        new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0, 0, exec_conf));
+        new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     pdata_3->setPosition(0, make_scalar3(-1.23, 2.0, 0.1));
@@ -163,7 +163,6 @@ void angle_force_basic_tests(angleforce_creator af_creator,
                                                                     1,
                                                                     num_angles_to_test,
                                                                     0,
-                                                                    0,
 								    0,
                                                                     exec_conf));
     std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
@@ -249,7 +248,7 @@ void angle_force_basic_tests(angleforce_creator af_creator,
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
     std::shared_ptr<SystemDefinition> sysdef_4(
-        new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 1, 0, 0, 0, exec_conf));
+        new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 1, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     // make a square of particles

@@ -4,10 +4,12 @@
 
 """Implement local access classes for the CPU."""
 
-from hoomd.data.local_access import (
-    ParticleLocalAccessBase, BondLocalAccessBase, AngleLocalAccessBase,
-    DihedralLocalAccessBase, TriangleLocalAccessBase, ImproperLocalAccessBase,
-    ConstraintLocalAccessBase, PairLocalAccessBase, _LocalSnapshot)
+from hoomd.data.local_access import (ParticleLocalAccessBase,
+                                     BondLocalAccessBase, AngleLocalAccessBase,
+                                     DihedralLocalAccessBase,
+                                     ImproperLocalAccessBase,
+                                     ConstraintLocalAccessBase,
+                                     PairLocalAccessBase, _LocalSnapshot)
 from hoomd.data.array import HOOMDArray
 from hoomd import _hoomd
 
@@ -33,12 +35,6 @@ class AngleLocalAccessCPU(AngleLocalAccessBase):
 class DihedralLocalAccessCPU(DihedralLocalAccessBase):
     """Access dihedral data on the GPU."""
     _cpp_cls = _hoomd.LocalDihedralDataHost
-    _array_cls = HOOMDArray
-
-
-class TriangleLocalAccessCPU(TriangleLocalAccessBase):
-    """Access triangle data on the GPU."""
-    _cpp_cls = _hoomd.LocalTriangleDataHost
     _array_cls = HOOMDArray
 
 
@@ -93,7 +89,6 @@ class LocalSnapshot(_LocalSnapshot):
         self._bonds = BondLocalAccessCPU(state)
         self._angles = AngleLocalAccessCPU(state)
         self._dihedrals = DihedralLocalAccessCPU(state)
-        self._triangles = TriangleLocalAccessCPU(state)
         self._impropers = ImproperLocalAccessCPU(state)
         self._pairs = PairLocalAccessCPU(state)
         self._constraints = ConstraintLocalAccessCPU(state)

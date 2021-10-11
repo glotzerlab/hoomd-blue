@@ -37,7 +37,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
     // start with the simplest possible test: 4 particles in a huge box with only one dihedral type
     // - no dihedrals
     std::shared_ptr<SystemDefinition> sysdef_4(
-        new SystemDefinition(4, BoxDim(2.5), 1, 0, 0, 1, 0, 0, exec_conf));
+        new SystemDefinition(4, BoxDim(2.5), 1, 0, 0, 1, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     pdata_4->setPosition(0, make_scalar3(1.0, 0.0, 0.0));
@@ -304,7 +304,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
 
     // test an 8-particle system with two non-overlapping dihedrals
     std::shared_ptr<SystemDefinition> sysdef_8(
-        new SystemDefinition(8, BoxDim(50.0), 1, 0, 0, 2, 0, 0, exec_conf));
+        new SystemDefinition(8, BoxDim(50.0), 1, 0, 0, 2, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
 
     pdata_8->setPosition(0, make_scalar3(1.0, 0.0, 0.0));
@@ -400,7 +400,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
 
     // test a 5-particle system with one dihedral type on two overlapping sets of particles
     std::shared_ptr<SystemDefinition> sysdef_5(
-        new SystemDefinition(5, BoxDim(50.0), 1, 0, 0, 1, 0, 0, exec_conf));
+        new SystemDefinition(5, BoxDim(50.0), 1, 0, 0, 1, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
 
     pdata_5->setPosition(0, make_scalar3(1.0, 0.0, 0.0));

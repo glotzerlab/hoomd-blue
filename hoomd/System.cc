@@ -238,8 +238,6 @@ void System::setupProfiling()
     m_sysdef->getPairData()->setProfiler(m_profiler);
     m_sysdef->getAngleData()->setProfiler(m_profiler);
     m_sysdef->getDihedralData()->setProfiler(m_profiler);
-    m_sysdef->getMeshTriangleData()->setProfiler(m_profiler);
-    m_sysdef->getMeshBondData()->setProfiler(m_profiler);
     m_sysdef->getImproperData()->setProfiler(m_profiler);
     m_sysdef->getConstraintData()->setProfiler(m_profiler);
 

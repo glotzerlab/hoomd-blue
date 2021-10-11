@@ -39,7 +39,7 @@ void angle_force_basic_tests(angleforce_creator tf_creator,
     // start with the simplest possible test: 3 particles in a huge box with only one angle type
     // !!!! NO DIHEDRALS
     std::shared_ptr<SystemDefinition> sysdef_3(
-        new SystemDefinition(3, BoxDim(4.5), 1, 0, 1, 0, 0, 0, exec_conf));
+        new SystemDefinition(3, BoxDim(4.5), 1, 0, 1, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     pdata_3->setPosition(0, make_scalar3(-1.23, 2.0, 0.1));

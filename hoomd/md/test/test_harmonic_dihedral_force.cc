@@ -38,7 +38,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
     // start with the simplest possible test: 4 particles in a huge box with only one dihedral type
     // !!!! NO DIHEDRALS
     std::shared_ptr<SystemDefinition> sysdef_4(
-        new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 1, 0, 0, exec_conf));
+        new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 1, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     pdata_4->setPosition(0, make_scalar3(10.0, 1.0, 2.0));
@@ -199,7 +199,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
     // build a 8 particle system with particles across each boundary
     // also test more than one type of dihedral
     std::shared_ptr<SystemDefinition> sysdef_8(
-        new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 2, 0, 0, exec_conf));
+        new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 2, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
 
         {
@@ -319,7 +319,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
     std::shared_ptr<SystemDefinition> sysdef_5(
-        new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 1, 0, 0, exec_conf));
+        new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 1, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
 
         {
@@ -425,7 +425,7 @@ void dihedral_force_phase_shift(dihedralforce_creator tf_creator,
     // start with the simplest possible test: 4 particles in a huge box with only one dihedral type
     // !!!! NO DIHEDRALS
     std::shared_ptr<SystemDefinition> sysdef_4(
-        new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 1, 0, 0, exec_conf));
+        new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 1, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     pdata_4->setPosition(0, make_scalar3(0.0, 1.0, 0.0));

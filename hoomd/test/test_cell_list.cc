@@ -33,7 +33,7 @@ template<class CL> void celllist_dimension_test(std::shared_ptr<ExecutionConfigu
     {
     // start with a simple simulation box size 10
     std::shared_ptr<SystemDefinition> sysdef_3(
-        new SystemDefinition(3, BoxDim(10.0), 1, 0, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(3, BoxDim(10.0), 1, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
         {
@@ -155,7 +155,7 @@ template<class CL> void celllist_adj_test(std::shared_ptr<ExecutionConfiguration
     {
     // start with a simple simulation box size 3
     std::shared_ptr<SystemDefinition> sysdef_3(
-        new SystemDefinition(3, BoxDim(3.0), 1, 0, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(3, BoxDim(3.0), 1, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
         {
@@ -245,7 +245,7 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
     {
     // start with a simple simulation a non-cubic box
     std::shared_ptr<SystemDefinition> sysdef(
-        new SystemDefinition(8, BoxDim(3, 5, 7), 4, 0, 0, 0, 0, 0, exec_conf));
+        new SystemDefinition(8, BoxDim(3, 5, 7), 4, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     pdata->setPosition(0, make_scalar3(0.0, 0.0, 0.0));

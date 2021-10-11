@@ -185,7 +185,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     void writeTopology(BondData::Snapshot& bond,
                        AngleData::Snapshot& angle,
                        DihedralData::Snapshot& dihedral,
-                       TriangleData::Snapshot& triangle,
                        ImproperData::Snapshot& improper,
                        ConstraintData::Snapshot& constraint,
                        PairData::Snapshot& pair);

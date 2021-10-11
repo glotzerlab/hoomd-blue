@@ -609,20 +609,6 @@ class PYBIND11_EXPORT Communicator
         m_dihedrals_changed = true;
         }
 
-    /* MeshBonds communication */
-    bool m_meshbonds_changed; //!< True if meshbond information needs to be refreshed
-    void setMeshBondsChanged()
-        {
-        m_meshbonds_changed = true;
-        }
-
-    /* MeshTraingles communication */
-    bool m_meshtriangles_changed; //!< True if meshtriangle information needs to be refreshed
-    void setMeshTrainglesChanged()
-        {
-        m_meshtriangles_changed = true;
-        }
-
     /* Impropers communication */
     bool m_impropers_changed; //!< True if improper information needs to be refreshed
     void setImpropersChanged()
@@ -692,12 +678,6 @@ class PYBIND11_EXPORT Communicator
 
     GroupCommunicator<DihedralData> m_dihedral_comm; //!< Communication helper for dihedrals
     friend class GroupCommunicator<DihedralData>;
-
-    GroupCommunicator<MeshBondData> m_meshbond_comm; //!< Communication helper for meshbonds
-    friend class GroupCommunicator<MeshBondData>;
-
-    GroupCommunicator<MeshTraingleData> m_meshtriangle_comm; //!< Communication helper for meshtriangles
-    friend class GroupCommunicator<MeshTraingleData>;
 
     GroupCommunicator<ImproperData> m_improper_comm; //!< Communication helper for impropers
     friend class GroupCommunicator<ImproperData>;

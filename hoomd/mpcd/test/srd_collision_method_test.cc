@@ -347,7 +347,7 @@ template<class CM>
 void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const BoxDim box(10.0);
-    auto sysdef = std::make_shared<::SystemDefinition>(0, box, 1, 0, 0, 0, 0, 0, exec_conf);
+    auto sysdef = std::make_shared<::SystemDefinition>(0, box, 1, 0, 0, 0, 0, exec_conf);
     auto pdata = std::make_shared<mpcd::ParticleData>(10000, box, 1.0, 42, 3, exec_conf);
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, pdata);
 
