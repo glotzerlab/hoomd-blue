@@ -188,6 +188,7 @@ set(_hoomd_headers
     SFCPackTuner.h
     SharedSignal.h
     SnapshotSystemData.h
+    Sphere.h
     SystemDefinition.h
     System.h
     Trigger.h
@@ -362,6 +363,7 @@ set(files box.py
           util.py
           variant.py
           simulation.py
+	  sphere.py
           state.py
           trigger.py
           snapshot.py

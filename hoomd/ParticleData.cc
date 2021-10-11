@@ -201,7 +201,6 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
                            const Sphere& sphere,
                            std::shared_ptr<ExecutionConfiguration> exec_conf,
                            std::shared_ptr<DomainDecomposition> decomposition)
-                          )
     : m_exec_conf(exec_conf),
       m_nparticles(0),
       m_nghosts(0),
@@ -220,11 +219,12 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
         setDomainDecomposition(decomposition);
 #endif
 
-    // initialize box dimensions on all processors
-    setGlobalBox(BoxDim(sphere->getR()));
-
     // initialize box dimensions on all procesors
     setSphere(sphere);
+
+
+    // initialize box dimensions on all processors
+    setGlobalBox(BoxDim(4*m_sphere.getR()));
 
     // initialize rtag array
     GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
@@ -457,8 +457,8 @@ void ParticleData::allocate(unsigned int N)
     GlobalArray<Scalar4> orientation(N, m_exec_conf);
     m_orientation.swap(orientation);
     TAG_ALLOCATION(m_orientation);
-    GPUArray< Scalar4 > quat_pos(N, m_exec_conf);
-    m_quat_pos.swap(quat_l);
+    GlobalArray< Scalar4 > quat_pos(N, m_exec_conf);
+    m_quat_pos.swap(quat_pos);
     TAG_ALLOCATION(m_quat_pos);
     GlobalArray<Scalar4> angmom(N, m_exec_conf);
     m_angmom.swap(angmom);
@@ -2891,8 +2891,8 @@ template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot
 
 template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot,
                                            const Sphere& sphere,
-                                           std::shared_ptr<ExecutionConfiguration> exec_conf
-                                          );
+                                           std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                           std::shared_ptr<DomainDecomposition> decomposition);
 
 template void
 ParticleData::initializeFromSnapshot<double>(const SnapshotParticleData<double>& snapshot,
@@ -2907,8 +2907,8 @@ template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
 
 template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
                                            const Sphere& sphere,
-                                           std::shared_ptr<ExecutionConfiguration> exec_conf
-                                          );
+                                           std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                           std::shared_ptr<DomainDecomposition> decomposition);
 
 template void
 ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float>& snapshot,
@@ -2982,7 +2982,7 @@ void export_ParticleData(py::module& m)
         .def("getTypes", &ParticleData::getTypesPy)
 	.def("getCoordinateType", &ParticleData::getCoordinateType);
 
-    py::enum_<ParticleData::coordinate_Enum>(pdata,"coordinate")
+    py::enum_<ParticleData::coordinate_Enum>(m,"coordinate")
     .value("cartesian", ParticleData::coordinate_Enum::cartesian)
     .value("spherical", ParticleData::coordinate_Enum::spherical)
     .export_values();

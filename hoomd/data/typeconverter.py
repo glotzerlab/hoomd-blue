@@ -66,6 +66,22 @@ def box_preprocessing(box):
                              f". using hoomd.Box.from_box")
 
 
+def sphere_preprocessing(sphere):
+    """Process spheres.
+
+    Convert values that `Sphere.from_sphere` handles.
+    """
+    if isinstance(sphere, hoomd.Sphere):
+        return sphere
+    else:
+        try:
+            return hoomd.Sphere.from_sphere(sphere)
+        except Exception:
+            raise ValueError(
+                f"{sphere} is not convertible into a hoomd.Sphere object"
+                f". using hoomd.Sphere.from_sphere")
+
+
 def positive_real(number):
     """Ensure that a value is positive."""
     try:

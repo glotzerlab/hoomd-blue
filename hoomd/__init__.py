@@ -30,6 +30,7 @@ from hoomd import version
 from hoomd import trigger
 from hoomd import variant
 from hoomd.box import Box
+from hoomd.sphere import Sphere
 from hoomd import data
 from hoomd import filter
 from hoomd import device

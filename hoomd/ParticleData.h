@@ -456,7 +456,9 @@ class PYBIND11_EXPORT ParticleData
     template<class Real>
     ParticleData(const SnapshotParticleData<Real>& snapshot,
 		const Sphere& sphere,
-		std::shared_ptr<ExecutionConfiguration> exec_conf);
+		std::shared_ptr<ExecutionConfiguration> exec_conf,
+                std::shared_ptr<DomainDecomposition> decomposition
+                = std::shared_ptr<DomainDecomposition>());
 
     //! Destructor
     virtual ~ParticleData();

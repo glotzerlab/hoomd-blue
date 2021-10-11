@@ -8,6 +8,7 @@ from collections import defaultdict
 
 from . import _hoomd
 from hoomd.box import Box
+from hoomd.sphere import Sphere
 from hoomd.snapshot import Snapshot
 from hoomd.data import LocalSnapshot, LocalSnapshotGPU
 import hoomd
@@ -406,6 +407,10 @@ class State:
             The `box` property cannot be set. Call `set_box` to set a new
             simulation box.
         """
+        if not self._cpp_sys_def.getParticleData().getCoordinateType(
+        ) == _hoomd.ParticleData.cartesian:
+            raise ValueError(
+                'box is only available with cartesian coordinates.')
         b = Box._from_cpp(self._cpp_sys_def.getParticleData().getGlobalBox())
         return Box.from_box(b)
 
@@ -422,6 +427,11 @@ class State:
         See Also:
             `hoomd.update.BoxResize.update`
         """
+        if not self._cpp_sys_def.getParticleData().getCoordinateType(
+        ) == _hoomd.ParticleData.cartesian:
+            raise ValueError(
+                'box is only available with cartesian coordinates.')
+
         if self._in_context_manager:
             raise RuntimeError(
                 "Cannot set system box within local snapshot context manager.")
@@ -437,6 +447,45 @@ class State:
                 "".format(self._cpp_sys_def.getNDimensions(), box.dimensions))
             self._cpp_sys_def.setNDimensions(box.dimensions)
         self._cpp_sys_def.getParticleData().setGlobalBox(box._cpp_obj)
+
+    @property
+    def sphere(self):
+        """hoomd.Sphere: A copy of the current simulation sphere.
+
+        Note:
+            The `sphere` property cannot be set. Call `set_sphere` to set a new
+            confining sphere.
+        """
+        if not self._cpp_sys_def.getParticleData().getCoordinateType(
+        ) == _hoomd.ParticleData.sphere:
+            raise ValueError(
+                'sphere is only available with sphere coordinates.')
+        s = Sphere._from_cpp(self._cpp_sys_def.getParticleData().getSphere())
+        return Sphere.from_sphere(s)
+
+    def set_sphere(self, sphere):
+        """Set a new sphere.
+
+        Args:
+            sphere (Sphere): New confining sphere.
+
+        See Also:
+            `hoomd.update.SphereResize.update`
+        """
+        if not self._cpp_sys_def.getParticleData().getCoordinateType(
+        ) == _hoomd.ParticleData.sphere:
+            raise ValueError(
+                'sphere is only available with sphere coordinates.')
+        if self._in_context_manager:
+            raise RuntimeError(
+                "Cannot set sphere within local snapshot context manager.")
+        try:
+            sphere = Sphere.from_sphere(sphere)
+        except Exception:
+            raise ValueError('{} is not convertable to hoomd.Sphere using '
+                             'hoomd.Sphere.from_sphere'.format(sphere))
+
+        self._cpp_sys_def.getParticleData().setSphere(sphere._cpp_obj)
 
     def replicate(self, nx, ny, nz=1):
         """Replicate the state of the system along the periodic box directions.

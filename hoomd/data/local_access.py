@@ -6,6 +6,7 @@
 
 from abc import ABC, abstractmethod
 from hoomd import Box
+from hoomd import Sphere
 from hoomd import _hoomd
 
 
@@ -113,6 +114,8 @@ class ParticleLocalAccessBase(_LocalAccess):
             particles' masses :math:`[\\mathrm{mass}]`
         orientation ((N_particles, 4) `hoomd.data.array` object of ``float``):
             particle orientations expressed as quaternions
+        quat_pos ((N_particles, 4) `hoomd.data.array` object of ``float``):
+            particle quat_poss expressed as quaternions
         angmom ((N_particles, 4) `hoomd.data.array` object of \
             ``float``):
             particle angular momenta expressed as quaternions
@@ -159,6 +162,7 @@ class ParticleLocalAccessBase(_LocalAccess):
         'mass': 'getMasses',
         'acceleration': 'getAcceleration',
         'orientation': 'getOrientation',
+        'quat_pos': 'getPosQuaternion',
         'angmom': 'getAngularMomentum',
         'moment_inertia': 'getMomentsOfInertia',
         'charge': 'getCharge',
@@ -347,6 +351,7 @@ class _LocalSnapshot:
     def __init__(self, state):
         self._state = state
         self._box = state.box
+        self._sphere = state.sphere
         self._local_box = state._cpp_sys_def.getParticleData().getBox()
 
     @property
@@ -355,9 +360,20 @@ class _LocalSnapshot:
         return Box.from_box(self._box)
 
     @property
+    def global_sphere(self):
+        """hoomd.Sphere: The global simulation sphere."""
+        return Sphere.from_sphere(self._sphere)
+
+    @property
     def local_box(self):
         """hoomd.Box: The local box according to the domain decomposition."""
         return Box.from_box(Box._from_cpp(self._local_box))
+
+    @property
+    def local_sphere(self):
+        """hoomd.Sphere: The local sphere according to the domain."""
+        """decomposition."""
+        return Sphere.from_sphere(Sphere._from_cpp(self._local_sphere))
 
     @property
     def particles(self):

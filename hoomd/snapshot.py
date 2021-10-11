@@ -35,6 +35,22 @@ class _ConfigurationData:
         self._cpp_obj._dimensions = new_box.dimensions
         self._cpp_obj._global_box = new_box._cpp_obj
 
+    @property
+    def sphere(self):
+        s = self._cpp_obj._global_sphere
+        R = s.getR()
+        return R
+
+    @sphere.setter
+    def sphere(self, sphere):
+        try:
+            new_sphere = hoomd.Sphere.from_sphere(sphere)
+        except Exception:
+            raise ValueError(
+                f"{sphere} is not convertible to a hoomd.Sphere object using "
+                "hoomd.Sphere.from_sphere.")
+        self._cpp_obj._global_sphere = new_sphere._cpp_obj
+
 
 class Snapshot:
     """Self-contained copy of the simulation `State`.
@@ -107,6 +123,10 @@ class Snapshot:
             particles.orientation ((*N*, 4) `numpy.ndarray` of \
                 `float`):
                 Particle orientation.
+
+            particles.quat_pos ((*N*, 4) `numpy.ndarray` of \
+                `float`):
+                Particle quat_pos.
 
             particles.typeid ((*N*, ) `numpy.ndarray` of ``uint32``):
                 Particle type id.
@@ -353,8 +373,8 @@ class Snapshot:
 
             set_properties(snap.particles, gsd_snap.particles, ('N', 'types'),
                            ('angmom', 'body', 'charge', 'diameter', 'image',
-                            'mass', 'moment_inertia', 'orientation', 'position',
-                            'typeid', 'velocity'))
+                            'mass', 'moment_inertia', 'quat_pos', 'quat_pos',
+                            'position', 'typeid', 'velocity'))
 
             for section in ('angles', 'bonds', 'dihedrals', 'impropers',
                             'pairs'):

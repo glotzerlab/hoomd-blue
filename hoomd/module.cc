@@ -211,6 +211,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_HOOMDDeviceBuffer(m);
 #endif
     export_BoxDim(m);
+    export_Sphere(m);
     export_ParticleData(m);
     export_SnapshotParticleData(m);
     export_LocalParticleData<HOOMDHostBuffer>(m, "LocalParticleDataHost");
