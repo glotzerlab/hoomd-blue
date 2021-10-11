@@ -52,8 +52,10 @@ class CPPExternalField(_HOOMDBaseObject):
     * *charge* the particle charge.
     * Your code *must* return a value.
     * `BoxDim` is defined in :file:`BoxDim.h` in the HOOMD-blue source code.
-    * ``vec3`` and ``quat`` are defined in the file `VectorMath.h`_ in the \
-            HOOMD-blue source code.
+
+    Note:
+        ``vec3`` and ``quat`` are defined in the file `VectorMath.h`_ in the \
+                HOOMD-blue source code.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
             v3.0.0-beta.9/hoomd/VectorMath.h
