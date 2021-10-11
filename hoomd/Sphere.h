@@ -67,7 +67,6 @@ struct
             }
 
         //! Return the simulation volume
-         */
         Scalar getVolume() const
             {
                return Scalar(4.0*M_PI*R*R);

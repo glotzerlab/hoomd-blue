@@ -16,6 +16,7 @@
 
 #include "BondedGroupData.h"
 #include "BoxDim.h"
+#include "Sphere.h"
 #include "IntegratorData.h"
 #include "ParticleData.h"
 
@@ -44,6 +45,7 @@ template<class Real> struct SnapshotSystemData
     {
     unsigned int dimensions;                  //!< The dimensionality of the system
     BoxDim global_box;                        //!< The dimensions of the simulation box
+    Sphere sphere;
     SnapshotParticleData<Real> particle_data; //!< The particle data
     std::map<unsigned int, unsigned int> map; //!< Lookup particle index by tag
     BondData::Snapshot bond_data;             //!< The bond data
