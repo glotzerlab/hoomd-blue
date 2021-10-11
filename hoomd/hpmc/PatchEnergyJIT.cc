@@ -24,24 +24,25 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
                     managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
     {
     // build the JIT.
-    m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(cpu_code, compiler_args));
+    EvalFactory* factory = new EvalFactory(cpu_code, compiler_args);
 
     // save the C++ code string for exporting to python
     m_cpu_code = cpu_code;
 
     // get the evaluator
-    m_eval = m_factory->getEval();
+    m_eval = factory->getEval();
 
     if (!m_eval)
         {
         std::ostringstream s;
         s << "Error compiling JIT code:" << std::endl;
         s << cpu_code << std::endl;
-        s << m_factory->getError() << std::endl;
+        s << factory->getError() << std::endl;
         throw std::runtime_error(s.str());
         }
 
-    m_factory->setAlphaArray(&m_param_array.front());
+    factory->setAlphaArray(&m_param_array.front());
+    m_factory = std::shared_ptr<EvalFactory>(factory);
     }
 
 void export_PatchEnergyJIT(pybind11::module& m)

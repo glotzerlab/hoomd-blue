@@ -35,21 +35,21 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                                     managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
         {
         // build the JIT.
-        m_factory_constituent
-            = std::shared_ptr<EvalFactory>(new EvalFactory(cpu_code_constituent, compiler_args));
+        EvalFactory* factory_constituent = new EvalFactory(cpu_code_constituent, compiler_args);
 
         // get the evaluator and check for errors
-        m_eval_constituent = m_factory_constituent->getEval();
+        m_eval_constituent = factory_constituent->getEval();
         if (!m_eval_constituent)
             {
             std::ostringstream s;
             s << "Error compiling JIT code:" << std::endl;
             s << cpu_code_constituent << std::endl;
-            s << m_factory_constituent->getError() << std::endl;
+            s << factory_constituent->getError() << std::endl;
             throw std::runtime_error(s.str());
             }
 
-        m_factory_constituent->setAlphaUnionArray(&m_param_array_constituent.front());
+        factory_constituent->setAlphaUnionArray(&m_param_array_constituent.front());
+        m_factory_constituent = std::shared_ptr<EvalFactory>(factory_constituent);
 
         unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
         m_extent_type.resize(ntypes, 0.0);
