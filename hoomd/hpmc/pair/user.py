@@ -227,8 +227,7 @@ class CPPPotential(CPPPotentialBase):
         super().__init__(r_cut=r_cut, code=code, param_array=param_array)
 
     def _getattr_param(self, attr):
-        code_attrs = ['code']
-        if attr in code_attrs:
+        if attr == 'code':
             return self._param_dict[attr]
         return super()._getattr_param(attr)
 
