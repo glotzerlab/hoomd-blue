@@ -490,7 +490,7 @@ class CPPPotentialUnion(CPPPotentialBase):
         self.code_isotropic = code_isotropic
 
     def _getattr_param(self, attr):
-        code_attrs = ['code_isotropic', 'code_constituent']
+        code_attrs = {'code_isotropic', 'code_constituent'}
         if attr in code_attrs:
             return self._param_dict[attr]
         return super()._getattr_param(attr)
