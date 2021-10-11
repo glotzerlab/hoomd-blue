@@ -216,9 +216,10 @@ DEVICE inline Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& positio
     return d;
     };
 
+#ifndef __HIPCC__
 // Export all wall data types into Python. This is needed to allow for syncing Python and C++
 // list/array data structures containing walls for WallPotential objects.
-void export_wall_data(pybind11::module m)
+void export_wall_data(pybind11::module& m)
     {
     pybind11::class_<SphereWall>(m, "SphereWall")
         .def(pybind11::init(
@@ -282,3 +283,4 @@ void export_wall_data(pybind11::module m)
             })
         .def_property_readonly("inside", [](const PlaneWall& wall) { return wall.inside; } );
     }
+#endif
