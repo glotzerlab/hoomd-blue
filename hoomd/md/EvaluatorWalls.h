@@ -25,8 +25,10 @@
 #undef DEVICE
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define PY
 #else
 #define DEVICE
+#define PY PYBIND11_EXPORT
 #endif
 
 // sets the max numbers for each wall geometry type
@@ -34,7 +36,7 @@ const unsigned int MAX_N_SWALLS = 20;
 const unsigned int MAX_N_CWALLS = 20;
 const unsigned int MAX_N_PWALLS = 60;
 
-struct PYBIND11_EXPORT wall_type
+struct PY wall_type
     {
     unsigned int numSpheres; // these data types come first, since the structs are aligned already
     unsigned int numCylinders;
@@ -42,6 +44,10 @@ struct PYBIND11_EXPORT wall_type
     SphereWall Spheres[MAX_N_SWALLS];
     CylinderWall Cylinders[MAX_N_CWALLS];
     PlaneWall Planes[MAX_N_PWALLS];
+
+    wall_type() : numSpheres(0), numCylinders(0), numPlanes(0)
+        {
+        }
 
     unsigned int getNumSpheres()
         {
@@ -86,6 +92,7 @@ template<class evaluator> class EvaluatorWalls
         Scalar rcutsq;
         Scalar rextrap;
 
+#ifndef __HIPCC__
         param_type(pybind11::object param_dict)
             : params(param_dict), rcutsq(pow(param_dict["r_cut"].cast<Scalar>(), 2)),
               rextrap(param_dict["r_extrap"].cast<Scalar>())
@@ -99,6 +106,7 @@ template<class evaluator> class EvaluatorWalls
             py_params["r_extrap"] = rextrap;
             return py_params;
             }
+#endif
         };
 
     typedef wall_type field_type;
@@ -378,15 +386,16 @@ template<class evaluator> class EvaluatorWalls
     Scalar qi;
     };
 
-void export_wall_field(pybind11::module m)
+#ifndef __HIPCC__
+void export_wall_field(pybind11::module& m)
     {
     // Export the necessary array_view types to enable access in Python
     export_array_view<SphereWall>(m, "SphereArray");
     export_array_view<CylinderWall>(m, "CylinderArray");
     export_array_view<PlaneWall>(m, "PlaneArray");
 
-    pybind11::class_<wall_type>(m, "WallCollection")
-        .def(pybind11::init())
+    pybind11::class_<wall_type, unsafe_ptr<wall_type>>(m, "WallCollection")
+        .def(pybind11::init<>())
         // The different get_*_list methods use array_view's (see hoomd/ArrayView.h for more info)
         // callback to ensure that the way_type object's sizes remain correct even during
         // modification.
@@ -432,3 +441,4 @@ void export_wall_field(pybind11::module m)
         .def_property_readonly("num_cylinders", &wall_type::getNumCylinders)
         .def_property_readonly("num_planes", &wall_type::getNumPlanes);
     }
+#endif
