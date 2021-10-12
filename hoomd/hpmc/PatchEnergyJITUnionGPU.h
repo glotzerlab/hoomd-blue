@@ -23,6 +23,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
                            const std::string& cpu_code_constituent,
                            Scalar r_cut_constituent,
                            pybind11::array_t<float> param_array_constituent,
+                           bool is_union,
                            const std::string& code,
                            const std::string& kernel_name,
                            const std::vector<std::string>& options,
@@ -36,7 +37,8 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
                               param_array_isotropic,
                               cpu_code_constituent,
                               r_cut_constituent,
-                              param_array_constituent),
+                              param_array_constituent,
+                              is_union),
           m_gpu_factory(exec_conf,
                         code,
                         kernel_name,
@@ -47,7 +49,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
                            jit::union_params_t(),
                            managed_allocator<jit::union_params_t>(m_exec_conf->isCUDAEnabled()))
         {
-        m_gpu_factory.setAlphaPtr(m_param_array.data());
+        m_gpu_factory.setAlphaPtr(m_param_array.data(), is_union);
         m_gpu_factory.setAlphaUnionPtr(m_param_array_constituent.data());
         m_gpu_factory.setUnionParamsPtr(m_d_union_params.data());
         m_gpu_factory.setRCutUnion(float(m_r_cut_constituent));

@@ -45,7 +45,8 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
                    const std::string& cpu_code,
                    const std::vector<std::string>& compiler_args,
                    Scalar r_cut,
-                   pybind11::array_t<float> param_array);
+                   pybind11::array_t<float> param_array,
+                   bool is_union);
 
     //! Get the maximum r_ij radius beyond which energies are always 0
     virtual Scalar getRCut()
