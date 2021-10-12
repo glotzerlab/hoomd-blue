@@ -227,7 +227,7 @@ class _WallArrayViewFactory:
         }[wall_type]
 
     def __call__(self):
-        return getattr(self.cpp_obj.getField(), self.func_name)()
+        return getattr(self.cpp_obj.field, self.func_name)()
 
 
 class LJ(WallPotential):

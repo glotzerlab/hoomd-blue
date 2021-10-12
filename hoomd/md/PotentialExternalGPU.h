@@ -92,9 +92,12 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params,
                                                          access_location::device,
                                                          access_mode::read);
-    ArrayHandle<typename evaluator::field_type> d_field(this->m_field,
-                                                        access_location::device,
-                                                        access_mode::read);
+
+    PotentialExternalGPU<evaluator>::field_type* gpu_field_params;
+    cudaMemcpy(reinterpret_cast<void*>(gpu_field_params),
+               reinterpret_cast<const void*>(&(this->m_field)),
+               sizeof(PotentialExternalGPU<evaluator>::field_type),
+               cudaMemcopyHosttoDevice);
 
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
@@ -110,7 +113,7 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                                   box,
                                                   this->m_tuner->getParam()),
                         d_params.data,
-                        d_field.data);
+                        gpu_field_params);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -141,7 +144,6 @@ void export_PotentialExternalGPU(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, base, std::shared_ptr<T>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setField", &T::setField);
     }
 
 #endif

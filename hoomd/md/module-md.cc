@@ -150,8 +150,7 @@ void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& 
                      std::shared_ptr<PotentialExternalElectricField>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setE", &PotentialExternalElectricField::setParamsPython)
-        .def("getE", &PotentialExternalElectricField::getParams)
-        .def("setField", &PotentialExternalElectricField::setField);
+        .def("getE", &PotentialExternalElectricField::getParams);
     }
 
 // Simplify the exporting of wall potential subclasses

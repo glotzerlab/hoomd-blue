@@ -45,9 +45,7 @@ struct PY wall_type
     CylinderWall Cylinders[MAX_N_CWALLS];
     PlaneWall Planes[MAX_N_PWALLS];
 
-    wall_type() : numSpheres(0), numCylinders(0), numPlanes(0)
-        {
-        }
+    wall_type() : numSpheres(0), numCylinders(0), numPlanes(0) { }
 
     unsigned int getNumSpheres()
         {
@@ -394,7 +392,7 @@ void export_wall_field(pybind11::module& m)
     export_array_view<CylinderWall>(m, "CylinderArray");
     export_array_view<PlaneWall>(m, "PlaneArray");
 
-    pybind11::class_<wall_type, unsafe_ptr<wall_type>>(m, "WallCollection")
+    pybind11::class_<wall_type>(m, "WallCollection")
         .def(pybind11::init<>())
         // The different get_*_list methods use array_view's (see hoomd/ArrayView.h for more info)
         // callback to ensure that the way_type object's sizes remain correct even during
