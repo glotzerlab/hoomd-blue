@@ -50,15 +50,19 @@ class CPPExternalField(_HOOMDBaseObject):
     * *q_i* the quaternion representing the particle orientation.
     * *diameter* the particle diameter.
     * *charge* the particle charge.
-    * Your code *must* return a value.
-    * `BoxDim` is defined in :file:`BoxDim.h` in the HOOMD-blue source code.
 
     Note:
         ``vec3`` and ``quat`` are defined in the file `VectorMath.h`_ in the \
-                HOOMD-blue source code.
+                HOOMD-blue source code, and ``BoxDim`` is defined in he file \
+                `BoxDim.h`_ in the HOOMD-blue source code.
+
+    Note:
+        Your code *must* return a value.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
             v3.0.0-beta.9/hoomd/VectorMath.h
+    .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
+            v3.0.0-beta.9/hoomd/BoxDim.h
 
     Example:
         .. code-block:: python
