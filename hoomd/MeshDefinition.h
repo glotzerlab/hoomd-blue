@@ -19,8 +19,8 @@
 #include <memory>
 #include <pybind11/pybind11.h>
 
-#ifndef __SYSTEM_DEFINITION_H__
-#define __SYSTEM_DEFINITION_H__
+#ifndef __MESH_DEFINITION_H__
+#define __MESH_DEFINITION_H__
 
 #ifdef ENABLE_MPI
 //! Forward declaration of Communicator
@@ -88,20 +88,16 @@ class PYBIND11_EXPORT MeshDefinition
         return m_meshbond_data;
         }
 
-    //! Return a snapshot of the current system data
-     TriangleData::Snapshot takeSnapshot();
+    void updateMeshData();
 
-    //! Re-initialize the system from a snapshot
-    void initializeFromSnapshot(TriangleData::Snapshot snapshot);
+    TriangleData::Snapshot triangle_data;             //!< The triangle data
 
     private:
-    std::shared_ptr<TriangleData> m_triangle_data;           //!< Triangle data for the system
+    std::shared_ptr<ParticleData> m_particle_data;     //!< Particle data for the system
     std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
     Scalar m_mesh_energy;
     Scalar m_mesh_energy_old;
-    bool m_triangle_change;
-    bool m_mesh_change;
     };
 
 //! Exports MeshDefinition to python

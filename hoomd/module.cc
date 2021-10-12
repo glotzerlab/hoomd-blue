@@ -24,6 +24,7 @@
 #include "Integrator.h"
 #include "LoadBalancer.h"
 #include "MeshGroupData.h"
+#include "MeshDefinition.h"
 #include "Messenger.h"
 #include "ParticleData.h"
 #include "ParticleFilterUpdater.h"
@@ -221,6 +222,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_MPIConfiguration(m);
     export_ExecutionConfiguration(m);
     export_SystemDefinition(m);
+    export_MeshDefinition(m);
     export_SnapshotSystemData(m);
     export_BondedGroupData<BondData, Bond>(m, "BondData", "BondDataSnapshot");
     export_BondedGroupData<AngleData, Angle>(m, "AngleData", "AngleDataSnapshot");
