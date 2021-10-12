@@ -90,15 +90,17 @@ class CPPPotentialBase(_HOOMDBaseObject):
             is_union (`bool`): Determines how to declare param_array variables
         """
         param_array_suffix = {True: '_isotropic', False: ''}[is_union]
-        constituent_param_array = {True: 'float *param_array_constituent;',
-                                   False: ''}[is_union]
+        constituent_param_array = {
+            True: 'float *param_array_constituent;',
+            False: ''
+        }[is_union]
         cpp_function = f"""
                         #include <stdio.h>
                         #include "hoomd/HOOMDMath.h"
                         #include "hoomd/VectorMath.h"
 
                         // param_array (singlet class) or param_array_isotropic
-                        // and param_array_constituent (union class) are 
+                        // and param_array_constituent (union class) are
                         // allocated by the library
                         float *param_array{param_array_suffix};
                         {constituent_param_array}
@@ -140,7 +142,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
                         #include "hoomd/hpmc/IntegratorHPMCMonoGPUJIT.inc"
 
                         // param_array (singlet class) or param_array_isotropic
-                        // and param_array_constituent (union class) are 
+                        // and param_array_constituent (union class) are
                         // allocated by the library
                         __device__ float *param_array{param_array_suffix};
                         {constituent_param_array}
@@ -253,7 +255,7 @@ class CPPPotential(CPPPotentialBase):
                 cpu_include_options,
                 self.r_cut,
                 self.param_array,
-                False, # is_union, False for this class
+                False,  # is_union, False for this class
                 gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"],
@@ -435,7 +437,7 @@ class CPPPotentialUnion(CPPPotentialBase):
             param_array_constituent=NDArrayValidator(dtype=np.float32,
                                                      shape=(None,)),
             param_array_isotropic=NDArrayValidator(dtype=np.float32,
-                                                     shape=(None,)),
+                                                   shape=(None,)),
             code_constituent=OnlyTypes(str, allow_none=True),
             code_isotropic=OnlyTypes(str, allow_none=True),
         )
@@ -523,7 +525,7 @@ class CPPPotentialUnion(CPPPotentialBase):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
             gpu_code_constituent = self._wrap_gpu_code(self.code_constituent,
-                    True)
+                                                       True)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
                 self._simulation.state._cpp_sys_def,
                 device._cpp_exec_conf,
@@ -534,7 +536,7 @@ class CPPPotentialUnion(CPPPotentialBase):
                 cpu_code_constituent,
                 self.r_cut_constituent,
                 self.param_array_constituent,
-                True, # is_union, True for this class
+                True,  # is_union, True for this class
                 gpu_code_constituent,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"] + ["-DUNION_EVAL"],
@@ -552,7 +554,7 @@ class CPPPotentialUnion(CPPPotentialBase):
                 cpu_code_constituent,
                 self.r_cut_constituent,
                 self.param_array_constituent,
-                True, # is_union, True for this class
+                True,  # is_union, True for this class
             )
         # attach patch object to the integrator
         super()._attach()
