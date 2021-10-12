@@ -169,10 +169,9 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
 
 
 def test_logging():
-    logging_check(hoomd.hpmc.update.Clusters, ('hpmc', 'update'),
-                {
-                    'avg_cluster_size': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    }
-                })
+    logging_check(hoomd.hpmc.update.Clusters, ('hpmc', 'update'), {
+        'avg_cluster_size': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

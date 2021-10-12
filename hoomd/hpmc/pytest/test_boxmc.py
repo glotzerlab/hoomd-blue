@@ -289,18 +289,18 @@ def test_pickling(box_move, simulation_factory, two_particle_snapshot_factory):
 
 
 def test_logging():
-    logging_check(hoomd.hpmc.update.BoxMC, ('hpmc', 'update'),
-                {
-                    'aspect_moves': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    },
-                    'shear_moves': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    },
-                    'volume_moves': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    }
-                })
+    logging_check(
+        hoomd.hpmc.update.BoxMC, ('hpmc', 'update'), {
+            'aspect_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'shear_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'volume_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
+        })
