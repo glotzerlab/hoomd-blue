@@ -420,15 +420,15 @@ class ForceLocalAccessBase(_LocalAccess):
     """Class for accessing HOOMD-Blue custom force data.
 
     Attributes:
-        force ((N_particles, 3) `hoomd.data.array` object of ``float``):
+        force ((N_particles, 3) `hoomd.data.array` of ``float``):
             Local force data. :math:`[\\mathrm{force}]`
-        potential_energy ((N_particles,) `hoomd.data.array` object of ``float``):
+        potential_energy ((N_particles,) `hoomd.data.array` of ``float``):
             Local potential energy data. :math:`[\\mathrm{energy}]`
-        torque ((N_particles, 3) `hoomd.data.array` object of ``float``):
+        torque ((N_particles, 3) `hoomd.data.array` of ``float``):
             Local torque data. :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`
-        virial ((N_particles,) `hoomd.data.array` object of ``float``):
+        virial ((N_particles,) `hoomd.data.array` of ``float``):
             Local virial data. :math:`[\\mathrm{energy}]`
-        rtag ((N_particles_global) `hoomd.data.array` object of ``int``):
+        rtag ((N_particles_global) `hoomd.data.array` of ``int``):
             The reverse tag of a particle. This means that the value
             ``force_data.rtag[0]`` represents the current index accessing data
             for the particle with tag 0.

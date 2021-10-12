@@ -7,7 +7,6 @@
 from abc import abstractmethod
 
 import hoomd
-from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.logging import log
@@ -120,6 +119,7 @@ class Force(_HOOMDBaseObject):
 
 
 class Custom(Force):
+    """TODO, this docstring."""
 
     def __init__(self):
         self._in_context_manager = False
@@ -133,6 +133,7 @@ class Custom(Force):
 
     @property
     def cpu_local_force_arrays(self):
+        """Access the local force buffers on host."""
         if self._in_context_manager:
             raise RuntimeError("Cannot enter cpu_local_force_arrays context "
                                "manager inside another local_force_arrays "
@@ -141,6 +142,7 @@ class Custom(Force):
 
     @property
     def gpu_local_force_arrays(self):
+        """Access the local force buffers on device."""
         if isinstance(self._simulation.device, hoomd.device.GPU):
             raise RuntimeError(
                 "Cannot access gpu_local_force_arrays without a GPU device")
@@ -152,6 +154,12 @@ class Custom(Force):
 
     @abstractmethod
     def set_forces(self, timestep):
+        """Set the forces in the simulation loop.
+
+        Args:
+            timestep (int):
+                The current timestep in the simulation.
+        """
         pass
 
 

@@ -94,8 +94,6 @@ class LocalSnapshot(_LocalSnapshot):
 
 
 class ForceLocalAccess(ForceLocalAccessBase):
-    # TODO add more in-depth docs here
-
-    """Access force data on the CPU."""
+    """Access force data on the CPU."""  # TODO more in-depth docs here
     _cpp_cls = _md.LocalForceComputeDataHost
     _array_cls = HOOMDArray

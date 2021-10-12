@@ -13,7 +13,8 @@ class MyConstantForce(md.force.Custom):
         self._force = self._direction * self._mag
 
     def set_forces(self, timestep):
-        with self._state.cpu_local_snapshot as snap, self.cpu_local_force_arrays as arrays:
+        with self._state.cpu_local_snapshot as snap, \
+                self.cpu_local_force_arrays as arrays:
             rtags = snap.particles.rtag
             position = snap.particles.position[rtags]
             arrays.force[rtags] = self._force[None, :]
@@ -21,12 +22,12 @@ class MyConstantForce(md.force.Custom):
             arrays.torque[rtags] = np.cross(position, arrays.force[rtags])
 
             # set the virial stress coefficients
-            arrays.virial[rtags][:, 0] = force[0] * position[:, 0]
-            arrays.virial[rtags][:, 1] = force[0] * position[:, 1]
-            arrays.virial[rtags][:, 2] = force[0] * position[:, 2]
-            arrays.virial[rtags][:, 3] = force[1] * position[:, 0]
-            arrays.virial[rtags][:, 4] = force[1] * position[:, 1]
-            arrays.virial[rtags][:, 5] = force[2] * position[:, 2]
+            arrays.virial[rtags][:, 0] = self._force[0] * position[:, 0]
+            arrays.virial[rtags][:, 1] = self._force[0] * position[:, 1]
+            arrays.virial[rtags][:, 2] = self._force[0] * position[:, 2]
+            arrays.virial[rtags][:, 3] = self._force[1] * position[:, 0]
+            arrays.virial[rtags][:, 4] = self._force[1] * position[:, 1]
+            arrays.virial[rtags][:, 5] = self._force[2] * position[:, 2]
 
 
 def test_simulation(simulation_factory, two_particle_snapshot_factory):
