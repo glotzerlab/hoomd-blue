@@ -37,8 +37,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                                     managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
         {
         // build the JIT.
-        EvalFactory* factory_constituent = new EvalFactory(cpu_code_constituent, compiler_args,
-                is_union);
+        EvalFactory* factory_constituent
+            = new EvalFactory(cpu_code_constituent, compiler_args, is_union);
 
         // get the evaluator and check for errors
         m_eval_constituent = factory_constituent->getEval();

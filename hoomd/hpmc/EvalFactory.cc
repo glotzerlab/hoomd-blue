@@ -20,8 +20,9 @@
 #pragma GCC diagnostic pop
 
 //! C'tor
-EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::string>& compiler_args,
-        bool is_union)
+EvalFactory::EvalFactory(const std::string& cpp_code,
+                         const std::vector<std::string>& compiler_args,
+                         bool is_union)
     {
     std::ostringstream sstream;
     m_eval = nullptr;
@@ -98,7 +99,7 @@ EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::str
         m_alpha = (float**)(alpha->getAddress());
         m_alpha_union = (float**)(alpha_union->getAddress());
         }
-    else
+    else // not a union class
         {
         auto alpha = m_jit->findSymbol("param_array");
         if (!alpha)
@@ -106,9 +107,9 @@ EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::str
             m_error_msg = "Could not find param_array array in LLVM module.";
             return;
             }
-            /// this cast is like this because 1) it works correctly like this and
-            /// 2) trying to use static_cast or reinterpret_cast gives compilation errors
-            m_alpha = (float**)(alpha->getAddress());
+        /// this cast is like this because 1) it works correctly like this and
+        /// 2) trying to use static_cast or reinterpret_cast gives compilation errors
+        m_alpha = (float**)(alpha->getAddress());
         }
 
     /// this cast is like this because 1) it works correctly like this and
