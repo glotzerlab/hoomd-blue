@@ -170,7 +170,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
 
 class CPPPotential(CPPPotentialBase):
-    """Define an energetic interaction between pairs of particles.
+    r"""Define an energetic interaction between pairs of particles.
 
     Adjust parameters within the code with the `param_array` attribute without
     requiring a recompile. These arrays are **read-only** during function
