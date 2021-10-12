@@ -182,8 +182,8 @@ class CPPPotential(CPPPotentialBase):
         code (str): C++ code defining the function body for pair interactions
             between particles.
         param_array (list[float]): Parameter values to make available in ``float
-            *param_array`` in the compiled code. If no adjustable parameters are
-            needed in the C++ code, pass either `None` or an empty array.
+            \*param_array`` in the compiled code. If no adjustable parameters
+            are needed in the C++ code, pass either `None` or an empty array.
 
     See Also:
         `CPPPotentialBase` for the documentation of the parent class.
@@ -300,7 +300,7 @@ class CPPPotentialUnion(CPPPotentialBase):
             code.  Pass `None` or an empty array if no adjustable parameters are
             needed for the constituent interactions.
         param_array_isotropic (list[float]): Parameter values to make available
-            in `` float *param_array_isotropic`` in the compiled code. Pass
+            in `` float \*param_array_isotropic`` in the compiled code. Pass
             `None` or an empty array if no adjustable parameters are needed for
             the isotropic interactions.
 
