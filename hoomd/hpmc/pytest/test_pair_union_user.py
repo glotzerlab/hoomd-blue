@@ -428,10 +428,10 @@ def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
     separation = 1.001
     with sim.state.cpu_local_snapshot as snapshot:
         N = len(snapshot.particles.position)
-        for global_idx, r_x in zip([0, 1], [-separation / 2, separation / 2]):
-            idx = snapshot.particles.rtag[global_idx]
-            if idx < N:
-                snapshot.particles.position[idx, :] = [r_x, 0, 0]
+        for tag, r_x in zip([0, 1], [-separation / 2, separation / 2]):
+            index = snapshot.particles.rtag[tag]
+            if index < N:
+                snapshot.particles.position[index, :] = [r_x, 0, 0]
 
     # first make sure particles remain "stuck"
     for step in range(10):

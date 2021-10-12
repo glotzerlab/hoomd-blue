@@ -17,11 +17,6 @@ valid_constructor_args = [
         param_array=[0, 1],
         code='return -1;',
     ),
-    dict(
-        r_cut=2,
-        param_array=[1, 2, 3, 4],
-        code='return -1;',
-    )
 ]
 
 # setable attributes before attach for CPPPotential objects
@@ -114,11 +109,7 @@ def test_error_after_attach_cpp_potential(device, simulation_factory,
     # create C++ mirror classes and set parameters
     sim.run(0)
 
-    # validate the params were set properly
-    for attr, value in constructor_args.items():
-        assert np.all(getattr(patch, attr) == value)
-
-    # make sure we can't set properties than can't be set
+    # make sure we can't set properties than can't be set after attach
     sim.run(0)
     with pytest.raises(AttributeError):
         setattr(patch, err_attr, err_val)
@@ -291,10 +282,10 @@ def test_cpp_potential_sticky_spheres(device, simulation_factory,
     separation = 1.001
     with sim.state.cpu_local_snapshot as snapshot:
         N = len(snapshot.particles.position)
-        for global_idx, r_x in zip([0, 1], [-separation / 2, separation / 2]):
-            idx = snapshot.particles.rtag[global_idx]
-            if idx < N:
-                snapshot.particles.position[idx, :] = [r_x, 0, 0]
+        for tag, r_x in zip([0, 1], [-separation / 2, separation / 2]):
+            index = snapshot.particles.rtag[tag]
+            if index < N:
+                snapshot.particles.position[index, :] = [r_x, 0, 0]
 
     # first make sure the particles remain stuck together
     for step in range(10):
