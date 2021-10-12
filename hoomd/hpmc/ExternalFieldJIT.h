@@ -174,7 +174,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
                          h_charge.data[i]);
             }
 #ifdef ENABLE_MPI
-        if (this->m_pdata->getDomainDecomposition())
+        if (this->m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &dE,
