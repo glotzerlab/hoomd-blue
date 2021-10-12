@@ -6,6 +6,7 @@ set(files __init__.py
     test_angle.py
     test_aniso_pair.py
     test_constrain_distance.py
+    test_custom_force.py
     test_external.py
     test_filter_md.py
     test_bond.py

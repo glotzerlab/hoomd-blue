@@ -28,3 +28,12 @@ class MyConstantForce(md.force.Custom):
             arrays.virial[rtags][:, 4] = force[1] * position[:, 1]
             arrays.virial[rtags][:, 5] = force[2] * position[:, 2]
 
+
+def test_simulation(simulation_factory, two_particle_snapshot_factory):
+    snap = two_particle_snapshot_factory()
+    sim = simulation_factory(snap)
+    custom_grav = MyConstantForce(2)
+    integrator = hoomd.md.Integrator(dt=0.005, forces=[custom_grav])
+    sim.operations.integrator = integrator
+
+    sim.run(2)
