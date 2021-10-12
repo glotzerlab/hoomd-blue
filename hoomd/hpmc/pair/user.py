@@ -62,7 +62,9 @@ class CPPPotentialBase(_HOOMDBaseObject):
     * ``q_j`` is the quaternion orientation of particle *j*
     * ``d_j`` is the diameter of particle *j*
     * ``charge_j`` is the charge of particle *j*
-    * Your code *must* return a value.
+
+    Note:
+        Your code *must* return a value.
 
     Note:
         ``vec3`` and ``quat`` are defined in the file `VectorMath.h`_ in the \
@@ -180,7 +182,8 @@ class CPPPotential(CPPPotentialBase):
         code (str): C++ code defining the function body for pair interactions
             between particles.
         param_array (list[float]): Parameter values to pass into ``param_array``
-            in the compiled code.
+            in the compiled code. If no adjustable parameters are needed in the
+            C++ code, pass either `None` or an empty array.
 
     See Also:
         `CPPPotentialBase` for the documentation of the parent class.
@@ -197,6 +200,8 @@ class CPPPotential(CPPPotentialBase):
                 adjustable elements in the potential energy function as
                 defined by the user. After running zero or more steps, the array
                 cannot be set, although individual values can still be changed.
+        energy (float): The potential energy resulting from the interactions
+            defind in the C++ code at the current timestep.
 
     Examples:
         .. code-block:: python
@@ -365,6 +370,8 @@ class CPPPotentialUnion(CPPPotentialBase):
                 potential part of the potential as defined by the user. After
                 running zero or more steps, the array cannot be set, although
                 individual values can still be changed.
+        energy (float): The potential energy resulting from the interactions
+            defind in the C++ code at the current timestep.
 
     Example without isotropic interactions:
 
@@ -407,7 +414,7 @@ class CPPPotentialUnion(CPPPotentialBase):
 
         # soft repulsion between centers of unions
         soft_repulsion = '''float rsq = dot(r_ij, r_ij);
-                                  float r_cut = param_array_isoropic[0];
+                                  float r_cut = param_array_isotropic[0];
                                   if (rsq < r_cut*r_cut)
                                     return param_array_isotropic[1];
                                   else

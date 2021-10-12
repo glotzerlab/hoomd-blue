@@ -18,7 +18,7 @@ hpmc.pair.user
     :synopsis: User defined pair potentials for Monte Carlo.
 
     .. autoclass:: CPPPotentialBase
-        :inherited-members:
+        :show-inheritance:
     .. autoclass:: CPPPotential
         :show-inheritance:
     .. autoclass:: CPPPotentialUnion
