@@ -25,6 +25,8 @@ EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::str
     {
     std::ostringstream sstream;
     m_eval = nullptr;
+    m_alpha = nullptr;
+    m_alpha_union = nullptr;
 
     // initialize LLVM
     auto clang_compiler = ClangCompiler::getClangCompiler();
