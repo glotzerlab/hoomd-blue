@@ -123,9 +123,11 @@ class Custom(Force):
 
     def __init__(self):
         self._in_context_manager = False
+        self._state = None  # to be set on attaching
 
     def _attach(self):
-        self._cpp_obj = _md.CustomForceCompute(self._simulation._cpp_sys_def)
+        self._state = self._simulation.state
+        self._cpp_obj = _md.CustomForceCompute(self._state._cpp_sys_def)
         self._cpp_obj.setCallback(self.set_forces)
         super()._attach()
 
@@ -135,7 +137,7 @@ class Custom(Force):
             raise RuntimeError("Cannot enter cpu_local_force_arrays context "
                                "manager inside another local_force_arrays "
                                "context manager")
-        return ForceLocalAccess(self)
+        return hoomd.data.ForceLocalAccess(self)
 
     @property
     def gpu_local_force_arrays(self):
@@ -146,7 +148,7 @@ class Custom(Force):
             raise RuntimeError(
                 "Cannot enter gpu_local_force_arrays context manager inside "
                 "another local_force_arrays context manager")
-        return ForceLocalAccessGPU(self)
+        return hoomd.data.ForceLocalAccessGPU(self)
 
     @abstractmethod
     def set_forces(self, timestep):
