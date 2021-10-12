@@ -217,9 +217,9 @@ class CPPPotential(CPPPotentialBase):
         param_dict = ParameterDict(r_cut=float,
                                    param_array=NDArrayValidator(
                                        dtype=np.float32, shape=(None,)),
-                                   code=OnlyTypes(str, allow_none=True))
+                                   code=OnlyTypes(str, allow_none=False))
         param_dict['r_cut'] = r_cut
-        if param_array is None or len(param_array) == 0:
+        if param_array is None:
             param_dict['param_array'] = np.array([])
         else:
             param_dict['param_array'] = param_array
@@ -271,7 +271,7 @@ class CPPPotential(CPPPotentialBase):
                 cpu_include_options,
                 self.r_cut,
                 self.param_array,
-                False,
+                False,  # is_union, False for the singlet class
             )
         # attach patch object to the integrator
         super()._attach()
@@ -289,16 +289,20 @@ class CPPPotentialUnion(CPPPotentialBase):
         r_cut_isotropic (`float`): Cut-off for isotropic interaction between
                 centers of union particles.
         code_isotropic (`str`): C++ code for isotropic part of the interaction.
-                Must be ``None`` or `''` when executing on a GPU.
+                Must be `''` when executing on a GPU.
         param_array_constituent (list[float]): Parameter values to pass into
-                ``param_array_constituent`` in the compiled code.
+                ``param_array_constituent`` in the compiled code. Pass `None`
+                or an empty array if no adjustable parameters are needed for the
+                constituent interactions.
         param_array_isotropic (list[float]): Parameter values to pass into
-                ``param_array`` in the compiled code.
+                ``param_array_isotropic`` in the compiled code. Pass `None` or
+                an empty array if no adjustable parameters are needed for the
+                isotropic interactions.
 
     Note:
         Code passed into ``code_isotropic`` is not used when executing on the
-        GPU. A `RuntimeError` is raised on attachment if code is passed into
-        this argument on the GPU. On the CPUi, ``None`` implies ``return 0.0f``.
+        GPU. A `RuntimeError` is raised on attachment if the value of this
+        argument is anything besides `''` on the GPU.
 
     Note:
         This class uses an internal OBB tree for fast interaction queries
@@ -350,10 +354,11 @@ class CPPPotentialUnion(CPPPotentialBase):
             energy function between the centers of the particles. This property
             cannot be modified after running for zero or more steps.
 
-        param_array (``ndarray<float>``): Numpy array containing dynamically
-                adjustable elements in the isotropic part of the potential as
-                defined by the user. After running zero or more steps, the array
-                cannot be set, although individual values can still be changed.
+        param_array_isotropic (``ndarray<float>``): Numpy array containing
+                dynamically adjustable elements in the isotropic part of the
+                potential as defined by the user. After running zero or more
+                steps, the array cannot be set, although individual values can
+                still be changed.
 
         param_array_constituent (``ndarray<float>``): Numpy array containing
                 dynamically adjustable elements in the constituent part of the
@@ -402,9 +407,9 @@ class CPPPotentialUnion(CPPPotentialBase):
 
         # soft repulsion between centers of unions
         soft_repulsion = '''float rsq = dot(r_ij, r_ij);
-                                  float r_cut = param_array[0];
+                                  float r_cut = param_array_isoropic[0];
                                   if (rsq < r_cut*r_cut)
-                                    return param_array[1];
+                                    return param_array_isotropic[1];
                                   else
                                     return 0.0f;
                          '''
@@ -415,7 +420,7 @@ class CPPPotentialUnion(CPPPotentialBase):
             code_union=square_well,
             code_isotropic=soft_repulsion,
             param_array_constituent=[2.0, -5.0],
-            param_array=[2.5, 1.3],
+            param_array_isotropic=[2.5, 1.3],
         )
         patch.positions['A'] = [
             (0, 0, -0.5),
@@ -439,8 +444,8 @@ class CPPPotentialUnion(CPPPotentialBase):
                                                      shape=(None,)),
             param_array_isotropic=NDArrayValidator(dtype=np.float32,
                                                    shape=(None,)),
-            code_constituent=OnlyTypes(str, allow_none=True),
-            code_isotropic=OnlyTypes(str, allow_none=True),
+            code_constituent=OnlyTypes(str, allow_none=False),
+            code_isotropic=OnlyTypes(str, allow_none=False),
         )
 
         if param_array_constituent is None:
@@ -509,13 +514,13 @@ class CPPPotentialUnion(CPPPotentialBase):
             raise RuntimeError("Integrator is not attached yet.")
 
         if isinstance(self._simulation.device, hoomd.device.GPU):
-            if self.code_isotropic not in [None, '']:
+            if self.code_isotropic != '':
                 msg = 'Code passed into code_isotropic when excuting on the '
-                msg += 'GPU is unused'
+                msg += 'GPU is unused.'
                 raise RuntimeError(msg)
 
         cpu_code_constituent = self._wrap_cpu_code(self.code_constituent, True)
-        if self.code_isotropic not in [None, '']:
+        if self.code_isotropic != '':
             cpu_code_isotropic = self._wrap_cpu_code(self.code_isotropic, True)
         else:
             cpu_code_isotropic = self._wrap_cpu_code('return 0;', True)
