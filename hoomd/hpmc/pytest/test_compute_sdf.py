@@ -210,26 +210,3 @@ def test_logging():
                         'default': True
                     }
                 })
-    logging_check(hoomd.hpmc.integrate.HPMCIntegrator, ('hpmc', 'integrate'),
-                {
-                    'map_overlaps': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    },
-                    'mps': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    },
-                    'overlaps': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    },
-                    'rotate_moves': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    },
-                    'translate_moves': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    }
-                })

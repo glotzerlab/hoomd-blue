@@ -1,10 +1,11 @@
 import hoomd
-from hoomd.conftest import operation_pickling_check
+from hoomd.conftest import operation_pickling_check, logging_check
 from hoomd.error import DataAccessError
 import hoomd.hpmc
 import numpy as np
 import pytest
 import hoomd.hpmc.pytest.conftest
+from hoomd.logging import LoggerCategories
 from copy import deepcopy
 
 
@@ -657,3 +658,33 @@ def test_pickling(valid_args, simulation_factory,
     sim = simulation_factory(
         two_particle_snapshot_factory(L=1000, dimensions=n_dimensions))
     operation_pickling_check(mc, sim)
+
+
+def test_logging():
+    logging_check(hoomd.hpmc.integrate.HPMCIntegrator, ('hpmc', 'integrate'),
+                {
+                    'map_overlaps': {
+                        'category': LoggerCategories.sequence,
+                        'default': True
+                    },
+                    'mps': {
+                        'category': LoggerCategories.scalar,
+                        'default': True
+                    },
+                    'overlaps': {
+                        'category': LoggerCategories.scalar,
+                        'default': True
+                    },
+                    'rotate_moves': {
+                        'category': LoggerCategories.sequence,
+                        'default': True
+                    },
+                    'translate_moves': {
+                        'category': LoggerCategories.sequence,
+                        'default': True
+                    },
+                    'type_shapes': {
+                        'category': LoggerCategories.object,
+                        'default': True
+                    }
+                })
