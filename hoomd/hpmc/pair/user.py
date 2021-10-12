@@ -37,7 +37,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
     Classes derived from :py:class:`CPPPotentialBase` will compile the code
     provided by the user and call it to evaluate patch energies. The text
-    provided in *code* is the body of a function with the following signature:
+    provided is the body of a function with the following signature:
 
     .. code::
 
@@ -181,9 +181,9 @@ class CPPPotential(CPPPotentialBase):
             all pair interactions are assumed 0.
         code (str): C++ code defining the function body for pair interactions
             between particles.
-        param_array (list[float]): Parameter values to pass into ``param_array``
-            in the compiled code. If no adjustable parameters are needed in the
-            C++ code, pass either `None` or an empty array.
+        param_array (list[float]): Parameter values to make available in ``float
+            *param_array`` in the compiled code. If no adjustable parameters are
+            needed in the C++ code, pass either `None` or an empty array.
 
     See Also:
         `CPPPotentialBase` for the documentation of the parent class.
@@ -295,14 +295,14 @@ class CPPPotentialUnion(CPPPotentialBase):
                 centers of union particles.
         code_isotropic (`str`): C++ code for isotropic part of the interaction.
                 Must be `''` when executing on a GPU.
-        param_array_constituent (list[float]): Parameter values to pass into
-                ``param_array_constituent`` in the compiled code. Pass `None`
-                or an empty array if no adjustable parameters are needed for the
-                constituent interactions.
-        param_array_isotropic (list[float]): Parameter values to pass into
-                ``param_array_isotropic`` in the compiled code. Pass `None` or
-                an empty array if no adjustable parameters are needed for the
-                isotropic interactions.
+        param_array_constituent (list[float]): Parameter values to make
+            available in ``float *param_array_constituent`` in the compiled
+            code.  Pass `None` or an empty array if no adjustable parameters are
+            needed for the constituent interactions.
+        param_array_isotropic (list[float]): Parameter values to make available
+            in `` float *param_array_isotropic`` in the compiled code. Pass
+            `None` or an empty array if no adjustable parameters are needed for
+            the isotropic interactions.
 
     Note:
         Code passed into ``code_isotropic`` is not used when executing on the
