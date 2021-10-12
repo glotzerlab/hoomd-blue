@@ -12,7 +12,7 @@ if hoomd.version.llvm_enabled:
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import NDArrayValidator, OnlyTypes
+from hoomd.data.typeconverter import NDArrayValidator
 from hoomd.logging import log
 import numpy as np
 
@@ -86,18 +86,17 @@ class CPPPotentialBase(_HOOMDBaseObject):
         timestep = self._simulation.timestep
         return integrator._cpp_obj.computePatchEnergy(timestep)
 
-    def _wrap_cpu_code(self, code, is_union):
+    def _wrap_cpu_code(self, code):
         r"""Wrap the provided code into a function with the expected signature.
 
         Args:
             code (`str`): Body of the C++ function
-            is_union (`bool`): Determines how to declare param_array variables
         """
-        param_array_suffix = {True: '_isotropic', False: ''}[is_union]
+        param_array_suffix = {True: '_isotropic', False: ''}[self._is_union]
         constituent_param_array = {
             True: 'float *param_array_constituent;',
             False: ''
-        }[is_union]
+        }[self._is_union]
         cpp_function = f"""
                         #include <stdio.h>
                         #include "hoomd/HOOMDMath.h"
@@ -129,17 +128,19 @@ class CPPPotentialBase(_HOOMDBaseObject):
                         """
         return cpp_function
 
-    def _wrap_gpu_code(self, code, is_union):
+    def _wrap_gpu_code(self, code):
         """Convert the provided code into a device function with the expected \
                 signature.
 
         Args:
             code (`str`): Body of the C++ function
-            is_union (`bool`): Determines how to declare param_array variables
         """
-        param_array_suffix = {True: '_isotropic', False: ''}[is_union]
+        param_array_suffix = {True: '_isotropic', False: ''}[self._is_union]
         constituent_str = '__device__ float *param_array_constituent;'
-        constituent_param_array = {True: constituent_str, False: ''}[is_union]
+        constituent_param_array = {
+                True: constituent_str,
+                False: ''
+        }[self._is_union]
         cpp_function = f"""
                         #include "hoomd/HOOMDMath.h"
                         #include "hoomd/VectorMath.h"
@@ -223,7 +224,7 @@ class CPPPotential(CPPPotentialBase):
         param_dict = ParameterDict(r_cut=float,
                                    param_array=NDArrayValidator(
                                        dtype=np.float32, shape=(None,)),
-                                   code=OnlyTypes(str, allow_none=False))
+                                   code=str)
         param_dict['r_cut'] = r_cut
         if param_array is None:
             param_dict['param_array'] = np.array([])
@@ -231,6 +232,7 @@ class CPPPotential(CPPPotentialBase):
             param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
         self.code = code
+        self._is_union = False
 
     def _getattr_param(self, attr):
         if attr == 'code':
@@ -248,12 +250,12 @@ class CPPPotential(CPPPotentialBase):
         device = self._simulation.device
         cpp_sys_def = self._simulation.state._cpp_sys_def
 
-        cpu_code = self._wrap_cpu_code(self.code, False)
+        cpu_code = self._wrap_cpu_code(self.code)
         cpu_include_options = _compile.get_cpu_include_options()
 
         if isinstance(device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
-            gpu_code = self._wrap_gpu_code(self.code, False)
+            gpu_code = self._wrap_gpu_code(self.code)
 
             self._cpp_obj = _jit.PatchEnergyJITGPU(
                 cpp_sys_def,
@@ -262,7 +264,7 @@ class CPPPotential(CPPPotentialBase):
                 cpu_include_options,
                 self.r_cut,
                 self.param_array,
-                False,  # is_union, False for this class
+                self._is_union,
                 gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"],
@@ -277,7 +279,7 @@ class CPPPotential(CPPPotentialBase):
                 cpu_include_options,
                 self.r_cut,
                 self.param_array,
-                False,  # is_union, False for the singlet class
+                self._is_union,
             )
         # attach patch object to the integrator
         super()._attach()
@@ -452,8 +454,8 @@ class CPPPotentialUnion(CPPPotentialBase):
                                                      shape=(None,)),
             param_array_isotropic=NDArrayValidator(dtype=np.float32,
                                                    shape=(None,)),
-            code_constituent=OnlyTypes(str, allow_none=False),
-            code_isotropic=OnlyTypes(str, allow_none=False),
+            code_constituent=str,
+            code_isotropic=str,
         )
 
         if param_array_constituent is None:
@@ -506,6 +508,7 @@ class CPPPotentialUnion(CPPPotentialBase):
 
         self.code_constituent = code_constituent
         self.code_isotropic = code_isotropic
+        self._is_union = True
 
     def _getattr_param(self, attr):
         code_attrs = {'code_isotropic', 'code_constituent'}
@@ -527,19 +530,18 @@ class CPPPotentialUnion(CPPPotentialBase):
                 msg += 'GPU is unused.'
                 raise RuntimeError(msg)
 
-        cpu_code_constituent = self._wrap_cpu_code(self.code_constituent, True)
+        cpu_code_constituent = self._wrap_cpu_code(self.code_constituent)
         if self.code_isotropic != '':
-            cpu_code_isotropic = self._wrap_cpu_code(self.code_isotropic, True)
+            cpu_code_isotropic = self._wrap_cpu_code(self.code_isotropic)
         else:
-            cpu_code_isotropic = self._wrap_cpu_code('return 0;', True)
+            cpu_code_isotropic = self._wrap_cpu_code('return 0;')
         cpu_include_options = _compile.get_cpu_include_options()
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
-            gpu_code_constituent = self._wrap_gpu_code(self.code_constituent,
-                                                       True)
+            gpu_code_constituent = self._wrap_gpu_code(self.code_constituent)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
                 self._simulation.state._cpp_sys_def,
                 device._cpp_exec_conf,
@@ -550,7 +552,7 @@ class CPPPotentialUnion(CPPPotentialBase):
                 cpu_code_constituent,
                 self.r_cut_constituent,
                 self.param_array_constituent,
-                True,  # is_union, True for this class
+                self._is_union,
                 gpu_code_constituent,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"] + ["-DUNION_EVAL"],
@@ -568,7 +570,7 @@ class CPPPotentialUnion(CPPPotentialBase):
                 cpu_code_constituent,
                 self.r_cut_constituent,
                 self.param_array_constituent,
-                True,  # is_union, True for this class
+                self._is_union,  # is_union, True for this class
             )
         # attach patch object to the integrator
         super()._attach()
