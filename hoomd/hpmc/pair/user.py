@@ -138,8 +138,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
         param_array_suffix = {True: '_isotropic', False: ''}[self._is_union]
         constituent_str = '__device__ float *param_array_constituent;'
         constituent_param_array = {
-                True: constituent_str,
-                False: ''
+            True: constituent_str,
+            False: ''
         }[self._is_union]
         cpp_function = f"""
                         #include "hoomd/HOOMDMath.h"
