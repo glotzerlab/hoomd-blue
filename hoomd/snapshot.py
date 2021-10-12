@@ -372,4 +372,5 @@ class Snapshot:
                     box[2] = 0
                 snap.configuration.box = box
 
+        snap._boadcast_box()
         return snap
