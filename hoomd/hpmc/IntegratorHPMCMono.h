@@ -1248,16 +1248,7 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
 
     // Loop over all particles
-    #ifdef ENABLE_TBB
-    m_exec_conf->getTaskArena()->execute([&]{
-
-    energy = tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, m_pdata->getN()),
-        0.0f,
-        [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
-        for (unsigned int i = r.begin(); i != r.end(); ++i)
-    #else
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
-    #endif
         {
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
@@ -1338,11 +1329,6 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
                 } // end loop over AABB nodes
             } // end loop over images
         } // end loop over particles
-    #ifdef ENABLE_TBB
-    return energy;
-    }, [](float x, float y)->float { return x+y; } );
-    }); // end task arena execute()
-    #endif
 
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
 
