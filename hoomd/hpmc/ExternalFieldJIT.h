@@ -41,17 +41,17 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         : hpmc::ExternalFieldMono<Shape>(sysdef)
         {
         // build the JIT.
-        m_factory = std::shared_ptr<ExternalFieldEvalFactory>(
-            new ExternalFieldEvalFactory(cpu_code, compiler_args));
+        ExternalFieldEvalFactory* factory = new ExternalFieldEvalFactory(cpu_code, compiler_args);
 
         // get the evaluator
-        m_eval = m_factory->getEval();
+        m_eval = factory->getEval();
 
         if (!m_eval)
             {
-            exec_conf->msg->error() << m_factory->getError() << std::endl;
+            exec_conf->msg->error() << factory->getError() << std::endl;
             throw std::runtime_error("Error compiling JIT code.");
             }
+        m_factory = std::shared_ptr<ExternalFieldEvalFactory>(factory);
         }
 
     //! Evaluate the energy of the force.
