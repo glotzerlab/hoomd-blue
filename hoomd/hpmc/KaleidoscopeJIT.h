@@ -55,7 +55,7 @@ class KaleidoscopeJIT
     MangleAndInterner Mangle;
     ThreadSafeContext Ctx;
     JITDylib& mainJD;
-    SectionMemoryManager* memory_manager;
+    SectionMemoryManager* memory_manager = nullptr;
 
     KaleidoscopeJIT(JITTargetMachineBuilder JTMB, DataLayout DL)
         : ObjectLayer(ES,

@@ -17,31 +17,33 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
                                const std::string& cpu_code,
                                const std::vector<std::string>& compiler_args,
                                Scalar r_cut,
-                               pybind11::array_t<float> param_array)
+                               pybind11::array_t<float> param_array,
+                               bool is_union)
     : PatchEnergy(sysdef), m_exec_conf(exec_conf), m_r_cut_isotropic(r_cut),
       m_param_array(param_array.data(),
                     param_array.data() + param_array.size(),
                     managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
     {
     // build the JIT.
-    m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(cpu_code, compiler_args));
+    EvalFactory* factory = new EvalFactory(cpu_code, compiler_args, is_union);
 
     // save the C++ code string for exporting to python
     m_cpu_code = cpu_code;
 
     // get the evaluator
-    m_eval = m_factory->getEval();
+    m_eval = factory->getEval();
 
     if (!m_eval)
         {
         std::ostringstream s;
         s << "Error compiling JIT code:" << std::endl;
         s << cpu_code << std::endl;
-        s << m_factory->getError() << std::endl;
+        s << factory->getError() << std::endl;
         throw std::runtime_error(s.str());
         }
 
-    m_factory->setAlphaArray(&m_param_array.front());
+    factory->setAlphaArray(&m_param_array.front());
+    m_factory = std::shared_ptr<EvalFactory>(factory);
     }
 
 void export_PatchEnergyJIT(pybind11::module& m)
@@ -56,7 +58,8 @@ void export_PatchEnergyJIT(pybind11::module& m)
                             const std::string&,
                             const std::vector<std::string>&,
                             Scalar,
-                            pybind11::array_t<float>>())
+                            pybind11::array_t<float>,
+                            bool>())
         .def_property("r_cut", &PatchEnergyJIT::getRCut, &PatchEnergyJIT::setRCut)
         .def("energy", &PatchEnergyJIT::energy)
         .def_property_readonly("param_array", &PatchEnergyJIT::getParamArray)

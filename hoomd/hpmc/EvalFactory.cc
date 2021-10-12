@@ -20,10 +20,13 @@
 #pragma GCC diagnostic pop
 
 //! C'tor
-EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::string>& compiler_args)
+EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::string>& compiler_args,
+        bool is_union)
     {
     std::ostringstream sstream;
     m_eval = nullptr;
+    m_alpha = nullptr;
+    m_alpha_union = nullptr;
 
     // initialize LLVM
     auto clang_compiler = ClangCompiler::getClangCompiler();
@@ -72,25 +75,43 @@ EvalFactory::EvalFactory(const std::string& cpp_code, const std::vector<std::str
         return;
         }
 
-    auto alpha = m_jit->findSymbol("param_array");
-
-    if (!alpha)
+    // Look up the param_array arrays
+    if (is_union)
         {
-        m_error_msg = "Could not find param_array array in LLVM module.";
-        return;
+        auto alpha = m_jit->findSymbol("param_array_isotropic");
+        if (!alpha)
+            {
+            m_error_msg = "Could not find param_array_isotropic array in LLVM module.";
+            return;
+            }
+
+        // also get param_array_constituent if this is a union
+        auto alpha_union = m_jit->findSymbol("param_array_constituent");
+        if (!alpha_union)
+            {
+            m_error_msg = "Could not find param_array_constituent array in LLVM module.";
+            return;
+            }
+
+        /// these casts are like this because 1) it works correctly like this and
+        /// 2) trying to use static_cast or reinterpret_cast gives compilation errors
+        m_alpha = (float**)(alpha->getAddress());
+        m_alpha_union = (float**)(alpha_union->getAddress());
+        }
+    else
+        {
+        auto alpha = m_jit->findSymbol("param_array");
+        if (!alpha)
+            {
+            m_error_msg = "Could not find param_array array in LLVM module.";
+            return;
+            }
+            /// this cast is like this because 1) it works correctly like this and
+            /// 2) trying to use static_cast or reinterpret_cast gives compilation errors
+            m_alpha = (float**)(alpha->getAddress());
         }
 
-    auto alpha_union = m_jit->findSymbol("param_array_constituent");
-
-    if (!alpha_union)
-        {
-        m_error_msg = "Could not find param_array_constituent array in LLVM module.";
-        return;
-        }
-
-    /// these casts are like this because 1) it works correctly like this and
+    /// this cast is like this because 1) it works correctly like this and
     /// 2) trying to use static_cast or reinterpret_cast gives compilation errors
     m_eval = (EvalFnPtr)(long unsigned int)(eval->getAddress());
-    m_alpha = (float**)(alpha->getAddress());
-    m_alpha_union = (float**)(alpha_union->getAddress());
     }
