@@ -199,14 +199,14 @@ def test_values(simulation_factory, lattice_snapshot_factory):
 
 
 def test_logging():
-    logging_check(hoomd.hpmc.compute.SDF, ('hpmc', 'compute'),
-                {
-                    'betaP': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    },
-                    'sdf': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    }
-                })
+    logging_check(
+        hoomd.hpmc.compute.SDF, ('hpmc', 'compute'), {
+            'betaP': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'sdf': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
+        })

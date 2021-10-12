@@ -661,30 +661,30 @@ def test_pickling(valid_args, simulation_factory,
 
 
 def test_logging():
-    logging_check(hoomd.hpmc.integrate.HPMCIntegrator, ('hpmc', 'integrate'),
-                {
-                    'map_overlaps': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    },
-                    'mps': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    },
-                    'overlaps': {
-                        'category': LoggerCategories.scalar,
-                        'default': True
-                    },
-                    'rotate_moves': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    },
-                    'translate_moves': {
-                        'category': LoggerCategories.sequence,
-                        'default': True
-                    },
-                    'type_shapes': {
-                        'category': LoggerCategories.object,
-                        'default': True
-                    }
-                })
+    logging_check(
+        hoomd.hpmc.integrate.HPMCIntegrator, ('hpmc', 'integrate'), {
+            'map_overlaps': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'mps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'overlaps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'rotate_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'translate_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'type_shapes': {
+                'category': LoggerCategories.object,
+                'default': True
+            }
+        })
