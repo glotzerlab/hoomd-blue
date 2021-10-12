@@ -134,13 +134,14 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
                                                          3);
         }
 
-    // TODO figure out what to do with the pitch here
     Output getVirial(GhostDataFlag flag)
         {
         return this->template getBuffer<Scalar, Scalar>(m_virial_handle,
                                                         &CustomForceCompute::getVirialArray,
                                                         flag,
-                                                        1);
+                                                        6,
+                                                        0,
+                                                        std::vector<ssize_t>({6 * sizeof(Scalar), sizeof(Scalar)}));
         }
 
     protected:
