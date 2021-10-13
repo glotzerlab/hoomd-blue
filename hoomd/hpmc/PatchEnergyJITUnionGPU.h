@@ -90,7 +90,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         {
         PatchEnergyJITUnion::setTypeids(type, typeids);
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
-        unsigned int N = (unsigned int)pybind11::len(typeids);
+        auto N = static_cast<unsigned int>(m_type[type_id].size());
         ManagedArray<unsigned int> new_type_ids(N, true);
 
         for (unsigned int i = 0; i < N; i++)
@@ -109,7 +109,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         {
         PatchEnergyJITUnion::setPositions(type, position);
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
-        unsigned int N = (unsigned int)pybind11::len(position);
+        auto N = static_cast<unsigned int>(m_position[type_id].size());
         ManagedArray<vec3<float>> new_positions(N, true);
 
         for (unsigned int i = 0; i < N; i++)
@@ -128,7 +128,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         {
         PatchEnergyJITUnion::setOrientations(type, orientation);
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
-        unsigned int N = (unsigned int)pybind11::len(orientation);
+        auto N = static_cast<unsigned int>(m_orientation[type_id].size());
         ManagedArray<quat<float>> new_orientations(N, true);
 
         for (unsigned int i = 0; i < N; i++)
@@ -147,7 +147,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         {
         PatchEnergyJITUnion::setDiameters(type, diameter);
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
-        unsigned int N = (unsigned int)pybind11::len(diameter);
+        auto N = static_cast<unsigned int>(m_diameter[type_id].size());
         ManagedArray<float> new_diameters(N, true);
 
         for (unsigned int i = 0; i < N; i++)
@@ -166,7 +166,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         {
         PatchEnergyJITUnion::setCharges(type, charge);
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
-        unsigned int N = (unsigned int)pybind11::len(charge);
+        auto N = static_cast<unsigned int>(m_charge[type_id].size());
         ManagedArray<float> new_charges(N, true);
 
         for (unsigned int i = 0; i < N; i++)
