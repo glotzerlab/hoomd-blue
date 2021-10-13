@@ -184,8 +184,7 @@ class CPPPotential(CPPPotentialBase):
             between particles.
         param_array (list[float]): Parameter values to make available in
             ``float *param_array`` in the compiled code. If no adjustable
-            parameters are needed in the C++ code, pass either `None` or an
-            empty array.
+            parameters are needed in the C++ code, pass an empty array.
 
     See Also:
         `CPPPotentialBase` for the documentation of the parent class.
@@ -228,10 +227,7 @@ class CPPPotential(CPPPotentialBase):
                                        dtype=np.float32, shape=(None,)),
                                    code=str)
         param_dict['r_cut'] = r_cut
-        if param_array is None:
-            param_dict['param_array'] = np.array([])
-        else:
-            param_dict['param_array'] = param_array
+        param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
         self.code = code
 
@@ -299,12 +295,12 @@ class CPPPotentialUnion(CPPPotentialBase):
                 Must be `''` when executing on a GPU.
         param_array_constituent (list[float]): Parameter values to make
             available in ``float *param_array_constituent`` in the compiled
-            code.  Pass `None` or an empty array if no adjustable parameters are
-            needed for the constituent interactions.
+            code.  Pass an empty array if no adjustable parameters are needed
+            for the constituent interactions.
         param_array_isotropic (list[float]): Parameter values to make available
-            in ``float *param_array_isotropic`` in the compiled code. Pass
-            `None` or an empty array if no adjustable parameters are needed for
-            the isotropic interactions.
+            in ``float *param_array_isotropic`` in the compiled code. Pass an
+            empty array if no adjustable parameters are needed for the isotropic
+            interactions.
 
     Note:
         Code passed into ``code_isotropic`` is not used when executing on the
@@ -459,15 +455,8 @@ class CPPPotentialUnion(CPPPotentialBase):
             code_isotropic=str,
         )
 
-        if param_array_constituent is None:
-            param_dict['param_array_constituent'] = np.array([])
-        else:
-            param_dict['param_array_constituent'] = param_array_constituent
-
-        if param_array_isotropic is None:
-            param_dict['param_array_isotropic'] = np.array([])
-        else:
-            param_dict['param_array_isotropic'] = param_array_isotropic
+        param_dict['param_array_constituent'] = param_array_constituent
+        param_dict['param_array_isotropic'] = param_array_isotropic
         self._param_dict.update(param_dict)
 
         # add union specific per-type parameters
