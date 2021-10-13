@@ -100,10 +100,6 @@ def test_modify_after_attach_cpp_potential(device, simulation_factory,
     sim.run(0)
 
     # validate the params were set properly
-    for attr, value in constructor_args.items():
-        assert np.all(getattr(patch, attr) == value)
-
-    # validate the params were set properly
     sim.run(0)
     setattr(patch, attr_set, value_set)
     assert getattr(patch, attr_set) == value_set
@@ -179,7 +175,7 @@ def test_cpp_potential(device, positions, orientations, result,
     r_cut = sim.state.box.Lx / 2. * 0.4
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=r_cut,
                                               code=dipole_dipole.format(r_cut),
-                                              param_array=None)
+                                              param_array=[])
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.potential = patch
