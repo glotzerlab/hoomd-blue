@@ -249,10 +249,8 @@ Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
 
     if (aniso)
         {
-        // loop through all methods
         for (auto& method : m_methods)
             {
-            // dd them all together
             res += method->getRotationalDOF(group);
             }
         }
