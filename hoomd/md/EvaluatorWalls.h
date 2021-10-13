@@ -102,7 +102,7 @@ template<class evaluator> class EvaluatorWalls
             auto py_params = params.asDict();
             py_params["r_cut"] = sqrt(rcutsq);
             py_params["r_extrap"] = rextrap;
-            return py_params;
+            return std::move(py_params);
             }
 #endif
         };
