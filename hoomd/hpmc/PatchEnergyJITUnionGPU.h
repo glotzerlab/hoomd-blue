@@ -27,6 +27,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
                            const std::string& cpu_code_constituent,
                            Scalar r_cut_constituent,
                            pybind11::array_t<float> param_array_constituent,
+                           bool is_union,
                            const std::string& code,
                            const std::string& kernel_name,
                            const std::vector<std::string>& options,
@@ -40,7 +41,8 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
                               param_array_isotropic,
                               cpu_code_constituent,
                               r_cut_constituent,
-                              param_array_constituent),
+                              param_array_constituent,
+                              is_union),
           m_gpu_factory(exec_conf,
                         code,
                         kernel_name,
@@ -52,7 +54,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
               jit::union_params_t(),
               hoomd::detail::managed_allocator<jit::union_params_t>(m_exec_conf->isCUDAEnabled()))
         {
-        m_gpu_factory.setAlphaPtr(m_param_array.data());
+        m_gpu_factory.setAlphaPtr(m_param_array.data(), is_union);
         m_gpu_factory.setAlphaUnionPtr(m_param_array_constituent.data());
         m_gpu_factory.setUnionParamsPtr(m_d_union_params.data());
         m_gpu_factory.setRCutUnion(float(m_r_cut_constituent));
@@ -93,16 +95,14 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
     //! Set per-type typeid of constituent particles
     virtual void setTypeids(std::string type, pybind11::list typeids)
         {
+        PatchEnergyJITUnion::setTypeids(type, typeids);
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         unsigned int N = (unsigned int)pybind11::len(typeids);
-        m_type[type_id].resize(N);
         ManagedArray<unsigned int> new_type_ids(N, true);
 
         for (unsigned int i = 0; i < N; i++)
             {
-            unsigned int t = pybind11::cast<unsigned int>(typeids[i]);
-            m_type[type_id][i] = t;
-            new_type_ids[i] = t;
+            new_type_ids[i] = m_type[type_id][i];
             }
 
         // store result
@@ -114,46 +114,33 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
     //! Set per-type positions of the constituent particles
     virtual void setPositions(std::string type, pybind11::list position)
         {
+        PatchEnergyJITUnion::setPositions(type, position);
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         unsigned int N = (unsigned int)pybind11::len(position);
-        m_position[type_id].resize(N);
-
         ManagedArray<vec3<float>> new_positions(N, true);
 
         for (unsigned int i = 0; i < N; i++)
             {
-            pybind11::tuple p_i = position[i];
-            vec3<float> pos(p_i[0].cast<float>(), p_i[1].cast<float>(), p_i[2].cast<float>());
-            m_position[type_id][i] = pos;
-            new_positions[i] = pos;
+            new_positions[i] = m_position[type_id][i];
             }
 
         // store result
         m_d_union_params[type_id].mpos = new_positions;
         // cudaMemadviseReadMostly
         m_d_union_params[type_id].set_memory_hint();
-        buildOBBTree(type_id);
         }
 
     //! Set per-type positions of the constituent particles
     virtual void setOrientations(std::string type, pybind11::list orientation)
         {
+        PatchEnergyJITUnion::setOrientations(type, orientation);
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         unsigned int N = (unsigned int)pybind11::len(orientation);
-        m_orientation[type_id].resize(N);
-
         ManagedArray<quat<float>> new_orientations(N, true);
 
         for (unsigned int i = 0; i < N; i++)
             {
-            pybind11::tuple q_i = orientation[i];
-            float s = q_i[0].cast<float>();
-            float x = q_i[1].cast<float>();
-            float y = q_i[2].cast<float>();
-            float z = q_i[3].cast<float>();
-            quat<float> ort(s, vec3<float>(x, y, z));
-            m_orientation[type_id][i] = ort;
-            new_orientations[i] = ort;
+            new_orientations[i] = m_orientation[type_id][i];
             }
 
         // store result
@@ -165,17 +152,14 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
     //! Set per-type diameters of the constituent particles
     virtual void setDiameters(std::string type, pybind11::list diameter)
         {
+        PatchEnergyJITUnion::setDiameters(type, diameter);
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         unsigned int N = (unsigned int)pybind11::len(diameter);
-        m_diameter[type_id].resize(N);
-
         ManagedArray<float> new_diameters(N, true);
 
         for (unsigned int i = 0; i < N; i++)
             {
-            float d = diameter[i].cast<float>();
-            m_diameter[type_id][i] = d;
-            new_diameters[i] = d;
+            new_diameters[i] = m_diameter[type_id][i];
             }
 
         // store result
@@ -187,17 +171,14 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
     //! Set per-type charges of the constituent particles
     virtual void setCharges(std::string type, pybind11::list charge)
         {
+        PatchEnergyJITUnion::setCharges(type, charge);
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         unsigned int N = (unsigned int)pybind11::len(charge);
-        m_charge[type_id].resize(N);
-
         ManagedArray<float> new_charges(N, true);
 
         for (unsigned int i = 0; i < N; i++)
             {
-            float q = charge[i].cast<float>();
-            m_charge[type_id][i] = q;
-            new_charges[i] = q;
+            new_charges[i] = m_charge[type_id][i];
             }
 
         // store result

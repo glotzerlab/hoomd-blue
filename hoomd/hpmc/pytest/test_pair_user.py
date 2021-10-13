@@ -17,11 +17,6 @@ valid_constructor_args = [
         param_array=[0, 1],
         code='return -1;',
     ),
-    dict(
-        r_cut=2,
-        param_array=[1, 2, 3, 4],
-        code='return -1;',
-    )
 ]
 
 # setable attributes before attach for CPPPotential objects
@@ -64,11 +59,11 @@ def test_valid_behavior_before_attach_cpp_potential(device, constructor_args,
 @pytest.mark.validate
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 @pytest.mark.parametrize("attr_set,value_set", valid_attrs_after_attach)
-@pytest.mark.parametrize("err_attr,err_val", attr_error)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_valid_behavior_after_attach_cpp_potential(
-        device, simulation_factory, two_particle_snapshot_factory,
-        constructor_args, attr_set, value_set, err_attr, err_val):
+def test_modify_after_attach_cpp_potential(device, simulation_factory,
+                                           two_particle_snapshot_factory,
+                                           constructor_args, attr_set,
+                                           value_set):
     """Test that CPPPotential can be attached with valid arguments."""
     # create objects
     patch = hoomd.hpmc.pair.user.CPPPotential(**constructor_args)
@@ -92,7 +87,29 @@ def test_valid_behavior_after_attach_cpp_potential(
     setattr(patch, attr_set, value_set)
     assert getattr(patch, attr_set) == value_set
 
-    # make sure we can't set properties than can't be set
+
+@pytest.mark.validate
+@pytest.mark.parametrize("constructor_args", valid_constructor_args)
+@pytest.mark.parametrize("err_attr,err_val", attr_error)
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_error_after_attach_cpp_potential(device, simulation_factory,
+                                          two_particle_snapshot_factory,
+                                          constructor_args, err_attr, err_val):
+    """Test that CPPPotential can be attached with valid arguments."""
+    # create objects
+    patch = hoomd.hpmc.pair.user.CPPPotential(**constructor_args)
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1)
+    mc.potential = patch
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+
+    # create C++ mirror classes and set parameters
+    sim.run(0)
+
+    # make sure we can't set properties than can't be set after attach
     sim.run(0)
     with pytest.raises(AttributeError):
         setattr(patch, err_attr, err_val)
@@ -241,7 +258,7 @@ def test_cpp_potential_sticky_spheres(device, simulation_factory,
     """
     max_r_interact = 1.003
     square_well = r'''float rsq = dot(r_ij, r_ij);
-                    float epsilon = 100.0f;
+                    float epsilon = param_array[0];
                     float rcut = {:.16f}f;
                     if (rsq > rcut * rcut)
                         return 0.0f;
@@ -254,22 +271,36 @@ def test_cpp_potential_sticky_spheres(device, simulation_factory,
     r_cut = 1.5
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=r_cut,
                                               code=square_well,
-                                              param_array=None)
+                                              param_array=[100.0])
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
     mc.potential = patch
 
     sim.operations.integrator = mc
 
-    snap = sim.state.get_snapshot()
+    # set the particle positions
     separation = 1.001
-    if snap.communicator.rank == 0:
-        snap.particles.position[0, :] = [-separation / 2, 0, 0]
-        snap.particles.position[1, :] = [separation / 2, 0, 0]
-    sim.state.set_snapshot(snap)
+    with sim.state.cpu_local_snapshot as snapshot:
+        N = len(snapshot.particles.position)
+        for tag, r_x in zip([0, 1], [-separation / 2, separation / 2]):
+            index = snapshot.particles.rtag[tag]
+            if index < N:
+                snapshot.particles.position[index, :] = [r_x, 0, 0]
+
+    # first make sure the particles remain stuck together
+    for step in range(10):
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            dist = np.linalg.norm(snap.particles.position[0]
+                                  - snap.particles.position[1])
+            assert dist < max_r_interact
+
+    # now make the interaction repulsive and make sure the particles separate
+    patch.param_array[0] = -100.0
     for step in range(10):
         sim.run(100)
         snap = sim.state.get_snapshot()
-        dist = np.linalg.norm(snap.particles.position[0]
-                              - snap.particles.position[1])
-        assert dist < max_r_interact
+        if snap.communicator.rank == 0:
+            dist = np.linalg.norm(snap.particles.position[0]
+                                  - snap.particles.position[1])
+            assert dist > max_r_interact

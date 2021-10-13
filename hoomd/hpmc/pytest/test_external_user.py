@@ -44,13 +44,8 @@ electric_field_params = [
       (0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2)], -3, -6),
 ]
 
-attr_translator = {
-    'code': '_code',
-}
-
 
 @pytest.mark.cpu
-@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_cpp_external(device, constructor_args):
     """Test that CPPExternalField can be constructed with valid arguments."""
@@ -58,12 +53,10 @@ def test_valid_construction_cpp_external(device, constructor_args):
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        attr = attr_translator.get(attr, attr)
         assert getattr(ext, attr) == value
 
 
 @pytest.mark.cpu
-@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_valid_construction_and_attach_cpp_external(
@@ -85,12 +78,10 @@ def test_valid_construction_and_attach_cpp_external(
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        attr = attr_translator.get(attr, attr)
         assert getattr(ext, attr) == value
 
 
 @pytest.mark.cpu
-@pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_cpp_external(device, attr, value):
     """Test that CPPExternalField can get and set attributes before attached."""
@@ -101,7 +92,6 @@ def test_valid_setattr_cpp_external(device, attr, value):
 
 
 @pytest.mark.cpu
-@pytest.mark.serial
 @pytest.mark.parametrize("attr,val", attr_error)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
@@ -124,7 +114,6 @@ def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
 
 
 @pytest.mark.cpu
-@pytest.mark.serial
 @pytest.mark.parametrize("orientations,charge, result", electric_field_params)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_electric_field(device, orientations, charge, result,
@@ -152,16 +141,19 @@ def test_electric_field(device, orientations, charge, result,
 
     sim.operations.integrator = mc
     with sim.state.cpu_local_snapshot as data:
-        data.particles.orientation[0, :] = orientations[0]
-        data.particles.orientation[1, :] = orientations[1]
         data.particles.charge[:] = charge
+        N = len(data.particles.position)
+        for global_idx in [0, 1]:
+            idx = data.particles.rtag[global_idx]
+            if idx < N:
+                data.particles.orientation[idx, :] = orientations[global_idx]
     sim.run(0)
 
-    assert np.isclose(ext.energy, result)
+    energy = ext.energy
+    assert np.isclose(energy, result)
 
 
 @pytest.mark.cpu
-@pytest.mark.serial
 @pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_gravity(device, simulation_factory, lattice_snapshot_factory):
@@ -188,12 +180,16 @@ def test_gravity(device, simulation_factory, lattice_snapshot_factory):
     mc.field = ext
     sim.operations.integrator = mc
 
-    old_avg_z = np.mean(sim.state.get_snapshot().particles.position[:, 2])
+    snapshot = sim.state.get_snapshot()
+    if snapshot.communicator.rank == 0:
+        old_avg_z = np.mean(snapshot.particles.position[:, 2])
     sim.run(0)
     old_energy = ext.energy
 
     sim.run(6e3)
 
-    new_avg_z = np.mean(sim.state.get_snapshot().particles.position[:, 2])
-    assert new_avg_z < old_avg_z
+    snapshot = sim.state.get_snapshot()
+    if snapshot.communicator.rank == 0:
+        new_avg_z = np.mean(snapshot.particles.position[:, 2])
+        assert new_avg_z < old_avg_z
     assert ext.energy < old_energy

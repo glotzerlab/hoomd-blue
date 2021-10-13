@@ -26,13 +26,15 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                         pybind11::array_t<float> param_array_isotropic,
                         const std::string& cpu_code_constituent,
                         Scalar r_cut_constituent,
-                        pybind11::array_t<float> param_array_constituent)
+                        pybind11::array_t<float> param_array_constituent,
+                        bool is_union)
         : PatchEnergyJIT(sysdef,
                          exec_conf,
                          cpu_code_isotropic,
                          compiler_args,
                          r_cut_isotropic,
-                         param_array_isotropic),
+                         param_array_isotropic,
+                         is_union),
           m_r_cut_constituent(r_cut_constituent),
           m_param_array_constituent(
               param_array_constituent.data(),
@@ -40,21 +42,22 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
               hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
         {
         // build the JIT.
-        m_factory_constituent
-            = std::shared_ptr<EvalFactory>(new EvalFactory(cpu_code_constituent, compiler_args));
+        EvalFactory* factory_constituent
+            = new EvalFactory(cpu_code_constituent, compiler_args, is_union);
 
         // get the evaluator and check for errors
-        m_eval_constituent = m_factory_constituent->getEval();
+        m_eval_constituent = factory_constituent->getEval();
         if (!m_eval_constituent)
             {
             std::ostringstream s;
             s << "Error compiling JIT code:" << std::endl;
             s << cpu_code_constituent << std::endl;
-            s << m_factory_constituent->getError() << std::endl;
+            s << factory_constituent->getError() << std::endl;
             throw std::runtime_error(s.str());
             }
 
-        m_factory_constituent->setAlphaUnionArray(&m_param_array_constituent.front());
+        factory_constituent->setAlphaUnionArray(&m_param_array_constituent.front());
+        m_factory_constituent = std::shared_ptr<EvalFactory>(factory_constituent);
 
         unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
         m_extent_type.resize(ntypes, 0.0);

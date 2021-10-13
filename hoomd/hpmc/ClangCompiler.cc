@@ -36,7 +36,7 @@ std::shared_ptr<ClangCompiler> ClangCompiler::m_clang_compiler = nullptr;
 
 /** Returns a shared pointer to the clang compiler singleton instance
  */
-std::shared_ptr<ClangCompiler> ClangCompiler::createClangCompiler()
+std::shared_ptr<ClangCompiler> ClangCompiler::getClangCompiler()
     {
     if (!m_clang_compiler)
         {
@@ -89,7 +89,6 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
                                                 false);
 
     // determine the clang resource path
-    // TODO: get from LLVM_PREFIX in cmake
     std::string resource_path(HOOMD_LLVM_INSTALL_PREFIX);
 
     // build up the argument list

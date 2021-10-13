@@ -50,7 +50,6 @@ repos:
         ^hoomd/extern/|
         ^hoomd/mpcd/|
         ^hoomd/dem/|
-        ^hoomd/jit/|
         ^hoomd/metal/|
         ^doc/dev/
       )

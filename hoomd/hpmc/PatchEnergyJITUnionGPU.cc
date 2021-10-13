@@ -175,6 +175,7 @@ void export_PatchEnergyJITUnionGPU(pybind11::module& m)
                             const std::string&,
                             Scalar,
                             pybind11::array_t<float>,
+                            bool,
                             const std::string&,
                             const std::string&,
                             const std::vector<std::string>&,

@@ -239,7 +239,8 @@ void export_PatchEnergyJITUnion(pybind11::module& m)
                             pybind11::array_t<float>,
                             const std::string&,
                             Scalar,
-                            pybind11::array_t<float>>())
+                            pybind11::array_t<float>,
+                            bool>())
 
         .def("getPositions", &PatchEnergyJITUnion::getPositions)
         .def("setPositions", &PatchEnergyJITUnion::setPositions)

@@ -790,7 +790,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                 {
                 r_cut_patch = static_cast<OverlapReal>(m_patch->getRCut()) + static_cast<OverlapReal>(0.5) *
                     static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_i));
-                r_cut_patch = (OverlapReal) m_patch->getRCut() + OverlapReal(0.5) * (OverlapReal) m_patch->getAdditiveCutoff(typ_i);
+                r_cut_patch = static_cast<OverlapReal>(m_patch->getRCut()) +
+                    static_cast<OverlapReal>(0.5) * static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_i));
                 }
 
             // subtract minimum AABB extent from search radius
@@ -1249,16 +1250,7 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
 
     // Loop over all particles
-    #ifdef ENABLE_TBB
-    m_exec_conf->getTaskArena()->execute([&]{
-
-    energy = tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, m_pdata->getN()),
-        0.0f,
-        [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
-        for (unsigned int i = r.begin(); i != r.end(); ++i)
-    #else
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
-    #endif
         {
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
@@ -1339,11 +1331,6 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
                 } // end loop over AABB nodes
             } // end loop over images
         } // end loop over particles
-    #ifdef ENABLE_TBB
-    return energy;
-    }, [](float x, float y)->float { return x+y; } );
-    }); // end task arena execute()
-    #endif
 
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
 
@@ -1524,7 +1511,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
 
             Scalar r_cut_patch_i(0.0);
             if (m_patch)
-                r_cut_patch_i = static_cast<Scalar>(m_patch->getRCut()) +
+                r_cut_patch_i = static_cast<OverlapReal>(m_patch->getRCut()) +
                     0.5*static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_i));
 
             Scalar range_i(0.0);
@@ -1532,7 +1519,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
                 {
                 Scalar r_cut_patch_ij(0.0);
                 if (m_patch)
-                    r_cut_patch_ij = r_cut_patch_i + 0.5*(OverlapReal)m_patch->getAdditiveCutoff(typ_j);
+                    r_cut_patch_ij = r_cut_patch_i + 0.5*static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_j));
 
                 Shape temp_j(quat<Scalar>(), m_params[typ_j]);
                 Scalar r_cut_shape(0.0);

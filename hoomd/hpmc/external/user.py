@@ -10,6 +10,7 @@ from hoomd.hpmc import integrate
 if hoomd.version.llvm_enabled:
     from hoomd.hpmc import _jit
 from hoomd.operation import _HOOMDBaseObject
+from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 
 
@@ -19,10 +20,10 @@ class CPPExternalField(_HOOMDBaseObject):
     Args:
         code (str): C++ function body to compile.
 
-    Potentials added using external.CPPExternalField are added to the total
-    energy calculation in :py:mod:`hpmc <hoomd.hpmc>` integrators. The
-    :py:class:`CPPExternalField` external field takes C++ code, compiles it
-    at runtime, and executes the code natively in the MC loop with full
+    Potentials added using :py:class:`CPPExternalField` are added to the total
+    energy calculation in :py:mod:`hpmc <hoomd.hpmc>` integrators.  The
+    :py:class:`CPPExternalField` external field takes C++ code, compiles it at
+    runtime, and executes the code natively in the MC loop with full
     performance. It enables researchers to quickly and easily implement custom
     energetic field intractions without the need to modify and recompile HOOMD.
 
@@ -49,10 +50,19 @@ class CPPExternalField(_HOOMDBaseObject):
     * *q_i* the quaternion representing the particle orientation.
     * *diameter* the particle diameter.
     * *charge* the particle charge.
-    * Your code *must* return a value.
-    * `BoxDim` is defined in :file:`BoxDim.h` in the HOOMD-blue source code.
-    * ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h` in the \
-            HOOMD-blue source code.
+
+    Note:
+        ``vec3`` and ``quat`` are defined in the file `VectorMath.h`_ in the \
+                HOOMD-blue source code, and ``BoxDim`` is defined in he file \
+                `BoxDim.h`_ in the HOOMD-blue source code.
+
+    Note:
+        Your code *must* return a value.
+
+    .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
+            v3.0.0-beta.9/hoomd/VectorMath.h
+    .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
+            v3.0.0-beta.9/hoomd/BoxDim.h
 
     Example:
         .. code-block:: python
@@ -68,10 +78,21 @@ class CPPExternalField(_HOOMDBaseObject):
         ``CPPExternalField`` is **experimental** and subject to change in future
         minor releases.
 
+    Attributes:
+        code (str): The code of the body of the external field energy function.
+            After running zero or more steps, this property cannot be modified.
+
     """
 
     def __init__(self, code):
-        self._code = code
+        param_dict = ParameterDict(code=str)
+        self._param_dict = param_dict
+        self.code = code
+
+    def _getattr_param(self, attr):
+        if attr == 'code':
+            return self._param_dict[attr]
+        return super()._getattr_param(attr)
 
     def _wrap_cpu_code(self, code):
         """Helper function to wrap the provided code into a function \
@@ -143,7 +164,7 @@ class CPPExternalField(_HOOMDBaseObject):
         if cpp_cls is None:
             raise RuntimeError("Unsupported integrator.\n")
 
-        cpu_code = self._wrap_cpu_code(self._code)
+        cpu_code = self._wrap_cpu_code(self.code)
         cpu_include_options = _compile.get_cpu_include_options()
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
@@ -159,20 +180,3 @@ class CPPExternalField(_HOOMDBaseObject):
         """
         timestep = self._simulation.timestep
         return self._cpp_obj.computeEnergy(timestep)
-
-    @property
-    def code(self):
-        """str: The C++ code defines the external field.
-
-        This returns the code that was passed into the class constructor, which
-        contains only the body of the external field energy kernel.
-        """
-        return self._code
-
-    @code.setter
-    def code(self, code):
-        if self._attached:
-            raise AttributeError("This attribute can only be set before the \
-                                  object is attached.")
-        else:
-            self._code = code

@@ -91,8 +91,6 @@ else()
     add_library(CUDA::nvrtc UNKNOWN IMPORTED)
 endif()
 
-# TODO: We should evaluate if it is necessary. Some OS installations store
-# libcuda.so in different locations as it installs with the driver, not the runtime
 if (HIP_PLATFORM STREQUAL "nvcc")
     # find libraries that go with this compiler
     find_library(CUDA_cuda_LIBRARY cuda HINTS ${CUDA_LIB_PATH}

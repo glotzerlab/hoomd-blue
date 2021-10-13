@@ -27,9 +27,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
     particle to the *j* particle center.
 
     Classes derived from :py:class:`CPPPotentialBase` take C++ code, compile it
-    at runtime, and execute the code natively in the MC loop. Adjust parameters
-    to the code with the `param_array` attribute without requiring a recompile.
-    These arrays are **read-only** during function evaluation.
+    at runtime, and execute the code natively in the MC loop.
 
     Warning:
         `CPPPotentialBase` is **experimental** and subject to change in future
@@ -39,7 +37,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
     Classes derived from :py:class:`CPPPotentialBase` will compile the code
     provided by the user and call it to evaluate patch energies. The text
-    provided in *code* is the body of a function with the following signature:
+    provided is the body of a function with the following signature:
 
     .. code::
 
@@ -64,30 +62,18 @@ class CPPPotentialBase(_HOOMDBaseObject):
     * ``q_j`` is the quaternion orientation of particle *j*
     * ``d_j`` is the diameter of particle *j*
     * ``charge_j`` is the charge of particle *j*
-    * Your code *must* return a value.
-    * ``vec3`` and ``quat`` are defined in :file:`HOOMDMath.h` in the \
-            HOOMD-blue source code.
 
-    Args:
-        r_cut (float): Particle center to center distance cutoff beyond which
-            all pair interactions are assumed 0.
-        code (str): C++ code defining the function body for pair interactions
-            between particles.
-        param_array (list[float]): Parameter values to pass into ``param_array``
-            in the compiled code.
+    Note:
+        ``vec3`` and ``quat`` are defined in the file `VectorMath.h`_ in the \
+                HOOMD-blue source code.
+
+    .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
+            v3.0.0-beta.9/hoomd/VectorMath.h
+
+    Note:
+        Your code *must* return a value.
+
     """
-
-    def __init__(self, r_cut, code, param_array):
-        param_dict = ParameterDict(r_cut=float,
-                                   param_array=NDArrayValidator(
-                                       dtype=np.float32, shape=(None,)))
-        param_dict['r_cut'] = r_cut
-        if param_array is None or len(param_array) == 0:
-            param_dict['param_array'] = np.array([])
-        else:
-            param_dict['param_array'] = param_array
-        self._param_dict.update(param_dict)
-        self._code = code
 
     @log(requires_run=True)
     def energy(self):
@@ -106,19 +92,26 @@ class CPPPotentialBase(_HOOMDBaseObject):
         Args:
             code (`str`): Body of the C++ function
         """
-        cpp_function = """
+        param_array_suffix = {True: '_isotropic', False: ''}[self._is_union]
+        constituent_param_array = {
+            True: 'float *param_array_constituent;',
+            False: ''
+        }[self._is_union]
+        cpp_function = f"""
                         #include <stdio.h>
                         #include "hoomd/HOOMDMath.h"
                         #include "hoomd/VectorMath.h"
 
-                        // these are allocated by the library
-                        float *param_array;
-                        float *param_array_constituent;
+                        // param_array (singlet class) or param_array_isotropic
+                        // and param_array_constituent (union class) are
+                        // allocated by the library
+                        float *param_array{param_array_suffix};
+                        {constituent_param_array}
 
                         using namespace hoomd;
 
                         extern "C"
-                        {
+                        {{
                         float eval(const vec3<float>& r_ij,
                             unsigned int type_i,
                             const quat<float>& q_i,
@@ -128,7 +121,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
                             const quat<float>& q_j,
                             float d_j,
                             float charge_j)
-                            {
+                            {{
                         """
         cpp_function += code
         cpp_function += """
@@ -144,16 +137,24 @@ class CPPPotentialBase(_HOOMDBaseObject):
         Args:
             code (`str`): Body of the C++ function
         """
-        cpp_function = """
+        param_array_suffix = {True: '_isotropic', False: ''}[self._is_union]
+        constituent_str = '__device__ float *param_array_constituent;'
+        constituent_param_array = {
+            True: constituent_str,
+            False: ''
+        }[self._is_union]
+        cpp_function = f"""
                         #include "hoomd/HOOMDMath.h"
                         #include "hoomd/VectorMath.h"
                         #include "hoomd/hpmc/IntegratorHPMCMonoGPUJIT.inc"
 
                         using namespace hoomd;
 
-                        // these are allocated by the library
-                        __device__ float *param_array;
-                        __device__ float *param_array_constituent;
+                        // param_array (singlet class) or param_array_isotropic
+                        // and param_array_constituent (union class) are
+                        // allocated by the library
+                        __device__ float *param_array{param_array_suffix};
+                        {constituent_param_array}
 
                         __device__ inline float eval(const vec3<float>& r_ij,
                             unsigned int type_i,
@@ -164,7 +165,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
                             const quat<float>& q_j,
                             float d_j,
                             float charge_j)
-                            {
+                            {{
                         """
         cpp_function += code
         cpp_function += """
@@ -174,15 +175,21 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
 
 class CPPPotential(CPPPotentialBase):
-    """Define an energetic interaction between pairs of particles.
+    r"""Define an energetic interaction between pairs of particles.
+
+    Adjust parameters within the code with the `param_array` attribute without
+    requiring a recompile. These arrays are **read-only** during function
+    evaluation.
 
     Args:
         r_cut (float): Particle center to center distance cutoff beyond which
             all pair interactions are assumed 0.
         code (str): C++ code defining the function body for pair interactions
             between particles.
-        param_array (list[float]): Parameter values to pass into ``param_array``
-            in the compiled code.
+        param_array (list[float]): Parameter values to make available in
+            ``float *param_array`` in the compiled code. If no adjustable
+            parameters are needed in the C++ code, pass either `None` or an
+            empty array.
 
     See Also:
         `CPPPotentialBase` for the documentation of the parent class.
@@ -190,6 +197,17 @@ class CPPPotential(CPPPotentialBase):
     Warning:
         `CPPPotential` is **experimental** and subject to change in future minor
         releases.
+
+    Attributes:
+        code (str): The C++ code that defines the body of the patch energy
+            function. After running zero or more steps, this property cannot be
+            changed.
+        param_array (``ndarray<float>``): Numpy array containing dynamically
+                adjustable elements in the potential energy function as
+                defined by the user. After running zero or more steps, the array
+                cannot be set, although individual values can still be changed.
+        energy (float): The potential energy resulting from the interactions
+            defind in the C++ code at the current timestep.
 
     Examples:
         .. code-block:: python
@@ -200,13 +218,30 @@ class CPPPotential(CPPPotentialBase):
                                 else
                                     return 0.0f;
                         '''
-            patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=1.1, code=sq_well)
+            patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=1.1, code=sq_well,
+                                                      param_array=[])
             mc.potential = patch
             sim.run(1000)
     """
 
     def __init__(self, r_cut, code, param_array):
-        super().__init__(r_cut=r_cut, code=code, param_array=param_array)
+        param_dict = ParameterDict(r_cut=float,
+                                   param_array=NDArrayValidator(
+                                       dtype=np.float32, shape=(None,)),
+                                   code=str)
+        param_dict['r_cut'] = r_cut
+        if param_array is None:
+            param_dict['param_array'] = np.array([])
+        else:
+            param_dict['param_array'] = param_array
+        self._param_dict.update(param_dict)
+        self.code = code
+        self._is_union = False
+
+    def _getattr_param(self, attr):
+        if attr == 'code':
+            return self._param_dict[attr]
+        return super()._getattr_param(attr)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -233,6 +268,7 @@ class CPPPotential(CPPPotentialBase):
                 cpu_include_options,
                 self.r_cut,
                 self.param_array,
+                self._is_union,
                 gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"],
@@ -247,22 +283,10 @@ class CPPPotential(CPPPotentialBase):
                 cpu_include_options,
                 self.r_cut,
                 self.param_array,
+                self._is_union,
             )
         # attach patch object to the integrator
         super()._attach()
-
-    @property
-    def code(self):
-        """str: the code defining the isotropic pair interactions."""
-        return self._code
-
-    @code.setter
-    def code(self, code):
-        if self._attached:
-            raise AttributeError("This attribute can only be set before the \
-                                  object is attached.")
-        else:
-            self._code = code
 
 
 class CPPPotentialUnion(CPPPotentialBase):
@@ -277,24 +301,27 @@ class CPPPotentialUnion(CPPPotentialBase):
         r_cut_isotropic (`float`): Cut-off for isotropic interaction between
                 centers of union particles.
         code_isotropic (`str`): C++ code for isotropic part of the interaction.
-                Must be ``None`` when executing on a GPU.
-        param_array_constituent (list[float]): Parameter values to pass into
-                ``param_array_constituent`` in the compiled code.
-        param_array (list[float]): Parameter values to pass into
-                ``param_array`` in the compiled code.
+                Must be `''` when executing on a GPU.
+        param_array_constituent (list[float]): Parameter values to make
+            available in ``float *param_array_constituent`` in the compiled
+            code.  Pass `None` or an empty array if no adjustable parameters are
+            needed for the constituent interactions.
+        param_array_isotropic (list[float]): Parameter values to make available
+            in ``float *param_array_isotropic`` in the compiled code. Pass
+            `None` or an empty array if no adjustable parameters are needed for
+            the isotropic interactions.
 
     Note:
         Code passed into ``code_isotropic`` is not used when executing on the
-        GPU. A `RuntimeError` is raised on attachment if code is passed into
-        this argument on the GPU. On the CPU, ``None`` implies ``return 0.0f``.
+        GPU. A `RuntimeError` is raised on attachment if the value of this
+        argument is anything besides `''` on the GPU.
 
     Note:
         This class uses an internal OBB tree for fast interaction queries
-        between constituents of interacting particles.
-        Depending on the number of constituent particles per type in the tree,
-        different values of the particles per leaf
-        node may yield different optimal performance. The capacity of leaf nodes
-        is configurable.
+        between constituents of interacting particles.  Depending on the number
+        of constituent particles per type in the tree, different values of the
+        particles per leaf node may yield different optimal performance. The
+        capacity of leaf nodes is configurable.
 
     See Also:
         `CPPPotentialBase` for the documentation of the parent class.
@@ -331,13 +358,27 @@ class CPPPotentialUnion(CPPPotentialBase):
         leaf_capacity (`int`) : The number of particles in a
                 leaf of the internal tree data structure (**default:** 4).
 
-        param_array (``ndarray<float>``): Numpy array containing dynamically
-                adjustable elements in the isotropic part of the potential as
-                defined by the user.
+        code_constituent (str): The C++ code that defines the body of the patch
+            energy function between the constituent particles. This property
+            cannot be modified after running for zero or more steps.
+
+        code_isotropic (str): The C++ code that defines the body of the patch
+            energy function between the centers of the particles. This property
+            cannot be modified after running for zero or more steps.
+
+        param_array_isotropic (``ndarray<float>``): Numpy array containing
+                dynamically adjustable elements in the isotropic part of the
+                potential as defined by the user. After running zero or more
+                steps, the array cannot be set, although individual values can
+                still be changed.
 
         param_array_constituent (``ndarray<float>``): Numpy array containing
                 dynamically adjustable elements in the constituent part of the
-                potential part of the potential as defined by the user.
+                potential part of the potential as defined by the user. After
+                running zero or more steps, the array cannot be set, although
+                individual values can still be changed.
+        energy (float): The potential energy resulting from the interactions
+            defind in the C++ code at the current timestep.
 
     Example without isotropic interactions:
 
@@ -353,6 +394,9 @@ class CPPPotentialUnion(CPPPotentialBase):
             r_cut_constituent=1.1,
             r_cut_isotropic=0.0
             code_constituent=square_well,
+            code_isotropic='',
+            param_array_constituent=[],
+            param_array_isotropic=[]
         )
         patch.positions['A'] = [
             (0, 0, -0.5),
@@ -377,9 +421,9 @@ class CPPPotentialUnion(CPPPotentialBase):
 
         # soft repulsion between centers of unions
         soft_repulsion = '''float rsq = dot(r_ij, r_ij);
-                                  float r_cut = param_array[0];
+                                  float r_cut = param_array_isotropic[0];
                                   if (rsq < r_cut*r_cut)
-                                    return param_array[1];
+                                    return param_array_isotropic[1];
                                   else
                                     return 0.0f;
                          '''
@@ -390,7 +434,7 @@ class CPPPotentialUnion(CPPPotentialBase):
             code_union=square_well,
             code_isotropic=soft_repulsion,
             param_array_constituent=[2.0, -5.0],
-            param_array=[2.5, 1.3],
+            param_array_isotropic=[2.5, 1.3],
         )
         patch.positions['A'] = [
             (0, 0, -0.5),
@@ -403,12 +447,8 @@ class CPPPotentialUnion(CPPPotentialBase):
     """
 
     def __init__(self, r_cut_constituent, code_constituent, r_cut_isotropic,
-                 code_isotropic, param_array_constituent, param_array):
-
-        # initialize base class
-        super().__init__(r_cut=r_cut_isotropic,
-                         code=code_isotropic,
-                         param_array=param_array)
+                 code_isotropic, param_array_constituent,
+                 param_array_isotropic):
 
         param_dict = ParameterDict(
             r_cut_constituent=float(r_cut_constituent),
@@ -416,12 +456,21 @@ class CPPPotentialUnion(CPPPotentialBase):
             leaf_capacity=int(4),
             param_array_constituent=NDArrayValidator(dtype=np.float32,
                                                      shape=(None,)),
+            param_array_isotropic=NDArrayValidator(dtype=np.float32,
+                                                   shape=(None,)),
+            code_constituent=str,
+            code_isotropic=str,
         )
 
-        if param_array_constituent is None or len(param_array_constituent) == 0:
+        if param_array_constituent is None:
             param_dict['param_array_constituent'] = np.array([])
         else:
             param_dict['param_array_constituent'] = param_array_constituent
+
+        if param_array_isotropic is None:
+            param_dict['param_array_isotropic'] = np.array([])
+        else:
+            param_dict['param_array_isotropic'] = param_array_isotropic
         self._param_dict.update(param_dict)
 
         # add union specific per-type parameters
@@ -461,7 +510,15 @@ class CPPPotentialUnion(CPPPotentialBase):
             typeparam_charges, typeparam_typeids
         ])
 
-        self._code_constituent = code_constituent
+        self.code_constituent = code_constituent
+        self.code_isotropic = code_isotropic
+        self._is_union = True
+
+    def _getattr_param(self, attr):
+        code_attrs = {'code_isotropic', 'code_constituent'}
+        if attr in code_attrs:
+            return self._param_dict[attr]
+        return super()._getattr_param(attr)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -472,14 +529,14 @@ class CPPPotentialUnion(CPPPotentialBase):
             raise RuntimeError("Integrator is not attached yet.")
 
         if isinstance(self._simulation.device, hoomd.device.GPU):
-            if self._code is not None:
+            if self.code_isotropic != '':
                 msg = 'Code passed into code_isotropic when excuting on the '
-                msg += 'GPU is unused'
+                msg += 'GPU is unused.'
                 raise RuntimeError(msg)
 
-        cpu_code_constituent = self._wrap_cpu_code(self._code_constituent)
-        if self._code is not None:
-            cpu_code_isotropic = self._wrap_cpu_code(self._code)
+        cpu_code_constituent = self._wrap_cpu_code(self.code_constituent)
+        if self.code_isotropic != '':
+            cpu_code_isotropic = self._wrap_cpu_code(self.code_isotropic)
         else:
             cpu_code_isotropic = self._wrap_cpu_code('return 0;')
         cpu_include_options = _compile.get_cpu_include_options()
@@ -488,17 +545,18 @@ class CPPPotentialUnion(CPPPotentialBase):
         if isinstance(self._simulation.device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
-            gpu_code_constituent = self._wrap_gpu_code(self._code_constituent)
+            gpu_code_constituent = self._wrap_gpu_code(self.code_constituent)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
                 self._simulation.state._cpp_sys_def,
                 device._cpp_exec_conf,
                 cpu_code_isotropic,
                 cpu_include_options,
                 self.r_cut_isotropic,
-                self.param_array,
+                self.param_array_isotropic,
                 cpu_code_constituent,
                 self.r_cut_constituent,
                 self.param_array_constituent,
+                self._is_union,
                 gpu_code_constituent,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"] + ["-DUNION_EVAL"],
@@ -507,45 +565,16 @@ class CPPPotentialUnion(CPPPotentialBase):
             )
         else:
             self._cpp_obj = _jit.PatchEnergyJITUnion(
-                self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
-                cpu_code_isotropic, cpu_include_options, self.r_cut_isotropic,
-                self.param_array, cpu_code_constituent, self.r_cut_constituent,
-                self.param_array_constituent)
+                self._simulation.state._cpp_sys_def,
+                device._cpp_exec_conf,
+                cpu_code_isotropic,
+                cpu_include_options,
+                self.r_cut_isotropic,
+                self.param_array_isotropic,
+                cpu_code_constituent,
+                self.r_cut_constituent,
+                self.param_array_constituent,
+                self._is_union,  # is_union, True for this class
+            )
         # attach patch object to the integrator
         super()._attach()
-
-    @property
-    def code_constituent(self):
-        """str: The C++ code defining the custom pair interactions between \
-        constituent particles.
-
-        This returns the code that was passed into the class constructor, which
-        contains only the body of the patch energy kernel.
-        """
-        return self._code_constituent
-
-    @code_constituent.setter
-    def code_constituent(self, code):
-        if self._attached:
-            raise AttributeError("This attribute can only be set before the \
-                                  object is attached.")
-        else:
-            self._code_constituent = code
-
-    @property
-    def code_isotropic(self):
-        """str: The C++ code defining the custom pair interactions between \
-        the central particles of union objects.
-
-        This returns the code that was passed into the class constructor, which
-        contains only the body of the patch energy kernel.
-        """
-        return self._code
-
-    @code_isotropic.setter
-    def code_isotropic(self, code):
-        if self._attached:
-            raise AttributeError("This attribute can only be set before the \
-                                  object is attached.")
-        else:
-            self._code = code

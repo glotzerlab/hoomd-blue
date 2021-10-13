@@ -25,7 +25,9 @@ class EvalFactory
                                float charge_j);
 
     //! Constructor
-    EvalFactory(const std::string& cpp_code, const std::vector<std::string>& compiler_args);
+    EvalFactory(const std::string& cpp_code,
+                const std::vector<std::string>& compiler_args,
+                bool is_union);
 
     //! Return the evaluator
     EvalFnPtr getEval()

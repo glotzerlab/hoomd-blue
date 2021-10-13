@@ -31,7 +31,7 @@ ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& cpp_code,
     m_eval = nullptr;
 
     // initialize LLVM
-    auto clang_compiler = ClangCompiler::createClangCompiler();
+    auto clang_compiler = ClangCompiler::getClangCompiler();
 
     // Add the program's symbols into the JIT's search space.
     if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr))

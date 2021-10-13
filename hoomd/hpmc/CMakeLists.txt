@@ -12,6 +12,7 @@ set(_hpmc_gpu_shapes ShapeSphere
                  )
 
 option(ENABLE_HPMC_SPHINX_GPU "Enable sphinx on the GPU" OFF)
+option(ENABLE_DEBUG_JIT "Enable printing of debug info of JIT compilation on GPU" off)
 if (ENABLE_HPMC_SPHINX_GPU)
     set(_hpmc_gpu_shapes ${_hpmc_gpu_shapes} ShapeSphinx)
 endif()
@@ -272,4 +273,8 @@ if (ENABLE_LLVM)
     install(FILES ${_${PACKAGE_NAME}_headers}
             DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/hpmc
            )
+
+    if (ENABLE_DEBUG_JIT)
+        target_compile_definitions(_jit PRIVATE ENABLE_DEBUG_JIT)
+    endif()
 endif()

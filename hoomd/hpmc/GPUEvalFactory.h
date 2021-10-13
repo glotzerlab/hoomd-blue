@@ -162,10 +162,15 @@ class GPUEvalFactory
         }
 #endif
 
-    void setAlphaPtr(float* d_alpha)
+    void setAlphaPtr(float* d_alpha, bool is_union)
         {
 #ifdef __HIP_PLATFORM_NVCC__
         auto gpu_map = m_exec_conf->getGPUIds();
+        std::string param_array_name = "param_array";
+        if (is_union)
+            {
+            param_array_name += "_isotropic";
+            }
         for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
             {
             cudaSetDevice(gpu_map[idev]);
@@ -177,7 +182,7 @@ class GPUEvalFactory
                     CUdeviceptr ptr = m_program[idev]
                                           .kernel(m_kernel_name)
                                           .instantiate(e, l)
-                                          .get_global_ptr("param_array");
+                                          .get_global_ptr(param_array_name.c_str());
 
                     // copy the array pointer to the device
                     char* error;

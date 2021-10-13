@@ -15,7 +15,7 @@ valid_constructor_args = [
     dict(
         r_cut_isotropic=3,
         r_cut_constituent=2.0,
-        param_array=[0, 1],
+        param_array_isotropic=[0, 1],
         param_array_constituent=[2.0, 4.0],
         code_isotropic='return -1;',
         code_constituent='return -2;',
@@ -23,7 +23,7 @@ valid_constructor_args = [
     dict(
         r_cut_isotropic=1.0,
         r_cut_constituent=3.0,
-        param_array=[1, 2, 3, 4],
+        param_array_isotropic=[1, 2, 3, 4],
         param_array_constituent=[1, 2, 3, 4],
         code_isotropic='return -1;',
         code_constituent='return 0;',
@@ -112,7 +112,7 @@ def test_valid_setattr_cpp_union_potential(device, attr, value):
         code_isotropic='return 5;',
         code_constituent='return 6;',
         param_array_constituent=None,
-        param_array=None,
+        param_array_isotropic=None,
     )
 
     setattr(patch, attr, value)
@@ -130,7 +130,7 @@ def test_valid_setattr_attached_cpp_union_potential(
         code_isotropic='return 5;',
         code_constituent='return 6;',
         param_array_constituent=None,
-        param_array=None,
+        param_array_isotropic=None,
     )
     patch.positions['A'] = [(0, 0, 0)]
     patch.orientations['A'] = [(1, 0, 0, 0)]
@@ -172,7 +172,7 @@ def test_raise_attr_error_cpp_union_potential(device, attr, val,
         code_isotropic='return 5;',
         code_constituent='return 6;',
         param_array_constituent=None,
-        param_array=None,
+        param_array_isotropic=None,
     )
     patch.positions['A'] = [(0, 0, 0)]
     patch.orientations['A'] = [(1, 0, 0, 0)]
@@ -217,9 +217,9 @@ def test_param_array_union_cpu(device, simulation_factory,
     """
     square_well_isotropic = """
                    float rsq = dot(r_ij, r_ij);
-                   float rcut = param_array[0];
+                   float rcut = param_array_isotropic[0];
                    if (rsq < rcut*rcut)
-                       return param_array[1];
+                       return param_array_isotropic[1];
                    else
                        return 0.0f;
                   """
@@ -237,7 +237,7 @@ def test_param_array_union_cpu(device, simulation_factory,
     r_cut_iso = 5
     params = dict(
         code_isotropic=square_well_isotropic,
-        param_array=[2.5, 1.0],
+        param_array_isotropic=[2.5, 1.0],
         r_cut_isotropic=r_cut_iso,
         code_constituent=square_well_constituent,
         param_array_constituent=[1.5, 3.0],
@@ -265,8 +265,8 @@ def test_param_array_union_cpu(device, simulation_factory,
     # neighboring constituent particles
 
     # first, only interact with nearest neighboring constituent particle
-    patch.param_array[0] = 0.0
-    patch.param_array[1] = -1.0
+    patch.param_array_isotropic[0] = 0.0
+    patch.param_array_isotropic[1] = -1.0
     patch.param_array_constituent[0] = 1.1
     patch.param_array_constituent[1] = -1.0
     sim.run(0)
@@ -281,8 +281,8 @@ def test_param_array_union_cpu(device, simulation_factory,
     # now add a respulsive interaction between the union centers
     # and increase its r_cut so that the particle centers interact
     # this should increase the energy by 1 unit
-    patch.param_array[0] = 2.0
-    patch.param_array[1] = 1.0
+    patch.param_array_isotropic[0] = 2.0
+    patch.param_array_isotropic[1] = 1.0
     sim.run(0)
     assert (np.isclose(patch.energy, -3.0))
 
@@ -294,12 +294,12 @@ def test_param_array_union_cpu(device, simulation_factory,
 
     # change epsilon of center-center interaction to make it attractive
     # to make sure that change is reflected in the energy
-    patch.param_array[1] = -1.0
+    patch.param_array_isotropic[1] = -1.0
     sim.run(0)
     assert (np.isclose(patch.energy, -1.0))
 
     # set both r_cuts to zero to make sure no particles interact
-    patch.param_array[0] = 0
+    patch.param_array_isotropic[0] = 0
     sim.run(0)
     assert (np.isclose(patch.energy, 0.0))
 
@@ -329,12 +329,12 @@ def test_param_array_union_gpu(device, simulation_factory,
     # set up the system and patches
     sim = simulation_factory(two_particle_snapshot_factory(L=40))
     params = dict(
-        code_isotropic=None,
+        code_isotropic='',
         code_constituent=square_well_constituent,
         param_array_constituent=[1.5, 3.0],
         r_cut_constituent=1.5,
         r_cut_isotropic=0,
-        param_array=None,
+        param_array_isotropic=None,
     )
     patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**params)
     const_particle_pos = [(0.0, -0.5, 0), (0.0, 0.5, 0)]
@@ -390,7 +390,7 @@ def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
     """
     max_r_interact = 1.003
     square_well = r'''float rsq = dot(r_ij, r_ij);
-                    float epsilon = 100.0f;
+                    float epsilon = param_array_constituent[0];
                     float rcut = {:.16f}f;
                     if (rsq > rcut * rcut)
                         return 0.0f;
@@ -404,10 +404,10 @@ def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
     patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
         code_constituent=square_well,
         r_cut_constituent=r_cut,
-        param_array_constituent=None,
+        param_array_constituent=[100.0],
         r_cut_isotropic=0,
-        code_isotropic=None,
-        param_array=None,
+        code_isotropic='',
+        param_array_isotropic=None,
     )
 
     origin = [0, 0, 0]
@@ -424,15 +424,30 @@ def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
 
     sim.operations.integrator = mc
 
-    snap = sim.state.get_snapshot()
+    # set the particle positions
     separation = 1.001
-    if snap.communicator.rank == 0:
-        snap.particles.position[0, :] = [-separation / 2, 0, 0]
-        snap.particles.position[1, :] = [separation / 2, 0, 0]
-    sim.state.set_snapshot(snap)
+    with sim.state.cpu_local_snapshot as snapshot:
+        N = len(snapshot.particles.position)
+        for tag, r_x in zip([0, 1], [-separation / 2, separation / 2]):
+            index = snapshot.particles.rtag[tag]
+            if index < N:
+                snapshot.particles.position[index, :] = [r_x, 0, 0]
+
+    # first make sure particles remain "stuck"
     for step in range(10):
         sim.run(100)
         snap = sim.state.get_snapshot()
-        dist = np.linalg.norm(snap.particles.position[0]
-                              - snap.particles.position[1])
-        assert dist < max_r_interact
+        if snap.communicator.rank == 0:
+            dist = np.linalg.norm(snap.particles.position[0]
+                                  - snap.particles.position[1])
+            assert dist < max_r_interact
+
+    # now make the potential repulsive and make sure the particles move apart
+    patch.param_array_constituent[0] = -100.0
+    for step in range(10):
+        sim.run(100)
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            dist = np.linalg.norm(snap.particles.position[0]
+                                  - snap.particles.position[1])
+            assert dist > max_r_interact
