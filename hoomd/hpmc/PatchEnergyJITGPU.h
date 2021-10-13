@@ -27,12 +27,7 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
                       const std::vector<std::string>& options,
                       const std::string& cuda_devrt_library_path,
                       unsigned int compute_arch)
-        : PatchEnergyJIT(sysdef,
-                         exec_conf,
-                         cpu_code,
-                         cpu_compiler_args,
-                         r_cut,
-                         param_array),
+        : PatchEnergyJIT(sysdef, exec_conf, cpu_code, cpu_compiler_args, r_cut, param_array),
           m_gpu_factory(exec_conf,
                         gpu_code,
                         kernel_name,

@@ -122,7 +122,9 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         auto N = static_cast<unsigned int>(m_orientation[type_id].size());
         ManagedArray<quat<float>> new_orientations(N, true);
-        std::copy(m_orientation[type_id].begin(), m_orientation[type_id].end(), new_orientations.get());
+        std::copy(m_orientation[type_id].begin(),
+                  m_orientation[type_id].end(),
+                  new_orientations.get());
 
         // store result
         m_d_union_params[type_id].morientation = new_orientations;
