@@ -92,11 +92,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         auto N = static_cast<unsigned int>(m_type[type_id].size());
         ManagedArray<unsigned int> new_type_ids(N, true);
-
-        for (unsigned int i = 0; i < N; i++)
-            {
-            new_type_ids[i] = m_type[type_id][i];
-            }
+        std::copy(m_type[type_id].begin(), m_type[type_id].end(), new_type_ids.get());
 
         // store result
         m_d_union_params[type_id].mtype = new_type_ids;
@@ -111,11 +107,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         auto N = static_cast<unsigned int>(m_position[type_id].size());
         ManagedArray<vec3<float>> new_positions(N, true);
-
-        for (unsigned int i = 0; i < N; i++)
-            {
-            new_positions[i] = m_position[type_id][i];
-            }
+        std::copy(m_position[type_id].begin(), m_position[type_id].end(), new_positions.get());
 
         // store result
         m_d_union_params[type_id].mpos = new_positions;
@@ -130,11 +122,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         auto N = static_cast<unsigned int>(m_orientation[type_id].size());
         ManagedArray<quat<float>> new_orientations(N, true);
-
-        for (unsigned int i = 0; i < N; i++)
-            {
-            new_orientations[i] = m_orientation[type_id][i];
-            }
+        std::copy(m_orientation[type_id].begin(), m_orientation[type_id].end(), new_orientations.get());
 
         // store result
         m_d_union_params[type_id].morientation = new_orientations;
@@ -149,11 +137,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         auto N = static_cast<unsigned int>(m_diameter[type_id].size());
         ManagedArray<float> new_diameters(N, true);
-
-        for (unsigned int i = 0; i < N; i++)
-            {
-            new_diameters[i] = m_diameter[type_id][i];
-            }
+        std::copy(m_diameter[type_id].begin(), m_diameter[type_id].end(), new_diameters.get());
 
         // store result
         m_d_union_params[type_id].mdiameter = new_diameters;
@@ -168,11 +152,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         unsigned int type_id = m_sysdef->getParticleData()->getTypeByName(type);
         auto N = static_cast<unsigned int>(m_charge[type_id].size());
         ManagedArray<float> new_charges(N, true);
-
-        for (unsigned int i = 0; i < N; i++)
-            {
-            new_charges[i] = m_charge[type_id][i];
-            }
+        std::copy(m_charge[type_id].begin(), m_charge[type_id].end(), new_charges.get());
 
         // store result
         m_d_union_params[type_id].mcharge = new_charges;
