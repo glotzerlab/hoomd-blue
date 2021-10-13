@@ -220,6 +220,8 @@ class CPPPotential(CPPPotentialBase):
             sim.run(1000)
     """
 
+    _is_union = False
+
     def __init__(self, r_cut, code, param_array):
         param_dict = ParameterDict(r_cut=float,
                                    param_array=NDArrayValidator(
@@ -232,7 +234,6 @@ class CPPPotential(CPPPotentialBase):
             param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
         self.code = code
-        self._is_union = False
 
     def _getattr_param(self, attr):
         if attr == 'code':
@@ -264,7 +265,6 @@ class CPPPotential(CPPPotentialBase):
                 cpu_include_options,
                 self.r_cut,
                 self.param_array,
-                self._is_union,
                 gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"],
@@ -279,7 +279,6 @@ class CPPPotential(CPPPotentialBase):
                 cpu_include_options,
                 self.r_cut,
                 self.param_array,
-                self._is_union,
             )
         # attach patch object to the integrator
         super()._attach()
@@ -442,6 +441,8 @@ class CPPPotentialUnion(CPPPotentialBase):
 
     """
 
+    _is_union = True
+
     def __init__(self, r_cut_constituent, code_constituent, r_cut_isotropic,
                  code_isotropic, param_array_constituent,
                  param_array_isotropic):
@@ -508,7 +509,6 @@ class CPPPotentialUnion(CPPPotentialBase):
 
         self.code_constituent = code_constituent
         self.code_isotropic = code_isotropic
-        self._is_union = True
 
     def _getattr_param(self, attr):
         code_attrs = {'code_isotropic', 'code_constituent'}
@@ -552,7 +552,6 @@ class CPPPotentialUnion(CPPPotentialBase):
                 cpu_code_constituent,
                 self.r_cut_constituent,
                 self.param_array_constituent,
-                self._is_union,
                 gpu_code_constituent,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"] + ["-DUNION_EVAL"],
@@ -570,7 +569,6 @@ class CPPPotentialUnion(CPPPotentialBase):
                 cpu_code_constituent,
                 self.r_cut_constituent,
                 self.param_array_constituent,
-                self._is_union,  # is_union, True for this class
             )
         # attach patch object to the integrator
         super()._attach()
