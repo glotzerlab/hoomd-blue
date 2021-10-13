@@ -956,7 +956,7 @@ void Integrator::computeCallback(uint64_t timestep)
     }
 #endif
 
-bool Integrator::getAnisotropic()
+bool Integrator::areForcesAnisotropic()
     {
     bool aniso = false;
     // pre-compute all active forces

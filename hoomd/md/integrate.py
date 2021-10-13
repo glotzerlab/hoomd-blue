@@ -16,15 +16,6 @@ from hoomd.md.force import Force
 from hoomd.md.constrain import Constraint, Rigid
 
 
-def _preprocess_aniso(value):
-    if value is True:
-        return "true"
-    elif value is False:
-        return "false"
-    else:
-        return value
-
-
 def _set_synced_list(old_list, new_list):
     old_list.clear()
     old_list.extend(new_list)
@@ -174,9 +165,8 @@ class Integrator(_DynamicIntegrator):
             the particles in the system. All the forces are summed together.
             The default value of ``None`` initializes an empty list.
 
-        aniso (str or bool): Whether to integrate rotational degrees of freedom
-            (bool), default 'auto' (autodetect if there is anisotropic factor
-            from any defined active or constraint forces).
+        integrate_rotational_dof (bool): When True, integrate rotational degrees
+            of freedom.
 
         constraints (Sequence[hoomd.md.constrain.Constraint]): Sequence of
             constraint forces applied to the particles in the system.
@@ -232,7 +222,8 @@ class Integrator(_DynamicIntegrator):
         forces (list[hoomd.md.force.Force]): List of forces applied to
             the particles in the system. All the forces are summed together.
 
-        aniso (str): Whether rotational degrees of freedom are integrated.
+        integrate_rotational_dof (bool): When True, integrate rotational degrees
+            of freedom.
 
         constraints (list[hoomd.md.constrain.Constraint]): List of
             constraint forces applied to the particles in the system.
@@ -243,7 +234,7 @@ class Integrator(_DynamicIntegrator):
 
     def __init__(self,
                  dt,
-                 aniso='auto',
+                 integrate_rotational_dof=False,
                  forces=None,
                  constraints=None,
                  methods=None,
@@ -252,12 +243,9 @@ class Integrator(_DynamicIntegrator):
         super().__init__(forces, constraints, methods, rigid)
 
         self._param_dict.update(
-            ParameterDict(dt=float(dt),
-                          aniso=OnlyFrom(['true', 'false', 'auto'],
-                                         preprocess=_preprocess_aniso),
-                          _defaults={"aniso": "auto"}))
-        if aniso is not None:
-            self.aniso = aniso
+            ParameterDict(
+                dt=float(dt),
+                integrate_rotational_dof=bool(integrate_rotational_dof)))
 
     def _attach(self):
         # initialize the reflected c++ class
