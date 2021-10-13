@@ -63,11 +63,9 @@ def test_valid_setting_before_attach_cpp_potential(device, attr, value):
     This test also tests that the properties can be modified before attaching.
 
     """
-    patch = hoomd.hpmc.pair.user.CPPPotential(
-        r_cut=3,
-        param_array=[0, 1],
-        code='return -1;'
-    )
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=3,
+                                              param_array=[0, 1],
+                                              code='return -1;')
 
     # ensure we can set properties
     setattr(patch, attr, value)
@@ -79,15 +77,12 @@ def test_valid_setting_before_attach_cpp_potential(device, attr, value):
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_modify_after_attach_cpp_potential(device, simulation_factory,
                                            two_particle_snapshot_factory,
-                                           attr_set,
-                                           value_set):
+                                           attr_set, value_set):
     """Test that CPPPotential can be attached with valid arguments."""
     # create objects
-    patch = hoomd.hpmc.pair.user.CPPPotential(
-        r_cut=3,
-        param_array=[0, 1],
-        code='return -1;'
-    )
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=3,
+                                              param_array=[0, 1],
+                                              code='return -1;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
     mc.potential = patch
@@ -113,11 +108,9 @@ def test_error_after_attach_cpp_potential(device, simulation_factory,
                                           err_attr, err_val):
     """Test that CPPPotential can be attached with valid arguments."""
     # create objects
-    patch = hoomd.hpmc.pair.user.CPPPotential(
-        r_cut=3,
-        param_array=[0, 1],
-        code='return -1;'
-    )
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=3,
+                                              param_array=[0, 1],
+                                              code='return -1;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
     mc.potential = patch
