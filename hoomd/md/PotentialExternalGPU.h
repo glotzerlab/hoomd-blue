@@ -93,8 +93,7 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                                          access_location::device,
                                                          access_mode::read);
 
-    typename PotentialExternalGPU<evaluator>::field_type*
-        gpu_field_params(nullptr);
+    typename PotentialExternalGPU<evaluator>::field_type* gpu_field_params(nullptr);
     cudaMemcpy(reinterpret_cast<void*>(gpu_field_params),
                reinterpret_cast<const void*>(&(this->m_field)),
                sizeof(typename PotentialExternalGPU<evaluator>::field_type),
