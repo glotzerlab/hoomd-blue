@@ -367,9 +367,8 @@ class HPMCIntegrator(BaseIntegrator):
 
     @external_potential.setter
     def external_potential(self, new_external_potential):
-        if not isinstance(
-                new_external_potential,
-                hoomd.hpmc.external.user.CPPExternalPotential):
+        if not isinstance(new_external_potential,
+                          hoomd.hpmc.external.user.CPPExternalPotential):
             msg = 'External potentials should be an instance of '
             msg += 'CPPExternalPotential'
             raise TypeError(msg)

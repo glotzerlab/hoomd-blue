@@ -176,7 +176,8 @@ def test_gravity(device, simulation_factory, lattice_snapshot_factory):
                         Ly=1.5 * old_box.Ly,
                         Lz=20 * old_box.Lz)
     sim.state.set_box(new_box)
-    ext = hoomd.hpmc.external.user.CPPExternalPotential(code="return 1000*r_i.z;")
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(
+        code="return 1000*r_i.z;")
     mc.external_potential = ext
     sim.operations.integrator = mc
 
