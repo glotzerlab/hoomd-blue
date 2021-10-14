@@ -29,6 +29,7 @@ set(files __init__.py
     test_gsd.py
     test_wall_data.py
     test_wall_lists.py
+    test_wall_potential.py
     )
 
 install(FILES ${files}
