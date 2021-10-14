@@ -15,6 +15,7 @@ set(files __init__.py
     test_potential.py
     test_pppm_coulomb.py
     test_manifolds.py
+    test_meta_wall_list.py
     test_methods.py
     test_minimize_fire.py
     test_reverse_perturbation_flow.py
