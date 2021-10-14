@@ -369,6 +369,8 @@ class Gauss(WallPotential):
             "params", "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
                                                         sigma=float,
+                                                        r_cut=float,
+                                                        r_extrap=0.0,
                                                         len_keys=1))
         self._add_typeparam(params)
 
@@ -446,6 +448,9 @@ class SLJ(WallPotential):
             "params", "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
                                                         sigma=float,
+                                                        delta=float,
+                                                        r_cut=float,
+                                                        r_extrap=0.0,
                                                         len_keys=1))
         self._add_typeparam(params)
 
@@ -518,6 +523,8 @@ class Yukawa(WallPotential):
             "params", "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
                                                         kappa=float,
+                                                        r_cut=float,
+                                                        r_extrap=0.0,
                                                         len_keys=1))
         self._add_typeparam(params)
 
@@ -588,8 +595,11 @@ class Morse(WallPotential):
 
         params = hoomd.data.typeparam.TypeParameter(
             "params", "particle_types",
-            hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
-                                                        sigma=float,
+            hoomd.data.parameterdicts.TypeParameterDict(D0=float,
+                                                        r0=float,
+                                                        alpha=float,
+                                                        r_cut=float,
+                                                        r_extrap=0.0,
                                                         len_keys=1))
         self._add_typeparam(params)
 
@@ -663,6 +673,8 @@ class ForceShiftedLJ(WallPotential):
             "params", "particle_types",
             hoomd.data.parameterdicts.TypeParameterDict(epsilon=float,
                                                         sigma=float,
+                                                        r_cut=float,
+                                                        r_extrap=0.0,
                                                         len_keys=1))
         self._add_typeparam(params)
 
@@ -737,5 +749,7 @@ class Mie(WallPotential):
                                                         sigma=float,
                                                         m=float,
                                                         n=float,
+                                                        r_cut=float,
+                                                        r_extrap=0.0,
                                                         len_keys=1))
         self._add_typeparam(params)
