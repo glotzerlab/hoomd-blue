@@ -300,8 +300,9 @@ class _WallsMetaList(MutableSequence):
             self._backend_lists[new_type][old_backend_index.index] = wall
             return
 
-        new_backend_index = self._get_obj_backend_index(index, new_type,
+        new_backend_index = self._get_obj_backend_index(index + 1, new_type,
                                                         old_type)
+        self._backend_list_index[index] = new_backend_index
 
         # Add/remove the new/old walls from their respective backend lists
         self._backend_lists[new_type].insert(new_backend_index.index, wall)
