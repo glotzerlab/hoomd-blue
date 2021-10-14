@@ -38,38 +38,31 @@ def wall_type_lists(request):
     }[request.param]
 
 
-def check_equivalent(array_view, collection, type_str, item_eq=None):
-    """Check if an array view is equivalent to the original buffer."""
-    # cannot use enumerate since array_view does not currently support
-    # iteration.
-    if item_eq is None:
-        item_eq = WallDataEquivalence(type_str)
-
-    assert len(array_view) == get_collection_size(collection, type_str)
-
-    index_func = getattr(collection, get_index_func_name(type_str))
-    for i in range(len(array_view)):
-        assert item_eq(array_view[i], index_func(i))
-
-
-class WallDataEquivalence:
+def wall_equality(a, b):
     """Define the equality relation between objects of the same wall data type.
 
     Necessary since these objects do not define equality currently. If they do
     in the future, this can be removed.
     """
+    attrs = {
+        "SphereWall": ("radius", "origin", "inside"),
+        "CylinderWall": ("radius", "origin", "axis", "inside"),
+        "PlaneWall": ("origin", "normal", "inside")
+    }[type(a).__name__]
+    return all(
+        np.allclose(getattr(a, attr), getattr(b, attr)) for attr in attrs)
 
-    def __init__(self, type_str):
-        self.attrs = {
-            "sphere": ("radius", "origin", "inside"),
-            "cylinder": ("radius", "origin", "axis", "inside"),
-            "plane": ("origin", "normal", "inside")
-        }[type_str]
 
-    def __call__(self, a, b):
-        return all(
-            np.allclose(getattr(a, attr), getattr(b, attr))
-            for attr in self.attrs)
+def check_equivalent(array_view, collection, type_str):
+    """Check if an array view is equivalent to the original buffer."""
+    # cannot use enumerate since array_view does not currently support
+    # iteration.
+
+    assert len(array_view) == get_collection_size(collection, type_str)
+
+    index_func = getattr(collection, get_index_func_name(type_str))
+    for i in range(len(array_view)):
+        assert wall_equality(array_view[i], index_func(i))
 
 
 def get_index_func_name(type_str):
@@ -95,24 +88,22 @@ def array_view_factory(request):
 
 def test_append(array_view_factory, wall_collection, wall_type_lists):
     type_str, walls_list = wall_type_lists
-    walls_eq_func = WallDataEquivalence(type_str)
     array_view = array_view_factory(wall_collection, type_str)
     for i, wall in enumerate(walls_list):
         array_view.append(wall)
         assert len(array_view) == i + 1
         assert get_collection_size(wall_collection, type_str) == i + 1
-        assert walls_eq_func(array_view[i], wall)
-    check_equivalent(array_view, wall_collection, type_str, walls_eq_func)
+        assert wall_equality(array_view[i], wall)
+    check_equivalent(array_view, wall_collection, type_str)
 
 
 def test_getitem(array_view_factory, wall_collection, wall_type_lists):
     type_str, walls_list = wall_type_lists
-    walls_eq_func = WallDataEquivalence(type_str)
     array_view = array_view_factory(wall_collection, type_str)
     for wall in walls_list:
         array_view.append(wall)
     for i in range(len(array_view)):
-        walls_eq_func(array_view[i], walls_list[i])
+        wall_equality(array_view[i], walls_list[i])
     with pytest.raises(RuntimeError):
         array_view[len(array_view)]
     # This is outside the bounds of the C++ buffer size
@@ -124,11 +115,10 @@ def test_getitem(array_view_factory, wall_collection, wall_type_lists):
 def test_insert(array_view_factory, wall_collection, wall_type_lists,
                 insert_index):
     type_str, walls_list = wall_type_lists
-    walls_eq_func = WallDataEquivalence(type_str)
     array_view = array_view_factory(wall_collection, type_str)
     array_view.extend(walls_list[:-1])
     for i in range(len(array_view) - 1):
-        walls_eq_func(array_view[i], walls_list[i])
+        wall_equality(array_view[i], walls_list[i])
 
     if insert_index > len(array_view):
         with pytest.raises(RuntimeError):
@@ -138,15 +128,14 @@ def test_insert(array_view_factory, wall_collection, wall_type_lists,
     array_view.insert(insert_index, walls_list[-1])
     assert len(array_view) == len(walls_list)
     assert get_collection_size(wall_collection, type_str) == len(walls_list)
-    assert walls_eq_func(array_view[insert_index], walls_list[-1])
-    check_equivalent(array_view, wall_collection, type_str, walls_eq_func)
+    assert wall_equality(array_view[insert_index], walls_list[-1])
+    check_equivalent(array_view, wall_collection, type_str)
 
 
 @pytest.mark.parametrize("delete_index", (0, 1, 2, 3))
 def test_delitem(array_view_factory, wall_collection, wall_type_lists,
                  delete_index):
     type_str, walls_list = wall_type_lists
-    walls_eq_func = WallDataEquivalence(type_str)
     array_view = array_view_factory(wall_collection, type_str)
     array_view.extend(walls_list)
 
@@ -164,9 +153,9 @@ def test_delitem(array_view_factory, wall_collection, wall_type_lists,
     else:
         array_view_index = delete_index
         wall_lists_index = delete_index + 1
-    assert walls_eq_func(array_view[array_view_index],
+    assert wall_equality(array_view[array_view_index],
                          walls_list[wall_lists_index])
-    check_equivalent(array_view, wall_collection, type_str, walls_eq_func)
+    check_equivalent(array_view, wall_collection, type_str)
 
 
 def test_len(array_view_factory, wall_collection, wall_type_lists):
@@ -213,7 +202,6 @@ def test_clear(array_view_factory, wall_collection, wall_type_lists):
 def test_setitem(array_view_factory, wall_collection, wall_type_lists,
                  set_index):
     type_str, walls_list = wall_type_lists
-    walls_eq_func = WallDataEquivalence(type_str)
     array_view = array_view_factory(wall_collection, type_str)
     array_view.extend(walls_list)
     from_index = (set_index + 1) % len(array_view)
@@ -223,8 +211,8 @@ def test_setitem(array_view_factory, wall_collection, wall_type_lists,
         return
 
     array_view[set_index] = walls_list[from_index]
-    assert walls_eq_func(array_view[set_index], walls_list[from_index])
-    check_equivalent(array_view, wall_collection, type_str, walls_eq_func)
+    assert wall_equality(array_view[set_index], walls_list[from_index])
+    check_equivalent(array_view, wall_collection, type_str)
     assert len(array_view) == len(walls_list)
     assert get_collection_size(wall_collection, type_str) == len(walls_list)
 
@@ -232,7 +220,6 @@ def test_setitem(array_view_factory, wall_collection, wall_type_lists,
 @pytest.mark.parametrize("pop_index", (0, 1, 2, 20, 200))
 def test_pop(array_view_factory, wall_collection, wall_type_lists, pop_index):
     type_str, walls_list = wall_type_lists
-    walls_eq_func = WallDataEquivalence(type_str)
     array_view = array_view_factory(wall_collection, type_str)
     array_view.extend(walls_list)
     if pop_index >= len(array_view):
@@ -241,8 +228,8 @@ def test_pop(array_view_factory, wall_collection, wall_type_lists, pop_index):
         return
 
     wall = array_view.pop(pop_index)
-    assert walls_eq_func(wall, walls_list[pop_index])
-    check_equivalent(array_view, wall_collection, type_str, walls_eq_func)
+    assert wall_equality(wall, walls_list[pop_index])
+    check_equivalent(array_view, wall_collection, type_str)
     assert len(array_view) == len(walls_list) - 1
     assert get_collection_size(wall_collection, type_str) == len(walls_list) - 1
 
@@ -251,7 +238,6 @@ def test_pop(array_view_factory, wall_collection, wall_type_lists, pop_index):
 def test_slices_for_python_wrapper(wall_collection, wall_type_lists, slice_):
     """Test __getitem__ and __delitem__ for _ArrayViewWrapper."""
     type_str, walls_list = wall_type_lists
-    walls_eq_func = WallDataEquivalence(type_str)
     array_view = _ArrayViewWrapper(
         getattr(wall_collection, f"get_{type_str}_list"))
     array_view.extend(walls_list)
@@ -259,7 +245,7 @@ def test_slices_for_python_wrapper(wall_collection, wall_type_lists, slice_):
     # Check getitem with slices
     assert len(array_view[slice_]) == len(walls_list[slice_])
     assert all(
-        walls_eq_func(x, y)
+        wall_equality(x, y)
         for x, y in zip(array_view[slice_], walls_list[slice_]))
 
     # Check delitem with slices must convert walls_list to list to make mutable
@@ -269,5 +255,5 @@ def test_slices_for_python_wrapper(wall_collection, wall_type_lists, slice_):
     del array_view[slice_]
     assert len(array_view) == len(walls_list)
     print(len(array_view))
-    assert all(walls_eq_func(x, y) for x, y in zip(array_view, walls_list))
-    check_equivalent(array_view, wall_collection, type_str, walls_eq_func)
+    assert all(wall_equality(x, y) for x, y in zip(array_view, walls_list))
+    check_equivalent(array_view, wall_collection, type_str)
