@@ -28,9 +28,6 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
     // build the JIT.
     EvalFactory* factory = new EvalFactory(cpu_code, compiler_args, this->m_is_union);
 
-    // save the C++ code string for exporting to python
-    m_cpu_code = cpu_code;
-
     // get the evaluator
     m_eval = factory->getEval();
 

@@ -117,7 +117,6 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     EvalFactory::EvalFnPtr m_eval;          //!< Pointer to evaluator function inside the JIT module
     std::vector<float, managed_allocator<float>>
         m_param_array;      //!< Array containing adjustable parameters
-    std::string m_cpu_code; //!< the C++ code
     const bool m_is_union;
     };
 
