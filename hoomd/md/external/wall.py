@@ -182,6 +182,8 @@ class WallPotential(force.Force):
 
     def __init__(self, walls):
         self._walls = None
+        if walls is None:
+            walls = []
         self.walls = hoomd.wall._WallsMetaList(walls, _to_md_cpp_wall)
 
     def _attach(self):
@@ -284,7 +286,7 @@ class LJ(WallPotential):
 
     _cpp_class_name = "WallsPotentialLJ"
 
-    def __init__(self, walls):
+    def __init__(self, walls=None):
 
         # initialize the base class
         super().__init__(walls)
@@ -358,7 +360,7 @@ class Gauss(WallPotential):
 
     _cpp_class_name = "WallsPotentialGauss"
 
-    def __init__(self, walls):
+    def __init__(self, walls=None):
 
         # initialize the base class
         super().__init__(walls)
@@ -435,7 +437,7 @@ class SLJ(WallPotential):
 
     _cpp_class_name = "WallsPotentialSLJ"
 
-    def __init__(self, walls):
+    def __init__(self, walls=None):
 
         # initialize the base class
         super().__init__(walls)
@@ -507,7 +509,7 @@ class Yukawa(WallPotential):
 
     _cpp_class_name = "WallsPotentialYukawa"
 
-    def __init__(self, walls):
+    def __init__(self, walls=None):
 
         # initialize the base class
         super().__init__(walls)
@@ -579,7 +581,7 @@ class Morse(WallPotential):
 
     _cpp_class_name = "WallsPotentialMorse"
 
-    def __init__(self, walls):
+    def __init__(self, walls=None):
 
         # initialize the base class
         super().__init__(walls)
@@ -652,7 +654,7 @@ class ForceShiftedLJ(WallPotential):
 
     _cpp_class_name = "WallsPotentialForceShiftedLJ"
 
-    def __init__(self, walls):
+    def __init__(self, walls=None):
 
         # initialize the base class
         super().__init__(walls)
@@ -724,7 +726,7 @@ class Mie(WallPotential):
 
     _cpp_class_name = "WallsPotentialMie"
 
-    def __init__(self, walls):
+    def __init__(self, walls=None):
 
         # initialize the base class
         super().__init__(walls)
