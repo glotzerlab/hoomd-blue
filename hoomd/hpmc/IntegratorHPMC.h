@@ -110,11 +110,13 @@ struct hpmc_patch_args_t
 
     } // end namespace detail
 
-//! Integrator that implements patchy interactions between particles in HPMC simulations
-/*! **Overview** <br>
-    PatchEnergy allows energetic interactions to be included in an HPMC simulation.
+//! Functor that computes patch interactions between particles
+/*! PatchEnergy allows cutoff energetic interactions to be included in an HPMC simulation. This
+    abstract base class defines the API for the patch energy object, consisting of cutoff radius
+    and the pair energy evaluation fuction.
 
-    \ingroup ??
+    Provide a PatchEnergy instance to IntegratorHPMC. The pairwise patch energy will be evaluated
+    when needed during the HPMC trial moves.
 */
 class PatchEnergy
     {
