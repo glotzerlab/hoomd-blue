@@ -83,7 +83,7 @@ def test_valid_construction_and_attach_cpp_union_potential(
     patch.charges['A'] = [0]
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -139,7 +139,7 @@ def test_valid_setattr_attached_cpp_union_potential(
     patch.charges['A'] = [0]
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -181,7 +181,7 @@ def test_raise_attr_error_cpp_union_potential(device, attr, val,
     patch.charges['A'] = [0]
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -255,7 +255,7 @@ def test_param_array_union_cpu(device, simulation_factory,
     mc.shape["A"] = dict(shapes=[sphere1, sphere1],
                          positions=const_particle_pos,
                          orientations=[(1, 0, 0, 0), (1, 0, 0, 0)])
-    mc.potential = patch
+    mc.pair_potential = patch
     sim.operations.integrator = mc
 
     # test the case where r_cut_isotropic = 0, so particles only interact
@@ -348,7 +348,7 @@ def test_param_array_union_gpu(device, simulation_factory,
     mc.shape["A"] = dict(shapes=[sphere1, sphere1],
                          positions=const_particle_pos,
                          orientations=[(1, 0, 0, 0), (1, 0, 0, 0)])
-    mc.potential = patch
+    mc.pair_potential = patch
     sim.operations.integrator = mc
 
     # there are 2 cases here, one where they interact with only 1 other
@@ -420,7 +420,7 @@ def test_cpp_potential_union_sticky_spheres(device, simulation_factory,
     mc.shape["A"] = dict(shapes=[sphere1],
                          positions=[origin],
                          orientations=[(1, 0, 0, 0)])
-    mc.potential = patch
+    mc.pair_potential = patch
 
     sim.operations.integrator = mc
 

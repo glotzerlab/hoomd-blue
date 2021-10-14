@@ -215,7 +215,7 @@ class CPPPotential(CPPPotentialBase):
                         '''
             patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=1.1, code=sq_well,
                                                       param_array=[])
-            mc.potential = patch
+            mc.pair_potential = patch
             sim.run(1000)
     """
 
@@ -395,7 +395,7 @@ class CPPPotentialUnion(CPPPotentialBase):
         ]
         patch.diameters['A'] = [0, 0]
         patch.typeids['A'] = [0, 0]
-        mc.potential = patch
+        mc.pair_potential = patch
 
     Example with added isotropic interactions:
 
@@ -433,7 +433,7 @@ class CPPPotentialUnion(CPPPotentialBase):
         ]
         patch.typeids['A'] = [0, 0]
         patch.diameters['A'] = [0, 0]
-        mc.potential = patch
+        mc.pair_potential = patch
 
     """
 

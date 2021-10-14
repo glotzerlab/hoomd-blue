@@ -85,7 +85,7 @@ def test_modify_after_attach_cpp_potential(device, simulation_factory,
                                               code='return -1;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -113,7 +113,7 @@ def test_error_after_attach_cpp_potential(device, simulation_factory,
                                               code='return -1;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -171,7 +171,7 @@ def test_cpp_potential(device, positions, orientations, result,
                                               param_array=[])
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     sim.operations.integrator = mc
 
@@ -221,7 +221,7 @@ def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
     patch = hoomd.hpmc.pair.user.CPPPotential(**params)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     sim.operations.integrator = mc
 
@@ -287,7 +287,7 @@ def test_cpp_potential_sticky_spheres(device, simulation_factory,
                                               param_array=[100.0])
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     sim.operations.integrator = mc
 
