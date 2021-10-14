@@ -343,8 +343,8 @@ class HPMCIntegrator(BaseIntegrator):
         """The user-defined pair potential associated with the integrator."""
         return self._pair_potential
 
-    @potential.setter
-    def potential(self, new_potential):
+    @pair_potential.setter
+    def pair_potential(self, new_potential):
         if not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase):
             raise TypeError(
                 "Pair potentials should be an instance of CPPPotentialBase")
