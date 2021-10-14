@@ -64,9 +64,7 @@ void IntegratorTwoStep::update(uint64_t timestep)
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0)
         {
-        m_exec_conf->msg->warning()
-            << "MD Integrator has no integration methods."
-            << endl;
+        m_exec_conf->msg->warning() << "MD Integrator has no integration methods." << endl;
         m_gave_warning = true;
         }
 
@@ -242,7 +240,7 @@ Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
     }
 
 /*!  \param integrate_rotational_dofs true to integrate orientations, false to not
-*/
+ */
 void IntegratorTwoStep::setIntegrateRotationalDOF(bool integrate_rotational_dof)
     {
     m_integrate_rotational_dof = integrate_rotational_dof;
@@ -262,7 +260,8 @@ void IntegratorTwoStep::prepRun(uint64_t timestep)
     if (m_integrate_rotational_dof && !areForcesAnisotropic())
         {
         m_exec_conf->msg->warning() << "Requested integration of orientations, but no forces"
-            " provide torques." << endl;
+                                       " provide torques."
+                                    << endl;
         }
 
     for (auto& method : m_methods)
