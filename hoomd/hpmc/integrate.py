@@ -400,9 +400,8 @@ class Sphere(HPMCIntegrator):
     ``translation_move_probability``.
 
     Tip:
-        Use spheres with ``diameter=0`` in conjunction with `jit` potentials
-        for Monte Carlo simulations of particles interacting by pair potential
-        with no hard core.
+        Use spheres with ``diameter=0`` in conjunction with pair potentials
+        for Monte Carlo simulations of particles with no hard core.
 
     Tip:
         Use `Sphere` in a 2D simulation to perform Monte Carlo on hard disks.
