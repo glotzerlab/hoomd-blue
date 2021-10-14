@@ -55,7 +55,7 @@ class _ArrayViewWrapper(MutableSequence):
         array = self._get_array_view()
         if not isinstance(index, slice):
             return array[index]
-        return [value for value in range(len(array))[index]]
+        return [self[index] for index in range(len(array))[index]]
 
     @_array_view_wrapper
     def __setitem__(self, index, value):
