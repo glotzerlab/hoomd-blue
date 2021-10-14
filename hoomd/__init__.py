@@ -34,6 +34,7 @@ from hoomd import data
 from hoomd import filter
 from hoomd import device
 from hoomd import error
+from hoomd import mesh
 from hoomd import update
 from hoomd import integrate
 from hoomd import communicator

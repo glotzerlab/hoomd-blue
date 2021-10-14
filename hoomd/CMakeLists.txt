@@ -370,6 +370,7 @@ set(files box.py
           trigger.py
           snapshot.py
           logging.py
+          mesh.py
           version.py
     )
 

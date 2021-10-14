@@ -66,16 +66,7 @@ class PYBIND11_EXPORT MeshDefinition
     //! Constructs a NULL MeshDefinition
     MeshDefinition();
     //! Constructs a MeshDefinition with a simply initialized ParticleData
-    MeshDefinition(std::shared_ptr<ParticleData> pdata,
-                     unsigned int n_triangle_types);
-
-    //! Construct from a snapshot
-    MeshDefinition( std::shared_ptr<ParticleData> pdata,
-		    TriangleData::Snapshot snapshot);
-
-    std::shared_ptr<TriangleData> getTriangleData();
-
-    void setTriangleData();
+    MeshDefinition(std::shared_ptr<ParticleData> pdata);
 
     //! Access the mesh triangle data defined for the simulation
     std::shared_ptr<MeshTriangleData> getMeshTriangleData()
@@ -88,16 +79,20 @@ class PYBIND11_EXPORT MeshDefinition
         return m_meshbond_data;
         }
 
+    void updateTriangleData();
+
     void updateMeshData();
 
+
     TriangleData::Snapshot triangle_data;             //!< The triangle data
+    Scalar m_mesh_energy;
 
     private:
     std::shared_ptr<ParticleData> m_particle_data;     //!< Particle data for the system
     std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
-    Scalar m_mesh_energy;
     Scalar m_mesh_energy_old;
+    bool m_data_changed;
     };
 
 //! Exports MeshDefinition to python
