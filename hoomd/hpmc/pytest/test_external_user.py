@@ -48,7 +48,7 @@ electric_field_params = [
 @pytest.mark.cpu
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_cpp_external(device, constructor_args):
-    """Test that CPPExternalPotential can be constructed with valid arguments."""
+    """Test that CPPExternalPotential can be constructed with valid args."""
     ext = hoomd.hpmc.external.user.CPPExternalPotential(**constructor_args)
 
     # validate the params were set properly
@@ -84,7 +84,8 @@ def test_valid_construction_and_attach_cpp_external(
 @pytest.mark.cpu
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_cpp_external(device, attr, value):
-    """Test that CPPExternalPotential can get and set attributes before attached."""
+    """Test that CPPExternalPotential can get and set attributes before \
+            attached."""
     ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
 
     setattr(ext, attr, value)
