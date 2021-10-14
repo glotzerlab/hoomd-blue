@@ -8,7 +8,7 @@ import itertools
 
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
+from hoomd.data.typeconverter import OnlyTypes
 from hoomd.integrate import BaseIntegrator
 from hoomd.data import syncedlist
 from hoomd.md.methods import Method

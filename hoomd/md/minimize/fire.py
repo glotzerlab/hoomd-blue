@@ -13,7 +13,7 @@ import hoomd
 
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data import syncedlist
-from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, positive_real
+from hoomd.data.typeconverter import OnlyTypes, positive_real
 from hoomd.logging import log
 from hoomd.md import _md
 from hoomd.md.integrate import _DynamicIntegrator
