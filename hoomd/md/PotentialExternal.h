@@ -55,7 +55,7 @@ template<class evaluator> class PotentialExternal : public ForceCompute
     std::shared_ptr<field_type>& getField();
 
     protected:
-    GPUArray<param_type> m_params; //!< Array of per-type parameters
+    GPUArray<param_type> m_params;       //!< Array of per-type parameters
     std::shared_ptr<field_type> m_field; /// evaluator dependent field parameters
 
     //! Actually compute the forces
@@ -69,7 +69,7 @@ template<class evaluator>
 PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef),
       m_field(make_managed_shared<typename PotentialExternal<evaluator>::field_type>(
-        m_exec_conf->isCUDAEnabled()))
+          m_exec_conf->isCUDAEnabled()))
     {
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
     m_params.swap(params);
@@ -202,7 +202,7 @@ void PotentialExternal<evaluator>::setParamsPython(std::string typ, pybind11::ob
 
 template<class evaluator>
 void PotentialExternal<evaluator>::setField(
-std::shared_ptr<PotentialExternal<evaluator>::field_type>& field)
+    std::shared_ptr<PotentialExternal<evaluator>::field_type>& field)
     {
     m_field = field;
     }
@@ -224,9 +224,9 @@ add_field(PybindClass& cls)
 template<class ExportedClass, class PybindClass>
 typename std::enable_if<!std::is_same<typename ExportedClass::field_type, Scalar>::value>::type
 add_field(PybindClass& cls)
-        {
-        cls.def_property("field", &ExportedClass::getField, &ExportedClass::setField);
-        }
+    {
+    cls.def_property("field", &ExportedClass::getField, &ExportedClass::setField);
+    }
 
 //! Export this external potential to python
 /*! \param name Name of the class in the exported python module
@@ -235,9 +235,9 @@ add_field(PybindClass& cls)
 template<class T> void export_PotentialExternal(pybind11::module& m, const std::string& name)
     {
     auto cls = pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParams", &T::setParamsPython)
-        .def("getParams", &T::getParams);
+                   .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+                   .def("setParams", &T::setParamsPython)
+                   .def("getParams", &T::getParams);
 
     add_field<T, decltype(cls)>(cls);
     }

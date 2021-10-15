@@ -235,9 +235,8 @@ std::shared_ptr<T> make_managed_shared(bool use_device, Args&&... args)
     {
     auto allocator = managed_allocator<T>(use_device);
     auto* memory = allocator.allocate(1);
-    T* value_ptr = new(memory) T(std::forward(args)...);
-    return std::shared_ptr<T>(
-        value_ptr,
-        [allocator=std::move(allocator)](auto* ptr) mutable { allocator.deallocate(ptr, 1); }
-    );
+    T* value_ptr = new (memory) T(std::forward(args)...);
+    return std::shared_ptr<T>(value_ptr,
+                              [allocator = std::move(allocator)](auto* ptr) mutable
+                              { allocator.deallocate(ptr, 1); });
     }
