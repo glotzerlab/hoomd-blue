@@ -104,7 +104,18 @@ class Mesh(_HOOMDBaseObject):
             self._cpp_obj.triangles.group[:] = triag
             self._update_mesh()
 
-    @log
+    @log(category='sequence', requires_run=True)
+    def bonds(self):
+        """((*N*, 2) `numpy.ndarray` of ``uint32``): Mesh bonds.
+
+        A list of tuples of particle ids which encodes the
+        bonds within the mesh structure.
+        """
+        if self._attached:
+            self._update_triangles()
+            return self._cpp_obj.getBondData().group
+
+    @log(requires_run=True)
     def energy(self):
         """(Scalar): Surface energy of the mesh."""
         return self._cpp_obj.mesh_energy

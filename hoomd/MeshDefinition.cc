@@ -39,6 +39,13 @@ MeshDefinition::MeshDefinition(std::shared_ptr<ParticleData> pdata)
     m_mesh_energy_old = 0;
     }
 
+BondData::Snapshot MeshDefinition::getBondData()
+    {
+    BondData::Snapshot bond_data;
+    m_meshbond_data->takeSnapshot(bond_data);
+    return bond_data;
+    }
+
 //! Re-initialize the system from a snapshot
 void MeshDefinition::updateTriangleData()
     {
@@ -63,6 +70,7 @@ void export_MeshDefinition(py::module& m)
         .def(py::init<std::shared_ptr<ParticleData> >())
         .def("getMeshTriangleData", &MeshDefinition::getMeshTriangleData)
         .def("getMeshBondData", &MeshDefinition::getMeshBondData)
+        .def("getBondData", &MeshDefinition::getBondData)
         .def("updateTriangleData", &MeshDefinition::updateTriangleData)
         .def("updateMeshData", &MeshDefinition::updateMeshData)
         .def_readonly("triangles", &MeshDefinition::triangle_data)

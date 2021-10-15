@@ -48,7 +48,7 @@
  *  \tpp group_size Size of groups
  *  \tpp name Name of element, i.e. bond, angle, dihedral, ..
  */
-template<unsigned int group_size, typename Group, const char* name, bool bond>
+template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
 class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
     {
     public:
@@ -71,7 +71,7 @@ class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
 
     //! Take a snapshot
     //using BondedGroupData<group_size,Group,name,true>::takeSnapshot;
-    std::map<unsigned int, unsigned int> takeSnapshot(TriangleData::Snapshot& snapshot) const;
+    std::map<unsigned int, unsigned int> takeSnapshot(snap& snapshot) const;
 
     /*
      * add/remove groups globally
@@ -98,10 +98,10 @@ void export_MeshGroupData(pybind11::module& m,
  */
 
 //! Definition of MeshBondData
-typedef MeshGroupData<4, MeshBond, name_meshbond_data, true> MeshBondData;
+typedef MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot, true> MeshBondData;
 
 
 //! Definition of MeshTriangleData
-typedef MeshGroupData<6, MeshTriangle, name_meshtriangle_data, false> MeshTriangleData;
+typedef MeshGroupData<6, MeshTriangle, name_meshtriangle_data, TriangleData::Snapshot, false> MeshTriangleData;
 
 #endif

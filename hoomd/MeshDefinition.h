@@ -79,6 +79,8 @@ class PYBIND11_EXPORT MeshDefinition
         return m_meshbond_data;
         }
 
+    BondData::Snapshot getBondData();
+
     void updateTriangleData();
 
     void updateMeshData();

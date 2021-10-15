@@ -30,8 +30,8 @@ namespace py = pybind11;
     \param pdata The particle data to associate with
     \param n_group_types Number of bonded group types to initialize
  */
-template<unsigned int group_size, typename Group, const char* name, bool bond>
-MeshGroupData<group_size, Group, name, bond>::MeshGroupData(
+template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
+MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
     std::shared_ptr<ParticleData> pdata,
     unsigned int n_group_types)
     : BondedGroupData<group_size,Group,name,true>(pdata,n_group_types)
@@ -42,8 +42,8 @@ MeshGroupData<group_size, Group, name, bond>::MeshGroupData(
     \param pdata The particle data to associate with
     \param snapshot Snapshot to initialize from
  */
-template<unsigned int group_size, typename Group, const char* name, bool bond>
-MeshGroupData<group_size, Group, name, bond>::MeshGroupData(
+template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
+MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
     std::shared_ptr<ParticleData> pdata,
     const TriangleData::Snapshot& snapshot)
     : BondedGroupData<group_size,Group,name,true>(pdata,(unsigned int) snapshot.type_mapping.size())
@@ -70,8 +70,8 @@ MeshGroupData<group_size, Group, name, bond>::MeshGroupData(
     }
 
 //! Destructor
-template<unsigned int group_size, typename Group, const char* name, bool bond>
-MeshGroupData<group_size, Group, name, bond>::~MeshGroupData()
+template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
+MeshGroupData<group_size, Group, name, snap, bond>::~MeshGroupData()
     {
     this->m_pdata->getParticleSortSignal()
         .template disconnect<BondedGroupData<group_size, Group, name, true>,
@@ -86,8 +86,8 @@ MeshGroupData<group_size, Group, name, bond>::~MeshGroupData()
     }
 
 //! Initialize from a snapshot
-template<unsigned int group_size, typename Group, const char* name, bool bond>
-void MeshGroupData<group_size, Group, name, bond>::initializeFromSnapshot(
+template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
+void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
     const TriangleData::Snapshot& snapshot)
     {
     // check that all fields in the snapshot have correct length
@@ -218,8 +218,16 @@ void MeshGroupData<group_size, Group, name, bond>::initializeFromSnapshot(
         bcast(m_type_mapping, 0, this->m_exec_conf->getMPICommunicator());
 
         // iterate over groups and add those that have local particles
-        for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
-            addBondedGroup(Group(all_typeval[group_tag], all_groups[group_tag]));
+	if(bond)
+	    {
+            for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
+               addBondedGroup(Group(all_typeval[group_tag], all_groups[group_tag]));
+	    }
+	else
+	    {
+            for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
+               addBondedGroup(Group(all_typeval[0], all_groups[group_tag]));
+	    }
         }
     else
 #endif
@@ -227,17 +235,29 @@ void MeshGroupData<group_size, Group, name, bond>::initializeFromSnapshot(
         this->m_type_mapping = snapshot.type_mapping;
 
         // create bonded groups with types
-        for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
-            {
+	if(bond)
+	    {
             typeval_t t;
-            t.type = snapshot.type_id[group_idx];
-            addBondedGroup(Group(t, all_groups[group_idx]));
+            t.type = snapshot.type_id[0];
+            for (unsigned group_idx = 0; group_idx < all_groups.size(); group_idx++)
+                {
+                addBondedGroup(Group(t, all_groups[group_idx]));
+	        }
             }
+	    else
+	    {
+            for (unsigned group_idx = 0; group_idx < all_groups.size(); group_idx++)
+                {
+                typeval_t t;
+                t.type = snapshot.type_id[group_idx];
+                addBondedGroup(Group(t, all_groups[group_idx]));
+	        }
+	    }
         }
     }
 
-template<unsigned int group_size, typename Group, const char* name, bool bond>
-unsigned int MeshGroupData<group_size, Group, name, bond>::addBondedGroup(Group g)
+template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
+unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(Group g)
     {
     // we are changing the local number of groups, so remove ghosts
     this->removeAllGhostGroups();
@@ -365,9 +385,9 @@ unsigned int MeshGroupData<group_size, Group, name, bond>::addBondedGroup(Group 
  *
  *  Data in the snapshot is in tag order, where non-existent tags are skipped
  */
-template<unsigned int group_size, typename Group, const char* name, bool bond>
+template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
 std::map<unsigned int, unsigned int>
-MeshGroupData<group_size, Group, name, bond>::takeSnapshot(TriangleData::Snapshot& snapshot) const
+MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot) const
     {
     // map to lookup snapshot index by tag
     std::map<unsigned int, unsigned int> index;
@@ -459,9 +479,10 @@ MeshGroupData<group_size, Group, name, bond>::takeSnapshot(TriangleData::Snapsho
                 unsigned int idx = rank_idx.second;
 
                 snapshot.type_id[snap_id] = typevals_proc[rank][idx].type;
-                snapshot.groups[snap_id].tag[0] = members_proc[rank][idx].tag[0];
-                snapshot.groups[snap_id].tag[1] = members_proc[rank][idx].tag[1];
-                snapshot.groups[snap_id].tag[2] = members_proc[rank][idx].tag[2];
+		for(int i = 0; i< group_size/2; i++)
+		    {
+                    snapshot.groups[snap_id].tag[i] = members_proc[rank][idx].tag[i];
+		    }
                 snap_id++;
                 }
             }
@@ -497,9 +518,10 @@ MeshGroupData<group_size, Group, name, bond>::takeSnapshot(TriangleData::Snapsho
 
             unsigned int group_idx = rtag_it->second;
 	    members_t member = this->m_groups[group_idx];
-            snapshot.groups[snap_id].tag[0] = member.tag[0];
-            snapshot.groups[snap_id].tag[1] = member.tag[1];
-            snapshot.groups[snap_id].tag[2] = member.tag[2];
+	    for(int i = 0; i< group_size/2; i++)
+	        {
+                snapshot.groups[snap_id].tag[i] = member.tag[i];
+		}
             snapshot.type_id[snap_id] = ((typeval_t)this->m_group_typeval[group_idx]).type;
             snap_id++;
             }
@@ -526,31 +548,18 @@ void export_MeshGroupData(py::module& m,
         .def(py::init<std::shared_ptr<ParticleData>, const typename TriangleData::Snapshot&>())
         .def("initializeFromSnapshot", &T::initializeFromSnapshot)
         .def("takeSnapshot", &T::takeSnapshot)
-        //.def("getN", &T::getN)
-        //.def("getNGlobal", &T::getNGlobal)
-        //.def("getNTypes", &T::getNTypes)
-        //.def("getNthTag", &T::getNthTag)
-        //.def("getMaximumTag", &T::getMaximumTag)
-        //.def("getGroupByTag", &T::getGroupByTag)
-        //.def("getTypeByName", &T::getTypeByName)
-        //.def("setTypeName", &T::setTypeName)
-        //.def("getNameByType", &T::getNameByType)
         .def("addBondedGroup", &T::addBondedGroup);
-        //.def("removeBondedGroup", &T::removeBondedGroup)
-        //.def("setProfiler", &T::setProfiler)
-        //.def("getTypes", &T::getTypesPy);
-
     }
 
 
 
-template class PYBIND11_EXPORT MeshGroupData<6, MeshTriangle, name_meshtriangle_data, false>;
+template class PYBIND11_EXPORT MeshGroupData<6, MeshTriangle, name_meshtriangle_data, TriangleData::Snapshot, false>;
 template void export_MeshGroupData<MeshTriangleData, MeshTriangle>(py::module& m,
                                                        std::string name,
                                                        std::string snapshot_name,
                                                        bool export_struct);
 
-template class PYBIND11_EXPORT MeshGroupData<4, MeshBond, name_meshbond_data, true>;
+template class PYBIND11_EXPORT MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot, true>;
 template void export_MeshGroupData<MeshBondData, MeshBond>(py::module& m,
                                                      std::string name,
                                                      std::string snapshot_name,
