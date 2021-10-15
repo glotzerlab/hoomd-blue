@@ -93,13 +93,6 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                                          access_location::device,
                                                          access_mode::read);
 
-    typename PotentialExternalGPU<evaluator>::field_type* gpu_field_params(nullptr);
-    cudaMalloc(&gpu_field_params, sizeof(typename PotentialExternalGPU<evaluator>::field_type));
-    cudaMemcpy(reinterpret_cast<void*>(gpu_field_params),
-               reinterpret_cast<const void*>(&(this->m_field)),
-               sizeof(typename PotentialExternalGPU<evaluator>::field_type),
-               cudaMemcpyHostToDevice);
-
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
 
@@ -114,8 +107,7 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                                   box,
                                                   this->m_tuner->getParam()),
                         d_params.data,
-                        gpu_field_params);
-
+                        this->m_field.get());
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 

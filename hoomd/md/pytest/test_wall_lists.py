@@ -14,7 +14,7 @@ from hoomd.md import _md
 
 @pytest.fixture(scope="function")
 def wall_collection():
-    return _md.WallCollection()
+    return _md.WallCollection._unsafe_create()
 
 
 @pytest.fixture(scope="session", params=("sphere", "cylinder", "plane"))

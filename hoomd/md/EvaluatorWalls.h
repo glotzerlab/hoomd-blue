@@ -13,6 +13,7 @@
 #ifndef __HIPCC__
 #include "hoomd/ArrayView.h"
 #include <functional>
+#include <memory>
 #include <pybind11/pybind11.h>
 #include <string>
 #endif
@@ -392,8 +393,9 @@ void export_wall_field(pybind11::module& m)
     export_array_view<CylinderWall>(m, "CylinderArray");
     export_array_view<PlaneWall>(m, "PlaneArray");
 
-    pybind11::class_<wall_type>(m, "WallCollection")
-        .def(pybind11::init<>())
+    pybind11::class_<wall_type, std::shared_ptr<wall_type>>(m, "WallCollection")
+        .def("_unsafe_create", []() -> std::shared_ptr<wall_type> { return
+    std::make_shared<wall_type>();})
         // The different get_*_list methods use array_view's (see hoomd/ArrayView.h for more info)
         // callback to ensure that the way_type object's sizes remain correct even during
         // modification.

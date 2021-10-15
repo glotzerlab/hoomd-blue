@@ -49,14 +49,14 @@ template<class evaluator> class PotentialExternal : public ForceCompute
     void validateType(unsigned int type, std::string action);
 
     //! set the field type of the evaluator
-    void setField(field_type& field);
+    void setField(std::shared_ptr<field_type>& field);
 
     //! get a reference to the field parameters. Used to expose the field attributes to Python.
-    field_type& getField();
+    std::shared_ptr<field_type>& getField();
 
     protected:
     GPUArray<param_type> m_params; //!< Array of per-type parameters
-    field_type m_field;
+    std::shared_ptr<field_type> m_field; /// evaluator dependent field parameters
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -67,7 +67,9 @@ template<class evaluator> class PotentialExternal : public ForceCompute
 */
 template<class evaluator>
 PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceCompute(sysdef)
+    : ForceCompute(sysdef),
+      m_field(make_managed_shared<typename PotentialExternal<evaluator>::field_type>(
+        m_exec_conf->isCUDAEnabled()))
     {
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
     m_params.swap(params);
@@ -133,7 +135,8 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
         Scalar virial[6];
 
         param_type params = h_params.data[type];
-        evaluator eval(X, box, params, m_field);
+        const auto& field = *m_field;
+        evaluator eval(X, box, params, field);
 
         if (evaluator::needsDiameter())
             {
@@ -198,16 +201,32 @@ void PotentialExternal<evaluator>::setParamsPython(std::string typ, pybind11::ob
     }
 
 template<class evaluator>
-void PotentialExternal<evaluator>::setField(PotentialExternal<evaluator>::field_type& field)
+void PotentialExternal<evaluator>::setField(
+std::shared_ptr<PotentialExternal<evaluator>::field_type>& field)
     {
     m_field = field;
     }
 
 template<class evaluator>
-typename PotentialExternal<evaluator>::field_type& PotentialExternal<evaluator>::getField()
+std::shared_ptr<typename PotentialExternal<evaluator>::field_type>&
+PotentialExternal<evaluator>::getField()
     {
     return m_field;
     }
+
+template<class ExportedClass, class PybindClass>
+typename std::enable_if<std::is_same<typename ExportedClass::field_type, Scalar>::value>::type
+add_field(PybindClass& cls)
+    {
+    return;
+    }
+
+template<class ExportedClass, class PybindClass>
+typename std::enable_if<!std::is_same<typename ExportedClass::field_type, Scalar>::value>::type
+add_field(PybindClass& cls)
+        {
+        cls.def_property("field", &ExportedClass::getField, &ExportedClass::setField);
+        }
 
 //! Export this external potential to python
 /*! \param name Name of the class in the exported python module
@@ -215,10 +234,11 @@ typename PotentialExternal<evaluator>::field_type& PotentialExternal<evaluator>:
 */
 template<class T> void export_PotentialExternal(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
+    auto cls = pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &T::setParamsPython)
-        .def("getParams", &T::getParams)
-        .def_property("field", &T::getField, &T::setField);
+        .def("getParams", &T::getParams);
+
+    add_field<T, decltype(cls)>(cls);
     }
 #endif
