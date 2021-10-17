@@ -7,6 +7,7 @@
 from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.logging import log
+import numpy as np
 
 
 class Mesh(_HOOMDBaseObject):
@@ -18,13 +19,13 @@ class Mesh(_HOOMDBaseObject):
 
     """
 
-    def __init__(self, triangles, simulation):
+    def __init__(self, simulation):
 
         self._simulation = simulation
-        self._triangles = triangles
-        self._size = len(triangles)
-        self._types = None
-        self._typeid = None
+        self._triangles = np.empty([0, 3], dtype=int)
+        self._size = 0
+
+    def _attach(self):
 
         self._cpp_obj = _hoomd.MeshDefinition(
             self._simulation.state._cpp_sys_def.getParticleData())
@@ -33,10 +34,13 @@ class Mesh(_HOOMDBaseObject):
         self.types = ["A"]
         self.triangles = self._triangles
 
+        super()._attach()
+
     @property
     def size(self):
         """(int): Number of triangles in the mesh."""
         if self._attached:
+            self._update_triangles()
             return self._cpp_obj.triangles.N
         else:
             return self._size
@@ -44,7 +48,6 @@ class Mesh(_HOOMDBaseObject):
     @size.setter
     def size(self, newN):
         if self._attached:
-            self._update_triangles()
             self._cpp_obj.triangles.N = newN
         else:
             self._size = newN
