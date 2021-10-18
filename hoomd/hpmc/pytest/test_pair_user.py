@@ -73,6 +73,39 @@ def test_valid_setting_before_attach_cpp_potential(device, attr, value):
 
 
 @pytest.mark.validate
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=3,
+                                              param_array=[0, 1],
+                                              code='return -1;')
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1)
+    mc.pair_potential = patch
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.run(0)
+    assert mc._attached
+    assert patch._attached
+
+
+@pytest.mark.validate
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=3,
+                                              param_array=[0, 1],
+                                              code='return -1;')
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1)
+    mc.pair_potential = patch
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.run(0)
+    sim.operations.remove(mc)
+    assert not mc._attached
+    assert not patch._attached
+
+
+@pytest.mark.validate
 @pytest.mark.parametrize("attr_set,value_set", valid_attrs_after_attach)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_modify_after_attach_cpp_potential(device, simulation_factory,

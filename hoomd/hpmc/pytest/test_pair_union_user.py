@@ -102,6 +102,59 @@ def test_valid_construction_and_attach_cpp_union_potential(
         assert np.all(getattr(patch, attr) == value)
 
 
+@pytest.mark.validate
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
+        r_cut_isotropic=1.4,
+        r_cut_constituent=1.0,
+        code_isotropic='',
+        code_constituent='return 6;',
+        param_array_constituent=[],
+        param_array_isotropic=[],
+    )
+    patch.positions['A'] = [(0, 0, 0)]
+    patch.orientations['A'] = [(1, 0, 0, 0)]
+    patch.diameters['A'] = [1.0]
+    patch.typeids['A'] = [0]
+    patch.charges['A'] = [0]
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1)
+    mc.pair_potential = patch
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.run(0)
+    assert mc._attached
+    assert patch._attached
+
+
+@pytest.mark.validate
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
+        r_cut_isotropic=1.4,
+        r_cut_constituent=1.0,
+        code_isotropic='',
+        code_constituent='return 6;',
+        param_array_constituent=[],
+        param_array_isotropic=[],
+    )
+    patch.positions['A'] = [(0, 0, 0)]
+    patch.orientations['A'] = [(1, 0, 0, 0)]
+    patch.diameters['A'] = [1.0]
+    patch.typeids['A'] = [0]
+    patch.charges['A'] = [0]
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1)
+    mc.pair_potential = patch
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.run(0)
+    sim.operations.remove(mc)
+    assert not mc._attached
+    assert not patch._attached
+
+
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_cpp_union_potential(device, attr, value):
     """Test that CPPPotentialUnion can get and set attributes before \
