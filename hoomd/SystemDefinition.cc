@@ -158,7 +158,6 @@ void SystemDefinition::initializeFromSnapshot(std::shared_ptr<SnapshotSystemData
         bcast(m_n_dimensions, 0, exec_conf->getMPICommunicator());
 #endif
 
-
     m_particle_data->setGlobalBox(snapshot->global_box);
     m_particle_data->initializeFromSnapshot(snapshot->particle_data);
     m_bond_data->initializeFromSnapshot(snapshot->bond_data);

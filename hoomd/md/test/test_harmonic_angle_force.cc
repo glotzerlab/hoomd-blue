@@ -163,7 +163,7 @@ void angle_force_basic_tests(angleforce_creator af_creator,
                                                                     1,
                                                                     num_angles_to_test,
                                                                     0,
-								    0,
+                                                                    0,
                                                                     exec_conf));
     std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 

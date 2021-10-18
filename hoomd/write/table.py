@@ -165,7 +165,7 @@ class _TableInternal(_InternalAction):
 
     _invalid_logger_categories = LoggerCategories.any([
         'sequence', 'object', 'particle', 'bond', 'angle', 'dihedral',
-        'triangle', 'improper', 'pair', 'constraint', 'strings'
+        'improper', 'pair', 'constraint', 'strings'
     ])
 
     flags = [

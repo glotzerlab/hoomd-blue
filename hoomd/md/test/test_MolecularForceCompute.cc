@@ -155,7 +155,7 @@ void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu,
     std::shared_ptr<ParticleData> pdata_cpu = sysdef_cpu->getParticleData();
 
     std::shared_ptr<SystemDefinition> sysdef_gpu(
-        new SystemDefinition(nptl, BoxDim(1000.0), 1, 0, 0, 0, 0,  exec_conf_gpu));
+        new SystemDefinition(nptl, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf_gpu));
     std::shared_ptr<ParticleData> pdata_gpu = sysdef_gpu->getParticleData();
 
     unsigned int niter = 100;

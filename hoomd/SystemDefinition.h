@@ -144,11 +144,12 @@ class PYBIND11_EXPORT SystemDefinition
         {
         return m_dihedral_data;
         }
-    //h Access the improper data defined for the simulation
+    //! Access the improper data defined for the simulation
     std::shared_ptr<ImproperData> getImproperData()
         {
         return m_improper_data;
         }
+
     //! Access the constraint data defined for the simulation
     std::shared_ptr<ConstraintData> getConstraintData()
         {
