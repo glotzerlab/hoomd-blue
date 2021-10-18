@@ -202,6 +202,20 @@ class HPMCIntegrator(BaseIntegrator):
             self._pair_potential._attach()
             self._cpp_obj.setPatchEnergy(self._pair_potential._cpp_obj)
 
+    def _detach(self):
+        if self._external_potential is not None:
+            self._external_potential._detach()
+        if self._pair_potential is not None:
+            self._pair_potential._detach()
+        super()._detach()
+
+    def _remove(self):
+        if self._external_potential is not None:
+            self._external_potential._remove()
+        if self._pair_potential is not None:
+            self._pair_potential._remove()
+        super()._remove()
+
     # TODO need to validate somewhere that quaternions are normalized
 
     @property
