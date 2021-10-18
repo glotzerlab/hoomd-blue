@@ -365,10 +365,10 @@ class HPMCIntegrator(BaseIntegrator):
         if self._added:
             new_potential._add(self._simulation)
         if self._attached:
-            new_potential.attach()
+            new_potential._attach()
             self._cpp_obj.setPatchEnergy(new_potential._cpp_obj)
             if self._pair_potential is not None:
-                self._pair_potential.detach()
+                self._pair_potential._detach()
         if self._added and self._pair_potential is not None:
             self._pair_potential._remove()
         self._pair_potential = new_potential
@@ -392,7 +392,7 @@ class HPMCIntegrator(BaseIntegrator):
             new_external_potential._attach()
             self._cpp_obj.setExternalField(new_external_potential._cpp_obj)
             if self._external_potential is not None:
-                self._external_potential.detach()
+                self._external_potential._detach()
         if self._added and self._external_potential is not None:
             self._external_potential._remove()
         self._external_potential = new_external_potential
