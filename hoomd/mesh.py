@@ -24,6 +24,8 @@ class Mesh(_HOOMDBaseObject):
         self._simulation = simulation
         self._triangles = np.empty([0, 3], dtype=int)
         self._size = 0
+        self._types = []
+        self._typeid = []
 
     def _attach(self):
 
@@ -31,7 +33,8 @@ class Mesh(_HOOMDBaseObject):
             self._simulation.state._cpp_sys_def.getParticleData())
 
         self.size = self._size
-        self.types = ["A"]
+        self.types = self._types
+        self.typeid = self._typeid
         self.triangles = self._triangles
 
         super()._attach()
@@ -53,6 +56,24 @@ class Mesh(_HOOMDBaseObject):
             self._size = newN
 
     @property
+    def typeid(self):
+        """((*N*,) `numpy.ndarray` of ``uint32``): Triangle type id."""
+        if self._attached:
+            self._update_triangles()
+            return self._cpp_obj.triangles.typeid
+        else:
+            return self._typeid
+
+    @typeid.setter
+    def typeid(self, tid):
+        if self._attached:
+            self._cpp_obj.triangles.typeid[:] = tid
+            if len(self._triangles) == self.size:
+                self._update_mesh()
+        else:
+            self._typeid = tid
+
+    @property
     def types(self):
         """(list[str]): Names of the triangle types."""
         if self._attached:
@@ -67,24 +88,6 @@ class Mesh(_HOOMDBaseObject):
             self._cpp_obj.triangles.types = newtypes
         else:
             self._types = newtypes
-
-    @property
-    def typeid(self):
-        """((*N*,) `numpy.ndarray` of ``uint32``): Triangle type id."""
-        if self._attached:
-            self._update_triangles()
-            return self._typeid
-        else:
-            return self._cpp_obj.triangles.typeid
-
-    @typeid.setter
-    def typeid(self, tid):
-        if self._attached:
-            self._cpp_obj.triangles.typeid[:] = tid
-            if len(self._triangles) == self.size:
-                self._update_mesh()
-        else:
-            self._typeid = tid
 
     @log(category='sequence')
     def triangles(self):
