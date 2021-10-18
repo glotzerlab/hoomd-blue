@@ -10,7 +10,7 @@
 // Builds OBB tree based on geometric properties of the constituent particles
 void PatchEnergyJITUnion::buildOBBTree(unsigned int type)
     {
-    unsigned int N = (unsigned int)m_position[type].size();
+    auto N = static_cast<unsigned int>(m_position[type].size();
     hpmc::detail::OBB* obbs = new hpmc::detail::OBB[N];
     // extract member parameters, positions, and orientations and compute the rcut along the
     // way
