@@ -256,6 +256,7 @@ class Integrator(_DynamicIntegrator):
         super()._attach()
 
     def __setattr__(self, attr, value):
+        """Hande group DOF update when setting integrate_rotational_dof."""
         super().__setattr__(attr, value)
         if (attr == 'integrate_rotational_dof' and self._simulation is not None
                 and self._simulation.state is not None):
