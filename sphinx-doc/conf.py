@@ -41,7 +41,7 @@ autodoc_mock_imports = [
     'hoomd.mpcd._mpcd',
     'hoomd.dem._dem',
     'hoomd.minimize._minimize',
-    'hoomd.jit._jit',
+    'hoomd.hpmc._jit',
     'hoomd.hpmc._hpmc',
 ]
 

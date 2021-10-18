@@ -13,10 +13,7 @@
 #include <cuda_runtime.h>
 #include <nvrtc.h>
 
-//! uncomment to debug JIT compilation errors
-//#define DEBUG_JIT
-
-#ifdef DEBUG_JIT
+#ifdef ENABLE_DEBUG_JIT
 #define JITIFY_PRINT_LOG 1
 #define JITIFY_PRINT_LINKER_LOG 1
 #define JITIFY_PRINT_LAUNCH 1
@@ -29,7 +26,8 @@
 #define JITIFY_PRINT_PTX 0
 #define JITIFY_PRINT_HEADER_PATHS 0
 
-#include "jitify.hpp"
+#undef DEVICE
+#include "hoomd/extern/jitify.hpp"
 
 #endif
 
@@ -40,7 +38,8 @@
 /*! This class encapsulates a JIT compiled kernel and provides the API necessary to query kernel
     parameters and launch the kernel into a stream.
 
-    Additionally, it allows access to pointers alpha_iso and alpha_union defined at global scope.
+    Additionally, it allows access to pointers param_array and alpha_union
+    defined at global scope.
  */
 class GPUEvalFactory
     {
@@ -145,7 +144,7 @@ class GPUEvalFactory
     jitify::KernelLauncher configureKernel(unsigned int idev,
                                            dim3 grid,
                                            dim3 threads,
-                                           unsigned int sharedMemBytes,
+                                           size_t sharedMemBytes,
                                            cudaStream_t hStream,
                                            unsigned int eval_threads,
                                            unsigned int launch_bounds)
@@ -155,14 +154,19 @@ class GPUEvalFactory
         return m_program[idev]
             .kernel(m_kernel_name)
             .instantiate(eval_threads, launch_bounds)
-            .configure(grid, threads, sharedMemBytes, hStream);
+            .configure(grid, threads, static_cast<unsigned int>(sharedMemBytes), hStream);
         }
 #endif
 
-    void setAlphaPtr(float* d_alpha)
+    void setAlphaPtr(float* d_alpha, bool is_union)
         {
 #ifdef __HIP_PLATFORM_NVCC__
         auto gpu_map = m_exec_conf->getGPUIds();
+        std::string param_array_name = "param_array";
+        if (is_union)
+            {
+            param_array_name += "_isotropic";
+            }
         for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
             {
             cudaSetDevice(gpu_map[idev]);
@@ -174,7 +178,7 @@ class GPUEvalFactory
                     CUdeviceptr ptr = m_program[idev]
                                           .kernel(m_kernel_name)
                                           .instantiate(e, l)
-                                          .get_global_ptr("alpha_iso");
+                                          .get_global_ptr(param_array_name.c_str());
 
                     // copy the array pointer to the device
                     char* error;
@@ -205,7 +209,7 @@ class GPUEvalFactory
                     CUdeviceptr ptr = m_program[idev]
                                           .kernel(m_kernel_name)
                                           .instantiate(e, l)
-                                          .get_global_ptr("alpha_union");
+                                          .get_global_ptr("param_array_constituent");
 
                     // copy the array pointer to the device
                     char* error;
@@ -236,7 +240,7 @@ class GPUEvalFactory
                     CUdeviceptr ptr = m_program[idev]
                                           .kernel(m_kernel_name)
                                           .instantiate(e, l)
-                                          .get_global_ptr("jit::d_rcut_union");
+                                          .get_global_ptr("jit::d_r_cut_constituent");
 
                     // copy the array pointer to the device
                     char* error;

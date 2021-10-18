@@ -1,79 +1,13 @@
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 #ifdef ENABLE_HIP
-#include "PatchEnergyJITUnionGPU.h"
 
-#include "hoomd/jit/EvaluatorUnionGPU.cuh"
-#include <pybind11/stl.h>
-
-//! Set the per-type constituent particles
-void PatchEnergyJITUnionGPU::setParam(unsigned int type,
-                                      pybind11::list types,
-                                      pybind11::list positions,
-                                      pybind11::list orientations,
-                                      pybind11::list diameters,
-                                      pybind11::list charges,
-                                      unsigned int leaf_capacity)
-    {
-    // set parameters in base class
-    PatchEnergyJITUnion::setParam(type,
-                                  types,
-                                  positions,
-                                  orientations,
-                                  diameters,
-                                  charges,
-                                  leaf_capacity);
-
-    unsigned int N = (unsigned int)len(positions);
-
-    hpmc::detail::OBB* obbs = new hpmc::detail::OBB[N];
-
-    jit::union_params_t params(N, true);
-
-    // set shape parameters
-    for (unsigned int i = 0; i < N; i++)
-        {
-        pybind11::list positions_i = pybind11::cast<pybind11::list>(positions[i]);
-        vec3<float> pos = vec3<float>(pybind11::cast<float>(positions_i[0]),
-                                      pybind11::cast<float>(positions_i[1]),
-                                      pybind11::cast<float>(positions_i[2]));
-        pybind11::list orientations_i = pybind11::cast<pybind11::list>(orientations[i]);
-        float s = pybind11::cast<float>(orientations_i[0]);
-        float x = pybind11::cast<float>(orientations_i[1]);
-        float y = pybind11::cast<float>(orientations_i[2]);
-        float z = pybind11::cast<float>(orientations_i[3]);
-        quat<float> orientation(s, vec3<float>(x, y, z));
-
-        float diameter = pybind11::cast<float>(diameters[i]);
-        float charge = pybind11::cast<float>(charges[i]);
-        params.mtype[i] = pybind11::cast<unsigned int>(types[i]);
-        params.mpos[i] = pos;
-        params.morientation[i] = orientation;
-        params.mdiameter[i] = diameter;
-        params.mcharge[i] = charge;
-
-        // use a spherical OBB of radius 0.5*d
-        obbs[i] = hpmc::detail::OBB(pos, 0.5f * diameter);
-
-        // we do not support exclusions
-        obbs[i].mask = 1;
-        }
-
-    // build tree and store proxy structure
-    hpmc::detail::OBBTree tree;
-    bool internal_nodes_spheres = false;
-    tree.buildTree(obbs, N, leaf_capacity, internal_nodes_spheres);
-    delete[] obbs;
-    bool managed = true;
-    params.tree = hpmc::detail::GPUTree(tree, managed);
-
-    // store result
-    m_d_union_params[type] = params;
-
-    // cudaMemadviseReadMostly
-    m_d_union_params[type].set_memory_hint();
-    }
+#include "PatchEnergyJITGPU.h"
+#include "hoomd/hpmc/IntegratorHPMC.h"
 
 //! Kernel driver for kernel::hpmc_narrow_phase_patch
-void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
+void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
     {
 #ifdef __HIP_PLATFORM_NVCC__
     assert(args.d_postype);
@@ -99,13 +33,13 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
         tpp--;
         }
     auto& devprop = m_exec_conf->dev_prop;
-    tpp = std::min((unsigned int)devprop.maxThreadsDim[2], tpp);
+    tpp = std::min((unsigned int)devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
 
     unsigned int n_groups = run_block_size / (tpp * eval_threads);
+
     unsigned int max_queue_size = n_groups * tpp;
 
-    const size_t min_shared_bytes
-        = args.num_types * sizeof(Scalar) + m_d_union_params.size() * sizeof(jit::union_params_t);
+    const size_t min_shared_bytes = args.num_types * sizeof(Scalar);
 
     size_t shared_bytes = n_groups
                               * (sizeof(unsigned int) + 2 * sizeof(Scalar4) + 2 * sizeof(Scalar3)
@@ -116,7 +50,7 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of "
                                  "particle types or size of shape parameters");
 
-    unsigned int kernel_shared_bytes
+    size_t kernel_shared_bytes
         = m_gpu_factory.getKernelSharedSize(0, eval_threads, block_size); // fixme GPU 0
     while (shared_bytes + kernel_shared_bytes >= devprop.sharedMemPerBlock)
         {
@@ -132,7 +66,6 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
         tpp = std::min((unsigned int)devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
 
         n_groups = run_block_size / (tpp * eval_threads);
-
         max_queue_size = n_groups * tpp;
 
         shared_bytes = n_groups
@@ -140,20 +73,6 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
                               + 2 * sizeof(Scalar) + 2 * sizeof(float))
                        + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes;
         }
-
-    // allocate some extra shared mem to store union shape parameters
-    unsigned int max_extra_bytes = (unsigned int)(m_exec_conf->dev_prop.sharedMemPerBlock
-                                                  - shared_bytes - kernel_shared_bytes);
-
-    // determine dynamically requested shared memory
-    char* ptr = (char*)nullptr;
-    unsigned int available_bytes = max_extra_bytes;
-    for (unsigned int i = 0; i < m_d_union_params.size(); ++i)
-        {
-        m_d_union_params[i].allocate_shared(ptr, available_bytes);
-        }
-    unsigned int extra_bytes = max_extra_bytes - available_bytes;
-    shared_bytes += extra_bytes;
 
     dim3 thread(eval_threads, n_groups, tpp);
 
@@ -167,6 +86,8 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
         const unsigned int num_blocks = (nwork + n_groups - 1) / n_groups;
 
         dim3 grid(num_blocks, 1, 1);
+
+        unsigned int max_extra_bytes = 0;
 
         // configure the kernel
         auto launcher = m_gpu_factory.configureKernel(idev,
@@ -193,6 +114,7 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
                                 args.seed,
                                 args.timestep,
                                 args.select,
+                                args.rank,
                                 args.num_types,
                                 args.box,
                                 args.ghost_width,
@@ -222,24 +144,4 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
 #endif
     }
 
-void export_PatchEnergyJITUnionGPU(pybind11::module& m)
-    {
-    pybind11::class_<PatchEnergyJITUnionGPU,
-                     PatchEnergyJITUnion,
-                     std::shared_ptr<PatchEnergyJITUnionGPU>>(m, "PatchEnergyJITUnionGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<ExecutionConfiguration>,
-                            const std::string&,
-                            Scalar,
-                            const unsigned int,
-                            const std::string&,
-                            Scalar,
-                            const unsigned int,
-                            const std::string&,
-                            const std::string&,
-                            const std::vector<std::string>&,
-                            const std::string&,
-                            unsigned int>())
-        .def("setParam", &PatchEnergyJITUnionGPU::setParam);
-    }
 #endif

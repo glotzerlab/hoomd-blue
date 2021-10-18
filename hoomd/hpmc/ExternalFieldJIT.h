@@ -17,8 +17,8 @@
    interface for returning the energy of interaction between a particle and an external field. The
    actual computation is performed by code that is loaded and compiled at run time using LLVM.
 
-    The user provides LLVM IR code containing a function 'eval' with the defined function signature.
-   On construction, this class uses the LLVM library to compile that IR down to machine code and
+    The user provides C++ code containing a function 'eval' with the defined function signature.
+   On construction, this class uses the LLVM library to compile that down to machine code and
    obtain a function pointer to call.
 
     LLVM execution is managed with the KaleidoscopeJIT class in m_JIT. On construction, the LLVM
@@ -36,21 +36,22 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
     //! Constructor
     ExternalFieldJIT(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<ExecutionConfiguration> exec_conf,
-                     const std::string& llvm_ir)
+                     const std::string& cpu_code,
+                     const std::vector<std::string>& compiler_args)
         : hpmc::ExternalFieldMono<Shape>(sysdef)
         {
         // build the JIT.
-        m_factory
-            = std::shared_ptr<ExternalFieldEvalFactory>(new ExternalFieldEvalFactory(llvm_ir));
+        ExternalFieldEvalFactory* factory = new ExternalFieldEvalFactory(cpu_code, compiler_args);
 
         // get the evaluator
-        m_eval = m_factory->getEval();
+        m_eval = factory->getEval();
 
         if (!m_eval)
             {
-            exec_conf->msg->error() << m_factory->getError() << std::endl;
+            exec_conf->msg->error() << factory->getError() << std::endl;
             throw std::runtime_error("Error compiling JIT code.");
             }
+        m_factory = std::shared_ptr<ExternalFieldEvalFactory>(factory);
         }
 
     //! Evaluate the energy of the force.
@@ -72,6 +73,53 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         return m_eval(box, type, r_i, q_i, diameter, charge);
         }
 
+    //! Computes the total field energy of the system at the current state
+    virtual double computeEnergy(uint64_t timestep)
+        {
+        ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
+                                       access_location::host,
+                                       access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(),
+                                           access_location::host,
+                                           access_mode::read);
+        ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(),
+                                       access_location::host,
+                                       access_mode::read);
+        ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(),
+                                     access_location::host,
+                                     access_mode::read);
+
+        const BoxDim& box = this->m_pdata->getGlobalBox();
+
+        double total_energy = 0.0;
+        for (size_t i = 0; i < this->m_pdata->getN(); i++)
+            {
+            // read in the current position and orientation
+            Scalar4 postype_i = h_postype.data[i];
+            unsigned int typ_i = __scalar_as_int(postype_i.w);
+            vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+
+            total_energy += energy(box,
+                                   typ_i,
+                                   pos_i,
+                                   quat<Scalar>(h_orientation.data[i]),
+                                   h_diameter.data[i],
+                                   h_charge.data[i]);
+            }
+#ifdef ENABLE_MPI
+        if (this->m_sysdef->isDomainDecomposed())
+            {
+            MPI_Allreduce(MPI_IN_PLACE,
+                          &total_energy,
+                          1,
+                          MPI_HOOMD_SCALAR,
+                          MPI_SUM,
+                          this->m_exec_conf->getMPICommunicator());
+            }
+#endif
+        return total_energy;
+        }
+
     virtual double calculateDeltaE(const Scalar4* const position_old_arg,
                                    const Scalar4* const orientation_old_arg,
                                    const BoxDim* const box_old_arg)
@@ -88,11 +136,9 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(),
                                      access_location::host,
                                      access_mode::read);
-
         const BoxDim& box_new = this->m_pdata->getGlobalBox();
         const Scalar4 *position_old = position_old_arg, *orientation_old = orientation_old_arg;
         const BoxDim* box_old = box_old_arg;
-
         if (!position_old)
             {
             const Scalar4* const position_new = h_postype.data;
@@ -107,7 +153,6 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
             {
             box_old = &box_new;
             }
-
         double dE = 0.0;
         for (size_t i = 0; i < this->m_pdata->getN(); i++)
             {
@@ -115,7 +160,6 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
             Scalar4 postype_i = h_postype.data[i];
             unsigned int typ_i = __scalar_as_int(postype_i.w);
             vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-
             dE += energy(box_new,
                          typ_i,
                          pos_i,
@@ -129,9 +173,8 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
                          h_diameter.data[i],
                          h_charge.data[i]);
             }
-
 #ifdef ENABLE_MPI
-        if (this->m_pdata->getDomainDecomposition())
+        if (this->m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &dE,
@@ -141,7 +184,6 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
                           this->m_exec_conf->getMPICommunicator());
             }
 #endif
-
         return dE;
         }
 
@@ -202,7 +244,8 @@ template<class Shape> void export_ExternalFieldJIT(pybind11::module& m, std::str
                      std::shared_ptr<ExternalFieldJIT<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ExecutionConfiguration>,
-                            const std::string&>())
-        .def("energy", &ExternalFieldJIT<Shape>::energy);
+                            const std::string&,
+                            const std::vector<std::string>&>())
+        .def("computeEnergy", &ExternalFieldJIT<Shape>::computeEnergy);
     }
 #endif // _EXTERNAL_FIELD_ENERGY_JIT_H_

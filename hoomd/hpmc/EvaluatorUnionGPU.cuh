@@ -6,8 +6,8 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ManagedArray.h"
 #include "hoomd/VectorMath.h"
+#include "hoomd/hpmc/Evaluator.cuh"
 #include "hoomd/hpmc/GPUTree.h"
-#include "hoomd/jit/Evaluator.cuh"
 
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
@@ -95,7 +95,7 @@ union_params_t
 __device__ union_params_t* d_union_params;
 
 //! Device storage of rcut value
-__device__ float d_rcut_union;
+__device__ float d_r_cut_constituent;
 
 __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
                                                  float r_cut,
@@ -145,9 +145,7 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
         float rsq = dot(r_ij_local, r_ij_local);
         float d_i = params[type_a].mdiameter[ileaf];
         float d_j = params[type_b].mdiameter[jleaf];
-        float rcut_total = r_cut + 0.5f * (d_i + d_j);
-
-        if (rsq <= rcut_total * rcut_total)
+        if (rsq <= r_cut * r_cut)
             {
             // evaluate energy via JIT function
             energy += ::eval(r_ij_local,
@@ -190,7 +188,7 @@ __device__ inline float eval_union(const union_params_t* params,
     const hpmc::detail::GPUTree& tree_b = params[type_j].tree;
 
     // load from device global variable
-    float r_cut = d_rcut_union;
+    float r_cut = d_r_cut_constituent;
     float r_cut2 = 0.5f * r_cut;
 
     // perform a tandem tree traversal

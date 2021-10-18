@@ -1,13 +1,11 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
 #ifdef ENABLE_HIP
+#include "PatchEnergyJITUnionGPU.h"
 
-#include "PatchEnergyJITGPU.h"
-#include "hoomd/hpmc/IntegratorHPMC.h"
+#include "hoomd/hpmc/EvaluatorUnionGPU.cuh"
+#include <pybind11/stl.h>
 
 //! Kernel driver for kernel::hpmc_narrow_phase_patch
-void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
+void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
     {
 #ifdef __HIP_PLATFORM_NVCC__
     assert(args.d_postype);
@@ -33,13 +31,13 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
         tpp--;
         }
     auto& devprop = m_exec_conf->dev_prop;
-    tpp = std::min((unsigned int)devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
+    tpp = std::min((unsigned int)devprop.maxThreadsDim[2], tpp);
 
     unsigned int n_groups = run_block_size / (tpp * eval_threads);
-
     unsigned int max_queue_size = n_groups * tpp;
 
-    const size_t min_shared_bytes = args.num_types * sizeof(Scalar);
+    size_t min_shared_bytes
+        = args.num_types * sizeof(Scalar) + m_d_union_params.size() * sizeof(jit::union_params_t);
 
     size_t shared_bytes = n_groups
                               * (sizeof(unsigned int) + 2 * sizeof(Scalar4) + 2 * sizeof(Scalar3)
@@ -50,7 +48,7 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of "
                                  "particle types or size of shape parameters");
 
-    unsigned int kernel_shared_bytes
+    size_t kernel_shared_bytes
         = m_gpu_factory.getKernelSharedSize(0, eval_threads, block_size); // fixme GPU 0
     while (shared_bytes + kernel_shared_bytes >= devprop.sharedMemPerBlock)
         {
@@ -66,6 +64,7 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
         tpp = std::min((unsigned int)devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
 
         n_groups = run_block_size / (tpp * eval_threads);
+
         max_queue_size = n_groups * tpp;
 
         shared_bytes = n_groups
@@ -73,6 +72,20 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
                               + 2 * sizeof(Scalar) + 2 * sizeof(float))
                        + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes;
         }
+
+    // allocate some extra shared mem to store union shape parameters
+    unsigned int max_extra_bytes = (unsigned int)(m_exec_conf->dev_prop.sharedMemPerBlock
+                                                  - shared_bytes - kernel_shared_bytes);
+
+    // determine dynamically requested shared memory
+    char* ptr = (char*)nullptr;
+    unsigned int available_bytes = max_extra_bytes;
+    for (unsigned int i = 0; i < m_d_union_params.size(); ++i)
+        {
+        m_d_union_params[i].allocate_shared(ptr, available_bytes);
+        }
+    unsigned int extra_bytes = max_extra_bytes - available_bytes;
+    shared_bytes += extra_bytes;
 
     dim3 thread(eval_threads, n_groups, tpp);
 
@@ -86,8 +99,6 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
         const unsigned int num_blocks = (nwork + n_groups - 1) / n_groups;
 
         dim3 grid(num_blocks, 1, 1);
-
-        unsigned int max_extra_bytes = 0;
 
         // configure the kernel
         auto launcher = m_gpu_factory.configureKernel(idev,
@@ -114,6 +125,7 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
                                 args.seed,
                                 args.timestep,
                                 args.select,
+                                args.rank,
                                 args.num_types,
                                 args.box,
                                 args.ghost_width,
@@ -143,4 +155,24 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
 #endif
     }
 
+void export_PatchEnergyJITUnionGPU(pybind11::module& m)
+    {
+    pybind11::class_<PatchEnergyJITUnionGPU,
+                     PatchEnergyJITUnion,
+                     std::shared_ptr<PatchEnergyJITUnionGPU>>(m, "PatchEnergyJITUnionGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ExecutionConfiguration>,
+                            const std::string&,
+                            const std::vector<std::string>&,
+                            Scalar,
+                            pybind11::array_t<float>,
+                            const std::string&,
+                            Scalar,
+                            pybind11::array_t<float>,
+                            const std::string&,
+                            const std::string&,
+                            const std::vector<std::string>&,
+                            const std::string&,
+                            unsigned int>());
+    }
 #endif

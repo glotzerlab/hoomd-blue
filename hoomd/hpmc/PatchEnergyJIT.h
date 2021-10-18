@@ -9,14 +9,16 @@
 
 #include "EvalFactory.h"
 
+#include <pybind11/numpy.h>
+
 //! Evaluate patch energies via runtime generated code
 /*! This class enables the widest possible use-cases of patch energies in HPMC with low energy
    barriers for users to add custom interactions that execute with high performance. It provides a
    generic interface for returning the energy of interaction between a pair of particles. The actual
    computation is performed by code that is loaded and compiled at run time using LLVM.
 
-    The user provides LLVM IR code containing a function 'eval' with the defined function signature.
-   On construction, this class uses the LLVM library to compile that IR down to machine code and
+    The user provides C++ code containing a function 'eval' with the defined function signature.
+   On construction, this class uses the LLVM library to compile that to machine code and
    obtain a function pointer to call.
 
     This is the first use of LLVM in HOOMD and it is experimental. As additional areas are
@@ -38,15 +40,24 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     {
     public:
     //! Constructor
-    PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf,
-                   const std::string& llvm_ir,
+    PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
+                   std::shared_ptr<ExecutionConfiguration> exec_conf,
+                   const std::string& cpu_code,
+                   const std::vector<std::string>& compiler_args,
                    Scalar r_cut,
-                   const unsigned int array_size);
+                   pybind11::array_t<float> param_array,
+                   bool is_union = false);
 
     //! Get the maximum r_ij radius beyond which energies are always 0
     virtual Scalar getRCut()
         {
-        return m_r_cut;
+        return m_r_cut_isotropic;
+        }
+    //
+    //! Set the maximum r_ij radius beyond which energies are always 0
+    void setRCut(Scalar r_cut)
+        {
+        m_r_cut_isotropic = r_cut;
         }
 
     //! Get the maximum r_ij radius beyond which energies are always 0
@@ -81,14 +92,16 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
         return m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
         }
 
-    static pybind11::object getAlphaNP(pybind11::object self)
+    static pybind11::object getParamArray(pybind11::object self)
         {
         auto self_cpp = self.cast<PatchEnergyJIT*>();
-        return pybind11::array(self_cpp->m_alpha_size, self_cpp->m_factory->getAlphaArray(), self);
+        return pybind11::array(self_cpp->m_param_array.size(),
+                               self_cpp->m_factory->getAlphaArray(),
+                               self);
         }
 
     protected:
-    std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The exceuction configuration
+    std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
     //! function pointer signature
     typedef float (*EvalFnPtr)(const vec3<float>& r_ij,
                                unsigned int type_i,
@@ -99,12 +112,12 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
                                const quat<float>& q_j,
                                float,
                                float);
-    Scalar m_r_cut;                         //!< Cutoff radius
+    Scalar m_r_cut_isotropic;               //!< Cutoff radius
     std::shared_ptr<EvalFactory> m_factory; //!< The factory for the evaluator function
     EvalFactory::EvalFnPtr m_eval;          //!< Pointer to evaluator function inside the JIT module
-    unsigned int m_alpha_size;              //!< Size of array
     std::vector<float, managed_allocator<float>>
-        m_alpha; //!< Array containing adjustable parameters
+        m_param_array; //!< Array containing adjustable parameters
+    const bool m_is_union;
     };
 
 //! Exports the PatchEnergyJIT class to python
