@@ -254,3 +254,9 @@ class Integrator(_DynamicIntegrator):
         # Call attach from DynamicIntegrator which attaches forces,
         # constraint_forces, and methods, and calls super()._attach() itself.
         super()._attach()
+
+    def __setattr__(self, attr, value):
+        super().__setattr__(attr, value)
+        if (attr == 'integrate_rotational_dof' and self._simulation is not None
+                and self._simulation.state is not None):
+            self._simulation.state.update_group_dof()

@@ -169,6 +169,9 @@ def test_system_rotational_dof(simulation_factory, device):
                               / 10.0**3, (0., 0., 0., 2. / 10**3, 0., 0.),
                               volume=1000)
 
+    integrator.integrate_rotational_dof = False
+    assert thermo.rotational_degrees_of_freedom == 0
+
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     filter_ = hoomd.filter.All()
