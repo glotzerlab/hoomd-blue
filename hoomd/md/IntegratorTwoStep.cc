@@ -263,6 +263,12 @@ void IntegratorTwoStep::prepRun(uint64_t timestep)
                                        " provide torques."
                                     << endl;
         }
+    if (!m_integrate_rotational_dof && areForcesAnisotropic())
+        {
+        m_exec_conf->msg->warning() << "Forces provide torques, but integrate_rotational_dof is"
+                                       "false."
+                                    << endl;
+        }
 
     for (auto& method : m_methods)
         method->setAnisotropic(m_integrate_rotational_dof);
