@@ -925,14 +925,12 @@ template<class evaluator, unsigned int compute_virial, int tpp> struct TersoffCo
         {
         if (tpp == pair_args.tpp)
             {
-            static unsigned int max_block_size = UINT_MAX;
-            static unsigned int kernel_shared_bytes = 0;
-            if (max_block_size == UINT_MAX)
-                get_max_block_size(
-                    gpu_compute_triplet_forces_kernel<evaluator, compute_virial, tpp>,
-                    pair_args,
-                    max_block_size,
-                    kernel_shared_bytes);
+            unsigned int max_block_size;
+            unsigned int kernel_shared_bytes;
+            get_max_block_size(gpu_compute_triplet_forces_kernel<evaluator, compute_virial, tpp>,
+                               pair_args,
+                               max_block_size,
+                               kernel_shared_bytes);
             int run_block_size = min(pair_args.block_size, max_block_size);
 
             // size shared bytes

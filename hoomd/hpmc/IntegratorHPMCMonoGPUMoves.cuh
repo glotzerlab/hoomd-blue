@@ -283,14 +283,11 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
     if (args.dim == 2)
         {
         // determine the maximum block size and clamp the input block size down
-        static int max_block_size = -1;
-        static hipFuncAttributes attr;
-        if (max_block_size == -1)
-            {
-            hipFuncGetAttributes(&attr,
-                                 reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 2>));
-            max_block_size = attr.maxThreadsPerBlock;
-            }
+        int max_block_size;
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr,
+                             reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 2>));
+        max_block_size = attr.maxThreadsPerBlock;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
         // dynamic shared memory usage
@@ -339,14 +336,11 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
     else
         {
         // determine the maximum block size and clamp the input block size down
-        static int max_block_size = -1;
-        static hipFuncAttributes attr;
-        if (max_block_size == -1)
-            {
-            hipFuncGetAttributes(&attr,
-                                 reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 3>));
-            max_block_size = attr.maxThreadsPerBlock;
-            }
+        int max_block_size;
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr,
+                             reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 3>));
+        max_block_size = attr.maxThreadsPerBlock;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
         // dynamic shared memory usage
@@ -399,14 +393,10 @@ template<class Shape>
 void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::param_type* params)
     {
     // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    static hipFuncAttributes attr;
-    if (max_block_size == -1)
-        {
-        hipFuncGetAttributes(&attr,
-                             reinterpret_cast<const void*>(kernel::hpmc_update_pdata<Shape>));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_update_pdata<Shape>));
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
     for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)

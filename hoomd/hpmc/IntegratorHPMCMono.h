@@ -395,7 +395,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             {
             // migrate and exchange particles
             #ifdef ENABLE_MPI
-            if (m_comm)
+            if (m_sysdef->isDomainDecomposed())
                 {
                 // this is kludgy but necessary since we are calling the communications methods directly
                 m_comm->setFlags(getCommFlags(0));
@@ -617,7 +617,7 @@ std::vector<hpmc_implicit_counters_t> IntegratorHPMCMono<Shape>::getImplicitCoun
         }
 
     #ifdef ENABLE_MPI
-    if (this->m_comm)
+    if (this->m_sysdef->isDomainDecomposed())
         {
         // MPI Reduction to total result values on all ranks
         for (unsigned int i = 0; i < m_depletant_idx.getNumElements(); ++i)
@@ -730,7 +730,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
             vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
             #ifdef ENABLE_MPI
-            if (m_comm)
+            if (m_sysdef->isDomainDecomposed())
                 {
                 // only move particle if active
                 if (!isActive(make_scalar3(postype_i.x, postype_i.y, postype_i.z), box, ghost_fraction))
@@ -762,7 +762,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                 move_translate(pos_i, rng_i, h_d.data[typ_i], ndim);
 
                 #ifdef ENABLE_MPI
-                if (m_comm)
+                if (m_sysdef->isDomainDecomposed())
                     {
                     // check if particle has moved into the ghost layer, and skip if it is
                     if (!isActive(vec_to_scalar3(pos_i), box, ghost_fraction))
@@ -1047,7 +1047,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
     // perform the grid shift
     #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);

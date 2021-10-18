@@ -141,13 +141,10 @@ __global__ void confined_stream(Scalar4* d_pos,
 template<class Geometry>
 cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::confined_stream<Geometry>);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::confined_stream<Geometry>);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(args.block_size, max_block_size);
     dim3 grid(args.N / run_block_size + 1);

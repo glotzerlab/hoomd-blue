@@ -26,6 +26,7 @@ set(files __init__.py
           test_table.py
           test_variant.py
           test_sorter.py
+          test_operations.py
     )
 
 install(FILES ${files}

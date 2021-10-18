@@ -18,6 +18,14 @@ IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, S
     : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false), m_aniso_mode(Automatic)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        m_comm->getComputeCallbackSignal()
+            .connect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
+        }
+#endif
     }
 
 IntegratorTwoStep::~IntegratorTwoStep()
@@ -25,7 +33,7 @@ IntegratorTwoStep::~IntegratorTwoStep()
     m_exec_conf->msg->notice(5) << "Destroying IntegratorTwoStep" << endl;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         m_comm->getComputeCallbackSignal()
             .disconnect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
@@ -80,7 +88,7 @@ void IntegratorTwoStep::update(uint64_t timestep)
         m_prof->pop();
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // perform all necessary communication steps. This ensures
         // a) that particles have migrated to the correct domains
@@ -329,7 +337,7 @@ void IntegratorTwoStep::prepRun(uint64_t timestep)
         method->setAnisotropic(aniso);
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // force particle migration and ghost exchange
         m_comm->forceMigrate();
@@ -381,25 +389,6 @@ PDataFlags IntegratorTwoStep::getRequestedPDataFlags()
 
     return flags;
     }
-
-#ifdef ENABLE_MPI
-//! Set the communicator to use
-void IntegratorTwoStep::setCommunicator(std::shared_ptr<Communicator> comm)
-    {
-    // set Communicator in all methods
-    for (auto& method : m_methods)
-        method->setCommunicator(comm);
-
-    if (comm && !m_comm)
-        {
-        // on the first time setting the Communicator, connect our compute callback
-        comm->getComputeCallbackSignal()
-            .connect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
-        }
-
-    Integrator::setCommunicator(comm);
-    }
-#endif
 
 //! Updates the rigid body constituent particles
 void IntegratorTwoStep::updateRigidBodies(uint64_t timestep)

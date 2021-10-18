@@ -177,9 +177,6 @@ class HPMCIntegrator(BaseIntegrator):
         if (isinstance(self._simulation.device, hoomd.device.GPU)
                 and (self._cpp_cls + 'GPU') in _hpmc.__dict__):
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
-            if self._simulation._system_communicator is not None:
-                self._cpp_cell.setCommunicator(
-                    self._simulation._system_communicator)
             self._cpp_obj = getattr(_hpmc,
                                     self._cpp_cls + 'GPU')(sys_def,
                                                            self._cpp_cell)

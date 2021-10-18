@@ -401,7 +401,7 @@ void TwoStepNPTMTK::integrateStepOne(uint64_t timestep)
         }
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
         v = getIntegratorVariables();
@@ -1093,7 +1093,7 @@ void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(uint64_t timestep)
         }
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&v.variable.front(), 10, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());

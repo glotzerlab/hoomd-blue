@@ -14,7 +14,7 @@ from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
                                       TypeConverterMapping, OnlyIf, Either)
 from hoomd.data.smart_default import (_to_base_defaults, _to_default,
                                       _SmartDefault, _NoDefault)
-from hoomd.error import TypeConversionError
+from hoomd.error import IncompleteSpecificationError
 
 
 def _has_str_elems(obj):
@@ -45,10 +45,11 @@ def _raise_if_required_arg(value, current_context=()):
         context_str = " "
         for c in context:
             if isinstance(c, str):
-                context_str = context_str + f"in key {c} "
+                context_str = context_str + f"for key {c} "
             elif isinstance(c, int):
                 context_str = context_str + f"in index {c} "
-        raise ValueError(f"Value{context_str}is required")
+        # error is lower cased as this is meant to be caught.
+        raise IncompleteSpecificationError(f"value{context_str}is required")
 
     if value is RequiredArg:
         _raise_error_with_context(current_context)
@@ -129,9 +130,8 @@ class _ValidatedDefaultDict(MutableMapping):
         keys = self._yield_keys(keys)
         try:
             validated_value = self._validate_values(item)
-        except TypeConversionError as err:
-            raise TypeConversionError("For types {}, error {}.".format(
-                list(keys), str(err)))
+        except ValueError as err:
+            raise err.__class__(f"For types {list(keys)} {str(err)}.") from err
         for key in keys:
             self._single_setitem(key, validated_value)
 
@@ -194,11 +194,12 @@ class _ValidatedDefaultDict(MutableMapping):
                            self._type_converter.converter.specs))
                 expected_keys = set(mapping.keys())
             else:
-                raise ValueError
+                # the code shouldn't reach here so raise an error.
+                raise ValueError("Couid not identify specification.")
             bad_keys = set(validated_value.keys()) - expected_keys
             if len(bad_keys) != 0:
-                raise ValueError("Keys must be a subset of available keys. "
-                                 "Bad keys are {}".format(bad_keys))
+                raise KeyError("Keys must be a subset of available keys. "
+                               "Bad keys are {}".format(bad_keys))
         # update validated_value with the default (specifically to add dict keys
         # that have defaults and were not manually specified).
         if isinstance(self._default, _SmartDefault):
@@ -296,7 +297,7 @@ class _ValidatedDefaultDict(MutableMapping):
             keys = set(self._default.keys())
             provided_keys = set(new_default.keys())
             if keys.intersection(provided_keys) != provided_keys:
-                raise ValueError("New default must a subset of current keys.")
+                raise KeyError("New default must a subset of current keys.")
         self._default = _to_default(new_default)
 
 
@@ -388,7 +389,10 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         # add all types to c++
         for key in self:
             parameter = type_param_dict._single_getitem(key)
-            _raise_if_required_arg(parameter)
+            try:
+                _raise_if_required_arg(parameter)
+            except IncompleteSpecificationError as err:
+                raise IncompleteSpecificationError(f"for key {key} {str(err)}")
             self._single_setitem(key, parameter)
 
     def to_detached(self):

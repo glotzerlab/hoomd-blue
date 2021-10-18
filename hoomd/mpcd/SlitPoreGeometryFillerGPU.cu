@@ -157,13 +157,10 @@ cudaError_t slit_pore_draw_particles(Scalar4* d_pos,
     if (N_tot == 0)
         return cudaSuccess;
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)kernel::slit_pore_draw_particles);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)kernel::slit_pore_draw_particles);
+    max_block_size = attr.maxThreadsPerBlock;
 
     // precompute factor for rescaling the velocities since it is the same for all particles
     const Scalar vel_factor = fast::sqrt(kT / mass);

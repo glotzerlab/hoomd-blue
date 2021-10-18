@@ -906,7 +906,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
         // test if we are in domain decomposition mode
         bool domain_decomposition = false;
 #ifdef ENABLE_MPI
-        if (this->m_comm)
+        if (this->m_sysdef->isDomainDecomposed())
             domain_decomposition = true;
 #endif
 
