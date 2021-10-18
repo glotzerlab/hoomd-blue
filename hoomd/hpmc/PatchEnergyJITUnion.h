@@ -26,15 +26,14 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                         pybind11::array_t<float> param_array_isotropic,
                         const std::string& cpu_code_constituent,
                         Scalar r_cut_constituent,
-                        pybind11::array_t<float> param_array_constituent,
-                        bool is_union)
+                        pybind11::array_t<float> param_array_constituent)
         : PatchEnergyJIT(sysdef,
                          exec_conf,
                          cpu_code_isotropic,
                          compiler_args,
                          r_cut_isotropic,
                          param_array_isotropic,
-                         is_union),
+                         true),
           m_r_cut_constituent(r_cut_constituent),
           m_param_array_constituent(
               param_array_constituent.data(),
@@ -43,7 +42,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         {
         // build the JIT.
         EvalFactory* factory_constituent
-            = new EvalFactory(cpu_code_constituent, compiler_args, is_union);
+            = new EvalFactory(cpu_code_constituent, compiler_args, this->m_is_union);
 
         // get the evaluator and check for errors
         m_eval_constituent = factory_constituent->getEval();

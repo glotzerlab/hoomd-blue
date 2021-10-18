@@ -26,13 +26,11 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
     : PatchEnergy(sysdef), m_exec_conf(exec_conf), m_r_cut_isotropic(r_cut),
       m_param_array(param_array.data(),
                     param_array.data() + param_array.size(),
-                    hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
+                    hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
+      m_is_union(is_union)
     {
     // build the JIT.
-    EvalFactory* factory = new EvalFactory(cpu_code, compiler_args, is_union);
-
-    // save the C++ code string for exporting to python
-    m_cpu_code = cpu_code;
+    EvalFactory* factory = new EvalFactory(cpu_code, compiler_args, this->m_is_union);
 
     // get the evaluator
     m_eval = factory->getEval();
@@ -64,8 +62,7 @@ void export_PatchEnergyJIT(pybind11::module& m)
                             const std::string&,
                             const std::vector<std::string>&,
                             Scalar,
-                            pybind11::array_t<float>,
-                            bool>())
+                            pybind11::array_t<float>>())
         .def_property("r_cut", &PatchEnergyJIT::getRCut, &PatchEnergyJIT::setRCut)
         .def("energy", &PatchEnergyJIT::energy)
         .def_property_readonly("param_array", &PatchEnergyJIT::getParamArray);

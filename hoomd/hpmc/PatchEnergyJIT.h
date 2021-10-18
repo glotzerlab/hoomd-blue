@@ -50,7 +50,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
                    const std::vector<std::string>& compiler_args,
                    Scalar r_cut,
                    pybind11::array_t<float> param_array,
-                   bool is_union);
+                   bool is_union = false);
 
     //! Get the maximum r_ij radius beyond which energies are always 0
     virtual Scalar getRCut()
@@ -120,8 +120,8 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     std::shared_ptr<EvalFactory> m_factory; //!< The factory for the evaluator function
     EvalFactory::EvalFnPtr m_eval;          //!< Pointer to evaluator function inside the JIT module
     std::vector<float, hoomd::detail::managed_allocator<float>>
-        m_param_array;      //!< Array containing adjustable parameters
-    std::string m_cpu_code; //!< the C++ code
+        m_param_array; //!< Array containing adjustable parameters
+    const bool m_is_union;
     };
 
 namespace detail

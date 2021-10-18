@@ -14,25 +14,25 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 
 
-class CPPExternalField(_HOOMDBaseObject):
-    """Define an external field imposed on all particles in the system.
+class CPPExternalPotential(_HOOMDBaseObject):
+    """Define an external potential energy field imposed on all particles in \
+            the system.
 
     Args:
         code (str): C++ function body to compile.
 
-    Potentials added using :py:class:`CPPExternalField` are added to the total
-    energy calculation in :py:mod:`hpmc <hoomd.hpmc>` integrators.  The
-    :py:class:`CPPExternalField` external field takes C++ code, compiles it at
-    runtime, and executes the code natively in the MC loop with full
-    performance. It enables researchers to quickly and easily implement custom
-    energetic field intractions without the need to modify and recompile HOOMD.
+    Potentials added using :py:class:`CPPExternalPotential` are added to the
+    total energy calculation in :py:mod:`hpmc <hoomd.hpmc>` integrators.
+    :py:class:`CPPExternalPotential` takes C++ code, compiles it at runtime, and
+    executes the code natively in the MC loop with full performance. It enables
+    researchers to quickly and easily implement custom energetic field
+    intractions without the need to modify and recompile HOOMD.
 
     .. rubric:: C++ code
 
-    Supply C++ code to the *code* argument and :py:class:`CPPExternalField` will
-    compile the code and call it to evaluate the energy.
-    The text provided in *code* is the body of a function with the following
-    signature:
+    Supply C++ code to the *code* argument and :py:class:`CPPExternalPotential`
+    will compile the code and call it to evaluate the energy. The text provided
+    in *code* is the body of a function with the following signature:
 
     .. code::
 
@@ -68,15 +68,16 @@ class CPPExternalField(_HOOMDBaseObject):
         .. code-block:: python
 
             grav_code = "return r_i.z + box.getL().z/2;"
-            gravity = hoomd.hpmc.external.user.CPPExternalField(code=grav_code)
-            mc.field = gravity
+            gravity = hoomd.hpmc.external.user.CPPExternalPotential(
+                code=grav_code)
+            mc.external_potential = gravity
 
     Note:
-        `CPPExternalField` does not support execution on GPUs.
+        `CPPExternalPotential` does not support execution on GPUs.
 
     Warning:
-        ``CPPExternalField`` is **experimental** and subject to change in future
-        minor releases.
+        ``CPPExternalPotential`` is **experimental** and subject to change in
+        future minor releases.
 
     Attributes:
         code (str): The code of the body of the external field energy function.

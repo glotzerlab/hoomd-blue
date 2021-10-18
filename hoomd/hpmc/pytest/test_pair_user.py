@@ -17,6 +17,11 @@ valid_constructor_args = [
         param_array=[0, 1],
         code='return -1;',
     ),
+    dict(
+        r_cut=1.0,
+        param_array=[],
+        code='return 0.0f;',
+    ),
 ]
 
 # setable attributes before attach for CPPPotential objects
@@ -37,9 +42,8 @@ positions_orientations_result = [
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-@pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_behavior_before_attach_cpp_potential(device, constructor_args,
-                                                    attr, value):
+def test_valid_constructor_before_attach_cpp_potential(device,
+                                                       constructor_args):
     """Test that CPPPotential can be constructed with valid arguments.
 
     This test also tests that the properties can be modified before attaching.
@@ -51,25 +55,37 @@ def test_valid_behavior_before_attach_cpp_potential(device, constructor_args,
     for attr, value in constructor_args.items():
         assert np.all(getattr(patch, attr) == value)
 
+
+@pytest.mark.parametrize("attr,value", valid_attrs)
+def test_valid_setting_before_attach_cpp_potential(device, attr, value):
+    """Test that CPPPotential can be constructed with valid arguments.
+
+    This test also tests that the properties can be modified before attaching.
+
+    """
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=3,
+                                              param_array=[0, 1],
+                                              code='return -1;')
+
     # ensure we can set properties
     setattr(patch, attr, value)
     assert getattr(patch, attr) == value
 
 
 @pytest.mark.validate
-@pytest.mark.parametrize("constructor_args", valid_constructor_args)
 @pytest.mark.parametrize("attr_set,value_set", valid_attrs_after_attach)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_modify_after_attach_cpp_potential(device, simulation_factory,
                                            two_particle_snapshot_factory,
-                                           constructor_args, attr_set,
-                                           value_set):
+                                           attr_set, value_set):
     """Test that CPPPotential can be attached with valid arguments."""
     # create objects
-    patch = hoomd.hpmc.pair.user.CPPPotential(**constructor_args)
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=3,
+                                              param_array=[0, 1],
+                                              code='return -1;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -79,28 +95,25 @@ def test_modify_after_attach_cpp_potential(device, simulation_factory,
     sim.run(0)
 
     # validate the params were set properly
-    for attr, value in constructor_args.items():
-        assert np.all(getattr(patch, attr) == value)
-
-    # validate the params were set properly
     sim.run(0)
     setattr(patch, attr_set, value_set)
     assert getattr(patch, attr_set) == value_set
 
 
 @pytest.mark.validate
-@pytest.mark.parametrize("constructor_args", valid_constructor_args)
 @pytest.mark.parametrize("err_attr,err_val", attr_error)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_error_after_attach_cpp_potential(device, simulation_factory,
                                           two_particle_snapshot_factory,
-                                          constructor_args, err_attr, err_val):
+                                          err_attr, err_val):
     """Test that CPPPotential can be attached with valid arguments."""
     # create objects
-    patch = hoomd.hpmc.pair.user.CPPPotential(**constructor_args)
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=3,
+                                              param_array=[0, 1],
+                                              code='return -1;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -155,10 +168,10 @@ def test_cpp_potential(device, positions, orientations, result,
     r_cut = sim.state.box.Lx / 2. * 0.4
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=r_cut,
                                               code=dipole_dipole.format(r_cut),
-                                              param_array=None)
+                                              param_array=[])
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     sim.operations.integrator = mc
 
@@ -208,7 +221,7 @@ def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
     patch = hoomd.hpmc.pair.user.CPPPotential(**params)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     sim.operations.integrator = mc
 
@@ -274,7 +287,7 @@ def test_cpp_potential_sticky_spheres(device, simulation_factory,
                                               param_array=[100.0])
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
-    mc.potential = patch
+    mc.pair_potential = patch
 
     sim.operations.integrator = mc
 

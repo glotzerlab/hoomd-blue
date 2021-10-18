@@ -26,19 +26,12 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
                       const std::vector<std::string>& cpu_compiler_args,
                       Scalar r_cut,
                       pybind11::array_t<float> param_array,
-                      bool is_union,
                       const std::string& gpu_code,
                       const std::string& kernel_name,
                       const std::vector<std::string>& options,
                       const std::string& cuda_devrt_library_path,
                       unsigned int compute_arch)
-        : PatchEnergyJIT(sysdef,
-                         exec_conf,
-                         cpu_code,
-                         cpu_compiler_args,
-                         r_cut,
-                         param_array,
-                         is_union),
+        : PatchEnergyJIT(sysdef, exec_conf, cpu_code, cpu_compiler_args, r_cut, param_array),
           m_gpu_factory(exec_conf,
                         gpu_code,
                         kernel_name,
@@ -46,7 +39,7 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
                         cuda_devrt_library_path,
                         compute_arch)
         {
-        m_gpu_factory.setAlphaPtr(&m_param_array.front(), is_union);
+        m_gpu_factory.setAlphaPtr(&m_param_array.front(), this->m_is_union);
 
         // tuning params for patch narrow phase
         std::vector<unsigned int> valid_params_patch;
@@ -108,7 +101,6 @@ inline void export_PatchEnergyJITGPU(pybind11::module& m)
                             const std::vector<std::string>&,
                             Scalar,
                             pybind11::array_t<float>,
-                            bool,
                             const std::string&,
                             const std::string&,
                             const std::vector<std::string>&,

@@ -188,8 +188,7 @@ class CPPPotential(CPPPotentialBase):
             between particles.
         param_array (list[float]): Parameter values to make available in
             ``float *param_array`` in the compiled code. If no adjustable
-            parameters are needed in the C++ code, pass either `None` or an
-            empty array.
+            parameters are needed in the C++ code, pass an empty array.
 
     See Also:
         `CPPPotentialBase` for the documentation of the parent class.
@@ -220,9 +219,11 @@ class CPPPotential(CPPPotentialBase):
                         '''
             patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=1.1, code=sq_well,
                                                       param_array=[])
-            mc.potential = patch
+            mc.pair_potential = patch
             sim.run(1000)
     """
+
+    _is_union = False
 
     def __init__(self, r_cut, code, param_array):
         param_dict = ParameterDict(r_cut=float,
@@ -230,13 +231,9 @@ class CPPPotential(CPPPotentialBase):
                                        dtype=np.float32, shape=(None,)),
                                    code=str)
         param_dict['r_cut'] = r_cut
-        if param_array is None:
-            param_dict['param_array'] = np.array([])
-        else:
-            param_dict['param_array'] = param_array
+        param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
         self.code = code
-        self._is_union = False
 
     def _getattr_param(self, attr):
         if attr == 'code':
@@ -268,7 +265,6 @@ class CPPPotential(CPPPotentialBase):
                 cpu_include_options,
                 self.r_cut,
                 self.param_array,
-                self._is_union,
                 gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"],
@@ -283,7 +279,6 @@ class CPPPotential(CPPPotentialBase):
                 cpu_include_options,
                 self.r_cut,
                 self.param_array,
-                self._is_union,
             )
         # attach patch object to the integrator
         super()._attach()
@@ -304,12 +299,12 @@ class CPPPotentialUnion(CPPPotentialBase):
                 Must be `''` when executing on a GPU.
         param_array_constituent (list[float]): Parameter values to make
             available in ``float *param_array_constituent`` in the compiled
-            code.  Pass `None` or an empty array if no adjustable parameters are
-            needed for the constituent interactions.
+            code.  Pass an empty array if no adjustable parameters are needed
+            for the constituent interactions.
         param_array_isotropic (list[float]): Parameter values to make available
-            in ``float *param_array_isotropic`` in the compiled code. Pass
-            `None` or an empty array if no adjustable parameters are needed for
-            the isotropic interactions.
+            in ``float *param_array_isotropic`` in the compiled code. Pass an
+            empty array if no adjustable parameters are needed for the isotropic
+            interactions.
 
     Note:
         Code passed into ``code_isotropic`` is not used when executing on the
@@ -404,7 +399,7 @@ class CPPPotentialUnion(CPPPotentialBase):
         ]
         patch.diameters['A'] = [0, 0]
         patch.typeids['A'] = [0, 0]
-        mc.potential = patch
+        mc.pair_potential = patch
 
     Example with added isotropic interactions:
 
@@ -442,9 +437,11 @@ class CPPPotentialUnion(CPPPotentialBase):
         ]
         patch.typeids['A'] = [0, 0]
         patch.diameters['A'] = [0, 0]
-        mc.potential = patch
+        mc.pair_potential = patch
 
     """
+
+    _is_union = True
 
     def __init__(self, r_cut_constituent, code_constituent, r_cut_isotropic,
                  code_isotropic, param_array_constituent,
@@ -462,15 +459,8 @@ class CPPPotentialUnion(CPPPotentialBase):
             code_isotropic=str,
         )
 
-        if param_array_constituent is None:
-            param_dict['param_array_constituent'] = np.array([])
-        else:
-            param_dict['param_array_constituent'] = param_array_constituent
-
-        if param_array_isotropic is None:
-            param_dict['param_array_isotropic'] = np.array([])
-        else:
-            param_dict['param_array_isotropic'] = param_array_isotropic
+        param_dict['param_array_constituent'] = param_array_constituent
+        param_dict['param_array_isotropic'] = param_array_isotropic
         self._param_dict.update(param_dict)
 
         # add union specific per-type parameters
@@ -512,7 +502,6 @@ class CPPPotentialUnion(CPPPotentialBase):
 
         self.code_constituent = code_constituent
         self.code_isotropic = code_isotropic
-        self._is_union = True
 
     def _getattr_param(self, attr):
         code_attrs = {'code_isotropic', 'code_constituent'}
@@ -556,7 +545,6 @@ class CPPPotentialUnion(CPPPotentialBase):
                 cpu_code_constituent,
                 self.r_cut_constituent,
                 self.param_array_constituent,
-                self._is_union,
                 gpu_code_constituent,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"] + ["-DUNION_EVAL"],
@@ -574,7 +562,6 @@ class CPPPotentialUnion(CPPPotentialBase):
                 cpu_code_constituent,
                 self.r_cut_constituent,
                 self.param_array_constituent,
-                self._is_union,  # is_union, True for this class
             )
         # attach patch object to the integrator
         super()._attach()
