@@ -32,10 +32,11 @@ class Mesh(_HOOMDBaseObject):
         self._cpp_obj = _hoomd.MeshDefinition(
             self._simulation.state._cpp_sys_def.getParticleData())
 
-        self.size = self._size
-        self.types = self._types
-        self.typeid = self._typeid
-        self.triangles = self._triangles
+        if self._size != 0:
+            self.size = self._size
+            self.types = self._types
+            self.triangles = self._triangles
+            self.typeid = self._typeid
 
         super()._attach()
 
@@ -68,7 +69,7 @@ class Mesh(_HOOMDBaseObject):
     def typeid(self, tid):
         if self._attached:
             self._cpp_obj.triangles.typeid[:] = tid
-            if len(self._triangles) == self.size:
+            if len(self.triangles) == self.size:
                 self._update_mesh()
         else:
             self._typeid = tid
