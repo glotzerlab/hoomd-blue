@@ -217,8 +217,8 @@ def test_param_array(device, simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory(L=50))
 
     r_cut = 5
-    params = dict(code=lennard_jones, param_array=[2.5, 1.2, 1.0], r_cut=r_cut)
-    patch = hoomd.hpmc.pair.user.CPPPotential(**params)
+    patch = hoomd.hpmc.pair.user.CPPPotential(code-lennard_jones,
+            param_array=[2.5, 1.2, 1.0], r_cut=r_cut)
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     mc.pair_potential = patch

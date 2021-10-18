@@ -235,7 +235,7 @@ def test_param_array_union_cpu(device, simulation_factory,
     # set up the system and patches
     sim = simulation_factory(two_particle_snapshot_factory(L=40))
     r_cut_iso = 5
-    params = dict(
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
         code_isotropic=square_well_isotropic,
         param_array_isotropic=[2.5, 1.0],
         r_cut_isotropic=r_cut_iso,
@@ -243,7 +243,6 @@ def test_param_array_union_cpu(device, simulation_factory,
         param_array_constituent=[1.5, 3.0],
         r_cut_constituent=1.5,
     )
-    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**params)
     const_particle_pos = [(0.0, -0.5, 0), (0.0, 0.5, 0)]
     patch.positions['A'] = const_particle_pos
     patch.orientations['A'] = [(1, 0, 0, 0), (1, 0, 0, 0)]
@@ -328,7 +327,7 @@ def test_param_array_union_gpu(device, simulation_factory,
 
     # set up the system and patches
     sim = simulation_factory(two_particle_snapshot_factory(L=40))
-    params = dict(
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
         code_isotropic='',
         code_constituent=square_well_constituent,
         param_array_constituent=[1.5, 3.0],
@@ -336,7 +335,6 @@ def test_param_array_union_gpu(device, simulation_factory,
         r_cut_isotropic=0,
         param_array_isotropic=[],
     )
-    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**params)
     const_particle_pos = [(0.0, -0.5, 0), (0.0, 0.5, 0)]
     patch.positions['A'] = const_particle_pos
     patch.orientations['A'] = [(1, 0, 0, 0), (1, 0, 0, 0)]
