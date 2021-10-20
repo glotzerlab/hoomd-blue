@@ -19,9 +19,8 @@ class Mesh(_HOOMDBaseObject):
 
     """
 
-    def __init__(self, simulation):
+    def __init__(self):
 
-        self._simulation = simulation
         self._triangles = np.empty([0, 3], dtype=int)
         self._size = 0
         self._types = []
@@ -39,6 +38,16 @@ class Mesh(_HOOMDBaseObject):
             self.typeid = self._typeid
 
         super()._attach()
+
+    def _remove_dependent(self, obj):
+        super()._remove_dependent(obj)
+        if len(self._dependents) == 0:
+            if self._attached:
+                self._detach()
+                self._remove()
+                return
+            if self._added:
+                self._remove()
 
     @property
     def size(self):

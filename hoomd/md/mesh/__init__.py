@@ -4,4 +4,4 @@
 
 """Mesh potentials for molecular dynamics."""
 
-from .bond import (Harmonic, FENE, Tether)
+from . import bond

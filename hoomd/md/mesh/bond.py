@@ -135,7 +135,7 @@ class Harmonic(MeshBond):
                                TypeParameterDict(k=float, r0=float, len_keys=1))
         self._add_typeparam(params)
 
-        super().__init__(self, mesh)
+        super().__init__(mesh)
 
 
 class FENE(MeshBond):
@@ -186,7 +186,7 @@ class FENE(MeshBond):
                               len_keys=1))
         self._add_typeparam(params)
 
-        super().__init__(self, mesh)
+        super().__init__(mesh)
 
 
 class Tether(MeshBond):
@@ -238,4 +238,4 @@ class Tether(MeshBond):
                               len_keys=1))
         self._add_typeparam(params)
 
-        super().__init__(self, mesh)
+        super().__init__(mesh)
