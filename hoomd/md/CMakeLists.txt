@@ -25,6 +25,7 @@ set(_md_sources module-md.cc
                    ManifoldPrimitive.cc
                    ManifoldSphere.cc
                    MolecularForceCompute.cc
+                   MuellerPlatheFlow.cc
                    NeighborListBinned.cc
                    NeighborList.cc
                    NeighborListStencil.cc
@@ -42,7 +43,6 @@ set(_md_sources module-md.cc
                    TwoStepNVTMTK.cc
                    WallData.cc
                    ZeroMomentumUpdater.cc
-                   MuellerPlatheFlow.cc
                    )
 
 set(_md_headers ActiveForceComputeGPU.h
