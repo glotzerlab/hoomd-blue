@@ -2,8 +2,8 @@
 #error This file cannot be compiled on the GPU.
 #endif
 
+#include "EvaluatorWalls.h"
 #include "hoomd/ArrayView.h"
-# include "EvaluatorWalls.h"
 
 void export_wall_field(pybind11::module& m)
     {
