@@ -43,7 +43,7 @@ def dihedral_snapshot_factory(device):
 def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
 
     sim = simulation_factory(two_particle_snapshot_factory(d=2.0))
-    mesh = Mesh(sim)
+    mesh = Mesh()
 
     assert mesh.size == 0
     assert len(mesh.triangles) == 0
@@ -52,6 +52,7 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
     with pytest.raises(DataAccessError):
         mesh.bonds == 0
 
+    mesh._add(sim)
     mesh._attach()
 
     assert mesh.size == 0
@@ -61,9 +62,8 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
     assert len(mesh.bonds) == 0
 
 
-def test_mesh_setter(simulation_factory, dihedral_snapshot_factory):
-    sim = simulation_factory(dihedral_snapshot_factory(d=0.969, L=5))
-    mesh = Mesh(sim)
+def test_mesh_setter():
+    mesh = Mesh()
 
     mesh.size = 2
     mesh.types = ["A"]
@@ -79,8 +79,9 @@ def test_mesh_setter(simulation_factory, dihedral_snapshot_factory):
 
 def test_mesh_setter_attached(simulation_factory, dihedral_snapshot_factory):
     sim = simulation_factory(dihedral_snapshot_factory(d=0.969, L=5))
-    mesh = Mesh(sim)
+    mesh = Mesh()
 
+    mesh._add(sim)
     mesh._attach()
     mesh.size = 2
     mesh.types = ["A"]
