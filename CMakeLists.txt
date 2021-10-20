@@ -56,10 +56,10 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
-# enable c++14
-set(CMAKE_CXX_STANDARD 14)
+# enable c++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD 17)
 
 # Enable compiler warnings on gcc and clang (common compilers used by developers)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
