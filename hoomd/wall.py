@@ -139,7 +139,7 @@ class Cylinder(WallGeometry):
 
     def __repr__(self):
         """A string representation of the Cylinder."""
-        return f"Cylinder(radius={self.radius}, origin=self.origin, "
+        return f"Cylinder(radius={self.radius}, origin={self.origin}, "
         f"axis={self.axis}, inside={self.inside})"
 
     def to_dict(self):
@@ -354,7 +354,8 @@ class _WallsMetaList(MutableSequence):
         """
         for wall_type, wall_list in sync_lists.items():
             # simulation is unnecessary here since the SyncedList instance is
-            # not user facing.
+            # not user facing, and unique membership of frontend items not
+            # required.
             self._backend_lists[wall_type]._sync(None, wall_list)
 
     def _unsync(self):
