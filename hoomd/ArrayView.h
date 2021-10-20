@@ -17,10 +17,10 @@
 // This class provides a Python list like interface to an arbitrary homogeneous data buffer.
 //
 // The intention is to expose arrays as list like arrays (this can already occur with std::vector
-// thorough pybind11 automatically). However, when syncing with GPU's data cannot be stored in a
-// std::vector, since vectors do not know how to sync between GPUs and CPUs. Currently this class
-// only supports fixed size arrays or at least does not support changing size natively (perhaps the
-// callback feature could enable this by changing buffer_size directly.
+// thorough pybind11 automatically, however, in some cases such as statically sized arrays, the
+// array_view is necessary). Currently this class only supports fixed size arrays or at least does
+// not support changing size natively (perhaps the callback feature could enable this by changing
+// buffer_size directly.
 //
 // The class provides an update functionality that can use a function like object that takes in a
 // const array_view<value_type>* and returns void. This allow for callbacks to modify any
@@ -41,7 +41,7 @@
 //
 //     A potential example of this is viewing the data of a ManagedArray with this class in Python.
 //     If the array is resized (reallocated) while the array_view is still extant, then the pointer
-//     will stored in array_view will be invalid.
+//     stored in array_view will be invalid.
 //
 // WARNING:
 //     In Python this class should only be used internally and never made user facing due to the
