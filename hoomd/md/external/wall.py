@@ -37,6 +37,20 @@ def _to_md_cpp_wall(wall):
     raise TypeError(f"Unknown wall type encountered {type(wall)}.")
 
 
+class _WallArrayViewFactory:
+
+    def __init__(self, cpp_wall_potential, wall_type):
+        self.cpp_obj = cpp_wall_potential
+        self.func_name = {
+            hoomd.wall.Sphere: "get_sphere_list",
+            hoomd.wall.Cylinder: "get_cylinder_list",
+            hoomd.wall.Plane: "get_plane_list"
+        }[wall_type]
+
+    def __call__(self):
+        return getattr(self.cpp_obj.field, self.func_name)()
+
+
 class WallPotential(force.Force):
     r"""Generic wall potential.
 
@@ -204,20 +218,6 @@ class WallPotential(force.Force):
         if self._walls is wall_list:
             return
         self._walls = hoomd.wall._WallsMetaList(wall_list, _to_md_cpp_wall)
-
-
-class _WallArrayViewFactory:
-
-    def __init__(self, cpp_wall_potential, wall_type):
-        self.cpp_obj = cpp_wall_potential
-        self.func_name = {
-            hoomd.wall.Sphere: "get_sphere_list",
-            hoomd.wall.Cylinder: "get_cylinder_list",
-            hoomd.wall.Plane: "get_plane_list"
-        }[wall_type]
-
-    def __call__(self):
-        return getattr(self.cpp_obj.field, self.func_name)()
 
 
 class LJ(WallPotential):
