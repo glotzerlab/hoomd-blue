@@ -74,13 +74,10 @@ template<typename value_type> struct PYBIND11_EXPORT array_view
             {
             throw std::runtime_error("Buffer is full.");
             }
-        if (index >= buffer_size)
-            {
-            throw std::runtime_error("Index larger than buffer size.");
-            }
+        // Python appends to the list if insert > len(list).
         if (index > size)
             {
-            throw std::runtime_error("Cannot insert an item beyond the end of the list.");
+            index = size;
             }
 
         for (size_t i(size - 1); i >= index; --i)

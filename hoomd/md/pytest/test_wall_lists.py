@@ -120,15 +120,11 @@ def test_insert(array_view_factory, wall_collection, wall_type_lists,
     for i in range(len(array_view) - 1):
         wall_equality(array_view[i], walls_list[i])
 
-    if insert_index > len(array_view):
-        with pytest.raises(RuntimeError):
-            array_view.insert(insert_index, walls_list[-1])
-        return
-
     array_view.insert(insert_index, walls_list[-1])
     assert len(array_view) == len(walls_list)
     assert get_collection_size(wall_collection, type_str) == len(walls_list)
-    assert wall_equality(array_view[insert_index], walls_list[-1])
+    assert wall_equality(array_view[min(insert_index,
+                                        len(array_view) - 1)], walls_list[-1])
     check_equivalent(array_view, wall_collection, type_str)
 
 
@@ -162,7 +158,6 @@ def test_len(array_view_factory, wall_collection, wall_type_lists):
     type_str, walls_list = wall_type_lists
     array_view = array_view_factory(wall_collection, type_str)
     for i, wall in enumerate(walls_list):
-        print(i)
         assert len(array_view) == i
         assert get_collection_size(wall_collection, type_str) == i
         array_view.append(wall)
