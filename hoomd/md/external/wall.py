@@ -166,18 +166,6 @@ class WallPotential(force.Force):
           calculations as pair potentials, Features of pair potentials such as
           specified neighborlists, and alternative force shifting modes are not
           supported.
-
-    .. py:attribute:: r_cut
-
-        The cut off distance for the wall potential per particle type.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
-
-    .. py:attribute:: r_extrap
-
-        The distance to extrapolate the potential per type.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     def __init__(self, walls):
@@ -246,14 +234,13 @@ class LJ(WallPotential):
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        lj = hoomd.md.wall.LJ(walls, default_r_cut=3.0)
+        lj = hoomd.md.wall.LJ(walls)
         # potential plotted below in red
-        lj.params['A'] = {"sigma": 1.0, "epsilon": 1.0}
-        lj.r_cut['B'] = 2.0**(1.0 / 2.0)
+        lj.params['A'] = {"sigma": 1.0, "epsilon": 1.0, "r_cut": 2.5}
         # set for both types "A" and "B"
-        lj.params['A','B'] = {"epsilon": 2.0, "sigma": 1.0}
+        lj.params[['A','B']] = {"epsilon": 2.0, "sigma": 1.0, "r_cut": 2.8}
         # set to extrapolated mode
-        lj.r_extrap.default = 1.1
+        lj.params["A"] = {"r_extrap": 1.1}
 
     V(r) plot:
 
@@ -268,20 +255,14 @@ class LJ(WallPotential):
           energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``r_cut`` (`float`, **required**) -
+          The cut off distance for the wall potential :math:`[\mathrm{length}]`
+        * ``r_extrap`` (`float`, **optional**) -
+          The distance to extrapolate the potential, defauts to 0
+          :math:`[\mathrm{length}]`
+          .
 
         Type: `TypeParameter` [``particle_types``, `dict`]
-
-    .. py:attribute:: r_cut
-
-        The cut off distance for the wall potential per particle type.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
-
-    .. py:attribute:: r_extrap
-
-        The distance to extrapolate the potential per type.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialLJ"
@@ -307,11 +288,6 @@ class Gauss(WallPotential):
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
             to use for the potential.
-        default_r_cut (float): The default cut off radius for the potential
-            :math:`[\mathrm{length}]`.
-        default_r_extrap (float): The default ``r_extrap`` value to use.
-            Defaults to 0. This only has an effect in the extrapolated mode
-            :math:`[\mathrm{length}]`.
 
     Wall force evaluated using the Gaussian potential.  See
     `hoomd.md.pair.Gauss` for force details and base parameters and
@@ -321,11 +297,10 @@ class Gauss(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        gaussian_wall=hoomd.md.wall.Gauss(walls, default_r_cut=3.0)
-        gaussian_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0}
-        gaussian_wall.r_cut['A'] = 3.0
-        gaussian_wall.params['A','B'] = {
-            "epsilon": 2.0, "sigma": 1.0, "alpha": 1.0}
+        gaussian_wall=hoomd.md.wall.Gauss(walls)
+        gaussian_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0, "r_cut": 2.5}
+        gaussian_wall.params[['A','B']] = {
+            "epsilon": 2.0, "sigma": 1.0, "r_cut": 1.0}
 
     Attributes:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
@@ -340,22 +315,13 @@ class Gauss(WallPotential):
           energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``r_cut`` (`float`, **required**) -
+          The cut off distance for the wall potential :math:`[\mathrm{length}]`
+        * ``r_extrap`` (`float`, **optional**) -
+          The distance to extrapolate the potential :math:`[\mathrm{length}]`,
+          defaults to 0.
 
         Type: `TypeParameter` [``particle_types``, `dict`]
-
-    .. py:attribute:: r_cut
-
-        The cut off distance for the wall potential per particle type
-        :math:`[\mathrm{length}]`.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
-
-    .. py:attribute:: r_extrap
-
-        The distance to extrapolate the potential per type
-        :math:`[\mathrm{length}]`.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialGauss"
@@ -381,11 +347,6 @@ class SLJ(WallPotential):
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
             to use for the potential.
-        default_r_cut (float): The default cut off radius for the potential
-            :math:`[\mathrm{length}]`.
-        default_r_extrap (float): The default ``r_extrap`` value to use.
-            Defaults to 0. This only has an effect in the extrapolated mode
-            :math:`[\mathrm{length}]`.
 
     Wall force evaluated using the Shifted Lennard-Jones potential.  Note that
     because `SLJ` is dependent upon particle diameters the following correction
@@ -401,10 +362,10 @@ class SLJ(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        slj_wall=hoomd.md.wall.SLJ(walls, default_r_cut=3.0)
-        slj_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0}
-        slj_wall.r_cut['A'] = 3.0
-        slj_wall.params['A','B'] = {"epsilon": 2.0, "sigma": 1.0}
+        slj_wall=hoomd.md.wall.SLJ(walls)
+        slj_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0, "r_cut": 3.0}
+        slj_wall.params[['A','B']] = {
+            "epsilon": 2.0, "sigma": 1.0, "r_cut": 3.2}
 
     Attributes:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
@@ -419,22 +380,13 @@ class SLJ(WallPotential):
           energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``r_cut`` (`float`, **required**) -
+          The cut off distance for the wall potential :math:`[\mathrm{length}]`
+        * ``r_extrap`` (`float`, **optional**) -
+          The distance to extrapolate the potential, defaults to 0
+          :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [``particle_types``, `dict`]
-
-    .. py:attribute:: r_cut
-
-        The cut off distance for the wall potential per particle type
-        :math:`[\mathrm{length}]`.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
-
-    .. py:attribute:: r_extrap
-
-        The distance to extrapolate the potential per type
-        :math:`[\mathrm{length}]`.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialSLJ"
@@ -461,24 +413,20 @@ class Yukawa(WallPotential):
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
             to use for the potential.
-        default_r_cut (float): The default cut off radius for the potential
-            :math:`[\mathrm{length}]`.
-        default_r_extrap (float): The default ``r_extrap`` value to use.
-            Defaults to 0. This only has an effect in the extrapolated mode
-            :math:`[\mathrm{length}]`.
 
-    Wall force evaluated using the Yukawa potential.  See
-    :py:class:`hoomd.md.pair.Yukawa` for force details and base parameters and
-    :py:class:`WallPotential` for generalized wall potential implementation
+    Wall force evaluated using the Yukawa potential.  See `hoomd.md.pair.Yukawa`
+    for force details and base parameters and `WallPotential` for generalized
+    wall potential implementation
 
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        yukawa_wall=hoomd.md.wall.Yukawa(walls, default_r_cut=3.0)
-        yukawa_wall.params['A'] = {"epsilon": 1.0, "kappa": 1.0}
-        yukawa_wall.r_cut['A'] = 3.0
-        yukawa_wall.params['A','B'] = {"epsilon": 0.5, "kappa": 3.0}
+        yukawa_wall = hoomd.md.wall.Yukawa(walls)
+        yukawa_wall.params['A'] = {
+            "epsilon": 1.0, "kappa": 1.0, "r_cut": 3.0}
+        yukawa_wall.params[['A','B']] = {
+            "epsilon": 0.5, "kappa": 3.0, "r_cut": 3.2}
         walls=wall.group()
 
     Attributes:
@@ -494,22 +442,13 @@ class Yukawa(WallPotential):
           energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``r_cut`` (`float`, **required**) -
+          The cut off distance for the wall potential :math:`[\mathrm{length}]`
+        * ``r_extrap`` (`float`, **optional**) -
+          The distance to extrapolate the potential, defaults to 0
+          :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [``particle_types``, `dict`]
-
-    .. py:attribute:: r_cut
-
-        The cut off distance for the wall potential per particle type
-        :math:`[\mathrm{length}]`.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
-
-    .. py:attribute:: r_extrap
-
-        The distance to extrapolate the potential per type
-        :math:`[\mathrm{length}]`.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialYukawa"
@@ -535,11 +474,6 @@ class Morse(WallPotential):
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
             to use for the potential.
-        default_r_cut (float): The default cut off radius for the potential
-            :math:`[\mathrm{length}]`.
-        default_r_extrap (float): The default ``r_extrap`` value to use.
-            Defaults to 0. This only has an effect in the extrapolated mode
-            :math:`[\mathrm{length}]`.
 
     Wall force evaluated using the Morse potential.  See
     :py:class:`hoomd.md.pair.Morse` for force details and base parameters and
@@ -550,10 +484,11 @@ class Morse(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        morse_wall=hoomd.md.wall.Morse(walls, default_r_cut=3.0)
-        morse_wall.params['A'] = {"D0": 1.0, "alpha": 1.0, "r0": 1.0}
-        morse_wall.r_cut['A'] = 3.0
-        morse_wall.params['A','B'] = {"D0": 0.5, "alpha": 3.0, "r0": 1.0}
+        morse_wall=hoomd.md.wall.Morse(walls)
+        morse_wall.params['A'] = {
+            "D0": 1.0, "alpha": 1.0, "r0": 1.0, "r_cut": 3.0}
+        morse_wall.params[['A','B']] = {
+            "D0": 0.5, "alpha": 3.0, "r0": 1.0, "r_cut": 3.2}
 
     Attributes:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
@@ -568,22 +503,13 @@ class Morse(WallPotential):
           energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``r_cut`` (`float`, **required**) -
+          The cut off distance for the wall potential :math:`[\mathrm{length}]`
+        * ``r_extrap`` (`float`, **optional**) -
+          The distance to extrapolate the potential, defaults to 0
+          :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [``particle_types``, `dict`]
-
-    .. py:attribute:: r_cut
-
-        The cut off distance for the wall potential per particle type
-        :math:`[\mathrm{length}]`.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
-
-    .. py:attribute:: r_extrap
-
-        The distance to extrapolate the potential per type
-        :math:`[\mathrm{length}]`.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialMorse"
@@ -610,26 +536,21 @@ class ForceShiftedLJ(WallPotential):
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
             to use for the potential.
-        default_r_cut (float): The default cut off radius for the potential
-            :math:`[\mathrm{length}]`.
-        default_r_extrap (float): The default ``r_extrap`` value to use.
-            Defaults to 0. This only has an effect in the extrapolated mode
-            :math:`[\mathrm{length}]`.
 
     Wall force evaluated using the Force-shifted Lennard-Jones potential.  See
-    :py:class:`hoomd.md.pair.ForceShiftedLJ` for force details and base
-    parameters and :py:class:`WallPotential` for generalized wall potential
-    implementation.
+    `hoomd.md.pair.ForceShiftedLJ` for force details and base parameters and
+    `WallPotential` for generalized wall potential implementation.
 
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        force_shifted_lj_wall=hoomd.md.wall.ForceShiftedLJ(
-            walls, default_r_cut=3.0)
-        force_shifted_lj_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0}
-        force_shifted_lj_wall.r_cut['A'] = 3.0
-        force_shifted_lj_wall.params['A','B'] = {"epsilon": 0.5, "sigma": 3.0}
+        shifted_lj_wall=hoomd.md.wall.ForceShiftedLJ(
+            walls)
+        shifted_lj_wall.params['A'] = {
+            "epsilon": 1.0, "sigma": 1.0, "r_cut": 3.0}
+        shifted_lj_wall.params[['A','B']] = {
+            "epsilon": 0.5, "sigma": 3.0, "r_cut": 3.2}
 
     Attributes:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
@@ -644,22 +565,13 @@ class ForceShiftedLJ(WallPotential):
           energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``r_cut`` (`float`, **required**) -
+          The cut off distance for the wall potential :math:`[\mathrm{length}]`
+        * ``r_extrap`` (`float`, **optional**) -
+          The distance to extrapolate the potential, defaults to 0
+          :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [``particle_types``, `dict`]
-
-    .. py:attribute:: r_cut
-
-        The cut off distance for the wall potential per particle type
-        :math:`[\mathrm{length}]`.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
-
-    .. py:attribute:: r_extrap
-
-        The distance to extrapolate the potential per type
-        :math:`[\mathrm{length}]`.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialForceShiftedLJ"
@@ -685,25 +597,20 @@ class Mie(WallPotential):
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
             to use for the potential.
-        default_r_cut (float): The default cut off radius for the potential
-            :math:`[\mathrm{length}]`.
-        default_r_extrap (float): The default ``r_extrap`` value to use.
-            Defaults to 0. This only has an effect in the extrapolated mode
-            :math:`[\mathrm{length}]`.
 
-    Wall force evaluated using the Mie potential.  See
-    :py:class:`hoomd.md.pair.Mie` for force details and base parameters and
-    :py:class:`WallPotential` for generalized wall potential implementation
+    Wall force evaluated using the Mie potential.  See `hoomd.md.pair.Mie` for
+    force details and base parameters and `WallPotential` for generalized wall
+    potential implementation
 
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
         mie_wall=hoomd.md.wall.Mie(walls, default_r_cut=3.0)
-        mie_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0, "n": 12, "m": 6}
-        mie_wall.r_cut['A'] = 3.0
-        mie_wall.params['A','B'] = {
-            "epsilon": 0.5, "sigma": 3.0, "n": 49, "m": 50}
+        mie_wall.params['A'] = {
+            "epsilon": 1.0, "sigma": 1.0, "n": 12, "m": 6, "r_cut": 3.0}
+        mie_wall.params[['A','B']] = {
+            "epsilon": 0.5, "sigma": 3.0, "n": 49, "m": 50, "r_cut": 3.2}
 
     Attributes:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
@@ -718,22 +625,13 @@ class Mie(WallPotential):
           energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) -
           particle size :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``r_cut`` (`float`, **required**) -
+          The cut off distance for the wall potential :math:`[\mathrm{length}]`
+        * ``r_extrap`` (`float`, **optional**) -
+          The distance to extrapolate the potential, defaults to 0
+          :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [``particle_types``, `dict`]
-
-    .. py:attribute:: r_cut
-
-        The cut off distance for the wall potential per particle type
-        :math:`[\mathrm{length}]`.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
-
-    .. py:attribute:: r_extrap
-
-        The distance to extrapolate the potential per type
-        :math:`[\mathrm{length}]`.
-
-        Type: `hoomd.data.TypeParameter` [``particle_types``, `float` ]
     """
 
     _cpp_class_name = "WallsPotentialMie"
