@@ -363,6 +363,8 @@ add_subdirectory(pair)
 
 add_subdirectory(methods)
 
+add_subdirectory(mesh)
+
 add_subdirectory(long_range)
 
 add_subdirectory(external)
