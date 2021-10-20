@@ -44,6 +44,7 @@
 #include "OPLSDihedralForceCompute.h"
 #include "PPPMForceCompute.h"
 #include "PotentialBond.h"
+#include "PotentialMeshBond.h"
 #include "PotentialExternal.h"
 #include "PotentialPair.h"
 #include "PotentialPairDPDThermo.h"
@@ -87,6 +88,7 @@
 #include "OPLSDihedralForceComputeGPU.h"
 #include "PPPMForceComputeGPU.h"
 #include "PotentialBondGPU.h"
+#include "PotentialMeshBondGPU.h"
 #include "PotentialExternalGPU.h"
 #include "PotentialPairDPDThermoGPU.h"
 #include "PotentialPairGPU.h"
@@ -287,6 +289,9 @@ PYBIND11_MODULE(_md, m)
     export_PotentialBond<PotentialBondHarmonic>(m, "PotentialBondHarmonic");
     export_PotentialBond<PotentialBondFENE>(m, "PotentialBondFENE");
     export_PotentialBond<PotentialBondTether>(m, "PotentialBondTether");
+    export_PotentialMeshBond<PotentialMeshBondHarmonic>(m, "PotentialMeshBondHarmonic");
+    export_PotentialMeshBond<PotentialMeshBondFENE>(m, "PotentialMeshBondFENE");
+    export_PotentialMeshBond<PotentialMeshBondTether>(m, "PotentialMeshBondTether");
     export_PotentialSpecialPair<PotentialSpecialPairLJ>(m, "PotentialSpecialPairLJ");
     export_PotentialSpecialPair<PotentialSpecialPairCoulomb>(m, "PotentialSpecialPairCoulomb");
     export_NeighborList(m);
@@ -380,6 +385,12 @@ PYBIND11_MODULE(_md, m)
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>(m, "PotentialBondFENEGPU");
     export_PotentialBondGPU<PotentialBondTetherGPU, PotentialBondTether>(m,
                                                                          "PotentialBondTetherGPU");
+    export_PotentialMeshBondGPU<PotentialMeshBondHarmonicGPU, PotentialMeshBondHarmonic>(
+        m,
+        "PotentialMeshBondHarmonicGPU");
+    export_PotentialMeshBondGPU<PotentialMeshBondFENEGPU, PotentialMeshBondFENE>(m, "PotentialMeshBondFENEGPU");
+    export_PotentialMeshBondGPU<PotentialMeshBondTetherGPU, PotentialMeshBondTether>(m,
+                                                                         "PotentialMeshBondTetherGPU");
     export_PotentialSpecialPairGPU<PotentialSpecialPairLJGPU, PotentialSpecialPairLJ>(
         m,
         "PotentialSpecialPairLJGPU");

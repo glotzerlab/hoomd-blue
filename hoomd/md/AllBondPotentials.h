@@ -10,10 +10,12 @@
 #include "EvaluatorBondHarmonic.h"
 #include "EvaluatorBondTether.h"
 #include "PotentialBond.h"
+#include "PotentialMeshBond.h"
 
 #ifdef ENABLE_HIP
 #include "AllDriverPotentialBondGPU.cuh"
 #include "PotentialBondGPU.h"
+#include "PotentialMeshBondGPU.h"
 #endif
 
 /*! \file AllBondPotentials.h
@@ -31,6 +33,13 @@ typedef PotentialBond<EvaluatorBondFENE> PotentialBondFENE;
 //! Bond potential force compute for Tethering forces
 typedef PotentialBond<EvaluatorBondTether> PotentialBondTether;
 
+//! Mesh Bond potential force compute for harmonic forces
+typedef PotentialMeshBond<EvaluatorBondHarmonic> PotentialMeshBondHarmonic;
+//! Mesh Bond potential force compute for FENE forces
+typedef PotentialMeshBond<EvaluatorBondFENE> PotentialMeshBondFENE;
+//! Mesh Bond potential force compute for Tethering forces
+typedef PotentialMeshBond<EvaluatorBondTether> PotentialMeshBondTether;
+
 #ifdef ENABLE_HIP
 //! Bond potential force compute for harmonic forces on the GPU
 typedef PotentialBondGPU<EvaluatorBondHarmonic, gpu_compute_harmonic_forces>
@@ -39,6 +48,14 @@ typedef PotentialBondGPU<EvaluatorBondHarmonic, gpu_compute_harmonic_forces>
 typedef PotentialBondGPU<EvaluatorBondFENE, gpu_compute_fene_forces> PotentialBondFENEGPU;
 //! Bond potential force compute for Tethering forces on the GPU
 typedef PotentialBondGPU<EvaluatorBondTether, gpu_compute_tether_forces> PotentialBondTetherGPU;
+
+//! Mesh Bond potential force compute for harmonic forces on the GPU
+typedef PotentialMeshBondGPU<EvaluatorBondHarmonic, gpu_compute_harmonic_forces>
+    PotentialMeshBondHarmonicGPU;
+//! Mesh Bond potential force compute for FENE forces on the GPU
+typedef PotentialMeshBondGPU<EvaluatorBondFENE, gpu_compute_fene_forces> PotentialMeshBondFENEGPU;
+//! Mesh Bond potential force compute for Tethering forces on the GPU
+typedef PotentialMeshBondGPU<EvaluatorBondTether, gpu_compute_tether_forces> PotentialMeshBondTetherGPU;
 #endif
 
 #endif // __BOND_POTENTIALS_H__

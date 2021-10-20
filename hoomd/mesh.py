@@ -32,10 +32,9 @@ class Mesh(_HOOMDBaseObject):
         self._cpp_obj = _hoomd.MeshDefinition(
             self._simulation.state._cpp_sys_def.getParticleData())
 
-         
         if self._size != 0:
-            self.types = self._types
             self.size = self._size
+            self.types = self._types
             self.triangles = self._triangles
             self.typeid = self._typeid
 
