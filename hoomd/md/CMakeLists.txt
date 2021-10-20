@@ -8,6 +8,7 @@ set(_md_sources module-md.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
                    CosineSqAngleForceCompute.cc
+                   EvaluatorWalls.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
@@ -39,6 +40,7 @@ set(_md_sources module-md.cc
                    TwoStepNPTMTK.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
+                   WallData.cc
                    ZeroMomentumUpdater.cc
                    MuellerPlatheFlow.cc
                    )
