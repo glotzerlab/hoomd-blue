@@ -102,6 +102,59 @@ def test_valid_construction_and_attach_cpp_union_potential(
         assert np.all(getattr(patch, attr) == value)
 
 
+@pytest.mark.validate
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
+        r_cut_isotropic=1.4,
+        r_cut_constituent=1.0,
+        code_isotropic='',
+        code_constituent='return 6;',
+        param_array_constituent=[],
+        param_array_isotropic=[],
+    )
+    patch.positions['A'] = [(0, 0, 0)]
+    patch.orientations['A'] = [(1, 0, 0, 0)]
+    patch.diameters['A'] = [1.0]
+    patch.typeids['A'] = [0]
+    patch.charges['A'] = [0]
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1)
+    mc.pair_potential = patch
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.run(0)
+    assert mc._attached
+    assert patch._attached
+
+
+@pytest.mark.validate
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
+        r_cut_isotropic=1.4,
+        r_cut_constituent=1.0,
+        code_isotropic='',
+        code_constituent='return 6;',
+        param_array_constituent=[],
+        param_array_isotropic=[],
+    )
+    patch.positions['A'] = [(0, 0, 0)]
+    patch.orientations['A'] = [(1, 0, 0, 0)]
+    patch.diameters['A'] = [1.0]
+    patch.typeids['A'] = [0]
+    patch.charges['A'] = [0]
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1)
+    mc.pair_potential = patch
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.run(0)
+    sim.operations.remove(mc)
+    assert not mc._attached
+    assert not patch._attached
+
+
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_cpp_union_potential(device, attr, value):
     """Test that CPPPotentialUnion can get and set attributes before \
@@ -235,7 +288,7 @@ def test_param_array_union_cpu(device, simulation_factory,
     # set up the system and patches
     sim = simulation_factory(two_particle_snapshot_factory(L=40))
     r_cut_iso = 5
-    params = dict(
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
         code_isotropic=square_well_isotropic,
         param_array_isotropic=[2.5, 1.0],
         r_cut_isotropic=r_cut_iso,
@@ -243,7 +296,6 @@ def test_param_array_union_cpu(device, simulation_factory,
         param_array_constituent=[1.5, 3.0],
         r_cut_constituent=1.5,
     )
-    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**params)
     const_particle_pos = [(0.0, -0.5, 0), (0.0, 0.5, 0)]
     patch.positions['A'] = const_particle_pos
     patch.orientations['A'] = [(1, 0, 0, 0), (1, 0, 0, 0)]
@@ -328,7 +380,7 @@ def test_param_array_union_gpu(device, simulation_factory,
 
     # set up the system and patches
     sim = simulation_factory(two_particle_snapshot_factory(L=40))
-    params = dict(
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
         code_isotropic='',
         code_constituent=square_well_constituent,
         param_array_constituent=[1.5, 3.0],
@@ -336,7 +388,6 @@ def test_param_array_union_gpu(device, simulation_factory,
         r_cut_isotropic=0,
         param_array_isotropic=[],
     )
-    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(**params)
     const_particle_pos = [(0.0, -0.5, 0), (0.0, 0.5, 0)]
     patch.positions['A'] = const_particle_pos
     patch.orientations['A'] = [(1, 0, 0, 0), (1, 0, 0, 0)]

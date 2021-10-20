@@ -16,7 +16,7 @@ def _make_random_params():
     """Get random values for the fire parameters."""
     params = {
         'dt': np.random.rand(),
-        'aniso': 'auto',
+        'integrate_rotational_dof': False,
         'min_steps_adapt': np.random.randint(1, 25),
         'finc_dt': 1 + np.random.rand(),
         'fdec_dt': np.random.rand(),
@@ -55,8 +55,6 @@ def _assert_error_if_nonpositive(fire):
 def test_constructor_validation():
     """Make sure constructor validates arguments."""
     with pytest.raises(ValueError):
-        md.minimize.FIRE(dt=0.01, aniso='nonsense')
-    with pytest.raises(ValueError):
         md.minimize.FIRE(dt=0.01, min_steps_conv=-5)
     with pytest.raises(ValueError):
         md.minimize.FIRE(dt=0.01, min_steps_adapt=0)
@@ -67,7 +65,7 @@ def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
     fire = md.minimize.FIRE(dt=0.01)
     default_params = {
         'dt': 0.01,
-        'aniso': 'auto',
+        'integrate_rotational_dof': False,
         'min_steps_adapt': 5,
         'finc_dt': 1.1,
         'fdec_dt': 0.5,

@@ -172,16 +172,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
      */
     void setAnisotropic(bool aniso)
         {
-        // warn if we are moving isotropic->anisotropic and we
-        // find no rotational degrees of freedom
-        if (!m_aniso && aniso && this->getRotationalDOF(m_group) == Scalar(0))
-            {
-            m_exec_conf->msg->warning() << "Integrator #" << m_integrator_id
-                                        << ": Anisotropic integration requested, but no rotational "
-                                           "degrees of freedom found for its group"
-                                        << std::endl;
-            }
-
         m_aniso = aniso;
         }
 

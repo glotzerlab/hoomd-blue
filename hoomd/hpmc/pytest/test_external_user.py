@@ -57,6 +57,47 @@ def test_valid_construction_cpp_external(device, constructor_args):
 
 
 @pytest.mark.cpu
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=0)
+    mc.external_potential = ext
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+
+    # create C++ mirror classes and set parameters
+    sim.run(0)
+
+    # make sure objecst are attached
+    assert mc._attached
+    assert ext._attached
+
+
+@pytest.mark.cpu
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
+    ext = hoomd.hpmc.external.user.CPPExternalPotential(code='return 0;')
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=0)
+    mc.external_potential = ext
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+
+    # create C++ mirror classes and set parameters
+    sim.run(0)
+
+    # make sure objecst are attached
+    sim.operations.remove(mc)
+    assert not mc._attached
+    assert not ext._attached
+
+
+@pytest.mark.cpu
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_valid_construction_and_attach_cpp_external(

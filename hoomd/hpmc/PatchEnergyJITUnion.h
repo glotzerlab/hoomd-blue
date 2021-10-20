@@ -82,7 +82,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     virtual void setTypeids(std::string type, pybind11::list typeids)
         {
         unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
-        unsigned int N = (unsigned int)pybind11::len(typeids);
+        auto N = pybind11::len(typeids);
         m_type[pid].resize(N);
         for (unsigned int i = 0; i < N; i++)
             {
@@ -106,7 +106,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     virtual void setPositions(std::string type, pybind11::list position)
         {
         unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
-        unsigned int N = (unsigned int)pybind11::len(position);
+        auto N = pybind11::len(position);
         m_position[pid].resize(N);
         for (unsigned int i = 0; i < N; i++)
             {
@@ -136,7 +136,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     virtual void setOrientations(std::string type, pybind11::list orientation)
         {
         unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
-        unsigned int N = (unsigned int)pybind11::len(orientation);
+        auto N = pybind11::len(orientation);
         m_orientation[pid].resize(N);
         for (unsigned int i = 0; i < N; i++)
             {
@@ -170,7 +170,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     virtual void setDiameters(std::string type, pybind11::list diameter)
         {
         unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
-        unsigned int N = (unsigned int)pybind11::len(diameter);
+        auto N = pybind11::len(diameter);
         m_diameter[pid].resize(N);
         for (unsigned int i = 0; i < N; i++)
             {
@@ -194,7 +194,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     virtual void setCharges(std::string type, pybind11::list charge)
         {
         unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
-        unsigned int N = (unsigned int)pybind11::len(charge);
+        auto N = pybind11::len(charge);
         m_charge[pid].resize(N);
         for (unsigned int i = 0; i < N; i++)
             {

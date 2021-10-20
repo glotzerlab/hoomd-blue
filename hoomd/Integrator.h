@@ -168,7 +168,7 @@ class PYBIND11_EXPORT Integrator : public Updater
 #endif
 
     /// Check if any forces introduce anisotropic degrees of freedom
-    virtual bool getAnisotropic();
+    virtual bool areForcesAnisotropic();
     };
 
 namespace detail
