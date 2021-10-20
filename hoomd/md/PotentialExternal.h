@@ -214,20 +214,6 @@ PotentialExternal<evaluator>::getField()
     return m_field;
     }
 
-template<class ExportedClass, class PybindClass>
-typename std::enable_if<std::is_same<typename ExportedClass::field_type, Scalar>::value>::type
-add_field(PybindClass& cls)
-    {
-    return;
-    }
-
-template<class ExportedClass, class PybindClass>
-typename std::enable_if<!std::is_same<typename ExportedClass::field_type, Scalar>::value>::type
-add_field(PybindClass& cls)
-    {
-    cls.def_property("field", &ExportedClass::getField, &ExportedClass::setField);
-    }
-
 //! Export this external potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialExternal class template.
@@ -239,6 +225,9 @@ template<class T> void export_PotentialExternal(pybind11::module& m, const std::
                    .def("setParams", &T::setParamsPython)
                    .def("getParams", &T::getParams);
 
-    add_field<T, decltype(cls)>(cls);
+    if constexpr (!std::is_same<typename T::field_type, Scalar>::value)
+        {
+        cls.def_property("field", &T::getField, &T::setField);
+        }
     }
 #endif
