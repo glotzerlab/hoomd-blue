@@ -13,7 +13,7 @@ v3.0.0-beta.10 (2021-10-20)
 - Include example AKMA and MD unit conversion factors in the documentation.
 - ``BUILD_LLVM`` CMake option  (defaults off) to enable features that require LLVM.
 - ``hoomd.hpmc.pair.user.CPPPotential`` - user-defined pair potentials between particles in HPMC.
-- ``hoomd.hpmc.pair.user.CPPUnionPotential`` - user-defined site-site pair potentials between shapes
+- ``hoomd.hpmc.pair.user.CPPPotentialUnion`` - user-defined site-site pair potentials between shapes
   in HPMC.
 - ``hoomd.hpmc.external.user.CPPExternalPotential`` - user-defined external potentials in HPMC.
 - Support user-defined pair potentials in HPMC on the GPU.
