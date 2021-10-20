@@ -97,11 +97,11 @@ template<typename value_type> struct PYBIND11_EXPORT array_view
         {
         if (index >= buffer_size)
             {
-            throw std::runtime_error("Index larger than buffer size.");
+            throw std::out_of_range("Index larger than buffer size.");
             }
         if (index >= size)
             {
-            throw std::runtime_error("Cannot delete an item beyond the end of the list.");
+            throw std::out_of_range("Cannot delete an item beyond the end of the list.");
             }
         for (size_t i = index; i < size - 1; ++i)
             {
@@ -115,11 +115,11 @@ template<typename value_type> struct PYBIND11_EXPORT array_view
         {
         if (index >= buffer_size)
             {
-            throw std::runtime_error("Index larger than buffer size.");
+            throw std::out_of_range("Index larger than buffer size.");
             }
         if (index >= size)
             {
-            throw std::runtime_error("Cannot get an item beyond the end of the list.");
+            throw std::out_of_range("Cannot get an item beyond the end of the list.");
             }
         return data[index];
         }
@@ -128,11 +128,11 @@ template<typename value_type> struct PYBIND11_EXPORT array_view
         {
         if (index >= buffer_size)
             {
-            throw std::runtime_error("Index larger than buffer size.");
+            throw std::out_of_range("Index larger than buffer size.");
             }
         if (index >= size)
             {
-            throw std::runtime_error("Cannot set on an nonexistent index of the list.");
+            throw std::out_of_range("Cannot set on an nonexistent index of the list.");
             }
         data[index] = value;
         update();
@@ -174,11 +174,11 @@ template<typename value_type> struct PYBIND11_EXPORT array_view
         {
         if (index >= buffer_size)
             {
-            throw std::runtime_error("Index larger than buffer size.");
+            throw std::out_of_range("Index larger than buffer size.");
             }
         if (index >= size)
             {
-            throw std::runtime_error("Cannot pop an nonexistent index of the list.");
+            throw std::out_of_range("Cannot pop an nonexistent index of the list.");
             }
         auto popped_value = data[index];
         delItem(index);

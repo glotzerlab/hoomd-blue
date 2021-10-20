@@ -104,10 +104,10 @@ def test_getitem(array_view_factory, wall_collection, wall_type_lists):
         array_view.append(wall)
     for i in range(len(array_view)):
         wall_equality(array_view[i], walls_list[i])
-    with pytest.raises(RuntimeError):
+    with pytest.raises(IndexError):
         array_view[len(array_view)]
     # This is outside the bounds of the C++ buffer size
-    with pytest.raises(RuntimeError):
+    with pytest.raises(IndexError):
         array_view[1000]
 
 
@@ -136,7 +136,7 @@ def test_delitem(array_view_factory, wall_collection, wall_type_lists,
     array_view.extend(walls_list)
 
     if delete_index >= len(array_view):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(IndexError):
             del array_view[delete_index]
         return
 
@@ -199,9 +199,10 @@ def test_setitem(array_view_factory, wall_collection, wall_type_lists,
     type_str, walls_list = wall_type_lists
     array_view = array_view_factory(wall_collection, type_str)
     array_view.extend(walls_list)
+    # Ensure that we set to a new wall.
     from_index = (set_index + 1) % len(array_view)
     if set_index >= len(array_view):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(IndexError):
             array_view[set_index] = walls_list[from_index]
         return
 
@@ -218,7 +219,7 @@ def test_pop(array_view_factory, wall_collection, wall_type_lists, pop_index):
     array_view = array_view_factory(wall_collection, type_str)
     array_view.extend(walls_list)
     if pop_index >= len(array_view):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(IndexError):
             array_view.pop(pop_index)
         return
 
