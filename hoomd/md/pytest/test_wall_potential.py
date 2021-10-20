@@ -6,19 +6,13 @@ import hoomd.md as md
 
 
 @pytest.fixture
-def base_simulation(simulation_factory, two_particle_snapshot_factory):
+def simulation(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
-    return sim
-
-
-@pytest.fixture
-def simulation(base_simulation):
     integrator = md.Integrator(0.005)
     integrator.methods.append(md.methods.NVE(hoomd.filter.All()))
-    base_simulation.operations += integrator
-    base_simulation.state.thermalize_particle_momenta(hoomd.filter.All(),
-                                                      kT=1.0)
-    return base_simulation
+    sim.operations += integrator
+    sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1.0)
+    return sim
 
 
 class WallGenerator:
@@ -158,6 +152,10 @@ def test_attaching(simulation, cls, params):
         assert np.isclose(wall_pot.params["A"][attr], params[attr])
 
 
+for param in _params:
+    param["r_cut"] = 2.5
+
+
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params))
 def test_plane(simulation, cls, params):
     wall_pot = cls([
@@ -205,8 +203,8 @@ def test_cylinder(simulation, cls, params):
                 np.linalg.norm(snap.particles.position[:, :2], axis=1) < radius)
 
 
-for p in _params:
-    p.update({"r_cut": 2.5, "r_extrap": 4.5})
+for param in _params:
+    param["r_extrap"] = 2.5
 
 
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params))
@@ -221,9 +219,9 @@ def test_r_extrap(simulation, cls, params):
         snap.particles.position[:] = [[0, 0, 4.8], [0, 0, -4.8]]
     simulation.state.set_snapshot(snap)
 
-    simulation.run(2000)
-    with simulation.state.cpu_local_snapshot as snap:
-        assert np.all(np.linalg.norm(snap.particles.position, axis=1) > radius)
+    simulation.run(0)
+    assert np.all(wall_pot.energy != 0)
+    assert np.all(np.any(wall_pot.forces != 0, axis=1))
 
 
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params))

@@ -61,8 +61,8 @@ def check_equivalent(array_view, collection, type_str):
     assert len(array_view) == get_collection_size(collection, type_str)
 
     index_func = getattr(collection, get_index_func_name(type_str))
-    for i in range(len(array_view)):
-        assert wall_equality(array_view[i], index_func(i))
+    for i, item in enumerate(array_view):
+        assert wall_equality(item, index_func(i))
 
 
 def get_index_func_name(type_str):

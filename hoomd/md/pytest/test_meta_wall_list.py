@@ -80,9 +80,9 @@ def test_len(N):
 
 
 def test_append(blank_meta_list):
-    for i, wall in enumerate(WallGenerator.generate_n(10)):
+    for i, wall in enumerate(WallGenerator.generate_n(10), start=1):
         blank_meta_list.append(wall)
-        assert len(blank_meta_list) == i + 1
+        assert len(blank_meta_list) == i
         check_backend(blank_meta_list)
 
 
@@ -97,11 +97,6 @@ def test_getitem(meta_list):
 @pytest.mark.parametrize("insert_index", (0, 1, 2, 3, 12, 1000))
 def test_insert(meta_list, insert_index):
     wall = WallGenerator.generate()
-    # if insert_index > len(meta_list):
-    #     with pytest.raises(IndexError):
-    #         meta_list.insert(insert_index, wall)
-    #     return
-
     meta_list.insert(insert_index, wall)
     assert meta_list[min(insert_index, len(meta_list) - 1)] is wall
     check_backend(meta_list)
