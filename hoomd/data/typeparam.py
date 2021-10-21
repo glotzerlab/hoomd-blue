@@ -197,6 +197,11 @@ class TypeParameter(MutableMapping):
             self.param_dict)
         return self
 
+    def _attach_with_mesh(self, cpp_obj, mesh):
+        self.param_dict = AttachedTypeParameterDict(
+            cpp_obj, self.name, getattr(mesh, self.type_kind), self.param_dict)
+        return self
+
     def _detach(self):
         self.param_dict = self.param_dict.to_detached()
         return self
