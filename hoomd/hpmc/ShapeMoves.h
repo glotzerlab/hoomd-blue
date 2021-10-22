@@ -7,7 +7,7 @@
 #include <hoomd/Variant.h>
 #include "Moves.h"
 #include "GSDHPMCSchema.h"
-#include <hoomd/extern/Eigen/Eigen/Dense>
+#include <Eigen/Dense>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include "hoomd/extern/quickhull/QuickHull.hpp"
