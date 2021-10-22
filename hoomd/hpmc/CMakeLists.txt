@@ -106,7 +106,6 @@ set(_hpmc_headers
     UpdaterMuVT.h
     UpdaterQuickCompress.h
     UpdaterShape.h
-    UpdaterRemoveDrift.h
     XenoCollide2D.h
     XenoCollide3D.h
     )
