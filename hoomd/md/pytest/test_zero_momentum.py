@@ -1,6 +1,6 @@
 import hoomd
 import numpy as np
-import pytest
+
 
 def test_before_attaching():
     trigger = hoomd.trigger.Periodic(100)
@@ -12,8 +12,7 @@ def test_before_attaching():
     assert zm.trigger is trigger
 
 
-def test_after_attaching(simulation_factory,
-                         two_particle_snapshot_factory):
+def test_after_attaching(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
     nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nve])
@@ -31,10 +30,9 @@ def test_after_attaching(simulation_factory,
     sim.run(100)
 
 
-def test_momentum_is_zero(simulation_factory,
-                          two_particle_snapshot_factory):
+def test_momentum_is_zero(simulation_factory, two_particle_snapshot_factory):
     snap = two_particle_snapshot_factory()
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.velocity[0] = [0, 0, 0]
         snap.particles.velocity[1] = [2, 0, 0]
         snap.particles.mass[0] = 1
@@ -47,8 +45,8 @@ def test_momentum_is_zero(simulation_factory,
     sim.operations.add(zm)
 
     sim.run(1)
-    snap = sim.state.snapshot
-    if snap.exists:
+    snap = sim.state.get_snapshot()
+    if snap.communicator.rank == 0:
         masses = snap.particles.mass
         velocities = snap.particles.velocity
         for i in range(3):

@@ -16,10 +16,9 @@ def identity(x):
 def typeparam():
     return TypeParameter(name='type_param',
                          type_kind='particle_types',
-                         param_dict=TypeParameterDict(
-                             foo=1, bar=identity,
-                             len_keys=1)
-                         )
+                         param_dict=TypeParameterDict(foo=1,
+                                                      bar=identity,
+                                                      len_keys=1))
 
 
 @fixture(scope='function')
@@ -42,9 +41,11 @@ def test_adding_params(base_op):
 
 
 def test_extending_typeparams(base_op):
-    type_params = [TypeParameter('1', 'fake1', dict(a=1)),
-                   TypeParameter('2', 'fake2', dict(a=2)),
-                   TypeParameter('3', 'fake3', dict(a=3))]
+    type_params = [
+        TypeParameter('1', 'fake1', dict(a=1)),
+        TypeParameter('2', 'fake2', dict(a=2)),
+        TypeParameter('3', 'fake3', dict(a=3))
+    ]
     base_op._extend_typeparam(type_params)
     keys = set(base_op._typeparam_dict.keys())
     expected_keys = set(['1', '2', '3'])
@@ -87,17 +88,19 @@ def test_setattr(full_op):
 
 def test_adding(full_op):
     assert not full_op._added
-    full_op._add(None)
+    # need a non-None dummy simulation 1 works
+    full_op._add(1)
     assert full_op._added
-    assert full_op._simulation is None
+    assert full_op._simulation == 1
     full_op._remove()
-    assert not hasattr(full_op, '_simulation')
+    assert full_op._simulation is None
 
 
 def test_apply_typeparam_dict(full_op):
-    '''Tests _apply_typeparam_dict and by necessity getattr.'''
+    """Tests _apply_typeparam_dict and by necessity getattr."""
     full_op.type_param['A'] = dict(bar='world')
     full_op.type_param['B'] = dict(bar='hello')
+    full_op.type_param['C'] = dict(bar='hello world')
     cpp_obj = DummyCppObj()
     full_op._cpp_obj = cpp_obj
     full_op._apply_typeparam_dict(cpp_obj, DummySimulation())
@@ -107,7 +110,7 @@ def test_apply_typeparam_dict(full_op):
 
 
 def test_apply_param_dict(full_op):
-    '''Tests _apply_param_dict and by necessity getattr.'''
+    """Tests _apply_param_dict and by necessity getattr."""
     full_op = test_apply_typeparam_dict(full_op)
     full_op._apply_param_dict()
     assert full_op._cpp_obj.param1 == 1
@@ -119,7 +122,7 @@ def test_apply_param_dict(full_op):
 def attached(full_op):
     cp = deepcopy(full_op)
     op = test_apply_param_dict(test_apply_typeparam_dict(cp))
-    op._add(None)
+    op._add(1)
     return op
 
 

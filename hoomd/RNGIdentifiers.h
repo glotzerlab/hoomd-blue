@@ -15,11 +15,12 @@
     The actual values of these identifiers does not matter, so long as they are unique.
 */
 
-#ifndef HOOMD_RNGIDENTIFIERS_H__
-#define HOOMD_RNGIDENTIFIERS_H__
+#pragma once
 
-namespace hoomd {
+#include <cstdint>
 
+namespace hoomd
+    {
 struct RNGIdentifier
     {
     static const uint8_t ComputeFreeVolume = 0;
@@ -67,6 +68,4 @@ struct RNGIdentifier
     static const uint32_t UpdaterShapeConstruct = 42;
     };
 
-}
-
-#endif
+    } // namespace hoomd

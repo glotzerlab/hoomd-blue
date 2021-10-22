@@ -28,10 +28,11 @@ mpcd::Integrator::Integrator(std::shared_ptr<mpcd::SystemData> sysdata, Scalar d
 mpcd::Integrator::~Integrator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Integrator" << std::endl;
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_mpcd_comm)
-        m_mpcd_comm->getMigrateRequestSignal().disconnect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
-    #endif // ENABLE_MPI
+        m_mpcd_comm->getMigrateRequestSignal()
+            .disconnect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
+#endif // ENABLE_MPI
     }
 
 /*!
@@ -48,17 +49,17 @@ void mpcd::Integrator::setProfiler(std::shared_ptr<Profiler> prof)
         m_stream->setProfiler(prof);
     if (m_sorter)
         m_sorter->setProfiler(prof);
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_mpcd_comm)
         m_mpcd_comm->setProfiler(prof);
-    #endif // ENABLE_MPI
+#endif // ENABLE_MPI
     }
 
 /*!
  * \param timestep Current time step of the simulation
- * \post All integration methods previously added with addIntegrationMethod() are applied in order to move the system
- *       state variables forward to \a timestep+1.
- * \post Internally, all forces added via Integrator::addForceCompute are evaluated at \a timestep+1
+ * \post All integration methods previously added with addIntegrationMethod() are applied in order
+ * to move the system state variables forward to \a timestep+1. \post Internally, all forces added
+ * via Integrator::addForceCompute are evaluated at \a timestep+1
  */
 void mpcd::Integrator::update(uint64_t timestep)
     {
@@ -66,7 +67,8 @@ void mpcd::Integrator::update(uint64_t timestep)
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0 && !m_stream)
         {
-        m_exec_conf->msg->warning() << "mpcd.integrate: No integration methods are set." << std::endl;
+        m_exec_conf->msg->warning()
+            << "mpcd.integrate: No integration methods are set." << std::endl;
         m_gave_warning = true;
         }
 
@@ -77,10 +79,10 @@ void mpcd::Integrator::update(uint64_t timestep)
         m_collide->drawGridShift(timestep);
         }
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_mpcd_comm)
         m_mpcd_comm->communicate(timestep);
-    #endif // ENABLE_MPI
+#endif // ENABLE_MPI
 
     // fill in any virtual particles
     if (checkCollide(timestep) && !m_fillers.empty())
@@ -95,29 +97,33 @@ void mpcd::Integrator::update(uint64_t timestep)
     if (m_sorter)
         m_sorter->update(timestep);
 
-    // call the MPCD collision rule before the first MD step so that any embedded velocities are updated first
+    // call the MPCD collision rule before the first MD step so that any embedded velocities are
+    // updated first
     if (m_collide)
         m_collide->collide(timestep);
 
     // perform the first MD integration step
-    if (m_prof) m_prof->push("Integrate");
+    if (m_prof)
+        m_prof->push("Integrate");
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepOne(timestep);
-    if (m_prof) m_prof->pop();
+    if (m_prof)
+        m_prof->pop();
 
-    // MD communication / rigid body updates
-    #ifdef ENABLE_MPI
-    if (m_comm)
+// MD communication / rigid body updates
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
         {
-        m_comm->communicate(timestep+1);
+        m_comm->communicate(timestep + 1);
         }
     else
-    #endif // ENABLE_MPI
+#endif // ENABLE_MPI
         {
-        updateRigidBodies(timestep+1);
+        updateRigidBodies(timestep + 1);
         }
 
-    // execute the MPCD streaming step now that MD particles are communicated onto their final domains
+    // execute the MPCD streaming step now that MD particles are communicated onto their final
+    // domains
     if (m_stream)
         {
         m_stream->stream(timestep);
@@ -126,16 +132,18 @@ void mpcd::Integrator::update(uint64_t timestep)
     // compute the net force on the MD particles
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
-        computeNetForceGPU(timestep+1);
+        computeNetForceGPU(timestep + 1);
     else
 #endif
-        computeNetForce(timestep+1);
+        computeNetForce(timestep + 1);
 
     // perform the second step of the MD integration
-    if (m_prof) m_prof->push("Integrate");
+    if (m_prof)
+        m_prof->push("Integrate");
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepTwo(timestep);
-    if (m_prof) m_prof->pop();
+    if (m_prof)
+        m_prof->pop();
     }
 
 /*!
@@ -151,9 +159,9 @@ void mpcd::Integrator::setDeltaT(Scalar deltaT)
 
 /*!
  * Compute accelerations if needed for the first step.
- * If acceleration is available in the restart file, then just call computeNetForce so that net_force and net_virial
- * are available for the logger. This solves ticket #393
-*/
+ * If acceleration is available in the restart file, then just call computeNetForce so that
+ * net_force and net_virial are available for the logger. This solves ticket #393
+ */
 void mpcd::Integrator::prepRun(uint64_t timestep)
     {
     IntegratorTwoStep::prepRun(timestep);
@@ -164,13 +172,13 @@ void mpcd::Integrator::prepRun(uint64_t timestep)
         m_collide->drawGridShift(timestep);
         }
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     // force a communication step if present
     if (m_mpcd_comm)
         {
         m_mpcd_comm->communicate(timestep);
         }
-    #endif // ENABLE_MPI
+#endif // ENABLE_MPI
     }
 
 /*! \param enable Enable/disable autotuning
@@ -181,11 +189,11 @@ void mpcd::Integrator::setAutotunerParams(bool enable, unsigned int period)
     IntegratorTwoStep::setAutotunerParams(enable, period);
     m_mpcd_sys->setAutotunerParams(enable, period);
     if (m_collide)
-        m_collide->setAutotunerParams(enable,period);
+        m_collide->setAutotunerParams(enable, period);
     if (m_stream)
-        m_stream->setAutotunerParams(enable,period);
+        m_stream->setAutotunerParams(enable, period);
     if (m_sorter)
-        m_sorter->setAutotunerParams(enable,period);
+        m_sorter->setAutotunerParams(enable, period);
     }
 
 /*!
@@ -199,7 +207,9 @@ void mpcd::Integrator::addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> fi
     auto it = std::find(m_fillers.begin(), m_fillers.end(), filler);
     if (it != m_fillers.end())
         {
-        m_exec_conf->msg->error() << "Trying to add same MPCD virtual particle filler twice! Please report this bug." << std::endl;
+        m_exec_conf->msg->error()
+            << "Trying to add same MPCD virtual particle filler twice! Please report this bug."
+            << std::endl;
         throw std::runtime_error("Duplicate attachment of MPCD virtual particle filler");
         }
 
@@ -212,7 +222,9 @@ void mpcd::Integrator::addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> fi
 void mpcd::detail::export_Integrator(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::Integrator, ::IntegratorTwoStep, std::shared_ptr<mpcd::Integrator> >(m, "Integrator")
+    py::class_<mpcd::Integrator, ::IntegratorTwoStep, std::shared_ptr<mpcd::Integrator>>(
+        m,
+        "Integrator")
         .def(py::init<std::shared_ptr<mpcd::SystemData>, Scalar>())
         .def("setCollisionMethod", &mpcd::Integrator::setCollisionMethod)
         .def("removeCollisionMethod", &mpcd::Integrator::removeCollisionMethod)
@@ -222,8 +234,8 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
         .def("removeSorter", &mpcd::Integrator::removeSorter)
         .def("addFiller", &mpcd::Integrator::addFiller)
         .def("removeAllFillers", &mpcd::Integrator::removeAllFillers)
-        #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
         .def("setMPCDCommunicator", &mpcd::Integrator::setMPCDCommunicator)
-        #endif // ENABLE_MPI
+#endif // ENABLE_MPI
         ;
     }

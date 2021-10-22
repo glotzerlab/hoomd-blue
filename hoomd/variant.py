@@ -6,7 +6,7 @@
 
 A `Variant` object represents a scalar function of the time step. Some
 **Operations** accept `Variant` values for certain parameters, such as the
-``kT`` parameter to `NVT`.
+``kT`` parameter to `hoomd.md.methods.NVT`.
 """
 
 from hoomd import _hoomd
@@ -62,8 +62,9 @@ class Variant(_hoomd.Variant):
             return NotImplemented
         if not isinstance(other, type(self)):
             return False
-        return all(getattr(self, attr) == getattr(other, attr)
-                   for attr in self._eq_attrs)
+        return all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr in self._eq_attrs)
 
 
 class Constant(_hoomd.VariantConstant, Variant):

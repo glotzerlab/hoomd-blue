@@ -2,6 +2,7 @@ import hoomd
 import numpy as np
 import pytest
 from copy import deepcopy
+from hoomd.error import MutabilityError
 try:
     import gsd.hoomd
     skip_gsd = False
@@ -15,23 +16,26 @@ skip_gsd = pytest.mark.skipif(skip_gsd,
 def make_gsd_snapshot(hoomd_snapshot):
     s = gsd.hoomd.Snapshot()
     for attr in dir(hoomd_snapshot):
-        if attr[0] != '_' and attr not in ['exists', 'replicate']:
-            for prop in dir(getattr(hoomd_snapshot, attr)):
-                if prop[0] != '_':
-                    # s.attr.prop = hoomd_snapshot.attr.prop
-                    setattr(getattr(s, attr), prop,
-                            getattr(getattr(hoomd_snapshot, attr), prop))
+        if attr[0] != '_' and attr not in [
+                'exists', 'replicate', 'communicator'
+        ]:
+            if hoomd_snapshot.communicator.rank == 0:
+                for prop in dir(getattr(hoomd_snapshot, attr)):
+                    if prop[0] != '_':
+                        # s.attr.prop = hoomd_snapshot.attr.prop
+                        setattr(getattr(s, attr), prop,
+                                getattr(getattr(hoomd_snapshot, attr), prop))
     return s
 
 
 def set_types(s, inds, particle_types, particle_type):
-    if s.exists:
+    if s.communicator.rank == 0:
         for i in inds:
             s.particles.typeid[i] = particle_types.index(particle_type)
 
 
 def update_positions(snap):
-    if snap.exists:
+    if snap.communicator.rank == 0:
         noise = 0.01
         rs = np.random.RandomState(0)
         mean = [0] * 3
@@ -45,18 +49,20 @@ def update_positions(snap):
 
 
 def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
-    for attr in dir(hoomd_snap):
-        if attr[0] == '_' or attr in ['exists', 'replicate']:
-            continue
-        for prop in dir(getattr(hoomd_snap, attr)):
-            if prop[0] == '_':
+    if hoomd_snap.communicator.rank == 0:
+
+        for attr in dir(hoomd_snap):
+            if attr[0] == '_' or attr in [
+                    'exists', 'replicate', 'communicator'
+            ]:
                 continue
-            elif prop == 'types':
-                if hoomd_snap.exists:
+            for prop in dir(getattr(hoomd_snap, attr)):
+                if prop[0] == '_':
+                    continue
+                elif prop == 'types':
                     assert getattr(getattr(gsd_snap, attr), prop) == \
                         getattr(getattr(hoomd_snap, attr), prop)
-            else:
-                if hoomd_snap.exists:
+                else:
                     np.testing.assert_allclose(
                         getattr(getattr(gsd_snap, attr), prop),
                         getattr(getattr(hoomd_snap, attr), prop))
@@ -85,7 +91,7 @@ def test_device_property(device):
 
 def test_allows_compute_pressure(simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory()
-    assert sim.always_compute_pressure is False
+    assert not sim.always_compute_pressure
     with pytest.raises(RuntimeError):
         sim.always_compute_pressure = True
     sim.create_state_from_snapshot(lattice_snapshot_factory())
@@ -151,35 +157,46 @@ def state_args(request):
 
 
 @skip_gsd
-def test_state_from_gsd(simulation_factory, lattice_snapshot_factory,
+def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
                         state_args, tmp_path):
     snap_params, nsteps = state_args
 
     d = tmp_path / "sub"
     d.mkdir()
     filename = d / "temporary_test_file.gsd"
-    with gsd.hoomd.open(name=filename, mode='wb+') as file:
-        sim = simulation_factory(
-            lattice_snapshot_factory(n=snap_params[0],
-                                     particle_types=snap_params[1]))
-        snap = sim.state.snapshot
-        snapshot_dict = {}
-        snapshot_dict[0] = snap
-        file.append(make_gsd_snapshot(snap))
-        box = sim.state.box
-        for step in range(1, nsteps):
-            particle_type = np.random.choice(snap_params[1])
-            snap = update_positions(sim.state.snapshot)
-            set_types(snap, random_inds(snap_params[0]), snap_params[1],
-                      particle_type)
-            file.append(make_gsd_snapshot(snap))
+    if device.communicator.rank == 0:
+        f = gsd.hoomd.open(name=filename, mode='wb+')
+
+    sim = simulation_factory(
+        lattice_snapshot_factory(n=snap_params[0],
+                                 particle_types=snap_params[1]))
+    snap = sim.state.get_snapshot()
+    snapshot_dict = {}
+    snapshot_dict[0] = snap
+
+    if device.communicator.rank == 0:
+        f.append(make_gsd_snapshot(snap))
+
+    box = sim.state.box
+    for step in range(1, nsteps):
+        particle_type = np.random.choice(snap_params[1])
+        snap = update_positions(sim.state.get_snapshot())
+        set_types(snap, random_inds(snap_params[0]), snap_params[1],
+                  particle_type)
+
+        if device.communicator.rank == 0:
+            f.append(make_gsd_snapshot(snap))
             snapshot_dict[step] = snap
+        else:
+            snapshot_dict[step] = None
 
     for step, snap in snapshot_dict.items():
         sim = simulation_factory()
         sim.create_state_from_gsd(filename, frame=step)
         assert box == sim.state.box
-        assert_equivalent_snapshots(snap, sim.state.snapshot)
+
+        assert_equivalent_snapshots(snap, sim.state.get_snapshot())
+
 
 @skip_gsd
 def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
@@ -189,15 +206,15 @@ def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
     sim = simulation_factory(
         lattice_snapshot_factory(n=snap_params[0],
                                  particle_types=snap_params[1]))
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     snap = make_gsd_snapshot(snap)
     gsd_snapshot_list = [snap]
     box = sim.state.box
     for _ in range(1, nsteps):
         particle_type = np.random.choice(snap_params[1])
-        snap = update_positions(sim.state.snapshot)
-        set_types(snap, random_inds(snap_params[0]),
-                  snap_params[1], particle_type)
+        snap = update_positions(sim.state.get_snapshot())
+        set_types(snap, random_inds(snap_params[0]), snap_params[1],
+                  particle_type)
         snap = make_gsd_snapshot(snap)
         gsd_snapshot_list.append(snap)
 
@@ -205,7 +222,7 @@ def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
         sim = hoomd.Simulation(device)
         sim.create_state_from_snapshot(snap)
         assert box == sim.state.box
-        assert_equivalent_snapshots(snap, sim.state.snapshot)
+        assert_equivalent_snapshots(snap, sim.state.get_snapshot())
 
 
 def test_writer_order(simulation_factory, two_particle_snapshot_factory):
@@ -350,14 +367,13 @@ def test_operations_setting(simulation_factory, lattice_snapshot_factory):
 
     operations = hoomd.Operations()
     # Add some operations to test the setting
-    operations += hoomd.update.BoxResize(
-        hoomd.Box.cube(10),
-        hoomd.Box.cube(20),
-        hoomd.variant.Ramp(0, 1, 0, 100),
-        40)
-    operations += hoomd.write.GSD("foo.gsd", 10)
-    operations += hoomd.write.Table(
-        10, logger=hoomd.logging.Logger(['scalar']))
+    operations += hoomd.update.BoxResize(trigger=40,
+                                         box1=hoomd.Box.cube(10),
+                                         box2=hoomd.Box.cube(20),
+                                         variant=hoomd.variant.Ramp(
+                                             0, 1, 0, 100))
+    operations += hoomd.write.GSD(filename="foo.gsd", trigger=10)
+    operations += hoomd.write.Table(10, logger=hoomd.logging.Logger(['scalar']))
     operations.tuners.clear()
     # Check setting before scheduling
     check_operation_setting(sim, sim.operations, operations)
@@ -365,12 +381,27 @@ def test_operations_setting(simulation_factory, lattice_snapshot_factory):
     sim.run(0)
     # Check setting after scheduling
     new_operations = hoomd.Operations()
-    new_operations += hoomd.update.BoxResize(
-        hoomd.Box.cube(300),
-        hoomd.Box.cube(20),
-        hoomd.variant.Ramp(0, 1, 0, 100),
-        80)
-    new_operations += hoomd.write.GSD("bar.gsd", 20)
-    new_operations += hoomd.write.Table(
-        20, logger=hoomd.logging.Logger(['scalar']))
+    new_operations += hoomd.update.BoxResize(trigger=80,
+                                             box1=hoomd.Box.cube(300),
+                                             box2=hoomd.Box.cube(20),
+                                             variant=hoomd.variant.Ramp(
+                                                 0, 1, 0, 100))
+    new_operations += hoomd.write.GSD(filename="bar.gsd", trigger=20)
+    new_operations += hoomd.write.Table(20,
+                                        logger=hoomd.logging.Logger(['scalar']))
     check_operation_setting(sim, sim.operations, new_operations)
+
+
+def test_mutability_error(simulation_factory, two_particle_snapshot_factory,
+                          tmp_path):
+    filt = hoomd.filter.All()
+    sim = simulation_factory(two_particle_snapshot_factory())
+    trig = hoomd.trigger.Periodic(1)
+
+    filename = tmp_path / "temporary_test_file.gsd"
+    GSD_dump = hoomd.write.GSD(filename=filename, trigger=trig)
+    sim.operations.add(GSD_dump)
+    sim.run(0)
+
+    with pytest.raises(MutabilityError):
+        GSD_dump.filter = filt

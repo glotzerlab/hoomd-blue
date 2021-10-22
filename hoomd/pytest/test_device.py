@@ -1,6 +1,7 @@
 import hoomd
 import pytest
 
+
 @pytest.mark.gpu
 def test_gpu_profile(device):
 
@@ -10,7 +11,10 @@ def test_gpu_profile(device):
         pass
 
 
-def _assert_common_properties(dev, notice_level, msg_file, num_cpu_threads=None):
+def _assert_common_properties(dev,
+                              notice_level,
+                              msg_file,
+                              num_cpu_threads=None):
     """Assert the properties common to all devices are correct."""
     assert dev.notice_level == notice_level
     assert dev.msg_file == msg_file
@@ -22,31 +26,26 @@ def _assert_common_properties(dev, notice_level, msg_file, num_cpu_threads=None)
     assert type(dev.communicator) == hoomd.communicator.Communicator
 
 
-def test_common_properties(device):
-    # test default params, don't assert default tbb threads b/c it depends on hardware
+def test_common_properties(device, tmp_path):
+    # test default params, don't assert default tbb threads b/c it depends on
+    # hardware
     _assert_common_properties(device, 2, None)
 
     # make sure we can set those properties
     device.notice_level = 3
-    device.msg_file = "example.txt"
+    device.msg_file = str(tmp_path / "example.txt")
     device.num_cpu_threads = 5
-    _assert_common_properties(device, 3, "example.txt", 5)
+    _assert_common_properties(device, 3, str(tmp_path / "example.txt"), 5)
 
     # now make a device with non-default arguments
     device_type = type(device)
-    dev = device_type(msg_file="example2.txt", notice_level=10, num_cpu_threads=10)
-    _assert_common_properties(dev, notice_level=10, msg_file="example2.txt", num_cpu_threads=10)
-
-    # MPI conditional stuff
-    if hoomd.version.mpi_enabled:
-        # make sure we can pass a communciator
-        com = hoomd.communicator.Communicator(nrank=1)
-        assert device_type(communicator=com).communicator.num_ranks == 1
-        # make sure we can pass a shared_msg_file
-        dev2 = device_type(shared_msg_file="shared.txt")
-    else:
-        with pytest.raises(RuntimeError):
-            dev2 = device_type(shared_msg_file="shared.txt")
+    dev = device_type(msg_file=str(tmp_path / "example2.txt"),
+                      notice_level=10,
+                      num_cpu_threads=10)
+    _assert_common_properties(dev,
+                              notice_level=10,
+                              msg_file=str(tmp_path / "example2.txt"),
+                              num_cpu_threads=10)
 
 
 def _assert_gpu_properties(dev, mem_traceback, gpu_error_checking):
@@ -67,6 +66,13 @@ def test_gpu_specific_properties(device):
 
     # make sure we can give a list of GPU ids to the constructor
     hoomd.device.GPU(gpu_ids=[0])
+
+    c = device.compute_capability
+    assert type(c) is tuple
+    assert len(c) == 2
+    assert c[0] > 0
+    assert c[1] >= 0
+
 
 @pytest.mark.gpu
 def test_other_gpu_specifics(device):
@@ -95,8 +101,7 @@ def test_query_hardware_info(device):
 
 
 def test_cpu_build_specifics():
-    if hoomd.version.gpu_enabled == True:
+    if hoomd.version.gpu_enabled:
         pytest.skip("Don't run CPU-build specific tests when GPU is available")
-    assert hoomd.device.GPU.is_available() == False
+    assert not hoomd.device.GPU.is_available()
     assert type(hoomd.device.auto_select()) == hoomd.device.CPU
-

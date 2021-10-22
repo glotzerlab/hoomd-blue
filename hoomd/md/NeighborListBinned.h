@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "NeighborList.h"
@@ -28,53 +27,39 @@
 class PYBIND11_EXPORT NeighborListBinned : public NeighborList
     {
     public:
-        //! Constructs the compute
-        NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef,
-                           Scalar r_buff);
+    //! Constructs the compute
+    NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff);
 
-        //! Destructor
-        virtual ~NeighborListBinned();
+    //! Destructor
+    virtual ~NeighborListBinned();
 
-        /// Notify NeighborList that a r_cut matrix value has changed
-        virtual void notifyRCutMatrixChange()
-            {
-            m_update_cell_size = true;
-            NeighborList::notifyRCutMatrixChange();
-            }
+    /// Notify NeighborList that a r_cut matrix value has changed
+    virtual void notifyRCutMatrixChange()
+        {
+        m_update_cell_size = true;
+        NeighborList::notifyRCutMatrixChange();
+        }
 
-        /// Make the neighborlist deterministic
-        void setDeterministic(bool deterministic)
-            {
-            m_cl->setSortCellList(deterministic);
-            }
+    /// Make the neighborlist deterministic
+    void setDeterministic(bool deterministic)
+        {
+        m_cl->setSortCellList(deterministic);
+        }
 
-        /// Get the deterministic flag
-        bool getDeterministic()
-            {
-            return m_cl->getSortCellList();
-            }
-
-        #ifdef ENABLE_MPI
-
-        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-            {
-            // call base class method
-            NeighborList::setCommunicator(comm);
-
-            // set the communicator on the internal cell list
-            m_cl->setCommunicator(comm);
-            }
-
-        #endif
+    /// Get the deterministic flag
+    bool getDeterministic()
+        {
+        return m_cl->getSortCellList();
+        }
 
     protected:
-        std::shared_ptr<CellList> m_cl;   //!< The cell list
+    std::shared_ptr<CellList> m_cl; //!< The cell list
 
-        /// Track when the cell size needs to be updated
-        bool m_update_cell_size = true;
+    /// Track when the cell size needs to be updated
+    bool m_update_cell_size = true;
 
-        //! Builds the neighbor list
-        virtual void buildNlist(uint64_t timestep);
+    //! Builds the neighbor list
+    virtual void buildNlist(uint64_t timestep);
     };
 
 //! Exports NeighborListBinned to python

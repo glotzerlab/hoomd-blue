@@ -13,7 +13,8 @@
 #include "VectorMath.h"
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+// compiler
 #undef DEVICE
 #ifdef __HIPCC__
 #define DEVICE __host__ __device__
@@ -21,20 +22,25 @@
 #define DEVICE
 #endif
 
-template<typename Real>
-class NoFriction
+template<typename Real> class NoFriction
     {
     public:
-        NoFriction() {}
+    NoFriction() { }
 
-        DEVICE static bool needsVelocity() {return false;}
+    DEVICE static bool needsVelocity()
+        {
+        return false;
+        }
 
-        DEVICE inline void setVelocity(const vec3<Real> &v) {}
+    DEVICE inline void setVelocity(const vec3<Real>& v) { }
 
-        DEVICE inline void swapij() {}
+    DEVICE inline void swapij() { }
 
-        template<typename Vec>
-        DEVICE inline Vec modifiedForce(const Vec &r0Prime, const Vec &force) const {return force;}
+    template<typename Vec>
+    DEVICE inline Vec modifiedForce(const Vec& r0Prime, const Vec& force) const
+        {
+        return force;
+        }
     };
 
 #endif

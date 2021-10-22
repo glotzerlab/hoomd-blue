@@ -5,12 +5,10 @@
     \brief Defines the driver functions for computing all types of pair forces on the GPU
 */
 
-#include "EvaluatorPairReactionField.h"
 #include "AllDriverPotentialPairGPU.cuh"
-hipError_t gpu_compute_reaction_field_forces(const pair_args_t & args,
-                                                const EvaluatorPairReactionField::param_type *d_params)
+#include "EvaluatorPairReactionField.h"
+hipError_t gpu_compute_reaction_field_forces(const pair_args_t& args,
+                                             const EvaluatorPairReactionField::param_type* d_params)
     {
-    return gpu_compute_pair_forces<EvaluatorPairReactionField>(args,
-                                                     d_params);
+    return gpu_compute_pair_forces<EvaluatorPairReactionField>(args, d_params);
     }
-

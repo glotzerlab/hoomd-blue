@@ -8,17 +8,17 @@
  * \brief Defines GPU functions and kernels used by mpcd::SlitGeometryFillerGPU
  */
 
-#include "SlitGeometryFillerGPU.cuh"
 #include "ParticleDataUtilities.h"
-#include "hoomd/RandomNumbers.h"
+#include "SlitGeometryFillerGPU.cuh"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
 
 namespace mpcd
-{
+    {
 namespace gpu
-{
+    {
 namespace kernel
-{
+    {
 /*!
  * \param d_pos Particle positions
  * \param d_vel Particle velocities
@@ -32,20 +32,19 @@ namespace kernel
  * \param N_hi Number of particles to fill in upper region
  * \param first_tag First tag of filled particles
  * \param first_idx First (local) particle index of filled particles
- * \param vel_factor Scale factor for uniform normal velocities consistent with particle mass / temperature
- * \param timestep Current timestep
- * \param seed User seed to PRNG for drawing velocities
+ * \param vel_factor Scale factor for uniform normal velocities consistent with particle mass /
+ * temperature \param timestep Current timestep \param seed User seed to PRNG for drawing velocities
  *
  * \b Implementation:
  *
  * Using one thread per particle (in both slabs), the thread is assigned to fill either the lower
- * or upper region. This defines a local cuboid of volume to fill. The thread index is translated into
- * a particle tag and local particle index. A random position is drawn within the cuboid. A random velocity
- * is drawn consistent with the speed of the moving wall.
+ * or upper region. This defines a local cuboid of volume to fill. The thread index is translated
+ * into a particle tag and local particle index. A random position is drawn within the cuboid. A
+ * random velocity is drawn consistent with the speed of the moving wall.
  */
-__global__ void slit_draw_particles(Scalar4 *d_pos,
-                                    Scalar4 *d_vel,
-                                    unsigned int *d_tag,
+__global__ void slit_draw_particles(Scalar4* d_pos,
+                                    Scalar4* d_vel,
+                                    unsigned int* d_tag,
                                     const mpcd::detail::SlitGeometry geom,
                                     const Scalar z_min,
                                     const Scalar z_max,
@@ -70,11 +69,13 @@ __global__ void slit_draw_particles(Scalar4 *d_pos,
     Scalar3 hi = box.getHi();
     if (sign == -1) // bottom
         {
-        lo.z = z_min; hi.z = -geom.getH();
+        lo.z = z_min;
+        hi.z = -geom.getH();
         }
     else // top
         {
-        lo.z = geom.getH(); hi.z = z_max;
+        lo.z = geom.getH();
+        hi.z = z_max;
         }
 
     // particle tag and index
@@ -83,8 +84,9 @@ __global__ void slit_draw_particles(Scalar4 *d_pos,
     d_tag[pidx] = tag;
 
     // initialize random number generator for positions and velocity
-    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::SlitGeometryFiller, timestep, seed),
-                               hoomd::Counter(tag));
+    hoomd::RandomGenerator rng(
+        hoomd::Seed(hoomd::RNGIdentifier::SlitGeometryFiller, timestep, seed),
+        hoomd::Counter(tag));
     d_pos[pidx] = make_scalar4(hoomd::UniformDistribution<Scalar>(lo.x, hi.x)(rng),
                                hoomd::UniformDistribution<Scalar>(lo.y, hi.y)(rng),
                                hoomd::UniformDistribution<Scalar>(lo.z, hi.z)(rng),
@@ -94,13 +96,14 @@ __global__ void slit_draw_particles(Scalar4 *d_pos,
     Scalar3 vel;
     gen(vel.x, vel.y, rng);
     vel.z = gen(rng);
-    // TODO: should these be given zero net-momentum contribution (relative to the frame of reference?)
+    // TODO: should these be given zero net-momentum contribution (relative to the frame of
+    // reference?)
     d_vel[pidx] = make_scalar4(vel.x + sign * geom.getVelocity(),
                                vel.y,
                                vel.z,
                                __int_as_scalar(mpcd::detail::NO_CELL));
     }
-} // end namespace kernel
+    } // end namespace kernel
 
 /*!
  * \param d_pos Particle positions
@@ -123,9 +126,9 @@ __global__ void slit_draw_particles(Scalar4 *d_pos,
  *
  * \sa kernel::slit_draw_particles
  */
-cudaError_t slit_draw_particles(Scalar4 *d_pos,
-                                Scalar4 *d_vel,
-                                unsigned int *d_tag,
+cudaError_t slit_draw_particles(Scalar4* d_pos,
+                                Scalar4* d_vel,
+                                unsigned int* d_tag,
                                 const mpcd::detail::SlitGeometry& geom,
                                 const Scalar z_min,
                                 const Scalar z_max,
@@ -142,15 +145,13 @@ cudaError_t slit_draw_particles(Scalar4 *d_pos,
                                 const unsigned int block_size)
     {
     const unsigned int N_tot = N_lo + N_hi;
-    if (N_tot == 0) return cudaSuccess;
+    if (N_tot == 0)
+        return cudaSuccess;
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)kernel::slit_draw_particles);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)kernel::slit_draw_particles);
+    max_block_size = attr.maxThreadsPerBlock;
 
     // precompute factor for rescaling the velocities since it is the same for all particles
     const Scalar vel_factor = fast::sqrt(kT / mass);
@@ -176,5 +177,5 @@ cudaError_t slit_draw_particles(Scalar4 *d_pos,
     return cudaSuccess;
     }
 
-} // end namespace gpu
-} // end namespace mpcd
+    } // end namespace gpu
+    } // end namespace mpcd

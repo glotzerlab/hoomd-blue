@@ -5,7 +5,7 @@
 
 from collections.abc import Mapping, Collection
 from hoomd import _hoomd
-from hoomd.util import dict_flatten, array_to_strings
+from hoomd.util import dict_flatten
 from hoomd.data.typeconverter import OnlyFrom, RequiredArg
 from hoomd.filter import ParticleFilter, All
 from hoomd.data.parameterdicts import ParameterDict
@@ -15,12 +15,24 @@ import numpy as np
 import json
 
 
+def _array_to_strings(value):
+    if isinstance(value, np.ndarray):
+        string_list = []
+        for string in value:
+            string_list.append(
+                string.view(
+                    dtype='|S{}'.format(value.shape[1])).decode('UTF-8'))
+        return string_list
+    else:
+        return value
+
+
 class GSD(Writer):
     r"""Write simulation trajectories in the GSD format.
 
     Args:
-        filename (str): File name to write.
         trigger (hoomd.trigger.Trigger): Select the timesteps to write.
+        filename (str): File name to write.
         filter (hoomd.filter.ParticleFilter): Select the particles to write.
             Defaults to `hoomd.filter.All`.
         mode (str): The file open mode. Defaults to ``'ab'``.
@@ -132,8 +144,8 @@ class GSD(Writer):
     """
 
     def __init__(self,
-                 filename,
                  trigger,
+                 filename,
                  filter=All(),
                  mode='ab',
                  truncate=False,
@@ -144,7 +156,7 @@ class GSD(Writer):
 
         dynamic_validation = OnlyFrom(
             ['attribute', 'property', 'momentum', 'topology'],
-            preprocess=array_to_strings)
+            preprocess=_array_to_strings)
 
         dynamic = ['property'] if dynamic is None else dynamic
         self._param_dict.update(
@@ -189,7 +201,8 @@ class GSD(Writer):
         Args:
             state (State): Simulation state.
             filename (str): File name to write.
-            filter (`hoomd.filter.ParticleFilter`): Select the particles to write.
+            filter (`hoomd.filter.ParticleFilter`): Select the particles to
+              write.
             mode (str): The file open mode. Defaults to ``'wb'``.
             log (`hoomd.logging.Logger`): Provide log quantities to write.
 
@@ -200,9 +213,6 @@ class GSD(Writer):
 
         writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, filename,
                                       state._get_group(filter), mode, False)
-
-        if state._simulation._system_communicator is not None:
-            writer.setCommunicator(state._simulation._system_communicator)
 
         if log is not None:
             writer.log_writer = _GSDLogWriter(log)

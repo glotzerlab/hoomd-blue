@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file System.cc
@@ -9,17 +8,16 @@
 */
 
 #include "System.h"
-#include "SignalHandler.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif
 
 // #include <pybind11/pybind11.h>
-#include <stdexcept>
-#include <time.h>
 #include <pybind11/cast.h>
 #include <pybind11/stl_bind.h>
+#include <stdexcept>
+#include <time.h>
 
 // the typedef works around an issue with older versions of the preprocessor
 typedef std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>> _analyzer_pair;
@@ -27,7 +25,7 @@ PYBIND11_MAKE_OPAQUE(std::vector<_analyzer_pair>)
 typedef std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>> _updater_pair;
 PYBIND11_MAKE_OPAQUE(std::vector<_updater_pair>)
 
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<Tuner> >)
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<Tuner>>)
 
 using namespace std;
 namespace py = pybind11;
@@ -42,34 +40,34 @@ PyObject* walltimeLimitExceptionTypeObj = 0;
     statistics are printed every 10 seconds.
 */
 System::System(std::shared_ptr<SystemDefinition> sysdef, uint64_t initial_tstep)
-        : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
-          m_profile(false)
+    : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
+      m_profile(false)
     {
     // sanity check
     assert(m_sysdef);
     m_exec_conf = m_sysdef->getParticleData()->getExecConf();
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     // the initial time step is defined on the root processor
     if (m_sysdef->getParticleData()->getDomainDecomposition())
         {
         bcast(m_start_tstep, 0, m_exec_conf->getMPICommunicator());
         bcast(m_cur_tstep, 0, m_exec_conf->getMPICommunicator());
         }
-    #endif
+#endif
     }
 
 // -------------- Integrator methods
 
 /*! \param integrator Updater to set as the Integrator for this System
-*/
+ */
 void System::setIntegrator(std::shared_ptr<Integrator> integrator)
     {
     m_integrator = integrator;
     }
 
 /*! \returns A shared pointer to the Integrator for this System
-*/
+ */
 std::shared_ptr<Integrator> System::getIntegrator()
     {
     return m_integrator;
@@ -87,7 +85,6 @@ void System::setCommunicator(std::shared_ptr<Communicator> comm)
 
 void System::run(uint64_t nsteps, bool write_at_start)
     {
-    ScopedSignalHandler signal_handler;
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
 
@@ -95,14 +92,15 @@ void System::run(uint64_t nsteps, bool write_at_start)
     m_initial_time = m_clk.getTime();
     setupProfiling();
 
-    // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the info they need
-    // but set the flags before prepRun, as prepRun may remove some flags that it cannot generate on the first step
+    // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the
+    // info they need but set the flags before prepRun, as prepRun may remove some flags that it
+    // cannot generate on the first step
     m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep));
 
     resetStats();
 
-    #ifdef ENABLE_MPI
-    if (m_comm)
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
         {
         // make sure we start off with a migration substep
         m_comm->forceMigrate();
@@ -110,7 +108,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
         // communicate here
         m_comm->communicate(m_cur_tstep);
         }
-    #endif
+#endif
 
     // Prepare the run
     if (m_integrator)
@@ -121,7 +119,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
     // execute analyzers on initial step if requested
     if (write_at_start)
         {
-        for (auto &analyzer_trigger_pair: m_analyzers)
+        for (auto& analyzer_trigger_pair : m_analyzers)
             {
             if ((*analyzer_trigger_pair.second)(m_cur_tstep))
                 analyzer_trigger_pair.first->analyze(m_cur_tstep);
@@ -131,22 +129,23 @@ void System::run(uint64_t nsteps, bool write_at_start)
     // run the steps
     for (uint64_t count = 0; count < nsteps; count++)
         {
-        for (auto &tuner: m_tuners)
+        for (auto& tuner : m_tuners)
             {
             if ((*tuner->getTrigger())(m_cur_tstep))
                 tuner->update(m_cur_tstep);
             }
 
         // execute updaters
-        for (auto &updater_trigger_pair: m_updaters)
+        for (auto& updater_trigger_pair : m_updaters)
             {
             if ((*updater_trigger_pair.second)(m_cur_tstep))
                 updater_trigger_pair.first->update(m_cur_tstep);
             }
 
         // look ahead to the next time step and see which analyzers and updaters will be executed
-        // or together all of their requested PDataFlags to determine the flags to set for this time step
-        m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep+1));
+        // or together all of their requested PDataFlags to determine the flags to set for this time
+        // step
+        m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep + 1));
 
         // execute the integrator
         if (m_integrator)
@@ -155,7 +154,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
         m_cur_tstep++;
 
         // execute analyzers after incrementing the step counter
-        for (auto &analyzer_trigger_pair: m_analyzers)
+        for (auto& analyzer_trigger_pair : m_analyzers)
             {
             if ((*analyzer_trigger_pair.second)(m_cur_tstep))
                 analyzer_trigger_pair.first->analyze(m_cur_tstep);
@@ -163,24 +162,21 @@ void System::run(uint64_t nsteps, bool write_at_start)
 
         updateTPS();
 
-        // quit if Ctrl-C was pressed
-        if (g_sigint_recvd)
+        // propagate Python exceptions related to signals
+        if (PyErr_CheckSignals() != 0)
             {
-            g_sigint_recvd = 0;
-            PyErr_SetString(PyExc_KeyboardInterrupt, "");
-            throw pybind11::error_already_set();
-            return;
+            throw py::error_already_set();
             }
         }
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     // make sure all ranks return the same TPS after the run completes
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
         bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
         }
-    #endif
+#endif
     }
 
 void System::updateTPS()
@@ -192,7 +188,7 @@ void System::updateTPS()
     }
 
 /*! \param enable Set to true to enable profiling during calls to run()
-*/
+ */
 void System::enableProfiler(bool enable)
     {
     m_profile = enable;
@@ -208,21 +204,21 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
         m_integrator->setAutotunerParams(enabled, period);
 
     // analyzers
-    for (auto &analyzer_trigger_pair: m_analyzers)
+    for (auto& analyzer_trigger_pair : m_analyzers)
         analyzer_trigger_pair.first->setAutotunerParams(enabled, period);
 
     // updaters
-    for (auto &updater_trigger_pair: m_updaters)
+    for (auto& updater_trigger_pair : m_updaters)
         updater_trigger_pair.first->setAutotunerParams(enabled, period);
 
     // computes
-    for (auto compute: m_computes)
+    for (auto compute : m_computes)
         compute->setAutotunerParams(enabled, period);
 
-    #ifdef ENABLE_MPI
-    if (m_comm)
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
         m_comm->setAutotunerParams(enabled, period);
-    #endif
+#endif
     }
 
 // --------- Steps in the simulation run implemented in helper functions
@@ -246,11 +242,11 @@ void System::setupProfiling()
     m_sysdef->getConstraintData()->setProfiler(m_profiler);
 
     // analyzers
-    for (auto &analyzer_trigger_pair: m_analyzers)
+    for (auto& analyzer_trigger_pair : m_analyzers)
         analyzer_trigger_pair.first->setProfiler(m_profiler);
 
     // updaters
-    for (auto &updater_trigger_pair: m_updaters)
+    for (auto& updater_trigger_pair : m_updaters)
         {
         if (!updater_trigger_pair.first)
             throw runtime_error("Invalid updater_trigger_pair");
@@ -258,12 +254,12 @@ void System::setupProfiling()
         }
 
     // computes
-    for (auto compute: m_computes)
+    for (auto compute : m_computes)
         compute->setProfiler(m_profiler);
 
 #ifdef ENABLE_MPI
     // communicator
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         m_comm->setProfiler(m_profiler);
 #endif
     }
@@ -274,22 +270,22 @@ void System::resetStats()
         m_integrator->resetStats();
 
     // analyzers
-    for (auto &analyzer_trigger_pair: m_analyzers)
+    for (auto& analyzer_trigger_pair : m_analyzers)
         analyzer_trigger_pair.first->resetStats();
 
     // updaters
-    for (auto &updater_trigger_pair: m_updaters)
+    for (auto& updater_trigger_pair : m_updaters)
         updater_trigger_pair.first->resetStats();
 
     // computes
-    for (auto compute: m_computes)
+    for (auto compute : m_computes)
         compute->resetStats();
     }
 
 /*! \param tstep Time step for which to determine the flags
 
-    The flags needed are determined by peeking to \a tstep and then using bitwise or to combine all of the flags from the
-    analyzers and updaters that are to be executed on that step.
+    The flags needed are determined by peeking to \a tstep and then using bitwise or to combine all
+   of the flags from the analyzers and updaters that are to be executed on that step.
 */
 PDataFlags System::determineFlags(uint64_t tstep)
     {
@@ -297,19 +293,19 @@ PDataFlags System::determineFlags(uint64_t tstep)
     if (m_integrator)
         flags |= m_integrator->getRequestedPDataFlags();
 
-    for (auto &analyzer_trigger_pair: m_analyzers)
+    for (auto& analyzer_trigger_pair : m_analyzers)
         {
         if ((*analyzer_trigger_pair.second)(tstep))
             flags |= analyzer_trigger_pair.first->getRequestedPDataFlags();
         }
 
-    for (auto &updater_trigger_pair: m_updaters)
+    for (auto& updater_trigger_pair : m_updaters)
         {
         if ((*updater_trigger_pair.second)(tstep))
             flags |= updater_trigger_pair.first->getRequestedPDataFlags();
         }
 
-    for (auto &tuner: m_tuners)
+    for (auto& tuner : m_tuners)
         {
         if ((*tuner->getTrigger())(tstep))
             flags |= tuner->getRequestedPDataFlags();
@@ -320,36 +316,37 @@ PDataFlags System::determineFlags(uint64_t tstep)
 
 void export_System(py::module& m)
     {
-    py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>,
-                    std::shared_ptr<Trigger> > > >(m, "AnalyzerTriggerList");
-    py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>,
-                    std::shared_ptr<Trigger> > > >(m, "UpdaterTriggerList");
-    py::bind_vector<std::vector<std::shared_ptr<Tuner> > > (m, "TunerList");
-    py::bind_vector<std::vector<std::shared_ptr<Compute> > > (m, "ComputeList");
+    py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>>(
+        m,
+        "AnalyzerTriggerList");
+    py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>>>>(
+        m,
+        "UpdaterTriggerList");
+    py::bind_vector<std::vector<std::shared_ptr<Tuner>>>(m, "TunerList");
+    py::bind_vector<std::vector<std::shared_ptr<Compute>>>(m, "ComputeList");
 
-    py::class_< System, std::shared_ptr<System> > (m,"System")
-    .def(py::init< std::shared_ptr<SystemDefinition>, uint64_t>())
+    py::class_<System, std::shared_ptr<System>>(m, "System")
+        .def(py::init<std::shared_ptr<SystemDefinition>, uint64_t>())
 
-    .def("setIntegrator", &System::setIntegrator)
-    .def("getIntegrator", &System::getIntegrator)
+        .def("setIntegrator", &System::setIntegrator)
+        .def("getIntegrator", &System::getIntegrator)
 
-    .def("setAutotunerParams", &System::setAutotunerParams)
-    .def("enableProfiler", &System::enableProfiler)
-    .def("run", &System::run)
+        .def("setAutotunerParams", &System::setAutotunerParams)
+        .def("enableProfiler", &System::enableProfiler)
+        .def("run", &System::run)
 
-    .def("getLastTPS", &System::getLastTPS)
-    .def("getCurrentTimeStep", &System::getCurrentTimeStep)
-    .def("setPressureFlag", &System::setPressureFlag)
-    .def("getPressureFlag", &System::getPressureFlag)
-    .def_property_readonly("walltime", &System::getCurrentWalltime)
-    .def_property_readonly("final_timestep", &System::getEndStep)
-    .def_property_readonly("analyzers", &System::getAnalyzers)
-    .def_property_readonly("updaters", &System::getUpdaters)
-    .def_property_readonly("tuners", &System::getTuners)
-    .def_property_readonly("computes", &System::getComputes)
+        .def("getLastTPS", &System::getLastTPS)
+        .def("getCurrentTimeStep", &System::getCurrentTimeStep)
+        .def("setPressureFlag", &System::setPressureFlag)
+        .def("getPressureFlag", &System::getPressureFlag)
+        .def_property_readonly("walltime", &System::getCurrentWalltime)
+        .def_property_readonly("final_timestep", &System::getEndStep)
+        .def_property_readonly("analyzers", &System::getAnalyzers)
+        .def_property_readonly("updaters", &System::getUpdaters)
+        .def_property_readonly("tuners", &System::getTuners)
+        .def_property_readonly("computes", &System::getComputes)
 #ifdef ENABLE_MPI
-    .def("setCommunicator", &System::setCommunicator)
-    .def("getCommunicator", &System::getCommunicator)
+        .def("setCommunicator", &System::setCommunicator)
 #endif
-    ;
+        ;
     }

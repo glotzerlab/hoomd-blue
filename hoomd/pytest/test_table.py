@@ -16,6 +16,7 @@ skip_mpi = pytest.mark.skipif(skip_mpi, reason="MPI4py is not importable.")
 
 
 class Identity:
+
     def __init__(self, x):
         self.x = x
 
@@ -37,9 +38,22 @@ def logger():
 
 @pytest.fixture
 def expected_values():
-    return {'dummy.loggable.int': 42000000,
-            'dummy.loggable.float': 3.1415,
-            'dummy.loggable.string': "foobarbaz"}
+    return {
+        'dummy.loggable.int': 42000000,
+        'dummy.loggable.float': 3.1415,
+        'dummy.loggable.string': "foobarbaz"
+    }
+
+
+def test_invalid_attrs(logger):
+    output = StringIO("")
+    table_writer = hoomd.write.Table(1, logger, output)
+    with pytest.raises(AttributeError):
+        table_writer.action
+    with pytest.raises(AttributeError):
+        table_writer.detach
+    with pytest.raises(AttributeError):
+        table_writer.attach
 
 
 @pytest.mark.serial
@@ -53,7 +67,8 @@ def test_header_generation(device, logger):
     lines = output_str.split('\n')
     headers = lines[0].split()
     expected_headers = [
-        'dummy.loggable.int', 'dummy.loggable.float', 'dummy.loggable.string']
+        'dummy.loggable.int', 'dummy.loggable.float', 'dummy.loggable.string'
+    ]
     assert all(hdr in headers for hdr in expected_headers)
     for i in range(1, 10):
         values = lines[i].split()
@@ -92,8 +107,9 @@ def test_values(device, logger, expected_values):
 
     for row in lines[1:]:
         values = row.split()
-        assert all(test_equality(expected_values[hdr], v)
-                   for hdr, v in zip(headers, values))
+        assert all(
+            test_equality(expected_values[hdr], v)
+            for hdr, v in zip(headers, values))
 
 
 @skip_mpi
@@ -113,8 +129,11 @@ def test_mpi_write_only(device, logger):
 @pytest.mark.serial
 def test_header_attributes(device, logger):
     output = StringIO("")
-    table_writer = hoomd.write.Table(
-        1, logger, output, header_sep='-', max_header_len=13)
+    table_writer = hoomd.write.Table(1,
+                                     logger,
+                                     output,
+                                     header_sep='-',
+                                     max_header_len=13)
     table_writer._comm = device.communicator
     table_writer.write()
     lines = output.getvalue().split('\n')
@@ -126,8 +145,7 @@ def test_header_attributes(device, logger):
 @pytest.mark.serial
 def test_delimiter(device, logger):
     output = StringIO("")
-    table_writer = hoomd.write.Table(
-        1, logger, output, delimiter=',')
+    table_writer = hoomd.write.Table(1, logger, output, delimiter=',')
     table_writer._comm = device.communicator
     table_writer.write()
     lines = output.getvalue().split('\n')
@@ -137,7 +155,10 @@ def test_delimiter(device, logger):
 @pytest.mark.serial
 def test_max_precision(device, logger):
     output = StringIO("")
-    table_writer = hoomd.write.Table(1, logger, output, pretty=False,
+    table_writer = hoomd.write.Table(1,
+                                     logger,
+                                     output,
+                                     pretty=False,
                                      max_precision=5)
     table_writer._comm = device.communicator
     for i in range(10):
@@ -146,7 +167,10 @@ def test_max_precision(device, logger):
     smaller_lines = output.getvalue().split('\n')
 
     output = StringIO("")
-    table_writer = hoomd.write.Table(1, logger, output, pretty=False,
+    table_writer = hoomd.write.Table(1,
+                                     logger,
+                                     output,
+                                     pretty=False,
                                      max_precision=15)
     table_writer._comm = device.communicator
     for i in range(10):
@@ -155,11 +179,13 @@ def test_max_precision(device, logger):
     longer_lines = output.getvalue().split('\n')
 
     for long_row, short_row in zip(longer_lines[1:-1], smaller_lines[1:-1]):
-        assert all(len(long_) >= len(short)
-                   for long_, short in zip(long_row.split(), short_row.split()))
+        assert all(
+            len(long_) >= len(short)
+            for long_, short in zip(long_row.split(), short_row.split()))
 
-        assert any(len(long_) > len(short)
-                   for long_, short in zip(long_row.split(), short_row.split()))
+        assert any(
+            len(long_) > len(short)
+            for long_, short in zip(long_row.split(), short_row.split()))
 
 
 def test_only_string_and_scalar_quantities(device):

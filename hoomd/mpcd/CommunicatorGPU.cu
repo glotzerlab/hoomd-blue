@@ -29,11 +29,11 @@
 #endif
 
 namespace mpcd
-{
+    {
 namespace gpu
-{
+    {
 namespace kernel
-{
+    {
 //! Select a particle for migration
 /*!
  * \param d_comm_flag Communication flags to write out
@@ -43,13 +43,12 @@ namespace kernel
  *
  * Checks for particles being out of bounds, and aggregates send flags.
  */
-__global__ void stage_particles(unsigned int *d_comm_flag,
-                                const Scalar4 *d_pos,
-                                unsigned int N,
-                                const BoxDim box)
+__global__ void
+stage_particles(unsigned int* d_comm_flag, const Scalar4* d_pos, unsigned int N, const BoxDim box)
     {
     const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= N) return;
+    if (idx >= N)
+        return;
 
     const Scalar4 postype = d_pos[idx];
     const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
@@ -57,24 +56,30 @@ __global__ void stage_particles(unsigned int *d_comm_flag,
     const Scalar3 hi = box.getHi();
 
     unsigned int flags = 0;
-    if (pos.x >= hi.x) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::east);
-    else if (pos.x < lo.x) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::west);
-    if (pos.y >= hi.y) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::north);
-    else if (pos.y < lo.y) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::south);
-    if (pos.z >= hi.z) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::up);
-    else if (pos.z < lo.z) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::down);
+    if (pos.x >= hi.x)
+        flags |= static_cast<unsigned int>(mpcd::detail::send_mask::east);
+    else if (pos.x < lo.x)
+        flags |= static_cast<unsigned int>(mpcd::detail::send_mask::west);
+    if (pos.y >= hi.y)
+        flags |= static_cast<unsigned int>(mpcd::detail::send_mask::north);
+    else if (pos.y < lo.y)
+        flags |= static_cast<unsigned int>(mpcd::detail::send_mask::south);
+    if (pos.z >= hi.z)
+        flags |= static_cast<unsigned int>(mpcd::detail::send_mask::up);
+    else if (pos.z < lo.z)
+        flags |= static_cast<unsigned int>(mpcd::detail::send_mask::down);
 
     d_comm_flag[idx] = flags;
     }
-} // end namespace kernel
+    } // end namespace kernel
 
 //! Functor to select a particle for migration
 struct get_migrate_key : public thrust::unary_function<const unsigned int, unsigned int>
     {
-    const uint3 my_pos;      //!< My domain decomposition position
-    const Index3D di;        //!< Domain indexer
-    const unsigned int mask; //!< Mask of allowed directions
-    const unsigned int *cart_ranks; //!< Rank lookup table
+    const uint3 my_pos;             //!< My domain decomposition position
+    const Index3D di;               //!< Domain indexer
+    const unsigned int mask;        //!< Mask of allowed directions
+    const unsigned int* cart_ranks; //!< Rank lookup table
 
     //! Constructor
     /*!
@@ -83,10 +88,13 @@ struct get_migrate_key : public thrust::unary_function<const unsigned int, unsig
      * \param _mask Mask of allowed directions
      * \param _cart_ranks Rank lookup table
      */
-    get_migrate_key(const uint3 _my_pos, const Index3D _di, const unsigned int _mask,
-        const unsigned int *_cart_ranks)
+    get_migrate_key(const uint3 _my_pos,
+                    const Index3D _di,
+                    const unsigned int _mask,
+                    const unsigned int* _cart_ranks)
         : my_pos(_my_pos), di(_di), mask(_mask), cart_ranks(_cart_ranks)
-        { }
+        {
+        }
 
     //! Generate key for a sent particle
     /*!
@@ -98,25 +106,25 @@ struct get_migrate_key : public thrust::unary_function<const unsigned int, unsig
         int ix, iy, iz;
         ix = iy = iz = 0;
 
-        if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::east)) &&
-            (mask & static_cast<unsigned int>(mpcd::detail::send_mask::east)))
+        if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::east))
+            && (mask & static_cast<unsigned int>(mpcd::detail::send_mask::east)))
             ix = 1;
-        else if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::west)) &&
-                 (mask & static_cast<unsigned int>(mpcd::detail::send_mask::west)))
+        else if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::west))
+                 && (mask & static_cast<unsigned int>(mpcd::detail::send_mask::west)))
             ix = -1;
 
-        if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::north)) &&
-            (mask & static_cast<unsigned int>(mpcd::detail::send_mask::north)))
+        if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::north))
+            && (mask & static_cast<unsigned int>(mpcd::detail::send_mask::north)))
             iy = 1;
-        else if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::south)) &&
-                 (mask & static_cast<unsigned int>(mpcd::detail::send_mask::south)))
+        else if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::south))
+                 && (mask & static_cast<unsigned int>(mpcd::detail::send_mask::south)))
             iy = -1;
 
-        if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::up)) &&
-            (mask & static_cast<unsigned int>(mpcd::detail::send_mask::up)))
+        if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::up))
+            && (mask & static_cast<unsigned int>(mpcd::detail::send_mask::up)))
             iz = 1;
-        else if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::down)) &&
-                 (mask & static_cast<unsigned int>(mpcd::detail::send_mask::down)))
+        else if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::down))
+                 && (mask & static_cast<unsigned int>(mpcd::detail::send_mask::down)))
             iz = -1;
 
         int i = my_pos.x;
@@ -141,12 +149,12 @@ struct get_migrate_key : public thrust::unary_function<const unsigned int, unsig
         else if (k < 0)
             k += di.getD();
 
-        return cart_ranks[di(i,j,k)];
+        return cart_ranks[di(i, j, k)];
         }
-     };
+    };
 
-} // end namespace gpu
-} // end namespace mpcd
+    } // end namespace gpu
+    } // end namespace mpcd
 
 /*!
  * \param d_comm_flag Communication flags to write out
@@ -156,25 +164,20 @@ struct get_migrate_key : public thrust::unary_function<const unsigned int, unsig
  *
  * \returns Accumulated communication flags of all particles
  */
-cudaError_t mpcd::gpu::stage_particles(unsigned int *d_comm_flag,
-                                        const Scalar4 *d_pos,
-                                        const unsigned int N,
-                                        const BoxDim& box,
-                                        const unsigned int block_size)
+cudaError_t mpcd::gpu::stage_particles(unsigned int* d_comm_flag,
+                                       const Scalar4* d_pos,
+                                       const unsigned int N,
+                                       const BoxDim& box,
+                                       const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_particles);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_particles);
+    max_block_size = attr.maxThreadsPerBlock;
+
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N / run_block_size + 1);
-    mpcd::gpu::kernel::stage_particles<<<grid, run_block_size>>>(d_comm_flag,
-                                                                 d_pos,
-                                                                 N,
-                                                                 box);
+    mpcd::gpu::kernel::stage_particles<<<grid, run_block_size>>>(d_comm_flag, d_pos, N, box);
 
     return cudaSuccess;
     }
@@ -198,20 +201,23 @@ cudaError_t mpcd::gpu::stage_particles(unsigned int *d_comm_flag,
  * determine the number of particles going to each destination rank, and how
  * many ranks will be sent to.
  */
-size_t mpcd::gpu::sort_comm_send_buffer(mpcd::detail::pdata_element *d_sendbuf,
-                                        unsigned int *d_neigh_send,
-                                        unsigned int *d_num_send,
-                                        unsigned int *d_tmp_keys,
+size_t mpcd::gpu::sort_comm_send_buffer(mpcd::detail::pdata_element* d_sendbuf,
+                                        unsigned int* d_neigh_send,
+                                        unsigned int* d_num_send,
+                                        unsigned int* d_tmp_keys,
                                         const uint3 grid_pos,
                                         const Index3D& di,
                                         const unsigned int mask,
-                                        const unsigned int *d_cart_ranks,
+                                        const unsigned int* d_cart_ranks,
                                         const unsigned int Nsend)
     {
     // transform extracted communication flags into destination rank
     thrust::device_ptr<mpcd::detail::pdata_element> sendbuf(d_sendbuf);
     thrust::device_ptr<unsigned int> keys(d_tmp_keys);
-    thrust::transform(sendbuf, sendbuf + Nsend, keys, mpcd::gpu::get_migrate_key(grid_pos, di, mask, d_cart_ranks));
+    thrust::transform(sendbuf,
+                      sendbuf + Nsend,
+                      keys,
+                      mpcd::gpu::get_migrate_key(grid_pos, di, mask, d_cart_ranks));
 
     // sort the destination ranks
     thrust::sort_by_key(keys, keys + Nsend, sendbuf);
@@ -219,10 +225,13 @@ size_t mpcd::gpu::sort_comm_send_buffer(mpcd::detail::pdata_element *d_sendbuf,
     // run length encode to get the number going to each rank
     thrust::device_ptr<unsigned int> neigh_send(d_neigh_send);
     thrust::device_ptr<unsigned int> num_send(d_num_send);
-    size_t num_neigh = thrust::reduce_by_key(keys, keys + Nsend,
+    size_t num_neigh = thrust::reduce_by_key(keys,
+                                             keys + Nsend,
                                              thrust::constant_iterator<int>(1),
                                              neigh_send,
-                                             num_send).first - neigh_send;
+                                             num_send)
+                           .first
+                       - neigh_send;
 
     return num_neigh;
     }
@@ -241,22 +250,29 @@ size_t mpcd::gpu::sort_comm_send_buffer(mpcd::detail::pdata_element *d_sendbuf,
  * arrays. The caller must then allocate the necessary temporary storage, and then
  * call again to perform the reduction.
  */
-void mpcd::gpu::reduce_comm_flags(unsigned int *d_req_flags,
-                                  void *d_tmp,
+void mpcd::gpu::reduce_comm_flags(unsigned int* d_req_flags,
+                                  void* d_tmp,
                                   size_t& tmp_bytes,
-                                  const unsigned int *d_comm_flags,
+                                  const unsigned int* d_comm_flags,
                                   const unsigned int N)
     {
     mpcd::ops::BitwiseOr bit_or;
-    cub::DeviceReduce::Reduce(d_tmp, tmp_bytes, d_comm_flags, d_req_flags, N, bit_or, (unsigned int)0);
+    cub::DeviceReduce::Reduce(d_tmp,
+                              tmp_bytes,
+                              d_comm_flags,
+                              d_req_flags,
+                              N,
+                              bit_or,
+                              (unsigned int)0);
     }
 
 namespace mpcd
-{
+    {
 namespace gpu
-{
+    {
 //! Wrap a particle in a pdata_element
-struct wrap_particle_op : public thrust::unary_function<const mpcd::detail::pdata_element, mpcd::detail::pdata_element>
+struct wrap_particle_op
+    : public thrust::unary_function<const mpcd::detail::pdata_element, mpcd::detail::pdata_element>
     {
     const BoxDim box; //!< The box for which we are applying boundary conditions
 
@@ -264,10 +280,7 @@ struct wrap_particle_op : public thrust::unary_function<const mpcd::detail::pdat
     /*!
      * \param _box Shifted simulation box for wrapping
      */
-    wrap_particle_op(const BoxDim _box)
-        : box(_box)
-        {
-        }
+    wrap_particle_op(const BoxDim _box) : box(_box) { }
 
     //! Wrap position information inside particle data element
     /*!
@@ -277,13 +290,13 @@ struct wrap_particle_op : public thrust::unary_function<const mpcd::detail::pdat
     __device__ mpcd::detail::pdata_element operator()(const mpcd::detail::pdata_element p)
         {
         mpcd::detail::pdata_element ret = p;
-        int3 image = make_int3(0,0,0);
+        int3 image = make_int3(0, 0, 0);
         box.wrap(ret.pos, image);
         return ret;
         }
-     };
-} // end namespace gpu
-} // end namespace mpcd
+    };
+    } // end namespace gpu
+    } // end namespace mpcd
 
 /*!
  * \param n_recv Number of particles in buffer
@@ -291,7 +304,7 @@ struct wrap_particle_op : public thrust::unary_function<const mpcd::detail::pdat
  * \param box Box for which to apply boundary conditions
  */
 void mpcd::gpu::wrap_particles(const unsigned int n_recv,
-                               mpcd::detail::pdata_element *d_in,
+                               mpcd::detail::pdata_element* d_in,
                                const BoxDim& box)
     {
     // Wrap device ptr

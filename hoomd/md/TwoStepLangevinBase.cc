@@ -15,10 +15,9 @@ using namespace std;
     @param T Temperature set point as a function of time
 */
 TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysdef,
-                           std::shared_ptr<ParticleGroup> group,
-                           std::shared_ptr<Variant> T)
-    : IntegrationMethodTwoStep(sysdef, group), m_T(T), m_use_alpha(false),
-      m_alpha(0.0)
+                                         std::shared_ptr<ParticleGroup> group,
+                                         std::shared_ptr<Variant> T)
+    : IntegrationMethodTwoStep(sysdef, group), m_T(T), m_use_alpha(false), m_alpha(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevinBase" << endl;
 
@@ -36,49 +35,28 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
     m_gamma_r.swap(gamma_r);
     TAG_ALLOCATION(m_gamma_r);
 
-    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
-        cudaMemAdvise(m_gamma.get(), sizeof(Scalar)*m_gamma.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-        cudaMemAdvise(m_gamma_r.get(), sizeof(Scalar3)*m_gamma_r.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_gamma.get(),
+                      sizeof(Scalar) * m_gamma.getNumElements(),
+                      cudaMemAdviseSetReadMostly,
+                      0);
+        cudaMemAdvise(m_gamma_r.get(),
+                      sizeof(Scalar3) * m_gamma_r.getNumElements(),
+                      cudaMemAdviseSetReadMostly,
+                      0);
         }
-    #endif
+#endif
 
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma_r.size(); i++)
-        h_gamma_r.data[i] = make_scalar3(1.0,1.0,1.0);
-
-    // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_pdata->getNumTypesChangeSignal().connect<TwoStepLangevinBase, &TwoStepLangevinBase::slotNumTypesChange>(this);
+        h_gamma_r.data[i] = make_scalar3(1.0, 1.0, 1.0);
     }
 
 TwoStepLangevinBase::~TwoStepLangevinBase()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepLangevinBase" << endl;
-    m_pdata->getNumTypesChangeSignal().disconnect<TwoStepLangevinBase, &TwoStepLangevinBase::slotNumTypesChange>(this);
-    }
-
-void TwoStepLangevinBase::slotNumTypesChange()
-    {
-    // skip the reallocation if the number of types does not change
-    // this keeps old parameters when restoring a snapshot
-    // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
-    if (m_pdata->getNTypes() == m_gamma.size())
-        return;
-
-    // re-allocate memory for the per-type gamma storage and initialize them to 1.0
-    unsigned int old_ntypes = (unsigned int)m_gamma.size();
-    m_gamma.resize(m_pdata->getNTypes());
-    m_gamma_r.resize(m_pdata->getNTypes());
-
-    ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
-
-    for (unsigned int i = old_ntypes; i < m_gamma.size(); i++)
-        {
-        h_gamma.data[i] = Scalar(1.0);
-        h_gamma_r.data[i] = make_scalar3(1.0,1.0,1.0);
-        }
     }
 
 void TwoStepLangevinBase::setGamma(const std::string& type_name, Scalar gamma)
@@ -110,7 +88,7 @@ void TwoStepLangevinBase::setGammaR(const std::string& type_name, pybind11::tupl
     gamma_r.z = pybind11::cast<Scalar>(v[2]);
 
     // check for user errors
-    if (gamma_r.x < 0 || gamma_r.y < 0 || gamma_r. z < 0)
+    if (gamma_r.x < 0 || gamma_r.y < 0 || gamma_r.z < 0)
         {
         throw invalid_argument("gamma_r elements must be >= 0");
         }
@@ -165,17 +143,16 @@ pybind11::object TwoStepLangevinBase::getAlpha()
 
 void export_TwoStepLangevinBase(py::module& m)
     {
-    py::class_<TwoStepLangevinBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepLangevinBase> >(m, "TwoStepLangevinBase")
-        .def(py::init< std::shared_ptr<SystemDefinition>,
-                                std::shared_ptr<ParticleGroup>,
-                                std::shared_ptr<Variant>
-                                >())
+    py::class_<TwoStepLangevinBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepLangevinBase>>(
+        m,
+        "TwoStepLangevinBase")
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ParticleGroup>,
+                      std::shared_ptr<Variant>>())
         .def_property("kT", &TwoStepLangevinBase::getT, &TwoStepLangevinBase::setT)
         .def("setGamma", &TwoStepLangevinBase::setGamma)
         .def("getGamma", &TwoStepLangevinBase::getGamma)
         .def("setGammaR", &TwoStepLangevinBase::setGammaR)
         .def("getGammaR", &TwoStepLangevinBase::getGammaR)
-        .def_property("alpha", &TwoStepLangevinBase::getAlpha,
-                      &TwoStepLangevinBase::setAlpha)
-        ;
+        .def_property("alpha", &TwoStepLangevinBase::getAlpha, &TwoStepLangevinBase::setAlpha);
     }

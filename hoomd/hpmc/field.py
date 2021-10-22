@@ -10,6 +10,7 @@ from hoomd.hpmc import integrate
 from hoomd.operation import Compute
 import hoomd
 
+
 ## \internal
 # \brief Base class for external fields
 #
@@ -26,9 +27,10 @@ class _external(Compute):
     #
     # \post nothing is done here yet.
     def __init__(self):
-        _compute.__init__(self);
-        self.cpp_compute = None;
+        _compute.__init__(self)
+        self.cpp_compute = None
         # nothing else to do.
+
 
 class lattice_field(_external):
     R""" Restrain particles on a lattice
@@ -64,52 +66,66 @@ class lattice_field(_external):
         hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
         log = analyze.log(quantities=['lattice_energy'], period=100, filename='log.dat', overwrite=True);
     """
-    def __init__(self, mc, position = [], orientation = [], k = 0.0, q = 0.0, symmetry = [], composite=False):
+
+    def __init__(self,
+                 mc,
+                 position=[],
+                 orientation=[],
+                 k=0.0,
+                 q=0.0,
+                 symmetry=[],
+                 composite=False):
         import numpy
-        _external.__init__(self);
-        cls = None;
+        _external.__init__(self)
+        cls = None
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
-                cls = _hpmc.ExternalFieldLatticeSphere;
+                cls = _hpmc.ExternalFieldLatticeSphere
             elif isinstance(mc, integrate.convex_polygon):
-                cls = _hpmc.ExternalFieldLatticeConvexPolygon;
+                cls = _hpmc.ExternalFieldLatticeConvexPolygon
             elif isinstance(mc, integrate.simple_polygon):
-                cls = _hpmc.ExternalFieldLatticeSimplePolygon;
+                cls = _hpmc.ExternalFieldLatticeSimplePolygon
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = _hpmc.ExternalFieldLatticeConvexPolyhedron;
+                cls = _hpmc.ExternalFieldLatticeConvexPolyhedron
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = _hpmc.ExternalFieldLatticeSpheropolyhedron;
+                cls = _hpmc.ExternalFieldLatticeSpheropolyhedron
             elif isinstance(mc, integrate.ellipsoid):
-                cls = _hpmc.ExternalFieldLatticeEllipsoid;
+                cls = _hpmc.ExternalFieldLatticeEllipsoid
             elif isinstance(mc, integrate.convex_spheropolygon):
-                cls =_hpmc.ExternalFieldLatticeSpheropolygon;
+                cls = _hpmc.ExternalFieldLatticeSpheropolygon
             elif isinstance(mc, integrate.faceted_ellipsoid):
-                cls =_hpmc.ExternalFieldLatticeFacetedEllipsoid;
+                cls = _hpmc.ExternalFieldLatticeFacetedEllipsoid
             elif isinstance(mc, integrate.polyhedron):
-                cls =_hpmc.ExternalFieldLatticePolyhedron;
+                cls = _hpmc.ExternalFieldLatticePolyhedron
             elif isinstance(mc, integrate.sphinx):
-                cls =_hpmc.ExternalFieldLatticeSphinx;
+                cls = _hpmc.ExternalFieldLatticeSphinx
             elif isinstance(mc, integrate.sphere_union):
-                cls = _hpmc.ExternalFieldLatticeSphereUnion;
+                cls = _hpmc.ExternalFieldLatticeSphereUnion
             elif isinstance(mc, integrate.faceted_ellipsoid_union):
-                cls = _hpmc.ExternalFieldlatticeFacetedEllipsoidUnion;
+                cls = _hpmc.ExternalFieldlatticeFacetedEllipsoidUnion
             elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-                cls = _hpmc.ExternalFieldLatticeConvexPolyhedronUnion;
+                cls = _hpmc.ExternalFieldLatticeConvexPolyhedronUnion
             else:
-                hoomd.context.current.device.cpp_msg.error("compute.position_lattice_field: Unsupported integrator.\n");
-                raise RuntimeError("Error initializing compute.position_lattice_field");
+                hoomd.context.current.device.cpp_msg.error(
+                    "compute.position_lattice_field: Unsupported integrator.\n")
+                raise RuntimeError(
+                    "Error initializing compute.position_lattice_field")
         else:
             hoomd.context.current.device.cpp_msg.error("GPU not supported yet")
-            raise RuntimeError("Error initializing compute.position_lattice_field");
+            raise RuntimeError(
+                "Error initializing compute.position_lattice_field")
 
         self.compute_name = "lattice_field"
-        enlist = hoomd.hpmc.data._param.ensure_list;
-        self.cpp_compute = cls(hoomd.context.current.system_definition, enlist(position), float(k), enlist(orientation), float(q), enlist(symmetry));
-        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
+        enlist = hoomd.hpmc.data._param.ensure_list
+        self.cpp_compute = cls(hoomd.context.current.system_definition,
+                               enlist(position), float(k), enlist(orientation),
+                               float(q), enlist(symmetry))
+        hoomd.context.current.system.addCompute(self.cpp_compute,
+                                                self.compute_name)
         if not composite:
-            mc.set_external(self);
+            mc.set_external(self)
 
-    def set_references(self, position = [], orientation = []):
+    def set_references(self, position=[], orientation=[]):
         R""" Reset the reference positions or reference orientations.
         Args:
             position (list): list of positions to restrain each particle.
@@ -120,8 +136,8 @@ class lattice_field(_external):
             lattice.set_references(position=bcc_lattice)
         """
         import numpy
-        enlist = hoomd.hpmc.data._param.ensure_list;
-        self.cpp_compute.setReferences(enlist(position), enlist(orientation));
+        enlist = hoomd.hpmc.data._param.ensure_list
+        self.cpp_compute.setReferences(enlist(position), enlist(orientation))
 
     def set_params(self, k, q):
         R""" Set the translational and rotational spring constants.
@@ -136,9 +152,9 @@ class lattice_field(_external):
               lattice.set_params(k=k, q=0.0);
               run(1000)
         """
-        self.cpp_compute.setParams(float(k), float(q));
+        self.cpp_compute.setParams(float(k), float(q))
 
-    def reset(self, timestep = None):
+    def reset(self, timestep=None):
         R""" Reset the statistics counters.
         Args:
             timestep (int): the timestep to pass into the reset function.
@@ -152,8 +168,8 @@ class lattice_field(_external):
               run(1000)
         """
         if timestep == None:
-            timestep = hoomd.context.current.system.getCurrentTimeStep();
-        self.cpp_compute.reset(timestep);
+            timestep = hoomd.context.current.system.getCurrentTimeStep()
+        self.cpp_compute.reset(timestep)
 
     def get_energy(self):
         R"""    Get the current energy of the lattice field.
@@ -164,8 +180,8 @@ class lattice_field(_external):
             run(20000)
             eng = lattice.get_energy()
         """
-        timestep = hoomd.context.current.system.getCurrentTimeStep();
-        return self.cpp_compute.getEnergy(timestep);
+        timestep = hoomd.context.current.system.getCurrentTimeStep()
+        return self.cpp_compute.getEnergy(timestep)
 
     def get_average_energy(self):
         R"""    Get the average energy per particle of the lattice field.
@@ -176,8 +192,8 @@ class lattice_field(_external):
             run(20000)
             avg_eng = lattice.get_average_energy() //  should be about 1.5kT
         """
-        timestep = hoomd.context.current.system.getCurrentTimeStep();
-        return self.cpp_compute.getAvgEnergy(timestep);
+        timestep = hoomd.context.current.system.getCurrentTimeStep()
+        return self.cpp_compute.getAvgEnergy(timestep)
 
     def get_sigma_energy(self):
         R"""    Gives the standard deviation of the average energy per particle of the lattice field.
@@ -188,8 +204,9 @@ class lattice_field(_external):
             run(20000)
             sig_eng = lattice.get_sigma_energy()
         """
-        timestep = hoomd.context.current.system.getCurrentTimeStep();
-        return self.cpp_compute.getSigma(timestep);
+        timestep = hoomd.context.current.system.getCurrentTimeStep()
+        return self.cpp_compute.getSigma(timestep)
+
 
 class external_field_composite(_external):
     R""" Manage multiple external fields.
@@ -206,51 +223,56 @@ class external_field_composite(_external):
         lattice = hpmc.field.lattice(...)
         composite_field = hpmc.field.external_field_composite(mc, fields=[walls, lattice])
     """
-    def __init__(self, mc, fields = None):
-        _external.__init__(self);
-        cls = None;
+
+    def __init__(self, mc, fields=None):
+        _external.__init__(self)
+        cls = None
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
-                cls = _hpmc.ExternalFieldCompositeSphere;
+                cls = _hpmc.ExternalFieldCompositeSphere
             elif isinstance(mc, integrate.convex_polygon):
-                cls = _hpmc.ExternalFieldCompositeConvexPolygon;
+                cls = _hpmc.ExternalFieldCompositeConvexPolygon
             elif isinstance(mc, integrate.simple_polygon):
-                cls = _hpmc.ExternalFieldCompositeSimplePolygon;
+                cls = _hpmc.ExternalFieldCompositeSimplePolygon
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = _hpmc.ExternalFieldCompositeConvexPolyhedron;
+                cls = _hpmc.ExternalFieldCompositeConvexPolyhedron
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = _hpmc.ExternalFieldCompositeSpheropolyhedron;
+                cls = _hpmc.ExternalFieldCompositeSpheropolyhedron
             elif isinstance(mc, integrate.ellipsoid):
-                cls = _hpmc.ExternalFieldCompositeEllipsoid;
+                cls = _hpmc.ExternalFieldCompositeEllipsoid
             elif isinstance(mc, integrate.convex_spheropolygon):
-                cls =_hpmc.ExternalFieldCompositeSpheropolygon;
+                cls = _hpmc.ExternalFieldCompositeSpheropolygon
             elif isinstance(mc, integrate.faceted_ellipsoid):
-                cls =_hpmc.ExternalFieldCompositeFacetedEllipsoid;
+                cls = _hpmc.ExternalFieldCompositeFacetedEllipsoid
             elif isinstance(mc, integrate.polyhedron):
-                cls =_hpmc.ExternalFieldCompositePolyhedron;
+                cls = _hpmc.ExternalFieldCompositePolyhedron
             elif isinstance(mc, integrate.sphinx):
-                cls =_hpmc.ExternalFieldCompositeSphinx;
+                cls = _hpmc.ExternalFieldCompositeSphinx
             elif isinstance(mc, integrate.sphere_union):
-                cls = _hpmc.ExternalFieldCompositeSphereUnion;
+                cls = _hpmc.ExternalFieldCompositeSphereUnion
             elif isinstance(mc, integrate.faceted_ellipsoid_union):
-                cls = _hpmc.ExternalFieldCompositeFacetedEllipsoidUnion;
+                cls = _hpmc.ExternalFieldCompositeFacetedEllipsoidUnion
             elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-                cls = _hpmc.ExternalFieldCompositeConvexPolyhedronUnion;
+                cls = _hpmc.ExternalFieldCompositeConvexPolyhedronUnion
             else:
-                hoomd.context.current.device.cpp_msg.error("compute.position_lattice_field: Unsupported integrator.\n");
-                raise RuntimeError("Error initializing compute.position_lattice_field");
+                hoomd.context.current.device.cpp_msg.error(
+                    "compute.position_lattice_field: Unsupported integrator.\n")
+                raise RuntimeError(
+                    "Error initializing compute.position_lattice_field")
         else:
             hoomd.context.current.device.cpp_msg.error("GPU not supported yet")
-            raise RuntimeError("Error initializing compute.position_lattice_field");
+            raise RuntimeError(
+                "Error initializing compute.position_lattice_field")
 
         self.compute_name = "composite_field"
-        self.cpp_compute = cls(hoomd.context.current.system_definition);
-        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
+        self.cpp_compute = cls(hoomd.context.current.system_definition)
+        hoomd.context.current.system.addCompute(self.cpp_compute,
+                                                self.compute_name)
 
-        mc.set_external(self);
+        mc.set_external(self)
 
         if not fields is None:
-            self.add_field(fields=fields);
+            self.add_field(fields=fields)
 
     def add_field(self, fields):
         R""" Add an external field to the ensemble.
@@ -264,9 +286,10 @@ class external_field_composite(_external):
             composite_field.add_field(fields=[walls, lattice])
         """
         if not type(fields) == list:
-            fields = list(fields);
+            fields = list(fields)
         for field in fields:
-            self.cpp_compute.addExternal(field.cpp_compute);
+            self.cpp_compute.addExternal(field.cpp_compute)
+
 
 class wall(_external):
     R""" Manage walls (an external field type).
@@ -300,33 +323,36 @@ class wall(_external):
         log = analyze.log(quantities=['hpmc_wall_volume','hpmc_wall_sph_rsq-0'], period=100, filename='log.dat', overwrite=True);
     """
 
-    index=0;
+    index = 0
 
     def __init__(self, mc, composite=False):
-        _external.__init__(self);
+        _external.__init__(self)
         # create the c++ mirror class
-        cls = None;
-        self.compute_name = "wall-"+str(wall.index)
-        wall.index+=1
+        cls = None
+        self.compute_name = "wall-" + str(wall.index)
+        wall.index += 1
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
-                cls = _hpmc.WallSphere;
+                cls = _hpmc.WallSphere
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = _hpmc.WallConvexPolyhedron;
+                cls = _hpmc.WallConvexPolyhedron
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = _hpmc.WallSpheropolyhedron;
+                cls = _hpmc.WallSpheropolyhedron
             else:
-                hoomd.context.current.device.cpp_msg.error("compute.wall: Unsupported integrator.\n");
-                raise RuntimeError("Error initializing compute.wall");
+                hoomd.context.current.device.cpp_msg.error(
+                    "compute.wall: Unsupported integrator.\n")
+                raise RuntimeError("Error initializing compute.wall")
         else:
             hoomd.context.current.device.cpp_msg.error("GPU not supported yet")
-            raise RuntimeError("Error initializing compute.wall");
+            raise RuntimeError("Error initializing compute.wall")
 
-        self.cpp_compute = cls(hoomd.context.current.system_definition, mc.cpp_integrator);
-        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
+        self.cpp_compute = cls(hoomd.context.current.system_definition,
+                               mc.cpp_integrator)
+        hoomd.context.current.system.addCompute(self.cpp_compute,
+                                                self.compute_name)
 
         if not composite:
-            mc.set_external(self);
+            mc.set_external(self)
 
     def count_overlaps(self, exit_early=False):
         R""" Count the overlaps associated with the walls.
@@ -342,9 +368,10 @@ class wall(_external):
             run(100)
             num_overlaps = ext_wall.count_overlaps();
         """
-        return self.cpp_compute.countOverlaps(hoomd.context.current.system.getCurrentTimeStep(), exit_early);
+        return self.cpp_compute.countOverlaps(
+            hoomd.context.current.system.getCurrentTimeStep(), exit_early)
 
-    def add_sphere_wall(self, radius, origin, inside = True):
+    def add_sphere_wall(self, radius, origin, inside=True):
         R""" Add a spherical wall to the simulation.
         Args:
             radius (float): radius of spherical wall
@@ -356,9 +383,10 @@ class wall(_external):
             ext_wall = hpmc.compute.wall(mc);
             ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
         """
-        self.cpp_compute.AddSphereWall(_hpmc.make_sphere_wall(radius, origin, inside));
+        self.cpp_compute.AddSphereWall(
+            _hpmc.make_sphere_wall(radius, origin, inside))
 
-    def set_sphere_wall(self, index, radius, origin, inside = True):
+    def set_sphere_wall(self, index, radius, origin, inside=True):
         R""" Change the parameters associated with a particular sphere wall.
         Args:
             index (int): index of the sphere wall to be modified. indices begin at 0 in the order the sphere walls were added to the system.
@@ -372,7 +400,8 @@ class wall(_external):
             ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
             ext_wall.set_sphere_wall(index = 0, radius = 3.0, origin = [0, 0, 0], inside = True);
         """
-        self.cpp_compute.SetSphereWallParameter(index, _hpmc.make_sphere_wall(radius, origin, inside));
+        self.cpp_compute.SetSphereWallParameter(
+            index, _hpmc.make_sphere_wall(radius, origin, inside))
 
     def get_sphere_wall_param(self, index, param):
         R""" Access a parameter associated with a particular sphere wall.
@@ -387,16 +416,18 @@ class wall(_external):
             ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
             rsq = ext_wall.get_sphere_wall_param(index = 0, param = "rsq");
         """
-        t = self.cpp_compute.GetSphereWallParametersPy(index);
+        t = self.cpp_compute.GetSphereWallParametersPy(index)
         if param == "rsq":
-            return t[0];
+            return t[0]
         elif param == "origin":
-            return t[1];
+            return t[1]
         elif param == "inside":
-            return t[2];
+            return t[2]
         else:
-            hoomd.context.current.device.cpp_msg.error("compute.wall.get_sphere_wall_param: Parameter type is not valid. Choose from rsq, origin, inside.");
-            raise RuntimeError("Error: compute.wall");
+            hoomd.context.current.device.cpp_msg.error(
+                "compute.wall.get_sphere_wall_param: Parameter type is not valid. Choose from rsq, origin, inside."
+            )
+            raise RuntimeError("Error: compute.wall")
 
     def remove_sphere_wall(self, index):
         R""" Remove a particular sphere wall from the simulation.
@@ -408,7 +439,7 @@ class wall(_external):
             ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
             ext_wall.remove_sphere_wall(index = 0);
         """
-        self.cpp_compute.RemoveSphereWall(index);
+        self.cpp_compute.RemoveSphereWall(index)
 
     def get_num_sphere_walls(self):
         R""" Get the current number of sphere walls in the simulation.
@@ -419,9 +450,9 @@ class wall(_external):
             ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
             num_sph_walls = ext_wall.get_num_sphere_walls();
         """
-        return self.cpp_compute.getNumSphereWalls();
+        return self.cpp_compute.getNumSphereWalls()
 
-    def add_cylinder_wall(self, radius, origin, orientation, inside = True):
+    def add_cylinder_wall(self, radius, origin, orientation, inside=True):
         R""" Add a cylindrical wall to the simulation.
         Args:
             radius (float): radius of cylindrical wall
@@ -435,10 +466,15 @@ class wall(_external):
             ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
         """
 
-        param = _hpmc.make_cylinder_wall(radius, origin, orientation, inside);
-        self.cpp_compute.AddCylinderWall(param);
+        param = _hpmc.make_cylinder_wall(radius, origin, orientation, inside)
+        self.cpp_compute.AddCylinderWall(param)
 
-    def set_cylinder_wall(self, index, radius, origin, orientation, inside = True):
+    def set_cylinder_wall(self,
+                          index,
+                          radius,
+                          origin,
+                          orientation,
+                          inside=True):
         R""" Change the parameters associated with a particular cylinder wall.
         Args:
             index (int): index of the cylinder wall to be modified. indices begin at 0 in the order the cylinder walls were added to the system.
@@ -454,7 +490,7 @@ class wall(_external):
             ext_wall.set_cylinder_wall(index = 0, radius = 3.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
         """
         param = _hpmc.make_cylinder_wall(radius, origin, orientation, inside)
-        self.cpp_compute.SetCylinderWallParameter(index, param);
+        self.cpp_compute.SetCylinderWallParameter(index, param)
 
     def get_cylinder_wall_param(self, index, param):
         R""" Access a parameter associated with a particular cylinder wall.
@@ -470,18 +506,20 @@ class wall(_external):
             ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
             rsq = ext_wall.get_cylinder_wall_param(index = 0, param = "rsq");
         """
-        t = self.cpp_compute.GetCylinderWallParametersPy(index);
+        t = self.cpp_compute.GetCylinderWallParametersPy(index)
         if param == "rsq":
-            return t[0];
+            return t[0]
         elif param == "origin":
-            return t[1];
+            return t[1]
         elif param == "orientation":
-            return t[2];
+            return t[2]
         elif param == "inside":
-            return t[3];
+            return t[3]
         else:
-            hoomd.context.current.device.cpp_msg.error("compute.wall.get_cylinder_wall_param: Parameter type is not valid. Choose from rsq, origin, orientation, inside.");
-            raise RuntimeError("Error: compute.wall");
+            hoomd.context.current.device.cpp_msg.error(
+                "compute.wall.get_cylinder_wall_param: Parameter type is not valid. Choose from rsq, origin, orientation, inside."
+            )
+            raise RuntimeError("Error: compute.wall")
 
     def remove_cylinder_wall(self, index):
         R""" Remove a particular cylinder wall from the simulation.
@@ -493,7 +531,7 @@ class wall(_external):
             ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
             ext_wall.remove_cylinder_wall(index = 0);
         """
-        self.cpp_compute.RemoveCylinderWall(index);
+        self.cpp_compute.RemoveCylinderWall(index)
 
     def get_num_cylinder_walls(self):
         R""" Get the current number of cylinder walls in the simulation.
@@ -505,7 +543,7 @@ class wall(_external):
             ext_wall.add_cylinder_wall(radius = 1.0, origin = [0, 0, 0], orientation = [0, 0, 1], inside = True);
             num_cyl_walls = ext_wall.get_num_cylinder_walls();
         """
-        return self.cpp_compute.getNumCylinderWalls();
+        return self.cpp_compute.getNumCylinderWalls()
 
     def add_plane_wall(self, normal, origin):
         R""" Add a plane wall to the simulation.
@@ -518,7 +556,8 @@ class wall(_external):
             ext_wall = hpmc.compute.wall(mc);
             ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
         """
-        self.cpp_compute.AddPlaneWall(_hpmc.make_plane_wall(normal, origin, True));
+        self.cpp_compute.AddPlaneWall(
+            _hpmc.make_plane_wall(normal, origin, True))
 
     def set_plane_wall(self, index, normal, origin):
         R""" Change the parameters associated with a particular plane wall.
@@ -533,7 +572,8 @@ class wall(_external):
             ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
             ext_wall.set_plane_wall(index = 0, normal = [0, 0, 1], origin = [0, 0, 1]);
         """
-        self.cpp_compute.SetPlaneWallParameter(index, _hpmc.make_plane_wall(normal, origin, True));
+        self.cpp_compute.SetPlaneWallParameter(
+            index, _hpmc.make_plane_wall(normal, origin, True))
 
     def get_plane_wall_param(self, index, param):
         R""" Access a parameter associated with a particular plane wall.
@@ -548,14 +588,16 @@ class wall(_external):
             ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
             n = ext_wall.get_plane_wall_param(index = 0, param = "normal");
         """
-        t = self.cpp_compute.GetPlaneWallParametersPy(index);
+        t = self.cpp_compute.GetPlaneWallParametersPy(index)
         if param == "normal":
-            return t[0];
+            return t[0]
         elif param == "origin":
-            return t[1];
+            return t[1]
         else:
-            hoomd.context.current.device.cpp_msg.error("compute.wall.get_plane_wall_param: Parameter type is not valid. Choose from normal, origin.");
-            raise RuntimeError("Error: compute.wall");
+            hoomd.context.current.device.cpp_msg.error(
+                "compute.wall.get_plane_wall_param: Parameter type is not valid. Choose from normal, origin."
+            )
+            raise RuntimeError("Error: compute.wall")
 
     def remove_plane_wall(self, index):
         R""" Remove a particular plane wall from the simulation.
@@ -567,7 +609,7 @@ class wall(_external):
             ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
             ext_wall.remove_plane_wall(index = 0);
         """
-        self.cpp_compute.RemovePlaneWall(index);
+        self.cpp_compute.RemovePlaneWall(index)
 
     def get_num_plane_walls(self):
         R""" Get the current number of plane walls in the simulation.
@@ -579,7 +621,7 @@ class wall(_external):
             ext_wall.add_plane_wall(normal = [0, 0, 1], origin = [0, 0, 0]);
             num_plane_walls = ext_wall.get_num_plane_walls();
         """
-        return self.cpp_compute.getNumPlaneWalls();
+        return self.cpp_compute.getNumPlaneWalls()
 
     def set_volume(self, volume):
         R""" Set the volume associated with the intersection of all walls in the system.
@@ -590,7 +632,7 @@ class wall(_external):
             ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
             ext_wall.set_volume(4./3.*np.pi);
         """
-        self.cpp_compute.setVolume(volume);
+        self.cpp_compute.setVolume(volume)
 
     def get_volume(self):
         R""" Get the current volume associated with the intersection of all walls in the system.
@@ -605,7 +647,7 @@ class wall(_external):
             run(100)
             curr_vol = ext_wall.get_volume();
         """
-        return self.cpp_compute.getVolume();
+        return self.cpp_compute.getVolume()
 
     def get_curr_box(self):
         R""" Get the simulation box that the wall class is currently storing.
@@ -620,13 +662,19 @@ class wall(_external):
             curr_box = ext_wall.get_curr_box();
         """
         return hoomd.data.boxdim(Lx=self.cpp_compute.GetCurrBoxLx(),
-                           Ly=self.cpp_compute.GetCurrBoxLy(),
-                           Lz=self.cpp_compute.GetCurrBoxLz(),
-                           xy=self.cpp_compute.GetCurrBoxTiltFactorXY(),
-                           xz=self.cpp_compute.GetCurrBoxTiltFactorXZ(),
-                           yz=self.cpp_compute.GetCurrBoxTiltFactorYZ());
+                                 Ly=self.cpp_compute.GetCurrBoxLy(),
+                                 Lz=self.cpp_compute.GetCurrBoxLz(),
+                                 xy=self.cpp_compute.GetCurrBoxTiltFactorXY(),
+                                 xz=self.cpp_compute.GetCurrBoxTiltFactorXZ(),
+                                 yz=self.cpp_compute.GetCurrBoxTiltFactorYZ())
 
-    def set_curr_box(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None):
+    def set_curr_box(self,
+                     Lx=None,
+                     Ly=None,
+                     Lz=None,
+                     xy=None,
+                     xz=None,
+                     yz=None):
         R""" Set the simulation box that the wall class is currently storing.
         You may want to set this independently so that you can cleverly control whether or not the walls actually scale in case you manually resize your simulation box.
         The walls scale automatically when they get the signal that the global box, associated with the system definition, has scaled. They do so, however, with a scale factor associated with
@@ -647,25 +695,28 @@ class wall(_external):
         """
         # much of this is from hoomd's update.py box_resize class
         if Lx is None and Ly is None and Lz is None and xy is None and xz is None and yz is None:
-            hoomd.context.current.device.cpp_msg.warning("compute.wall.set_curr_box: Ignoring request to set the wall's box without parameters\n")
+            hoomd.context.current.device.cpp_msg.warning(
+                "compute.wall.set_curr_box: Ignoring request to set the wall's box without parameters\n"
+            )
             return
 
         # setup arguments
         if Lx is None:
-            Lx = self.cpp_compute.GetCurrBoxLx();
+            Lx = self.cpp_compute.GetCurrBoxLx()
         if Ly is None:
-            Ly = self.cpp_compute.GetCurrBoxLy();
+            Ly = self.cpp_compute.GetCurrBoxLy()
         if Lz is None:
-            Lz = self.cpp_compute.GetCurrBoxLz();
+            Lz = self.cpp_compute.GetCurrBoxLz()
 
         if xy is None:
-            xy = self.cpp_compute.GetCurrBoxTiltFactorXY();
+            xy = self.cpp_compute.GetCurrBoxTiltFactorXY()
         if xz is None:
-            xz = self.cpp_compute.GetCurrBoxTiltFactorXZ();
+            xz = self.cpp_compute.GetCurrBoxTiltFactorXZ()
         if yz is None:
-            yz = self.cpp_compute.GetCurrBoxTiltFactorYZ();
+            yz = self.cpp_compute.GetCurrBoxTiltFactorYZ()
 
-        self.cpp_compute.SetCurrBox(Lx, Ly, Lz, xy, xz, yz);
+        self.cpp_compute.SetCurrBox(Lx, Ly, Lz, xy, xz, yz)
+
 
 class frenkel_ladd_energy(Compute):
     R""" Compute the Frenkel-Ladd Energy of a crystal.
@@ -693,42 +744,43 @@ class frenkel_ladd_energy(Compute):
         #set the FL parameters
         fl = hpmc.compute.frenkel_ladd_energy(mc=mc, ln_gamma=0.0, q_factor=10.0, r0=rs, q0=qs, drift_period=1000)
     """
-    def __init__(   self,
-                    mc,
-                    ln_gamma,
-                    q_factor,
-                    r0,
-                    q0,
-                    drift_period,
-                    symmetry = []
-                ):
+
+    def __init__(self,
+                 mc,
+                 ln_gamma,
+                 q_factor,
+                 r0,
+                 q0,
+                 drift_period,
+                 symmetry=[]):
         import math
         import numpy
         # initialize base class
-        _compute.__init__(self);
+        _compute.__init__(self)
 
         if type(r0) == numpy.ndarray:
-            self.lattice_positions = r0.tolist();
+            self.lattice_positions = r0.tolist()
         else:
-            self.lattice_positions = list(r0);
+            self.lattice_positions = list(r0)
 
         if type(q0) == numpy.ndarray:
-            self.lattice_orientations = q0.tolist();
+            self.lattice_orientations = q0.tolist()
         else:
-            self.lattice_orientations = list(q0);
+            self.lattice_orientations = list(q0)
 
-
-        self.mc = mc;
-        self.q_factor = q_factor;
-        self.trans_spring_const = math.exp(ln_gamma);
-        self.rotat_spring_const = self.q_factor*self.trans_spring_const;
-        self.lattice = lattice_field(   self.mc,
-                                        position = self.lattice_positions,
-                                        orientation = self.lattice_orientations,
-                                        k = self.trans_spring_const,
-                                        q = self.rotat_spring_const,
-                                        symmetry=symmetry);
-        self.remove_drift = hoomd.hpmc.update.remove_drift(self.mc, self.lattice, period=drift_period);
+        self.mc = mc
+        self.q_factor = q_factor
+        self.trans_spring_const = math.exp(ln_gamma)
+        self.rotat_spring_const = self.q_factor * self.trans_spring_const
+        self.lattice = lattice_field(self.mc,
+                                     position=self.lattice_positions,
+                                     orientation=self.lattice_orientations,
+                                     k=self.trans_spring_const,
+                                     q=self.rotat_spring_const,
+                                     symmetry=symmetry)
+        self.remove_drift = hoomd.hpmc.update.remove_drift(self.mc,
+                                                           self.lattice,
+                                                           period=drift_period)
 
     def reset_statistics(self):
         R""" Reset the statistics counters.
@@ -741,9 +793,9 @@ class frenkel_ladd_energy(Compute):
               fl.reset_statistics();
               run(1000)
         """
-        self.lattice.reset(0);
+        self.lattice.reset(0)
 
-    def set_params(self, ln_gamma = None, q_factor = None):
+    def set_params(self, ln_gamma=None, q_factor=None):
         R""" Set the Frenkel-Ladd parameters.
         Args:
             ln_gamma (float): log of the translational spring constant
@@ -759,11 +811,13 @@ class frenkel_ladd_energy(Compute):
         """
         import math
         if not q_factor is None:
-            self.q_factor = q_factor;
+            self.q_factor = q_factor
         if not ln_gamma is None:
-            self.trans_spring_const = math.exp(ln_gamma);
-        self.rotat_spring_const = self.q_factor*self.trans_spring_const;
-        self.lattice.set_params(self.trans_spring_const, self.rotat_spring_const);
+            self.trans_spring_const = math.exp(ln_gamma)
+        self.rotat_spring_const = self.q_factor * self.trans_spring_const
+        self.lattice.set_params(self.trans_spring_const,
+                                self.rotat_spring_const)
+
 
 class callback(_external):
     R""" Use a python-defined energy function in MC integration
@@ -784,45 +838,49 @@ class callback(_external):
           hpmc.field.callback(mc=mc, energy_function=energy);
           run(100)
     """
+
     def __init__(self, mc, energy_function, composite=False):
-        _external.__init__(self);
-        cls = None;
+        _external.__init__(self)
+        cls = None
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
-                cls = _hpmc.ExternalCallbackSphere;
+                cls = _hpmc.ExternalCallbackSphere
             elif isinstance(mc, integrate.convex_polygon):
-                cls = _hpmc.ExternalCallbackConvexPolygon;
+                cls = _hpmc.ExternalCallbackConvexPolygon
             elif isinstance(mc, integrate.simple_polygon):
-                cls = _hpmc.ExternalCallbackSimplePolygon;
+                cls = _hpmc.ExternalCallbackSimplePolygon
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = _hpmc.ExternalCallbackConvexPolyhedron;
+                cls = _hpmc.ExternalCallbackConvexPolyhedron
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = _hpmc.ExternalCallbackSpheropolyhedron;
+                cls = _hpmc.ExternalCallbackSpheropolyhedron
             elif isinstance(mc, integrate.ellipsoid):
-                cls = _hpmc.ExternalCallbackEllipsoid;
+                cls = _hpmc.ExternalCallbackEllipsoid
             elif isinstance(mc, integrate.convex_spheropolygon):
-                cls =_hpmc.ExternalCallbackSpheropolygon;
+                cls = _hpmc.ExternalCallbackSpheropolygon
             elif isinstance(mc, integrate.faceted_ellipsoid):
-                cls =_hpmc.ExternalCallbackFacetedEllipsoid;
+                cls = _hpmc.ExternalCallbackFacetedEllipsoid
             elif isinstance(mc, integrate.polyhedron):
-                cls =_hpmc.ExternalCallbackPolyhedron;
+                cls = _hpmc.ExternalCallbackPolyhedron
             elif isinstance(mc, integrate.sphinx):
-                cls =_hpmc.ExternalCallbackSphinx;
+                cls = _hpmc.ExternalCallbackSphinx
             elif isinstance(mc, integrate.sphere_union):
-                cls = _hpmc.ExternalCallbackSphereUnion;
+                cls = _hpmc.ExternalCallbackSphereUnion
             elif isinstance(mc, integrate.faceted_ellipsoid_union):
-                cls = _hpmc.ExternalCallbackFacetedEllipsoidUnion;
+                cls = _hpmc.ExternalCallbackFacetedEllipsoidUnion
             elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-                cls = _hpmc.ExternalCallbackConvexPolyhedronUnion;
+                cls = _hpmc.ExternalCallbackConvexPolyhedronUnion
             else:
-                hoomd.context.current.device.cpp_msg.error("hpmc.field.callback: Unsupported integrator.\n");
-                raise RuntimeError("Error initializing python callback");
+                hoomd.context.current.device.cpp_msg.error(
+                    "hpmc.field.callback: Unsupported integrator.\n")
+                raise RuntimeError("Error initializing python callback")
         else:
             hoomd.context.current.device.cpp_msg.error("GPU not supported")
-            raise RuntimeError("Error initializing hpmc.field.callback");
+            raise RuntimeError("Error initializing hpmc.field.callback")
 
         self.compute_name = "callback"
-        self.cpp_compute = cls(hoomd.context.current.system_definition, energy_function)
-        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
+        self.cpp_compute = cls(hoomd.context.current.system_definition,
+                               energy_function)
+        hoomd.context.current.system.addCompute(self.cpp_compute,
+                                                self.compute_name)
         if not composite:
-            mc.set_external(self);
+            mc.set_external(self)

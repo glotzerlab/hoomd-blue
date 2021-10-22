@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: dnlebard
 
 #include "HarmonicDihedralForceGPU.cuh"
@@ -19,7 +18,8 @@
 #define SMALL Scalar(0.001)
 
 /*! \file HarmonicDihedralForceGPU.cu
-    \brief Defines GPU kernel code for calculating the harmonic dihedral forces. Used by HarmonicDihedralForceComputeGPU.
+    \brief Defines GPU kernel code for calculating the harmonic dihedral forces. Used by
+   HarmonicDihedralForceComputeGPU.
 */
 
 //! Kernel for calculating harmonic dihedral forces on the GPU
@@ -35,18 +35,18 @@
     \param pitch Pitch of 2D dihedral list
     \param n_dihedrals_list List of numbers of dihedrals per atom
 */
-extern "C" __global__
-void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
-                                                 Scalar* d_virial,
-                                                 const size_t virial_pitch,
-                                                 const unsigned int N,
-                                                 const Scalar4 *d_pos,
-                                                 const Scalar4 *d_params,
-                                                 BoxDim box,
-                                                 const group_storage<4> *tlist,
-                                                 const unsigned int *dihedral_ABCD,
-                                                 const unsigned int pitch,
-                                                 const unsigned int *n_dihedrals_list)
+extern "C" __global__ void
+gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
+                                            Scalar* d_virial,
+                                            const size_t virial_pitch,
+                                            const unsigned int N,
+                                            const Scalar4* d_pos,
+                                            const Scalar4* d_params,
+                                            BoxDim box,
+                                            const group_storage<4>* tlist,
+                                            const unsigned int* dihedral_ABCD,
+                                            const unsigned int pitch,
+                                            const unsigned int* n_dihedrals_list)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -58,9 +58,10 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
     int n_dihedrals = n_dihedrals_list[idx];
 
     // read in the position of our b-particle from the a-b-c-d set. (MEM TRANSFER: 16 bytes)
-    Scalar4 idx_postype = d_pos[idx];  // we can be either a, b, or c in the a-b-c-d quartet
+    Scalar4 idx_postype = d_pos[idx]; // we can be either a, b, or c in the a-b-c-d quartet
     Scalar3 idx_pos = make_scalar3(idx_postype.x, idx_postype.y, idx_postype.z);
-    Scalar3 pos_a,pos_b,pos_c, pos_d; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
+    Scalar3 pos_a, pos_b, pos_c,
+        pos_d; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
 
     // initialize the force to 0
     Scalar4 force_idx = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -73,8 +74,8 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
     // loop over all dihedrals
     for (int dihedral_idx = 0; dihedral_idx < n_dihedrals; dihedral_idx++)
         {
-        group_storage<4> cur_dihedral = tlist[pitch*dihedral_idx + idx];
-        unsigned int cur_ABCD = dihedral_ABCD[pitch*dihedral_idx + idx];
+        group_storage<4> cur_dihedral = tlist[pitch * dihedral_idx + idx];
+        unsigned int cur_ABCD = dihedral_ABCD[pitch * dihedral_idx + idx];
 
         int cur_dihedral_x_idx = cur_dihedral.idx[0];
         int cur_dihedral_y_idx = cur_dihedral.idx[1];
@@ -140,31 +141,36 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
         Scalar multi = params.z;
         Scalar phi_0 = params.w;
 
-        Scalar aax = dab.y*dcbm.z - dab.z*dcbm.y;
-        Scalar aay = dab.z*dcbm.x - dab.x*dcbm.z;
-        Scalar aaz = dab.x*dcbm.y - dab.y*dcbm.x;
+        Scalar aax = dab.y * dcbm.z - dab.z * dcbm.y;
+        Scalar aay = dab.z * dcbm.x - dab.x * dcbm.z;
+        Scalar aaz = dab.x * dcbm.y - dab.y * dcbm.x;
 
-        Scalar bbx = ddc.y*dcbm.z - ddc.z*dcbm.y;
-        Scalar bby = ddc.z*dcbm.x - ddc.x*dcbm.z;
-        Scalar bbz = ddc.x*dcbm.y - ddc.y*dcbm.x;
+        Scalar bbx = ddc.y * dcbm.z - ddc.z * dcbm.y;
+        Scalar bby = ddc.z * dcbm.x - ddc.x * dcbm.z;
+        Scalar bbz = ddc.x * dcbm.y - ddc.y * dcbm.x;
 
-        Scalar raasq = aax*aax + aay*aay + aaz*aaz;
-        Scalar rbbsq = bbx*bbx + bby*bby + bbz*bbz;
-        Scalar rgsq = dcbm.x*dcbm.x + dcbm.y*dcbm.y + dcbm.z*dcbm.z;
+        Scalar raasq = aax * aax + aay * aay + aaz * aaz;
+        Scalar rbbsq = bbx * bbx + bby * bby + bbz * bbz;
+        Scalar rgsq = dcbm.x * dcbm.x + dcbm.y * dcbm.y + dcbm.z * dcbm.z;
         Scalar rg = sqrtf(rgsq);
 
         Scalar rginv, raa2inv, rbb2inv;
         rginv = raa2inv = rbb2inv = Scalar(0.0);
-        if (rg > Scalar(0.0)) rginv = Scalar(1.0)/rg;
-        if (raasq > Scalar(0.0)) raa2inv = Scalar(1.0)/raasq;
-        if (rbbsq > Scalar(0.0)) rbb2inv = Scalar(1.0)/rbbsq;
-        Scalar rabinv = sqrtf(raa2inv*rbb2inv);
+        if (rg > Scalar(0.0))
+            rginv = Scalar(1.0) / rg;
+        if (raasq > Scalar(0.0))
+            raa2inv = Scalar(1.0) / raasq;
+        if (rbbsq > Scalar(0.0))
+            rbb2inv = Scalar(1.0) / rbbsq;
+        Scalar rabinv = sqrtf(raa2inv * rbb2inv);
 
-        Scalar c_abcd = (aax*bbx + aay*bby + aaz*bbz)*rabinv;
-        Scalar s_abcd = rg*rabinv*(aax*ddc.x + aay*ddc.y + aaz*ddc.z);
+        Scalar c_abcd = (aax * bbx + aay * bby + aaz * bbz) * rabinv;
+        Scalar s_abcd = rg * rabinv * (aax * ddc.x + aay * ddc.y + aaz * ddc.z);
 
-        if (c_abcd > Scalar(1.0)) c_abcd = Scalar(1.0);
-        if (c_abcd < -Scalar(1.0)) c_abcd = -Scalar(1.0);
+        if (c_abcd > Scalar(1.0))
+            c_abcd = Scalar(1.0);
+        if (c_abcd < -Scalar(1.0))
+            c_abcd = -Scalar(1.0);
 
         Scalar p = Scalar(1.0);
         Scalar ddfab;
@@ -173,67 +179,67 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
 
         for (int jj = 0; jj < m; jj++)
             {
-            ddfab = p*c_abcd - dfab*s_abcd;
-            dfab = p*s_abcd + dfab*c_abcd;
+            ddfab = p * c_abcd - dfab * s_abcd;
+            dfab = p * s_abcd + dfab * c_abcd;
             p = ddfab;
             }
 
-/////////////////////////
-// FROM LAMMPS: sin_shift is always 0... so dropping all sin_shift terms!!!!
-// Adding charmm dihedral functionality, sin_shift not always 0,
-// cos_shift not always 1
-/////////////////////////
+        /////////////////////////
+        // FROM LAMMPS: sin_shift is always 0... so dropping all sin_shift terms!!!!
+        // Adding charmm dihedral functionality, sin_shift not always 0,
+        // cos_shift not always 1
+        /////////////////////////
         Scalar sin_phi_0 = fast::sin(phi_0);
         Scalar cos_phi_0 = fast::cos(phi_0);
-        p = p*cos_phi_0 + dfab*sin_phi_0;
+        p = p * cos_phi_0 + dfab * sin_phi_0;
         p *= sign;
-        dfab = dfab*cos_phi_0 - ddfab*sin_phi_0;
+        dfab = dfab * cos_phi_0 - ddfab * sin_phi_0;
         dfab *= sign;
         dfab *= -multi;
         p += Scalar(1.0);
 
         if (multi < Scalar(1.0))
             {
-            p =  Scalar(1.0) + sign;
+            p = Scalar(1.0) + sign;
             dfab = Scalar(0.0);
             }
 
-        Scalar fg = dab.x*dcbm.x + dab.y*dcbm.y + dab.z*dcbm.z;
-        Scalar hg = ddc.x*dcbm.x + ddc.y*dcbm.y + ddc.z*dcbm.z;
+        Scalar fg = dab.x * dcbm.x + dab.y * dcbm.y + dab.z * dcbm.z;
+        Scalar hg = ddc.x * dcbm.x + ddc.y * dcbm.y + ddc.z * dcbm.z;
 
-        Scalar fga = fg*raa2inv*rginv;
-        Scalar hgb = hg*rbb2inv*rginv;
-        Scalar gaa = -raa2inv*rg;
-        Scalar gbb = rbb2inv*rg;
+        Scalar fga = fg * raa2inv * rginv;
+        Scalar hgb = hg * rbb2inv * rginv;
+        Scalar gaa = -raa2inv * rg;
+        Scalar gbb = rbb2inv * rg;
 
-        Scalar dtfx = gaa*aax;
-        Scalar dtfy = gaa*aay;
-        Scalar dtfz = gaa*aaz;
-        Scalar dtgx = fga*aax - hgb*bbx;
-        Scalar dtgy = fga*aay - hgb*bby;
-        Scalar dtgz = fga*aaz - hgb*bbz;
-        Scalar dthx = gbb*bbx;
-        Scalar dthy = gbb*bby;
-        Scalar dthz = gbb*bbz;
+        Scalar dtfx = gaa * aax;
+        Scalar dtfy = gaa * aay;
+        Scalar dtfz = gaa * aaz;
+        Scalar dtgx = fga * aax - hgb * bbx;
+        Scalar dtgy = fga * aay - hgb * bby;
+        Scalar dtgz = fga * aaz - hgb * bbz;
+        Scalar dthx = gbb * bbx;
+        Scalar dthy = gbb * bby;
+        Scalar dthz = gbb * bbz;
 
-        //Scalar df = -K * dfab;
+        // Scalar df = -K * dfab;
         Scalar df = -K * dfab * Scalar(0.500); // the 0.5 term is for 1/2K in the forces
 
-        Scalar sx2 = df*dtgx;
-        Scalar sy2 = df*dtgy;
-        Scalar sz2 = df*dtgz;
+        Scalar sx2 = df * dtgx;
+        Scalar sy2 = df * dtgy;
+        Scalar sz2 = df * dtgz;
 
-        Scalar ffax = df*dtfx;
-        Scalar ffay = df*dtfy;
-        Scalar ffaz = df*dtfz;
+        Scalar ffax = df * dtfx;
+        Scalar ffay = df * dtfy;
+        Scalar ffaz = df * dtfz;
 
         Scalar ffbx = sx2 - ffax;
         Scalar ffby = sy2 - ffay;
         Scalar ffbz = sz2 - ffaz;
 
-        Scalar ffdx = df*dthx;
-        Scalar ffdy = df*dthy;
-        Scalar ffdz = df*dthz;
+        Scalar ffdx = df * dthx;
+        Scalar ffdy = df * dthy;
+        Scalar ffdz = df * dthz;
 
         Scalar ffcx = -sx2 - ffdx;
         Scalar ffcy = -sy2 - ffdy;
@@ -242,17 +248,23 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
         // Now, apply the force to each individual atom a,b,c,d
         // and accumulate the energy/virial
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
-        //Scalar dihedral_eng = p*K*Scalar(1.0/4.0);
-        Scalar dihedral_eng = p*K*Scalar(1.0/8.0); // the 1/8th term is (1/2)K * 1/4
+        // Scalar dihedral_eng = p*K*Scalar(1.0/4.0);
+        Scalar dihedral_eng = p * K * Scalar(1.0 / 8.0); // the 1/8th term is (1/2)K * 1/4
         // compute 1/4 of the virial, 1/4 for each atom in the dihedral
         // upper triangular version of virial tensor
         Scalar dihedral_virial[6];
-        dihedral_virial[0] = Scalar(1./4.)*(dab.x*ffax + dcb.x*ffcx + (ddc.x+dcb.x)*ffdx);
-        dihedral_virial[1] = Scalar(1./4.)*(dab.y*ffax + dcb.y*ffcx + (ddc.y+dcb.y)*ffdx);
-        dihedral_virial[2] = Scalar(1./4.)*(dab.z*ffax + dcb.z*ffcx + (ddc.z+dcb.z)*ffdx);
-        dihedral_virial[3] = Scalar(1./4.)*(dab.y*ffay + dcb.y*ffcy + (ddc.y+dcb.y)*ffdy);
-        dihedral_virial[4] = Scalar(1./4.)*(dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy);
-        dihedral_virial[5] = Scalar(1./4.)*(dab.z*ffaz + dcb.z*ffcz + (ddc.z+dcb.z)*ffdz);
+        dihedral_virial[0]
+            = Scalar(1. / 4.) * (dab.x * ffax + dcb.x * ffcx + (ddc.x + dcb.x) * ffdx);
+        dihedral_virial[1]
+            = Scalar(1. / 4.) * (dab.y * ffax + dcb.y * ffcx + (ddc.y + dcb.y) * ffdx);
+        dihedral_virial[2]
+            = Scalar(1. / 4.) * (dab.z * ffax + dcb.z * ffcx + (ddc.z + dcb.z) * ffdx);
+        dihedral_virial[3]
+            = Scalar(1. / 4.) * (dab.y * ffay + dcb.y * ffcy + (ddc.y + dcb.y) * ffdy);
+        dihedral_virial[4]
+            = Scalar(1. / 4.) * (dab.z * ffay + dcb.z * ffcy + (ddc.z + dcb.z) * ffdy);
+        dihedral_virial[5]
+            = Scalar(1. / 4.) * (dab.z * ffaz + dcb.z * ffcz + (ddc.z + dcb.z) * ffdz);
 
         if (cur_dihedral_abcd == 0)
             {
@@ -287,7 +299,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force_idx;
     for (int k = 0; k < 6; k++)
-       d_virial[k*virial_pitch+idx] = virial_idx[k];
+        d_virial[k * virial_pitch + idx] = virial_idx[k];
     }
 
 /*! \param d_force Device memory to write computed forces
@@ -308,46 +320,57 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 
-    \a d_params should include one Scalar4 element per dihedral type. The x component contains K the spring constant
-    and the y component contains sign, and the z component the multiplicity.
+    \a d_params should include one Scalar4 element per dihedral type. The x component contains K the
+   spring constant and the y component contains sign, and the z component the multiplicity.
 */
 hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
-                                                 Scalar* d_virial,
-                                                 const size_t virial_pitch,
-                                                 const unsigned int N,
-                                                 const Scalar4 *d_pos,
-                                                 const BoxDim& box,
-                                                 const group_storage<4> *tlist,
-                                                 const unsigned int *dihedral_ABCD,
-                                                 const unsigned int pitch,
-                                                 const unsigned int *n_dihedrals_list,
-                                                 Scalar4 *d_params,
-                                                 unsigned int n_dihedral_types,
-                                                 int block_size,
-                                                 int warp_size)
+                                                Scalar* d_virial,
+                                                const size_t virial_pitch,
+                                                const unsigned int N,
+                                                const Scalar4* d_pos,
+                                                const BoxDim& box,
+                                                const group_storage<4>* tlist,
+                                                const unsigned int* dihedral_ABCD,
+                                                const unsigned int pitch,
+                                                const unsigned int* n_dihedrals_list,
+                                                Scalar4* d_params,
+                                                unsigned int n_dihedral_types,
+                                                int block_size,
+                                                int warp_size)
     {
     assert(d_params);
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void *)gpu_compute_harmonic_dihedral_forces_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        if (max_block_size % warp_size)
-            // handle non-sensical return values from hipFuncGetAttributes
-            max_block_size = (max_block_size/warp_size-1)*warp_size;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_compute_harmonic_dihedral_forces_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
+    if (max_block_size % warp_size)
+        // handle non-sensical return values from hipFuncGetAttributes
+        max_block_size = (max_block_size / warp_size - 1) * warp_size;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     // setup the grid to run the kernel
-    dim3 grid( N / run_block_size + 1, 1, 1);
+    dim3 grid(N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_harmonic_dihedral_forces_kernel), grid, threads, 0, 0,
-        d_force, d_virial, virial_pitch, N, d_pos, d_params, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
+    hipLaunchKernelGGL((gpu_compute_harmonic_dihedral_forces_kernel),
+                       grid,
+                       threads,
+                       0,
+                       0,
+                       d_force,
+                       d_virial,
+                       virial_pitch,
+                       N,
+                       d_pos,
+                       d_params,
+                       box,
+                       tlist,
+                       dihedral_ABCD,
+                       pitch,
+                       n_dihedrals_list);
 
     return hipSuccess;
     }

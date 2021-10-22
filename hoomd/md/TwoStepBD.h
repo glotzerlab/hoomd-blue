@@ -19,22 +19,24 @@
 class PYBIND11_EXPORT TwoStepBD : public TwoStepLangevinBase
     {
     public:
-        /// Constructs the integration method and associates it with the system
-        TwoStepBD(std::shared_ptr<SystemDefinition> sysdef,
-                  std::shared_ptr<ParticleGroup> group,
-                  std::shared_ptr<Variant> T);
+    /// Constructs the integration method and associates it with the system
+    TwoStepBD(std::shared_ptr<SystemDefinition> sysdef,
+              std::shared_ptr<ParticleGroup> group,
+              std::shared_ptr<Variant> T,
+              bool noiseless_t,
+              bool noiseless_r);
 
-        virtual ~TwoStepBD();
+    virtual ~TwoStepBD();
 
-        /// Performs the second step of the integration
-        virtual void integrateStepOne(uint64_t timestep);
+    /// Performs the second step of the integration
+    virtual void integrateStepOne(uint64_t timestep);
 
-        /// Performs the second step of the integration
-        virtual void integrateStepTwo(uint64_t timestep);
+    /// Performs the second step of the integration
+    virtual void integrateStepTwo(uint64_t timestep);
 
     protected:
-        bool m_noiseless_t;
-        bool m_noiseless_r;
+    bool m_noiseless_t;
+    bool m_noiseless_r;
     };
 
 //! Exports the TwoStepLangevin class to python

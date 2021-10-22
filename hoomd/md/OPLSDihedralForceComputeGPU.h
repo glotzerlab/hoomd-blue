@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: ksil
 
 #include "OPLSDihedralForceCompute.h"
@@ -30,27 +29,27 @@
 class PYBIND11_EXPORT OPLSDihedralForceComputeGPU : public OPLSDihedralForceCompute
     {
     public:
-        //! Constructs the compute
-        OPLSDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef);
+    //! Constructs the compute
+    OPLSDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef);
 
-        //! Destructor
-        virtual ~OPLSDihedralForceComputeGPU() { }
+    //! Destructor
+    virtual ~OPLSDihedralForceComputeGPU() { }
 
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
-        */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            OPLSDihedralForceCompute::setAutotunerParams(enable, period);
-            m_tuner->setPeriod(period);
-            m_tuner->setEnabled(enable);
-            }
+    //! Set autotuner parameters
+    /*! \param enable Enable/disable autotuning
+        \param period period (approximate) in time steps when returning occurs
+    */
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        OPLSDihedralForceCompute::setAutotunerParams(enable, period);
+        m_tuner->setPeriod(period);
+        m_tuner->setEnabled(enable);
+        }
 
     private:
-        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
-        virtual void computeForces(uint64_t timestep);
+    virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the OPLSDihedralForceComputeGPU class to python

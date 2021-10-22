@@ -2,7 +2,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: ksil
 
 #include "OPLSDihedralForceGPU.cuh"
@@ -11,7 +10,8 @@
 #include <assert.h>
 
 /*! \file OPLSDihedralForceGPU.cu
-    \brief Defines GPU kernel code for calculating OPLS dihedral forces. Used by OPLSDihedralForceComputeGPU.
+    \brief Defines GPU kernel code for calculating OPLS dihedral forces. Used by
+   OPLSDihedralForceComputeGPU.
 */
 
 //! Kernel for calculating OPLS dihedral forces on the GPU
@@ -27,18 +27,18 @@
     \param pitch Pitch of 2D dihedral list
     \param n_dihedrals_list List of numbers of dihedrals per atom
 */
-extern "C" __global__
-void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
-                                                 Scalar* d_virial,
-                                                 const size_t virial_pitch,
-                                                 const unsigned int N,
-                                                 const Scalar4 *d_pos,
-                                                 const Scalar4 *d_params,
-                                                 BoxDim box,
-                                                 const group_storage<4> *tlist,
-                                                 const unsigned int *dihedral_ABCD,
-                                                 const unsigned int pitch,
-                                                 const unsigned int *n_dihedrals_list)
+extern "C" __global__ void
+gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
+                                        Scalar* d_virial,
+                                        const size_t virial_pitch,
+                                        const unsigned int N,
+                                        const Scalar4* d_pos,
+                                        const Scalar4* d_params,
+                                        BoxDim box,
+                                        const group_storage<4>* tlist,
+                                        const unsigned int* dihedral_ABCD,
+                                        const unsigned int pitch,
+                                        const unsigned int* n_dihedrals_list)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -50,9 +50,10 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
     int n_dihedrals = n_dihedrals_list[idx];
 
     // read in the position of our b-particle from the a-b-c-d set. (MEM TRANSFER: 16 bytes)
-    Scalar4 idx_postype = d_pos[idx];  // we can be either a, b, or c in the a-b-c-d quartet
+    Scalar4 idx_postype = d_pos[idx]; // we can be either a, b, or c in the a-b-c-d quartet
     Scalar3 idx_pos = make_scalar3(idx_postype.x, idx_postype.y, idx_postype.z);
-    Scalar3 pos_a,pos_b,pos_c, pos_d; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
+    Scalar3 pos_a, pos_b, pos_c,
+        pos_d; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
 
     // initialize the force to 0
     Scalar4 force_idx = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -65,8 +66,8 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
     // loop over all dihedrals
     for (int dihedral_idx = 0; dihedral_idx < n_dihedrals; dihedral_idx++)
         {
-        group_storage<4> cur_dihedral = tlist[pitch*dihedral_idx + idx];
-        unsigned int cur_ABCD = dihedral_ABCD[pitch*dihedral_idx + idx];
+        group_storage<4> cur_dihedral = tlist[pitch * dihedral_idx + idx];
+        unsigned int cur_ABCD = dihedral_ABCD[pitch * dihedral_idx + idx];
 
         int cur_dihedral_x_idx = cur_dihedral.idx[0];
         int cur_dihedral_y_idx = cur_dihedral.idx[1];
@@ -130,30 +131,35 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
         // c,s calculation
 
         Scalar ax, ay, az, bx, by, bz;
-        ax = vb1.y*vb2m.z - vb1.z*vb2m.y;
-        ay = vb1.z*vb2m.x - vb1.x*vb2m.z;
-        az = vb1.x*vb2m.y - vb1.y*vb2m.x;
-        bx = vb3.y*vb2m.z - vb3.z*vb2m.y;
-        by = vb3.z*vb2m.x - vb3.x*vb2m.z;
-        bz = vb3.x*vb2m.y - vb3.y*vb2m.x;
+        ax = vb1.y * vb2m.z - vb1.z * vb2m.y;
+        ay = vb1.z * vb2m.x - vb1.x * vb2m.z;
+        az = vb1.x * vb2m.y - vb1.y * vb2m.x;
+        bx = vb3.y * vb2m.z - vb3.z * vb2m.y;
+        by = vb3.z * vb2m.x - vb3.x * vb2m.z;
+        bz = vb3.x * vb2m.y - vb3.y * vb2m.x;
 
-        Scalar rasq = ax*ax + ay*ay + az*az;
-        Scalar rbsq = bx*bx + by*by + bz*bz;
-        Scalar rgsq = vb2m.x*vb2m.x + vb2m.y*vb2m.y + vb2m.z*vb2m.z;
+        Scalar rasq = ax * ax + ay * ay + az * az;
+        Scalar rbsq = bx * bx + by * by + bz * bz;
+        Scalar rgsq = vb2m.x * vb2m.x + vb2m.y * vb2m.y + vb2m.z * vb2m.z;
         Scalar rg = fast::sqrt(rgsq);
 
         Scalar rginv, ra2inv, rb2inv;
         rginv = ra2inv = rb2inv = 0.0;
-        if (rg > 0) rginv = 1.0/rg;
-        if (rasq > 0) ra2inv = 1.0/rasq;
-        if (rbsq > 0) rb2inv = 1.0/rbsq;
-        Scalar rabinv = fast::sqrt(ra2inv*rb2inv);
+        if (rg > 0)
+            rginv = 1.0 / rg;
+        if (rasq > 0)
+            ra2inv = 1.0 / rasq;
+        if (rbsq > 0)
+            rb2inv = 1.0 / rbsq;
+        Scalar rabinv = fast::sqrt(ra2inv * rb2inv);
 
-        Scalar c = (ax*bx + ay*by + az*bz)*rabinv;
-        Scalar s = rg*rabinv*(ax*vb3.x + ay*vb3.y + az*vb3.z);
+        Scalar c = (ax * bx + ay * by + az * bz) * rabinv;
+        Scalar s = rg * rabinv * (ax * vb3.x + ay * vb3.y + az * vb3.z);
 
-        if (c > 1.0) c = 1.0;
-        if (c < -1.0) c = -1.0;
+        if (c > 1.0)
+            c = 1.0;
+        if (c < -1.0)
+            c = -1.0;
 
         // get values for k1/2 through k4/2 (MEM TRANSFER: 16 bytes)
         // ----- The 1/2 factor is already stored in the parameters --------
@@ -172,68 +178,68 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
         Scalar cos_term = ddf1;
 
         Scalar p = k1 * (1.0 + cos_term);
-        Scalar df = k1*df1;
+        Scalar df = k1 * df1;
 
         // cos(2*phi) term
-        ddf1 = cos_term*c - df1*s;
-        df1 = cos_term*s + df1*c;
+        ddf1 = cos_term * c - df1 * s;
+        df1 = cos_term * s + df1 * c;
         cos_term = ddf1;
 
         p += k2 * (1.0 - cos_term);
-        df += -2.0*k2*df1;
+        df += -2.0 * k2 * df1;
 
         // cos(3*phi) term
-        ddf1 = cos_term*c - df1*s;
-        df1 = cos_term*s + df1*c;
+        ddf1 = cos_term * c - df1 * s;
+        df1 = cos_term * s + df1 * c;
         cos_term = ddf1;
 
         p += k3 * (1.0 + cos_term);
-        df += 3.0*k3*df1;
+        df += 3.0 * k3 * df1;
 
         // cos(4*phi) term
-        ddf1 = cos_term*c - df1*s;
-        df1 = cos_term*s + df1*c;
+        ddf1 = cos_term * c - df1 * s;
+        df1 = cos_term * s + df1 * c;
         cos_term = ddf1;
 
         p += k4 * (1.0 - cos_term);
-        df += -4.0*k4*df1;
+        df += -4.0 * k4 * df1;
 
         // Compute 1/4 of energy to assign to each of 4 atoms in the dihedral
-        Scalar e_dihedral = 0.25*p;
+        Scalar e_dihedral = 0.25 * p;
 
-        Scalar fg = vb1.x*vb2m.x + vb1.y*vb2m.y + vb1.z*vb2m.z;
-        Scalar hg = vb3.x*vb2m.x + vb3.y*vb2m.y + vb3.z*vb2m.z;
-        Scalar fga = fg*ra2inv*rginv;
-        Scalar hgb = hg*rb2inv*rginv;
-        Scalar gaa = -ra2inv*rg;
-        Scalar gbb = rb2inv*rg;
+        Scalar fg = vb1.x * vb2m.x + vb1.y * vb2m.y + vb1.z * vb2m.z;
+        Scalar hg = vb3.x * vb2m.x + vb3.y * vb2m.y + vb3.z * vb2m.z;
+        Scalar fga = fg * ra2inv * rginv;
+        Scalar hgb = hg * rb2inv * rginv;
+        Scalar gaa = -ra2inv * rg;
+        Scalar gbb = rb2inv * rg;
 
-        Scalar dtfx = gaa*ax;
-        Scalar dtfy = gaa*ay;
-        Scalar dtfz = gaa*az;
-        Scalar dtgx = fga*ax - hgb*bx;
-        Scalar dtgy = fga*ay - hgb*by;
-        Scalar dtgz = fga*az - hgb*bz;
-        Scalar dthx = gbb*bx;
-        Scalar dthy = gbb*by;
-        Scalar dthz = gbb*bz;
+        Scalar dtfx = gaa * ax;
+        Scalar dtfy = gaa * ay;
+        Scalar dtfz = gaa * az;
+        Scalar dtgx = fga * ax - hgb * bx;
+        Scalar dtgy = fga * ay - hgb * by;
+        Scalar dtgz = fga * az - hgb * bz;
+        Scalar dthx = gbb * bx;
+        Scalar dthy = gbb * by;
+        Scalar dthz = gbb * bz;
 
-        Scalar sx2 = df*dtgx;
-        Scalar sy2 = df*dtgy;
-        Scalar sz2 = df*dtgz;
+        Scalar sx2 = df * dtgx;
+        Scalar sy2 = df * dtgy;
+        Scalar sz2 = df * dtgz;
 
         Scalar3 f1, f2, f3, f4;
-        f1.x = df*dtfx;
-        f1.y = df*dtfy;
-        f1.z = df*dtfz;
+        f1.x = df * dtfx;
+        f1.y = df * dtfy;
+        f1.z = df * dtfz;
 
         f2.x = sx2 - f1.x;
         f2.y = sy2 - f1.y;
         f2.z = sz2 - f1.z;
 
-        f4.x = df*dthx;
-        f4.y = df*dthy;
-        f4.z = df*dthz;
+        f4.x = df * dthx;
+        f4.y = df * dthy;
+        f4.z = df * dthz;
 
         f3.x = -sx2 - f4.x;
         f3.y = -sy2 - f4.y;
@@ -243,12 +249,12 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
         // upper triangular version of virial tensor
 
         Scalar dihedral_virial[6];
-        dihedral_virial[0] = 0.25*(vb1.x*f1.x + vb2.x*f3.x + (vb3.x+vb2.x)*f4.x);
-        dihedral_virial[1] = 0.25*(vb1.y*f1.x + vb2.y*f3.x + (vb3.y+vb2.y)*f4.x);
-        dihedral_virial[2] = 0.25*(vb1.z*f1.x + vb2.z*f3.x + (vb3.z+vb2.z)*f4.x);
-        dihedral_virial[3] = 0.25*(vb1.y*f1.y + vb2.y*f3.y + (vb3.y+vb2.y)*f4.y);
-        dihedral_virial[4] = 0.25*(vb1.z*f1.y + vb2.z*f3.y + (vb3.z+vb2.z)*f4.y);
-        dihedral_virial[5] = 0.25*(vb1.z*f1.z + vb2.z*f3.z + (vb3.z+vb2.z)*f4.z);
+        dihedral_virial[0] = 0.25 * (vb1.x * f1.x + vb2.x * f3.x + (vb3.x + vb2.x) * f4.x);
+        dihedral_virial[1] = 0.25 * (vb1.y * f1.x + vb2.y * f3.x + (vb3.y + vb2.y) * f4.x);
+        dihedral_virial[2] = 0.25 * (vb1.z * f1.x + vb2.z * f3.x + (vb3.z + vb2.z) * f4.x);
+        dihedral_virial[3] = 0.25 * (vb1.y * f1.y + vb2.y * f3.y + (vb3.y + vb2.y) * f4.y);
+        dihedral_virial[4] = 0.25 * (vb1.z * f1.y + vb2.z * f3.y + (vb3.z + vb2.z) * f4.y);
+        dihedral_virial[5] = 0.25 * (vb1.z * f1.z + vb2.z * f3.z + (vb3.z + vb2.z) * f4.z);
 
         if (cur_dihedral_abcd == 0)
             {
@@ -283,7 +289,7 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force_idx;
     for (int k = 0; k < 6; k++)
-       d_virial[k*virial_pitch+idx] = virial_idx[k];
+        d_virial[k * virial_pitch + idx] = virial_idx[k];
     }
 
 /*! \param d_force Device memory to write computed forces
@@ -304,46 +310,57 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 
-    \a d_params should include one Scalar4 element per dihedral type. The x component contains K the spring constant
-    and the y component contains sign, and the z component the multiplicity.
+    \a d_params should include one Scalar4 element per dihedral type. The x component contains K the
+   spring constant and the y component contains sign, and the z component the multiplicity.
 */
 hipError_t gpu_compute_opls_dihedral_forces(Scalar4* d_force,
-                                                Scalar* d_virial,
-                                                const size_t virial_pitch,
-                                                const unsigned int N,
-                                                const Scalar4 *d_pos,
-                                                const BoxDim& box,
-                                                const group_storage<4> *tlist,
-                                                const unsigned int *dihedral_ABCD,
-                                                const unsigned int pitch,
-                                                const unsigned int *n_dihedrals_list,
-                                                const Scalar4 *d_params,
-                                                const unsigned int n_dihedral_types,
-                                                const int block_size,
-                                                const int warp_size)
+                                            Scalar* d_virial,
+                                            const size_t virial_pitch,
+                                            const unsigned int N,
+                                            const Scalar4* d_pos,
+                                            const BoxDim& box,
+                                            const group_storage<4>* tlist,
+                                            const unsigned int* dihedral_ABCD,
+                                            const unsigned int pitch,
+                                            const unsigned int* n_dihedrals_list,
+                                            const Scalar4* d_params,
+                                            const unsigned int n_dihedral_types,
+                                            const int block_size,
+                                            const int warp_size)
     {
     assert(d_params);
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void *)gpu_compute_opls_dihedral_forces_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        if (max_block_size % warp_size)
-            // handle non-sensical return values from hipFuncGetAttributes
-            max_block_size = (max_block_size/warp_size-1)*warp_size;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_compute_opls_dihedral_forces_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
+    if (max_block_size % warp_size)
+        // handle non-sensical return values from hipFuncGetAttributes
+        max_block_size = (max_block_size / warp_size - 1) * warp_size;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     // setup the grid to run the kernel
-    dim3 grid( N / run_block_size + 1, 1, 1);
+    dim3 grid(N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_opls_dihedral_forces_kernel), dim3(grid), dim3(threads), 0, 0, d_force, d_virial, virial_pitch, N, d_pos, d_params,
-                                                                box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
+    hipLaunchKernelGGL((gpu_compute_opls_dihedral_forces_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_force,
+                       d_virial,
+                       virial_pitch,
+                       N,
+                       d_pos,
+                       d_params,
+                       box,
+                       tlist,
+                       dihedral_ABCD,
+                       pitch,
+                       n_dihedrals_list);
 
     return hipSuccess;
     }

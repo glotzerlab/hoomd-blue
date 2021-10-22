@@ -10,8 +10,7 @@
 #endif
 
 namespace hpmc
-{
-
+    {
 void export_sphere(pybind11::module& m);
 void export_sphere_alchemy(pybind11::module& m);
 void export_convex_polygon(pybind11::module& m);
@@ -37,6 +36,6 @@ void export_convex_spheropolyhedron(pybind11::module& m);
 void export_convex_spheropolyhedron_alchemy(pybind11::module& m);
 
 void export_external_fields(pybind11::module& m);
-}
+    } // namespace hpmc
 
 #endif // __MODULES__

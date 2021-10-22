@@ -19,21 +19,23 @@
 class PYBIND11_EXPORT TwoStepBDGPU : public TwoStepBD
     {
     public:
-        //! Constructs the integration method and associates it with the system
-        TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
-                     std::shared_ptr<ParticleGroup> group,
-                     std::shared_ptr<Variant> T);
+    //! Constructs the integration method and associates it with the system
+    TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
+                 std::shared_ptr<ParticleGroup> group,
+                 std::shared_ptr<Variant> T,
+                 bool noiseless_t,
+                 bool noiseless_r);
 
-        virtual ~TwoStepBDGPU() {};
+    virtual ~TwoStepBDGPU() {};
 
-        //! Performs the first step of the integration
-        virtual void integrateStepOne(uint64_t timestep);
+    //! Performs the first step of the integration
+    virtual void integrateStepOne(uint64_t timestep);
 
-        //! Performs the second step of the integration
-        virtual void integrateStepTwo(uint64_t timestep);
+    //! Performs the second step of the integration
+    virtual void integrateStepTwo(uint64_t timestep);
 
     protected:
-        unsigned int m_block_size;               //!< block size
+    unsigned int m_block_size; //!< block size
     };
 
 //! Exports the TwoStepBDGPU class to python

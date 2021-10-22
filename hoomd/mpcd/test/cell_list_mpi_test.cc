@@ -8,9 +8,9 @@
 #include "hoomd/mpcd/CellListGPU.h"
 #endif // ENABLE_HIP
 
-#include "hoomd/mpcd/Communicator.h"
 #include "hoomd/Communicator.h"
 #include "hoomd/SnapshotSystemData.h"
+#include "hoomd/mpcd/Communicator.h"
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN()
@@ -31,9 +31,10 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                              bool mpi_z)
     {
     // only run tests on first partition
-    if (exec_conf->getPartition() != 0) return;
+    if (exec_conf->getPartition() != 0)
+        return;
 
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = BoxDim(5.0);
     snap->particle_data.type_mapping.push_back("A");
 
@@ -56,8 +57,12 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         fz.push_back(0.55);
         }
     UP_ASSERT_EQUAL(exec_conf->getNRanks(), n_req_ranks);
-    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,snap->global_box.getL(),fx,fy,fz));
+    std::shared_ptr<DomainDecomposition> decomposition(
+        new DomainDecomposition(exec_conf, snap->global_box.getL(), fx, fy, fz));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
+    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
+    sysdef->setCommunicator(pdata_comm);
+
         {
         const Index3D& di = decomposition->getDomainIndexer();
         UP_ASSERT_EQUAL(di.getW(), (mpi_x) ? 2 : 1);
@@ -217,8 +222,10 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
             }
 
         // check for grid shifting errors
-        UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ cl->setGridShift(make_scalar3(-0.51, -0.51, -0.51)); });
-        UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ cl->setGridShift(make_scalar3(0.51, 0.51, 0.51)); });
+        UP_ASSERT_EXCEPTION(std::runtime_error,
+                            [&] { cl->setGridShift(make_scalar3(-0.51, -0.51, -0.51)); });
+        UP_ASSERT_EXCEPTION(std::runtime_error,
+                            [&] { cl->setGridShift(make_scalar3(0.51, 0.51, 0.51)); });
 
         // check coverage box
         const BoxDim& coverage = cl->getCoverageBox();
@@ -435,8 +442,10 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
             UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)], 0);
             }
 
-        UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ cl->setGridShift(make_scalar3(-0.3, -0.3, -0.3)); });
-        UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ cl->setGridShift(make_scalar3(0.3, 0.3, 0.3)); });
+        UP_ASSERT_EXCEPTION(std::runtime_error,
+                            [&] { cl->setGridShift(make_scalar3(-0.3, -0.3, -0.3)); });
+        UP_ASSERT_EXCEPTION(std::runtime_error,
+                            [&] { cl->setGridShift(make_scalar3(0.3, 0.3, 0.3)); });
 
         const BoxDim& coverage = cl->getCoverageBox();
         if (mpi_x)
@@ -498,7 +507,8 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         }
 
     /*******************/
-    // Increase the number of communication cells. This will trigger an increase in the size of the diffusion layer
+    // Increase the number of communication cells. This will trigger an increase in the size of the
+    // diffusion layer
     cl->setNExtraCells(1);
     cl->computeDimensions();
         {
@@ -647,8 +657,10 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
             UP_ASSERT_EQUAL(num_comm[static_cast<unsigned int>(mpcd::detail::face::down)], 0);
             }
 
-        UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ cl->setGridShift(make_scalar3(-0.3, -0.3, -0.3)); });
-        UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ cl->setGridShift(make_scalar3(0.3, 0.3, 0.3)); });
+        UP_ASSERT_EXCEPTION(std::runtime_error,
+                            [&] { cl->setGridShift(make_scalar3(-0.3, -0.3, -0.3)); });
+        UP_ASSERT_EXCEPTION(std::runtime_error,
+                            [&] { cl->setGridShift(make_scalar3(0.3, 0.3, 0.3)); });
 
         const BoxDim& coverage = cl->getCoverageBox();
         if (mpi_x)
@@ -711,100 +723,109 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
     }
 
 //! Test for correct cell listing of a basic system
-template<class CL>
-void celllist_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
+template<class CL> void celllist_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     UP_ASSERT_EQUAL(exec_conf->getNRanks(), 8);
 
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = BoxDim(6.0);
     snap->particle_data.type_mapping.push_back("A");
-    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,snap->global_box.getL(),2,2,2));
+    std::shared_ptr<DomainDecomposition> decomposition(
+        new DomainDecomposition(exec_conf, snap->global_box.getL(), 2, 2, 2));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
+    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
+    sysdef->setCommunicator(pdata_comm);
 
     // initialize mpcd system
     std::shared_ptr<mpcd::ParticleData> pdata;
     // place each particle in the same cell, but on different ranks
-        /*
-         * The +/- halves of the box owned by each domain are:
-         *    x y z
-         * 0: - - -
-         * 1: + - -
-         * 2: - + -
-         * 3: + + -
-         * 4: - - +
-         * 5: + - +
-         * 6: - + +
-         * 7: + + +
-         */
+    /*
+     * The +/- halves of the box owned by each domain are:
+     *    x y z
+     * 0: - - -
+     * 1: + - -
+     * 2: - + -
+     * 3: + + -
+     * 4: - - +
+     * 5: + - +
+     * 6: - + +
+     * 7: + + +
+     */
         {
         auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(8);
 
         mpcd_snap->position[0] = vec3<Scalar>(-0.1, -0.1, -0.1);
-        mpcd_snap->position[1] = vec3<Scalar>( 0.1, -0.1, -0.1);
-        mpcd_snap->position[2] = vec3<Scalar>(-0.1,  0.1, -0.1);
-        mpcd_snap->position[3] = vec3<Scalar>( 0.1,  0.1, -0.1);
-        mpcd_snap->position[4] = vec3<Scalar>(-0.1, -0.1,  0.1);
-        mpcd_snap->position[5] = vec3<Scalar>( 0.1, -0.1,  0.1);
-        mpcd_snap->position[6] = vec3<Scalar>(-0.1,  0.1,  0.1);
-        mpcd_snap->position[7] = vec3<Scalar>( 0.1,  0.1,  0.1);
+        mpcd_snap->position[1] = vec3<Scalar>(0.1, -0.1, -0.1);
+        mpcd_snap->position[2] = vec3<Scalar>(-0.1, 0.1, -0.1);
+        mpcd_snap->position[3] = vec3<Scalar>(0.1, 0.1, -0.1);
+        mpcd_snap->position[4] = vec3<Scalar>(-0.1, -0.1, 0.1);
+        mpcd_snap->position[5] = vec3<Scalar>(0.1, -0.1, 0.1);
+        mpcd_snap->position[6] = vec3<Scalar>(-0.1, 0.1, 0.1);
+        mpcd_snap->position[7] = vec3<Scalar>(0.1, 0.1, 0.1);
 
-        pdata = std::make_shared<mpcd::ParticleData>(mpcd_snap, snap->global_box, exec_conf, decomposition);
+        pdata = std::make_shared<mpcd::ParticleData>(mpcd_snap,
+                                                     snap->global_box,
+                                                     exec_conf,
+                                                     decomposition);
         }
 
     std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata));
-    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
-    cl->setCommunicator(pdata_comm);
     cl->compute(0);
     const unsigned int my_rank = exec_conf->getRank();
         {
-        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
+                                              access_location::host,
+                                              access_mode::read);
         Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
 
-        switch(my_rank)
+        switch (my_rank)
             {
-            case 0:
-                // global index is (2,2,2), with origin (-1,-1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,3,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,3,3));
-                break;
-            case 1:
-                // global index is (3,2,2), with origin (2,-1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,3,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,3,3) );
-                break;
-            case 2:
-                // global index is (2,3,2), with origin (-1,2,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,1,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,1,3) );
-                break;
-            case 3:
-                // global index is (3,3,2), with origin (2,2,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,1,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,1,3) );
-                break;
-            case 4:
-                // global index is (2,2,3), with origin (-1,-1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,3,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,3,1) );
-                break;
-            case 5:
-                // global index is (3,2,3), with origin (2,-1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,3,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,3,1) );
-                break;
-            case 6:
-                // global index is (2,3,3), with origin (-1,2,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,1,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,1,1) );
-                break;
-            case 7:
-                // global index is (3,3,3), with origin (2,2,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,1,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,1,1) );
-                break;
+        case 0:
+            // global index is (2,2,2), with origin (-1,-1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 3, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 3, 3));
+            break;
+        case 1:
+            // global index is (3,2,2), with origin (2,-1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 3, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 3, 3));
+            break;
+        case 2:
+            // global index is (2,3,2), with origin (-1,2,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 1, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 1, 3));
+            break;
+        case 3:
+            // global index is (3,3,2), with origin (2,2,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 1, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 1, 3));
+            break;
+        case 4:
+            // global index is (2,2,3), with origin (-1,-1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 3, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 3, 1));
+            break;
+        case 5:
+            // global index is (3,2,3), with origin (2,-1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 3, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 3, 1));
+            break;
+        case 6:
+            // global index is (2,3,3), with origin (-1,2,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 1, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 1, 1));
+            break;
+        case 7:
+            // global index is (3,3,3), with origin (2,2,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 1, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 1, 1));
+            break;
             };
         }
 
@@ -812,53 +833,59 @@ void celllist_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     cl->setGridShift(make_scalar3(-0.5, -0.5, -0.5));
     cl->compute(1);
         {
-        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
+                                              access_location::host,
+                                              access_mode::read);
         Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
 
-        switch(my_rank)
+        switch (my_rank)
             {
-            case 0:
-                // global index is (3,3,3), with origin (-1,-1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(4,4,4)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4,4,4));
-                break;
-            case 1:
-                // global index is (3,3,3), with origin (2,-1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,4,4)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,4,4) );
-                break;
-            case 2:
-                // global index is (3,3,3), with origin (-1,2,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(4,1,4)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4,1,4) );
-                break;
-            case 3:
-                // global index is (3,3,3), with origin (2,2,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,1,4)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,1,4) );
-                break;
-            case 4:
-                // global index is (3,3,3), with origin (-1,-1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(4,4,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4,4,1) );
-                break;
-            case 5:
-                // global index is (3,3,3), with origin (2,-1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,4,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,4,1) );
-                break;
-            case 6:
-                // global index is (3,3,3), with origin (-1,2,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(4,1,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4,1,1) );
-                break;
-            case 7:
-                // global index is (3,3,3), with origin (2,2,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,1,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,1,1) );
-                break;
+        case 0:
+            // global index is (3,3,3), with origin (-1,-1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(4, 4, 4)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4, 4, 4));
+            break;
+        case 1:
+            // global index is (3,3,3), with origin (2,-1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 4, 4)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 4, 4));
+            break;
+        case 2:
+            // global index is (3,3,3), with origin (-1,2,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(4, 1, 4)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4, 1, 4));
+            break;
+        case 3:
+            // global index is (3,3,3), with origin (2,2,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 1, 4)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 1, 4));
+            break;
+        case 4:
+            // global index is (3,3,3), with origin (-1,-1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(4, 4, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4, 4, 1));
+            break;
+        case 5:
+            // global index is (3,3,3), with origin (2,-1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 4, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 4, 1));
+            break;
+        case 6:
+            // global index is (3,3,3), with origin (-1,2,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(4, 1, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4, 1, 1));
+            break;
+        case 7:
+            // global index is (3,3,3), with origin (2,2,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 1, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 1, 1));
+            break;
             };
         }
 
@@ -866,78 +893,87 @@ void celllist_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     cl->setGridShift(make_scalar3(0.5, 0.5, 0.5));
     cl->compute(2);
         {
-        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
+                                              access_location::host,
+                                              access_mode::read);
         Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
 
-        switch(my_rank)
+        switch (my_rank)
             {
-            case 0:
-                // global index is (2,2,2), with origin (-1,-1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,3,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,3,3));
-                break;
-            case 1:
-                // global index is (2,2,2), with origin (2,-1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,3,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,3,3) );
-                break;
-            case 2:
-                // global index is (2,2,2), with origin (-1,2,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,0,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,0,3) );
-                break;
-            case 3:
-                // global index is (2,2,2), with origin (2,2,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,0,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,0,3) );
-                break;
-            case 4:
-                // global index is (2,2,2), with origin (-1,-1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,3,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,3,0) );
-                break;
-            case 5:
-                // global index is (2,2,2), with origin (2,-1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,3,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,3,0) );
-                break;
-            case 6:
-                // global index is (2,2,2), with origin (-1,2,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,0,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,0,0) );
-                break;
-            case 7:
-                // global index is (2,2,2), with origin (2,2,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,0,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,0,0) );
-                break;
+        case 0:
+            // global index is (2,2,2), with origin (-1,-1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 3, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 3, 3));
+            break;
+        case 1:
+            // global index is (2,2,2), with origin (2,-1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 3, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 3, 3));
+            break;
+        case 2:
+            // global index is (2,2,2), with origin (-1,2,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 0, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 0, 3));
+            break;
+        case 3:
+            // global index is (2,2,2), with origin (2,2,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 0, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 0, 3));
+            break;
+        case 4:
+            // global index is (2,2,2), with origin (-1,-1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 3, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 3, 0));
+            break;
+        case 5:
+            // global index is (2,2,2), with origin (2,-1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 3, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 3, 0));
+            break;
+        case 6:
+            // global index is (2,2,2), with origin (-1,2,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 0, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 0, 0));
+            break;
+        case 7:
+            // global index is (2,2,2), with origin (2,2,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 0, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 0, 0));
+            break;
             };
         }
     }
 
 //! Test for correct cell listing of a system with particles on the edges
-template<class CL>
-void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
+template<class CL> void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     UP_ASSERT_EQUAL(exec_conf->getNRanks(), 8);
 
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = BoxDim(5.0);
     snap->particle_data.type_mapping.push_back("A");
     std::vector<Scalar> fx {0.5};
     std::vector<Scalar> fy {0.45};
     std::vector<Scalar> fz {0.55};
-    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,snap->global_box.getL(),fx,fy,fz));
+    std::shared_ptr<DomainDecomposition> decomposition(
+        new DomainDecomposition(exec_conf, snap->global_box.getL(), fx, fy, fz));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
+    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
+    sysdef->setCommunicator(pdata_comm);
 
     // place each particle around the edges of each domain
     std::shared_ptr<mpcd::ParticleData> pdata;
         {
         auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(8);
 
-        // dummy initialize one particle to every domain, we will move them outside the domains for the tests
+        // dummy initialize one particle to every domain, we will move them outside the domains for
+        // the tests
         /*
          * The +/- halves of the box owned by each domain are:
          *    x y z
@@ -951,105 +987,113 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
          * 7: + + +
          */
         mpcd_snap->position[0] = vec3<Scalar>(-1.0, -1.0, -1.0);
-        mpcd_snap->position[1] = vec3<Scalar>( 1.0, -1.0, -1.0);
-        mpcd_snap->position[2] = vec3<Scalar>(-1.0,  1.0, -1.0);
-        mpcd_snap->position[3] = vec3<Scalar>( 1.0,  1.0, -1.0);
-        mpcd_snap->position[4] = vec3<Scalar>(-1.0, -1.0,  1.0);
-        mpcd_snap->position[5] = vec3<Scalar>( 1.0, -1.0,  1.0);
-        mpcd_snap->position[6] = vec3<Scalar>(-1.0,  1.0,  1.0);
-        mpcd_snap->position[7] = vec3<Scalar>( 1.0,  1.0,  1.0);
+        mpcd_snap->position[1] = vec3<Scalar>(1.0, -1.0, -1.0);
+        mpcd_snap->position[2] = vec3<Scalar>(-1.0, 1.0, -1.0);
+        mpcd_snap->position[3] = vec3<Scalar>(1.0, 1.0, -1.0);
+        mpcd_snap->position[4] = vec3<Scalar>(-1.0, -1.0, 1.0);
+        mpcd_snap->position[5] = vec3<Scalar>(1.0, -1.0, 1.0);
+        mpcd_snap->position[6] = vec3<Scalar>(-1.0, 1.0, 1.0);
+        mpcd_snap->position[7] = vec3<Scalar>(1.0, 1.0, 1.0);
 
-        pdata = std::make_shared<mpcd::ParticleData>(mpcd_snap, snap->global_box, exec_conf, decomposition);
+        pdata = std::make_shared<mpcd::ParticleData>(mpcd_snap,
+                                                     snap->global_box,
+                                                     exec_conf,
+                                                     decomposition);
         }
 
-
     std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata));
-    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
-    cl->setCommunicator(pdata_comm);
 
     // move particles to edges of domains for testing
     const unsigned int my_rank = exec_conf->getRank();
         {
-        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::overwrite);
-        switch(my_rank)
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::overwrite);
+        switch (my_rank)
             {
-            case 0:
-                h_pos.data[0] = make_scalar4(-0.01, -0.01, -0.01, __int_as_scalar(0));
-                break;
-            case 1:
-                h_pos.data[0] = make_scalar4(0.0, -0.01, -0.01, __int_as_scalar(0));
-                break;
-            case 2:
-                h_pos.data[0] = make_scalar4(-0.01, 0.0, -0.01, __int_as_scalar(0));
-                break;
-            case 3:
-                h_pos.data[0] = make_scalar4(0.0, 0.0, -0.01, __int_as_scalar(0));
-                break;
-            case 4:
-                h_pos.data[0] = make_scalar4(-0.01, -0.01, 0.0, __int_as_scalar(0));
-                break;
-            case 5:
-                h_pos.data[0] = make_scalar4(0.0, -0.01, 0.0, __int_as_scalar(0));
-                break;
-            case 6:
-                h_pos.data[0] = make_scalar4(-0.01, 0.0, 0.0, __int_as_scalar(0));
-                break;
-            case 7:
-                h_pos.data[0] = make_scalar4(0.0, 0.0, 0.0, __int_as_scalar(0));
-                break;
+        case 0:
+            h_pos.data[0] = make_scalar4(-0.01, -0.01, -0.01, __int_as_scalar(0));
+            break;
+        case 1:
+            h_pos.data[0] = make_scalar4(0.0, -0.01, -0.01, __int_as_scalar(0));
+            break;
+        case 2:
+            h_pos.data[0] = make_scalar4(-0.01, 0.0, -0.01, __int_as_scalar(0));
+            break;
+        case 3:
+            h_pos.data[0] = make_scalar4(0.0, 0.0, -0.01, __int_as_scalar(0));
+            break;
+        case 4:
+            h_pos.data[0] = make_scalar4(-0.01, -0.01, 0.0, __int_as_scalar(0));
+            break;
+        case 5:
+            h_pos.data[0] = make_scalar4(0.0, -0.01, 0.0, __int_as_scalar(0));
+            break;
+        case 6:
+            h_pos.data[0] = make_scalar4(-0.01, 0.0, 0.0, __int_as_scalar(0));
+            break;
+        case 7:
+            h_pos.data[0] = make_scalar4(0.0, 0.0, 0.0, __int_as_scalar(0));
+            break;
             };
         }
 
     cl->compute(0);
 
         {
-        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
+                                              access_location::host,
+                                              access_mode::read);
         Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
 
-        switch(my_rank)
+        switch (my_rank)
             {
-            case 0:
-                // global index is (2,2,2), with origin (-1,-1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,3,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,3,3));
-                break;
-            case 1:
-                // global index is (2,2,2), with origin (2,-1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,3,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,3,3) );
-                break;
-            case 2:
-                // global index is (2,2,2), with origin (-1,1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,1,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,1,3) );
-                break;
-            case 3:
-                // global index is (2,2,2), with origin (2,1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,1,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,1,3) );
-                break;
-            case 4:
-                // global index is (2,2,2), with origin (-1,-1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,3,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,3,0) );
-                break;
-            case 5:
-                // global index is (2,2,2), with origin (2,-1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,3,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,3,0) );
-                break;
-            case 6:
-                // global index is (2,2,2), with origin (-1,1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,1,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,1,0) );
-                break;
-            case 7:
-                // global index is (2,2,2), with origin (2,1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,1,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,1,0) );
-                break;
+        case 0:
+            // global index is (2,2,2), with origin (-1,-1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 3, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 3, 3));
+            break;
+        case 1:
+            // global index is (2,2,2), with origin (2,-1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 3, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 3, 3));
+            break;
+        case 2:
+            // global index is (2,2,2), with origin (-1,1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 1, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 1, 3));
+            break;
+        case 3:
+            // global index is (2,2,2), with origin (2,1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 1, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 1, 3));
+            break;
+        case 4:
+            // global index is (2,2,2), with origin (-1,-1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 3, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 3, 0));
+            break;
+        case 5:
+            // global index is (2,2,2), with origin (2,-1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 3, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 3, 0));
+            break;
+        case 6:
+            // global index is (2,2,2), with origin (-1,1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 1, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 1, 0));
+            break;
+        case 7:
+            // global index is (2,2,2), with origin (2,1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 1, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 1, 0));
+            break;
             };
         }
 
@@ -1058,53 +1102,59 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     cl->setGridShift(make_scalar3(-0.5, -0.5, -0.5));
     cl->compute(1);
         {
-        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
+                                              access_location::host,
+                                              access_mode::read);
         Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
 
-        switch(my_rank)
+        switch (my_rank)
             {
-            case 0:
-                // global index is (2,2,2), with origin (-1,-1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,3,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,3,3));
-                break;
-            case 1:
-                // global index is (3,2,2), with origin (2,-1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,3,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,3,3) );
-                break;
-            case 2:
-                // global index is (2,3,2), with origin (-1,1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,2,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,2,3) );
-                break;
-            case 3:
-                // global index is (3,3,2), with origin (2,1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,2,3)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,2,3) );
-                break;
-            case 4:
-                // global index is (2,2,3), with origin (-1,-1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,3,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,3,1) );
-                break;
-            case 5:
-                // global index is (3,2,3), with origin (2,-1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,3,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,3,1) );
-                break;
-            case 6:
-                // global index is (2,3,3), with origin (-1,1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(3,2,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3,2,1) );
-                break;
-            case 7:
-                // global index is (3,3,3), with origin (2,1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,2,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,2,1) );
-                break;
+        case 0:
+            // global index is (2,2,2), with origin (-1,-1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 3, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 3, 3));
+            break;
+        case 1:
+            // global index is (3,2,2), with origin (2,-1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 3, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 3, 3));
+            break;
+        case 2:
+            // global index is (2,3,2), with origin (-1,1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 2, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 2, 3));
+            break;
+        case 3:
+            // global index is (3,3,2), with origin (2,1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 2, 3)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 2, 3));
+            break;
+        case 4:
+            // global index is (2,2,3), with origin (-1,-1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 3, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 3, 1));
+            break;
+        case 5:
+            // global index is (3,2,3), with origin (2,-1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 3, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 3, 1));
+            break;
+        case 6:
+            // global index is (2,3,3), with origin (-1,1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(3, 2, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(3, 2, 1));
+            break;
+        case 7:
+            // global index is (3,3,3), with origin (2,1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 2, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 2, 1));
+            break;
             };
         }
 
@@ -1113,261 +1163,288 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     cl->setGridShift(make_scalar3(0.5, 0.5, 0.5));
     cl->compute(2);
         {
-        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
+                                              access_location::host,
+                                              access_mode::read);
         Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
 
-        switch(my_rank)
+        switch (my_rank)
             {
-            case 0:
-                // global index is (1,1,1), with origin (-1,-1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(2,2,2)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(2,2,2));
-                break;
-            case 1:
-                // global index is (2,1,1), with origin (2,-1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,2,2)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,2,2) );
-                break;
-            case 2:
-                // global index is (1,2,1), with origin (-1,1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(2,1,2)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(2,1,2) );
-                break;
-            case 3:
-                // global index is (2,2,1), with origin (2,1,-1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,1,2)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,1,2) );
-                break;
-            case 4:
-                // global index is (1,1,2), with origin (-1,-1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(2,2,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(2,2,0) );
-                break;
-            case 5:
-                // global index is (2,1,2), with origin (2,-1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,2,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,2,0) );
-                break;
-            case 6:
-                // global index is (1,2,2), with origin (-1,1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(2,1,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(2,1,0) );
-                break;
-            case 7:
-                // global index is (2,2,2), with origin (2,1,2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,1,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,1,0) );
-                break;
+        case 0:
+            // global index is (1,1,1), with origin (-1,-1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(2, 2, 2)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(2, 2, 2));
+            break;
+        case 1:
+            // global index is (2,1,1), with origin (2,-1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 2, 2)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 2, 2));
+            break;
+        case 2:
+            // global index is (1,2,1), with origin (-1,1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(2, 1, 2)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(2, 1, 2));
+            break;
+        case 3:
+            // global index is (2,2,1), with origin (2,1,-1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 1, 2)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 1, 2));
+            break;
+        case 4:
+            // global index is (1,1,2), with origin (-1,-1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(2, 2, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(2, 2, 0));
+            break;
+        case 5:
+            // global index is (2,1,2), with origin (2,-1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 2, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 2, 0));
+            break;
+        case 6:
+            // global index is (1,2,2), with origin (-1,1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(2, 1, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(2, 1, 0));
+            break;
+        case 7:
+            // global index is (2,2,2), with origin (2,1,2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 1, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 1, 0));
+            break;
             };
         }
     // now we move the particles to their exterior boundaries, and repeat the testing process
     // we are going to pad the cell list with an extra cell just to test that binning now
     cl->setNExtraCells(1);
         {
-        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::overwrite);
-        switch(my_rank)
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::overwrite);
+        switch (my_rank)
             {
-            case 0:
-                h_pos.data[0] = make_scalar4(-4.0, -4.0, -4.0, __int_as_scalar(0));
-                break;
-            case 1:
-                h_pos.data[0] = make_scalar4(3.99, -4.0, -4.0, __int_as_scalar(0));
-                break;
-            case 2:
-                h_pos.data[0] = make_scalar4(-4.0, 3.99, -4.0, __int_as_scalar(0));
-                break;
-            case 3:
-                h_pos.data[0] = make_scalar4(3.99, 3.99, -4.0, __int_as_scalar(0));
-                break;
-            case 4:
-                h_pos.data[0] = make_scalar4(-4.0, -4.0, 3.99, __int_as_scalar(0));
-                break;
-            case 5:
-                h_pos.data[0] = make_scalar4(3.99, -4.0, 3.99, __int_as_scalar(0));
-                break;
-            case 6:
-                h_pos.data[0] = make_scalar4(-4.0, 3.99, 3.99, __int_as_scalar(0));
-                break;
-            case 7:
-                h_pos.data[0] = make_scalar4(3.99, 3.99, 3.99, __int_as_scalar(0));
-                break;
+        case 0:
+            h_pos.data[0] = make_scalar4(-4.0, -4.0, -4.0, __int_as_scalar(0));
+            break;
+        case 1:
+            h_pos.data[0] = make_scalar4(3.99, -4.0, -4.0, __int_as_scalar(0));
+            break;
+        case 2:
+            h_pos.data[0] = make_scalar4(-4.0, 3.99, -4.0, __int_as_scalar(0));
+            break;
+        case 3:
+            h_pos.data[0] = make_scalar4(3.99, 3.99, -4.0, __int_as_scalar(0));
+            break;
+        case 4:
+            h_pos.data[0] = make_scalar4(-4.0, -4.0, 3.99, __int_as_scalar(0));
+            break;
+        case 5:
+            h_pos.data[0] = make_scalar4(3.99, -4.0, 3.99, __int_as_scalar(0));
+            break;
+        case 6:
+            h_pos.data[0] = make_scalar4(-4.0, 3.99, 3.99, __int_as_scalar(0));
+            break;
+        case 7:
+            h_pos.data[0] = make_scalar4(3.99, 3.99, 3.99, __int_as_scalar(0));
+            break;
             };
         }
 
     // reset the grid shift and recompute
-    cl->setGridShift(make_scalar3(0,0,0));
+    cl->setGridShift(make_scalar3(0, 0, 0));
     cl->compute(3);
         {
-        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
+                                              access_location::host,
+                                              access_mode::read);
         Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
 
-        switch(my_rank)
+        switch (my_rank)
             {
-            case 0:
-                // global index is (-2,-2,-2), with origin (-2,-2,-2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,0,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,0,0));
-                break;
-            case 1:
-                // global index is (6,-2,-2), with origin (1,-2,-2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(5,0,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5,0,0) );
-                break;
-            case 2:
-                // global index is (-2,6,-2), with origin (-2,0,-2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,6,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,6,0) );
-                break;
-            case 3:
-                // global index is (6,6,-2), with origin (1,0,-2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(5,6,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5,6,0) );
-                break;
-            case 4:
-                // global index is (-2,-2,6), with origin (-2,-2,1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,0,5)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,0,5) );
-                break;
-            case 5:
-                // global index is (6,-2,6), with origin (1,-2,1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(5,0,5)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5,0,5) );
-                break;
-            case 6:
-                // global index is (-2,6,6), with origin (-2,0,1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,6,5)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,6,5) );
-                break;
-            case 7:
-                // global index is (6,6,6), with origin (1,0,1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(5,6,5)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5,6,5) );
-                break;
+        case 0:
+            // global index is (-2,-2,-2), with origin (-2,-2,-2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 0, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 0, 0));
+            break;
+        case 1:
+            // global index is (6,-2,-2), with origin (1,-2,-2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(5, 0, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5, 0, 0));
+            break;
+        case 2:
+            // global index is (-2,6,-2), with origin (-2,0,-2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 6, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 6, 0));
+            break;
+        case 3:
+            // global index is (6,6,-2), with origin (1,0,-2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(5, 6, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5, 6, 0));
+            break;
+        case 4:
+            // global index is (-2,-2,6), with origin (-2,-2,1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 0, 5)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 0, 5));
+            break;
+        case 5:
+            // global index is (6,-2,6), with origin (1,-2,1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(5, 0, 5)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5, 0, 5));
+            break;
+        case 6:
+            // global index is (-2,6,6), with origin (-2,0,1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 6, 5)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 6, 5));
+            break;
+        case 7:
+            // global index is (6,6,6), with origin (1,0,1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(5, 6, 5)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5, 6, 5));
+            break;
             };
         }
 
     // shift all particles to the right by 0.5
     // all particles on left bound will move up one cell, all particles on right bound stay
-    cl->setGridShift(make_scalar3(-0.5,-0.5,-0.5));
+    cl->setGridShift(make_scalar3(-0.5, -0.5, -0.5));
     cl->compute(4);
         {
-        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
+                                              access_location::host,
+                                              access_mode::read);
         Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
 
-        switch(my_rank)
+        switch (my_rank)
             {
-            case 0:
-                // global index is (-1,-1,-1), with origin (-2,-2,-2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,1,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,1,1));
-                break;
-            case 1:
-                // global index is (6,-1,-1), with origin (1,-2,-2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(5,1,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5,1,1) );
-                break;
-            case 2:
-                // global index is (-1,6,-1), with origin (-2,0,-2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,6,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,6,1) );
-                break;
-            case 3:
-                // global index is (6,6,-1), with origin (1,0,-2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(5,6,1)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5,6,1) );
-                break;
-            case 4:
-                // global index is (-1,-1,6), with origin (-2,-2,1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,1,5)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,1,5) );
-                break;
-            case 5:
-                // global index is (6,-1,6), with origin (1,-2,1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(5,1,5)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5,1,5) );
-                break;
-            case 6:
-                // global index is (-1,6,6), with origin (-2,0,1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(1,6,5)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1,6,5) );
-                break;
-            case 7:
-                // global index is (6,6,6), with origin (1,0,1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(5,6,5)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5,6,5) );
-                break;
+        case 0:
+            // global index is (-1,-1,-1), with origin (-2,-2,-2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 1, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 1, 1));
+            break;
+        case 1:
+            // global index is (6,-1,-1), with origin (1,-2,-2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(5, 1, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5, 1, 1));
+            break;
+        case 2:
+            // global index is (-1,6,-1), with origin (-2,0,-2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 6, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 6, 1));
+            break;
+        case 3:
+            // global index is (6,6,-1), with origin (1,0,-2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(5, 6, 1)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5, 6, 1));
+            break;
+        case 4:
+            // global index is (-1,-1,6), with origin (-2,-2,1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 1, 5)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 1, 5));
+            break;
+        case 5:
+            // global index is (6,-1,6), with origin (1,-2,1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(5, 1, 5)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5, 1, 5));
+            break;
+        case 6:
+            // global index is (-1,6,6), with origin (-2,0,1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(1, 6, 5)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(1, 6, 5));
+            break;
+        case 7:
+            // global index is (6,6,6), with origin (1,0,1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(5, 6, 5)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(5, 6, 5));
+            break;
             };
         }
 
     // shift all particles left by 0.5
-    // particles on the lower bound stay in the same bin, and particles on the right bound move down one
-    cl->setGridShift(make_scalar3(0.5,0.5,0.5));
+    // particles on the lower bound stay in the same bin, and particles on the right bound move down
+    // one
+    cl->setGridShift(make_scalar3(0.5, 0.5, 0.5));
     cl->compute(5);
         {
-        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
+                                            access_location::host,
+                                            access_mode::read);
+        ArrayHandle<unsigned int> h_cell_list(cl->getCellList(),
+                                              access_location::host,
+                                              access_mode::read);
         Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
 
-        switch(my_rank)
+        switch (my_rank)
             {
-            case 0:
-                // global index is (-2,-2,-2), with origin (-2,-2,-2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,0,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,0,0));
-                break;
-            case 1:
-                // global index is (5,-2,-2), with origin (1,-2,-2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(4,0,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4,0,0) );
-                break;
-            case 2:
-                // global index is (-2,5,-2), with origin (-2,0,-2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,5,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,5,0) );
-                break;
-            case 3:
-                // global index is (5,5,-2), with origin (1,0,-2)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(4,5,0)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4,5,0) );
-                break;
-            case 4:
-                // global index is (-2,-2,5), with origin (-2,-2,1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,0,4)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,0,4) );
-                break;
-            case 5:
-                // global index is (5,-2,5), with origin (1,-2,1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(4,0,4)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4,0,4) );
-                break;
-            case 6:
-                // global index is (-2,5,5), with origin (-2,0,1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(0,5,4)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0,5,4) );
-                break;
-            case 7:
-                // global index is (5,5,5), with origin (1,0,1)
-                UP_ASSERT_EQUAL(h_cell_np.data[ci(4,5,4)], 1);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4,5,4) );
-                break;
+        case 0:
+            // global index is (-2,-2,-2), with origin (-2,-2,-2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 0, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 0, 0));
+            break;
+        case 1:
+            // global index is (5,-2,-2), with origin (1,-2,-2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(4, 0, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4, 0, 0));
+            break;
+        case 2:
+            // global index is (-2,5,-2), with origin (-2,0,-2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 5, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 5, 0));
+            break;
+        case 3:
+            // global index is (5,5,-2), with origin (1,0,-2)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(4, 5, 0)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4, 5, 0));
+            break;
+        case 4:
+            // global index is (-2,-2,5), with origin (-2,-2,1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 0, 4)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 0, 4));
+            break;
+        case 5:
+            // global index is (5,-2,5), with origin (1,-2,1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(4, 0, 4)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4, 0, 4));
+            break;
+        case 6:
+            // global index is (-2,5,5), with origin (-2,0,1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(0, 5, 4)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(0, 5, 4));
+            break;
+        case 7:
+            // global index is (5,5,5), with origin (1,0,1)
+            UP_ASSERT_EQUAL(h_cell_np.data[ci(4, 5, 4)], 1);
+            UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), ci(4, 5, 4));
+            break;
             };
         }
     }
 
 //! dimension test case for MPCD CellList class
-UP_TEST( mpcd_cell_list_dimensions )
+UP_TEST(mpcd_cell_list_dimensions)
     {
     // mpi in 1d
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>()));
+        std::shared_ptr<ExecutionConfiguration> exec_conf(
+            new ExecutionConfiguration(ExecutionConfiguration::CPU, std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(2);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, false, false);
         celllist_dimension_test<mpcd::CellList>(exec_conf, false, true, false);
@@ -1375,8 +1452,8 @@ UP_TEST( mpcd_cell_list_dimensions )
         }
     // mpi in 2d
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>()));
+        std::shared_ptr<ExecutionConfiguration> exec_conf(
+            new ExecutionConfiguration(ExecutionConfiguration::CPU, std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(4);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, true, false);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, false, true);
@@ -1384,33 +1461,35 @@ UP_TEST( mpcd_cell_list_dimensions )
         }
     // mpi in 3d
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>()));
+        std::shared_ptr<ExecutionConfiguration> exec_conf(
+            new ExecutionConfiguration(ExecutionConfiguration::CPU, std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(8);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, true, true);
         }
     }
 
 //! basic test case for MPCD CellList class
-UP_TEST( mpcd_cell_list_basic_test )
+UP_TEST(mpcd_cell_list_basic_test)
     {
-    celllist_basic_test<mpcd::CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    celllist_basic_test<mpcd::CellList>(std::shared_ptr<ExecutionConfiguration>(
+        new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! edge test case for MPCD CellList class
-UP_TEST( mpcd_cell_list_edge_test )
+UP_TEST(mpcd_cell_list_edge_test)
     {
-    celllist_edge_test<mpcd::CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    celllist_edge_test<mpcd::CellList>(std::shared_ptr<ExecutionConfiguration>(
+        new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_HIP
 //! dimension test case for MPCD CellListGPU class
-UP_TEST( mpcd_cell_list_gpu_dimensions )
+UP_TEST(mpcd_cell_list_gpu_dimensions)
     {
     // mpi in 1d
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     std::vector<int>()));
+        std::shared_ptr<ExecutionConfiguration> exec_conf(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU, std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(2);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, false, false);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, false, true, false);
@@ -1418,8 +1497,8 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
         }
     // mpi in 2d
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     std::vector<int>()));
+        std::shared_ptr<ExecutionConfiguration> exec_conf(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU, std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(4);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, true, false);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, false, true);
@@ -1427,22 +1506,24 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
         }
     // mpi in 3d
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     std::vector<int>()));
+        std::shared_ptr<ExecutionConfiguration> exec_conf(
+            new ExecutionConfiguration(ExecutionConfiguration::GPU, std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(8);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, true, true);
         }
     }
 
 //! basic test case for MPCD CellListGPU class
-UP_TEST( mpcd_cell_list_gpu_basic_test )
+UP_TEST(mpcd_cell_list_gpu_basic_test)
     {
-    celllist_basic_test<mpcd::CellListGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    celllist_basic_test<mpcd::CellListGPU>(std::shared_ptr<ExecutionConfiguration>(
+        new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! edge test case for MPCD CellListGPU class
-UP_TEST( mpcd_cell_list_gpu_edge_test )
+UP_TEST(mpcd_cell_list_gpu_edge_test)
     {
-    celllist_edge_test<mpcd::CellListGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    celllist_edge_test<mpcd::CellListGPU>(std::shared_ptr<ExecutionConfiguration>(
+        new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif // ENABLE_HIP

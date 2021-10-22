@@ -1,15 +1,14 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "CellListGPU.cuh"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#include <thrust/sort.h>
 #include <thrust/device_ptr.h>
+#include <thrust/sort.h>
 #pragma GCC diagnostic pop
 
 /*! \file CellListGPU.cu
@@ -40,17 +39,17 @@
 
     \note Optimized for Fermi
 */
-__global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
-                                             Scalar4 *d_xyzf,
-                                             Scalar4 *d_tdb,
-                                             Scalar4 *d_cell_orientation,
-                                             unsigned int *d_cell_idx,
-                                             uint3 *d_conditions,
-                                             const Scalar4 *d_pos,
-                                             const Scalar4 *d_orientation,
-                                             const Scalar *d_charge,
-                                             const Scalar *d_diameter,
-                                             const unsigned int *d_body,
+__global__ void gpu_compute_cell_list_kernel(unsigned int* d_cell_size,
+                                             Scalar4* d_xyzf,
+                                             Scalar4* d_tdb,
+                                             Scalar4* d_cell_orientation,
+                                             unsigned int* d_cell_idx,
+                                             uint3* d_conditions,
+                                             const Scalar4* d_pos,
+                                             const Scalar4* d_orientation,
+                                             const Scalar* d_charge,
+                                             const Scalar* d_diameter,
+                                             const unsigned int* d_body,
                                              const unsigned int N,
                                              const unsigned int n_ghost,
                                              const unsigned int Nmax,
@@ -77,7 +76,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     Scalar diameter = 0;
     Scalar body = 0;
     Scalar type = postype.w;
-    Scalar4 orientation = make_scalar4(0,0,0,0);
+    Scalar4 orientation = make_scalar4(0, 0, 0, 0);
     if (d_tdb != NULL)
         {
         diameter = d_diameter[idx];
@@ -98,21 +97,21 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     // check for nan pos
     if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
         {
-        (*d_conditions).y = idx+1;
+        (*d_conditions).y = idx + 1;
         return;
         }
 
     uchar3 periodic = box.getPeriodic();
-    Scalar3 f = box.makeFraction(pos,ghost_width);
+    Scalar3 f = box.makeFraction(pos, ghost_width);
 
     // check if the particle is inside the unit cell + ghost layer in all dimensions
-    if ((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001)) ||
-        (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001)) ||
-        (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)) )
+    if ((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001))
+        || (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001))
+        || (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)))
         {
         // if a ghost particle is out of bounds, silently ignore it
         if (idx < N)
-            (*d_conditions).z = idx+1;
+            (*d_conditions).z = idx + 1;
         return;
         }
 
@@ -133,18 +132,17 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
 
     // all particles should be in a valid cell
     // all particles should be in a valid cell
-    if (ib < 0 || ib >= (int)ci.getW() ||
-        jb < 0 || jb >= (int)ci.getH() ||
-        kb < 0 || kb >= (int)ci.getD())
+    if (ib < 0 || ib >= (int)ci.getW() || jb < 0 || jb >= (int)ci.getH() || kb < 0
+        || kb >= (int)ci.getD())
         {
         // but ghost particles that are out of range should not produce an error
         if (idx < N)
             {
-            #if (__CUDA_ARCH__ >= 600)
-            atomicMax_system(&(*d_conditions).z, idx+1);
-            #else
-            atomicMax(&(*d_conditions).z, idx+1);
-            #endif
+#if (__CUDA_ARCH__ >= 600)
+            atomicMax_system(&(*d_conditions).z, idx + 1);
+#else
+            atomicMax(&(*d_conditions).z, idx + 1);
+#endif
             }
         return;
         }
@@ -165,45 +163,42 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         }
     else
         {
-        // handle overflow
-        #if (__CUDA_ARCH__ >= 600)
-        atomicMax_system(&(*d_conditions).x, size+1);
-        #else
-        atomicMax(&(*d_conditions).x, size+1);
-        #endif
+// handle overflow
+#if (__CUDA_ARCH__ >= 600)
+        atomicMax_system(&(*d_conditions).x, size + 1);
+#else
+        atomicMax(&(*d_conditions).x, size + 1);
+#endif
         }
     }
 
-void gpu_compute_cell_list(unsigned int *d_cell_size,
-                                  Scalar4 *d_xyzf,
-                                  Scalar4 *d_tdb,
-                                  Scalar4 *d_cell_orientation,
-                                  unsigned int *d_cell_idx,
-                                  uint3 *d_conditions,
-                                  const Scalar4 *d_pos,
-                                  const Scalar4 *d_orientation,
-                                  const Scalar *d_charge,
-                                  const Scalar *d_diameter,
-                                  const unsigned int *d_body,
-                                  const unsigned int N,
-                                  const unsigned int n_ghost,
-                                  const unsigned int Nmax,
-                                  const bool flag_charge,
-                                  const bool flag_type,
-                                  const BoxDim& box,
-                                  const Index3D& ci,
-                                  const Index2D& cli,
-                                  const Scalar3& ghost_width,
-                                  const unsigned int block_size,
-                                  const GPUPartition& gpu_partition)
+void gpu_compute_cell_list(unsigned int* d_cell_size,
+                           Scalar4* d_xyzf,
+                           Scalar4* d_tdb,
+                           Scalar4* d_cell_orientation,
+                           unsigned int* d_cell_idx,
+                           uint3* d_conditions,
+                           const Scalar4* d_pos,
+                           const Scalar4* d_orientation,
+                           const Scalar* d_charge,
+                           const Scalar* d_diameter,
+                           const unsigned int* d_body,
+                           const unsigned int N,
+                           const unsigned int n_ghost,
+                           const unsigned int Nmax,
+                           const bool flag_charge,
+                           const bool flag_type,
+                           const BoxDim& box,
+                           const Index3D& ci,
+                           const Index2D& cli,
+                           const Scalar3& ghost_width,
+                           const unsigned int block_size,
+                           const GPUPartition& gpu_partition)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(&gpu_compute_cell_list_kernel));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&gpu_compute_cell_list_kernel));
+    max_block_size = attr.maxThreadsPerBlock;
 
     // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
@@ -213,51 +208,55 @@ void gpu_compute_cell_list(unsigned int *d_cell_size,
         unsigned int nwork = range.second - range.first;
 
         // process ghosts in final range
-        if (idev == (int)gpu_partition.getNumActiveGPUs()-1)
+        if (idev == (int)gpu_partition.getNumActiveGPUs() - 1)
             nwork += n_ghost;
 
         unsigned int run_block_size = min(block_size, max_block_size);
-        int n_blocks = nwork/run_block_size + 1;
+        int n_blocks = nwork / run_block_size + 1;
 
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_compute_cell_list_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0,
-                                                                   d_cell_size+idev*ci.getNumElements(),
-                                                                   d_xyzf ? d_xyzf+idev*cli.getNumElements() : 0,
-                                                                   d_tdb ? d_tdb+idev*cli.getNumElements() : 0,
-                                                                   d_cell_orientation ? d_cell_orientation+idev*cli.getNumElements() : 0,
-                                                                   d_cell_idx ? d_cell_idx+idev*cli.getNumElements() : 0,
-                                                                   d_conditions,
-                                                                   d_pos,
-                                                                   d_orientation,
-                                                                   d_charge,
-                                                                   d_diameter,
-                                                                   d_body,
-                                                                   N,
-                                                                   n_ghost,
-                                                                   Nmax,
-                                                                   flag_charge,
-                                                                   flag_type,
-                                                                   box,
-                                                                   ci,
-                                                                   cli,
-                                                                   ghost_width,
-                                                                   nwork,
-                                                                   range.first);
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_compute_cell_list_kernel),
+                           dim3(n_blocks),
+                           dim3(run_block_size),
+                           0,
+                           0,
+                           d_cell_size + idev * ci.getNumElements(),
+                           d_xyzf ? d_xyzf + idev * cli.getNumElements() : 0,
+                           d_tdb ? d_tdb + idev * cli.getNumElements() : 0,
+                           d_cell_orientation ? d_cell_orientation + idev * cli.getNumElements()
+                                              : 0,
+                           d_cell_idx ? d_cell_idx + idev * cli.getNumElements() : 0,
+                           d_conditions,
+                           d_pos,
+                           d_orientation,
+                           d_charge,
+                           d_diameter,
+                           d_body,
+                           N,
+                           n_ghost,
+                           Nmax,
+                           flag_charge,
+                           flag_type,
+                           box,
+                           ci,
+                           cli,
+                           ghost_width,
+                           nwork,
+                           range.first);
         }
-   }
+    }
 
-__global__ void gpu_fill_indices_kernel(
-    unsigned int cl_size,
-    uint2 *d_idx,
-    unsigned int *d_sort_permutation,
-    unsigned int *d_cell_idx,
-    unsigned int *d_cell_size,
-    Index3D ci,
-    Index2D cli
-    )
+__global__ void gpu_fill_indices_kernel(unsigned int cl_size,
+                                        uint2* d_idx,
+                                        unsigned int* d_sort_permutation,
+                                        unsigned int* d_cell_idx,
+                                        unsigned int* d_cell_size,
+                                        Index3D ci,
+                                        Index2D cli)
     {
     unsigned int cell_idx = blockDim.x * blockIdx.x + threadIdx.x;
 
-    if (cell_idx >= cl_size) return;
+    if (cell_idx >= cl_size)
+        return;
 
     unsigned int icell = cell_idx / cli.getW();
     unsigned int pidx = UINT_MAX;
@@ -294,24 +293,23 @@ struct comp_less_uint2
     };
 
 //! Kernel to combine ngpu cell lists into one, in parallel
-__global__ void gpu_combine_cell_lists_kernel(
-    const unsigned int *d_cell_size_scratch,
-    unsigned int *d_cell_size,
-    const unsigned int *d_idx_scratch,
-    unsigned int *d_idx,
-    const Scalar4 *d_xyzf_scratch,
-    Scalar4 *d_xyzf,
-    const Scalar4 *d_tdb_scratch,
-    Scalar4 *d_tdb,
-    const Scalar4 *d_cell_orientation_scratch,
-    Scalar4 *d_cell_orientation,
-    const Index2D cli,
-    unsigned int igpu,
-    unsigned int ngpu,
-    const unsigned int Nmax,
-    uint3 *d_conditions)
+__global__ void gpu_combine_cell_lists_kernel(const unsigned int* d_cell_size_scratch,
+                                              unsigned int* d_cell_size,
+                                              const unsigned int* d_idx_scratch,
+                                              unsigned int* d_idx,
+                                              const Scalar4* d_xyzf_scratch,
+                                              Scalar4* d_xyzf,
+                                              const Scalar4* d_tdb_scratch,
+                                              Scalar4* d_tdb,
+                                              const Scalar4* d_cell_orientation_scratch,
+                                              Scalar4* d_cell_orientation,
+                                              const Index2D cli,
+                                              unsigned int igpu,
+                                              unsigned int ngpu,
+                                              const unsigned int Nmax,
+                                              uint3* d_conditions)
     {
-    unsigned int idx = threadIdx.x+blockIdx.x*blockDim.x;
+    unsigned int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (idx >= cli.getNumElements())
         return;
@@ -327,7 +325,7 @@ __global__ void gpu_combine_cell_lists_kernel(
 
     for (unsigned int i = 0; i < ngpu; ++i)
         {
-        unsigned int sz = d_cell_size_scratch[bin+i*cli.getH()];
+        unsigned int sz = d_cell_size_scratch[bin + i * cli.getH()];
 
         if (i == igpu)
             local_size = sz;
@@ -350,12 +348,12 @@ __global__ void gpu_combine_cell_lists_kernel(
 
     if (out_idx >= Nmax)
         {
-        // handle overflow
-        #if (__CUDA_ARCH__ >= 600)
-        atomicMax_system(&(*d_conditions).x, out_idx+1);
-        #else
-        atomicMax(&(*d_conditions).x, out_idx+1);
-        #endif
+// handle overflow
+#if (__CUDA_ARCH__ >= 600)
+        atomicMax_system(&(*d_conditions).x, out_idx + 1);
+#else
+        atomicMax(&(*d_conditions).x, out_idx + 1);
+#endif
         return;
         }
 
@@ -363,16 +361,17 @@ __global__ void gpu_combine_cell_lists_kernel(
 
     // copy over elements
     if (d_idx)
-        d_idx[write_pos] = d_idx_scratch[idx+igpu*cli.getNumElements()];
+        d_idx[write_pos] = d_idx_scratch[idx + igpu * cli.getNumElements()];
 
     if (d_xyzf)
-        d_xyzf[write_pos] = d_xyzf_scratch[idx+igpu*cli.getNumElements()];
+        d_xyzf[write_pos] = d_xyzf_scratch[idx + igpu * cli.getNumElements()];
 
     if (d_tdb)
-        d_tdb[write_pos] = d_tdb_scratch[idx+igpu*cli.getNumElements()];
+        d_tdb[write_pos] = d_tdb_scratch[idx + igpu * cli.getNumElements()];
 
     if (d_cell_orientation)
-        d_cell_orientation[write_pos] = d_cell_orientation_scratch[idx+igpu*cli.getNumElements()];
+        d_cell_orientation[write_pos]
+            = d_cell_orientation_scratch[idx + igpu * cli.getNumElements()];
     }
 
 /*! Driver function to sort the cell lists from different GPUs into one
@@ -389,64 +388,67 @@ __global__ void gpu_combine_cell_lists_kernel(
    \param block_size GPU block size
    \param gpu_partition multi-GPU partition
  */
-hipError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
-                                unsigned int *d_cell_size,
-                                const unsigned int *d_idx_scratch,
-                                unsigned int *d_idx,
-                                const Scalar4 *d_xyzf_scratch,
-                                Scalar4 *d_xyzf,
-                                const Scalar4 *d_tdb_scratch,
-                                Scalar4 *d_tdb,
-                                const Scalar4 *d_cell_orientation_scratch,
-                                Scalar4 *d_cell_orientation,
-                                const Index2D cli,
-                                unsigned int ngpu,
-                                const unsigned int block_size,
-                                const unsigned int Nmax,
-                                uint3 *d_conditions,
-                                const GPUPartition& gpu_partition)
+hipError_t gpu_combine_cell_lists(const unsigned int* d_cell_size_scratch,
+                                  unsigned int* d_cell_size,
+                                  const unsigned int* d_idx_scratch,
+                                  unsigned int* d_idx,
+                                  const Scalar4* d_xyzf_scratch,
+                                  Scalar4* d_xyzf,
+                                  const Scalar4* d_tdb_scratch,
+                                  Scalar4* d_tdb,
+                                  const Scalar4* d_cell_orientation_scratch,
+                                  Scalar4* d_cell_orientation,
+                                  const Index2D cli,
+                                  unsigned int ngpu,
+                                  const unsigned int block_size,
+                                  const unsigned int Nmax,
+                                  uint3* d_conditions,
+                                  const GPUPartition& gpu_partition)
     {
     dim3 threads(block_size);
-    dim3 grid(cli.getNumElements()/block_size + 1);
+    dim3 grid(cli.getNumElements() / block_size + 1);
 
     // copy together cell lists in parallel
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         gpu_partition.getRangeAndSetGPU(idev);
 
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_combine_cell_lists_kernel), grid, threads, 0, 0,
-            d_cell_size_scratch,
-            d_cell_size,
-            d_idx_scratch,
-            d_idx,
-            d_xyzf_scratch,
-            d_xyzf,
-            d_tdb_scratch,
-            d_tdb,
-            d_cell_orientation_scratch,
-            d_cell_orientation,
-            cli,
-            idev,
-            ngpu,
-            Nmax,
-            d_conditions);
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_combine_cell_lists_kernel),
+                           grid,
+                           threads,
+                           0,
+                           0,
+                           d_cell_size_scratch,
+                           d_cell_size,
+                           d_idx_scratch,
+                           d_idx,
+                           d_xyzf_scratch,
+                           d_xyzf,
+                           d_tdb_scratch,
+                           d_tdb,
+                           d_cell_orientation_scratch,
+                           d_cell_orientation,
+                           cli,
+                           idev,
+                           ngpu,
+                           Nmax,
+                           d_conditions);
         }
 
     return hipSuccess;
     }
 
-__global__ void gpu_apply_sorted_cell_list_order(
-    unsigned int cl_size,
-    unsigned int *d_cell_idx,
-    unsigned int *d_cell_idx_new,
-    Scalar4 *d_xyzf,
-    Scalar4 *d_xyzf_new,
-    Scalar4 *d_tdb,
-    Scalar4 *d_tdb_new,
-    Scalar4 *d_cell_orientation,
-    Scalar4 *d_cell_orientation_new,
-    unsigned int *d_sort_permutation,
-    Index2D cli)
+__global__ void gpu_apply_sorted_cell_list_order(unsigned int cl_size,
+                                                 unsigned int* d_cell_idx,
+                                                 unsigned int* d_cell_idx_new,
+                                                 Scalar4* d_xyzf,
+                                                 Scalar4* d_xyzf_new,
+                                                 Scalar4* d_tdb,
+                                                 Scalar4* d_tdb_new,
+                                                 Scalar4* d_cell_orientation,
+                                                 Scalar4* d_cell_orientation_new,
+                                                 unsigned int* d_sort_permutation,
+                                                 Index2D cli)
     {
     unsigned int cell_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (cell_idx >= cl_size)
@@ -454,10 +456,14 @@ __global__ void gpu_apply_sorted_cell_list_order(
 
     unsigned int perm_idx = d_sort_permutation[cell_idx];
 
-    if (d_xyzf) d_xyzf_new[cell_idx] = d_xyzf[perm_idx];
-    if (d_cell_idx) d_cell_idx_new[cell_idx] = d_cell_idx[perm_idx];
-    if (d_tdb) d_tdb_new[cell_idx] = d_tdb[perm_idx];
-    if (d_cell_orientation) d_cell_orientation_new[cell_idx] = d_cell_orientation[perm_idx];
+    if (d_xyzf)
+        d_xyzf_new[cell_idx] = d_xyzf[perm_idx];
+    if (d_cell_idx)
+        d_cell_idx_new[cell_idx] = d_cell_idx[perm_idx];
+    if (d_tdb)
+        d_tdb_new[cell_idx] = d_tdb[perm_idx];
+    if (d_cell_orientation)
+        d_cell_orientation_new[cell_idx] = d_cell_orientation[perm_idx];
     }
 
 /*! Driver function to sort the cell list on the GPU
@@ -471,67 +477,90 @@ __global__ void gpu_apply_sorted_cell_list_order(
    \param ci Cell indexer
    \param cli Cell list indexer
  */
-hipError_t gpu_sort_cell_list(unsigned int *d_cell_size,
-                        Scalar4 *d_xyzf,
-                        Scalar4 *d_xyzf_new,
-                        Scalar4 *d_tdb,
-                        Scalar4 *d_tdb_new,
-                        Scalar4 *d_cell_orientation,
-                        Scalar4 *d_cell_orientation_new,
-                        unsigned int *d_cell_idx,
-                        unsigned int *d_cell_idx_new,
-                        uint2 *d_sort_idx,
-                        unsigned int *d_sort_permutation,
-                        const Index3D ci,
-                        const Index2D cli)
+hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
+                              Scalar4* d_xyzf,
+                              Scalar4* d_xyzf_new,
+                              Scalar4* d_tdb,
+                              Scalar4* d_tdb_new,
+                              Scalar4* d_cell_orientation,
+                              Scalar4* d_cell_orientation_new,
+                              unsigned int* d_cell_idx,
+                              unsigned int* d_cell_idx_new,
+                              uint2* d_sort_idx,
+                              unsigned int* d_sort_permutation,
+                              const Index3D ci,
+                              const Index2D cli)
     {
     unsigned int block_size = 256;
 
     // fill indices table with cell idx/particle idx pairs
     dim3 threads(block_size);
-    dim3 grid(cli.getNumElements()/block_size + 1);
+    dim3 grid(cli.getNumElements() / block_size + 1);
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_fill_indices_kernel), grid, threads, 0, 0,
-        cli.getNumElements(),
-        d_sort_idx,
-        d_sort_permutation,
-        d_cell_idx,
-        d_cell_size,
-        ci,
-        cli);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_fill_indices_kernel),
+                       grid,
+                       threads,
+                       0,
+                       0,
+                       cli.getNumElements(),
+                       d_sort_idx,
+                       d_sort_permutation,
+                       d_cell_idx,
+                       d_cell_size,
+                       ci,
+                       cli);
 
     // locality sort on those pairs
     thrust::device_ptr<uint2> d_sort_idx_thrust(d_sort_idx);
     thrust::device_ptr<unsigned int> d_sort_permutation_thrust(d_sort_permutation);
-    thrust::sort_by_key(d_sort_idx_thrust, d_sort_idx_thrust + cli.getNumElements(), d_sort_permutation_thrust, comp_less_uint2());
+    thrust::sort_by_key(d_sort_idx_thrust,
+                        d_sort_idx_thrust + cli.getNumElements(),
+                        d_sort_permutation_thrust,
+                        comp_less_uint2());
 
     // apply sorted order
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_apply_sorted_cell_list_order), grid, threads, 0, 0,
-        cli.getNumElements(),
-        d_cell_idx,
-        d_cell_idx_new,
-        d_xyzf,
-        d_xyzf_new,
-        d_tdb,
-        d_tdb_new,
-        d_cell_orientation,
-        d_cell_orientation_new,
-        d_sort_permutation,
-        cli);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_apply_sorted_cell_list_order),
+                       grid,
+                       threads,
+                       0,
+                       0,
+                       cli.getNumElements(),
+                       d_cell_idx,
+                       d_cell_idx_new,
+                       d_xyzf,
+                       d_xyzf_new,
+                       d_tdb,
+                       d_tdb_new,
+                       d_cell_orientation,
+                       d_cell_orientation_new,
+                       d_sort_permutation,
+                       cli);
 
     // copy back permuted arrays to original ones
     if (d_xyzf)
-        hipMemcpy(d_xyzf, d_xyzf_new, sizeof(Scalar4)*cli.getNumElements(), hipMemcpyDeviceToDevice);
+        hipMemcpy(d_xyzf,
+                  d_xyzf_new,
+                  sizeof(Scalar4) * cli.getNumElements(),
+                  hipMemcpyDeviceToDevice);
 
-    hipMemcpy(d_cell_idx, d_cell_idx_new, sizeof(unsigned int)*cli.getNumElements(), hipMemcpyDeviceToDevice);
+    hipMemcpy(d_cell_idx,
+              d_cell_idx_new,
+              sizeof(unsigned int) * cli.getNumElements(),
+              hipMemcpyDeviceToDevice);
 
     if (d_tdb)
         {
-        hipMemcpy(d_tdb, d_tdb_new, sizeof(Scalar4)*cli.getNumElements(), hipMemcpyDeviceToDevice);
+        hipMemcpy(d_tdb,
+                  d_tdb_new,
+                  sizeof(Scalar4) * cli.getNumElements(),
+                  hipMemcpyDeviceToDevice);
         }
     if (d_cell_orientation)
         {
-        hipMemcpy(d_cell_orientation, d_cell_orientation_new, sizeof(Scalar4)*cli.getNumElements(), hipMemcpyDeviceToDevice);
+        hipMemcpy(d_cell_orientation,
+                  d_cell_orientation_new,
+                  sizeof(Scalar4) * cli.getNumElements(),
+                  hipMemcpyDeviceToDevice);
         }
 
     return hipSuccess;

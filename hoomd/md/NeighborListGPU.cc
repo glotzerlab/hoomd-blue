@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file NeighborListGPU.cc
@@ -37,7 +36,7 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
     filterNlist();
 
 #ifdef ENABLE_HIP
-    if(m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled())
         {
         hipDeviceSynchronize();
         CHECK_CUDA_ERROR();
@@ -50,7 +49,7 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
         filterNlist();
 
 #ifdef ENABLE_HIP
-    if(m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled())
         hipDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
@@ -68,13 +67,14 @@ void NeighborListGPU::buildNlist(uint64_t timestep)
 bool NeighborListGPU::distanceCheck(uint64_t timestep)
     {
     // prevent against unnecessary calls
-    if (! shouldCheckDistance(timestep))
+    if (!shouldCheckDistance(timestep))
         {
         return false;
         }
 
     // scan through the particle data arrays and calculate distances
-    if (m_prof) m_prof->push(m_exec_conf, "dist-check");
+    if (m_prof)
+        m_prof->push(m_exec_conf, "dist-check");
 
     // access data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -109,7 +109,7 @@ bool NeighborListGPU::distanceCheck(uint64_t timestep)
                                          ++m_checkn,
                                          m_pdata->getGPUPartition());
 
-        if(m_exec_conf->isCUDAErrorCheckingEnabled())
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
         m_exec_conf->endMultiGPU();
@@ -122,31 +122,34 @@ bool NeighborListGPU::distanceCheck(uint64_t timestep)
         result = m_checkn == *h_flags.data;
         }
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        if (m_prof) m_prof->push(m_exec_conf,"MPI allreduce");
+        if (m_prof)
+            m_prof->push(m_exec_conf, "MPI allreduce");
         // check if migrate criterion is fulfilled on any rank
         int local_result = result ? 1 : 0;
         int global_result = 0;
         MPI_Allreduce(&local_result,
-            &global_result,
-            1,
-            MPI_INT,
-            MPI_MAX,
-            m_exec_conf->getMPICommunicator());
+                      &global_result,
+                      1,
+                      MPI_INT,
+                      MPI_MAX,
+                      m_exec_conf->getMPICommunicator());
         result = (global_result > 0);
-        if (m_prof) m_prof->pop();
+        if (m_prof)
+            m_prof->pop();
         }
-    #endif
+#endif
 
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
 
     return result;
     }
 
 /*! Calls gpu_nlist_filter() to filter the neighbor list on the GPU
-*/
+ */
 void NeighborListGPU::filterNlist()
     {
     if (m_prof)
@@ -155,7 +158,9 @@ void NeighborListGPU::filterNlist()
     // access data
 
     ArrayHandle<unsigned int> d_n_ex_idx(m_n_ex_idx, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_ex_list_idx(m_ex_list_idx, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_ex_list_idx(m_ex_list_idx,
+                                            access_location::device,
+                                            access_mode::read);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
@@ -169,29 +174,37 @@ void NeighborListGPU::filterNlist()
                      m_ex_list_indexer,
                      m_pdata->getN(),
                      m_tuner_filter->getParam());
-    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     m_tuner_filter->end();
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
     }
 
-
 //! Update the exclusion list on the GPU
 void NeighborListGPU::updateExListIdx()
     {
-    assert(! m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     if (m_prof)
-        m_prof->push(m_exec_conf,"update-ex");
+        m_prof->push(m_exec_conf, "update-ex");
 
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(),
+                                     access_location::device,
+                                     access_mode::read);
     ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
     ArrayHandle<unsigned int> d_n_ex_tag(m_n_ex_tag, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_ex_list_tag(m_ex_list_tag, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_n_ex_idx(m_n_ex_idx, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_ex_list_idx(m_ex_list_idx, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_ex_list_tag(m_ex_list_tag,
+                                            access_location::device,
+                                            access_mode::read);
+    ArrayHandle<unsigned int> d_n_ex_idx(m_n_ex_idx,
+                                         access_location::device,
+                                         access_mode::overwrite);
+    ArrayHandle<unsigned int> d_ex_list_idx(m_ex_list_idx,
+                                            access_location::device,
+                                            access_mode::overwrite);
 
     gpu_update_exclusion_list(d_tag.data,
                               d_rtag.data,
@@ -202,7 +215,8 @@ void NeighborListGPU::updateExListIdx()
                               d_ex_list_idx.data,
                               m_ex_list_indexer,
                               m_pdata->getN());
-    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
@@ -215,20 +229,31 @@ void NeighborListGPU::buildHeadList()
     if (!m_pdata->getN())
         return;
 
-    if (m_prof) m_prof->push(m_exec_conf, "head-list");
+    if (m_prof)
+        {
+        m_prof->push(m_exec_conf, "head-list");
+        }
 
         {
-        ArrayHandle<unsigned int> h_req_size_nlist(m_req_size_nlist, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_req_size_nlist(m_req_size_nlist,
+                                                   access_location::host,
+                                                   access_mode::overwrite);
         // reset flags
         *h_req_size_nlist.data = 0;
         }
 
         {
-        ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_head_list(m_head_list,
+                                              access_location::device,
+                                              access_mode::overwrite);
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
+                                   access_location::device,
+                                   access_mode::read);
         ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
 
-        ArrayHandle<unsigned int> d_req_size_nlist(m_req_size_nlist, access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_req_size_nlist(m_req_size_nlist,
+                                                   access_location::device,
+                                                   access_mode::readwrite);
 
         m_tuner_head_list->begin();
         gpu_nlist_build_head_list(d_head_list.data,
@@ -245,22 +270,26 @@ void NeighborListGPU::buildHeadList()
 
     unsigned int req_size_nlist;
         {
-        ArrayHandle<unsigned int> h_req_size_nlist(m_req_size_nlist, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_req_size_nlist(m_req_size_nlist,
+                                                   access_location::host,
+                                                   access_mode::read);
         req_size_nlist = *h_req_size_nlist.data;
         }
 
     resizeNlist(req_size_nlist);
 
-    // now that the head list is complete and the neighbor list has been allocated, update memory advice
+    // now that the head list is complete and the neighbor list has been allocated, update memory
+    // advice
     updateMemoryMapping();
 
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
     }
 
 void export_NeighborListGPU(py::module& m)
     {
-    py::class_<NeighborListGPU, NeighborList, std::shared_ptr<NeighborListGPU> >(m, "NeighborListGPU")
-    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
-                     .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter)
-                     ;
+    py::class_<NeighborListGPU, NeighborList, std::shared_ptr<NeighborListGPU>>(m,
+                                                                                "NeighborListGPU")
+        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter);
     }

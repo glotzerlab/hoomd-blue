@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: mphoward
 
 #include "NeighborList.h"
@@ -30,73 +29,59 @@
 class PYBIND11_EXPORT NeighborListStencil : public NeighborList
     {
     public:
-        //! Constructs the compute
-        NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff);
+    //! Constructs the compute
+    NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff);
 
-        //! Destructor
-        virtual ~NeighborListStencil();
+    //! Destructor
+    virtual ~NeighborListStencil();
 
-        /// Notify NeighborList that a r_cut matrix value has changed
-        virtual void notifyRCutMatrixChange()
-            {
-            m_update_cell_size = true;
-            m_needs_restencil = true;
-            NeighborList::notifyRCutMatrixChange();
-            }
+    /// Notify NeighborList that a r_cut matrix value has changed
+    virtual void notifyRCutMatrixChange()
+        {
+        m_update_cell_size = true;
+        m_needs_restencil = true;
+        NeighborList::notifyRCutMatrixChange();
+        }
 
-        //! Change the underlying cell width
-        void setCellWidth(Scalar cell_width)
-            {
-            m_override_cell_width = true;
-            m_needs_restencil = true;
-            m_cl->setNominalWidth(cell_width);
-            }
+    //! Change the underlying cell width
+    void setCellWidth(Scalar cell_width)
+        {
+        m_override_cell_width = true;
+        m_needs_restencil = true;
+        m_cl->setNominalWidth(cell_width);
+        }
 
-        void setDeterministic(bool deterministic)
-            {
-            m_cl->setSortCellList(deterministic);
-            }
+    void setDeterministic(bool deterministic)
+        {
+        m_cl->setSortCellList(deterministic);
+        }
 
-        bool getDeterministic()
-            {
-            return m_cl->getSortCellList();
-            }
+    bool getDeterministic()
+        {
+        return m_cl->getSortCellList();
+        }
 
-        Scalar getCellWidth()
-            {
-            return m_cl->getNominalWidth();
-            }
-
-        #ifdef ENABLE_MPI
-
-        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-            {
-            // call base class method
-            NeighborList::setCommunicator(comm);
-
-            // set the communicator on the internal cell lists
-            m_cl->setCommunicator(comm);
-            m_cls->setCommunicator(comm);
-            }
-
-        #endif
+    Scalar getCellWidth()
+        {
+        return m_cl->getNominalWidth();
+        }
 
     protected:
-        //! Builds the neighbor list
-        virtual void buildNlist(uint64_t timestep);
+    //! Builds the neighbor list
+    virtual void buildNlist(uint64_t timestep);
 
     private:
-        std::shared_ptr<CellList> m_cl;          //!< The cell list
-        std::shared_ptr<CellListStencil> m_cls;  //!< The cell list stencil
-        bool m_override_cell_width = false;      //!< Flag to override the cell width
+    std::shared_ptr<CellList> m_cl;         //!< The cell list
+    std::shared_ptr<CellListStencil> m_cls; //!< The cell list stencil
+    bool m_override_cell_width = false;     //!< Flag to override the cell width
 
-        bool m_needs_restencil = true;  //!< Flag for updating the stencil
+    bool m_needs_restencil = true; //!< Flag for updating the stencil
 
-        /// Track when the cell size needs to be updated
-        bool m_update_cell_size = true;
+    /// Track when the cell size needs to be updated
+    bool m_update_cell_size = true;
 
-        //! Update the stencil radius
-        void updateRStencil();
+    //! Update the stencil radius
+    void updateRStencil();
     };
 
 //! Exports NeighborListStencil to python

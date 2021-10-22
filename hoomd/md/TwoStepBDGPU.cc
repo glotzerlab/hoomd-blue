@@ -20,8 +20,10 @@ using namespace std;
 */
 TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
-                           std::shared_ptr<Variant> T)
-    : TwoStepBD(sysdef, group, T)
+                           std::shared_ptr<Variant> T,
+                           bool noiseless_t,
+                           bool noiseless_r)
+    : TwoStepBD(sysdef, group, T, noiseless_t, noiseless_r)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -33,7 +35,8 @@ TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
     }
 
 /*! \param timestep Current time step
-    \post Particle positions are moved forward a full time step and velocities are redrawn from the proper distribution.
+    \post Particle positions are moved forward a full time step and velocities are redrawn from the
+   proper distribution.
 */
 void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
     {
@@ -43,26 +46,44 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
 
     // access all the needed data
     BoxDim box = m_pdata->getBox();
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
+                                            access_location::device,
+                                            access_mode::read);
     unsigned int group_size = m_group->getNumMembers();
     const unsigned int D = m_sysdef->getNDimensions();
-    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
+                               access_location::device,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
+                               access_location::device,
+                               access_mode::readwrite);
+    ArrayHandle<int3> d_image(m_pdata->getImages(),
+                              access_location::device,
+                              access_mode::readwrite);
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(),
+                                   access_location::device,
+                                   access_mode::read);
     ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
     // for rotational noise
     ArrayHandle<Scalar3> d_gamma_r(m_gamma_r, access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> d_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
+                                       access_location::device,
+                                       access_mode::readwrite);
+    ArrayHandle<Scalar4> d_torque(m_pdata->getNetTorqueArray(),
+                                  access_location::device,
+                                  access_mode::readwrite);
+    ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                   access_location::device,
+                                   access_mode::read);
+    ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(),
+                                  access_location::device,
+                                  access_mode::readwrite);
 
     langevin_step_two_args args;
     args.d_gamma = d_gamma.data;
@@ -80,20 +101,24 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
 
     bool aniso = m_aniso;
 
-    #ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVCC__
     if (m_exec_conf->allConcurrentManagedAccess())
         {
         // prefetch gammas
         auto& gpu_map = m_exec_conf->getGPUIds();
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaMemPrefetchAsync(m_gamma.get(), sizeof(Scalar)*m_gamma.getNumElements(), gpu_map[idev]);
-            cudaMemPrefetchAsync(m_gamma_r.get(), sizeof(Scalar)*m_gamma_r.getNumElements(), gpu_map[idev]);
+            cudaMemPrefetchAsync(m_gamma.get(),
+                                 sizeof(Scalar) * m_gamma.getNumElements(),
+                                 gpu_map[idev]);
+            cudaMemPrefetchAsync(m_gamma_r.get(),
+                                 sizeof(Scalar) * m_gamma_r.getNumElements(),
+                                 gpu_map[idev]);
             }
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
-    #endif
+#endif
 
     m_exec_conf->beginMultiGPU();
 
@@ -120,7 +145,7 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
                           m_noiseless_r,
                           m_group->getGPUPartition());
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_exec_conf->endMultiGPU();
@@ -140,9 +165,10 @@ void TwoStepBDGPU::integrateStepTwo(uint64_t timestep)
 
 void export_TwoStepBDGPU(py::module& m)
     {
-    py::class_<TwoStepBDGPU, TwoStepBD, std::shared_ptr<TwoStepBDGPU> >(m, "TwoStepBDGPU")
-        .def(py::init< std::shared_ptr<SystemDefinition>,
-                               std::shared_ptr<ParticleGroup>,
-                               std::shared_ptr<Variant>>())
-        ;
+    py::class_<TwoStepBDGPU, TwoStepBD, std::shared_ptr<TwoStepBDGPU>>(m, "TwoStepBDGPU")
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ParticleGroup>,
+                      std::shared_ptr<Variant>,
+                      bool,
+                      bool>());
     }

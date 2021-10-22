@@ -13,8 +13,7 @@ def typedict():
 def test_instantiation(typedict):
     return TypeParameter(name='type_param',
                          type_kind='particle_types',
-                         param_dict=typedict
-                         )
+                         param_dict=typedict)
 
 
 @fixture(scope='function')
@@ -76,9 +75,9 @@ def test_type_checking(all_):
 
 def test_attached_type_checking(attached):
     with raises(KeyError):
-        _ = attached['C']
+        _ = attached['D']
     with raises(KeyError):
-        attached['C'] = dict(bar=2)
+        attached['D'] = dict(bar=2)
 
 
 def test_pickling(all_, attached):

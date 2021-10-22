@@ -13,7 +13,6 @@ neighbor lists are shared, they find neighbors within the the maximum
 """
 
 import hoomd
-from hoomd import _hoomd
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom
 from hoomd.logging import log
@@ -72,26 +71,24 @@ class NList(_HOOMDBaseObject):
     is the per particle quantity stored in the `hoomd.State`).
 
     Attributes:
-        buffer (float): Buffer width.
+        buffer (float): Buffer width :math:`[\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
             neighbor list, see more details above.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
         check_dist (bool): Flag to enable / disable distance checking.
-        max_diameter (float): The maximum diameter a particle will achieve.
+        max_diameter (float): The maximum diameter a particle will achieve
+            :math:`[\mathrm{length}]`.
     """
 
-    _remove_for_pickling = _HOOMDBaseObject._remove_for_pickling + ('_cpp_cell',)
-    _skip_for_equality = _HOOMDBaseObject._skip_for_equality | {'_cpp_cell',}
+    def __init__(self, buffer, exclusions, rebuild_check_delay, diameter_shift,
+                 check_dist, max_diameter):
 
-    def __init__(self, buffer, exclusions, rebuild_check_delay,
-                 diameter_shift, check_dist, max_diameter):
-
-        validate_exclusions = OnlyFrom(
-            ['bond', 'angle', 'constraint', 'dihedral', 'special_pair',
-             'body', '1-3', '1-4']
-        )
+        validate_exclusions = OnlyFrom([
+            'bond', 'angle', 'constraint', 'dihedral', 'special_pair', 'body',
+            '1-3', '1-4'
+        ])
         # default exclusions
         params = ParameterDict(exclusions=[validate_exclusions],
                                buffer=float(buffer),
@@ -99,37 +96,44 @@ class NList(_HOOMDBaseObject):
                                check_dist=bool(check_dist),
                                diameter_shift=bool(diameter_shift),
                                max_diameter=float(max_diameter),
-                               _defaults={'exclusions': exclusions}
-                               )
+                               _defaults={'exclusions': exclusions})
         self._param_dict.update(params)
 
-    @log
+    @log(requires_run=True)
     def shortest_rebuild(self):
         """int: The shortest period between neighbor list rebuilds.
 
         `shortest_rebuild` is the smallest number of time steps between neighbor
         list rebuilds during the previous `Simulation.run`.
         """
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getSmallestRebuild()
+        return self._cpp_obj.getSmallestRebuild()
+
+    def _remove_dependent(self, obj):
+        super()._remove_dependent(obj)
+        if len(self._dependents) == 0:
+            if self._attached:
+                self._detach()
+                self._remove()
+                return
+            if self._added:
+                self._remove()
 
     # TODO need to add tuning Updater for NList
 
 
 class Cell(NList):
-    r"""Cell list based neighbor list
+    r"""Neighbor list computed via a cell list.
 
     Args:
-        buffer (float): Buffer width.
+        buffer (float): Buffer width :math:`[\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
             neighbor list, see more details in `NList`.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
         check_dist (bool): Flag to enable / disable distance checking.
-        max_diameter (float): The maximum diameter a particle will achieve.
+        max_diameter (float): The maximum diameter a particle will achieve
+            :math:`[\mathrm{length}]`.
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
 
@@ -149,8 +153,13 @@ class Cell(NList):
             deterministic simulation runs.
     """
 
-    def __init__(self, buffer=0.4, exclusions=('bond',), rebuild_check_delay=1,
-                 diameter_shift=False, check_dist=True, max_diameter=1.0,
+    def __init__(self,
+                 buffer=0.4,
+                 exclusions=('bond',),
+                 rebuild_check_delay=1,
+                 diameter_shift=False,
+                 check_dist=True,
+                 max_diameter=1.0,
                  deterministic=False):
 
         super().__init__(buffer, exclusions, rebuild_check_delay,
@@ -164,7 +173,8 @@ class Cell(NList):
             nlist_cls = _md.NeighborListBinned
         else:
             nlist_cls = _md.NeighborListGPUBinned
-        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, self.buffer)
+        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def,
+                                  self.buffer)
         super()._attach()
 
 
@@ -172,15 +182,17 @@ class Stencil(NList):
     """Cell list based neighbor list using stencils.
 
     Args:
-        cell_width (float): The underlying stencil bin width for the cell list.
-        buffer (float): Buffer width.
+        cell_width (float): The underlying stencil bin width for the cell list
+            :math:`[\\mathrm{length}]`.
+        buffer (float): Buffer width :math:`[\\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
             neighbor list, see more details in `NList`.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
         check_dist (bool): Flag to enable / disable distance checking.
-        max_diameter (float): The maximum diameter a particle will achieve.
+        max_diameter (float): The maximum diameter a particle will achieve
+            :math:`[\\mathrm{length}]`.
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
 
@@ -213,13 +225,21 @@ class Stencil(NList):
         nl_s = nlist.Stencil(cell_width=1.5)
 
     Attributes:
-        cell_width (float): The underlying stencil bin width for the cell list.
+        cell_width (float): The underlying stencil bin width for the cell list
+            :math:`[\\mathrm{length}]`.
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
     """
-    def __init__(self, cell_width, buffer=0.4, exclusions=('bond',),
-                 rebuild_check_delay=1, diameter_shift=False, check_dist=True,
-                 max_diameter=1.0, deterministic=False):
+
+    def __init__(self,
+                 cell_width,
+                 buffer=0.4,
+                 exclusions=('bond',),
+                 rebuild_check_delay=1,
+                 diameter_shift=False,
+                 check_dist=True,
+                 max_diameter=1.0,
+                 deterministic=False):
 
         super().__init__(buffer, exclusions, rebuild_check_delay,
                          diameter_shift, check_dist, max_diameter)
@@ -234,7 +254,8 @@ class Stencil(NList):
             nlist_cls = _md.NeighborListStencil
         else:
             nlist_cls = _md.NeighborListGPUStencil
-        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, self.buffer)
+        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def,
+                                  self.buffer)
         super()._attach()
 
 
@@ -242,14 +263,15 @@ class Tree(NList):
     """Bounding volume hierarchy based neighbor list.
 
     Args:
-        buffer (float): Buffer width.
+        buffer (float): Buffer width :math:`[\\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
             neighbor list, see more details in `NList`.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
         check_dist (bool): Flag to enable / disable distance checking.
-        max_diameter (float): The maximum diameter a particle will achieve.
+        max_diameter (float): The maximum diameter a particle will achieve
+            :math:`[\\mathrm{length}]`.
 
     `Tree` creates a neighbor list using a bounding volume hierarchy (BVH) tree
     traversal. A BVH tree of axis-aligned bounding boxes is constructed per
@@ -272,16 +294,23 @@ class Tree(NList):
 
         nl_t = nlist.Tree(check_dist=False)
     """
-    def __init__(self, buffer=0.4, exclusions=('bond',), rebuild_check_delay=1,
-                 diameter_shift=False, check_dist=True, max_diameter=1.0):
 
-        super().__init__(buffer, exclusions, rebuild_check_delay, diameter_shift,
-                         check_dist, max_diameter)
+    def __init__(self,
+                 buffer=0.4,
+                 exclusions=('bond',),
+                 rebuild_check_delay=1,
+                 diameter_shift=False,
+                 check_dist=True,
+                 max_diameter=1.0):
+
+        super().__init__(buffer, exclusions, rebuild_check_delay,
+                         diameter_shift, check_dist, max_diameter)
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             nlist_cls = _md.NeighborListTree
         else:
             nlist_cls = _md.NeighborListGPUTree
-        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, self.buffer)
+        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def,
+                                  self.buffer)
         super()._attach()

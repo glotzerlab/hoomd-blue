@@ -4,35 +4,35 @@
 #include <pybind11/pybind11.h>
 #include <string.h>
 
-
 #include "hoomd/Compute.h"
 #include "hoomd/VectorMath.h"
 
-#include "HPMCCounters.h"   // do we need this to keep track of the statistics?
+#include "HPMCCounters.h" // do we need this to keep track of the statistics?
 
-#include "ShapeSphere.h"
 #include "ShapeConvexPolygon.h"
-#include "ShapePolyhedron.h"
 #include "ShapeConvexPolyhedron.h"
-#include "ShapeSpheropolyhedron.h"
-#include "ShapeSpheropolygon.h"
-#include "ShapeSimplePolygon.h"
 #include "ShapeEllipsoid.h"
+#include "ShapePolyhedron.h"
+#include "ShapeSimplePolygon.h"
+#include "ShapeSphere.h"
+#include "ShapeSpheropolygon.h"
+#include "ShapeSpheropolyhedron.h"
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
 
 #include "ExternalField.h"
-#include "ExternalFieldWall.h"
-#include "ExternalFieldLattice.h"
 #include "ExternalFieldComposite.h"
+#include "ExternalFieldLattice.h"
+#include "ExternalFieldWall.h"
 
 #include "UpdaterExternalFieldWall.h"
-#include "UpdaterRemoveDrift.h"
 
 namespace py = pybind11;
 
-namespace hpmc{
-// NOTE: I am only exporting 3d shapes for now because I think the 2d ones need some tweaking (how to do this generally?)
+namespace hpmc
+    {
+// NOTE: I am only exporting 3d shapes for now because I think the 2d ones need some tweaking (how
+// to do this generally?)
 
 SphereWall make_sphere_wall(Scalar r, py::list origin, bool inside)
     {
@@ -72,16 +72,15 @@ PlaneWall make_plane_wall(py::list norm, py::list origin, bool inside)
 void export_walls(py::module& m)
     {
     // export wall structs.
-   py::class_<SphereWall, std::shared_ptr<SphereWall> >(m, "sphere_wall_params");
-   py::class_<CylinderWall, std::shared_ptr<CylinderWall> >(m, "cylinder_wall_params");
-   py::class_<PlaneWall, std::shared_ptr<PlaneWall> >(m, "plane_wall_params");
+    py::class_<SphereWall, std::shared_ptr<SphereWall>>(m, "sphere_wall_params");
+    py::class_<CylinderWall, std::shared_ptr<CylinderWall>>(m, "cylinder_wall_params");
+    py::class_<PlaneWall, std::shared_ptr<PlaneWall>>(m, "plane_wall_params");
 
     // export helper functions.
     m.def("make_sphere_wall", &make_sphere_wall);
     m.def("make_cylinder_wall", &make_cylinder_wall);
     m.def("make_plane_wall", &make_plane_wall);
     }
-
 
 //! Export the external field classes to python
 void export_external_fields(py::module& m)
@@ -90,4 +89,4 @@ void export_external_fields(py::module& m)
     export_walls(m);
     }
 
-} // namespace
+    } // namespace hpmc

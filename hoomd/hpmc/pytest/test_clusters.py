@@ -7,38 +7,32 @@
 import hoomd
 from hoomd.conftest import operation_pickling_check
 import pytest
-import numpy as np
 import hoomd.hpmc.pytest.conftest
-
 
 # note: The parameterized tests validate parameters so we can't pass in values
 # here that require preprocessing
 valid_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
-         pivot_move_ratio=0.1,
+         pivot_move_probability=0.1,
          flip_probability=0.8),
     dict(trigger=hoomd.trigger.After(100),
-         pivot_move_ratio=0.7,
+         pivot_move_probability=0.7,
          flip_probability=1),
     dict(trigger=hoomd.trigger.Before(100),
-         pivot_move_ratio=0.7,
+         pivot_move_probability=0.7,
          flip_probability=1),
     dict(trigger=hoomd.trigger.Periodic(1000),
-         pivot_move_ratio=0.7,
+         pivot_move_probability=0.7,
          flip_probability=1),
 ]
 
-valid_attrs = [
-    ('trigger', hoomd.trigger.Periodic(10000)),
-    ('trigger', hoomd.trigger.After(100)),
-    ('trigger', hoomd.trigger.Before(12345)),
-    ('flip_probability', 0.2),
-    ('flip_probability', 0.5),
-    ('flip_probability', 0.8),
-    ('pivot_move_ratio', 0.2),
-    ('pivot_move_ratio', 0.5),
-    ('pivot_move_ratio', 0.8)
-]
+valid_attrs = [('trigger', hoomd.trigger.Periodic(10000)),
+               ('trigger', hoomd.trigger.After(100)),
+               ('trigger', hoomd.trigger.Before(12345)),
+               ('flip_probability', 0.2), ('flip_probability', 0.5),
+               ('flip_probability', 0.8), ('pivot_move_probability', 0.2),
+               ('pivot_move_probability', 0.5), ('pivot_move_probability', 0.8)]
+
 
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -55,12 +49,11 @@ def test_valid_construction(device, constructor_args):
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_and_attach(device, simulation_factory,
                                        two_particle_snapshot_factory,
-                                       constructor_args,
-                                       valid_args):
+                                       constructor_args, valid_args):
     """Test that Clusters can be attached with valid arguments."""
-
     integrator = valid_args[0]
     args = valid_args[1]
+    n_dimensions = valid_args[2]
     # Need to unpack union integrators
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
@@ -75,9 +68,11 @@ def test_valid_construction_and_attach(device, simulation_factory,
     mc.shape["B"] = args
 
     cl = hoomd.hpmc.update.Clusters(**constructor_args)
-    dim = 2 if 'polygon' in integrator.__name__.lower() else 3
-    sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                                           dimensions=dim, d=2, L=50))
+    sim = simulation_factory(
+        two_particle_snapshot_factory(particle_types=['A', 'B'],
+                                      dimensions=n_dimensions,
+                                      d=2,
+                                      L=50))
     sim.operations.updaters.append(cl)
     sim.operations.integrator = mc
 
@@ -101,12 +96,11 @@ def test_valid_setattr(device, attr, value):
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_attached(device, attr, value, simulation_factory,
-                                two_particle_snapshot_factory,
-                                valid_args):
+                                two_particle_snapshot_factory, valid_args):
     """Test that Clusters can get and set attributes while attached."""
-
     integrator = valid_args[0]
     args = valid_args[1]
+    n_dimensions = valid_args[2]
     # Need to unpack union integrators
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
@@ -121,9 +115,11 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     mc.shape["B"] = args
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10))
-    dim = 2 if 'polygon' in integrator.__name__.lower() else 3
-    sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                                           dimensions=dim, d=2, L=50))
+    sim = simulation_factory(
+        two_particle_snapshot_factory(particle_types=['A', 'B'],
+                                      dimensions=n_dimensions,
+                                      d=2,
+                                      L=50))
     sim.operations.updaters.append(cl)
     sim.operations.integrator = mc
 
@@ -132,21 +128,24 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     setattr(cl, attr, value)
     assert getattr(cl, attr) == value
 
+
 @pytest.mark.serial
-def test_pivot_moves(device, simulation_factory,
-                     lattice_snapshot_factory):
+def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
     """Test that Clusters produces finite size clusters."""
+    sim = simulation_factory(
+        lattice_snapshot_factory(particle_types=['A', 'B'],
+                                 dimensions=3,
+                                 a=4,
+                                 n=7,
+                                 r=0.1))
 
-    sim = simulation_factory(lattice_snapshot_factory(particle_types=['A', 'B'],
-                                                      dimensions=3, a=4, n=7, r=0.1))
-
-    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
     mc.shape['B'] = dict(diameter=1.3)
     sim.operations.integrator = mc
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
-                                    pivot_move_ratio=0.5)
+                                    pivot_move_probability=0.5)
     sim.operations.updaters.append(cl)
 
     sim.run(100)
@@ -158,11 +157,11 @@ def test_pivot_moves(device, simulation_factory,
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     """Test that Cluster objects are picklable."""
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
     mc.shape['B'] = dict(diameter=1.3)
     sim.operations.integrator = mc
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
-                                    pivot_move_ratio=0.1)
+                                    pivot_move_probability=0.1)
     operation_pickling_check(cl, sim)

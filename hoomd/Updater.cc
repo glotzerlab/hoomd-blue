@@ -37,13 +37,9 @@ void Updater::setProfiler(std::shared_ptr<Profiler> prof)
 
 void export_Updater(py::module& m)
     {
-    py::class_<Updater, std::shared_ptr<Updater> >(m,"Updater")
-    .def(py::init< std::shared_ptr<SystemDefinition> >())
-    .def("update", &Updater::update)
-    .def("setProfiler", &Updater::setProfiler)
-    .def("notifyDetach", &Updater::notifyDetach)
-    #ifdef ENABLE_MPI
-    .def("setCommunicator", &Updater::setCommunicator)
-    #endif
-    ;
+    py::class_<Updater, std::shared_ptr<Updater>>(m, "Updater")
+        .def(py::init<std::shared_ptr<SystemDefinition>>())
+        .def("update", &Updater::update)
+        .def("setProfiler", &Updater::setProfiler)
+        .def("notifyDetach", &Updater::notifyDetach);
     }

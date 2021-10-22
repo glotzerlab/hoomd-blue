@@ -7,6 +7,49 @@ install(FILES ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include
         )
 
+# translate cmake true/false to Python
+if (BUILD_MD)
+    set(_md_built "True")
+else()
+    set(_md_built "False")
+endif()
+
+if (BUILD_MD)
+    set(_md_built "True")
+else()
+    set(_md_built "False")
+endif()
+
+if (BUILD_HPMC)
+    set(_hpmc_built "True")
+else()
+    set(_hpmc_built "False")
+endif()
+
+if (BUILD_DEM)
+    set(_dem_built "True")
+else()
+    set(_dem_built "False")
+endif()
+
+if (BUILD_METAL)
+    set(_metal_built "True")
+else()
+    set(_metal_built "False")
+endif()
+
+if (BUILD_MPCD)
+    set(_mpcd_built "True")
+else()
+    set(_mpcd_built "False")
+endif()
+
+if (ENABLE_LLVM)
+    set(_llvm_enabled "True")
+else()
+    set(_llvm_enabled "False")
+endif()
+
 configure_file (version_config.py.in ${HOOMD_BINARY_DIR}/hoomd/version_config.py)
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}
@@ -38,7 +81,6 @@ set(_hoomd_sources Analyzer.cc
                    GSDReader.cc
                    HOOMDMath.cc
                    HOOMDVersion.cc
-                   IMDInterface.cc
                    Initializers.cc
                    Integrator.cc
                    IntegratorData.cc
@@ -48,13 +90,13 @@ set(_hoomd_sources Analyzer.cc
                    MPIConfiguration.cc
                    ParticleData.cc
                    ParticleGroup.cc
+                   ParticleFilterUpdater.cc
                    Profiler.cc
                    PythonLocalDataAccess.cc
                    PythonAnalyzer.cc
                    PythonTuner.cc
                    PythonUpdater.cc
                    SFCPackTuner.cc
-                   SignalHandler.cc
                    SnapshotSystemData.cc
                    System.cc
                    SystemDefinition.cc
@@ -87,6 +129,7 @@ set(_hoomd_headers
     BondedGroupData.h
     BoxDim.h
     BoxResizeUpdater.h
+    UpdaterRemoveDrift.h
     CachedAllocator.h
     CallbackAnalyzer.h
     CellListGPU.cuh
@@ -122,7 +165,6 @@ set(_hoomd_headers
     HalfStepHook.h
     HOOMDMath.h
     HOOMDMPI.h
-    IMDInterface.h
     Index1D.h
     Initializers.h
     Integrator.cuh
@@ -140,6 +182,7 @@ set(_hoomd_headers
     ParticleData.h
     ParticleGroup.cuh
     ParticleGroup.h
+    ParticleFilterUpdater.h
     Profiler.h
     PythonLocalDataAccess.h
     PythonUpdater.h
@@ -150,7 +193,6 @@ set(_hoomd_headers
     SFCPackTunerGPU.h
     SFCPackTuner.h
     SharedSignal.h
-    SignalHandler.h
     SnapshotSystemData.h
     SystemDefinition.h
     System.h
@@ -217,7 +259,13 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
 # ignore conversion warnings in quickull
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_COMPILER_IS_GNUCXX)
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9.0.0)
+        target_compile_options(quickhull PRIVATE "-Wno-conversion;-Wno-pessimizing-move")
+    else()
+        target_compile_options(quickhull PRIVATE "-Wno-conversion")
+    endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(quickhull PRIVATE "-Wno-conversion;-Wno-pessimizing-move")
 endif()
 
@@ -313,12 +361,13 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-set(files benchmark.py
-          box.py
+set(files box.py
           communicator.py
+          _compile.py
           conftest.py
           device.py
           __init__.py
+          error.py
           integrate.py
           operation.py
           operations.py
@@ -349,7 +398,6 @@ install(FILES ${_hoomd_headers}
 add_subdirectory(custom)
 add_subdirectory(data)
 add_subdirectory(filter)
-add_subdirectory(minimize)
 add_subdirectory(write)
 add_subdirectory(pytest)
 add_subdirectory(tune)
@@ -387,10 +435,6 @@ if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
     if (BUILD_MPCD)
         add_subdirectory(mpcd)
     endif()
-endif()
-
-if (BUILD_JIT)
-    add_subdirectory(jit)
 endif()
 
 foreach(entry ${PLUGINS})

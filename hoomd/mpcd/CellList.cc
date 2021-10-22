@@ -17,32 +17,40 @@
 
 mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
-        : Compute(sysdef), m_mpcd_pdata(mpcd_pdata),
-          m_cell_size(1.0), m_cell_np_max(4), m_cell_np(m_exec_conf), m_cell_list(m_exec_conf),
-          m_embed_cell_ids(m_exec_conf), m_conditions(m_exec_conf), m_needs_compute_dim(true),
-          m_particles_sorted(false), m_virtual_change(false)
+    : Compute(sysdef), m_mpcd_pdata(mpcd_pdata), m_cell_size(1.0), m_cell_np_max(4),
+      m_cell_np(m_exec_conf), m_cell_list(m_exec_conf), m_embed_cell_ids(m_exec_conf),
+      m_conditions(m_exec_conf), m_needs_compute_dim(true), m_particles_sorted(false),
+      m_virtual_change(false)
     {
     assert(m_mpcd_pdata);
     m_exec_conf->msg->notice(5) << "Constructing MPCD CellList" << std::endl;
 
     // by default, grid shifting is initialized to zeroes
-    m_cell_dim = make_uint3(0,0,0);
-    m_global_cell_dim = make_uint3(0,0,0);
+    m_cell_dim = make_uint3(0, 0, 0);
+    m_global_cell_dim = make_uint3(0, 0, 0);
 
-    m_grid_shift = make_scalar3(0.0,0.0,0.0);
+    m_grid_shift = make_scalar3(0.0, 0.0, 0.0);
     m_max_grid_shift = 0.5 * m_cell_size;
-    m_origin_idx = make_int3(0,0,0);
+    m_origin_idx = make_int3(0, 0, 0);
 
     resetConditions();
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     m_decomposition = m_pdata->getDomainDecomposition();
     m_num_extra = 0;
     m_cover_box = m_pdata->getBox();
-    #endif // ENABLE_MPI
+
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+        }
+#endif // ENABLE_MPI
 
     m_mpcd_pdata->getSortSignal().connect<mpcd::CellList, &mpcd::CellList::sort>(this);
-    m_mpcd_pdata->getNumVirtualSignal().connect<mpcd::CellList, &mpcd::CellList::slotNumVirtual>(this);
+    m_mpcd_pdata->getNumVirtualSignal().connect<mpcd::CellList, &mpcd::CellList::slotNumVirtual>(
+        this);
     m_pdata->getParticleSortSignal().connect<mpcd::CellList, &mpcd::CellList::slotSorted>(this);
     m_pdata->getBoxChangeSignal().connect<mpcd::CellList, &mpcd::CellList::slotBoxChanged>(this);
     }
@@ -51,7 +59,8 @@ mpcd::CellList::~CellList()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD CellList" << std::endl;
     m_mpcd_pdata->getSortSignal().disconnect<mpcd::CellList, &mpcd::CellList::sort>(this);
-    m_mpcd_pdata->getNumVirtualSignal().disconnect<mpcd::CellList, &mpcd::CellList::slotNumVirtual>(this);
+    m_mpcd_pdata->getNumVirtualSignal().disconnect<mpcd::CellList, &mpcd::CellList::slotNumVirtual>(
+        this);
     m_pdata->getParticleSortSignal().disconnect<mpcd::CellList, &mpcd::CellList::slotSorted>(this);
     m_pdata->getBoxChangeSignal().disconnect<mpcd::CellList, &mpcd::CellList::slotBoxChanged>(this);
     }
@@ -59,7 +68,8 @@ mpcd::CellList::~CellList()
 void mpcd::CellList::compute(uint64_t timestep)
     {
     Compute::compute(timestep);
-    if (m_prof) m_prof->push(m_exec_conf, "MPCD cell list");
+    if (m_prof)
+        m_prof->push(m_exec_conf, "MPCD cell list");
 
     if (m_virtual_change)
         {
@@ -81,17 +91,19 @@ void mpcd::CellList::compute(uint64_t timestep)
 
     if (peekCompute(timestep))
         {
-        #ifdef ENABLE_MPI
-        if (m_prof) m_prof->pop(m_exec_conf);
+#ifdef ENABLE_MPI
+        if (m_prof)
+            m_prof->pop(m_exec_conf);
 
         // exchange embedded particles if necessary
-        if (m_comm && needsEmbedMigrate(timestep))
+        if (m_sysdef->isDomainDecomposed() && needsEmbedMigrate(timestep))
             {
             m_comm->forceMigrate();
             m_comm->communicate(timestep);
             }
-        if (m_prof) m_prof->push(m_exec_conf, "MPCD cell list");
-        #endif // ENABLE_MPI
+        if (m_prof)
+            m_prof->push(m_exec_conf, "MPCD cell list");
+#endif // ENABLE_MPI
 
         // resize to be able to hold the number of embedded particles
         if (m_embed_group)
@@ -122,13 +134,15 @@ void mpcd::CellList::compute(uint64_t timestep)
         m_mpcd_pdata->validateCellCache();
         }
 
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
     }
 
 void mpcd::CellList::reallocate()
     {
     m_exec_conf->msg->notice(6) << "Allocating MPCD cell list, " << m_cell_np_max
-                                << " particles in " << m_cell_indexer.getNumElements() << " cells." << std::endl;
+                                << " particles in " << m_cell_indexer.getNumElements() << " cells."
+                                << std::endl;
     m_cell_list_indexer = Index2D(m_cell_np_max, m_cell_indexer.getNumElements());
     m_cell_list.resize(m_cell_list_indexer.getNumElements());
     }
@@ -137,9 +151,8 @@ void mpcd::CellList::updateGlobalBox()
     {
     // triclinic boxes are not allowed
     const BoxDim& global_box = m_pdata->getGlobalBox();
-    if (global_box.getTiltFactorXY() != Scalar(0.0) ||
-        global_box.getTiltFactorXZ() != Scalar(0.0) ||
-        global_box.getTiltFactorYZ() != Scalar(0.0))
+    if (global_box.getTiltFactorXY() != Scalar(0.0) || global_box.getTiltFactorXZ() != Scalar(0.0)
+        || global_box.getTiltFactorYZ() != Scalar(0.0))
         {
         m_exec_conf->msg->error() << "mpcd: box must be orthorhombic" << std::endl;
         throw std::runtime_error("Box must be orthorhombic");
@@ -147,14 +160,15 @@ void mpcd::CellList::updateGlobalBox()
 
     // box must be evenly divisible by cell size
     const Scalar3 L = global_box.getL();
-    m_global_cell_dim = make_uint3((unsigned int)round(L.x/m_cell_size),
-                                   (unsigned int)round(L.y/m_cell_size),
-                                   (unsigned int)round(L.z/m_cell_size));
+    m_global_cell_dim = make_uint3((unsigned int)round(L.x / m_cell_size),
+                                   (unsigned int)round(L.y / m_cell_size),
+                                   (unsigned int)round(L.z / m_cell_size));
     if (m_sysdef->getNDimensions() == 2)
         {
         if (m_global_cell_dim.z > 1)
             {
-            m_exec_conf->msg->error() << "mpcd: In 2d simulations, box width must be smaller than cell size" << std::endl;
+            m_exec_conf->msg->error()
+                << "mpcd: In 2d simulations, box width must be smaller than cell size" << std::endl;
             throw std::runtime_error("Lz bigger than cell size in 2D!");
             }
 
@@ -163,24 +177,27 @@ void mpcd::CellList::updateGlobalBox()
         }
 
     const double eps = 1e-5;
-    if ( fabs((double)L.x - m_global_cell_dim.x*(double)m_cell_size) > eps*m_cell_size ||
-         fabs((double)L.y - m_global_cell_dim.y*(double)m_cell_size) > eps*m_cell_size ||
-         (m_sysdef->getNDimensions() == 3 && fabs((double)L.z - m_global_cell_dim.z*(double)m_cell_size) > eps*m_cell_size) )
+    if (fabs((double)L.x - m_global_cell_dim.x * (double)m_cell_size) > eps * m_cell_size
+        || fabs((double)L.y - m_global_cell_dim.y * (double)m_cell_size) > eps * m_cell_size
+        || (m_sysdef->getNDimensions() == 3
+            && fabs((double)L.z - m_global_cell_dim.z * (double)m_cell_size) > eps * m_cell_size))
         {
-        m_exec_conf->msg->error() << "mpcd: Box size must be even multiple of cell size" << std::endl;
+        m_exec_conf->msg->error() << "mpcd: Box size must be even multiple of cell size"
+                                  << std::endl;
         throw std::runtime_error("MPCD cell size must evenly divide box");
         }
     }
 
 void mpcd::CellList::computeDimensions()
     {
-    if (!m_needs_compute_dim) return;
+    if (!m_needs_compute_dim)
+        return;
 
     // first update / validate the global box
     updateGlobalBox();
 
 #ifdef ENABLE_MPI
-    uchar3 communicating = make_uchar3(0,0,0);
+    uchar3 communicating = make_uchar3(0, 0, 0);
     if (m_decomposition)
         {
         const Index3D& di = m_decomposition->getDomainIndexer();
@@ -206,22 +223,25 @@ void mpcd::CellList::computeDimensions()
         int3 my_lo_bin = make_int3((int)std::floor((delta_lo.x - m_max_grid_shift) / m_cell_size),
                                    (int)std::floor((delta_lo.y - m_max_grid_shift) / m_cell_size),
                                    (int)std::floor((delta_lo.z - m_max_grid_shift) / m_cell_size));
-        int3 lo_neigh_bin = make_int3((int)std::ceil((delta_lo.x + m_max_grid_shift) / m_cell_size),
-                                      (int)std::ceil((delta_lo.y + m_max_grid_shift) / m_cell_size),
-                                      (int)std::ceil((delta_lo.z + m_max_grid_shift) / m_cell_size));
+        int3 lo_neigh_bin
+            = make_int3((int)std::ceil((delta_lo.x + m_max_grid_shift) / m_cell_size),
+                        (int)std::ceil((delta_lo.y + m_max_grid_shift) / m_cell_size),
+                        (int)std::ceil((delta_lo.z + m_max_grid_shift) / m_cell_size));
 
         // setup hi bin
         const Scalar3 delta_hi = box.getHi() - global_lo;
         int3 my_hi_bin = make_int3((int)std::ceil((delta_hi.x + m_max_grid_shift) / m_cell_size),
                                    (int)std::ceil((delta_hi.y + m_max_grid_shift) / m_cell_size),
                                    (int)std::ceil((delta_hi.z + m_max_grid_shift) / m_cell_size));
-        int3 hi_neigh_bin = make_int3((int)std::floor((delta_hi.x - m_max_grid_shift) / m_cell_size),
-                                      (int)std::floor((delta_hi.y - m_max_grid_shift) / m_cell_size),
-                                      (int)std::floor((delta_hi.z - m_max_grid_shift) / m_cell_size));
+        int3 hi_neigh_bin
+            = make_int3((int)std::floor((delta_hi.x - m_max_grid_shift) / m_cell_size),
+                        (int)std::floor((delta_hi.y - m_max_grid_shift) / m_cell_size),
+                        (int)std::floor((delta_hi.z - m_max_grid_shift) / m_cell_size));
 
-        // initially size the grid assuming one rank in each direction, and then resize based on communication
+        // initially size the grid assuming one rank in each direction, and then resize based on
+        // communication
         m_cell_dim = m_global_cell_dim;
-        m_origin_idx = make_int3(0,0,0);
+        m_origin_idx = make_int3(0, 0, 0);
         std::fill(m_num_comm.begin(), m_num_comm.end(), 0);
 
         // Compute size of the box with diffusion layer
@@ -236,12 +256,15 @@ void mpcd::CellList::computeDimensions()
             m_origin_idx.x = my_lo_bin.x - m_num_extra;
 
             // number of communication cells along each direction
-            m_num_comm[static_cast<unsigned int>(mpcd::detail::face::east)] = my_hi_bin.x - hi_neigh_bin.x + m_num_extra;
-            m_num_comm[static_cast<unsigned int>(mpcd::detail::face::west)] = lo_neigh_bin.x - my_lo_bin.x + m_num_extra;
+            m_num_comm[static_cast<unsigned int>(mpcd::detail::face::east)]
+                = my_hi_bin.x - hi_neigh_bin.x + m_num_extra;
+            m_num_comm[static_cast<unsigned int>(mpcd::detail::face::west)]
+                = lo_neigh_bin.x - my_lo_bin.x + m_num_extra;
 
             // "safe" size of the diffusion layer
-            cover_lo.x = m_origin_idx.x * m_cell_size + m_max_grid_shift - 0.5*global_L.x;
-            cover_hi.x = (m_origin_idx.x + m_cell_dim.x) * m_cell_size - m_max_grid_shift - 0.5*global_L.x;
+            cover_lo.x = m_origin_idx.x * m_cell_size + m_max_grid_shift - 0.5 * global_L.x;
+            cover_hi.x = (m_origin_idx.x + m_cell_dim.x) * m_cell_size - m_max_grid_shift
+                         - 0.5 * global_L.x;
             cover_periodic.x = 0;
             }
 
@@ -250,11 +273,14 @@ void mpcd::CellList::computeDimensions()
             m_cell_dim.y = my_hi_bin.y - my_lo_bin.y + 2 * m_num_extra;
             m_origin_idx.y = my_lo_bin.y - m_num_extra;
 
-            m_num_comm[static_cast<unsigned int>(mpcd::detail::face::north)] = my_hi_bin.y - hi_neigh_bin.y + m_num_extra;
-            m_num_comm[static_cast<unsigned int>(mpcd::detail::face::south)] = lo_neigh_bin.y - my_lo_bin.y + m_num_extra;
+            m_num_comm[static_cast<unsigned int>(mpcd::detail::face::north)]
+                = my_hi_bin.y - hi_neigh_bin.y + m_num_extra;
+            m_num_comm[static_cast<unsigned int>(mpcd::detail::face::south)]
+                = lo_neigh_bin.y - my_lo_bin.y + m_num_extra;
 
-            cover_lo.y = m_origin_idx.y * m_cell_size + m_max_grid_shift - 0.5*global_L.y;
-            cover_hi.y = (m_origin_idx.y + m_cell_dim.y) * m_cell_size - m_max_grid_shift - 0.5*global_L.y;
+            cover_lo.y = m_origin_idx.y * m_cell_size + m_max_grid_shift - 0.5 * global_L.y;
+            cover_hi.y = (m_origin_idx.y + m_cell_dim.y) * m_cell_size - m_max_grid_shift
+                         - 0.5 * global_L.y;
             cover_periodic.y = 0;
             }
 
@@ -263,11 +289,14 @@ void mpcd::CellList::computeDimensions()
             m_cell_dim.z = my_hi_bin.z - my_lo_bin.z + 2 * m_num_extra;
             m_origin_idx.z = my_lo_bin.z - m_num_extra;
 
-            m_num_comm[static_cast<unsigned int>(mpcd::detail::face::up)] = my_hi_bin.z - hi_neigh_bin.z + m_num_extra;
-            m_num_comm[static_cast<unsigned int>(mpcd::detail::face::down)] = lo_neigh_bin.z - my_lo_bin.z + m_num_extra;
+            m_num_comm[static_cast<unsigned int>(mpcd::detail::face::up)]
+                = my_hi_bin.z - hi_neigh_bin.z + m_num_extra;
+            m_num_comm[static_cast<unsigned int>(mpcd::detail::face::down)]
+                = lo_neigh_bin.z - my_lo_bin.z + m_num_extra;
 
-            cover_lo.z = m_origin_idx.z * m_cell_size + m_max_grid_shift - 0.5*global_L.z;
-            cover_hi.z = (m_origin_idx.z + m_cell_dim.z) * m_cell_size - m_max_grid_shift - 0.5*global_L.z;
+            cover_lo.z = m_origin_idx.z * m_cell_size + m_max_grid_shift - 0.5 * global_L.z;
+            cover_hi.z = (m_origin_idx.z + m_cell_dim.z) * m_cell_size - m_max_grid_shift
+                         - 0.5 * global_L.z;
             cover_periodic.z = 0;
             }
 
@@ -277,10 +306,10 @@ void mpcd::CellList::computeDimensions()
         checkDomainBoundaries();
         }
     else
-    #endif // ENABLE_MPI
+#endif // ENABLE_MPI
         {
         m_cell_dim = m_global_cell_dim;
-        m_origin_idx = make_int3(0,0,0);
+        m_origin_idx = make_int3(0, 0, 0);
         }
 
     // resize the cell indexers and per-cell counter
@@ -299,22 +328,24 @@ void mpcd::CellList::computeDimensions()
 #ifdef ENABLE_MPI
 void mpcd::CellList::checkDomainBoundaries()
     {
-    if (!m_decomposition) return;
+    if (!m_decomposition)
+        return;
 
     MPI_Comm mpi_comm = m_exec_conf->getMPICommunicator();
 
     for (unsigned int dir = 0; dir < m_num_comm.size(); ++dir)
         {
         mpcd::detail::face d = static_cast<mpcd::detail::face>(dir);
-        if (!isCommunicating(d)) continue;
+        if (!isCommunicating(d))
+            continue;
 
         // receive in the opposite direction from which we send
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
+            recv_neighbor = m_decomposition->getNeighborRank(dir + 1);
         else
-            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
+            recv_neighbor = m_decomposition->getNeighborRank(dir - 1);
 
         // first make sure each dimension is sending and receiving the same size data
         MPI_Request reqs[2];
@@ -324,9 +355,9 @@ void mpcd::CellList::checkDomainBoundaries()
         unsigned int n_send = m_num_comm[dir];
         unsigned int n_expect_recv;
         if (dir % 2 == 0)
-            n_expect_recv = m_num_comm[dir+1];
+            n_expect_recv = m_num_comm[dir + 1];
         else
-            n_expect_recv = m_num_comm[dir-1];
+            n_expect_recv = m_num_comm[dir - 1];
 
         unsigned int n_recv;
         MPI_Isend(&n_send, 1, MPI_UNSIGNED, send_neighbor, 0, mpi_comm, &reqs[0]);
@@ -345,7 +376,8 @@ void mpcd::CellList::checkDomainBoundaries()
             {
             if (recv_error)
                 {
-                m_exec_conf->msg->error() << "mpcd: expected to communicate " << n_expect_recv << " cells, but only receiving " << n_recv << std::endl;
+                m_exec_conf->msg->error() << "mpcd: expected to communicate " << n_expect_recv
+                                          << " cells, but only receiving " << n_recv << std::endl;
                 }
             throw std::runtime_error("Error setting up MPCD cell list");
             }
@@ -385,12 +417,12 @@ void mpcd::CellList::checkDomainBoundaries()
         MPI_Waitall(2, reqs, status);
 
         unsigned int overlap_error = 0;
-        std::array<int, 2> err_pair {0,0};
+        std::array<int, 2> err_pair {0, 0};
         for (unsigned int i = 0; i < n_recv && !overlap_error; ++i)
             {
             // wrap the received cell back into the global box
             // only two of the entries will be valid, the others are dummies
-            int3 recv_cell = make_int3(0,0,0);
+            int3 recv_cell = make_int3(0, 0, 0);
             if (d == mpcd::detail::face::east || d == mpcd::detail::face::west)
                 {
                 recv_cell.x = recv_cells[i];
@@ -406,7 +438,7 @@ void mpcd::CellList::checkDomainBoundaries()
             recv_cell = wrapGlobalCell(recv_cell);
 
             // compute the expected cell to receive, also wrapped
-            int3 expect_recv_cell = make_int3(0,0,0);
+            int3 expect_recv_cell = make_int3(0, 0, 0);
             if (d == mpcd::detail::face::east)
                 {
                 expect_recv_cell.x = m_origin_idx.x + i;
@@ -433,22 +465,24 @@ void mpcd::CellList::checkDomainBoundaries()
                 }
             expect_recv_cell = wrapGlobalCell(expect_recv_cell);
 
-            if (recv_cell.x != expect_recv_cell.x ||
-                recv_cell.y != expect_recv_cell.y ||
-                recv_cell.z != expect_recv_cell.z )
+            if (recv_cell.x != expect_recv_cell.x || recv_cell.y != expect_recv_cell.y
+                || recv_cell.z != expect_recv_cell.z)
                 {
                 overlap_error = i;
                 if (d == mpcd::detail::face::east || d == mpcd::detail::face::west)
                     {
-                    err_pair[0] = recv_cell.x; err_pair[1] = expect_recv_cell.x;
+                    err_pair[0] = recv_cell.x;
+                    err_pair[1] = expect_recv_cell.x;
                     }
                 else if (d == mpcd::detail::face::north || d == mpcd::detail::face::south)
                     {
-                    err_pair[0] = recv_cell.y; err_pair[1] = expect_recv_cell.y;
+                    err_pair[0] = recv_cell.y;
+                    err_pair[1] = expect_recv_cell.y;
                     }
                 else if (d == mpcd::detail::face::up || d == mpcd::detail::face::down)
                     {
-                    err_pair[0] = recv_cell.z; err_pair[1] = expect_recv_cell.z;
+                    err_pair[0] = recv_cell.z;
+                    err_pair[1] = expect_recv_cell.z;
                     }
                 }
             }
@@ -460,8 +494,10 @@ void mpcd::CellList::checkDomainBoundaries()
             {
             if (overlap_error)
                 {
-                m_exec_conf->msg->error() << "mpcd: communication grid does not overlap. "
-                                          << "Expected to receive cell " << err_pair[1] << " from rank " << recv_neighbor << ", but got cell " << err_pair[0] << "." << std::endl;
+                m_exec_conf->msg->error()
+                    << "mpcd: communication grid does not overlap. "
+                    << "Expected to receive cell " << err_pair[1] << " from rank " << recv_neighbor
+                    << ", but got cell " << err_pair[0] << "." << std::endl;
                 }
             throw std::runtime_error("Error setting up MPCD cell list");
             }
@@ -477,13 +513,15 @@ void mpcd::CellList::checkDomainBoundaries()
  */
 bool mpcd::CellList::isCommunicating(mpcd::detail::face dir)
     {
-    if (!m_decomposition) return false;
+    if (!m_decomposition)
+        return false;
 
     const Index3D& di = m_decomposition->getDomainIndexer();
     bool result = true;
     if ((dir == mpcd::detail::face::east || dir == mpcd::detail::face::west) && di.getW() == 1)
         result = false;
-    else if ((dir == mpcd::detail::face::north || dir == mpcd::detail::face::south) && di.getH() == 1)
+    else if ((dir == mpcd::detail::face::north || dir == mpcd::detail::face::south)
+             && di.getH() == 1)
         result = false;
     else if ((dir == mpcd::detail::face::up || dir == mpcd::detail::face::down) && di.getD() == 1)
         result = false;
@@ -500,38 +538,53 @@ void mpcd::CellList::buildCellList()
     const BoxDim& box = m_pdata->getBox();
     const uchar3 periodic = box.getPeriodic();
 
-    ArrayHandle<unsigned int> h_cell_list(m_cell_list, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_cell_list(m_cell_list,
+                                          access_location::host,
+                                          access_mode::overwrite);
     ArrayHandle<unsigned int> h_cell_np(m_cell_np, access_location::host, access_mode::overwrite);
     // zero the cell counter
     memset(h_cell_np.data, 0, sizeof(unsigned int) * m_cell_indexer.getNumElements());
 
-    uint3 conditions = make_uint3(0,0,0);
+    uint3 conditions = make_uint3(0, 0, 0);
 
-    ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
+                               access_location::host,
+                               access_mode::read);
+    ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
     unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
     // we can't modify the velocity of embedded particles, so we only read their position
-    std::unique_ptr< ArrayHandle<unsigned int> > h_embed_cell_ids;
-    std::unique_ptr< ArrayHandle<Scalar4> > h_pos_embed;
-    std::unique_ptr< ArrayHandle<unsigned int> > h_embed_member_idx;
+    std::unique_ptr<ArrayHandle<unsigned int>> h_embed_cell_ids;
+    std::unique_ptr<ArrayHandle<Scalar4>> h_pos_embed;
+    std::unique_ptr<ArrayHandle<unsigned int>> h_embed_member_idx;
     if (m_embed_group)
         {
-        h_embed_cell_ids.reset(new ArrayHandle<unsigned int>(m_embed_cell_ids, access_location::host, access_mode::overwrite));
-        h_pos_embed.reset(new ArrayHandle<Scalar4>(m_pdata->getPositions(), access_location::host, access_mode::read));
-        h_embed_member_idx.reset(new ArrayHandle<unsigned int>(m_embed_group->getIndexArray(), access_location::host, access_mode::read));
+        h_embed_cell_ids.reset(new ArrayHandle<unsigned int>(m_embed_cell_ids,
+                                                             access_location::host,
+                                                             access_mode::overwrite));
+        h_pos_embed.reset(new ArrayHandle<Scalar4>(m_pdata->getPositions(),
+                                                   access_location::host,
+                                                   access_mode::read));
+        h_embed_member_idx.reset(new ArrayHandle<unsigned int>(m_embed_group->getIndexArray(),
+                                                               access_location::host,
+                                                               access_mode::read));
         N_tot += m_embed_group->getNumMembers();
         }
 
     // total effective number of cells in the global box, optionally padded by
     // extra cells in MPI simulations
     uint3 n_global_cells = m_global_cell_dim;
-    #ifdef ENABLE_MPI
-    if (isCommunicating(mpcd::detail::face::east)) n_global_cells.x += 2*m_num_extra;
-    if (isCommunicating(mpcd::detail::face::north)) n_global_cells.y += 2*m_num_extra;
-    if (isCommunicating(mpcd::detail::face::up)) n_global_cells.z += 2*m_num_extra;
-    #endif // ENABLE_MPI
+#ifdef ENABLE_MPI
+    if (isCommunicating(mpcd::detail::face::east))
+        n_global_cells.x += 2 * m_num_extra;
+    if (isCommunicating(mpcd::detail::face::north))
+        n_global_cells.y += 2 * m_num_extra;
+    if (isCommunicating(mpcd::detail::face::up))
+        n_global_cells.z += 2 * m_num_extra;
+#endif // ENABLE_MPI
 
     const Scalar3 global_lo = m_pdata->getGlobalBox().getLo();
 
@@ -591,9 +644,8 @@ void mpcd::CellList::buildCellList()
                              global_bin.z - m_origin_idx.z);
 
         // validate and make sure no particles blew out of the box
-        if ((bin.x < 0 || bin.x >= (int)m_cell_dim.x) ||
-            (bin.y < 0 || bin.y >= (int)m_cell_dim.y) ||
-            (bin.z < 0 || bin.z >= (int)m_cell_dim.z))
+        if ((bin.x < 0 || bin.x >= (int)m_cell_dim.x) || (bin.y < 0 || bin.y >= (int)m_cell_dim.y)
+            || (bin.z < 0 || bin.z >= (int)m_cell_dim.z))
             {
             conditions.z = cur_p + 1;
             continue;
@@ -608,7 +660,7 @@ void mpcd::CellList::buildCellList()
         else
             {
             // overflow
-            conditions.x = std::max(conditions.x, offset+1);
+            conditions.x = std::max(conditions.x, offset + 1);
             }
 
         // stash the current particle bin into the velocity array
@@ -639,7 +691,8 @@ void mpcd::CellList::sort(uint64_t timestep,
                           const GPUArray<unsigned int>& rorder)
     {
     // no need to do any sorting if we can still be called at the current timestep
-    if (peekCompute(timestep)) return;
+    if (peekCompute(timestep))
+        return;
 
     // if mapping is not valid, signal that we need to force a recompute next time
     // that the cell list is needed. We don't call forceCompute() directly because this always
@@ -653,15 +706,17 @@ void mpcd::CellList::sort(uint64_t timestep,
     // iterate through particles in cell list, and update their indexes using reverse mapping
     ArrayHandle<unsigned int> h_rorder(rorder, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_cell_np(m_cell_np, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_cell_list(m_cell_list, access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_cell_list(m_cell_list,
+                                          access_location::host,
+                                          access_mode::readwrite);
     const unsigned int N_mpcd = m_mpcd_pdata->getN();
 
-    for (unsigned int idx=0; idx < getNCells(); ++idx)
+    for (unsigned int idx = 0; idx < getNCells(); ++idx)
         {
         const unsigned int np = h_cell_np.data[idx];
         for (unsigned int offset = 0; offset < np; ++offset)
             {
-            const unsigned int cl_idx = m_cell_list_indexer(offset,idx);
+            const unsigned int cl_idx = m_cell_list_indexer(offset, idx);
             const unsigned int pid = h_cell_list.data[cl_idx];
             // only update indexes of MPCD particles, not virtual or embedded particles
             if (pid < N_mpcd)
@@ -676,7 +731,8 @@ void mpcd::CellList::sort(uint64_t timestep,
 bool mpcd::CellList::needsEmbedMigrate(uint64_t timestep)
     {
     // no migrate needed if no embedded particles
-    if (!m_embed_group) return false;
+    if (!m_embed_group)
+        return false;
 
     // ensure that the cell list has been sized first
     computeDimensions();
@@ -689,23 +745,25 @@ bool mpcd::CellList::needsEmbedMigrate(uint64_t timestep)
 
     // particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_group(m_embed_group->getIndexArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_group(m_embed_group->getIndexArray(),
+                                      access_location::host,
+                                      access_mode::read);
     const unsigned int N = m_embed_group->getNumMembers();
 
     // check if any particle lies outside of the box on this rank
     char migrate = 0;
-    for (unsigned int i=0; i < N && !migrate; ++i)
+    for (unsigned int i = 0; i < N && !migrate; ++i)
         {
         const unsigned int idx = h_group.data[i];
         const Scalar4 postype = h_pos.data[idx];
         const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
-        if ( (!periodic.x && (pos.x >= hi.x || pos.x < lo.x)) ||
-             (!periodic.y && (pos.y >= hi.y || pos.y < lo.y)) ||
-             (!periodic.z && ndim == 3 && (pos.z >= hi.z || pos.z < lo.z)))
-             {
-             migrate = 1;
-             }
+        if ((!periodic.x && (pos.x >= hi.x || pos.x < lo.x))
+            || (!periodic.y && (pos.y >= hi.y || pos.y < lo.y))
+            || (!periodic.z && ndim == 3 && (pos.z >= hi.z || pos.z < lo.z)))
+            {
+            migrate = 1;
+            }
         }
 
     // reduce across all ranks
@@ -730,13 +788,20 @@ bool mpcd::CellList::checkConditions()
         {
         unsigned int n = conditions.y - 1;
         if (n < m_mpcd_pdata->getN())
-            m_exec_conf->msg->errorAllRanks() << "MPCD particle " << n << " has position NaN" << std::endl;
+            m_exec_conf->msg->errorAllRanks()
+                << "MPCD particle " << n << " has position NaN" << std::endl;
         else if (n < m_mpcd_pdata->getNVirtual())
-            m_exec_conf->msg->errorAllRanks() << "MPCD virtual particle " << n << " has position NaN" << std::endl;
+            m_exec_conf->msg->errorAllRanks()
+                << "MPCD virtual particle " << n << " has position NaN" << std::endl;
         else
             {
-            ArrayHandle<unsigned int> h_embed_member_idx(m_embed_group->getIndexArray(), access_location::host, access_mode::read);
-            m_exec_conf->msg->errorAllRanks() << "Embedded particle " << h_embed_member_idx.data[n - (m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual())] << " has position NaN" << std::endl;
+            ArrayHandle<unsigned int> h_embed_member_idx(m_embed_group->getIndexArray(),
+                                                         access_location::host,
+                                                         access_mode::read);
+            m_exec_conf->msg->errorAllRanks()
+                << "Embedded particle "
+                << h_embed_member_idx.data[n - (m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual())]
+                << " has position NaN" << std::endl;
             }
         throw std::runtime_error("Error computing cell list");
         }
@@ -746,34 +811,50 @@ bool mpcd::CellList::checkConditions()
         Scalar4 pos_empty_i;
         if (n < m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual())
             {
-            ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
+                                       access_location::host,
+                                       access_mode::read);
             pos_empty_i = h_pos.data[n];
             if (n < m_mpcd_pdata->getN())
-                m_exec_conf->msg->errorAllRanks() << "MPCD particle is no longer in the simulation box"<<std::endl;
+                m_exec_conf->msg->errorAllRanks()
+                    << "MPCD particle is no longer in the simulation box" << std::endl;
             else
-                m_exec_conf->msg->errorAllRanks() << "MPCD virtual particle is no longer in the simulation box"<<std::endl;
+                m_exec_conf->msg->errorAllRanks()
+                    << "MPCD virtual particle is no longer in the simulation box" << std::endl;
             }
         else
             {
-            ArrayHandle<Scalar4> h_pos_embed(m_pdata->getPositions(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_embed_member_idx(m_embed_group->getIndexArray(), access_location::host, access_mode::read);
-            pos_empty_i = h_pos_embed.data[h_embed_member_idx.data[n - (m_mpcd_pdata->getN()+m_mpcd_pdata->getNVirtual())]];
-            m_exec_conf->msg->errorAllRanks() << "Embedded particle is no longer in the simulation box"<<std::endl;
+            ArrayHandle<Scalar4> h_pos_embed(m_pdata->getPositions(),
+                                             access_location::host,
+                                             access_mode::read);
+            ArrayHandle<unsigned int> h_embed_member_idx(m_embed_group->getIndexArray(),
+                                                         access_location::host,
+                                                         access_mode::read);
+            pos_empty_i
+                = h_pos_embed
+                      .data[h_embed_member_idx
+                                .data[n - (m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual())]];
+            m_exec_conf->msg->errorAllRanks()
+                << "Embedded particle is no longer in the simulation box" << std::endl;
             }
 
         Scalar3 pos = make_scalar3(pos_empty_i.x, pos_empty_i.y, pos_empty_i.z);
-        m_exec_conf->msg->errorAllRanks() << "Cartesian coordinates: "<<std::endl
-                                          << "x: "<<pos.x<<" y: "<<pos.y<<" z: "<<pos.z<<std::endl
-                                          << "Grid shift: " << std::endl
-                                          << "x: "<<m_grid_shift.x<<" y: "<<m_grid_shift.y<<" z: "<<m_grid_shift.z<<std::endl;
+        m_exec_conf->msg->errorAllRanks()
+            << "Cartesian coordinates: " << std::endl
+            << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl
+            << "Grid shift: " << std::endl
+            << "x: " << m_grid_shift.x << " y: " << m_grid_shift.y << " z: " << m_grid_shift.z
+            << std::endl;
 
         const BoxDim& cover_box = getCoverageBox();
         Scalar3 lo = cover_box.getLo();
         Scalar3 hi = cover_box.getHi();
         uchar3 periodic = cover_box.getPeriodic();
-        m_exec_conf->msg->errorAllRanks() << "Covered box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl
-                                          << "            hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl
-                                          << "      periodic: (" << ((periodic.x) ? "1" : "0") << " " << ((periodic.y) ? "1" : "0") << " " << ((periodic.z) ? "1" : "0") << ")" << std::endl;
+        m_exec_conf->msg->errorAllRanks()
+            << "Covered box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl
+            << "            hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl
+            << "      periodic: (" << ((periodic.x) ? "1" : "0") << " "
+            << ((periodic.y) ? "1" : "0") << " " << ((periodic.z) ? "1" : "0") << ")" << std::endl;
         throw std::runtime_error("Error computing cell list");
         }
 
@@ -792,8 +873,10 @@ void mpcd::CellList::getCellStatistics() const
     for (unsigned int cur_cell = 0; cur_cell < m_cell_indexer.getNumElements(); ++cur_cell)
         {
         const unsigned int np = h_cell_np.data[cur_cell];
-        if (np < min_np) min_np = np;
-        if (np > max_np) max_np = np;
+        if (np < min_np)
+            min_np = np;
+        if (np > max_np)
+            max_np = np;
         }
     m_exec_conf->msg->notice(2) << "MPCD cell list stats:" << std::endl;
     m_exec_conf->msg->notice(2) << "Min: " << min_np << " Max: " << max_np << std::endl;
@@ -824,9 +907,8 @@ const int3 mpcd::CellList::getLocalCell(const int3& global) const
  */
 const int3 mpcd::CellList::getGlobalCell(const int3& local) const
     {
-    int3 global = make_int3(local.x + m_origin_idx.x,
-                            local.y + m_origin_idx.y,
-                            local.z + m_origin_idx.z);
+    int3 global
+        = make_int3(local.x + m_origin_idx.x, local.y + m_origin_idx.y, local.z + m_origin_idx.z);
     return wrapGlobalCell(global);
     }
 
@@ -840,14 +922,20 @@ const int3 mpcd::CellList::wrapGlobalCell(const int3& cell) const
     {
     int3 wrap = cell;
 
-    if (wrap.x >= (int)m_global_cell_dim.x) wrap.x -= m_global_cell_dim.x;
-    else if (wrap.x < 0) wrap.x += m_global_cell_dim.x;
+    if (wrap.x >= (int)m_global_cell_dim.x)
+        wrap.x -= m_global_cell_dim.x;
+    else if (wrap.x < 0)
+        wrap.x += m_global_cell_dim.x;
 
-    if (wrap.y >= (int)m_global_cell_dim.y) wrap.y -= m_global_cell_dim.y;
-    else if (wrap.y < 0) wrap.y += m_global_cell_dim.y;
+    if (wrap.y >= (int)m_global_cell_dim.y)
+        wrap.y -= m_global_cell_dim.y;
+    else if (wrap.y < 0)
+        wrap.y += m_global_cell_dim.y;
 
-    if (wrap.z >= (int)m_global_cell_dim.z) wrap.z -= m_global_cell_dim.z;
-    else if (wrap.z < 0) wrap.z += m_global_cell_dim.z;
+    if (wrap.z >= (int)m_global_cell_dim.z)
+        wrap.z -= m_global_cell_dim.z;
+    else if (wrap.z < 0)
+        wrap.z += m_global_cell_dim.z;
 
     return wrap;
     }
@@ -856,10 +944,9 @@ void mpcd::detail::export_CellList(pybind11::module& m)
     {
     namespace py = pybind11;
 
-    py::class_<mpcd::CellList, Compute, std::shared_ptr<mpcd::CellList> >(m, "CellList")
-        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData> >())
+    py::class_<mpcd::CellList, Compute, std::shared_ptr<mpcd::CellList>>(m, "CellList")
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData>>())
         .def_property("cell_size", &mpcd::CellList::getCellSize, &mpcd::CellList::setCellSize)
         .def("setEmbeddedGroup", &mpcd::CellList::setEmbeddedGroup)
-        .def("removeEmbeddedGroup", &mpcd::CellList::removeEmbeddedGroup)
-        ;
+        .def("removeEmbeddedGroup", &mpcd::CellList::removeEmbeddedGroup);
     }

@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Access simulation state data directly."""
+
 from abc import ABC, abstractmethod
 from hoomd import Box
 from hoomd import _hoomd
@@ -31,10 +37,11 @@ class _LocalAccess(ABC):
             if raw_attr in self._fields:
                 buff = getattr(self._cpp_obj, self._fields[raw_attr])(flag)
             else:
-                raise AttributeError(
-                    "{} object has no attribute {}".format(type(self), attr))
+                raise AttributeError("{} object has no attribute {}".format(
+                    type(self), attr))
 
-        self._accessed_fields[attr] = arr = self._array_cls(buff, lambda: self._entered)
+        self._accessed_fields[attr] = arr = self._array_cls(
+            buff, lambda: self._entered)
         return arr
 
     def _get_raw_attr_and_flag(self, attr):
@@ -58,9 +65,8 @@ class _LocalAccess(ABC):
             try:
                 arr = getattr(self, attr)
             except AttributeError:
-                raise AttributeError(
-                    "{} object has no attribute {}.".format(
-                        self.__class__, attr))
+                raise AttributeError("{} object has no attribute {}.".format(
+                    self.__class__, attr))
             else:
                 if arr.read_only:
                     raise RuntimeError(
@@ -95,36 +101,43 @@ class ParticleLocalAccessBase(_LocalAccess):
             ``particles.rtag[0]`` represents the current index accessing data
             for the particle with tag 0.
         position ((N_particles, 3) `hoomd.data.array` object of ``float``):
-            particle positions
+            particle positions :math:`[\\mathrm{length}]`
         image ((N_particles, 3) `hoomd.data.array` object of ``int``):
             The periodic image a particle occupies
         velocity ((N_particles, 3) `hoomd.data.array` object of ``float``):
-            particle velocities
+            particle velocities :math:`[\\mathrm{velocity}]`
         acceleration ((N_particles, 3) `hoomd.data.array` object of ``float``):
             particle accelerations
+            :math:`[\\mathrm{velocity} \\cdot \\mathrm{time}^{-1}]`
         mass ((N_particles) `hoomd.data.array` object of ``float``):
-            particles' masses
+            particles' masses :math:`[\\mathrm{mass}]`
         orientation ((N_particles, 4) `hoomd.data.array` object of ``float``):
             particle orientations expressed as quaternions
-        angular_momentum ((N_particles, 4) `hoomd.data.array` object of ``float``):
+        angmom ((N_particles, 4) `hoomd.data.array` object of \
+            ``float``):
             particle angular momenta expressed as quaternions
-        moment_of_inertia ((N_particles, 3) `hoomd.data.array` object of ``float``):
+            :math:`[\\mathrm{mass} \\cdot \\mathrm{velocity} \\cdot
+            \\mathrm{length}]`
+        moment_inertia ((N_particles, 3) `hoomd.data.array` object of \
+            ``float``):
             particle principal moments of inertia
+            :math:`[\\mathrm{mass} \\cdot \\mathrm{length}^2]`
         charge ((N_particles) `hoomd.data.array` object of ``float``):
-            particle electrical charges
+            particle electrical charges :math:`[\\mathrm{charge}]`
         diameter ((N_particles) `hoomd.data.array` object of ``float``):
-            particle diameters
-        rigid_body_id ((N_particles) `hoomd.data.array` object of ``int``):
+            particle diameters :math:`[\\mathrm{length}]`
+        body ((N_particles) `hoomd.data.array` object of ``int``):
             The id of the rigid body the particle is in.
         net_force ((N_particles, 3) `hoomd.data.array` object of ``float``):
-            net force on particle
+            net force on particle :math:`[\\mathrm{force}]`
         net_torque ((N_particles, 3) `hoomd.data.array` object of ``float``):
             net torque on particle
+            :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`
         net_virial ((N_particles, 3) `hoomd.data.array` object of ``float``):
-            net virial on particle
+            net virial on particle :math:`[\\mathrm{energy}]`
         net_energy ((N_particles,) `hoomd.data.array` object of ``float``):
             net energy of a particle (accounts for duplicate counting of an
-            interaction).
+            interaction). :math:`[\\mathrm{energy}]`
 
     Note:
         That changing some attributes like (``velocity`` or ``acceleration``)
@@ -133,6 +146,7 @@ class ParticleLocalAccessBase(_LocalAccess):
         directly. This is also true in HOOMD-blue's MD integration methods (see
         `hoomd.md.methods`)
     """
+
     @property
     @abstractmethod
     def _cpp_cls(self):
@@ -145,18 +159,19 @@ class ParticleLocalAccessBase(_LocalAccess):
         'mass': 'getMasses',
         'acceleration': 'getAcceleration',
         'orientation': 'getOrientation',
-        'angular_momentum': 'getAngularMomentum',
-        'moment_of_inertia': 'getMomentsOfInertia',
+        'angmom': 'getAngularMomentum',
+        'moment_inertia': 'getMomentsOfInertia',
         'charge': 'getCharge',
         'diameter': 'getDiameter',
         'image': 'getImages',
         'tag': 'getTags',
         'rtag': 'getRTags',
-        'rigid_body_id': 'getBodies',
+        'body': 'getBodies',
         'net_force': 'getNetForce',
         'net_torque': 'getNetTorque',
         'net_virial': 'getNetVirial',
-        'net_energy': 'getNetEnergy'}
+        'net_energy': 'getNetEnergy'
+    }
 
     def __init__(self, state):
         super().__init__()
@@ -164,6 +179,7 @@ class ParticleLocalAccessBase(_LocalAccess):
 
 
 class _GroupLocalAccess(_LocalAccess):
+
     @property
     @abstractmethod
     def _cpp_cls(self):
@@ -201,8 +217,8 @@ class BondLocalAccessBase(_GroupLocalAccess):
             array changes.  However, bond tags remain constant. This means that
             if ``bond.tag[0]`` is 1, then later whatever bond has a tag of 1
             later in the simulation is the same bond.
-        rtag ((N_bonds_global) `hoomd.data.array` object of ``int``): the reverse
-            tag of a bond. This means that the value ``bond.rtag[0]``
+        rtag ((N_bonds_global) `hoomd.data.array` object of ``int``): the
+            reverse tag of a bond. This means that the value ``bond.rtag[0]``
             represents the current index to access data for the bond with tag 0.
     """
     _cpp_get_data_method_name = "getBondData"
@@ -293,7 +309,7 @@ class ConstraintLocalAccessBase(_GroupLocalAccess):
             The reverse tag of a constraint. This means that the value
             ``constraint.rtag[0]`` represents the current index for accessing
             data for the constraint with tag 0.
-        """
+    """
     _fields = {
         'value': 'getTypeVal',
         'group': 'getMembers',
@@ -327,6 +343,7 @@ class PairLocalAccessBase(_GroupLocalAccess):
 
 
 class _LocalSnapshot:
+
     def __init__(self, state):
         self._state = state
         self._box = state.box
@@ -369,8 +386,7 @@ class _LocalSnapshot:
 
     @property
     def constraints(self):
-        """hoomd.data.ConstraintLocalAccessBase: Local constraint data.
-        """
+        """hoomd.data.ConstraintLocalAccessBase: Local constraint data."""
         return self._constraints
 
     @property

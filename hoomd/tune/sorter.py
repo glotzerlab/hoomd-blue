@@ -42,11 +42,10 @@ class ParticleSorter(Tuner):
     def __init__(self, trigger=200, grid=None):
         self._param_dict = ParameterDict(
             trigger=Trigger,
-            grid=OnlyTypes(
-                int,
-                postprocess=ParticleSorter._to_power_of_two,
-                preprocess=ParticleSorter._natural_number,
-                allow_none=True))
+            grid=OnlyTypes(int,
+                           postprocess=ParticleSorter._to_power_of_two,
+                           preprocess=ParticleSorter._natural_number,
+                           allow_none=True))
         self.trigger = trigger
         self.grid = grid
 

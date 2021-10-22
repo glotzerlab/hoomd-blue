@@ -11,11 +11,11 @@
 #include "CellListGPU.cuh"
 
 namespace mpcd
-{
+    {
 namespace gpu
-{
+    {
 namespace kernel
-{
+    {
 //! Kernel to compute the MPCD cell list on the GPU
 /*!
  * \param d_cell_np Array of number of particles per cell
@@ -39,19 +39,20 @@ namespace kernel
  * \param N_tot Total number of particle (MPCD + embedded)
  *
  * \b Implementation
- * One thread is launched per particle. The particle is floored into a bin subject to a random grid shift.
- * The number of particles in that bin is atomically incremented. If the addition of the particle will not overflow
- * the allocated memory, the particle is written into that bin. Otherwise, a flag is set to resize the cell list
- * and recompute. The MPCD particle's cell id is stashed into the velocity array.
+ * One thread is launched per particle. The particle is floored into a bin subject to a random grid
+ * shift. The number of particles in that bin is atomically incremented. If the addition of the
+ * particle will not overflow the allocated memory, the particle is written into that bin.
+ * Otherwise, a flag is set to resize the cell list and recompute. The MPCD particle's cell id is
+ * stashed into the velocity array.
  */
-__global__ void compute_cell_list(unsigned int *d_cell_np,
-                                  unsigned int *d_cell_list,
-                                  uint3 *d_conditions,
-                                  Scalar4 *d_vel,
-                                  unsigned int *d_embed_cell_ids,
-                                  const Scalar4 *d_pos,
-                                  const Scalar4 *d_pos_embed,
-                                  const unsigned int *d_embed_member_idx,
+__global__ void compute_cell_list(unsigned int* d_cell_np,
+                                  unsigned int* d_cell_list,
+                                  uint3* d_conditions,
+                                  Scalar4* d_vel,
+                                  unsigned int* d_embed_cell_ids,
+                                  const Scalar4* d_pos,
+                                  const Scalar4* d_pos_embed,
+                                  const unsigned int* d_embed_member_idx,
                                   const uchar3 periodic,
                                   const int3 origin_idx,
                                   const Scalar3 grid_shift,
@@ -123,9 +124,9 @@ __global__ void compute_cell_list(unsigned int *d_cell_np,
                          global_bin.z - origin_idx.z);
 
     // validate and make sure no particles blew out of the box
-    if ((bin.x < 0 || bin.x >= (int)cell_indexer.getW()) ||
-        (bin.y < 0 || bin.y >= (int)cell_indexer.getH()) ||
-        (bin.z < 0 || bin.z >= (int)cell_indexer.getD()))
+    if ((bin.x < 0 || bin.x >= (int)cell_indexer.getW())
+        || (bin.y < 0 || bin.y >= (int)cell_indexer.getH())
+        || (bin.z < 0 || bin.z >= (int)cell_indexer.getD()))
         {
         (*d_conditions).z = idx + 1;
         return;
@@ -140,7 +141,7 @@ __global__ void compute_cell_list(unsigned int *d_cell_np,
     else
         {
         // overflow
-        atomicMax(&(*d_conditions).x, offset+1);
+        atomicMax(&(*d_conditions).x, offset + 1);
         }
 
     // stash the current particle bin into the velocity array
@@ -168,9 +169,9 @@ __global__ void compute_cell_list(unsigned int *d_cell_np,
  * has its bits set using an atomicMax transaction. The caller should then trigger
  * a communication step to migrate particles to their appropriate ranks.
  */
-__global__ void cell_check_migrate_embed(unsigned int *d_migrate_flag,
-                                         const Scalar4 *d_pos,
-                                         const unsigned int *d_group,
+__global__ void cell_check_migrate_embed(unsigned int* d_migrate_flag,
+                                         const Scalar4* d_pos,
+                                         const unsigned int* d_group,
                                          const BoxDim box,
                                          const unsigned int num_dim,
                                          const unsigned int N)
@@ -188,17 +189,17 @@ __global__ void cell_check_migrate_embed(unsigned int *d_migrate_flag,
     const Scalar3 hi = box.getHi();
     const uchar3 periodic = box.getPeriodic();
 
-    if ( (!periodic.x && (pos.x >= hi.x || pos.x < lo.x)) ||
-         (!periodic.y && (pos.y >= hi.y || pos.y < lo.y)) ||
-         (!periodic.z && num_dim == 3 && (pos.z >= hi.z || pos.z < lo.z)))
-         {
-         atomicMax(d_migrate_flag, 1);
-         }
+    if ((!periodic.x && (pos.x >= hi.x || pos.x < lo.x))
+        || (!periodic.y && (pos.y >= hi.y || pos.y < lo.y))
+        || (!periodic.z && num_dim == 3 && (pos.z >= hi.z || pos.z < lo.z)))
+        {
+        atomicMax(d_migrate_flag, 1);
+        }
     }
 
-__global__ void cell_apply_sort(unsigned int *d_cell_list,
-                                const unsigned int *d_rorder,
-                                const unsigned int *d_cell_np,
+__global__ void cell_apply_sort(unsigned int* d_cell_list,
+                                const unsigned int* d_rorder,
+                                const unsigned int* d_cell_np,
                                 const Index2D cli,
                                 const unsigned int N_mpcd,
                                 const unsigned int N_cli)
@@ -225,9 +226,9 @@ __global__ void cell_apply_sort(unsigned int *d_cell_list,
             }
         }
     }
-} // end namespace kernel
-} // end namespace gpu
-} // end namespace mpcd
+    } // end namespace kernel
+    } // end namespace gpu
+    } // end namespace mpcd
 
 /*!
  * \param d_cell_np Array of number of particles per cell
@@ -253,14 +254,14 @@ __global__ void cell_apply_sort(unsigned int *d_cell_list,
  *
  * \returns cudaSuccess on completion, or an error on failure
  */
-cudaError_t mpcd::gpu::compute_cell_list(unsigned int *d_cell_np,
-                                         unsigned int *d_cell_list,
-                                         uint3 *d_conditions,
-                                         Scalar4 *d_vel,
-                                         unsigned int *d_embed_cell_ids,
-                                         const Scalar4 *d_pos,
-                                         const Scalar4 *d_pos_embed,
-                                         const unsigned int *d_embed_member_idx,
+cudaError_t mpcd::gpu::compute_cell_list(unsigned int* d_cell_np,
+                                         unsigned int* d_cell_list,
+                                         uint3* d_conditions,
+                                         Scalar4* d_vel,
+                                         unsigned int* d_embed_cell_ids,
+                                         const Scalar4* d_pos,
+                                         const Scalar4* d_pos_embed,
+                                         const unsigned int* d_embed_member_idx,
                                          const uchar3& periodic,
                                          const int3& origin_idx,
                                          const Scalar3& grid_shift,
@@ -275,17 +276,15 @@ cudaError_t mpcd::gpu::compute_cell_list(unsigned int *d_cell_np,
                                          const unsigned int block_size)
     {
     // set the number of particles in each cell to zero
-    cudaError_t error = cudaMemset(d_cell_np, 0, sizeof(unsigned int)*cell_indexer.getNumElements());
+    cudaError_t error
+        = cudaMemset(d_cell_np, 0, sizeof(unsigned int) * cell_indexer.getNumElements());
     if (error != cudaSuccess)
         return error;
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::compute_cell_list);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::compute_cell_list);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N_tot / run_block_size + 1);
@@ -322,9 +321,9 @@ cudaError_t mpcd::gpu::compute_cell_list(unsigned int *d_cell_np,
  *
  * \sa mpcd::gpu::kernel::cell_check_migrate_embed
  */
-cudaError_t mpcd::gpu::cell_check_migrate_embed(unsigned int *d_migrate_flag,
-                                                const Scalar4 *d_pos,
-                                                const unsigned int *d_group,
+cudaError_t mpcd::gpu::cell_check_migrate_embed(unsigned int* d_migrate_flag,
+                                                const Scalar4* d_pos,
+                                                const unsigned int* d_group,
                                                 const BoxDim& box,
                                                 const unsigned int num_dim,
                                                 const unsigned int N,
@@ -333,13 +332,10 @@ cudaError_t mpcd::gpu::cell_check_migrate_embed(unsigned int *d_migrate_flag,
     // ensure that the flag is always zeroed even if the caller forgets
     cudaMemset(d_migrate_flag, 0, sizeof(unsigned int));
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::cell_check_migrate_embed);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::cell_check_migrate_embed);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N / run_block_size + 1);
@@ -353,20 +349,17 @@ cudaError_t mpcd::gpu::cell_check_migrate_embed(unsigned int *d_migrate_flag,
     return cudaSuccess;
     }
 
-cudaError_t mpcd::gpu::cell_apply_sort(unsigned int *d_cell_list,
-                                       const unsigned int *d_rorder,
-                                       const unsigned int *d_cell_np,
+cudaError_t mpcd::gpu::cell_apply_sort(unsigned int* d_cell_list,
+                                       const unsigned int* d_rorder,
+                                       const unsigned int* d_cell_np,
                                        const Index2D& cli,
                                        const unsigned int N_mpcd,
                                        const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::cell_apply_sort);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::cell_apply_sort);
+    max_block_size = attr.maxThreadsPerBlock;
 
     const unsigned int N_cli = cli.getNumElements();
 
