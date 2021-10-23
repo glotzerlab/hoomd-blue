@@ -1,3 +1,25 @@
+
+# Population Balance Brownian Dynamics in HOOMD-blue
+
+This is a proof-of-concept code that implements PopBD in HOOMD-blue.
+Key additions are the dynamic bonding and on-the-fly autocorrelation (included here as a submodule) functionalities. Please use this as a jumping off point for your own implementation of PopBD!
+
+
+NOTE: the latest branch is `popbd_cpu`, *not* `master`. You can merge `popbd_cpu` into `master` at your own discretion.
+
+
+## TODO: 
+  - install instructions
+  - example run instructions
+  - suggestions for next steps
+
+
+
+
+
+
+See below (or in the original repository) for more HOOMD-blue info:
+
 # HOOMD-blue
 
 [![Citing HOOMD](https://img.shields.io/badge/cite-hoomd-blue.svg)](https://glotzerlab.engin.umich.edu/hoomd-blue/citing.html)
