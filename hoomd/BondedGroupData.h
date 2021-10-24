@@ -710,9 +710,6 @@ class BondedGroupData
 #ifdef ENABLE_HIP
     //! Helper function to rebuild lookup by index table on the GPU
     void rebuildGPUTableGPU();
-
-    GPUArray<unsigned int> m_condition; //!< Condition variable for rebuilding GPU table on the GPU
-    unsigned int m_next_flag;           //!< Next flag value for GPU table rebuild
 #endif
     };
 
