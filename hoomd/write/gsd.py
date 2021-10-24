@@ -31,8 +31,8 @@ class GSD(Writer):
     r"""Write simulation trajectories in the GSD format.
 
     Args:
-        filename (str): File name to write.
         trigger (hoomd.trigger.Trigger): Select the timesteps to write.
+        filename (str): File name to write.
         filter (hoomd.filter.ParticleFilter): Select the particles to write.
             Defaults to `hoomd.filter.All`.
         mode (str): The file open mode. Defaults to ``'ab'``.
@@ -144,8 +144,8 @@ class GSD(Writer):
     """
 
     def __init__(self,
-                 filename,
                  trigger,
+                 filename,
                  filter=All(),
                  mode='ab',
                  truncate=False,
@@ -213,9 +213,6 @@ class GSD(Writer):
 
         writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, filename,
                                       state._get_group(filter), mode, False)
-
-        if state._simulation._system_communicator is not None:
-            writer.setCommunicator(state._simulation._system_communicator)
 
         if log is not None:
             writer.log_writer = _GSDLogWriter(log)

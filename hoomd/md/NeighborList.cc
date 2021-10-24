@@ -213,6 +213,30 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
 
+    m_sysdef->getBondData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getAngleData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getDihedralData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getImproperData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getConstraintData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getPairData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
     // connect locally to the rcut changing signal
     getRCutChangeSignal().connect<NeighborList, &NeighborList::slotRCutChange>(this);
 
@@ -224,6 +248,21 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         m_last_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
+#endif
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+
+        m_comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
+        m_comm->getCommFlagsRequestSignal()
+            .connect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
+        m_comm->getGhostLayerWidthRequestSignal()
+            .connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
+        }
 #endif
     }
 
@@ -264,8 +303,33 @@ NeighborList::~NeighborList()
         this);
     m_pdata->getGlobalParticleNumberChangeSignal()
         .disconnect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
+
+    m_sysdef->getBondData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getAngleData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getDihedralData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getImproperData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getConstraintData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getPairData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         m_comm->getMigrateSignal().disconnect<NeighborList, &NeighborList::peekUpdate>(this);
         m_comm->getCommFlagsRequestSignal()
@@ -297,16 +361,17 @@ void NeighborList::compute(uint64_t timestep)
     if (m_prof)
         m_prof->push("Neighbor");
 
-    // when the number of particles in the system changes, rebuild the exclusion list
-    if (m_n_particles_changed)
+    // when the number of particles or bonds in the system changes, rebuild the exclusion list
+    if (m_n_particles_changed || m_topology_changed)
         {
         resizeAndClearExclusions();
+        m_n_particles_changed = false;
+        m_topology_changed = false;
+
         for (const std::string& exclusion : m_exclusions)
             {
             setSingleExclusion(exclusion);
             }
-
-        m_n_particles_changed = false;
         }
 
     // take care of some updates if things have changed since construction
@@ -1640,23 +1705,6 @@ void NeighborList::growExclusionList()
     }
 
 #ifdef ENABLE_MPI
-//! Set the communicator to use
-void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
-    {
-    if (!m_comm)
-        {
-        // only add the migrate request on the first call
-        assert(comm);
-        comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
-        comm->getCommFlagsRequestSignal()
-            .connect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
-        comm->getGhostLayerWidthRequestSignal()
-            .connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
-        }
-
-    Compute::setCommunicator(comm);
-    }
-
 //! Returns true if the particle migration criterion is fulfilled
 /*! \note The criterion for when to request particle migration is the same as the one for neighbor
    list rebuilds, which is implemented in needsUpdating().
@@ -1778,11 +1826,7 @@ void export_NeighborList(py::module& m)
         .def("estimateNNeigh", &NeighborList::estimateNNeigh)
         .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
-        .def("getNumExclusions", &NeighborList::getNumExclusions)
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &NeighborList::setCommunicator)
-#endif
-        ;
+        .def("getNumExclusions", &NeighborList::getNumExclusions);
 
     py::enum_<NeighborList::storageMode>(nlist, "storageMode")
         .value("half", NeighborList::storageMode::half)

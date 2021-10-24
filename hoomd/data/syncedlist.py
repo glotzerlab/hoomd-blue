@@ -42,6 +42,16 @@ def identity(obj):
     return obj
 
 
+class _SimulationPlaceHolder:
+    """Used to ensure objects are not added to two locations at once."""
+
+    def __init__(self, obj):
+        self._id = id(obj)
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and self._id == other._id
+
+
 class SyncedList(MutableSequence):
     """Provides syncing and validation for a Python and C++ list.
 
@@ -93,7 +103,8 @@ class SyncedList(MutableSequence):
             self._validate = validation
 
         self._to_synced_list_conversion = to_synced_list
-        self._simulation = None
+        self._synced = False
+        self._simulation = _SimulationPlaceHolder(self)
         self._list = []
         if iterable is not None:
             for it in iterable:
@@ -160,11 +171,6 @@ class SyncedList(MutableSequence):
                                      self._to_synced_list_conversion(value))
         self._list.insert(index, value)
 
-    @property
-    def _synced(self):
-        """Has a cpp_list object means that we are currently syncing."""
-        return hasattr(self, "_synced_list")
-
     def _handle_int(self, integer):
         """Converts negative indices to positive and validates index."""
         if integer < 0:
@@ -187,7 +193,7 @@ class SyncedList(MutableSequence):
     def _handle_slice(self, index):
         return range(0, len(self))[index]
 
-    def synced_iter(self):
+    def _synced_iter(self):
         """Iterate over values in the list. Does nothing when not synced."""
         if self._synced:
             yield from self._synced_list
@@ -228,9 +234,16 @@ class SyncedList(MutableSequence):
         """Attach all list items and update for automatic attachment."""
         self._simulation = simulation
         self._synced_list = synced_list
-        for item in self:
-            self._attach_value(item, False)
-            self._synced_list.append(self._to_synced_list_conversion(item))
+        self._synced = True
+        # We use a try except block here to maintain valid state (_synced in
+        # this case) even when facing an error.
+        try:
+            for item in self:
+                self._attach_value(item, False)
+                self._synced_list.append(self._to_synced_list_conversion(item))
+        except Exception as err:
+            self._synced = False
+            raise err
 
     def _unsync(self):
         """Detach all items, clear _synced_list, and remove cpp references."""
@@ -243,8 +256,9 @@ class SyncedList(MutableSequence):
         if self._attach_members:
             for item in self:
                 self._detach_value(item)
-        del self._simulation
+        self._simulation = _SimulationPlaceHolder(self)
         del self._synced_list
+        self._synced = False
 
     def __getstate__(self):
         """Get state for pickling."""

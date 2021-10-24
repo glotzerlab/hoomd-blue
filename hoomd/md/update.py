@@ -13,6 +13,7 @@ is triggered to change its state.
 
 from hoomd.md import _md
 import hoomd
+from hoomd.error import SimulationDefinitionError
 from hoomd.operation import Updater
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
@@ -213,3 +214,87 @@ class ReversePerturbationFlow(Updater):
     def summed_exchanged_momentum(self):
         R"""Returned the summed up exchanged velocity of the full simulation."""
         return self._cpp_obj.summed_exchanged_momentum
+
+
+class ActiveRotationalDiffusion(Updater):
+    r"""Updater to introduce rotational diffusion with an active force.
+
+    Args:
+        trigger (hoomd.trigger.Trigger): Select the timesteps to update
+            rotational diffusion.
+        active_force (hoomd.md.force.Active): The active force associated with
+            the updater can be any subclass of the class
+            `hoomd.md.force.Active`.
+        rotational_diffusion (hoomd.variant.Variant): The rotational diffusion
+            as a function of time.
+
+    This updater works directly with an `hoomd.md.force.Active` or
+    `hoomd.md.force.ActiveOnManifold` instance to update rotational diffusion
+    for simulations with active forces.
+
+    The diffusion of the updater  follows :math:`\delta \theta / \delta t =
+    \sqrt{2 D_r / \delta t} \Gamma`, where :math:`D_r` is the rotational
+    diffusion constant, and the gamma function is a unit-variance random
+    variable, whose components are uncorrelated in time, space, and between
+    particles. In 3D, :math:`\hat{p}_i` is a unit vector in 3D space, and
+    diffusion follows :math:`\delta \hat{p}_i / \delta t = \sqrt{2 D_r /
+    \delta t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)`,
+    where :math:`\hat{p}_r` is an uncorrelated random unit vector. The
+    persistence length of an active particle's path is :math:`v_0 / D_r`.
+    The rotational diffusion is applied to the orientation quaternion
+    of each particle. When used with `hoomd.md.force.ActiveOnManifold`,
+    rotational diffusion is performed in the tangent plane of the manifold.
+
+    Tip:
+        Use `hoomd.md.force.Active.create_diffusion_updater` to construct
+        a `ActiveRotationalDiffusion` instance.
+
+    Attributes:
+        trigger (hoomd.trigger.Trigger): Select the timesteps to update
+            rotational diffusion.
+        active_force (hoomd.md.force.Active): The active force associated with
+            the updater. This is not settable after construction.
+        rotational_diffusion (hoomd.variant.Variant): The rotational diffusion
+            as a function of time.
+    """
+
+    def __init__(self, trigger, active_force, rotational_diffusion):
+        super().__init__(trigger)
+        param_dict = ParameterDict(rotational_diffusion=hoomd.variant.Variant,
+                                   active_force=hoomd.md.force.Active)
+        param_dict["rotational_diffusion"] = rotational_diffusion
+        param_dict["active_force"] = active_force
+        self._add_dependency(active_force)
+        self._param_dict.update(param_dict)
+
+    def _attach(self):
+        # Since integrators are attached first, if the active force is not
+        # attached then the active force is not a part of the simulation, and we
+        # should error.
+        if not self.active_force._attached:
+            raise SimulationDefinitionError(
+                "Active force for ActiveRotationalDiffusion object does not "
+                "belong to the simulation integrator.")
+        if self.active_force._simulation is not self._simulation:
+            raise SimulationDefinitionError(
+                "Active force for ActiveRotationalDiffusion object belongs to "
+                "another simulation.")
+        self._cpp_obj = _md.ActiveRotationalDiffusionUpdater(
+            self._simulation.state._cpp_sys_def, self.rotational_diffusion,
+            self.active_force._cpp_obj)
+        # No need to call super
+
+    def _handle_removed_dependency(self, active_force):
+        raise SimulationDefinitionError(
+            "The active force this updater is dependent on is being removed. "
+            "Remove this updater first to avoid error.")
+
+    def _getattr_param(self, attr):
+        if attr == "active_force":
+            return self._param_dict[attr]
+        return super()._getattr_param(attr)
+
+    def _setattr_param(self, attr, value):
+        if attr == "active_force":
+            raise ValueError("active_force is not settable after construction.")
+        super()._setattr_param(attr, value)

@@ -223,6 +223,11 @@ template<class evaluator> class PotentialPair : public ForceCompute
     /// r_cut (not squared) given to the neighbor list
     std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
 
+#ifdef ENABLE_MPI
+    /// The system's communicator.
+    std::shared_ptr<Communicator> m_comm;
+#endif
+
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
@@ -292,6 +297,15 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
 
     // initialize name
     m_prof_name = std::string("Pair ") + evaluator::getName();
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+        }
+#endif
     }
 
 template<class evaluator> PotentialPair<evaluator>::~PotentialPair()
@@ -717,7 +731,7 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
         return;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // temporarily add tag comm flag
         CommFlags old_flags = m_comm->getFlags();

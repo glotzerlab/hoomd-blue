@@ -33,10 +33,10 @@ class Triplet(Force):
 
         \begin{eqnarray}
         \vec{F_i}
-            =& -\nabla V(\vec r_{ij}, \vec r_{ik})
+            =& -\nabla V(\vec r_{ij}, \vec r_{ik});
              & r_{ij} < r_{\mathrm{cut}}
                 \textrm{ and } r_{ik} < r_{\mathrm{cut}} \\
-           =& 0 & else
+           =& 0; & otherwise
         \end{eqnarray}
 
     Where
@@ -272,7 +272,7 @@ class RevCross(Triplet):
         V_{ij}(r)  =  4 \varepsilon \left[
             \left( \dfrac{ \sigma}{r_{ij}} \right)^{2n}
             - \left( \dfrac{ \sigma}{r_{ij}} \right)^{n}
-        \right] \qquad r<r_{cut}
+        \right]; \qquad r < r_{cut}
         \end{eqnarray*}
 
     Then an additional three-body repulsion is evaluated to compensate the bond
@@ -297,8 +297,8 @@ class RevCross(Triplet):
             \begin{eqnarray*}
             \hat{v}^{ \left( 2b \right)}_{ij}\left(\vec{r}_{ij}\right) =
             \begin{cases}
-            1 & r \le r_{min} \\
-            - \dfrac{v_{ij}\left(\vec{r}_{ij}\right)}{\epsilon}
+            1; & r \le r_{min} \\
+            - \dfrac{v_{ij}\left(\vec{r}_{ij}\right)}{\epsilon};
               & r > r_{min} \\
             \end{cases}
             \end{eqnarray*}

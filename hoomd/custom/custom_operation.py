@@ -5,6 +5,7 @@
 """Implement CustomOperation."""
 
 from abc import abstractmethod
+import itertools
 
 from hoomd.operation import _TriggeredOperation
 from hoomd.data.parameterdicts import ParameterDict
@@ -45,7 +46,7 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         """C++ Class to use for attaching."""
         raise NotImplementedError
 
-    def __init__(self, action, trigger=1):
+    def __init__(self, trigger, action):
         if not isinstance(action, Action):
             raise ValueError("action must be a subclass of "
                              "hoomd.custom_action.custom.Action.")
@@ -145,7 +146,7 @@ class _InternalCustomOperation(CustomOperation,
 
     def __getattr__(self, attr):
         if attr in self._disallowed_attrs:
-            raise AttributeError("{} object {} has not attribute {}.".format(
+            raise AttributeError("{} object {} has no attribute {}.".format(
                 type(self), self, attr))
         else:
             return super().__getattr__(attr)
@@ -157,8 +158,31 @@ class _InternalCustomOperation(CustomOperation,
         pass
 
     def __init__(self, trigger, *args, **kwargs):
-        super().__init__(self._internal_class(*args, **kwargs), trigger)
+        super().__init__(trigger, self._internal_class(*args, **kwargs))
+        # handle pass through logging
         self._export_dict = {
             key: value.update_cls(self.__class__)
             for key, value in self._export_dict.items()
         }
+        # Wrap action act method with operation appropriate one.
+        wrapping_method = getattr(self, self._operation_func).__func__
+        setattr(wrapping_method, "__doc__", self._action.act.__doc__)
+
+    @property
+    def action(self):
+        raise AttributeError(f"Object {self} has no attribute 'action'.")
+
+    def __dir__(self):
+        """Expose all attributes for dynamic querying in notebooks and IDEs."""
+        list_ = super().__dir__()
+        act = self._action
+        action_list = [
+            k for k in itertools.chain(act._param_dict, act._typeparam_dict)
+        ]
+        list_.remove("action")
+        list_.remove("act")
+        return list_ + action_list
+
+    @property
+    def act(self):
+        raise AttributeError(f"Object {self} has no attribute 'act'.")

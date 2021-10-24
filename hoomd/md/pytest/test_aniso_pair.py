@@ -40,7 +40,7 @@ def _equivalent_data_structures(struct_1, struct_2):
 
 
 def make_langevin_integrator(force):
-    integrator = md.Integrator(dt=0.005)
+    integrator = md.Integrator(dt=0.005, integrate_rotational_dof=True)
     integrator.forces.append(force)
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(), kT=1))
     return integrator
@@ -315,14 +315,14 @@ def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
                                                      len(snap.particles.types),
                                                      snap.particles.N)
     sim = simulation_factory(snap)
-    integrator = md.Integrator(dt=0.005)
+    integrator = md.Integrator(dt=0.005, integrate_rotational_dof=True)
     integrator.forces.append(pair_potential)
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(), kT=1))
     sim.operations.integrator = integrator
     for nsteps in [3, 5, 10]:
-        old_snap = sim.state.snapshot
+        old_snap = sim.state.get_snapshot()
         sim.run(nsteps)
-        new_snap = sim.state.snapshot
+        new_snap = sim.state.get_snapshot()
         if new_snap.communicator.rank == 0:
             assert not np.allclose(new_snap.particles.position,
                                    old_snap.particles.position)
@@ -359,13 +359,13 @@ def test_aniso_force_computes(make_two_particle_simulation,
                     [0.70738827, 0.0, 0.0, 0.70682518]]
     for i, (distance,
             orientation) in enumerate(zip(particle_distances, orientations)):
-        snap = sim.state.snapshot
+        snap = sim.state.get_snapshot()
         # Set up proper distances and orientations
         if snap.communicator.rank == 0:
             snap.particles.position[0] = [0, 0, .1]
             snap.particles.position[1] = [0, 0, distance + .1]
             snap.particles.orientation[1] = orientation
-        sim.state.snapshot = snap
+        sim.state.set_snapshot(snap)
 
         # Grab all quantities to test for accuracy
         sim_energies = sim.operations.integrator.forces[0].energies

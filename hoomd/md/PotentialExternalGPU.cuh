@@ -161,15 +161,12 @@ hipError_t gpu_cpef(const external_potential_args_t& external_potential_args,
                     const typename evaluator::param_type* d_params,
                     const typename evaluator::field_type* d_field)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(
-            &attr,
-            reinterpret_cast<const void*>(&gpu_compute_external_forces_kernel<evaluator>));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(
+        &attr,
+        reinterpret_cast<const void*>(&gpu_compute_external_forces_kernel<evaluator>));
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(external_potential_args.block_size, max_block_size);
 

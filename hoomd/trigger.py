@@ -296,7 +296,7 @@ class And(_hoomd.AndTrigger, Trigger):
                     hoomd.trigger.Periodic(100)])
 
     Attributes:
-        triggers (List[hoomd.trigger.Trigger]): List of triggers.
+        triggers (list[hoomd.trigger.Trigger]): List of triggers.
     """
 
     def __init__(self, triggers):

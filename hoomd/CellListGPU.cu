@@ -195,13 +195,10 @@ void gpu_compute_cell_list(unsigned int* d_cell_size,
                            const unsigned int block_size,
                            const GPUPartition& gpu_partition)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&gpu_compute_cell_list_kernel));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&gpu_compute_cell_list_kernel));
+    max_block_size = attr.maxThreadsPerBlock;
 
     // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)

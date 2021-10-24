@@ -15,8 +15,9 @@
     The actual values of these identifiers does not matter, so long as they are unique.
 */
 
-#ifndef HOOMD_RNGIDENTIFIERS_H__
-#define HOOMD_RNGIDENTIFIERS_H__
+#pragma once
+
+#include <cstdint>
 
 namespace hoomd
     {
@@ -68,5 +69,3 @@ struct RNGIdentifier
     };
 
     } // namespace hoomd
-
-#endif

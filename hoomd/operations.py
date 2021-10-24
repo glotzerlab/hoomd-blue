@@ -235,7 +235,8 @@ class Operations(Collection):
 
     def __len__(self):
         """Return the number of operations contained in this collection."""
-        return len(list(self))
+        base_len = len(self._writers) + len(self._updaters) + len(self._tuners)
+        return base_len + (1 if self._integrator is not None else 0)
 
     @property
     def integrator(self):
@@ -266,7 +267,6 @@ class Operations(Collection):
             if op is not None:
                 op._attach()
         if old_ref is not None:
-            old_ref._notify_disconnect(self._simulation)
             old_ref._detach()
             old_ref._remove()
 

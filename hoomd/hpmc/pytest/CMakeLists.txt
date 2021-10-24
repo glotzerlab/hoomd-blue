@@ -3,6 +3,7 @@ set(files __init__.py
           test_clusters.py
           test_compute_free_volume.py
           test_compute_sdf.py
+          test_external_user.py
           test_muvt.py
           test_boxmc.py
           test_shape.py
@@ -10,6 +11,8 @@ set(files __init__.py
           test_shape_updater.py
           test_shape_utils.py
           test_move_size_tuner.py
+          test_pair_user.py
+          test_pair_union_user.py
           test_quick_compress.py
           test_small_box_2d.py
           test_small_box_3d.py

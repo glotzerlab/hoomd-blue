@@ -62,13 +62,13 @@ env:
                       -DENABLE_GPU=${ENABLE_GPU:-"OFF"} \
                       -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                       -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
-                      -DBUILD_JIT=${BUILD_JIT:-"OFF"} \
+                      -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
       env:
         ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
         ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
         ENABLE_TBB: ${{ contains(matrix.config, 'tbb') }}
-        BUILD_JIT: ${{ contains(matrix.config, 'jit') }}
+        ENABLE_LLVM: ${{ contains(matrix.config, 'llvm') }}
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
       working-directory: build
@@ -217,7 +217,7 @@ jobs:
   # This job is used to provide a single requirement for branch merge conditions. GitHub considers
   # the check passing even if it is skipped, so this job raises errors when required jobs were not
   # run.
-  tests_complete:
+  unit_tests_complete:
     name: Unit test
     needs: [pytest, ctest, validate]
     if: ${{ always() && github.event_name == 'pull_request' }}
@@ -226,12 +226,15 @@ jobs:
     steps:
       - name: Error if pytest did not succeed
         if: needs.pytest.result != 'success'
-        run: exit 1
+        run: echo "::error ::pytest tests failed." && exit 1
       - name: Error if ctest did not succeed
         if: needs.ctest.result != 'success'
-        run: exit 1
+        run: echo "::error ::ctest tests failed." && exit 1
+      - name: Warn if validate did not run
+        if: needs.validate.result == 'skipped'
+        run: echo "::warning ::Skipped validation tests." && exit 1
       - name: Error if validate did not succeed
         if: needs.validate.result != 'success'
-        run: exit 1
+        run: echo "::error ::Validation tests failed." && exit 1
       - run: echo "Done!"
 <% endblock %>

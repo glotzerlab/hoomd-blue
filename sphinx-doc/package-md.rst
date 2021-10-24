@@ -23,6 +23,7 @@ hoomd.md
     module-md-manifold
     module-md-many_body
     module-md-methods
+    module-md-minimize
     module-md-nlist
     module-md-pair
     module-md-special_pair
