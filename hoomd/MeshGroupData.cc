@@ -622,6 +622,8 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
     // map to lookup snapshot index by tag
     std::map<unsigned int, unsigned int> index;
 
+    unsigned int group_size_half = group_size/2;
+
     std::map<unsigned int, unsigned int> rtag_map;
     for (unsigned int group_idx = 0; group_idx < this->getN(); group_idx++)
         {
@@ -748,7 +750,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
 
             unsigned int group_idx = rtag_it->second;
 	    members_t member = this->m_groups[group_idx];
-	    for(unsigned int i = 0; i< group_size; i++)
+	    for(unsigned int i = 0; i< group_size_half; i++)
 	        {
                 snapshot.groups[snap_id].tag[i] = member.tag[i];
 		}
