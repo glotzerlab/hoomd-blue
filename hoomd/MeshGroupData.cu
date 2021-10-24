@@ -135,6 +135,8 @@ void gpu_update_mesh_table(const unsigned int n_groups,
     unsigned int block_size = 256;
     unsigned n_blocks = n_groups / block_size + 1;
 
+    unsigned int group_size_half = group_size/2;
+
     // reset number of groups
     hipMemsetAsync(d_n_groups, 0, sizeof(unsigned int) * N);
 
@@ -168,7 +170,7 @@ void gpu_update_mesh_table(const unsigned int n_groups,
         thrust::sort_by_key(thrust::cuda::par(alloc),
 #endif
                             scratch_idx,
-                            scratch_idx + group_size * n_groups,
+                            scratch_idx + group_size_half * n_groups,
                             scratch_g);
 
         // perform a segmented scan of d_scratch_idx
@@ -180,7 +182,7 @@ void gpu_update_mesh_table(const unsigned int n_groups,
         thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
 #endif
                                       scratch_idx,
-                                      scratch_idx + group_size * n_groups,
+                                      scratch_idx + group_size_half * n_groups,
                                       const_it,
                                       offsets);
 
@@ -193,7 +195,7 @@ void gpu_update_mesh_table(const unsigned int n_groups,
                            dim3(block_size),
                            0,
                            0,
-                           n_groups * group_size/2,
+                           n_groups * group_size_half,
                            d_scratch_g,
                            d_scratch_idx,
                            d_offsets,
