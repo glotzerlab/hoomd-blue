@@ -35,7 +35,7 @@ __global__ void gpu_count_mesh_kernel(const unsigned int n_groups,
 
     group_t g = d_group_table[group_idx];
 
-    unsigned int = group_size_half = group_size/2;
+    unsigned int group_size_half = group_size/2;
 
     for (unsigned int i = 0; i < group_size_half; ++i)
         {
@@ -80,7 +80,7 @@ __global__ void gpu_mesh_scatter_kernel(unsigned int n_scratch,
     unsigned int pidx = d_scratch_idx[i];
     unsigned int offset = d_offset[i] * pidx_group_table_pitch + pidx;
 
-    unsigned int = group_size_half = group_size/2;
+    unsigned int group_size_half = group_size/2;
 
     // load group
     unsigned int group_idx = d_scratch_g[i];
@@ -93,7 +93,7 @@ __global__ void gpu_mesh_scatter_kernel(unsigned int n_scratch,
 
     for (unsigned int k = group_size_half; k < group_size; ++k)
         {
-        p.idx[j-2] = g.tag[k];
+        p.idx[k-2] = g.tag[k];
         }
 
     unsigned int j = 0;
