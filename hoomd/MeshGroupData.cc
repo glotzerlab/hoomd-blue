@@ -521,7 +521,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
     // resize GPU table to current number of particles
     this->m_gpu_table_indexer
         = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(), this->m_gpu_table_indexer.getH());
-    this->m_gpu_table.resize(m_gpu_table_indexer.getNumElements());
+    this->m_gpu_table.resize(this->m_gpu_table_indexer.getNumElements());
     this->m_gpu_pos_table.resize(this->m_gpu_table_indexer.getNumElements());
 
     unsigned int group_size_half = group_size/2;
@@ -748,7 +748,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
 
             unsigned int group_idx = rtag_it->second;
 	    members_t member = this->m_groups[group_idx];
-	    for(int i = 0; i< group_size; i++)
+	    for(unsigned int i = 0; i< group_size; i++)
 	        {
                 snapshot.groups[snap_id].tag[i] = member.tag[i];
 		}
