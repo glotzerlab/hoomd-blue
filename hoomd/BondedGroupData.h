@@ -663,8 +663,6 @@ class BondedGroupData
 #ifdef ENABLE_MPI
     GPUVector<ranks_t> m_group_ranks_alt; //!< 2D list of group member ranks (swap-in)
 
-    GPUArray<unsigned int> m_condition; //!< Condition variable for rebuilding GPU table on the GPU
-    unsigned int m_next_flag;           //!< Next flag value for GPU table rebuild
 #endif
 
     unsigned int m_nglobal;                   //!< Global number of groups
@@ -678,6 +676,10 @@ class BondedGroupData
     Nano::Signal<void()> m_group_num_change_signal; //!< Signal that is triggered when groups are
                                                     //!< added or deleted (globally)
 						    //
+#ifdef ENABLE_HIP
+    GPUArray<unsigned int> m_condition; //!< Condition variable for rebuilding GPU table on the GPU
+    unsigned int m_next_flag;           //!< Next flag value for GPU table rebuild
+#endif
     private:
     bool m_groups_dirty; //!< Is it necessary to rebuild the lookup-by-index table?
 
