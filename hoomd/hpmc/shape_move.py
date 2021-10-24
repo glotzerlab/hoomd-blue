@@ -17,6 +17,7 @@ class ShapeMove(_HOOMDBaseObject):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
+
     def _attach(self):
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
@@ -37,6 +38,7 @@ class Callback(_HOOMDBaseObject):
                 # do something with params and define verts
                 return hoomd.hpmc._hpmc.PolyhedronVertices(verts)
     """
+
     def __init__(self):
         pass
 
@@ -69,6 +71,7 @@ class Constant(ShapeMove):
     See Also:
         hoomd.hpmc.integrate for required shape parameters.
     """
+
     def __init__(self, shape_params):
         self._param_dict.update(ParameterDict(shape_params=dict(shape_params)))
 
@@ -80,18 +83,21 @@ class Constant(ShapeMove):
             raise RuntimeError("Integrator is not attached yet.")
 
         move_cls = None
-        shapes = ['Sphere', 'ConvexPolygon', 'SimplePolygon',
-                  'ConvexPolyhedron', 'ConvexSpheropolyhedron',
-                  'Ellipsoid', 'ConvexSpheropolygon', 'Polyhedron',
-                  'Sphinx', 'SphereUnion']
+        shapes = [
+            'Sphere', 'ConvexPolygon', 'SimplePolygon', 'ConvexPolyhedron',
+            'ConvexSpheropolyhedron', 'Ellipsoid', 'ConvexSpheropolygon',
+            'Polyhedron', 'Sphinx', 'SphereUnion'
+        ]
         for shape in shapes:
             if isinstance(integrator, getattr(integrate, shape)):
                 move_cls = getattr(_hpmc, 'ConstantShapeMove' + shape)
         if move_cls is None:
             raise RuntimeError("Integrator not supported")
 
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes, self.shape_params)
+        ntypes = self._simulation.state._cpp_sys_def.getParticleData(
+        ).getNTypes()
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
+                                 self.shape_params)
         super()._attach()
 
 
@@ -129,6 +135,7 @@ class Elastic(ShapeMove):
 
         param_ratio (float): Fraction of scale to shear moves.
     """
+
     def __init__(self, stiffness, reference, stepsize, param_ratio):
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant,
                                    reference=dict(reference),
@@ -153,17 +160,16 @@ class Elastic(ShapeMove):
                 if not numpy.isclose(type_shape["a"], type_shape["b"]) or \
                    not numpy.isclose(type_shape["a"], type_shape["c"]) or \
                    not numpy.isclose(type_shape["b"], type_shape["c"]):
-                    raise ValueError("This updater only works when a=b=c initially.")
+                    raise ValueError(
+                        "This updater only works when a=b=c initially.")
         else:
             raise RuntimeError("Integrator not supported")
 
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
-                                 ntypes,
-                                 self.stepsize,
-                                 self.param_ratio,
-                                 self.stiffness,
-                                 self.reference)
+        ntypes = self._simulation.state._cpp_sys_def.getParticleData(
+        ).getNTypes()
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
+                                 self.stepsize, self.param_ratio,
+                                 self.stiffness, self.reference)
         super()._attach()
 
     @log(category="scalar")
@@ -226,6 +232,7 @@ class Python(ShapeMove):
         param_ratio (float): Average fraction of parameters to change during
             each shape move
     """
+
     def __init__(self, callback, params, stepsize, param_ratio):
         param_dict = ParameterDict(callback=Callback,
                                    params=dict(params),
@@ -242,10 +249,11 @@ class Python(ShapeMove):
             raise RuntimeError("Integrator is not attached yet.")
 
         move_cls = None
-        shapes = ['Sphere', 'ConvexPolygon', 'SimplePolygon',
-                  'ConvexPolyhedron', 'ConvexSpheropolyhedron',
-                  'Ellipsoid', 'ConvexSpheropolygon', 'Polyhedron',
-                  'Sphinx', 'SphereUnion']
+        shapes = [
+            'Sphere', 'ConvexPolygon', 'SimplePolygon', 'ConvexPolyhedron',
+            'ConvexSpheropolyhedron', 'Ellipsoid', 'ConvexSpheropolygon',
+            'Polyhedron', 'Sphinx', 'SphereUnion'
+        ]
         print()
         for shape in shapes:
             if isinstance(integrator, getattr(integrate, shape)):
@@ -253,12 +261,10 @@ class Python(ShapeMove):
         if move_cls is None:
             raise RuntimeError("Integrator not supported")
 
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
-                                 ntypes,
-                                 self.callback,
-                                 self.params,
-                                 self.stepsize,
+        ntypes = self._simulation.state._cpp_sys_def.getParticleData(
+        ).getNTypes()
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
+                                 self.callback, self.params, self.stepsize,
                                  self.param_ratio)
         super()._attach()
 
@@ -311,6 +317,7 @@ class Vertex(ShapeMove):
 
         volume (float): Volume of the particles to hold constant
     """
+
     def __init__(self, stepsize, param_ratio, volume):
         param_dict = ParameterDict(stepsize=dict(stepsize),
                                    param_ratio=float(param_ratio),
@@ -330,10 +337,8 @@ class Vertex(ShapeMove):
         else:
             raise RuntimeError("Integrator not supported")
 
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
-                                 ntypes,
-                                 self.stepsize,
-                                 self.param_ratio,
-                                 self.volume)
+        ntypes = self._simulation.state._cpp_sys_def.getParticleData(
+        ).getNTypes()
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
+                                 self.stepsize, self.param_ratio, self.volume)
         super()._attach()

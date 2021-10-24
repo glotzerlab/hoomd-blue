@@ -9,7 +9,7 @@ from copy import deepcopy
 
 
 def get_outward_normal(verts, face, thresh=0.0001):
-    assert(len(face) == 3)
+    assert (len(face) == 3)
     (a, b, c) = verts[face]
     n = np.cross((b - a), (c - a))
     flip = False
@@ -38,11 +38,15 @@ def sort_faces(verts, faces):
 
 
 def _vertices():
-    platonic_shapes = ["Cube", "Tetrahedron", "Octahedron", "Icosahedron", "Dodecahedron"]
+    platonic_shapes = [
+        "Cube", "Tetrahedron", "Octahedron", "Icosahedron", "Dodecahedron"
+    ]
     verts = []
     names = []
     for shape in platonic_shapes:
-        verts.append(np.asarray(coxeter.families.PlatonicFamily.get_shape(shape).vertices))
+        verts.append(
+            np.asarray(
+                coxeter.families.PlatonicFamily.get_shape(shape).vertices))
         names.append(shape)
     for i in range(20):
         verts.append(np.random.rand(np.random.randint(10, 128), 3))
@@ -53,6 +57,7 @@ def _vertices():
 @pytest.fixture(scope="function", params=_vertices(), ids=(lambda x: x[0]))
 def vertices(request):
     return deepcopy(request.param)
+
 
 _make_verts = hpmc._hpmc.PolyhedronVertices
 _mass_class = hpmc._hpmc.MassPropertiesConvexPolyhedron
@@ -67,19 +72,22 @@ def test_convex_hull_vertices(vertices):
         py_verts.append(list(verts[i]))
         py_verts.append(list(verts[j]))
         py_verts.append(list(verts[k]))
-    py_verts = np.asarray(sorted(py_verts,
-                                 key=lambda x: x[0]**2 + x[1]**2 + x[2]**2))
+    py_verts = np.asarray(
+        sorted(py_verts, key=lambda x: x[0]**2 + x[1]**2 + x[2]**2))
     py_verts = np.unique(py_verts, axis=0)
 
-    mp = _mass_class(_make_verts({'vertices': verts,
-                                  'sweep_radius': 0.0,
-                                  'ignore_statistics': 0}))
+    mp = _mass_class(
+        _make_verts({
+            'vertices': verts,
+            'sweep_radius': 0.0,
+            'ignore_statistics': 0
+        }))
     cpp_verts = []
     for f in range(mp.num_faces()):
         for i in range(3):
             cpp_verts.append(mp.vertices(f, i))
-    cpp_verts = np.asarray(sorted(cpp_verts,
-                                  key=lambda x: x[0]**2 + x[1]**2 + x[2]**2))
+    cpp_verts = np.asarray(
+        sorted(cpp_verts, key=lambda x: x[0]**2 + x[1]**2 + x[2]**2))
     cpp_verts = np.unique(cpp_verts, axis=0)
 
     np.testing.assert_allclose(cpp_verts, py_verts)
@@ -92,9 +100,12 @@ def test_num_faces(vertices):
     faces = np.array(hull.vertices)
     faces = sort_faces(verts, faces)
 
-    mp = _mass_class(_make_verts({'vertices': verts,
-                                  'sweep_radius': 0.0,
-                                  'ignore_statistics': 0}))
+    mp = _mass_class(
+        _make_verts({
+            'vertices': verts,
+            'sweep_radius': 0.0,
+            'ignore_statistics': 0
+        }))
 
     np.testing.assert_allclose(mp.num_faces(), len(faces))
 
@@ -107,9 +118,12 @@ def test_volume(vertices):
     faces = sort_faces(verts, faces)
     py_vol, _, _ = geometry.massProperties(verts, faces)
 
-    mp = _mass_class(_make_verts({'vertices': verts,
-                                  'sweep_radius': 0.0,
-                                  'ignore_statistics': 0}))
+    mp = _mass_class(
+        _make_verts({
+            'vertices': verts,
+            'sweep_radius': 0.0,
+            'ignore_statistics': 0
+        }))
 
     np.testing.assert_allclose(mp.volume(), py_vol, rtol=1e-5, atol=1e-5)
 
@@ -122,9 +136,12 @@ def test_center_of_mass(vertices):
     faces = sort_faces(verts, faces)
     _, py_com, _ = geometry.massProperties(verts, faces)
 
-    mp = _mass_class(_make_verts({'vertices': verts,
-                                  'sweep_radius': 0.0,
-                                  'ignore_statistics': 0}))
+    mp = _mass_class(
+        _make_verts({
+            'vertices': verts,
+            'sweep_radius': 0.0,
+            'ignore_statistics': 0
+        }))
     cpp_com = [mp.center_of_mass(i) for i in range(3)]
 
     np.testing.assert_allclose(cpp_com, py_com, rtol=1e-5, atol=1e-5)
@@ -143,9 +160,12 @@ def test_inertia(vertices):
     py_inertia[3] = tmp[1]
     py_inertia[5] = tmp[2]
 
-    mp = _mass_class(_make_verts({'vertices': verts,
-                                  'sweep_radius': 0.0,
-                                  'ignore_statistics': 0}))
+    mp = _mass_class(
+        _make_verts({
+            'vertices': verts,
+            'sweep_radius': 0.0,
+            'ignore_statistics': 0
+        }))
     cpp_inertia = [mp.moment_of_inertia(i) for i in range(6)]
 
     np.testing.assert_allclose(cpp_inertia, py_inertia, rtol=1e-5, atol=1e-5)

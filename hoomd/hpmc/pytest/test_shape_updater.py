@@ -9,7 +9,9 @@ from hoomd.conftest import logging_check
 def test_before_attaching():
     verts = np.asarray([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1],
                         [-1, 1, 1], [1, -1, 1], [1, 1, -1], [1, 1, 1]]) / 2
-    vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01}, param_ratio=0.2, volume=1.0)
+    vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01},
+                                               param_ratio=0.2,
+                                               volume=1.0)
     move_ratio = 1.0
     trigger = hoomd.trigger.Periodic(1)
     nselect = 1
@@ -59,7 +61,9 @@ def test_after_attaching(device, simulation_factory, lattice_snapshot_factory):
     verts = np.asarray([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1],
                         [-1, 1, 1], [1, -1, 1], [1, 1, -1], [1, 1, 1]]) / 2
     particle_volume = 1.0
-    vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01}, param_ratio=0.2, volume=particle_volume)
+    vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01},
+                                               param_ratio=0.2,
+                                               volume=particle_volume)
     move_ratio = 0.5
     trigger = hoomd.trigger.Periodic(10)
     nselect = 2
@@ -106,12 +110,18 @@ def test_after_attaching(device, simulation_factory, lattice_snapshot_factory):
     assert shape_updater.shape_move_energy == 0.0
     assert shape_updater.particle_volume == N * particle_volume
 
-    logging_check(hoomd.hpmc.update.Shape,
-                  ('hpmc', 'update'),
-                  {'shape_moves': {'category': LoggerCategories.sequence,
-                                   'default': True},
-                   'shape_move_energy': {'category': LoggerCategories.scalar,
-                                         'default': True},
-                   'particle_volume': {'category': LoggerCategories.scalar,
-                                       'default': True}}
-                  )
+    logging_check(
+        hoomd.hpmc.update.Shape, ('hpmc', 'update'), {
+            'shape_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'shape_move_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'particle_volume': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })

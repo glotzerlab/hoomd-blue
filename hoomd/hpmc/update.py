@@ -537,6 +537,7 @@ class Shape(Updater):
         num_phase (int): How many boxes are simulated at the same time, now
             support 2 and 3.
     """
+
     def __init__(self,
                  shape_move,
                  move_ratio,
@@ -589,10 +590,11 @@ class Shape(Updater):
             raise RuntimeError("Integrator is not attached yet.")
 
         updater_cls = None
-        shapes = ['Sphere', 'ConvexPolygon', 'SimplePolygon',
-                  'ConvexPolyhedron', 'ConvexSpheropolyhedron',
-                  'Ellipsoid', 'ConvexSpheropolygon', 'Polyhedron',
-                  'Sphinx', 'SphereUnion']
+        shapes = [
+            'Sphere', 'ConvexPolygon', 'SimplePolygon', 'ConvexPolyhedron',
+            'ConvexSpheropolyhedron', 'Ellipsoid', 'ConvexSpheropolygon',
+            'Polyhedron', 'Sphinx', 'SphereUnion'
+        ]
         for shape in shapes:
             if isinstance(integrator, getattr(integrate, shape)):
                 updater_cls = getattr(_hpmc, 'UpdaterShape' + shape)
@@ -606,18 +608,16 @@ class Shape(Updater):
         if isinstance(integrator, integrate.ConvexSpheropolyhedron):
             for typ in integrator.type_shapes:
                 if typ['sweep_radius'] != 0 and len(typ['vertices']) > 1:
-                    raise RuntimeError("Currently alchemical moves with integrate.convex_spheropolyhedron are only enabled for polyhedral and spherical particles.")
+                    raise RuntimeError(
+                        "Currently alchemical moves with integrate.convex_spheropolyhedron are only enabled for polyhedral and spherical particles."
+                    )
         self._attach_shape_move(self._simulation)
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     integrator._cpp_obj,
-                                    self.shape_move._cpp_obj,
-                                    self.move_ratio,
-                                    self._simulation.seed,
-                                    self.nselect,
-                                    self.nsweeps,
-                                    self.pretend,
-                                    self.multi_phase,
-                                    self.num_phase)
+                                    self.shape_move._cpp_obj, self.move_ratio,
+                                    self._simulation.seed, self.nselect,
+                                    self.nsweeps, self.pretend,
+                                    self.multi_phase, self.num_phase)
         super()._attach()
 
     @log(category='sequence')
