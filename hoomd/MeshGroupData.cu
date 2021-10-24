@@ -210,7 +210,7 @@ void gpu_update_mesh_table(const unsigned int n_groups,
  */
 
 //! DihedralData and ImproperData
-template void gpu_update_group_table<4>(const unsigned int n_groups,
+template void gpu_update_mesh_table<4>(const unsigned int n_groups,
                                         const unsigned int N,
                                         const union group_storage<4>* d_group_table,
                                         const typeval_union* d_group_typeval,
@@ -228,7 +228,7 @@ template void gpu_update_group_table<4>(const unsigned int n_groups,
                                         CachedAllocator& alloc);
 
 //! MeshTriangleData
-template void gpu_update_group_table<6>(const unsigned int n_groups,
+template void gpu_update_mesh_table<6>(const unsigned int n_groups,
                                         const unsigned int N,
                                         const union group_storage<6>* d_group_table,
                                         const typeval_union* d_group_typeval,
