@@ -662,6 +662,9 @@ class BondedGroupData
     GPUVector<unsigned int> m_group_tag_alt;  //!< List of group tags (swap-in)
 #ifdef ENABLE_MPI
     GPUVector<ranks_t> m_group_ranks_alt; //!< 2D list of group member ranks (swap-in)
+
+    GPUArray<unsigned int> m_condition; //!< Condition variable for rebuilding GPU table on the GPU
+    unsigned int m_next_flag;           //!< Next flag value for GPU table rebuild
 #endif
 
     unsigned int m_nglobal;                   //!< Global number of groups

@@ -82,7 +82,7 @@ class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
      */
     unsigned int addBondedGroup(Group g);
 
-    protected:
+    private:
 
     void rebuildGPUTable();
 
