@@ -172,6 +172,7 @@ set(_hoomd_headers
     managed_allocator.h
     ManagedArray.h
     MemoryTraceback.h
+    MeshGroupData.cuh
     MeshGroupData.h
     MeshDefinition.h
     Messenger.h
@@ -216,6 +217,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       CommunicatorGPU.cu
                       Integrator.cu
                       LoadBalancerGPU.cu
+		      MeshGroupData.cu
                       ParticleData.cu
                       ParticleGroup.cu
                       SFCPackTunerGPU.cu)
