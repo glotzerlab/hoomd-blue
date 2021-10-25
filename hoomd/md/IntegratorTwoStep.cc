@@ -257,6 +257,7 @@ const bool IntegratorTwoStep::getIntegrateRotationalDOF()
 */
 void IntegratorTwoStep::prepRun(uint64_t timestep)
     {
+    Integrator::prepRun(timestep);
     if (m_integrate_rotational_dof && !areForcesAnisotropic())
         {
         m_exec_conf->msg->warning() << "Requested integration of orientations, but no forces"
