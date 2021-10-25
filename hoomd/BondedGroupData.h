@@ -691,7 +691,7 @@ class BondedGroupData
     void maybe_rebuild_tag_cache();
 
     //! Helper function to rebuild lookup by index table
-    void rebuildGPUTable();
+    virtual void rebuildGPUTable();
 
     //! Resize internal tables
     /*! \param new_size New size of local group tables, new_size = n_local + n_ghost
@@ -711,7 +711,7 @@ class BondedGroupData
 
 #ifdef ENABLE_HIP
     //! Helper function to rebuild lookup by index table on the GPU
-    void rebuildGPUTableGPU();
+    virtual void rebuildGPUTableGPU();
 #endif
     };
 
