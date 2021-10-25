@@ -9,7 +9,6 @@ set(files __init__.py
           test_shape.py
           test_shape_move.py
           test_shape_updater.py
-          test_shape_utils.py
           test_move_size_tuner.py
           test_pair_user.py
           test_pair_union_user.py
