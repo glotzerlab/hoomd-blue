@@ -16,6 +16,7 @@ set(files __init__.py
     test_pppm_coulomb.py
     test_manifolds.py
     test_methods.py
+    test_meshbond.py
     test_minimize_fire.py
     test_reverse_perturbation_flow.py
     test_table_pressure.py
