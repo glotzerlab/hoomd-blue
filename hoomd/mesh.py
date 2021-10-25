@@ -133,7 +133,7 @@ class Mesh(_HOOMDBaseObject):
 
     @log(requires_run=True)
     def energy(self):
-        """(Scalar): Surface energy of the mesh."""
+        """(float): Surface energy of the mesh."""
         return self._cpp_obj.mesh_energy
 
     def _update_mesh(self):

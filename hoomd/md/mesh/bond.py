@@ -134,7 +134,7 @@ class Harmonic(MeshBond):
 
     Examples::
 
-        harmonic = bond.Harmonic(mesh)
+        harmonic = mesh.bond.Harmonic(mesh)
         harmonic.params['polymer'] = dict(k=3.0, r0=2.38)
         harmonic.params['backbone'] = dict(k=10.0, r0=1.0)
     """
@@ -177,7 +177,7 @@ class FENE(MeshBond):
 
     Examples::
 
-        bond_potential = bond.FENE(mesh)
+        bond_potential = mesh.bond.FENE(mesh)
         bond_potential.params['molecule'] = dict(k=3.0, r0=2.38,
                                                  epsilon=1.0, sigma=1.0)
         bond_potential.params['backbone'] = dict(k=10.0, r0=1.0,
@@ -231,7 +231,7 @@ class Tether(MeshBond):
 
     Examples::
 
-        bond_potential = bond.Tether(mesh)
+        bond_potential = mesh.bond.Tether(mesh)
         bond_potential.params['tether'] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
                                                l_c0=1.8, l_max=2.1)
     """
