@@ -1,4 +1,4 @@
-"""Implement data classes for support HOOMD wall geometries."""
+"""Implement data classes for supporting HOOMD walls."""
 
 from abc import ABC, abstractmethod
 from copy import copy
