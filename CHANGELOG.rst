@@ -22,8 +22,8 @@ v3.0.0-beta.10 (2021-10-25)
 
 - Improved documentation.
 - Improved error messages when setting operation parameters.
-- Noted some dependencies of dependecies for building documentation.
-- [devlopers] Removed ``m_comm`` from most classes. Use ``m_sysdef->isDomainDecomposed()`` instead.
+- Noted some dependencies of dependencies for building documentation.
+- [developers] Removed ``m_comm`` from most classes. Use ``m_sysdef->isDomainDecomposed()`` instead.
 - Add support for LLVM 12
 - ``ENABLE_LLVM=on`` requires the clang development libraries.
 - [breaking] Renamed the Integrator attribute ``aniso`` to ``integrate_rotational_dof`` and removed
