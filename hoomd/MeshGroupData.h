@@ -84,11 +84,11 @@ class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
 
     private:
 
-    void rebuildGPUTable();
+    virtual void rebuildGPUTable();
 
 #ifdef ENABLE_HIP
     //! Helper function to rebuild lookup by index table on the GPU
-    void rebuildGPUTableGPU();
+    virtual void rebuildGPUTableGPU();
 #endif
 
     };
