@@ -19,12 +19,18 @@
 #include "ShapeSphinx.h"
 #include "hoomd/extern/quickhull/QuickHull.hpp"
 
+
+
+
 namespace hpmc
 {
 
 
 namespace detail
 {
+
+typedef EllipsoidParams ellipsoid_param;
+typedef PolyhedronVertices convex_polyhedron_param;
 // TODO: template Scalar type.
 
 template<class Shape>
@@ -78,11 +84,12 @@ class MassPropertiesBase
 
         virtual void updateParam(const typename Shape::param_type& param, bool force = true) { }
 
-    protected:
         virtual void compute()
             {
             throw std::runtime_error("MassProperties::compute() is not implemented for this shape.");
             }
+
+    protected:
         Scalar m_volume;
         Scalar m_surface_area;
         vec3<Scalar> m_center_of_mass;
@@ -109,25 +116,25 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
         MassProperties() : MassPropertiesBase() {};
 
         MassProperties(const typename ShapeConvexPolyhedron::param_type& param,
-                       bool do_compute=true) : MassPropertiesBase()
+                       bool compute=true) : MassPropertiesBase()
             {
             std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>> p;
             p = getQuickHullVertsAndFaces(param);
             points = p.first;
             faces = p.second;
-            if (do_compute)
+            if (compute)
                 {
-                compute();
+                this->compute();
                 }
             }
 
         MassProperties(const std::vector< vec3<Scalar> >& p,
                        const std::vector<std::vector<unsigned int> >& f,
-                       bool do_compute = true) : points(p), faces(f)
+                       bool compute = true) : points(p), faces(f)
             {
-            if (do_compute)
+            if (compute)
                 {
-                compute();
+                this->compute();
                 }
             }
 
@@ -165,18 +172,6 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
             return std::make_pair(v, faces);
             }
 
-        pybind11::list getFaceVertices(unsigned int i, unsigned int j)
-            {
-            vec3<double> pt = points[faces[i][j]];
-            pybind11::list l;
-            l.append(pt.x);
-            l.append(pt.y);
-            l.append(pt.z);
-            return l;
-            }
-
-        unsigned int getNumFaces() { return faces.size(); }
-
         void updateParam(const typename ShapeConvexPolyhedron::param_type& param, bool force=true)
             {
             if(force || param.N != points.size())
@@ -194,21 +189,13 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
                     points[i] = vec3<Scalar>(param.x[i], param.y[i], param.z[i]);
                     }
                 }
-            compute();
+            this->compute();
             }
 
-    protected:
-        using MassPropertiesBase< ShapeConvexPolyhedron >::m_volume;
-        using MassPropertiesBase< ShapeConvexPolyhedron >::m_surface_area;
-        using MassPropertiesBase< ShapeConvexPolyhedron >::m_center_of_mass;
-        using MassPropertiesBase< ShapeConvexPolyhedron >::m_isoperimetric_quotient;
-        using MassPropertiesBase< ShapeConvexPolyhedron >::m_inertia;
-        std::vector< vec3<Scalar> > points;
-        std::vector<std::vector<unsigned int> > faces;
-    /*
-        algorithm taken from
-        http://www.geometrictools.com/Documentation/PolyhedralMassProperties.pdf
-    */
+        /*
+            algorithm taken from
+            http://www.geometrictools.com/Documentation/PolyhedralMassProperties.pdf
+        */
         virtual void compute()
             {
             const Scalar mult[10] = {1.0/6.0, 1.0/24.0, 1.0/24.0, 1.0/24.0, 1.0/60.0,
@@ -278,6 +265,10 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
             m_inertia[4] = -(intg[8] - m_volume*cyz);
             m_inertia[5] = -(intg[9] - m_volume*cxz);
             }  // end MassProperties<ShapeConvexPolyhedron>::compute()
+
+    protected:
+        std::vector< vec3<Scalar> > points;
+        std::vector<std::vector<unsigned int> > faces;
     };  // end class MassProperties < ShapeConvexPolyhedron >
 
 template<>
@@ -287,17 +278,17 @@ class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<ShapeEllipsoid>
     public:
         MassProperties() : MassPropertiesBase() {};
 
-        MassProperties(const typename ShapeEllipsoid::param_type& param, bool do_compute = true)
+        MassProperties(const typename ShapeEllipsoid::param_type& param, bool compute = true)
                        : MassPropertiesBase(), m_param(param)
             {
-            if (do_compute) compute();
+            if (compute) this->compute();
             }
 
         virtual void updateParam(const typename ShapeEllipsoid::param_type& param,
                                  bool force = true)
             {
             m_param = param;
-            compute();
+            this->compute();
             }
 
         Scalar getDetInertiaTensor()
@@ -308,8 +299,6 @@ class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<ShapeEllipsoid>
     static constexpr Scalar m_vol_factor = Scalar(4.0)/Scalar(3.0)*M_PI;
 
     protected:
-        using MassPropertiesBase<ShapeEllipsoid>::m_volume;
-        using MassPropertiesBase<ShapeEllipsoid>::m_inertia;
 
         virtual void compute()
             {
@@ -333,7 +322,6 @@ class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<ShapeEllipsoid>
 template < >
 class MassProperties< ShapeSpheropolyhedron > : public MassProperties < ShapeConvexPolyhedron >
     {
-    using MassProperties< ShapeConvexPolyhedron >::m_inertia;
     public:
         MassProperties(const typename ShapeSpheropolyhedron::param_type& param)
             // Prevent computation on construction of the parent
@@ -347,10 +335,9 @@ class MassProperties< ShapeSpheropolyhedron > : public MassProperties < ShapeCon
 
             // Explicit typecast required here
             m_sweep_radius = param.sweep_radius;
-            compute();
+            this->compute();
             }
 
-    protected:
         virtual void compute()
             {
             if (m_sweep_radius > 0)
