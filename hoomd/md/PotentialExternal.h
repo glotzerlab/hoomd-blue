@@ -72,7 +72,7 @@ template<class evaluator> class PotentialExternal : public ForceCompute
 template<class evaluator>
 PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef),
-      m_field(make_managed_shared<typename PotentialExternal<evaluator>::field_type>(
+      m_field(hoomd::detail::make_managed_shared<typename PotentialExternal<evaluator>::field_type>(
           m_exec_conf->isCUDAEnabled()))
     {
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
