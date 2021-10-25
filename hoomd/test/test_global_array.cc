@@ -13,16 +13,19 @@
 
 #ifdef ENABLE_HIP
 #include "test_global_array.cuh"
+using namespace hoomd::test;
 #endif
 
+#include "upp11_config.h"
+
 using namespace std;
+using namespace hoomd;
 
 /*! \file gpu_array_test.cc
     \brief Implements unit tests for GlobalArray and GPUVector
     \ingroup unit_tests
 */
 
-#include "upp11_config.h"
 HOOMD_UP_MAIN();
 
 //! test case for testing the basic operation of GlobalArray

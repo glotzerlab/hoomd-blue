@@ -18,6 +18,10 @@
 #include <thrust/execution_policy.h>
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! Mark the particles that are off rank
 /*!
  * \param d_ranks The current rank of each particle
@@ -172,5 +176,9 @@ unsigned int gpu_load_balance_select_off_rank(unsigned int* d_off_rank,
         = thrust::copy_if(thrust::device, d_ranks, d_ranks + N, d_off_rank, NotEqual(cur_rank));
     return (unsigned int)(last - d_off_rank);
     }
+
+    } // end namespace kernel
+
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI

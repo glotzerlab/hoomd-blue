@@ -83,7 +83,11 @@
             "*.in": "cpp",
             "cfenv": "cpp",
             "fft": "cpp",
-            "__nullptr": "cpp"
+            "__nullptr": "cpp",
+            "numbers": "cpp",
+            "semaphore": "cpp",
+            "any": "cpp",
+            "*.inc": "cpp"
         },
         "cSpell.words": [
             "Berendsen",

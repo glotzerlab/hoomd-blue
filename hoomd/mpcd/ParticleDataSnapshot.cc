@@ -11,6 +11,8 @@
 #include "ParticleDataSnapshot.h"
 #include <pybind11/numpy.h>
 
+namespace hoomd
+    {
 mpcd::ParticleDataSnapshot::ParticleDataSnapshot() : size(0), mass(1.0) { }
 
 /*!
@@ -198,3 +200,5 @@ void mpcd::detail::export_ParticleDataSnapshot(pybind11::module& m)
         .def("resize", &mpcd::ParticleDataSnapshot::resize)
         .def("replicate", &mpcd::ParticleDataSnapshot::replicate);
     }
+
+    } // end namespace hoomd

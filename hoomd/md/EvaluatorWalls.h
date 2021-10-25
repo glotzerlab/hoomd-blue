@@ -34,6 +34,10 @@ const unsigned int MAX_N_SWALLS = 20;
 const unsigned int MAX_N_CWALLS = 20;
 const unsigned int MAX_N_PWALLS = 60;
 
+namespace hoomd
+    {
+namespace md
+    {
 struct PY wall_type
     {
     unsigned int numSpheres; // these data types come first, since the structs are aligned already
@@ -387,3 +391,5 @@ template<class evaluator> class EvaluatorWalls
 #ifndef __HIPCC__
 void export_wall_field(pybind11::module& m);
 #endif
+    } // end namespace md
+    } // end namespace hoomd

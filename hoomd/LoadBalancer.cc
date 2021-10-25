@@ -21,8 +21,9 @@
 #include <vector>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 /*!
  * \param sysdef System definition
  * \param decomposition Domain decomposition
@@ -635,10 +636,12 @@ void LoadBalancer::resetStats()
     m_max_max_imbalance = Scalar(1.0);
     }
 
-void export_LoadBalancer(py::module& m)
+namespace detail
     {
-    py::class_<LoadBalancer, Tuner, std::shared_ptr<LoadBalancer>>(m, "LoadBalancer")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
+void export_LoadBalancer(pybind11::module& m)
+    {
+    pybind11::class_<LoadBalancer, Tuner, std::shared_ptr<LoadBalancer>>(m, "LoadBalancer")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
         .def_property("tolerance", &LoadBalancer::getTolerance, &LoadBalancer::setTolerance)
         .def_property("max_iterations",
                       &LoadBalancer::getMaxIterations,
@@ -647,3 +650,7 @@ void export_LoadBalancer(py::module& m)
         .def_property("y", &LoadBalancer::getEnableY, &LoadBalancer::setEnableY)
         .def_property("z", &LoadBalancer::getEnableZ, &LoadBalancer::setEnableZ);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

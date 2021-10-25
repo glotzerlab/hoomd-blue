@@ -14,7 +14,11 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
+
+namespace hoomd
+    {
+namespace md
+    {
 /*!
  * \param sysdef System definition
  * \param r_cut Default cutoff radius
@@ -330,12 +334,14 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListStencil(py::module& m)
+namespace detail
     {
-    py::class_<NeighborListStencil, NeighborList, std::shared_ptr<NeighborListStencil>>(
+void export_NeighborListStencil(pybind11::module& m)
+    {
+    pybind11::class_<NeighborListStencil, NeighborList, std::shared_ptr<NeighborListStencil>>(
         m,
         "NeighborListStencil")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property("cell_width",
                       &NeighborListStencil::getCellWidth,
                       &NeighborListStencil::setCellWidth)
@@ -343,3 +349,7 @@ void export_NeighborListStencil(py::module& m)
                       &NeighborListStencil::getDeterministic,
                       &NeighborListStencil::setDeterministic);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

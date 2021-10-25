@@ -6,8 +6,6 @@
 #include "Compute.h"
 #include "Communicator.h"
 
-namespace py = pybind11;
-
 #include <iostream>
 #include <stdexcept>
 using namespace std;
@@ -16,6 +14,8 @@ using namespace std;
     \brief Contains code for the Compute class
 */
 
+namespace hoomd
+    {
 /*! \param sysdef SystemDefinition this compute will act on. Must not be NULL.
     \post The Compute is constructed with the given particle data and a NULL profiler.
 */
@@ -115,12 +115,17 @@ void Compute::forceCompute(uint64_t timestep)
     compute(timestep);
     }
 
-void export_Compute(py::module& m)
+namespace detail
     {
-    py::class_<Compute, std::shared_ptr<Compute>>(m, "Compute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_Compute(pybind11::module& m)
+    {
+    pybind11::class_<Compute, std::shared_ptr<Compute>>(m, "Compute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("compute", &Compute::compute)
         .def("benchmark", &Compute::benchmark)
         .def("setProfiler", &Compute::setProfiler)
         .def("notifyDetach", &Compute::notifyDetach);
     }
+    } // end namespace detail
+
+    } // end namespace hoomd

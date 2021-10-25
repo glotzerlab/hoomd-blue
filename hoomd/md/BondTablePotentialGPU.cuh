@@ -16,6 +16,12 @@
 #ifndef __BONDTABLEPOTENTIALGPU_CUH__
 #define __BONDTABLEPOTENTIALGPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver that computes table forces on the GPU for TablePotentialGPU
 hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                         Scalar* d_virial,
@@ -33,5 +39,9 @@ hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                         const Index2D& table_value,
                                         unsigned int* d_flags,
                                         const unsigned int block_size);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

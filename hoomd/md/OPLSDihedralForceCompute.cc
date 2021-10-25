@@ -5,8 +5,6 @@
 
 #include "OPLSDihedralForceCompute.h"
 
-namespace py = pybind11;
-
 #include <cmath>
 #include <iostream>
 #include <sstream>
@@ -18,6 +16,10 @@ using namespace std;
     \brief Contains code for the OPLSDihedralForceCompute class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
@@ -364,12 +366,18 @@ void OPLSDihedralForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-void export_OPLSDihedralForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<OPLSDihedralForceCompute, ForceCompute, std::shared_ptr<OPLSDihedralForceCompute>>(
-        m,
-        "OPLSDihedralForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_OPLSDihedralForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<OPLSDihedralForceCompute,
+                     ForceCompute,
+                     std::shared_ptr<OPLSDihedralForceCompute>>(m, "OPLSDihedralForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &OPLSDihedralForceCompute::setParamsPython)
         .def("getParams", &OPLSDihedralForceCompute::getParams);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

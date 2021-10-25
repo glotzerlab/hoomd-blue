@@ -31,6 +31,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 class EvaluatorPairDipole
     {
     public:
@@ -334,5 +338,8 @@ class EvaluatorPairDipole
     Scalar kappa;
     // const param_type &params;   //!< The pair potential parameters
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DIPOLE_H__

@@ -25,6 +25,8 @@
 #ifndef __CELLLIST_H__
 #define __CELLLIST_H__
 
+namespace hoomd
+    {
 //! Computes a cell list from the particles in the system
 /*! \b Overview:
     Cell lists are useful data structures when working with locality queries on particles. The most
@@ -432,9 +434,13 @@ class PYBIND11_EXPORT CellList : public Compute
     Nano::Signal<void()> m_width_change; //!< Signal that is triggered when the cell width changes
     };
 
+namespace detail
+    {
 //! Export the CellList class to python
 #ifndef __HIPCC__
 void export_CellList(pybind11::module& m);
 #endif
+    } // end namespace detail
 
+    } // end namespace hoomd
 #endif

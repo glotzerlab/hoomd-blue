@@ -16,6 +16,8 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 //! Test for correct calculation of MPCD grid dimensions
 void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    bool mpi_x,

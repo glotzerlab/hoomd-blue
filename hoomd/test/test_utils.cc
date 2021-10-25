@@ -11,7 +11,6 @@
 #include <math.h>
 
 #include "upp11_config.h"
-HOOMD_UP_MAIN();
 
 /*! \file utils_test.cc
     \brief Unit tests for ClockSource, Profiler, and Variant
@@ -19,6 +18,9 @@ HOOMD_UP_MAIN();
 */
 
 using namespace std;
+using namespace hoomd;
+
+HOOMD_UP_MAIN();
 
 // the clock test depends on timing and thus should not be run in automatic builds.
 // uncomment to test by hand if the test seems to be behaving poorly

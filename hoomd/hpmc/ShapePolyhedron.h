@@ -38,6 +38,8 @@
 // uncomment for parallel overlap checks
 //#define LEAVES_AGAINST_TREE_TRAVERSAL
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -406,9 +408,9 @@ struct ShapePolyhedron
 #endif
 
     /// Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, data.diameter / Scalar(2));
+        return hoomd::detail::AABB(pos, data.diameter / Scalar(2));
         }
 
     /// Return a tight fitting OBB
@@ -1197,7 +1199,7 @@ template<> inline std::string getShapeSpec(const ShapePolyhedron& s)
     }
 #endif
 
-    }; // end namespace hpmc
-
+    } // end namespace hpmc
+    } // end namespace hoomd
 #undef DEVICE
 #undef HOSTDEVICE

@@ -33,19 +33,21 @@ HOOMD_UP_MAIN()
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 //! Typedef for function that creates the Communicator on the CPU or GPU
-typedef std::function<std::shared_ptr<Communicator>(
+typedef std::function<std::shared_ptr<hoomd::Communicator>(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<DomainDecomposition> decomposition)>
     communicator_creator;
 
-std::shared_ptr<Communicator>
+std::shared_ptr<hoomd::Communicator>
 base_class_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
                                 std::shared_ptr<DomainDecomposition> decomposition);
 
 #ifdef ENABLE_HIP
-std::shared_ptr<Communicator>
+std::shared_ptr<hoomd::Communicator>
 gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<DomainDecomposition> decomposition);
 #endif
@@ -408,7 +410,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, pdata->getBox().getL(), 2, 2, 2));
 
-    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<hoomd::Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -734,7 +736,7 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator,
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
 
-    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<hoomd::Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -1075,7 +1077,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     //     std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,
     //     pdata->getBox().getL()));
-    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<hoomd::Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -2056,7 +2058,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     bdata->takeSnapshot(bdata_snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<hoomd::Communicator> comm = comm_creator(sysdef, decomposition);
 
     // width of ghost layer
     ghost_layer_width g(0.1);
@@ -2781,7 +2783,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
     bdata->takeSnapshot(snap_bdata);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<hoomd::Communicator> comm = comm_creator(sysdef, decomposition);
 
     // communicate tags, necessary for gpu bond table
     CommFlags flags(0);
@@ -2940,8 +2942,8 @@ void test_communicator_compare(communicator_creator comm_creator_1,
         }
 
     // setup communicators
-    std::shared_ptr<Communicator> comm_1 = comm_creator_1(sysdef_1, decomposition_1);
-    std::shared_ptr<Communicator> comm_2 = comm_creator_2(sysdef_2, decomposition_2);
+    std::shared_ptr<hoomd::Communicator> comm_1 = comm_creator_1(sysdef_1, decomposition_1);
+    std::shared_ptr<hoomd::Communicator> comm_2 = comm_creator_2(sysdef_2, decomposition_2);
 
     sysdef_1->setCommunicator(comm_1);
     sysdef_2->setCommunicator(comm_2);
@@ -3108,7 +3110,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator,
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, pdata->getBox().getL()));
-    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<hoomd::Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -3370,7 +3372,7 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator,
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, pdata->getBox().getL()));
-    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<hoomd::Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -3504,7 +3506,7 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator,
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, pdata->getBox().getL()));
-    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<hoomd::Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -3624,19 +3626,19 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator,
     }
 
 //! Communicator creator for unit tests
-std::shared_ptr<Communicator>
+std::shared_ptr<hoomd::Communicator>
 base_class_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
                                 std::shared_ptr<DomainDecomposition> decomposition)
     {
-    return std::shared_ptr<Communicator>(new Communicator(sysdef, decomposition));
+    return std::shared_ptr<hoomd::Communicator>(new hoomd::Communicator(sysdef, decomposition));
     }
 
 #ifdef ENABLE_HIP
-std::shared_ptr<Communicator>
+std::shared_ptr<hoomd::Communicator>
 gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<DomainDecomposition> decomposition)
     {
-    return std::shared_ptr<Communicator>(new CommunicatorGPU(sysdef, decomposition));
+    return std::shared_ptr<hoomd::Communicator>(new hoomd::CommunicatorGPU(sysdef, decomposition));
     }
 #endif
 

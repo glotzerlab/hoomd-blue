@@ -25,6 +25,8 @@
 #include <iostream>
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -129,9 +131,9 @@ struct ShapeSpheropolygon
         }
 
     //! Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, verts.diameter / Scalar(2));
+        return hoomd::detail::AABB(pos, verts.diameter / Scalar(2));
         }
 
     //! Return a tight fitting OBB
@@ -219,7 +221,8 @@ template<> inline std::string getShapeSpec(const ShapeSpheropolygon& spoly)
     }
 #endif
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #undef HOSTDEVICE
 #undef DEVICE

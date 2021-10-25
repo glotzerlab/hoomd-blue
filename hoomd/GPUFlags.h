@@ -24,6 +24,8 @@
 #include <iostream>
 #include <stdexcept>
 
+namespace hoomd
+    {
 //! Class for managing a small set of flags set on the GPU
 /*!
 \b Overview:
@@ -395,5 +397,7 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
 #endif
         }
     }
+
+    } // end namespace hoomd
 
 #endif

@@ -15,9 +15,10 @@
 #include "hoomd/ParticleData.h"
 #include "hoomd/SnapshotSystemData.h"
 
-using namespace std;
-
 #include "upp11_config.h"
+
+using namespace std;
+using namespace hoomd;
 
 HOOMD_UP_MAIN();
 

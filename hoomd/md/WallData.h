@@ -35,6 +35,10 @@
 #define ALIGN_SCALAR 8
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 struct __attribute__((visibility("default"))) SphereWall
     {
     SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0, 0.0, 0.0), bool ins = true)
@@ -221,3 +225,5 @@ DEVICE inline Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& positio
 // list/array data structures containing walls for WallPotential objects.
 void export_wall_data(pybind11::module& m);
 #endif
+    } // end namespace md
+    } // end namespace hoomd

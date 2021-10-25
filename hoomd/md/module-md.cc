@@ -105,7 +105,10 @@
 #endif
 
 #include <pybind11/pybind11.h>
-namespace py = pybind11;
+
+using namespace hoomd;
+using namespace hoomd::md;
+using namespace hoomd::md::detail;
 
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
@@ -116,8 +119,8 @@ namespace py = pybind11;
 // when the default behavior exposes setting and getting the shape through
 // 'shape'.
 template<>
-void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
-                                                         const std::string& name)
+void hoomd::md::detail::export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
+                                                                            const std::string& name)
     {
     pybind11::
         class_<AnisoPotentialPairDipole, ForceCompute, std::shared_ptr<AnisoPotentialPairDipole>>
@@ -142,8 +145,9 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
 // Electric field only has one parameter, so we can get its parameter from
 // python with by a name other than getParams and setParams
 template<>
-void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& m,
-                                                              const std::string& name)
+void hoomd::md::detail::export_PotentialExternal<PotentialExternalElectricField>(
+    pybind11::module& m,
+    const std::string& name)
     {
     pybind11::class_<PotentialExternalElectricField,
                      ForceCompute,

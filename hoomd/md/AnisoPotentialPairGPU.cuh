@@ -30,6 +30,12 @@ const int gpu_aniso_pair_force_max_tpp = 32;
 const int gpu_aniso_pair_force_max_tpp = 64;
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Wraps arguments to gpu_cgpf
 struct a_pair_args_t
     {
@@ -596,5 +602,9 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
     return hipSuccess;
     }
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __ANISO_POTENTIAL_PAIR_GPU_CUH__

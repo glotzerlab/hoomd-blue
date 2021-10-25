@@ -37,6 +37,8 @@
 /*! @}
  */
 
+namespace hoomd
+    {
 //! Performs updates of ParticleData structures
 /*! The Updater is an abstract concept that takes a particle data structure and changes it in some
    way. For example, an updater may make a verlet step and update the particle positions to the next
@@ -136,7 +138,13 @@ class PYBIND11_EXPORT Updater
         m_slots; //!< Stored shared ptr to the system signals
     };
 
+namespace detail
+    {
 //! Export the Updater class to python
 void export_Updater(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

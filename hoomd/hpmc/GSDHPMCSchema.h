@@ -24,7 +24,11 @@
 #ifndef _GSD_HPMC_Schema_H_
 #define _GSD_HPMC_Schema_H_
 
-template<class T> using param_array = typename std::vector<T, managed_allocator<T>>;
+namespace hoomd
+    {
+namespace hpmc
+    {
+template<class T> using param_array = typename std::vector<T, hoomd::detail::managed_allocator<T>>;
 
 struct gsd_schema_hpmc_base
     {
@@ -567,5 +571,8 @@ template<> struct gsd_shape_schema<hpmc::detail::PolygonVertices> : public gsd_s
             }
         }
     };
+
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif

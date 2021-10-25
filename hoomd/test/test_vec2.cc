@@ -6,8 +6,6 @@
 
 #include "upp11_config.h"
 
-HOOMD_UP_MAIN();
-
 #include <iostream>
 
 #include <math.h>
@@ -16,6 +14,10 @@ HOOMD_UP_MAIN();
 #include <pybind11/pybind11.h>
 
 #include "hoomd/VectorMath.h"
+
+using namespace hoomd;
+
+HOOMD_UP_MAIN();
 
 UP_TEST(construction)
     {

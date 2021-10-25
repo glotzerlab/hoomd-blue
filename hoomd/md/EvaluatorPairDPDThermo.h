@@ -30,6 +30,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the DPD Thermostat pair potential
 /*! <b>General Overview</b>
 
@@ -316,5 +320,8 @@ class EvaluatorPairDPDThermo
     };
 
 #undef DEVICE
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DPD_H__

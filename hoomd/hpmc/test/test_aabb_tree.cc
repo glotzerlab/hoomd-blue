@@ -12,8 +12,8 @@ HOOMD_UP_MAIN();
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/VectorMath.h"
 
-using namespace hpmc;
-using namespace hpmc::detail;
+using namespace hoomd;
+using namespace hoomd::detail;
 
 bool in(unsigned int i, const std::vector<unsigned int>& v)
     {

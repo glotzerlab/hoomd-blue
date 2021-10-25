@@ -3,8 +3,6 @@
 
 #include "Integrator.h"
 
-namespace py = pybind11;
-
 #ifdef ENABLE_HIP
 #include "Integrator.cuh"
 #endif
@@ -14,11 +12,13 @@ namespace py = pybind11;
 #endif
 
 #include <pybind11/stl_bind.h>
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceConstraint>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceCompute>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceConstraint>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceCompute>>);
 
 using namespace std;
 
+namespace hoomd
+    {
 /** @param sysdef System to update
     @param deltaT Time step to use
 */
@@ -487,7 +487,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force += 6)
             {
             // grab the device pointers for the current set
-            gpu_force_list force_list;
+            kernel::gpu_force_list force_list;
 
             const GlobalArray<Scalar4>& d_force_array0 = m_forces[cur_force]->getForceArray();
             ArrayHandle<Scalar4> d_force0(d_force_array0,
@@ -711,7 +711,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force += 6)
             {
             // grab the device pointers for the current set
-            gpu_force_list force_list;
+            kernel::gpu_force_list force_list;
             const GlobalArray<Scalar4>& d_force_array0
                 = m_constraint_forces[cur_force]->getForceArray();
             ArrayHandle<Scalar4> d_force0(d_force_array0,
@@ -919,7 +919,20 @@ void Integrator::update(uint64_t timestep)
 
     The base class does nothing, it is up to derived classes to implement the correct behavior.
 */
-void Integrator::prepRun(uint64_t timestep) { }
+void Integrator::prepRun(uint64_t timestep)
+    {
+    // ensure that all forces have updated delta t values at the start of step 0
+
+    for (auto& force : m_forces)
+        {
+        force->setDeltaT(m_deltaT);
+        }
+
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        constraint_force->setDeltaT(m_deltaT);
+        }
+    }
 
 #ifdef ENABLE_MPI
 /** @param tstep Time step for which to determine the flags
@@ -956,7 +969,7 @@ void Integrator::computeCallback(uint64_t timestep)
     }
 #endif
 
-bool Integrator::getAnisotropic()
+bool Integrator::areForcesAnisotropic()
     {
     bool aniso = false;
     // pre-compute all active forces
@@ -973,15 +986,20 @@ bool Integrator::getAnisotropic()
     return aniso;
     }
 
-void export_Integrator(py::module& m)
+namespace detail
     {
-    py::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
-    py::bind_vector<std::vector<std::shared_ptr<ForceConstraint>>>(m, "ForceConstraintList");
-
-    py::class_<Integrator, Updater, std::shared_ptr<Integrator>>(m, "Integrator")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+void export_Integrator(pybind11::module& m)
+    {
+    pybind11::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<ForceConstraint>>>(m, "ForceConstraintList");
+    pybind11::class_<Integrator, Updater, std::shared_ptr<Integrator>>(m, "Integrator")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("updateGroupDOF", &Integrator::updateGroupDOF)
         .def_property("dt", &Integrator::getDeltaT, &Integrator::setDeltaT)
         .def_property_readonly("forces", &Integrator::getForces)
         .def_property_readonly("constraints", &Integrator::getConstraintForces);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

@@ -16,6 +16,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file fenebond_force_test.cc
     \brief Implements unit tests for BondForceCompute and child classes

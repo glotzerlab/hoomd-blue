@@ -15,6 +15,8 @@
     \brief Defines GPU kernel code for cell list generation on the GPU
 */
 
+namespace hoomd
+    {
 //! Kernel that computes the cell list on the GPU
 /*! \param d_cell_size Number of particles in each cell
     \param d_xyzf Cell XYZF data array
@@ -565,3 +567,5 @@ hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
 
     return hipSuccess;
     }
+
+    } // end namespace hoomd

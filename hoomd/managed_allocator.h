@@ -14,6 +14,10 @@
 #include <iostream>
 #include <memory>
 
+namespace hoomd
+    {
+namespace detail
+    {
 template<class T> class managed_allocator
     {
     public:
@@ -240,3 +244,6 @@ std::shared_ptr<T> make_managed_shared(bool use_device, Args&&... args)
                               [allocator = std::move(allocator)](T* ptr) mutable
                               { allocator.deallocate(ptr, 1); });
     }
+    } // end namespace detail
+
+    } // end namespace hoomd

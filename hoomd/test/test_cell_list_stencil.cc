@@ -10,11 +10,13 @@
 #endif
 
 #include <vector>
-using namespace std;
 
 #include <memory>
 
 #include "upp11_config.h"
+
+using namespace std;
+using namespace hoomd;
 
 /*! \file test_cell_list_stencil.cc
     \brief Implements unit tests for CellListStencil
