@@ -39,6 +39,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing pair potentials
 /*! <b>Overview:</b>
     PotentialPair computes standard pair potentials (and forces) between all particle pairs in the
@@ -200,7 +204,7 @@ template<class evaluator> class PotentialPair : public ForceCompute
         std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
         for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
             {
-            evaluator eval(Scalar(0.0), Scalar(0.0), m_params[m_typpair_idx(i, i)]);
+            evaluator eval(Scalar(0.0), Scalar(0.0), this->m_params[m_typpair_idx(i, i)]);
             type_shape_mapping[i] = eval.getShapeSpec();
             }
         return type_shape_mapping;
@@ -214,7 +218,7 @@ template<class evaluator> class PotentialPair : public ForceCompute
     GlobalArray<Scalar> m_ronsq;  //!< ron squared per type pair
 
     /// Per type pair potential parameters
-    std::vector<param_type, managed_allocator<param_type>> m_params;
+    std::vector<param_type, hoomd::detail::managed_allocator<param_type>> m_params;
     std::string m_prof_name; //!< Cached profiler name
 
     /// Track whether we have attached to the Simulation object
@@ -251,10 +255,10 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
     m_rcutsq.swap(rcutsq);
     GlobalArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_ronsq.swap(ronsq);
-    m_params = std::vector<param_type, managed_allocator<param_type>>(
+    m_params = std::vector<param_type, hoomd::detail::managed_allocator<param_type>>(
         m_typpair_idx.getNumElements(),
         param_type(),
-        managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
+        hoomd::detail::managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
     m_r_cut_nlist
         = std::make_shared<GlobalArray<Scalar>>(m_typpair_idx.getNumElements(), m_exec_conf);
@@ -454,7 +458,7 @@ void PotentialPair<evaluator>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter
 template<class evaluator>
 int PotentialPair<evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
     {
-    GSDShapeSpecWriter shapespec(m_exec_conf);
+    hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
     m_exec_conf->msg->notice(10) << "PotentialPair writing to GSD File to name: "
                                  << shapespec.getName() << std::endl;
     int retval = shapespec.write(handle, this->getTypeShapeMapping());
@@ -913,6 +917,8 @@ Scalar PotentialPair<evaluator>::computeEnergyBetweenSetsPythonList(
     return eng;
     }
 
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
@@ -933,5 +939,9 @@ template<class T> void export_PotentialPair(pybind11::module& m, const std::stri
         .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_H__

@@ -19,6 +19,10 @@
 
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! C'tor
 ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& cpp_code,
                                                    const std::vector<std::string>& compiler_args)
@@ -75,3 +79,6 @@ ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& cpp_code,
 
     m_eval = (ExternalFieldEvalFnPtr)(long unsigned int)(eval->getAddress());
     }
+
+    } // end namespace hpmc
+    } // end namespace hoomd

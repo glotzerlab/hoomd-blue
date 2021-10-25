@@ -3,6 +3,10 @@
 
 #include <sstream>
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 /*! \param exec_conf The execution configuration (used for messages and MPI communication).
     \param cpu_code C++ code to compile.
     \param compiler_args Additional arguments to pass to the compiler.
@@ -22,7 +26,7 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
     : PatchEnergy(sysdef), m_exec_conf(exec_conf), m_r_cut_isotropic(r_cut),
       m_param_array(param_array.data(),
                     param_array.data() + param_array.size(),
-                    managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
+                    hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
       m_is_union(is_union)
     {
     // build the JIT.
@@ -44,6 +48,8 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
     m_factory = std::shared_ptr<EvalFactory>(factory);
     }
 
+namespace detail
+    {
 void export_PatchEnergyJIT(pybind11::module& m)
     {
     pybind11::class_<hpmc::PatchEnergy, std::shared_ptr<hpmc::PatchEnergy>>(m, "PatchEnergy")
@@ -61,3 +67,7 @@ void export_PatchEnergyJIT(pybind11::module& m)
         .def("energy", &PatchEnergyJIT::energy)
         .def_property_readonly("param_array", &PatchEnergyJIT::getParamArray);
     }
+
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd

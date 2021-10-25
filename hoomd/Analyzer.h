@@ -24,6 +24,8 @@
 #include <memory>
 #include <typeinfo>
 
+namespace hoomd
+    {
 /*! \ingroup hoomd_lib
     @{
 */
@@ -138,7 +140,12 @@ class PYBIND11_EXPORT Analyzer
         m_slots; //!< Stored shared ptr to the system signals
     };
 
+namespace detail
+    {
 //! Export the Analyzer class to python
 void export_Analyzer(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace hoomd
 
 #endif

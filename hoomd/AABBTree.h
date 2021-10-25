@@ -26,14 +26,10 @@
 #define DEVICE
 #endif
 
-namespace hpmc
+namespace hoomd
     {
 namespace detail
     {
-/*! \addtogroup overlap
-    @{
-*/
-
 const unsigned int NODE_CAPACITY = 16;        //!< Maximum number of particles in a node
 const unsigned int INVALID_NODE = 0xffffffff; //!< Invalid node index sentinel
 
@@ -628,6 +624,6 @@ inline unsigned int AABBTree::allocateNode()
 
     }; // end namespace detail
 
-    }; // end namespace hpmc
+    }; // end namespace hoomd
 
 #endif //__AABB_TREE_H__

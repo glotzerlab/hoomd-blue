@@ -7,12 +7,15 @@
 #include "hoomd/VectorMath.h"
 
 using namespace std;
-namespace py = pybind11;
 
 /*! \file TwoStepNPTMTK.cc
     \brief Contains code for the TwoStepNPTMTK class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Coefficients of f(x) = sinh(x)/x = a_0 + a_2 * x^2 + a_4 * x^4 + a_6 * x^6 + a_8 * x^8 + a_10 *
 //! x^10
 const Scalar f_coeff[] = {Scalar(1.0),
@@ -1241,22 +1244,24 @@ Scalar TwoStepNPTMTK::getBarostatEnergy(uint64_t timestep)
     return barostat_energy;
     }
 
-void export_TwoStepNPTMTK(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepNPTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTK>>
+void export_TwoStepNPTMTK(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepNPTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTK>>
         twostepnptmtk(m, "TwoStepNPTMTK");
     twostepnptmtk
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<ComputeThermo>,
-                      std::shared_ptr<ComputeThermo>,
-                      Scalar,
-                      Scalar,
-                      std::shared_ptr<Variant>,
-                      const std::vector<std::shared_ptr<Variant>>&,
-                      const string&,
-                      const std::vector<bool>&,
-                      const bool>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            Scalar,
+                            std::shared_ptr<Variant>,
+                            const std::vector<std::shared_ptr<Variant>>&,
+                            const string&,
+                            const std::vector<bool>&,
+                            const bool>())
         .def_property("kT", &TwoStepNPTMTK::getT, &TwoStepNPTMTK::setT)
         .def_property("S", &TwoStepNPTMTK::getS, &TwoStepNPTMTK::setS)
         .def_property("tau", &TwoStepNPTMTK::getTau, &TwoStepNPTMTK::setTau)
@@ -1279,3 +1284,7 @@ void export_TwoStepNPTMTK(py::module& m)
         .def("getThermostatEnergy", &TwoStepNPTMTK::getThermostatEnergy)
         .def("getBarostatEnergy", &TwoStepNPTMTK::getBarostatEnergy);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

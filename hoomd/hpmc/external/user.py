@@ -107,6 +107,8 @@ class CPPExternalPotential(_HOOMDBaseObject):
                         #include "hoomd/VectorMath.h"
                         #include "hoomd/BoxDim.h"
 
+                        using namespace hoomd;
+
                         extern "C"
                         {
 

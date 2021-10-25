@@ -25,6 +25,12 @@
 #ifndef __POTENTIAL_PAIR_GPU_CUH__
 #define __POTENTIAL_PAIR_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Maximum number of threads (width of a warp)
 // currently this is hardcoded, we should set it to the max of platforms
 #if defined(__HIP_PLATFORM_NVCC__)
@@ -594,4 +600,9 @@ hipError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     return hipSuccess;
     }
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif // __POTENTIAL_PAIR_GPU_CUH__

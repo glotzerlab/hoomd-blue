@@ -5,8 +5,6 @@
 
 #include "TableAngleForceCompute.h"
 
-namespace py = pybind11;
-
 #include <stdexcept>
 
 /*! \file TableAngleForceCompute.cc
@@ -21,6 +19,10 @@ using namespace std;
 // SMALL a relatively small number
 #define SMALL 0.001f
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -294,12 +296,18 @@ void TableAngleForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-//! Exports the TableAngleForceCompute class to python
-void export_TableAngleForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<TableAngleForceCompute, ForceCompute, std::shared_ptr<TableAngleForceCompute>>(
+//! Exports the TableAngleForceCompute class to python
+void export_TableAngleForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<TableAngleForceCompute, ForceCompute, std::shared_ptr<TableAngleForceCompute>>(
         m,
         "TableAngleForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
         .def("setTable", &TableAngleForceCompute::setTable);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

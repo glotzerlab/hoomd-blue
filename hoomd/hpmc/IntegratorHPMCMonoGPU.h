@@ -36,6 +36,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -2225,6 +2227,8 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateCellWidth()
         }
     }
 
+namespace detail
+    {
 //! Export this hpmc integrator to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
@@ -2243,6 +2247,8 @@ void export_IntegratorHPMCMonoGPU(pybind11::module& m, const std::string& name)
         ;
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP

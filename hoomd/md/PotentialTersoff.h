@@ -27,6 +27,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing three-body potentials
 /*! <b>Overview:</b>
     PotentialTersoff computes standard three-body potentials and forces between all particles in the
@@ -988,6 +992,8 @@ CommFlags PotentialTersoff<evaluator>::getRequestedCommFlags(uint64_t timestep)
     }
 #endif
 
+namespace detail
+    {
 //! Export this triplet potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialTersoff class template.
@@ -1001,5 +1007,9 @@ template<class T> void export_PotentialTersoff(pybind11::module& m, const std::s
         .def("setRCut", &T::setRCutPython)
         .def("getRCut", &T::getRCut);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

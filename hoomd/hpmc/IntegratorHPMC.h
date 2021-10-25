@@ -29,6 +29,8 @@
 #include "hoomd/GPUPartition.cuh"
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -428,6 +430,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     //! Prepare for the run
     virtual void prepRun(uint64_t timestep)
         {
+        Integrator::prepRun(timestep);
         m_past_first_run = true;
         }
 
@@ -491,9 +494,14 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     hpmc_counters_t m_count_step_start; //!< Count saved at the start of the last step
     };
 
+namespace detail
+    {
 //! Export the IntegratorHPMC class to python
 void export_IntegratorHPMC(pybind11::module& m);
 
+    } // end namespace detail
+
     } // end namespace hpmc
 
+    }      // end namespace hoomd
 #endif // _INTEGRATOR_HPMC_H_

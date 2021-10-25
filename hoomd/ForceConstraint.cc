@@ -5,14 +5,14 @@
 
 #include "ForceConstraint.h"
 
-namespace py = pybind11;
-
 using namespace std;
 
 /*! \file ForceConstraint.cc
     \brief Contains code for the ForceConstraint class
 */
 
+namespace hoomd
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceConstraint::ForceConstraint(std::shared_ptr<SystemDefinition> sysdef)
@@ -23,9 +23,15 @@ ForceConstraint::ForceConstraint(std::shared_ptr<SystemDefinition> sysdef)
 */
 void ForceConstraint::computeForces(uint64_t timestep) { }
 
-void export_ForceConstraint(py::module& m)
+namespace detail
     {
-    py::class_<ForceConstraint, ForceCompute, std::shared_ptr<ForceConstraint>>(m,
-                                                                                "ForceConstraint")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+void export_ForceConstraint(pybind11::module& m)
+    {
+    pybind11::class_<ForceConstraint, ForceCompute, std::shared_ptr<ForceConstraint>>(
+        m,
+        "ForceConstraint")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
+    } // end namespace detail
+
+    } // end namespace hoomd

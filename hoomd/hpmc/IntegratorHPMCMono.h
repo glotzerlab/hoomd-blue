@@ -44,6 +44,8 @@
 #include <pybind11/stl.h>
 #endif
 
+namespace hoomd {
+
 namespace hpmc
 {
 
@@ -264,7 +266,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             }
 
         //! Get the particle parameters
-        virtual std::vector<param_type, managed_allocator<param_type> >& getParams()
+        virtual std::vector<param_type, hoomd::detail::managed_allocator<param_type> >& getParams()
             {
             return m_params;
             }
@@ -417,7 +419,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual float computePatchEnergy(uint64_t timestep);
 
         //! Build the AABB tree (if needed)
-        const detail::AABBTree& buildAABBTree();
+        const hoomd::detail::AABBTree& buildAABBTree();
 
         //! Make list of image indices for boxes to check in small-box mode
         const std::vector<vec3<Scalar> >& updateImageList();
@@ -446,7 +448,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Method that is called to connect to the gsd write state signal
         bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
 
-        std::vector<std::string> getTypeShapeMapping(const std::vector<param_type, managed_allocator<param_type> > &params) const
+        std::vector<std::string> getTypeShapeMapping(const std::vector<param_type, hoomd::detail::managed_allocator<param_type> > &params) const
             {
             quat<Scalar> q(make_scalar4(1,0,0,0));
             std::vector<std::string> type_shape_mapping(params.size());
@@ -468,7 +470,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             }
 
     protected:
-        std::vector<param_type, managed_allocator<param_type> > m_params;   //!< Parameters for each particle type on GPU
+        std::vector<param_type, hoomd::detail::managed_allocator<param_type> > m_params;   //!< Parameters for each particle type on GPU
         GlobalArray<unsigned int> m_overlaps;          //!< Interaction matrix (0/1) for overlap checks
         detail::UpdateOrder m_update_order;         //!< Update order
         bool m_image_list_is_initialized;                    //!< true if image list has been used
@@ -481,8 +483,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
         bool m_hasOrientation;                               //!< true if there are any orientable particles in the system
 
         std::shared_ptr< ExternalFieldMono<Shape> > m_external;//!< External Field
-        detail::AABBTree m_aabb_tree;               //!< Bounding volume hierarchy for overlap checks
-        detail::AABB* m_aabbs;                      //!< list of AABBs, one per particle
+        hoomd::detail::AABBTree m_aabb_tree;               //!< Bounding volume hierarchy for overlap checks
+        hoomd::detail::AABB* m_aabbs;                      //!< list of AABBs, one per particle
         unsigned int m_aabbs_capacity;              //!< Capacity of m_aabbs list
         bool m_aabb_tree_invalid;                   //!< Flag if the aabb tree has been invalidated
 
@@ -545,9 +547,9 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
               m_ntrial(m_exec_conf)
     {
     // allocate the parameter storage, setting the managed flag
-    m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(),
+    m_params = std::vector<param_type, hoomd::detail::managed_allocator<param_type> >(m_pdata->getNTypes(),
                                                                        param_type(),
-                                                                       managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
+                                                                       hoomd::detail::managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
     m_overlap_idx = Index2D(m_pdata->getNTypes());
     GlobalArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
@@ -795,7 +797,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
             // subtract minimum AABB extent from search radius
             OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0),
                 r_cut_patch-getMinCoreDiameter()/(OverlapReal)2.0);
-            detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+            hoomd::detail::AABB aabb_i_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             // patch + field interaction deltaU
             double patch_field_energy_diff = 0;
@@ -806,7 +808,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
-                detail::AABB aabb = aabb_i_local;
+                hoomd::detail::AABB aabb = aabb_i_local;
                 aabb.translate(pos_i_image);
 
                 // stackless search
@@ -901,7 +903,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_i_image = pos_old + m_image_list[cur_image];
-                    detail::AABB aabb = aabb_i_local;
+                    hoomd::detail::AABB aabb = aabb_i_local;
                     aabb.translate(pos_i_image);
 
                     // stackless search
@@ -1004,7 +1006,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     }
 
                 // update the position of the particle in the tree for future updates
-                detail::AABB aabb = aabb_i_local;
+                hoomd::detail::AABB aabb = aabb_i_local;
                 aabb.translate(pos_i);
                 m_aabb_tree.update(i, aabb);
 
@@ -1125,13 +1127,13 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
         // Check particle against AABB tree for neighbors
-        detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+        hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
         const unsigned int n_images = (unsigned int)m_image_list.size();
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
             vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
-            detail::AABB aabb = aabb_i_local;
+            hoomd::detail::AABB aabb = aabb_i_local;
             aabb.translate(pos_i_image);
 
             // stackless search
@@ -1266,13 +1268,13 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
         // subtract minimum AABB extent from search radius
         OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0),
             r_cut-getMinCoreDiameter()/(OverlapReal)2.0);
-        detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+        hoomd::detail::AABB aabb_i_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
         const unsigned int n_images = (unsigned int)m_image_list.size();
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
             vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
-            detail::AABB aabb = aabb_i_local;
+            hoomd::detail::AABB aabb = aabb_i_local;
             aabb.translate(pos_i_image);
 
             // stackless search
@@ -1718,7 +1720,7 @@ void IntegratorHPMCMono<Shape>::growAABBList(unsigned int N)
         if (m_aabbs != NULL)
             free(m_aabbs);
 
-        int retval = posix_memalign((void**)&m_aabbs, 32, N*sizeof(detail::AABB));
+        int retval = posix_memalign((void**)&m_aabbs, 32, N*sizeof(hoomd::detail::AABB));
         if (retval != 0)
             {
             m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
@@ -1743,7 +1745,7 @@ void IntegratorHPMCMono<Shape>::growAABBList(unsigned int N)
     \returns A reference to the tree.
 */
 template <class Shape>
-const detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
+const hoomd::detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
     {
     if (m_aabb_tree_invalid)
         {
@@ -1771,7 +1773,7 @@ const detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
                         {
                         Scalar radius = std::max(0.5*shape.getCircumsphereDiameter(),
                             0.5*this->m_patch->getAdditiveCutoff(typ_i));
-                        m_aabbs[i] = detail::AABB(vec3<Scalar>(h_postype.data[i]), radius);
+                        m_aabbs[i] = hoomd::detail::AABB(vec3<Scalar>(h_postype.data[i]), radius);
                         }
                     }
                 m_aabb_tree.buildTree(m_aabbs, n_aabb);
@@ -1862,13 +1864,13 @@ std::vector<std::pair<unsigned int, unsigned int> > IntegratorHPMCMono<Shape>::m
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
         // Check particle against AABB tree for neighbors
-        detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+        hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
         const unsigned int n_images = (unsigned int)m_image_list.size();
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
             vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
-            detail::AABB aabb = aabb_i_local;
+            hoomd::detail::AABB aabb = aabb_i_local;
             aabb.translate(pos_i_image);
 
             // stackless search
@@ -1969,7 +1971,7 @@ int IntegratorHPMCMono<Shape>::slotWriteGSDState( gsd_handle& handle, std::strin
 template <class Shape>
 int IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec(gsd_handle& handle) const
     {
-    GSDShapeSpecWriter shapespec(m_exec_conf);
+    hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
     m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: " << shapespec.getName() << std::endl;
     int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
     return retval;
@@ -2087,8 +2089,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
     unsigned int ndim = this->m_sysdef->getNDimensions();
 
     Shape shape_old(quat<Scalar>(h_orientation[i]), this->m_params[typ_i]);
-    detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
-    detail::AABB aabb_i_local_old = shape_old.getAABB(vec3<Scalar>(0,0,0));
+    hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+    hoomd::detail::AABB aabb_i_local_old = shape_old.getAABB(vec3<Scalar>(0,0,0));
 
     #ifdef ENABLE_TBB
     std::vector< tbb::enumerable_thread_specific<hpmc_implicit_counters_t> >
@@ -2157,7 +2159,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             vec3<Scalar> upper = aabb_i_local_old.getUpper();
             lower.x -= d_dep_search; lower.y -= d_dep_search; lower.z -= d_dep_search;
             upper.x += d_dep_search; upper.y += d_dep_search; upper.z += d_dep_search;
-            detail::AABB aabb_local = detail::AABB(lower,upper);
+            hoomd::detail::AABB aabb_local = hoomd::detail::AABB(lower,upper);
 
             vec3<Scalar> pos_i_old(h_postype[i]);
 
@@ -2172,7 +2174,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_i_old_image = pos_i_old + this->m_image_list[cur_image];
-                detail::AABB aabb = aabb_local;
+                hoomd::detail::AABB aabb = aabb_local;
                 aabb.translate(pos_i_old_image);
 
                 // stackless search
@@ -2240,7 +2242,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             upper = aabb_i_local.getUpper();
             lower.x -= d_dep_search; lower.y -= d_dep_search; lower.z -= d_dep_search;
             upper.x += d_dep_search; upper.y += d_dep_search; upper.z += d_dep_search;
-            aabb_local = detail::AABB(lower,upper);
+            aabb_local = hoomd::detail::AABB(lower,upper);
 
             detail::OBB obb_i_new = shape_i.getOBB(pos_i);
             obb_i_new.lengths.x += r_dep_sample;
@@ -2251,7 +2253,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_i_image = pos_i + this->m_image_list[cur_image];
-                detail::AABB aabb = aabb_local;
+                hoomd::detail::AABB aabb = aabb_local;
                 aabb.translate(pos_i_image);
 
                 // stackless search
@@ -3068,6 +3070,8 @@ bool IntegratorHPMCMono<Shape>::attemptBoxResize(uint64_t timestep, const BoxDim
     return result;
     }
 
+namespace detail {
+
 //! Export the IntegratorHPMCMono class to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
@@ -3109,6 +3113,8 @@ inline void export_hpmc_implicit_counters(pybind11::module& m)
     ;
     }
 
+} // end namespace detail
 } // end namespace hpmc
+} // end namespace hoomd
 
 #endif // _INTEGRATOR_HPMC_MONO_H_

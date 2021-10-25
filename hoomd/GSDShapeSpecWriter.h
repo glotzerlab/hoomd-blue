@@ -10,8 +10,10 @@
 #include <iostream>
 #include <sstream>
 
-using namespace hoomd::detail;
-
+namespace hoomd
+    {
+namespace detail
+    {
 class GSDShapeSpecWriter
     {
     public:
@@ -72,4 +74,7 @@ class GSDShapeSpecWriter
     std::string m_field_name;
     };
 
+    } // end namespace detail
+
+    } // end namespace hoomd
 #endif

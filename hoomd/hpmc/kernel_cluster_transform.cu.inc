@@ -5,10 +5,14 @@
 
 //! This file, with a .cu ending, is auto-generated from the .cu.in template. Do not edit directly.
 
+// clang-format off
+
 //! A few defines to instantiate a kernel template
-#cmakedefine SHAPE @SHAPE@                 // the class name of the shape
-#cmakedefine SHAPE_INCLUDE @SHAPE_INCLUDE@ // the name of the include file
-#cmakedefine IS_UNION_SHAPE  // define to generate a kernel for a ShapeUnion<...>
+#cmakedefine SHAPE @SHAPE@                  // the class name of the shape
+#cmakedefine SHAPE_INCLUDE @SHAPE_INCLUDE@  // the name of the include file
+#cmakedefine IS_UNION_SHAPE                 // define to generate a kernel for a ShapeUnion<...>
+
+// clang-format on
 
 #define XSTR(x) #x
 #define STR(x) XSTR(x)
@@ -21,13 +25,16 @@
 #define SHAPE_CLASS(T) T
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
-{
-
+    {
 namespace gpu
-{
+    {
 //! Driver for kernel::transform_particles
-template void transform_particles<SHAPE_CLASS(SHAPE)>(const clusters_transform_args_t& args, const SHAPE_CLASS(SHAPE)::param_type *params);
-}
+template void transform_particles<SHAPE_CLASS(SHAPE)>(const clusters_transform_args_t& args,
+                                                      const SHAPE_CLASS(SHAPE)::param_type* params);
+    } // namespace gpu
 
-} // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd

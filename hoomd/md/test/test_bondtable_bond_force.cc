@@ -20,6 +20,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file harmonic_bond_force_test.cc
     \brief Implements unit tests for BondTablePotential and

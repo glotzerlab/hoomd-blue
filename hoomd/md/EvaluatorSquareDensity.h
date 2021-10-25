@@ -25,6 +25,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the SquareDensity three-body potential
 class EvaluatorSquareDensity
     {
@@ -216,5 +220,8 @@ class EvaluatorSquareDensity
     Scalar A;      //!< center of harmonic potential
     Scalar B;      //!< repulsion parameter
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

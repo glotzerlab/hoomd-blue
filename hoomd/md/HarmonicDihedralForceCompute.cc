@@ -5,8 +5,6 @@
 
 #include "HarmonicDihedralForceCompute.h"
 
-namespace py = pybind11;
-
 #include <iostream>
 #include <math.h>
 #include <sstream>
@@ -21,6 +19,10 @@ using namespace std;
     \brief Contains code for the HarmonicDihedralForceCompute class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
@@ -366,12 +368,19 @@ void HarmonicDihedralForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-void export_HarmonicDihedralForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<HarmonicDihedralForceCompute,
-               ForceCompute,
-               std::shared_ptr<HarmonicDihedralForceCompute>>(m, "HarmonicDihedralForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_HarmonicDihedralForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<HarmonicDihedralForceCompute,
+                     ForceCompute,
+                     std::shared_ptr<HarmonicDihedralForceCompute>>(m,
+                                                                    "HarmonicDihedralForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &HarmonicDihedralForceCompute::setParamsPython)
         .def("getParams", &HarmonicDihedralForceCompute::getParams);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

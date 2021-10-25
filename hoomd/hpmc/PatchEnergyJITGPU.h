@@ -11,6 +11,10 @@
 
 #include "hoomd/Autotuner.h"
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Evaluate patch energies via runtime generated code, GPU version
 class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
     {
@@ -83,6 +87,8 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
     GPUEvalFactory m_gpu_factory; //!< JIT implementation
     };
 
+namespace detail
+    {
 //! Exports the PatchEnergyJIT class to python
 inline void export_PatchEnergyJITGPU(pybind11::module& m)
     {
@@ -101,5 +107,9 @@ inline void export_PatchEnergyJITGPU(pybind11::module& m)
                             const std::string&,
                             unsigned int>());
     }
+
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif
 #endif // _PATCH_ENERGY_JIT_GPU_H_

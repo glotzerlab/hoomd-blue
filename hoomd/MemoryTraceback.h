@@ -15,6 +15,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 class PYBIND11_EXPORT MemoryTraceback
     {
     public:
@@ -50,3 +52,5 @@ class PYBIND11_EXPORT MemoryTraceback
     mutable std::map<std::pair<const void*, size_t>, std::string>
         m_tags; //!< Tags of memory allocations
     };
+
+    } // end namespace hoomd

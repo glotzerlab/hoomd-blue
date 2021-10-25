@@ -38,4 +38,4 @@ __device__ inline double4 __ldg(const double4* ptr)
     }
 #endif
 
-#endif // __HOOMD_MATH_H__
+#endif

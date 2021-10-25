@@ -19,6 +19,10 @@
 #include <nvrtc.h>
 #endif
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 void GPUEvalFactory::compileGPU(const std::string& code,
                                 const std::string& kernel_name,
                                 const std::vector<std::string>& options,
@@ -72,4 +76,7 @@ void GPUEvalFactory::compileGPU(const std::string& code,
 
 #endif
     }
+
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif

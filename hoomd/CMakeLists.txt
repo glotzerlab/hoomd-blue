@@ -1,7 +1,7 @@
 add_subdirectory(extern)
 
 # configure the version information file
-configure_file (HOOMDVersion.h.in ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h)
+configure_file (HOOMDVersion.h.inc ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h)
 
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include
@@ -62,7 +62,6 @@ set(_hoomd_sources Analyzer.cc
                    Autotuner.cc
                    BondedGroupData.cc
                    BoxResizeUpdater.cc
-                   CallbackAnalyzer.cc
                    CellList.cc
                    CellListStencil.cc
                    ClockSource.cc
@@ -131,7 +130,6 @@ set(_hoomd_headers
     BoxResizeUpdater.h
     UpdaterRemoveDrift.h
     CachedAllocator.h
-    CallbackAnalyzer.h
     CellListGPU.cuh
     CellListGPU.h
     CellList.h

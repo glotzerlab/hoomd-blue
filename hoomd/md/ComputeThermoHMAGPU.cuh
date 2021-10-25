@@ -17,6 +17,12 @@
     \brief Kernel driver function declarations for ComputeThermoHMAGPU
     */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Holder for arguments to gpu_compute_thermo
 struct compute_thermo_hma_args
     {
@@ -55,5 +61,9 @@ hipError_t gpu_compute_thermo_hma_final(Scalar* d_properties,
                                         unsigned int group_size,
                                         const BoxDim& box,
                                         const compute_thermo_hma_args& args);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

@@ -20,6 +20,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! External force field on MPCD particles.
@@ -179,7 +181,7 @@ void export_ExternalFieldPolymorph(pybind11::module& m);
 #endif // __HIPCC__
 
     } // end namespace mpcd
-
+    } // end namespace hoomd
 #undef HOSTDEVICE
 
 #endif // MPCD_EXTERNAL_FIELD_H_

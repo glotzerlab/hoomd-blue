@@ -108,6 +108,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
                         float *param_array{param_array_suffix};
                         {constituent_param_array}
 
+                        using namespace hoomd;
+
                         extern "C"
                         {{
                         float eval(const vec3<float>& r_ij,
@@ -145,6 +147,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
                         #include "hoomd/HOOMDMath.h"
                         #include "hoomd/VectorMath.h"
                         #include "hoomd/hpmc/IntegratorHPMCMonoGPUJIT.inc"
+
+                        using namespace hoomd;
 
                         // param_array (singlet class) or param_array_isotropic
                         // and param_array_constituent (union class) are

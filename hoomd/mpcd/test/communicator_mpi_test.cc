@@ -17,6 +17,7 @@
 #include <functional>
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
 typedef std::function<std::shared_ptr<mpcd::Communicator>(

@@ -41,7 +41,6 @@ namespace hoomd
 class BuildInfo
     {
     public:
-
     /// Return the version as a string
     static std::string getVersion();
 

@@ -13,6 +13,8 @@
 
 #include <cstdint>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -401,3 +403,4 @@ __launch_bounds__(max_threads) __global__
     } // end namespace gpu
 
     } // end namespace hpmc
+    } // end namespace hoomd

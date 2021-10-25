@@ -13,13 +13,16 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
 using namespace std;
 
 /*! \file TwoStepNVTMTKGPU.h
     \brief Contains code for the TwoStepNVTMTKGPU class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param thermo compute for thermodynamic quantities
@@ -100,17 +103,17 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
 
         // perform the update on the GPU
         m_tuner_one->begin();
-        gpu_nvt_mtk_step_one(d_pos.data,
-                             d_vel.data,
-                             d_accel.data,
-                             d_image.data,
-                             d_index_array.data,
-                             group_size,
-                             box,
-                             m_tuner_one->getParam(),
-                             m_exp_thermo_fac,
-                             m_deltaT,
-                             m_group->getGPUPartition());
+        kernel::gpu_nvt_mtk_step_one(d_pos.data,
+                                     d_vel.data,
+                                     d_accel.data,
+                                     d_image.data,
+                                     d_index_array.data,
+                                     group_size,
+                                     box,
+                                     m_tuner_one->getParam(),
+                                     m_exp_thermo_fac,
+                                     m_deltaT,
+                                     m_group->getGPUPartition());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -144,15 +147,15 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
 
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
-        gpu_nve_angular_step_one(d_orientation.data,
-                                 d_angmom.data,
-                                 d_inertia.data,
-                                 d_net_torque.data,
-                                 d_index_array.data,
-                                 m_group->getGPUPartition(),
-                                 m_deltaT,
-                                 exp_fac,
-                                 m_tuner_angular_one->getParam());
+        kernel::gpu_nve_angular_step_one(d_orientation.data,
+                                         d_angmom.data,
+                                         d_inertia.data,
+                                         d_net_torque.data,
+                                         d_index_array.data,
+                                         m_group->getGPUPartition(),
+                                         m_deltaT,
+                                         exp_fac,
+                                         m_tuner_angular_one->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -198,15 +201,15 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
 
         // perform the update on the GPU
         m_tuner_two->begin();
-        gpu_nvt_mtk_step_two(d_vel.data,
-                             d_accel.data,
-                             d_index_array.data,
-                             group_size,
-                             d_net_force.data,
-                             m_tuner_two->getParam(),
-                             m_deltaT,
-                             m_exp_thermo_fac,
-                             m_group->getGPUPartition());
+        kernel::gpu_nvt_mtk_step_two(d_vel.data,
+                                     d_accel.data,
+                                     d_index_array.data,
+                                     group_size,
+                                     d_net_force.data,
+                                     m_tuner_two->getParam(),
+                                     m_deltaT,
+                                     m_exp_thermo_fac,
+                                     m_group->getGPUPartition());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -237,15 +240,15 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
 
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
-        gpu_nve_angular_step_two(d_orientation.data,
-                                 d_angmom.data,
-                                 d_inertia.data,
-                                 d_net_torque.data,
-                                 d_index_array.data,
-                                 m_group->getGPUPartition(),
-                                 m_deltaT,
-                                 exp_fac,
-                                 m_tuner_angular_two->getParam());
+        kernel::gpu_nve_angular_step_two(d_orientation.data,
+                                         d_angmom.data,
+                                         d_inertia.data,
+                                         d_net_torque.data,
+                                         d_index_array.data,
+                                         m_group->getGPUPartition(),
+                                         m_deltaT,
+                                         exp_fac,
+                                         m_tuner_angular_two->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -258,14 +261,19 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_TwoStepNVTMTKGPU(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepNVTMTKGPU, TwoStepNVTMTK, std::shared_ptr<TwoStepNVTMTKGPU>>(
+void export_TwoStepNVTMTKGPU(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepNVTMTKGPU, TwoStepNVTMTK, std::shared_ptr<TwoStepNVTMTKGPU>>(
         m,
         "TwoStepNVTMTKGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<ComputeThermo>,
-                      Scalar,
-                      std::shared_ptr<Variant>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            std::shared_ptr<Variant>>());
     }
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

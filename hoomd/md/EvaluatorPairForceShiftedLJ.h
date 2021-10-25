@@ -30,6 +30,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the force shifted LJ pair potential
 /*! This evaluator is a variant of the Lennard-Jones pair potential, for which the force goes
    smoothly to zero at \f$ r = r_{\mathrm{cut}} \f$.
@@ -153,5 +157,8 @@ class EvaluatorPairForceShiftedLJ
     Scalar lj1;    //!< lj1 parameter extracted from the params passed to the constructor
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_FORCE_SHIFTED_LJ_H__

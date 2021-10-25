@@ -19,6 +19,10 @@
 
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! C'tor
 EvalFactory::EvalFactory(const std::string& cpp_code,
                          const std::vector<std::string>& compiler_args,
@@ -116,3 +120,6 @@ EvalFactory::EvalFactory(const std::string& cpp_code,
     /// 2) trying to use static_cast or reinterpret_cast gives compilation errors
     m_eval = (EvalFnPtr)(long unsigned int)(eval->getAddress());
     }
+
+    } // end namespace hpmc
+    } // end namespace hoomd
