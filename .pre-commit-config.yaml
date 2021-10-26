@@ -45,13 +45,10 @@ repos:
       (?x)(
         ^hoomd/md/wall.py|
         ^hoomd/md/impropers.py|
-        ^hoomd/hpmc/analyze.py|
-        ^hoomd/hpmc/field.py|
         ^hoomd/extern/|
         ^hoomd/mpcd/|
         ^hoomd/dem/|
-        ^hoomd/metal/|
-        ^doc/dev/
+        ^hoomd/metal/
       )
 - repo: https://github.com/glotzerlab/pre-commit-clang-format
   rev: v1.1.0
