@@ -14,7 +14,7 @@
 #include "BondedGroupData.h"
 #include "MeshGroupData.h"
 #include "IntegratorData.h"
-#include "ParticleData.h"
+#include "SystemDefinition.h"
 
 #include <memory>
 #include <pybind11/pybind11.h>
@@ -34,21 +34,15 @@ class Communicator;
 
     <b>Background and intended usage</b>
 
-    The data structure stored in MeshDefinition is all the MeshData.These will need access to
-    information such as the number of particles in the system or potentially some of the
-    per-particle data. To facilitate this,
+    The data structure stored in MeshDefinition is all the bonds and triangles within a mesh.
+    These will need access to information such as the number of particles in the system or
+    potentially some of the per-particle data to allow for dynamic bonding and meshes.
 
     More generally, any data structure class in MeshDefinition can potentially reference any
    other, simply by giving the shared pointer to the referenced class to the constructor of the one
    that needs to refer to it. Note that using this setup, there can be no circular references. This
    is a \b good \b thing ^TM, as it promotes good separation and isolation of the various classes
    responsibilities.
-
-    In rare circumstances, a references back really is required (i.e. notification of referring
-   classes when ParticleData resorts particles). Any event based notifications of such should be
-   managed with Nano::Signal. Any ongoing references where two data structure classes are so
-   interwoven that they must constantly refer to each other should be avoided (consider merging them
-   into one class).
 
     <b>Initializing</b>
 
@@ -66,7 +60,7 @@ class PYBIND11_EXPORT MeshDefinition
     //! Constructs a NULL MeshDefinition
     MeshDefinition();
     //! Constructs a MeshDefinition with a simply initialized ParticleData
-    MeshDefinition(std::shared_ptr<ParticleData> pdata);
+    MeshDefinition(std::shared_ptr<SystemDefinition> sysdef);
 
     //! Access the mesh triangle data defined for the simulation
     std::shared_ptr<MeshTriangleData> getMeshTriangleData()
@@ -86,15 +80,15 @@ class PYBIND11_EXPORT MeshDefinition
     void updateMeshData();
 
 
-    TriangleData::Snapshot triangle_data;             //!< The triangle data
-    Scalar m_mesh_energy;
+    TriangleData::Snapshot triangle_data;             //!< The triangle data accessible in python
+    Scalar m_mesh_energy;         //!< check if dynamic bonding has changed the mesh data
 
     private:
-    std::shared_ptr<ParticleData> m_particle_data;     //!< Particle data for the system
+    std::shared_ptr<SystemDefinition> m_sysdef;     //!< System definition later needed for dynamic bonding
     std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
-    Scalar m_mesh_energy_old;
-    bool m_data_changed;
+    Scalar m_mesh_energy_old;    //!< storing energy for dynamic bonding laster
+    bool m_data_changed;         //!< check if dynamic bonding has changed the mesh data
     };
 
 //! Exports MeshDefinition to python

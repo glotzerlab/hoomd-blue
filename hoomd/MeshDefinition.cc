@@ -25,15 +25,15 @@ MeshDefinition::MeshDefinition() { }
     \param n_triangle_types Number of triangle types to create
 
 */
-MeshDefinition::MeshDefinition(std::shared_ptr<ParticleData> pdata)
+MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef)
     {
 
-    m_particle_data = pdata;
+    m_sysdef = sysdef;
     m_data_changed = false;
     m_meshtriangle_data
-        = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, 1));
+        = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), 1));
     m_meshbond_data
-        = std::shared_ptr<MeshBondData>(new MeshBondData(m_particle_data, 1));
+        = std::shared_ptr<MeshBondData>(new MeshBondData(m_sysdef->getParticleData(), 1));
 
     m_mesh_energy = 0;
     m_mesh_energy_old = 0;
@@ -59,15 +59,15 @@ void MeshDefinition::updateTriangleData()
 //! Re-initialize the system from a snapshot
 void MeshDefinition::updateMeshData()
     {
-    m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, triangle_data));
-    m_meshbond_data = std::shared_ptr<MeshBondData>(new MeshBondData(m_particle_data, triangle_data));
+    m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), triangle_data));
+    m_meshbond_data = std::shared_ptr<MeshBondData>(new MeshBondData(m_sysdef->getParticleData(), triangle_data));
     }
 
 void export_MeshDefinition(py::module& m)
     {
     py::class_<MeshDefinition, std::shared_ptr<MeshDefinition>>(m, "MeshDefinition")
         .def(py::init<>())
-        .def(py::init<std::shared_ptr<ParticleData> >())
+        .def(py::init<std::shared_ptr<SystemDefinition> >())
         .def("getMeshTriangleData", &MeshDefinition::getMeshTriangleData)
         .def("getMeshBondData", &MeshDefinition::getMeshBondData)
         .def("getBondData", &MeshDefinition::getBondData)

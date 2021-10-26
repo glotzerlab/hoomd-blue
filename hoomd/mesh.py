@@ -29,7 +29,7 @@ class Mesh(_HOOMDBaseObject):
     def _attach(self):
 
         self._cpp_obj = _hoomd.MeshDefinition(
-            self._simulation.state._cpp_sys_def.getParticleData())
+            self._simulation.state._cpp_sys_def)
 
         if self._size != 0:
             self.size = self._size
@@ -115,10 +115,11 @@ class Mesh(_HOOMDBaseObject):
     @triangles.setter
     def triangles(self, triag):
 
-        self._triangles = triag
         if self._attached:
             self._cpp_obj.triangles.group[:] = triag
             self._update_mesh()
+        else:
+            self._triangles = triag
 
     @log(category='sequence', requires_run=True)
     def bonds(self):
