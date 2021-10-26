@@ -26,6 +26,12 @@
 #ifndef __TWO_STEP_RATTLE_NVE_GPU_CUH__
 #define __TWO_STEP_RATTLE_NVE_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_rattle_nve_step_one(Scalar4* d_pos,
                                    Scalar4* d_vel,
                                    const Scalar3* d_accel,
@@ -459,5 +465,9 @@ hipError_t gpu_include_rattle_force_nve(const Scalar4* d_pos,
     }
 
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__TWO_STEP_RATTLE_NVE_GPU_CUH__

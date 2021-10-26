@@ -4,18 +4,31 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.10 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.10 (2021-10-25)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
-- ``hoomd.md.minimize.FIRE`` - MD integrator that minimized the system's potential energy.
-- AKMA and MD unit conversion factors to the documentation.
+- ``hoomd.md.minimize.FIRE`` - MD integrator that minimizes the system's potential energy.
+- Include example AKMA and MD unit conversion factors in the documentation.
+- ``BUILD_LLVM`` CMake option  (defaults off) to enable features that require LLVM.
+- ``hoomd.hpmc.pair.user.CPPPotential`` - user-defined pair potentials between particles in HPMC.
+- ``hoomd.hpmc.pair.user.CPPPotentialUnion`` - user-defined site-site pair potentials between shapes
+  in HPMC.
+- ``hoomd.hpmc.external.user.CPPExternalPotential`` - user-defined external potentials in HPMC.
+- Support user-defined pair potentials in HPMC on the GPU.
 
 *Changed*
 
+- Improved documentation.
 - Improved error messages when setting operation parameters.
-- Added note on dependencies for building the documentation.
+- Noted some dependencies of dependencies for building documentation.
+- [developers] Removed ``m_comm`` from most classes. Use ``m_sysdef->isDomainDecomposed()`` instead.
+- Add support for LLVM 12
+- ``ENABLE_LLVM=on`` requires the clang development libraries.
+- [breaking] Renamed the Integrator attribute ``aniso`` to ``integrate_rotational_dof`` and removed
+  the ``'auto'`` option. Users must now explicitly choose ``integrate_rotational_dof=True`` to
+  integrate the rotational degrees of freedom in the system.
 
 *Fixed*
 
@@ -23,10 +36,14 @@ v3.0.0-beta.10 (not yet released)
 - RATTLE integration methods execute on the GPU.
 - Include ``EvaluatorPairDLVO.h`` in the installation for plugins.
 - Bug in setting zero sized ``ManagedArrays``.
-
-*Deprecated*
+- Kernel launch errors when one process uses different GPU devices.
+- Race condition that lead to incorrect simulations with ``md.pair.Table``.
+- Bug where some particle filers would have 0 rotational degrees of freedom.
 
 *Removed*
+
+- The ``BUILD_JIT`` CMake option.
+- Support for LLVM <= 9.
 
 v3.0.0-beta.9 (2021-09-08)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -12,6 +12,12 @@
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel call for generating neighbor list on the GPU (Kepler optimized version)
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
     \param d_nlist Neighbor list data structure to write
@@ -812,3 +818,7 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
         }
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

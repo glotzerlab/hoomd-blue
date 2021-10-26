@@ -21,6 +21,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing mesh_bond potentials on the GPU
 
 /*!
@@ -185,6 +189,8 @@ void PotentialMeshBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
         this->m_prof->pop(this->m_exec_conf);
     }
 
+namespace detail
+    {
 //! Export this mesh_bond potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPairGPU class template.
@@ -197,6 +203,10 @@ void export_PotentialMeshBondGPU(pybind11::module& m, const std::string& name)
     pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<MeshDefinition> >());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __POTENTIAL_MESH_PAIR_GPU_H__

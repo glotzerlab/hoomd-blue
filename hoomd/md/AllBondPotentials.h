@@ -26,6 +26,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Bond potential force compute for harmonic forces
 typedef PotentialBond<EvaluatorBondHarmonic> PotentialBondHarmonic;
 //! Bond potential force compute for FENE forces
@@ -42,20 +46,23 @@ typedef PotentialMeshBond<EvaluatorBondTether> PotentialMeshBondTether;
 
 #ifdef ENABLE_HIP
 //! Bond potential force compute for harmonic forces on the GPU
-typedef PotentialBondGPU<EvaluatorBondHarmonic, gpu_compute_harmonic_forces>
+typedef PotentialBondGPU<EvaluatorBondHarmonic, kernel::gpu_compute_harmonic_forces>
     PotentialBondHarmonicGPU;
 //! Bond potential force compute for FENE forces on the GPU
-typedef PotentialBondGPU<EvaluatorBondFENE, gpu_compute_fene_forces> PotentialBondFENEGPU;
+typedef PotentialBondGPU<EvaluatorBondFENE, kernel::gpu_compute_fene_forces> PotentialBondFENEGPU;
 //! Bond potential force compute for Tethering forces on the GPU
-typedef PotentialBondGPU<EvaluatorBondTether, gpu_compute_tether_forces> PotentialBondTetherGPU;
+typedef PotentialBondGPU<EvaluatorBondTether, kernal::gpu_compute_tether_forces> PotentialBondTetherGPU;
 
 //! Mesh Bond potential force compute for harmonic forces on the GPU
-typedef PotentialMeshBondGPU<EvaluatorBondHarmonic, gpu_compute_harmonic_forces_mesh>
+typedef PotentialMeshBondGPU<EvaluatorBondHarmonic,  kernal::gpu_compute_harmonic_forces_mesh>
     PotentialMeshBondHarmonicGPU;
 //! Mesh Bond potential force compute for FENE forces on the GPU
-typedef PotentialMeshBondGPU<EvaluatorBondFENE, gpu_compute_fene_forces_mesh> PotentialMeshBondFENEGPU;
+typedef PotentialMeshBondGPU<EvaluatorBondFENE,  kernal::gpu_compute_fene_forces_mesh> PotentialMeshBondFENEGPU;
 //! Mesh Bond potential force compute for Tethering forces on the GPU
 typedef PotentialMeshBondGPU<EvaluatorBondTether, gpu_compute_tether_forces_mesh> PotentialMeshBondTetherGPU;
 #endif
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_POTENTIALS_H__

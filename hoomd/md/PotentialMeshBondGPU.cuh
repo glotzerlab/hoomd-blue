@@ -20,6 +20,12 @@
 #ifndef __POTENTIAL_MESH_BOND_GPU_CUH__
 #define __POTENTIAL_MESH_BOND_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Wraps arguments to gpu_cgbf
 struct mesh_bond_args_t
     {
@@ -287,5 +293,9 @@ hipError_t gpu_compute_mesh_bond_forces(const mesh_bond_args_t& mesh_bond_args,
     return hipSuccess;
     }
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_MESH_BOND_GPU_CUH__

@@ -14,10 +14,12 @@
 #include <thrust/sort.h>
 #pragma GCC diagnostic pop
 
-/*! \file BondedGroupData.cu
+/*! \file MeshGroupData.cu
     \brief Implements the helper functions (GPU version) for updating the GPU bonded group tables
 */
 
+namespace hoomd
+    {
 template<unsigned int group_size, typename group_t>
 __global__ void gpu_count_mesh_kernel(const unsigned int n_groups,
                                         const group_t* d_group_table,
@@ -211,7 +213,7 @@ void gpu_update_mesh_table(const unsigned int n_groups,
  * Explicit template instantiations
  */
 
-//! DihedralData and ImproperData
+//! MeshBondData and MeshTriangleData
 template void gpu_update_mesh_table<4>(const unsigned int n_groups,
                                         const unsigned int N,
                                         const union group_storage<4>* d_group_table,
@@ -246,3 +248,4 @@ template void gpu_update_mesh_table<6>(const unsigned int n_groups,
                                         unsigned int* d_scratch_idx,
                                         unsigned int* d_offsets,
                                         CachedAllocator& alloc);
+    } // end namespace hoomd

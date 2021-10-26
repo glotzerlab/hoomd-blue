@@ -21,7 +21,11 @@
 #ifndef __POTENTIALMESHBOND_H__
 #define __POTENTIALMESHBOND_H__
 
-/*! Bond potential with evaluator support
+namespace hoomd
+    {
+namespace md
+    {
+/*! Mesh bond potential with evaluator support
 
     \ingroup computes
 */
@@ -336,6 +340,8 @@ CommFlags PotentialMeshBond<evaluator>::getRequestedCommFlags(uint64_t timestep)
     }
 #endif
 
+namespace detail
+    {
 //! Exports the PotentialMeshBond class to python
 /*! \param name Name of the class in the exported python module
     \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
@@ -347,5 +353,9 @@ template<class T> void export_PotentialMeshBond(pybind11::module& m, const std::
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

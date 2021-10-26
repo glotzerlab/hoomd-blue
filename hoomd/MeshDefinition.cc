@@ -13,32 +13,31 @@
 #include "Communicator.h"
 #endif
 
-namespace py = pybind11;
-
 using namespace std;
 
+namespace hoomd
+    {
 /*! \post All shared pointers contained in MeshDefinition are NULL
  */
 MeshDefinition::MeshDefinition() { }
 
-/*! \param N Number of particles to allocate
-    \param n_triangle_types Number of triangle types to create
-
+/*! \param sysdef Simulation system
 */
-MeshDefinition::MeshDefinition(std::shared_ptr<ParticleData> pdata)
+MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef)
     {
 
-    m_particle_data = pdata;
+    m_sysdef = sysdef;
     m_data_changed = false;
     m_meshtriangle_data
-        = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, 1));
+        = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), 1));
     m_meshbond_data
-        = std::shared_ptr<MeshBondData>(new MeshBondData(m_particle_data, 1));
+        = std::shared_ptr<MeshBondData>(new MeshBondData(m_sysdef->getParticleData(), 1));
 
     m_mesh_energy = 0;
     m_mesh_energy_old = 0;
     }
 
+//! Bond array getter
 BondData::Snapshot MeshDefinition::getBondData()
     {
     BondData::Snapshot bond_data;
@@ -46,7 +45,7 @@ BondData::Snapshot MeshDefinition::getBondData()
     return bond_data;
     }
 
-//! Re-initialize the system from a snapshot
+//! Update triangle data to make it accessible for python
 void MeshDefinition::updateTriangleData()
     {
     if(m_data_changed)
@@ -56,18 +55,20 @@ void MeshDefinition::updateTriangleData()
 	 }
     }
 
-//! Re-initialize the system from a snapshot
+//! Update data from snapshot
 void MeshDefinition::updateMeshData()
     {
-    m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_particle_data, triangle_data));
-    m_meshbond_data = std::shared_ptr<MeshBondData>(new MeshBondData(m_particle_data, triangle_data));
+    m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), triangle_data));
+    m_meshbond_data = std::shared_ptr<MeshBondData>(new MeshBondData(m_sysdef->getParticleData(), triangle_data));
     }
 
-void export_MeshDefinition(py::module& m)
+namespace detail
     {
-    py::class_<MeshDefinition, std::shared_ptr<MeshDefinition>>(m, "MeshDefinition")
-        .def(py::init<>())
-        .def(py::init<std::shared_ptr<ParticleData> >())
+void export_MeshDefinition(pybind11::module& m)
+    {
+    pybind11::class_<MeshDefinition, std::shared_ptr<MeshDefinition>>(m, "MeshDefinition")
+        .def(pybind11::init<>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition> >())
         .def("getMeshTriangleData", &MeshDefinition::getMeshTriangleData)
         .def("getMeshBondData", &MeshDefinition::getMeshBondData)
         .def("getBondData", &MeshDefinition::getBondData)
@@ -76,3 +77,7 @@ void export_MeshDefinition(py::module& m)
         .def_readonly("triangles", &MeshDefinition::triangle_data)
         .def_readonly("mesh_energy", &MeshDefinition::m_mesh_energy);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

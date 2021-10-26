@@ -11,8 +11,14 @@
     \brief Declaration of CUDA kernels for ExampleUpdater
 */
 
-// A C API call to run a CUDA kernel is needed for ExampleUpdaterGPU to call
+namespace hoomd
+    {
+namespace kernel
+    {
 //! Zeros velocities on the GPU
-extern "C" hipError_t gpu_zero_velocities(Scalar4* d_vel, unsigned int N);
+hipError_t gpu_zero_velocities(Scalar4* d_vel, unsigned int N);
+
+    } // end namespace kernel
+    } // end namespace hoomd
 
 #endif // _EXAMPLE_UPDATER_CUH_

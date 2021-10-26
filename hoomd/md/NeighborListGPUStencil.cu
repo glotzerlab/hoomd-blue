@@ -14,6 +14,12 @@
    stencils
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel call for generating neighbor list on the GPU using multiple stencils (Kepler optimized
 //! version)
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
@@ -716,3 +722,7 @@ void gpu_compute_nlist_stencil_sort_types(unsigned int* d_pids,
         swap = (d_vals.selector == 1);
         }
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

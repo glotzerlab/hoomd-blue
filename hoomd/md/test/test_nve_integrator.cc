@@ -26,6 +26,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file nve_updater_test.cc
     \brief Implements unit tests for TwoStepNVE and descendants

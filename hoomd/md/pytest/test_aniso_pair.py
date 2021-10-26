@@ -40,7 +40,7 @@ def _equivalent_data_structures(struct_1, struct_2):
 
 
 def make_langevin_integrator(force):
-    integrator = md.Integrator(dt=0.005)
+    integrator = md.Integrator(dt=0.005, integrate_rotational_dof=True)
     integrator.forces.append(force)
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(), kT=1))
     return integrator
@@ -315,7 +315,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
                                                      len(snap.particles.types),
                                                      snap.particles.N)
     sim = simulation_factory(snap)
-    integrator = md.Integrator(dt=0.005)
+    integrator = md.Integrator(dt=0.005, integrate_rotational_dof=True)
     integrator.forces.append(pair_potential)
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(), kT=1))
     sim.operations.integrator = integrator

@@ -15,11 +15,13 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
-
 #include <iostream>
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
 */
@@ -316,10 +318,12 @@ void ComputeThermo::reduceProperties()
     }
 #endif
 
-void export_ComputeThermo(py::module& m)
+namespace detail
     {
-    py::class_<ComputeThermo, Compute, std::shared_ptr<ComputeThermo>>(m, "ComputeThermo")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
+void export_ComputeThermo(pybind11::module& m)
+    {
+    pybind11::class_<ComputeThermo, Compute, std::shared_ptr<ComputeThermo>>(m, "ComputeThermo")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
         .def_property_readonly("kinetic_temperature", &ComputeThermo::getTemperature)
         .def_property_readonly("pressure", &ComputeThermo::getPressure)
         .def_property_readonly("pressure_tensor", &ComputeThermo::getPressureTensorPython)
@@ -336,3 +340,7 @@ void export_ComputeThermo(py::module& m)
         .def_property_readonly("potential_energy", &ComputeThermo::getPotentialEnergy)
         .def_property_readonly("volume", &ComputeThermo::getVolume);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

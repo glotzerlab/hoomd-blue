@@ -477,9 +477,8 @@ def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
 
     sim = simulation_factory(snap)
 
-    sim.operations.integrator = hoomd.md.Integrator(0.005,
-                                                    methods=[npt],
-                                                    aniso=True)
+    sim.operations.integrator = hoomd.md.Integrator(
+        0.005, methods=[npt], integrate_rotational_dof=True)
     sim.run(0)
 
     npt.thermalize_thermostat_and_barostat_dof()
@@ -583,9 +582,8 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
         snap.particles.moment_inertia[:] = [[1, 1, 1], [2, 0, 0]]
 
     sim = simulation_factory(snap)
-    sim.operations.integrator = hoomd.md.Integrator(0.005,
-                                                    methods=[nvt],
-                                                    aniso=True)
+    sim.operations.integrator = hoomd.md.Integrator(
+        0.005, methods=[nvt], integrate_rotational_dof=True)
     sim.run(0)
 
     nvt.thermalize_thermostat_dof()

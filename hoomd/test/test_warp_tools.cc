@@ -13,6 +13,10 @@
 #include "hoomd/GPUArray.h"
 
 #include "upp11_config.h"
+
+using namespace hoomd;
+using namespace hoomd::test;
+
 HOOMD_UP_MAIN();
 
 //! Runs the warp reduce tests using different number of threads per row.

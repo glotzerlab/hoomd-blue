@@ -11,6 +11,10 @@
     \brief Data structures common to both CPU and GPU implementations of ComputeThermo
     */
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Enum for indexing the GPUArray of computed values
 struct thermo_index
     {
@@ -42,4 +46,7 @@ struct PressureTensor
     Scalar yz; //!< yz component
     Scalar zz; //!< zz component
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 #endif

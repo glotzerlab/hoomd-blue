@@ -28,6 +28,12 @@
   DEM3DForceComputeGPU.
 */
 
+namespace hoomd
+    {
+namespace dem
+    {
+namespace kernel
+    {
 //! Kernel for calculating 3D DEM forces
 /*! This kernel is called to calculate the DEM forces for all N particles.
 
@@ -649,4 +655,6 @@ hipError_t gpu_compute_dem3d_forces(Scalar4* d_force,
     return hipSuccess;
     }
 
-// vim:syntax=cpp
+    } // end namespace kernel
+    } // end namespace dem
+    } // end namespace hoomd

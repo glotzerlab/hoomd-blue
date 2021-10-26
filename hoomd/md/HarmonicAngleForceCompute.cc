@@ -5,8 +5,6 @@
 
 #include "HarmonicAngleForceCompute.h"
 
-namespace py = pybind11;
-
 #include <iostream>
 #include <math.h>
 #include <sstream>
@@ -21,6 +19,10 @@ using namespace std;
     \brief Contains code for the HarmonicAngleForceCompute class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
@@ -273,12 +275,18 @@ void HarmonicAngleForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-void export_HarmonicAngleForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<HarmonicAngleForceCompute, ForceCompute, std::shared_ptr<HarmonicAngleForceCompute>>(
-        m,
-        "HarmonicAngleForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_HarmonicAngleForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<HarmonicAngleForceCompute,
+                     ForceCompute,
+                     std::shared_ptr<HarmonicAngleForceCompute>>(m, "HarmonicAngleForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &HarmonicAngleForceCompute::setParamsPython)
         .def("getParams", &HarmonicAngleForceCompute::getParams);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

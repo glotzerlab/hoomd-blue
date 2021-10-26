@@ -19,6 +19,12 @@
    TableDihedralForceComputeGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 /*!  This kernel is called to calculate the table dihedral forces on all triples this is defined or
 
     \param d_force Device memory to write computed forces
@@ -364,4 +370,6 @@ hipError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
     return hipSuccess;
     }
 
-// vim:syntax=cpp
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

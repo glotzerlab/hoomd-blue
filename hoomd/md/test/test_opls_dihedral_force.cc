@@ -21,6 +21,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();

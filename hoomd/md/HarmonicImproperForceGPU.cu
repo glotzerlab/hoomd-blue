@@ -12,6 +12,12 @@
 // SMALL a relatively small number
 #define SMALL Scalar(0.001)
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 /*! \file HarmonicImproperForceGPU.cu
     \brief Defines GPU kernel code for calculating the harmonic improper forces. Used by
    HarmonicImproperForceComputeGPU.
@@ -30,18 +36,17 @@
     \param pitch Pitch of 2D dihedral list
     \param n_dihedrals_list List of numbers of dihedrals per atom
 */
-extern "C" __global__ void
-gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
-                                            Scalar* d_virial,
-                                            const size_t virial_pitch,
-                                            unsigned int N,
-                                            const Scalar4* d_pos,
-                                            const Scalar2* d_params,
-                                            BoxDim box,
-                                            const group_storage<4>* tlist,
-                                            const unsigned int* dihedral_ABCD,
-                                            const unsigned int pitch,
-                                            const unsigned int* n_dihedrals_list)
+__global__ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
+                                                            Scalar* d_virial,
+                                                            const size_t virial_pitch,
+                                                            unsigned int N,
+                                                            const Scalar4* d_pos,
+                                                            const Scalar2* d_params,
+                                                            BoxDim box,
+                                                            const group_storage<4>* tlist,
+                                                            const unsigned int* dihedral_ABCD,
+                                                            const unsigned int pitch,
+                                                            const unsigned int* n_dihedrals_list)
 
     {
     // start by identifying which particle we are to handle
@@ -333,3 +338,7 @@ hipError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

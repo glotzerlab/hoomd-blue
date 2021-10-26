@@ -12,6 +12,12 @@
 #include "EvaluatorBondHarmonic.h"
 #include "EvaluatorBondTether.h"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_compute_harmonic_forces(const bond_args_t& bond_args,
                                        const harmonic_params* d_params,
                                        unsigned int* d_flags)
@@ -53,3 +59,6 @@ hipError_t gpu_compute_tether_forces_mesh(const mesh_bond_args_t& mesh_bond_args
     {
     return gpu_compute_mesh_bond_forces<EvaluatorBondTether>(mesh_bond_args, d_params, d_flags);
     }
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

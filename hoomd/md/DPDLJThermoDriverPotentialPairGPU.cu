@@ -8,6 +8,12 @@
 #include "AllDriverPotentialPairGPU.cuh"
 #include "EvaluatorPairDPDLJThermo.h"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,
                                              const EvaluatorPairDPDLJThermo::param_type* d_params)
     {
@@ -19,3 +25,7 @@ hipError_t gpu_compute_dpdljthermo_forces(const pair_args_t& args,
     {
     return gpu_compute_pair_forces<EvaluatorPairDPDLJThermo>(args, d_params);
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

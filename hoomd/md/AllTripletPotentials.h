@@ -23,6 +23,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Three-body potential force compute for Tersoff forces
 typedef PotentialTersoff<EvaluatorTersoff> PotentialTripletTersoff;
 
@@ -34,14 +38,17 @@ typedef PotentialTersoff<EvaluatorRevCross> PotentialTripletRevCross;
 
 #ifdef ENABLE_HIP
 //! Three-body potential force compute for Tersoff forces on the GPU
-typedef PotentialTersoffGPU<EvaluatorTersoff, gpu_compute_tersoff_forces>
+typedef PotentialTersoffGPU<EvaluatorTersoff, kernel::gpu_compute_tersoff_forces>
     PotentialTripletTersoffGPU;
 //! Three-body potential force compute for Tersoff forces on the GPU
-typedef PotentialTersoffGPU<EvaluatorSquareDensity, gpu_compute_sq_density_forces>
+typedef PotentialTersoffGPU<EvaluatorSquareDensity, kernel::gpu_compute_sq_density_forces>
     PotentialTripletSquareDensityGPU;
 //! Three-body potential force compute for RevCross forces on the GPU
-typedef PotentialTersoffGPU<EvaluatorRevCross, gpu_compute_revcross_forces>
+typedef PotentialTersoffGPU<EvaluatorRevCross, kernel::gpu_compute_revcross_forces>
     PotentialTripletRevCrossGPU;
 #endif // ENABLE_HIP
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __TRIPLET_POTENTIALS_H__

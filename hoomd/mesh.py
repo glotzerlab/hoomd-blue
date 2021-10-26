@@ -13,9 +13,16 @@ import numpy as np
 class Mesh(_HOOMDBaseObject):
     """Data structure combining multiple particles into a mesh.
 
+    The mesh is defined by an array of triangles tht make up a
+    triangulated surface.
+
     Examples::
 
         mesh = mesh.Mesh()
+        mesh.size = 4
+        mesh.types = ["mesh"]
+        mesh.typeid = [0,0,0,0]
+        mesh.triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]]
 
     """
 
@@ -29,7 +36,7 @@ class Mesh(_HOOMDBaseObject):
     def _attach(self):
 
         self._cpp_obj = _hoomd.MeshDefinition(
-            self._simulation.state._cpp_sys_def.getParticleData())
+            self._simulation.state._cpp_sys_def)
 
         if self._size != 0:
             self.size = self._size
@@ -115,10 +122,11 @@ class Mesh(_HOOMDBaseObject):
     @triangles.setter
     def triangles(self, triag):
 
-        self._triangles = triag
         if self._attached:
             self._cpp_obj.triangles.group[:] = triag
             self._update_mesh()
+        else:
+            self._triangles = triag
 
     @log(category='sequence', requires_run=True)
     def bonds(self):
@@ -133,7 +141,7 @@ class Mesh(_HOOMDBaseObject):
 
     @log(requires_run=True)
     def energy(self):
-        """(Scalar): Surface energy of the mesh."""
+        """(float): Surface energy of the mesh."""
         return self._cpp_obj.mesh_energy
 
     def _update_mesh(self):

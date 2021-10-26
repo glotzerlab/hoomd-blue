@@ -24,6 +24,10 @@
 #include <Eigen/Dense>
 #include <Eigen/SparseLU>
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Implements a pairwise distance constraint using the algorithm of
 
     [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, “A Non-Iterative Matrix Method for
@@ -140,7 +144,13 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
                std::vector<Scalar>& length);
     };
 
+namespace detail
+    {
 //! Exports the ForceDistanceConstraint to python
 void export_ForceDistanceConstraint(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

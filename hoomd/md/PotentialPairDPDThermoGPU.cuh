@@ -20,6 +20,12 @@
 #endif // __HIPCC__
 #include <cassert>
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 // currently this is hardcoded, we should set it to the max of platforms
 #if defined(__HIP_PLATFORM_NVCC__)
 const int gpu_dpd_pair_force_max_tpp = 32;
@@ -490,5 +496,9 @@ hipError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
     return hipSuccess;
     }
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_CUH__

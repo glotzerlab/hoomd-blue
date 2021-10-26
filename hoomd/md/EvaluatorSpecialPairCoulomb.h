@@ -30,6 +30,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 struct special_coulomb_params
     {
     Scalar alpha;
@@ -152,5 +156,8 @@ class EvaluatorSpecialPairCoulomb
     Scalar scale;  //!< scaling factor to apply to Coulomb interaction
     Scalar rcutsq; //!< Stored rcutsq from the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_COULOMB_H__

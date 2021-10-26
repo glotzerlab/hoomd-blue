@@ -4,7 +4,6 @@
 #include "MuellerPlatheFlowGPU.h"
 #include "hoomd/HOOMDMPI.h"
 
-namespace py = pybind11;
 using namespace std;
 
 //! \file MuellerPlatheFlowGPU.cc Implementation of GPU version of MuellerPlatheFlow.
@@ -12,6 +11,10 @@ using namespace std;
 #ifdef ENABLE_HIP
 #include "MuellerPlatheFlowGPU.cuh"
 
+namespace hoomd
+    {
+namespace md
+    {
 MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
                                            std::shared_ptr<ParticleGroup> group,
                                            std::shared_ptr<Variant> flow_target,
@@ -83,23 +86,23 @@ void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
     const BoxDim& gl_box = m_pdata->getGlobalBox();
 
     m_tuner->begin();
-    gpu_search_min_max_velocity(group_size,
-                                d_vel.data,
-                                d_pos.data,
-                                d_tag.data,
-                                d_rtag.data,
-                                d_group_members.data,
-                                gl_box,
-                                this->getNSlabs(),
-                                this->getMaxSlab(),
-                                this->getMinSlab(),
-                                &m_last_max_vel,
-                                &m_last_min_vel,
-                                this->hasMaxSlab(),
-                                this->hasMinSlab(),
-                                m_tuner->getParam(),
-                                m_flow_direction,
-                                m_slab_direction);
+    kernel::gpu_search_min_max_velocity(group_size,
+                                        d_vel.data,
+                                        d_pos.data,
+                                        d_tag.data,
+                                        d_rtag.data,
+                                        d_group_members.data,
+                                        gl_box,
+                                        this->getNSlabs(),
+                                        this->getMaxSlab(),
+                                        this->getMinSlab(),
+                                        &m_last_max_vel,
+                                        &m_last_min_vel,
+                                        this->hasMaxSlab(),
+                                        this->hasMinSlab(),
+                                        m_tuner->getParam(),
+                                        m_flow_direction,
+                                        m_slab_direction);
     m_tuner->end();
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -120,12 +123,12 @@ void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
                                access_mode::readwrite);
     const unsigned int Ntotal = m_pdata->getN() + m_pdata->getNGhosts();
 
-    gpu_update_min_max_velocity(d_rtag.data,
-                                d_vel.data,
-                                Ntotal,
-                                m_last_max_vel,
-                                m_last_min_vel,
-                                m_flow_direction);
+    kernel::gpu_update_min_max_velocity(d_rtag.data,
+                                        d_vel.data,
+                                        Ntotal,
+                                        m_last_max_vel,
+                                        m_last_min_vel,
+                                        m_flow_direction);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -134,19 +137,26 @@ void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
         m_prof->pop();
     }
 
-void export_MuellerPlatheFlowGPU(py::module& m)
+namespace detail
     {
-    py::class_<MuellerPlatheFlowGPU, MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlowGPU>>(
-        m,
-        "MuellerPlatheFlowGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>,
-                      std::string,
-                      std::string,
-                      const unsigned int,
-                      const unsigned int,
-                      const unsigned int,
-                      Scalar>());
+void export_MuellerPlatheFlowGPU(pybind11::module& m)
+    {
+    pybind11::class_<MuellerPlatheFlowGPU,
+                     MuellerPlatheFlow,
+                     std::shared_ptr<MuellerPlatheFlowGPU>>(m, "MuellerPlatheFlowGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
+                            std::string,
+                            std::string,
+                            const unsigned int,
+                            const unsigned int,
+                            const unsigned int,
+                            Scalar>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif // ENABLE_HIP

@@ -23,6 +23,12 @@
     \brief Defines GPU kernel code for the composite particle integration on the GPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Calculates the body forces and torques by summing the constituent particle forces using a fixed
 //! sliding window size
 /*  Compute the force and torque sum on all bodies in the system from their constituent particles.
@@ -851,3 +857,7 @@ hipError_t gpu_find_rigid_centers(const unsigned int* d_body,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

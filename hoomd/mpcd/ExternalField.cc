@@ -11,17 +11,20 @@
 #include "ExternalField.h"
 #include "hoomd/GPUPolymorph.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace detail
     {
 void export_ExternalFieldPolymorph(pybind11::module& m)
     {
-    namespace py = pybind11;
     typedef hoomd::GPUPolymorph<mpcd::ExternalField> ExternalFieldPolymorph;
 
-    py::class_<ExternalFieldPolymorph, std::shared_ptr<ExternalFieldPolymorph>>(m, "ExternalField")
-        .def(py::init<std::shared_ptr<const ::ExecutionConfiguration>>())
+    pybind11::class_<ExternalFieldPolymorph, std::shared_ptr<ExternalFieldPolymorph>>(
+        m,
+        "ExternalField")
+        .def(pybind11::init<std::shared_ptr<const hoomd::ExecutionConfiguration>>())
         // each field needs to get at least one (factory) method
         .def("BlockForce",
              (void (ExternalFieldPolymorph::*)(Scalar, Scalar, Scalar))
@@ -36,3 +39,4 @@ void export_ExternalFieldPolymorph(pybind11::module& m)
 
     } // end namespace detail
     } // end namespace mpcd
+    } // end namespace hoomd

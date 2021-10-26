@@ -44,6 +44,8 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
 #include <string>
 #include <vector>
 
+namespace hoomd
+    {
 //! Storage data type for group members
 /*! We use a union to emphasize it that can contain either particle
  * tags or particle indices or other information */
@@ -71,12 +73,14 @@ template<unsigned int group_size> struct packed_storage
     };
 #endif
 
+    } // end namespace hoomd
+
 #ifdef ENABLE_MPI
 namespace cereal
     {
 //! Serialization functions for group data types
 //! Serialization of typeval_union
-template<class Archive> void serialize(Archive& ar, typeval_t& t, const unsigned int version)
+template<class Archive> void serialize(Archive& ar, hoomd::typeval_t& t, const unsigned int version)
     {
     // serialize both members
     ar& t.val;
@@ -84,20 +88,23 @@ template<class Archive> void serialize(Archive& ar, typeval_t& t, const unsigned
     }
 
 //! Serialization of group_storage<2> (bonds)
-template<class Archive> void serialize(Archive& ar, group_storage<2>& s, const unsigned int version)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<2>& s, const unsigned int version)
     {
     ar& s.tag[0];
     ar& s.tag[1];
     }
-//! Serialization of group_storage<3> (angles and triagles)
-template<class Archive> void serialize(Archive& ar, group_storage<3>& s, const unsigned int version)
+//! Serialization of group_storage<3> (angles)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<3>& s, const unsigned int version)
     {
     ar& s.tag[0];
     ar& s.tag[1];
     ar& s.tag[2];
     }
-//! Serialization of group_storage<4> (dihedrals, impropers and meshbonds)
-template<class Archive> void serialize(Archive& ar, group_storage<4>& s, const unsigned int version)
+//! Serialization of group_storage<4> (dihedrals and impropers)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<4>& s, const unsigned int version)
     {
     ar& s.tag[0];
     ar& s.tag[1];
@@ -105,7 +112,8 @@ template<class Archive> void serialize(Archive& ar, group_storage<4>& s, const u
     ar& s.tag[3];
     }
 //! Serialization of group_storage<6> (meshtriangles)
-template<class Archive> void serialize(Archive& ar, group_storage<6>& s, const unsigned int version)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<6>& s, const unsigned int version)
     {
     ar& s.tag[0];
     ar& s.tag[1];
@@ -117,6 +125,8 @@ template<class Archive> void serialize(Archive& ar, group_storage<6>& s, const u
     } // namespace cereal
 #endif
 
+namespace hoomd
+    {
 /*! BondedGroupData is a generic storage class for small particle groups of fixed
  *  size N=2,3,4..., such as bonds, angles or dihedrals, which form part of a molecule.
  *
@@ -218,11 +228,11 @@ class BondedGroupData
          */
         void bcast(unsigned int root, MPI_Comm mpi_comm)
             {
-            ::bcast(type_id, root, mpi_comm);
-            ::bcast(val, root, mpi_comm);
-            ::bcast(groups, root, mpi_comm);
-            ::bcast(type_mapping, root, mpi_comm);
-            ::bcast(size, root, mpi_comm);
+            hoomd::bcast(type_id, root, mpi_comm);
+            hoomd::bcast(val, root, mpi_comm);
+            hoomd::bcast(groups, root, mpi_comm);
+            hoomd::bcast(type_mapping, root, mpi_comm);
+            hoomd::bcast(size, root, mpi_comm);
             }
 #endif
 
@@ -331,7 +341,6 @@ class BondedGroupData
 
         return types;
         }
-
 
     //! Rename a type
     void setTypeName(unsigned int type, const std::string& new_name);
@@ -662,7 +671,6 @@ class BondedGroupData
     GPUVector<unsigned int> m_group_tag_alt;  //!< List of group tags (swap-in)
 #ifdef ENABLE_MPI
     GPUVector<ranks_t> m_group_ranks_alt; //!< 2D list of group member ranks (swap-in)
-
 #endif
 
     unsigned int m_nglobal;                   //!< Global number of groups
@@ -715,12 +723,16 @@ class BondedGroupData
 #endif
     };
 
+namespace detail
+    {
 //! Exports BondData to python
 template<class T, class Group>
 void export_BondedGroupData(pybind11::module& m,
                             std::string name,
                             std::string snapshot_name,
                             bool export_struct = true);
+
+    } // end namespace detail
 
 /*!
  * Typedefs for template instantiations
@@ -804,7 +816,7 @@ struct MeshBond
      * \param _ta First triangle
      * \param _tb Second triangle
      */
-    MeshBond(unsigned int _type, unsigned int _a, unsigned int _b, int _ta, int _tb ) : type(_type), a(_a), b(_b), ta(_ta), tb(_tb) { }
+    MeshBond(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _ta, unsigned int _tb ) : type(_type), a(_a), b(_b), ta(_ta), tb(_tb) { }
 
     //! Constructor that takes a members_t (used internally by MeshBondData)
     /*! \param type
@@ -838,7 +850,7 @@ struct MeshBond
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<MeshBond>(m, "MeshBond")
-            .def(pybind11::init<unsigned int, unsigned int, unsigned int, int, int>())
+            .def(pybind11::init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
             .def_readonly("type", &MeshBond::type)
             .def_readonly("a", &MeshBond::a)
             .def_readonly("b", &MeshBond::b)
@@ -928,7 +940,7 @@ typedef BondedGroupData<3, Angle, name_angle_data> AngleData;
  */
 extern char name_triangle_data[];
 
-//! Definition of ImproperData
+//! Definition of TriangleData
 typedef BondedGroupData<3, Angle, name_triangle_data> TriangleData;
 
 
@@ -943,11 +955,15 @@ struct MeshTriangle
     typedef group_storage<6> members_t;
 
     //! Constructor
-    /*! \param type Type of triangle
-     * \param _a First dihedral member
-     * \param _b Second dihedral member
+    /*! \param type Type of meshtriangle
+     * \param _a First triangle member
+     * \param _b Second triangle member
+     * \param _c Third triangle member
+     * \param _ea First edge
+     * \param _eb Second edge
+     * \param _ec Third edge
      */
-    MeshTriangle(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c, int _ea, int _eb , int _ec)
+    MeshTriangle(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c, unsigned int _ea, unsigned int _eb , unsigned int _ec)
         : type(_type), a(_a), b(_b), c(_c), ea(_ea), eb(_eb), ec(_ec)
         {
         }
@@ -988,7 +1004,7 @@ struct MeshTriangle
         {
         pybind11::class_<MeshTriangle>(m, "MeshTriangle")
             .def(pybind11::
-                     init<unsigned int, unsigned int, unsigned int, unsigned int, int, int , int>())
+                     init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
             .def_readonly("type", &MeshTriangle::type)
             .def_readonly("a", &MeshTriangle::a)
             .def_readonly("b", &MeshTriangle::b)
@@ -1247,4 +1263,6 @@ template<class Output, class Data> void export_LocalGroupData(pybind11::module& 
         .def("enter", &LocalGroupData<Output, Data>::enter)
         .def("exit", &LocalGroupData<Output, Data>::exit);
     }
+
+    } // end namespace hoomd
 #endif

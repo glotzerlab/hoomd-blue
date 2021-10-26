@@ -14,6 +14,8 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 //! Test for basic MPCD sort functions
 template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
