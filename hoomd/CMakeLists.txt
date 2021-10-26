@@ -44,6 +44,12 @@ else()
     set(_mpcd_built "False")
 endif()
 
+if (ENABLE_LLVM)
+    set(_llvm_enabled "True")
+else()
+    set(_llvm_enabled "False")
+endif()
+
 configure_file (version_config.py.in ${HOOMD_BINARY_DIR}/hoomd/version_config.py)
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}
@@ -253,7 +259,13 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
 # ignore conversion warnings in quickull
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_COMPILER_IS_GNUCXX)
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9.0.0)
+        target_compile_options(quickhull PRIVATE "-Wno-conversion;-Wno-pessimizing-move")
+    else()
+        target_compile_options(quickhull PRIVATE "-Wno-conversion")
+    endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(quickhull PRIVATE "-Wno-conversion;-Wno-pessimizing-move")
 endif()
 
@@ -351,6 +363,7 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 # copy python modules to the build directory to make it a working python package
 set(files box.py
           communicator.py
+          _compile.py
           conftest.py
           device.py
           __init__.py
@@ -385,7 +398,6 @@ install(FILES ${_hoomd_headers}
 add_subdirectory(custom)
 add_subdirectory(data)
 add_subdirectory(filter)
-add_subdirectory(minimize)
 add_subdirectory(write)
 add_subdirectory(pytest)
 add_subdirectory(tune)
@@ -423,10 +435,6 @@ if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
     if (BUILD_MPCD)
         add_subdirectory(mpcd)
     endif()
-endif()
-
-if (BUILD_JIT)
-    add_subdirectory(jit)
 endif()
 
 foreach(entry ${PLUGINS})

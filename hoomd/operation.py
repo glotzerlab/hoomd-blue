@@ -239,10 +239,6 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
-        # pass the system communicator to the object
-        if self._simulation._system_communicator is not None:
-            self._cpp_obj.setCommunicator(self._simulation._system_communicator)
-
     @property
     def _attached(self):
         return self._cpp_obj is not None
@@ -275,9 +271,10 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         for typeparam in self._typeparam_dict.values():
             try:
                 typeparam._attach(cpp_obj, simulation)
-            except ValueError as verr:
-                raise ValueError("In TypeParameter {}:"
-                                 " ".format(typeparam.name) + verr.args[0])
+            except ValueError as err:
+                raise err.__class__(
+                    f"For {type(self)} in TypeParameter {typeparam.name} "
+                    f"{str(err)}")
 
     def _update_param_dict(self):
         for key in self._param_dict.keys():

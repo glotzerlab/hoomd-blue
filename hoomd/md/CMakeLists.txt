@@ -49,7 +49,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceCompute.h
                 ActiveForceConstraintCompute.h
                 ActiveForceConstraintComputeGPU.h
-		ActiveForceConstraintComputeGPU.cuh
+                ActiveForceConstraintComputeGPU.cuh
                 ActiveRotationalDiffusionUpdater.h
                 AlchemyData.h
                 AllAnisoPairPotentials.h
@@ -84,6 +84,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
+                EvaluatorPairDLVO.h
                 EvaluatorPairDPDLJThermo.h
                 EvaluatorPairDPDThermo.h
                 EvaluatorPairEwald.h
@@ -371,6 +372,7 @@ add_subdirectory(methods)
 add_subdirectory(long_range)
 
 add_subdirectory(external)
+add_subdirectory(minimize)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

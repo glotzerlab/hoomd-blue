@@ -2943,6 +2943,9 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     std::shared_ptr<Communicator> comm_1 = comm_creator_1(sysdef_1, decomposition_1);
     std::shared_ptr<Communicator> comm_2 = comm_creator_2(sysdef_2, decomposition_2);
 
+    sysdef_1->setCommunicator(comm_1);
+    sysdef_2->setCommunicator(comm_2);
+
     // width of ghost layer
     ghost_layer_width g(0.2);
     comm_1->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(
@@ -2989,9 +2992,6 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 
     comm_1->getCommFlagsRequestSignal().connect<comm_flag_request>();
     comm_2->getCommFlagsRequestSignal().connect<comm_flag_request>();
-
-    nve_up_1->setCommunicator(comm_1);
-    nve_up_2->setCommunicator(comm_2);
 
     nve_up_1->prepRun(0);
     nve_up_2->prepRun(0);

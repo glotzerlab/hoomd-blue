@@ -149,7 +149,6 @@ class __attribute__((visibility("default"))) GPUPartition
     private:
     unsigned int m_n_gpu;
     unsigned int* m_gpu_map;
-    unsigned int m_offset;
 
     std::pair<unsigned int, unsigned int>* m_gpu_range;
     };

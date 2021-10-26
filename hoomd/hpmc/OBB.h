@@ -22,10 +22,14 @@
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 
+#if defined(__clang__) || defined(__GNUC__) && __GNUC__ > 8
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpessimizing-move"
+#endif
 #include "hoomd/extern/quickhull/QuickHull.hpp"
+#if defined(__clang__) || defined(__GNUC__) && __GNUC__ > 8
 #pragma GCC diagnostic pop
+#endif
 
 #include <random>
 #endif

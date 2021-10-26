@@ -163,32 +163,11 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
     //! not)
     virtual void validateGroup();
 
-#ifdef ENABLE_MPI
-    //! Set the communicator to use
-    /*! \param comm MPI communication class
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        assert(comm);
-        m_comm = comm;
-        }
-#endif
-
     //! Set (an-)isotropic integration mode
     /*! \param aniso True if anisotropic integration is requested
      */
     void setAnisotropic(bool aniso)
         {
-        // warn if we are moving isotropic->anisotropic and we
-        // find no rotational degrees of freedom
-        if (!m_aniso && aniso && this->getRotationalDOF(m_group) == Scalar(0))
-            {
-            m_exec_conf->msg->warning() << "Integrator #" << m_integrator_id
-                                        << ": Anisotropic integration requested, but no rotational "
-                                           "degrees of freedom found for its group"
-                                        << std::endl;
-            }
-
         m_aniso = aniso;
         }
 
@@ -247,9 +226,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         m_valid_restart = b;
         }
 
-#ifdef ENABLE_MPI
-    std::shared_ptr<Communicator> m_comm; //!< The communicator to use for MPI
-#endif
     private:
     unsigned int m_integrator_id; //!< Registered integrator id to access the state variables
     bool m_valid_restart;         //!< True if the restart info was valid when loading

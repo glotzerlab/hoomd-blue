@@ -112,7 +112,7 @@ void mpcd::Integrator::update(uint64_t timestep)
 
 // MD communication / rigid body updates
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         m_comm->communicate(timestep + 1);
         }

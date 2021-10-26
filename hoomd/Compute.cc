@@ -122,9 +122,5 @@ void export_Compute(py::module& m)
         .def("compute", &Compute::compute)
         .def("benchmark", &Compute::benchmark)
         .def("setProfiler", &Compute::setProfiler)
-        .def("notifyDetach", &Compute::notifyDetach)
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &Compute::setCommunicator)
-#endif
-        ;
+        .def("notifyDetach", &Compute::notifyDetach);
     }
