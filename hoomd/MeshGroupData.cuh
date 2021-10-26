@@ -8,6 +8,7 @@
  */
 
 #include "CachedAllocator.h"
+#include "BondedGroupData.cuh"
 #include "HOOMDMath.h"
 
 #ifndef __MESH_GROUP_DATA_CUH__
@@ -15,41 +16,41 @@
 
 namespace hoomd
     {
-#ifdef __HIPCC__
+//#ifdef __HIPCC__
 //! Sentinel value
-const unsigned int GROUP_NOT_LOCAL = 0xffffffff;
+//const unsigned int GROUP_NOT_LOCAL = 0xffffffff;
 
 //! Storage for group members (GPU declaration)
-template<unsigned int group_size> union group_storage {
-    unsigned int tag[group_size]; // access 'tags'
-    unsigned int idx[group_size]; // access 'indices'
-    };
+//template<unsigned int group_size> union group_storage {
+//    unsigned int tag[group_size]; // access 'tags'
+//    unsigned int idx[group_size]; // access 'indices'
+//    };
 
 //! A union to allow storing a Scalar constraint value or a type integer (GPU declaration)
-union typeval_union {
-    unsigned int type;
-    Scalar val;
-    };
+//union typeval_union {
+//    unsigned int type;
+//    Scalar val;
+//    };
 
 //! Packed group entry for communication (GPU declaration)
-template<unsigned int group_size> struct packed_storage
-    {
-    group_storage<group_size> tags;  //!< Member tags
-    typeval_union typeval;           //!< Type or constraint value of bonded group
-    unsigned int group_tag;          //!< Tag of this group
-    group_storage<group_size> ranks; //!< Current list of member ranks
-    };
+//template<unsigned int group_size> struct packed_storage
+//    {
+//    group_storage<group_size> tags;  //!< Member tags
+//    typeval_union typeval;           //!< Type or constraint value of bonded group
+//    unsigned int group_tag;          //!< Tag of this group
+//    group_storage<group_size> ranks; //!< Current list of member ranks
+//    };
 
-#else
+//#else
 //! Forward declaration of group_storage
-template<unsigned int group_size> union group_storage;
+//template<unsigned int group_size> union group_storage;
 
 //! Forward declaration of packed_storage
-template<unsigned int group_size> struct packed_storage;
+//template<unsigned int group_size> struct packed_storage;
 
 //! Forward declaration of typeval union
-union typeval_union;
-#endif
+//union typeval_union;
+//#endif
 
 template<unsigned int group_size, typename group_t>
 void gpu_update_mesh_table(const unsigned int n_groups,

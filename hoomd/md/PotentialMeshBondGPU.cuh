@@ -9,7 +9,7 @@
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/TextureTools.h"
 
-#include "hoomd/BondedGroupData.cuh"
+#include "hoomd/MeshGroupData.cuh"
 
 #include <assert.h>
 
@@ -235,7 +235,6 @@ __global__ void gpu_compute_mesh_bond_forces_kernel(Scalar4* d_force,
         d_virial[i * virial_pitch + idx] = virial[i];
     }
 
-#include <iostream>
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
 /*! \param mesh_bond_args Other arguments to pass onto the kernel
     \param d_params Parameters for the potential, stored per mesh_bond type
