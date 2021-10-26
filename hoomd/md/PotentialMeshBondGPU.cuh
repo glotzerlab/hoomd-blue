@@ -245,7 +245,7 @@ __global__ void gpu_compute_mesh_bond_forces_kernel(Scalar4* d_force,
     This is just a driver function for gpu_compute_mesh_bond_forces_kernel(), see it for details.
 */
 template<class evaluator>
-hipError_t gpu_compute_mesh_bond_forces(const mesh_bond_args_t& mesh_bond_args,
+hipError_t gpu_compute_mesh_bond_forces(const kernel::mesh_bond_args_t& mesh_bond_args,
                                    const typename evaluator::param_type* d_params,
                                    unsigned int* d_flags)
     {

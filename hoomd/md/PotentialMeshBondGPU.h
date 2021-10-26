@@ -34,7 +34,7 @@ namespace md
     \sa export_PotentialMeshBondGPU()
 */
 template<class evaluator,
-         hipError_t gpu_cgbf(const mesh_bond_args_t& mesh_bond_args,
+         hipError_t gpu_cgbf(const kernel::mesh_bond_args_t& mesh_bond_args,
                              const typename evaluator::param_type* d_params,
                              unsigned int* d_flags)>
 class PotentialMeshBondGPU : public PotentialMeshBond<evaluator>
@@ -65,7 +65,7 @@ class PotentialMeshBondGPU : public PotentialMeshBond<evaluator>
     };
 
 template<class evaluator,
-         hipError_t gpu_cgbf(const mesh_bond_args_t& mesh_bond_args,
+         hipError_t gpu_cgbf(const kernel::mesh_bond_args_t& mesh_bond_args,
                              const typename evaluator::param_type* d_params,
                              unsigned int* d_flags)>
 PotentialMeshBondGPU<evaluator, gpu_cgbf>::PotentialMeshBondGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef)
@@ -99,7 +99,7 @@ PotentialMeshBondGPU<evaluator, gpu_cgbf>::PotentialMeshBondGPU(std::shared_ptr<
     }
 
 template<class evaluator,
-         hipError_t gpu_cgbf(const mesh_bond_args_t& mesh_bond_args,
+         hipError_t gpu_cgbf(const kernel::mesh_bond_args_t& mesh_bond_args,
                              const typename evaluator::param_type* d_params,
                              unsigned int* d_flags)>
 void PotentialMeshBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
@@ -149,7 +149,7 @@ void PotentialMeshBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
         this->m_tuner->begin();
-        gpu_cgbf(mesh_bond_args_t(d_force.data,
+        gpu_cgbf(kernel::mesh_bond_args_t(d_force.data,
                              d_virial.data,
                              this->m_virial.getPitch(),
                              this->m_pdata->getN(),
