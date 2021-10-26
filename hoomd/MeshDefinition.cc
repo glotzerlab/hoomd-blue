@@ -13,10 +13,10 @@
 #include "Communicator.h"
 #endif
 
-namespace py = pybind11;
-
 using namespace std;
 
+namespace hoomd
+    {
 /*! \post All shared pointers contained in MeshDefinition are NULL
  */
 MeshDefinition::MeshDefinition() { }
@@ -62,11 +62,13 @@ void MeshDefinition::updateMeshData()
     m_meshbond_data = std::shared_ptr<MeshBondData>(new MeshBondData(m_sysdef->getParticleData(), triangle_data));
     }
 
-void export_MeshDefinition(py::module& m)
+namespace detail
     {
-    py::class_<MeshDefinition, std::shared_ptr<MeshDefinition>>(m, "MeshDefinition")
-        .def(py::init<>())
-        .def(py::init<std::shared_ptr<SystemDefinition> >())
+void export_MeshDefinition(pybind11::module& m)
+    {
+    pybind11::class_<MeshDefinition, std::shared_ptr<MeshDefinition>>(m, "MeshDefinition")
+        .def(pybind11::init<>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition> >())
         .def("getMeshTriangleData", &MeshDefinition::getMeshTriangleData)
         .def("getMeshBondData", &MeshDefinition::getMeshBondData)
         .def("getBondData", &MeshDefinition::getBondData)
@@ -75,3 +77,7 @@ void export_MeshDefinition(py::module& m)
         .def_readonly("triangles", &MeshDefinition::triangle_data)
         .def_readonly("mesh_energy", &MeshDefinition::m_mesh_energy);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

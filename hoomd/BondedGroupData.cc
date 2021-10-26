@@ -1477,8 +1477,11 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTy
     }
 
 template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_bond_data>;
+template class PYBIND11_EXPORT BondedGroupData<4, MeshBond, name_meshbond_data>;
 template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
+template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_triangle_data>;
 template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_dihedral_data>;
+template class PYBIND11_EXPORT BondedGroupData<6, MeshTriangle, name_meshtriangle_data>;
 template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
 template class PYBIND11_EXPORT BondedGroupData<2, Constraint, name_constraint_data, false>;
 template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_pair_data>;
@@ -1490,38 +1493,32 @@ template void export_BondedGroupData<BondData, Bond>(pybind11::module& m,
                                                      std::string snapshot_name,
                                                      bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<4, MeshBond, name_meshbond_data>;
 template void export_BondedGroupData<BMeshBondData, MeshBond>(pybind11::module& m,
                                                      std::string name,
                                                      std::string snapshot_name,
                                                      bool export_struct);
 
 
-template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
 template void export_BondedGroupData<AngleData, Angle>(pybind11::module& m,
                                                        std::string name,
                                                        std::string snapshot_name,
                                                        bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_triangle_data>;
 template void export_BondedGroupData<TriangleData, Angle>(pybind11::module& m,
                                                        std::string name,
                                                        std::string snapshot_name,
                                                        bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_dihedral_data>;
 template void export_BondedGroupData<DihedralData, Dihedral>(pybind11::module& m,
                                                              std::string name,
                                                              std::string snapshot_name,
                                                              bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<6, MeshTriangle, name_meshtriangle_data>;
 template void export_BondedGroupData<BMeshTriangleData, MeshTriangle>(pybind11::module& m,
                                                        std::string name,
                                                        std::string snapshot_name,
                                                        bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
 template void export_BondedGroupData<ImproperData, Dihedral>(pybind11::module& m,
                                                              std::string name,
                                                              std::string snapshot_name,

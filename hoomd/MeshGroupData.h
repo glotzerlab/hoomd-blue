@@ -42,6 +42,8 @@
 #include <string>
 #include <vector>
 
+namespace hoomd
+    {
 /*! MeshGroupData is a generic storage class for mesh data as
  *   meshbonds and meshtriangles.
  *
@@ -89,12 +91,15 @@ class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
 
     };
 
+namespace detail
+    {
 //! Exports MeshBondData to python
 template<class T, class Group>
 void export_MeshGroupData(pybind11::module& m,
                             std::string name,
                             std::string snapshot_name,
                             bool export_struct = true);
+    } // end namespace detail
 
 /*!
  * Typedefs for template instantiations
@@ -107,4 +112,5 @@ typedef MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot, true>
 //! Definition of MeshTriangleData
 typedef MeshGroupData<6, MeshTriangle, name_meshtriangle_data, TriangleData::Snapshot, false> MeshTriangleData;
 
+    } // end namespace hoomd
 #endif

@@ -18,6 +18,8 @@
     \brief Implements the helper functions (GPU version) for updating the GPU bonded group tables
 */
 
+namespace hoomd
+    {
 template<unsigned int group_size, typename group_t>
 __global__ void gpu_count_mesh_kernel(const unsigned int n_groups,
                                         const group_t* d_group_table,
@@ -246,3 +248,4 @@ template void gpu_update_mesh_table<6>(const unsigned int n_groups,
                                         unsigned int* d_scratch_idx,
                                         unsigned int* d_offsets,
                                         CachedAllocator& alloc);
+    } // end namespace hoomd

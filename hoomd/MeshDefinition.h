@@ -22,6 +22,9 @@
 #ifndef __MESH_DEFINITION_H__
 #define __MESH_DEFINITION_H__
 
+
+namespace hoomd
+    {
 #ifdef ENABLE_MPI
 //! Forward declaration of Communicator
 class Communicator;
@@ -91,7 +94,13 @@ class PYBIND11_EXPORT MeshDefinition
     bool m_data_changed;         //!< check if dynamic bonding has changed the mesh data
     };
 
+namespace detail
+    {
 //! Exports MeshDefinition to python
 void export_MeshDefinition(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

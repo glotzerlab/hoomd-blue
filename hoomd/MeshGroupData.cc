@@ -20,8 +20,10 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
 
+
+namespace hoomd
+    {
 /*
  * Implementation of MeshGroupData methods
  */
@@ -760,8 +762,10 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
     }
 
 
+namespace detail
+    {
 template<class T, typename Group>
-void export_MeshGroupData(py::module& m,
+void export_MeshGroupData(pybind11::module& m,
                             std::string name,
                             std::string snapshot_name,
                             bool export_struct)
@@ -770,24 +774,30 @@ void export_MeshGroupData(py::module& m,
     if (export_struct)
         Group::export_to_python(m);
 
-    py::class_<T, std::shared_ptr<T>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<ParticleData>, unsigned int>())
-        .def(py::init<std::shared_ptr<ParticleData>, const typename TriangleData::Snapshot&>())
+    pybind11::class_<T, std::shared_ptr<T>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<ParticleData>, unsigned int>())
+        .def(pybind11::init<std::shared_ptr<ParticleData>, const typename TriangleData::Snapshot&>())
         .def("initializeFromSnapshot", &T::initializeFromSnapshot)
         .def("takeSnapshot", &T::takeSnapshot)
         .def("addBondedGroup", &T::addBondedGroup);
     }
 
+    } // end namespace detail
 
 
 template class PYBIND11_EXPORT MeshGroupData<6, MeshTriangle, name_meshtriangle_data, TriangleData::Snapshot, false>;
-template void export_MeshGroupData<MeshTriangleData, MeshTriangle>(py::module& m,
+template class PYBIND11_EXPORT MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot, true>;
+
+namespace detail
+    {
+template void export_MeshGroupData<MeshTriangleData, MeshTriangle>(pybind11::module& m,
                                                        std::string name,
                                                        std::string snapshot_name,
                                                        bool export_struct);
 
-template class PYBIND11_EXPORT MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot, true>;
-template void export_MeshGroupData<MeshBondData, MeshBond>(py::module& m,
+template void export_MeshGroupData<MeshBondData, MeshBond>(pybind11::module& m,
                                                      std::string name,
                                                      std::string snapshot_name,
                                                      bool export_struct);
+    } // end namespace detail
+    } // end namespace hoomd
