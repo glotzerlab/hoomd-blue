@@ -1,3 +1,4 @@
+import copy as cp
 import hoomd
 from hoomd.mesh import Mesh
 import numpy
@@ -95,3 +96,32 @@ def test_mesh_setter_attached(simulation_factory, dihedral_snapshot_factory):
     assert numpy.array_equal(mesh.typeid, numpy.array([0, 0]))
     assert numpy.array_equal(
         mesh.bonds, numpy.array([[0, 1], [1, 2], [2, 0], [2, 3], [3, 1]]))
+
+
+def test_auto_detach_simulation(simulation_factory, dihedral_snapshot_factory):
+    sim = simulation_factory(dihedral_snapshot_factory(d=0.969, L=5))
+    mesh = Mesh()
+    mesh.size = 2
+    mesh.types = ['meshbond']
+    mesh.typeid = [0, 0]
+    mesh.triangles = [[0, 1, 2], [0, 2, 3]]
+
+    harmonic = hoomd.md.mesh.bond.Harmonic(mesh)
+    harmonic.params['meshbond'] = dict(k=1, r0=1)
+
+    harmonic_2 = cp.deepcopy(harmonic)
+    harmonic_2.mesh = mesh
+
+    integrator = hoomd.md.Integrator(dt=0.005, forces=[harmonic, harmonic_2])
+
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All()))
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+    del integrator.forces[1]
+    assert mesh._attached
+    assert hasattr(mesh, "_cpp_obj")
+    del integrator.forces[0]
+    assert not mesh._attached
+    assert mesh._cpp_obj is None
