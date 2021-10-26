@@ -80,7 +80,7 @@ set(_hoomd_sources Analyzer.cc
                    IntegratorData.cc
                    LoadBalancer.cc
                    MeshGroupData.cc
-		   MeshDefinition.cc
+                   MeshDefinition.cc
                    Messenger.cc
                    MemoryTraceback.cc
                    MPIConfiguration.cc
@@ -217,7 +217,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       CommunicatorGPU.cu
                       Integrator.cu
                       LoadBalancerGPU.cu
-		      MeshGroupData.cu
+                      MeshGroupData.cu
                       ParticleData.cu
                       ParticleGroup.cu
                       SFCPackTunerGPU.cu)

@@ -23,11 +23,10 @@ using namespace std;
 namespace py = pybind11;
 
 /*
- * Implementation of BondedGroupData methods
+ * Implementation of MeshGroupData methods
  */
 
-/*! \param exec_conf Execution configuration
-    \param pdata The particle data to associate with
+/*! \param pdata The particle data to associate with
     \param n_group_types Number of bonded group types to initialize
  */
 template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
@@ -38,8 +37,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
     {
     };
 
-/*! \param exec_conf Execution configuration
-    \param pdata The particle data to associate with
+/*! \param pdata The particle data to associate with
     \param snapshot Snapshot to initialize from
  */
 template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
@@ -217,7 +215,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
         bcast(all_typeval, 0, this->m_exec_conf->getMPICommunicator());
         bcast(m_type_mapping, 0, this->m_exec_conf->getMPICommunicator());
 
-        // iterate over groups and add those that have local particles
 	if(bond)
 	    {
             for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
@@ -234,7 +231,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
         {
         this->m_type_mapping = snapshot.type_mapping;
 
-        // create bonded groups with types
 	if(bond)
 	    {
             typeval_t t;
@@ -259,7 +255,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
 template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
 unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(Group g)
     {
-    // we are changing the local number of groups, so remove ghosts
     this->removeAllGhostGroups();
 
     typeval_t typeval = g.get_typeval();

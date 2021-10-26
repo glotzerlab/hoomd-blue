@@ -14,7 +14,7 @@
 #include <thrust/sort.h>
 #pragma GCC diagnostic pop
 
-/*! \file BondedGroupData.cu
+/*! \file MeshGroupData.cu
     \brief Implements the helper functions (GPU version) for updating the GPU bonded group tables
 */
 
@@ -211,7 +211,7 @@ void gpu_update_mesh_table(const unsigned int n_groups,
  * Explicit template instantiations
  */
 
-//! DihedralData and ImproperData
+//! MeshBondData and MeshTriangleData
 template void gpu_update_mesh_table<4>(const unsigned int n_groups,
                                         const unsigned int N,
                                         const union group_storage<4>* d_group_table,

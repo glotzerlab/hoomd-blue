@@ -21,7 +21,7 @@
 #ifndef __POTENTIALMESHBOND_H__
 #define __POTENTIALMESHBOND_H__
 
-/*! Bond potential with evaluator support
+/*! Mesh bond potential with evaluator support
 
     \ingroup computes
 */

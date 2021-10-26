@@ -13,9 +13,16 @@ import numpy as np
 class Mesh(_HOOMDBaseObject):
     """Data structure combining multiple particles into a mesh.
 
+    The mesh is defined by an array of triangles tht make up a
+    triangulated surface.
+
     Examples::
 
         mesh = mesh.Mesh()
+        mesh.size = 4
+        mesh.types = ["mesh"]
+        mesh.typeid = [0,0,0,0]
+        mesh.triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]]
 
     """
 

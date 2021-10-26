@@ -27,8 +27,8 @@
 class Communicator;
 #endif
 
-//! Container class for all data needed to define the MD system
-/*! MeshDefinition is a big bucket where all of the data defining the MD system goes.
+//! Container class for all data needed to define a mesh system
+/*! MeshDefinition is a big bucket where all of the data for a mesh structure goes.
     Everything is stored as a shared pointer for quick and easy access from within C++
     and python without worrying about data management.
 

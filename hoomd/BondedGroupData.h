@@ -332,7 +332,6 @@ class BondedGroupData
         return types;
         }
 
-
     //! Rename a type
     void setTypeName(unsigned int type, const std::string& new_name);
 
@@ -662,7 +661,6 @@ class BondedGroupData
     GPUVector<unsigned int> m_group_tag_alt;  //!< List of group tags (swap-in)
 #ifdef ENABLE_MPI
     GPUVector<ranks_t> m_group_ranks_alt; //!< 2D list of group member ranks (swap-in)
-
 #endif
 
     unsigned int m_nglobal;                   //!< Global number of groups
@@ -804,7 +802,7 @@ struct MeshBond
      * \param _ta First triangle
      * \param _tb Second triangle
      */
-    MeshBond(unsigned int _type, unsigned int _a, unsigned int _b, int _ta, int _tb ) : type(_type), a(_a), b(_b), ta(_ta), tb(_tb) { }
+    MeshBond(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _ta, unsigned int _tb ) : type(_type), a(_a), b(_b), ta(_ta), tb(_tb) { }
 
     //! Constructor that takes a members_t (used internally by MeshBondData)
     /*! \param type
@@ -838,7 +836,7 @@ struct MeshBond
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<MeshBond>(m, "MeshBond")
-            .def(pybind11::init<unsigned int, unsigned int, unsigned int, int, int>())
+            .def(pybind11::init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
             .def_readonly("type", &MeshBond::type)
             .def_readonly("a", &MeshBond::a)
             .def_readonly("b", &MeshBond::b)
@@ -928,7 +926,7 @@ typedef BondedGroupData<3, Angle, name_angle_data> AngleData;
  */
 extern char name_triangle_data[];
 
-//! Definition of ImproperData
+//! Definition of TriangleData
 typedef BondedGroupData<3, Angle, name_triangle_data> TriangleData;
 
 
@@ -943,11 +941,15 @@ struct MeshTriangle
     typedef group_storage<6> members_t;
 
     //! Constructor
-    /*! \param type Type of triangle
-     * \param _a First dihedral member
-     * \param _b Second dihedral member
+    /*! \param type Type of meshtriangle
+     * \param _a First triangle member
+     * \param _b Second triangle member
+     * \param _c Third triangle member
+     * \param _ea First edge
+     * \param _eb Second edge
+     * \param _ec Third edge
      */
-    MeshTriangle(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c, int _ea, int _eb , int _ec)
+    MeshTriangle(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c, unsigned int _ea, unsigned int _eb , unsigned int _ec)
         : type(_type), a(_a), b(_b), c(_c), ea(_ea), eb(_eb), ec(_ec)
         {
         }
@@ -988,7 +990,7 @@ struct MeshTriangle
         {
         pybind11::class_<MeshTriangle>(m, "MeshTriangle")
             .def(pybind11::
-                     init<unsigned int, unsigned int, unsigned int, unsigned int, int, int , int>())
+                     init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
             .def_readonly("type", &MeshTriangle::type)
             .def_readonly("a", &MeshTriangle::a)
             .def_readonly("b", &MeshTriangle::b)

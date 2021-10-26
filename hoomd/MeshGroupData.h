@@ -42,11 +42,11 @@
 #include <string>
 #include <vector>
 
-/*! BondedGroupData is a generic storage class for small particle groups of fixed
- *  size N=2,3,4..., such as bonds, angles or dihedrals, which form part of a molecule.
+/*! MeshGroupData is a generic storage class for mesh data as
+ *   meshbonds and meshtriangles.
  *
  *  \tpp group_size Size of groups
- *  \tpp name Name of element, i.e. bond, angle, dihedral, ..
+ *  \tpp name Name of element, i.e. meshbond, meshtriangle.
  */
 template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
 class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
@@ -57,7 +57,7 @@ class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
     //! Group data element type
     typedef union group_storage<group_size> members_t;
 
-    //! Constructor for empty BondedGroupData
+    //! Constructor for empty MeshGroupData
     MeshGroupData(std::shared_ptr<ParticleData> pdata, unsigned int n_group_types);
 
     //! Constructor to initialize from a snapshot
@@ -66,18 +66,14 @@ class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
     virtual ~MeshGroupData();
 
     //! Initialize from a snapshot
-    //using BondedGroupData<group_size,Group,name,true>::initializeFromSnapshot;
+    //using MeshGroupData<group_size,Group,name,snap,bond>::initializeFromSnapshot;
     void initializeFromSnapshot(const TriangleData::Snapshot& snapshot);
 
     //! Take a snapshot
-    //using BondedGroupData<group_size,Group,name,true>::takeSnapshot;
+    //using MeshGroupData<group_size,Group,name,snap,bond>>::takeSnapshot;
     std::map<unsigned int, unsigned int> takeSnapshot(snap& snapshot) const;
 
-    /*
-     * add/remove groups globally
-     */
-
-    //! Add a single bonded group on all processors
+    //! Add a single bonded mesh group on all processors
     /*! \param g Definition of group to add
      */
     unsigned int addBondedGroup(Group g);
@@ -93,7 +89,7 @@ class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
 
     };
 
-//! Exports BondData to python
+//! Exports MeshBondData to python
 template<class T, class Group>
 void export_MeshGroupData(pybind11::module& m,
                             std::string name,

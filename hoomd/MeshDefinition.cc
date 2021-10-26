@@ -21,9 +21,7 @@ using namespace std;
  */
 MeshDefinition::MeshDefinition() { }
 
-/*! \param N Number of particles to allocate
-    \param n_triangle_types Number of triangle types to create
-
+/*! \param sysdef Simulation system
 */
 MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -39,6 +37,7 @@ MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef)
     m_mesh_energy_old = 0;
     }
 
+//! Bond array getter
 BondData::Snapshot MeshDefinition::getBondData()
     {
     BondData::Snapshot bond_data;
@@ -46,7 +45,7 @@ BondData::Snapshot MeshDefinition::getBondData()
     return bond_data;
     }
 
-//! Re-initialize the system from a snapshot
+//! Update triangle data to make it accessible for python
 void MeshDefinition::updateTriangleData()
     {
     if(m_data_changed)
@@ -56,7 +55,7 @@ void MeshDefinition::updateTriangleData()
 	 }
     }
 
-//! Re-initialize the system from a snapshot
+//! Update data from snapshot
 void MeshDefinition::updateMeshData()
     {
     m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), triangle_data));
