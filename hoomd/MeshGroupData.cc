@@ -62,8 +62,8 @@ MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
         {
         this->m_pdata->getSingleParticleMoveSignal()
             .template connect<
-                MeshGroupData<group_size, Group, name, snap, bond>,
-                &MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups>(
+                BondedGroupData<group_size, Group, name, true>,
+                &BondedGroupData<group_size, Group, name, true>::moveParticleGroups>(
                 this);
         }
 #endif
@@ -74,14 +74,14 @@ template<unsigned int group_size, typename Group, const char* name, typename sna
 MeshGroupData<group_size, Group, name, snap, bond>::~MeshGroupData()
     {
     this->m_pdata->getParticleSortSignal()
-        .template disconnect<MeshGroupData<group_size, Group, name, snap, bond>,
-                             &MeshGroupData<group_size, Group, name, snap, bond>::setDirty>(
+        .template disconnect<BondedGroupData<group_size, Group, name, true>,
+                             &BondedGroupData<group_size, Group, name, true>::setDirty>(
             this);
 #ifdef ENABLE_MPI
     this->m_pdata->getSingleParticleMoveSignal()
         .template disconnect<
-            MeshGroupData<group_size, Group, name, snap, bond>,
-            &MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups>(this);
+            BondedGroupData<group_size, Group, name, true>,
+            &BondedGroupData<group_size, Group, name, true>::moveParticleGroups>(this);
 #endif
     }
 

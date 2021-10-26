@@ -14,7 +14,6 @@
 #ifndef __MESH_GROUP_DATA_H__
 #define __MESH_GROUP_DATA_H__
 
-#include "BondedGroupData.h"
 #include "ExecutionConfiguration.h"
 #include "GPUVector.h"
 #include "HOOMDMPI.h"
@@ -22,6 +21,7 @@
 #include "Index1D.h"
 #include "ParticleData.h"
 #include "Profiler.h"
+#include "BondedGroupData.h"
 
 #ifdef ENABLE_HIP
 #include "BondedGroupData.cuh"

@@ -633,7 +633,6 @@ class BondedGroupData
         m_groups_dirty = true;
         }
 
-    protected:
 #ifdef ENABLE_MPI
     //! Helper function to transfer bonded groups connected to a single particle
     /*! \param tag Tag of particle that moves between domains
@@ -642,6 +641,8 @@ class BondedGroupData
      */
     void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
 #endif
+
+    protected:
 
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf;                       //!< Execution configuration for CUDA context
