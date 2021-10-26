@@ -26,6 +26,8 @@
 /*! \ingroup data_structs
  */
 
+namespace hoomd
+    {
 //! Structure for initializing system data
 /*! A snapshot is used for multiple purposes:
  * 1. for initializing the system
@@ -87,8 +89,12 @@ template<class Real> struct SnapshotSystemData
     void broadcast_all(unsigned int root, std::shared_ptr<ExecutionConfiguration> exec_conf);
     };
 
+namespace detail
+    {
 //! Export SnapshotParticleData to python
-
 void export_SnapshotSystemData(pybind11::module& m);
 
+    } // end namespace detail
+
+    } // end namespace hoomd
 #endif

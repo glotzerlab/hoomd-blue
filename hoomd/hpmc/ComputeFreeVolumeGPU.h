@@ -4,8 +4,6 @@
 #ifndef __COMPUTE_FREE_VOLUME_GPU_H__
 #define __COMPUTE_FREE_VOLUME_GPU_H__
 
-using namespace std;
-
 #ifdef ENABLE_HIP
 
 #include "hoomd/Autotuner.h"
@@ -29,6 +27,8 @@ using namespace std;
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 //! Template class for a free volume integration analyzer
@@ -154,8 +154,8 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
         {
         this->m_exec_conf->msg->error() << "Simulation box too small for compute.free_volume() on "
                                            "GPU - increase it so the minimum image convention works"
-                                        << endl;
-        throw runtime_error("Error performing HPMC update");
+                                        << std::endl;
+        throw std::runtime_error("Error performing HPMC update");
         }
 
     // compute cell list
@@ -247,9 +247,7 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
     const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
     // access the parameters
-    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type>>&
-        params
-        = this->m_mc->getParams();
+    auto& params = this->m_mc->getParams();
 
         {
         // access counter
@@ -344,6 +342,8 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::initializeExcellMem()
     m_excell_size.resize(num_cells);
     }
 
+namespace detail
+    {
 //! Export this hpmc analyzer to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
@@ -358,7 +358,10 @@ template<class Shape> void export_ComputeFreeVolumeGPU(pybind11::module& m, cons
                             std::shared_ptr<CellList>>());
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 

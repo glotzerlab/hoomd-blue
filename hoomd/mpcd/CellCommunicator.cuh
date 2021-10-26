@@ -16,6 +16,8 @@
 
 #include <cuda_runtime.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -222,5 +224,6 @@ cudaError_t unpack_cell_buffer(T* d_props,
 
     } // end namespace gpu
     } // end namespace mpcd
+    } // end namespace hoomd
 
 #endif // MPCD_CELL_COMMUNICATOR_CUH_

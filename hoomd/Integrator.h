@@ -12,7 +12,6 @@
 #include "HalfStepHook.h"
 #include "ParticleGroup.h"
 #include "Updater.h"
-#include "md/ForceComposite.h"
 #include <pybind11/pybind11.h>
 #include <string>
 #include <vector>
@@ -21,6 +20,8 @@
 #include <hip/hip_runtime.h>
 #endif
 
+namespace hoomd
+    {
 /// Base class that defines an integrator
 /** An Integrator steps the entire simulation forward one time step in time.
     Prior to calling update(timestep), the system is at time step \a timestep.
@@ -167,8 +168,14 @@ class PYBIND11_EXPORT Integrator : public Updater
 #endif
 
     /// Check if any forces introduce anisotropic degrees of freedom
-    virtual bool getAnisotropic();
+    virtual bool areForcesAnisotropic();
     };
 
+namespace detail
+    {
 /// Exports the NVEUpdater class to python
 void export_Integrator(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd

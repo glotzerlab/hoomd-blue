@@ -24,6 +24,8 @@
 // data types and function definitions
 #include "IntegratorHPMCMonoGPUDepletantsTypes.cuh"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -887,3 +889,4 @@ void hpmc_insert_depletants(const hpmc_args_t& args,
     } // end namespace gpu
 
     } // end namespace hpmc
+    } // end namespace hoomd

@@ -130,6 +130,8 @@ class HPMCIntegrator(BaseIntegrator):
             translation_move_probability=float(translation_move_probability),
             nselect=int(nselect))
         self._param_dict.update(param_dict)
+        self._pair_potential = None
+        self._external_potential = None
 
         # Set standard typeparameters for hpmc integrators
         typeparam_d = TypeParameter('d',
@@ -170,6 +172,10 @@ class HPMCIntegrator(BaseIntegrator):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
+        if self._external_potential is not None:
+            self._external_potential._add(simulation)
+        if self._pair_potential is not None:
+            self._pair_potential._add(simulation)
 
     def _attach(self):
         """Initialize the reflected c++ class."""
@@ -189,13 +195,26 @@ class HPMCIntegrator(BaseIntegrator):
 
         super()._attach()
 
-    # Set the external field
-    def set_external(self, ext):  # noqa - to be rewritten
-        self._cpp_obj.setExternalField(ext.cpp_compute)
+        if self._external_potential is not None:
+            self._external_potential._attach()
+            self._cpp_obj.setExternalField(self._external_potential._cpp_obj)
+        if self._pair_potential is not None:
+            self._pair_potential._attach()
+            self._cpp_obj.setPatchEnergy(self._pair_potential._cpp_obj)
 
-    # Set the patch
-    def set_PatchEnergyEvaluator(self, patch):  # noqa - to be rewritten
-        self._cpp_obj.setPatchEnergy(patch.cpp_evaluator)
+    def _detach(self):
+        if self._external_potential is not None:
+            self._external_potential._detach()
+        if self._pair_potential is not None:
+            self._pair_potential._detach()
+        super()._detach()
+
+    def _remove(self):
+        if self._external_potential is not None:
+            self._external_potential._remove()
+        if self._pair_potential is not None:
+            self._pair_potential._remove()
+        super()._remove()
 
     # TODO need to validate somewhere that quaternions are normalized
 
@@ -228,34 +247,6 @@ class HPMCIntegrator(BaseIntegrator):
             return None
 
         return self._cpp_obj.mapOverlaps()
-
-    def map_energies(self):
-        """Build an energy map of the system.
-
-        Returns:
-            List of tuples. The i,j entry contains the pairwise interaction
-            energy of the ith and jth particles (by tag)
-
-        Note:
-            :py:meth:`map_energies` does not support MPI parallel simulations.
-
-        Attention:
-            `map_energies` is not yet implemented in HOOMD v3.x.
-
-        Example:
-            mc = hpmc.integrate.shape(...)
-            mc.shape_param.set(...)
-            energy_map = np.asarray(mc.map_energies())
-        """
-        raise NotImplementedError("map_energies will be implemented in a future"
-                                  "release.")
-        # TODO: update map_energies to new API
-
-        self.update_forces()
-        N = hoomd.context.current.system_definition.getParticleData(
-        ).getMaximumTag() + 1
-        energy_map = self.cpp_integrator.mapEnergies()
-        return list(zip(*[iter(energy_map)] * N))
 
     @log(requires_run=True)
     def overlaps(self):
@@ -361,6 +352,51 @@ class HPMCIntegrator(BaseIntegrator):
         else:
             raise DataAccessError("counters")
 
+    @property
+    def pair_potential(self):
+        """The user-defined pair potential associated with the integrator."""
+        return self._pair_potential
+
+    @pair_potential.setter
+    def pair_potential(self, new_potential):
+        if not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase):
+            raise TypeError(
+                "Pair potentials should be an instance of CPPPotentialBase")
+        if self._added:
+            new_potential._add(self._simulation)
+        if self._attached:
+            new_potential._attach()
+            self._cpp_obj.setPatchEnergy(new_potential._cpp_obj)
+            if self._pair_potential is not None:
+                self._pair_potential._detach()
+        if self._added and self._pair_potential is not None:
+            self._pair_potential._remove()
+        self._pair_potential = new_potential
+
+    @property
+    def external_potential(self):
+        """The user-defined potential energy field associated with the\
+                integrator."""
+        return self._external_potential
+
+    @external_potential.setter
+    def external_potential(self, new_external_potential):
+        if not isinstance(new_external_potential,
+                          hoomd.hpmc.external.user.CPPExternalPotential):
+            msg = 'External potentials should be an instance of '
+            msg += 'CPPExternalPotential'
+            raise TypeError(msg)
+        if self._added:
+            new_external_potential._add(self._simulation)
+        if self._attached:
+            new_external_potential._attach()
+            self._cpp_obj.setExternalField(new_external_potential._cpp_obj)
+            if self._external_potential is not None:
+                self._external_potential._detach()
+        if self._added and self._external_potential is not None:
+            self._external_potential._remove()
+        self._external_potential = new_external_potential
+
 
 class Sphere(HPMCIntegrator):
     """Hard sphere Monte Carlo.
@@ -381,9 +417,8 @@ class Sphere(HPMCIntegrator):
     ``translation_move_probability``.
 
     Tip:
-        Use spheres with ``diameter=0`` in conjunction with `jit` potentials
-        for Monte Carlo simulations of particles interacting by pair potential
-        with no hard core.
+        Use spheres with ``diameter=0`` in conjunction with pair potentials
+        for Monte Carlo simulations of particles with no hard core.
 
     Tip:
         Use `Sphere` in a 2D simulation to perform Monte Carlo on hard disks.

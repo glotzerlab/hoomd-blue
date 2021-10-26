@@ -10,8 +10,11 @@
 #include <iostream>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System definition
  *  \param rotational_diffusion The diffusion across time
  *  \param group the particles to diffusion rotation on
@@ -42,11 +45,13 @@ void ActiveRotationalDiffusionUpdater::update(uint64_t timestep)
     m_active_force->rotationalDiffusion(m_rotational_diffusion->operator()(timestep), timestep);
     }
 
-void export_ActiveRotationalDiffusionUpdater(py::module& m)
+namespace detail
     {
-    py::class_<ActiveRotationalDiffusionUpdater,
-               Updater,
-               std::shared_ptr<ActiveRotationalDiffusionUpdater>>(
+void export_ActiveRotationalDiffusionUpdater(pybind11::module& m)
+    {
+    pybind11::class_<ActiveRotationalDiffusionUpdater,
+                     Updater,
+                     std::shared_ptr<ActiveRotationalDiffusionUpdater>>(
         m,
         "ActiveRotationalDiffusionUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
@@ -56,3 +61,7 @@ void export_ActiveRotationalDiffusionUpdater(py::module& m)
                       &ActiveRotationalDiffusionUpdater::getRotationalDiffusion,
                       &ActiveRotationalDiffusionUpdater::setRotationalDiffusion);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

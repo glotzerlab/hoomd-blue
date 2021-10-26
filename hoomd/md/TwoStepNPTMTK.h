@@ -21,6 +21,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! Implements the Martyna Tobias Klein (MTK) equations for rigorous integration in the NPT
    ensemble. The update equations are derived from a strictly measure-preserving and time-reversal
@@ -270,7 +274,13 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     couplingMode getRelevantCouplings();
     };
 
+namespace detail
+    {
 //! Exports the TwoStepNPTMTK class to python
 void export_TwoStepNPTMTK(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NPT_MTK_H__

@@ -16,6 +16,12 @@
 #include "PotentialBondGPU.cuh"
 #include "PotentialMeshBondGPU.cuh"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Compute harmonic bond forces on the GPU with BondEvaluatorHarmonic
 hipError_t __attribute__((visibility("default")))
 gpu_compute_harmonic_forces(const bond_args_t& bond_args,
@@ -51,4 +57,8 @@ hipError_t __attribute__((visibility("default")))
 gpu_compute_tether_forces_mesh(const mesh_bond_args_t& mesh_bond_args,
                           const tether_params* d_params,
                           unsigned int* d_flags);
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif

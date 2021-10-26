@@ -28,6 +28,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Gaussian pair potential
 /*! <b>General Overview</b>
 
@@ -167,5 +171,8 @@ class EvaluatorPairSLJ
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     Scalar delta;  //!< Delta parameter extracted from the call to setDiameter
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_SLJ_H__

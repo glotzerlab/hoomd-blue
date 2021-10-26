@@ -21,6 +21,7 @@
 #include "upp11_config.h"
 
 using namespace std;
+using namespace hoomd;
 
 /*! \file test_cell_list.cc
     \brief Implements unit tests for CellList and descendants

@@ -20,6 +20,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 template<class Shape>
@@ -191,6 +193,8 @@ class __attribute__((visibility("hidden"))) UpdaterExternalFieldWall : public Up
     unsigned int m_instance = 0; //!< Unique ID for RNG seeding
     };
 
+namespace detail
+    {
 template<class Shape> void export_UpdaterExternalFieldWall(pybind11::module& m, std::string name)
     {
     pybind11::class_<UpdaterExternalFieldWall<Shape>,
@@ -209,6 +213,8 @@ template<class Shape> void export_UpdaterExternalFieldWall(pybind11::module& m, 
                       &UpdaterExternalFieldWall<Shape>::getInstance,
                       &UpdaterExternalFieldWall<Shape>::setInstance);
     }
+    } // end namespace detail
     } // namespace hpmc
+    } // namespace hoomd
 
 #endif // inclusion guard

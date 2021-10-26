@@ -150,7 +150,7 @@ def test_system_rotational_dof(simulation_factory, device):
     sim.always_compute_pressure = True
     sim.operations.add(thermo)
 
-    integrator = hoomd.md.Integrator(dt=0.0001)
+    integrator = hoomd.md.Integrator(dt=0.0001, integrate_rotational_dof=True)
     integrator.aniso = True
     integrator.methods.append(hoomd.md.methods.NVT(filt, tau=1, kT=1))
     sim.operations.integrator = integrator
@@ -168,6 +168,9 @@ def test_system_rotational_dof(simulation_factory, device):
                               2. / 3 * thermo.translational_kinetic_energy
                               / 10.0**3, (0., 0., 0., 2. / 10**3, 0., 0.),
                               volume=1000)
+
+    integrator.integrate_rotational_dof = False
+    assert thermo.rotational_degrees_of_freedom == 0
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):

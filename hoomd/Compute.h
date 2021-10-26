@@ -37,6 +37,8 @@
 /*! @}
  */
 
+namespace hoomd
+    {
 //! Performs computations on ParticleData structures
 /*! The Compute is an abstract concept that performs some kind of computation on the
     particles in a ParticleData structure. This computation is to be done by reading
@@ -148,9 +150,13 @@ class PYBIND11_EXPORT Compute
     friend void export_Compute();
     };
 
+namespace detail
+    {
 //! Exports the Compute class to python
 #ifndef __HIPCC__
 void export_Compute(pybind11::module& m);
 #endif
+    } // end namespace detail
 
+    } // end namespace hoomd
 #endif

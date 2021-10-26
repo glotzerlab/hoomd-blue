@@ -20,8 +20,9 @@
 #include <string.h>
 using namespace std;
 using namespace hoomd::detail;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 std::list<std::string> GSDDumpWriter::particle_chunks {"particles/typeid",
                                                        "particles/mass",
                                                        "particles/charge",
@@ -1111,16 +1112,18 @@ void GSDDumpWriter::populateNonDefault()
     gsd_close(&m_handle);
     }
 
-void export_GSDDumpWriter(py::module& m)
+namespace detail
     {
-    py::bind_map<std::map<std::string, pybind11::function>>(m, "MapStringFunction");
+void export_GSDDumpWriter(pybind11::module& m)
+    {
+    pybind11::bind_map<std::map<std::string, pybind11::function>>(m, "MapStringFunction");
 
-    py::class_<GSDDumpWriter, Analyzer, std::shared_ptr<GSDDumpWriter>>(m, "GSDDumpWriter")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::string,
-                      std::shared_ptr<ParticleGroup>,
-                      std::string,
-                      bool>())
+    pybind11::class_<GSDDumpWriter, Analyzer, std::shared_ptr<GSDDumpWriter>>(m, "GSDDumpWriter")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::string,
+                            std::shared_ptr<ParticleGroup>,
+                            std::string,
+                            bool>())
         .def("setWriteAttribute", &GSDDumpWriter::setWriteAttribute)
         .def("setWriteProperty", &GSDDumpWriter::setWriteProperty)
         .def("setWriteMomentum", &GSDDumpWriter::setWriteMomentum)
@@ -1135,3 +1138,7 @@ void export_GSDDumpWriter(py::module& m)
                                [](const std::shared_ptr<GSDDumpWriter> gsd)
                                { return gsd->getGroup()->getFilter(); });
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

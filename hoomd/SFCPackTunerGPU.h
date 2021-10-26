@@ -27,6 +27,8 @@
 #ifndef __SFCPACK_UPDATER_GPU_H__
 #define __SFCPACK_UPDATER_GPU_H__
 
+namespace hoomd
+    {
 //! Sort the particles
 /*! GPU implementation of SFCPackTuner
 
@@ -59,8 +61,14 @@ class PYBIND11_EXPORT SFCPackTunerGPU : public SFCPackTuner
     virtual void applySortOrder();
     };
 
+namespace detail
+    {
 //! Export the SFCPackTunerGPU class to python
 void export_SFCPackTunerGPU(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif // __SFC_PACK_UPDATER_GPU_H_
 

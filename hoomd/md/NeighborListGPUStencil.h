@@ -21,6 +21,10 @@
 #ifndef __NEIGHBORLISTGPUSTENCIL_H__
 #define __NEIGHBORLISTGPUSTENCIL_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Neighbor list build on the GPU with multiple bin stencils
 /*! Implements the O(N) neighbor list build on the GPU using a cell list with multiple bin stencils.
 
@@ -99,7 +103,13 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
     bool m_update_cell_size = false;
     };
 
+namespace detail
+    {
 //! Exports NeighborListGPUStencil to python
 void export_NeighborListGPUStencil(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __NEIGHBORLISTGPUSTENCIL_H__

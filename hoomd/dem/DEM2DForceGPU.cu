@@ -22,6 +22,12 @@
 
 #include "NoFriction.h"
 
+namespace hoomd
+    {
+namespace dem
+    {
+namespace kernel
+    {
 /*! \file DEM2DForceGPU.cu
   \brief Defines GPU kernel code for calculating conservative DEM pair forces. Used by
   DEM2DForceComputeGPU.
@@ -470,4 +476,6 @@ hipError_t gpu_compute_dem2d_forces(Scalar4* d_force,
     return hipSuccess;
     }
 
-// vim:syntax=cpp
+    } // end namespace kernel
+    } // end namespace dem
+    } // end namespace hoomd

@@ -4,8 +4,10 @@
 #include "PPPMForceCompute.h"
 #include <map>
 
-namespace py = pybind11;
-
+namespace hoomd
+    {
+namespace md
+    {
 bool is_pow2(unsigned int n)
     {
     while (n && n % 2 == 0)
@@ -1832,14 +1834,16 @@ Scalar PPPMForceCompute::getQ2Sum()
     return q2;
     }
 
-void export_PPPMForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<PPPMForceCompute, ForceCompute, std::shared_ptr<PPPMForceCompute>>(
+void export_PPPMForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<PPPMForceCompute, ForceCompute, std::shared_ptr<PPPMForceCompute>>(
         m,
         "PPPMForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<NeighborList>,
-                      std::shared_ptr<ParticleGroup>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<NeighborList>,
+                            std::shared_ptr<ParticleGroup>>())
         .def("setParams", &PPPMForceCompute::setParams)
         .def("getQSum", &PPPMForceCompute::getQSum)
         .def("getQ2Sum", &PPPMForceCompute::getQ2Sum)
@@ -1849,3 +1853,7 @@ void export_PPPMForceCompute(py::module& m)
         .def_property_readonly("r_cut", &PPPMForceCompute::getRCut)
         .def_property_readonly("alpha", &PPPMForceCompute::getAlpha);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

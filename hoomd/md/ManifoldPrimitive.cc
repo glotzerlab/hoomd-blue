@@ -5,6 +5,12 @@
 
 #include "ManifoldPrimitive.h"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 //! Exports the Primitive manifold class to python
 void export_ManifoldPrimitive(pybind11::module& m)
     {
@@ -13,3 +19,7 @@ void export_ManifoldPrimitive(pybind11::module& m)
         .def_property_readonly("N", &ManifoldPrimitive::getN)
         .def_property_readonly("epsilon", &ManifoldPrimitive::getEpsilon);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -5,7 +5,6 @@
 #include "Analyzer.h"
 #include "BondedGroupData.h"
 #include "BoxResizeUpdater.h"
-#include "CallbackAnalyzer.h"
 #include "CellList.h"
 #include "CellListStencil.h"
 #include "ClockSource.h"
@@ -72,8 +71,6 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-using namespace std;
-using namespace hoomd;
 
 #ifdef ENABLE_TBB
 #include <tbb/task_arena.h>
@@ -83,6 +80,10 @@ using namespace hoomd;
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
+namespace hoomd
+    {
+namespace detail
+    {
 void mpi_barrier_world()
     {
 #ifdef ENABLE_MPI
@@ -115,12 +116,12 @@ int initialize_mpi()
     }
 
 //! Get the processor name associated to this rank
-string get_mpi_proc_name()
+std::string get_mpi_proc_name()
     {
     char proc_name[MPI_MAX_PROCESSOR_NAME];
     int name_len;
     MPI_Get_processor_name(proc_name, &name_len);
-    return string(proc_name);
+    return std::string(proc_name);
     }
 
 //! Finalize MPI environment
@@ -156,6 +157,14 @@ std::string mpi_bcast_str(pybind11::object string,
     return s;
 #endif
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd
+
+using namespace std;
+using namespace hoomd;
+using namespace hoomd::detail;
 
 //! Create the python module
 /*! each class sets up its own python exports in a function export_ClassName
@@ -282,7 +291,6 @@ PYBIND11_MODULE(_hoomd, m)
     export_DCDDumpWriter(m);
     getardump::export_GetarDumpWriter(m);
     export_GSDDumpWriter(m);
-    export_CallbackAnalyzer(m);
 
     // updaters
     export_Updater(m);

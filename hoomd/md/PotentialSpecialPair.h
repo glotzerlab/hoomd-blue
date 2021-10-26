@@ -20,6 +20,10 @@
 #ifndef __POTENTIALSPECIAL_PAIR_H__
 #define __POTENTIALSPECIAL_PAIR_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! SpecialPair potential with evaluator support
 
     Specific particle pairs can be connected by pair potentials.
@@ -373,6 +377,8 @@ CommFlags PotentialSpecialPair<evaluator>::getRequestedCommFlags(uint64_t timest
     }
 #endif
 
+namespace detail
+    {
 //! Exports the PotentialSpecialPair class to python
 /*! \param name Name of the class in the exported python module
     \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
@@ -386,5 +392,9 @@ template<class T> void export_PotentialSpecialPair(pybind11::module& m, const st
         .def("setRCut", &T::setRCut)
         .def("getRCut", &T::getRCut);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif
