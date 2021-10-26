@@ -59,6 +59,12 @@ class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
     //! Group data element type
     typedef union group_storage<group_size> members_t;
 
+#ifdef ENABLE_MPI
+    //! Type for storing per-member ranks
+    typedef members_t ranks_t;
+    typedef packed_storage<group_size> packed_t;
+#endif
+
     //! Constructor for empty MeshGroupData
     MeshGroupData(std::shared_ptr<ParticleData> pdata, unsigned int n_group_types);
 
