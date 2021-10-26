@@ -62,8 +62,8 @@ MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
         {
         this->m_pdata->getSingleParticleMoveSignal()
             .template connect<
-                BondedGroupData<group_size, Group, name, true>,
-                &BondedGroupData<group_size, Group, name, true>::moveParticleGroups>(
+                MeshGroupData<group_size, Group, name, snap, bond>,
+                &MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups>(
                 this);
         }
 #endif
@@ -74,14 +74,14 @@ template<unsigned int group_size, typename Group, const char* name, typename sna
 MeshGroupData<group_size, Group, name, snap, bond>::~MeshGroupData()
     {
     this->m_pdata->getParticleSortSignal()
-        .template disconnect<BondedGroupData<group_size, Group, name, true>,
-                             &BondedGroupData<group_size, Group, name, true>::setDirty>(
+        .template disconnect<MeshGroupData<group_size, Group, name, snap, bond>,
+                             &MeshGroupData<group_size, Group, name, snap, bond>::setDirty>(
             this);
 #ifdef ENABLE_MPI
     this->m_pdata->getSingleParticleMoveSignal()
         .template disconnect<
-            BondedGroupData<group_size, Group, name, true>,
-            &BondedGroupData<group_size, Group, name, true>::moveParticleGroups>(this);
+            MeshGroupData<group_size, Group, name, snap, bond>,
+            &MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups>(this);
 #endif
     }
 
@@ -215,7 +215,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
 
         bcast(all_groups, 0, this->m_exec_conf->getMPICommunicator());
         bcast(all_typeval, 0, this->m_exec_conf->getMPICommunicator());
-        bcast(m_type_mapping, 0, this->m_exec_conf->getMPICommunicator());
+        bcast(this->m_type_mapping, 0, this->m_exec_conf->getMPICommunicator());
 
 	if(bond)
 	    {
