@@ -415,8 +415,8 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                                 * sizeof(mpcd::detail::pdata_element));
             }
 
-        // now we pass through and unpack the particles, either by holding onto them in the receive
-        // buffer or by passing them back into the send buffer for the next stage
+            // now we pass through and unpack the particles, either by holding onto them in the
+            // receive buffer or by passing them back into the send buffer for the next stage
             {
             // partition the receive buffer so that particles that need to be sent are at the end
             ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf,
@@ -443,7 +443,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                 }
             }
         m_recvbuf.resize(n_recv); // free up memory from the end of the receive buffer
-        }                             // end dir loop
+        }                         // end dir loop
 
     // fill particle data with wrapped, received particles
     if (m_prof)
@@ -704,5 +704,5 @@ void mpcd::detail::export_Communicator(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>());
     }
 
-    }      // end namespace hoomd
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

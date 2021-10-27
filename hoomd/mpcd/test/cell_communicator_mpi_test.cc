@@ -226,21 +226,21 @@ UP_TEST(mpcd_cell_communicator)
             new ExecutionConfiguration(ExecutionConfiguration::CPU));
         }
 
-    // mpi in 1d
+        // mpi in 1d
         {
         exec_conf_cpu->getMPIConfig()->splitPartitions(2);
         cell_communicator_reduce_test(exec_conf_cpu, true, false, false);
         cell_communicator_reduce_test(exec_conf_cpu, false, true, false);
         cell_communicator_reduce_test(exec_conf_cpu, false, false, true);
         }
-    // mpi in 2d
+        // mpi in 2d
         {
         exec_conf_cpu->getMPIConfig()->splitPartitions(4);
         cell_communicator_reduce_test(exec_conf_cpu, true, true, false);
         cell_communicator_reduce_test(exec_conf_cpu, true, false, true);
         cell_communicator_reduce_test(exec_conf_cpu, false, true, true);
         }
-    // mpi in 3d
+        // mpi in 3d
         {
         exec_conf_cpu->getMPIConfig()->splitPartitions(8);
         cell_communicator_reduce_test(exec_conf_cpu, true, true, true);
@@ -266,21 +266,21 @@ UP_TEST(mpcd_cell_communicator_gpu)
             new ExecutionConfiguration(ExecutionConfiguration::GPU));
         }
 
-    // mpi in 1d
+        // mpi in 1d
         {
         exec_conf_gpu->getMPIConfig()->splitPartitions(2);
         cell_communicator_reduce_test(exec_conf_gpu, true, false, false);
         cell_communicator_reduce_test(exec_conf_gpu, false, true, false);
         cell_communicator_reduce_test(exec_conf_gpu, false, false, true);
         }
-    // mpi in 2d
+        // mpi in 2d
         {
         exec_conf_gpu->getMPIConfig()->splitPartitions(4);
         cell_communicator_reduce_test(exec_conf_gpu, true, true, false);
         cell_communicator_reduce_test(exec_conf_gpu, true, false, true);
         cell_communicator_reduce_test(exec_conf_gpu, false, true, true);
         }
-    // mpi in 3d
+        // mpi in 3d
         {
         exec_conf_gpu->getMPIConfig()->splitPartitions(8);
         cell_communicator_reduce_test(exec_conf_gpu, true, true, true);

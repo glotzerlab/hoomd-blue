@@ -2433,7 +2433,7 @@ void Communicator::exchangeGhosts()
                 }
             }
 
-        // Invert the plans to construct the reverse plans
+            // Invert the plans to construct the reverse plans
             {
             ArrayHandle<unsigned int> h_plan_reverse(m_plan_reverse,
                                                      access_location::host,
@@ -2480,7 +2480,7 @@ void Communicator::exchangeGhosts()
             m_plan_reverse_copybuf[dir].resize(max_copy_ghosts);
             m_forward_ghosts_reverse[dir].resize(max_copy_ghosts);
 
-            // Determine which ghosts need to be forwarded
+                // Determine which ghosts need to be forwarded
                 {
                 ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
                                                 access_location::host,
@@ -2613,7 +2613,7 @@ void Communicator::exchangeGhosts()
                 m_prof->push("MPI send/recv");
                 }
 
-            // Now forward the ghosts
+                // Now forward the ghosts
                 {
                 ArrayHandle<unsigned int> h_plan_reverse_copybuf(m_plan_reverse_copybuf[dir],
                                                                  access_location::host,
@@ -3507,5 +3507,5 @@ void export_Communicator(pybind11::module& m)
     }
     } // end namespace detail
 
-    }      // end namespace hoomd
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

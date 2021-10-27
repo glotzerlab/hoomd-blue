@@ -91,7 +91,7 @@ template<class Shape> void export_ExternalFieldComposite(pybind11::module& m, st
         .def("addExternal", &ExternalFieldMonoComposite<Shape>::addExternal);
     }
 
-    }      // end namespace detail
-    }      // namespace hpmc
-    }      // end namespace hoomd
+    }  // end namespace detail
+    }  // namespace hpmc
+    }  // end namespace hoomd
 #endif // inclusion guard

@@ -46,16 +46,16 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
 
 namespace hoomd
     {
-//! Storage data type for group members
-/*! We use a union to emphasize it that can contain either particle
- * tags or particle indices or other information */
-template<unsigned int group_size> union group_storage {
+    //! Storage data type for group members
+    /*! We use a union to emphasize it that can contain either particle
+     * tags or particle indices or other information */
+    template<unsigned int group_size> union group_storage {
     unsigned int tag[group_size];
     unsigned int idx[group_size];
     };
 
-//! A union to allow storing a scalar constraint value or a type integer
-union typeval_union {
+    //! A union to allow storing a scalar constraint value or a type integer
+    union typeval_union {
     unsigned int type;
     Scalar val;
     };

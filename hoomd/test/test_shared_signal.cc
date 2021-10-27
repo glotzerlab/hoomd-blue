@@ -83,7 +83,7 @@ HOOMD_UP_MAIN();
 //! Perform some basic tests on the boxdim structure
 UP_TEST(SharedSignal_basic_test)
     {
-    // Scalar tol = Scalar(1e-6);
+        // Scalar tol = Scalar(1e-6);
 
         { // slot goes out of scope first.
         SignalHolder sig;

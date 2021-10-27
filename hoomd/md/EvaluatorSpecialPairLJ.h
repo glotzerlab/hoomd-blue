@@ -71,9 +71,9 @@ struct special_lj_params
 #endif
     }
 #ifdef SINGLE_PRECISION
-__attribute__((aligned(16)));
+    __attribute__((aligned(16)));
 #else
-__attribute__((aligned(32)));
+    __attribute__((aligned(32)));
 #endif
 
 //! Class for evaluating the LJ bond potential

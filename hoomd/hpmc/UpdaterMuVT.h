@@ -1600,9 +1600,9 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
         if (!accept)
             {
-            // volume move rejected
+                // volume move rejected
 
-            // restore particle positions and orientations
+                // restore particle positions and orientations
                 {
                 ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                                access_location::host,

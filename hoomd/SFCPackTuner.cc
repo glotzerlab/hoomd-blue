@@ -209,7 +209,7 @@ void SFCPackTuner::applySortOrder()
         h_inertia.data[i] = scal3_tmp[i];
         }
 
-    // in case anyone access it from frame to frame, sort the net virial
+        // in case anyone access it from frame to frame, sort the net virial
         {
         ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(),
                                          access_location::host,
@@ -225,7 +225,7 @@ void SFCPackTuner::applySortOrder()
             }
         }
 
-    // sort net force, net torque, and orientation
+        // sort net force, net torque, and orientation
         {
         ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(),
                                          access_location::host,
@@ -503,7 +503,7 @@ void SFCPackTuner::getSortedOrder2D()
     // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
 
-    // put the particles in the bins
+        // put the particles in the bins
         {
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,

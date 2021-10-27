@@ -253,6 +253,6 @@ template<class Shape> void export_ExternalFieldJIT(pybind11::module& m, std::str
         .def("computeEnergy", &ExternalFieldJIT<Shape>::computeEnergy);
     }
 
-    }      // end namespace hpmc
-    }      // end namespace hoomd
+    }  // end namespace hpmc
+    }  // end namespace hoomd
 #endif // _EXTERNAL_FIELD_ENERGY_JIT_H_
