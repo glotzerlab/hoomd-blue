@@ -48,7 +48,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
         m_prof->push(m_exec_conf, "MPCD sort");
         }
 
-    // fill the empty cell list entries with a sentinel larger than number of MPCD particles
+        // fill the empty cell list entries with a sentinel larger than number of MPCD particles
         {
         ArrayHandle<unsigned int> d_cell_list(m_cl->getCellList(),
                                               access_location::device,
@@ -68,7 +68,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
         m_sentinel_tuner->end();
         }
 
-    // use thrust to select out the indexes of MPCD particles
+        // use thrust to select out the indexes of MPCD particles
         {
         ArrayHandle<unsigned int> d_cell_list(m_cl->getCellList(),
                                               access_location::device,
@@ -88,7 +88,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
             }
         }
 
-    // fill out the reverse ordering map
+        // fill out the reverse ordering map
         {
         ArrayHandle<unsigned int> d_order(m_order, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rorder(m_rorder,
@@ -113,7 +113,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
  */
 void mpcd::SorterGPU::applyOrder() const
     {
-    // apply the sorted order
+        // apply the sorted order
         {
         ArrayHandle<unsigned int> d_order(m_order, access_location::device, access_mode::read);
 

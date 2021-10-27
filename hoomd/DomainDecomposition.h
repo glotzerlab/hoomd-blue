@@ -243,5 +243,5 @@ void export_DomainDecomposition(pybind11::module& m);
 #endif
     } // end namespace detail
 
-    }      // end namespace hoomd
+    }  // end namespace hoomd
 #endif // __DOMAIN_DECOMPOSITION_H

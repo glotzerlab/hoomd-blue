@@ -68,7 +68,7 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc3D
     */
     DEVICE vec3<OverlapReal> operator()(const vec3<OverlapReal>& n) const
         {
-        // translation/rotation formula comes from pg 168 of "Games Programming Gems 7"
+            // translation/rotation formula comes from pg 168 of "Games Programming Gems 7"
 #ifdef __HIPCC__
         vec3<OverlapReal> SB_n = rotate(q, sb(rotate(conj(q), n))) + ab_t;
         vec3<OverlapReal> SA_n = sa(-n);

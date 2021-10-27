@@ -87,7 +87,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
     F.push_back(2.0);
     fc_2->setTable(0, V, F, 2.0, 4.0);
 
-    // now go to rmin and check for the correct force value
+        // now go to rmin and check for the correct force value
         {
         ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(),
                                    access_location::host,
@@ -125,7 +125,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
                        tol);
         }
 
-    // go halfway in-between two points
+        // go halfway in-between two points
         {
         ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(),
                                    access_location::host,

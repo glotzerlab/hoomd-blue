@@ -128,7 +128,7 @@ bool IntegratorHPMC::attemptBoxResize(uint64_t timestep, const BoxDim& new_box)
     // Get old and new boxes;
     BoxDim curBox = m_pdata->getGlobalBox();
 
-    // Use lexical scope block to make sure ArrayHandles get cleaned up
+        // Use lexical scope block to make sure ArrayHandles get cleaned up
         {
         // Get particle positions
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),

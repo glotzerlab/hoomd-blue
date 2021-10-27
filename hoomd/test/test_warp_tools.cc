@@ -61,14 +61,14 @@ void test_warp_reduce(const unsigned int tpp)
         warp_reduce(params);
         }
 
-    // sums should always be the same regardless of the number of threads in the scan
+        // sums should always be the same regardless of the number of threads in the scan
         {
         ArrayHandle<int> h_sum(sum, access_location::host, access_mode::read);
         UP_ASSERT_EQUAL(h_sum.data[0], 15);
         UP_ASSERT_EQUAL(h_sum.data[1], 2);
         }
 
-    // test reduce output, which depends on tpp
+        // test reduce output, which depends on tpp
         {
         ArrayHandle<int> h_vec(vec, access_location::host, access_mode::read);
         ArrayHandle<int> h_reduce(reduce, access_location::host, access_mode::read);
@@ -136,14 +136,14 @@ void test_warp_scan(const unsigned int tpp)
         warp_scan(params);
         }
 
-    // sums should always be the same regardless of the number of threads in the scan
+        // sums should always be the same regardless of the number of threads in the scan
         {
         ArrayHandle<int> h_sum(sum, access_location::host, access_mode::read);
         UP_ASSERT_EQUAL(h_sum.data[0], 15);
         UP_ASSERT_EQUAL(h_sum.data[1], 2);
         }
 
-    // test scan output, which depends on tpp
+        // test scan output, which depends on tpp
         {
         ArrayHandle<int> h_vec(vec, access_location::host, access_mode::read);
         ArrayHandle<int> h_scan(scan, access_location::host, access_mode::read);
