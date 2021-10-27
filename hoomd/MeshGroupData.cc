@@ -220,12 +220,12 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
 	if(bond)
 	    {
             for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
-               addBondedGroup(Group(all_typeval[group_tag], all_groups[group_tag]));
+               addBondedGroup(Group(all_typeval[0], all_groups[group_tag]));
 	    }
 	else
 	    {
             for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
-               addBondedGroup(Group(all_typeval[0], all_groups[group_tag]));
+               addBondedGroup(Group(all_typeval[group_tag], all_groups[group_tag]));
 	    }
         }
     else
