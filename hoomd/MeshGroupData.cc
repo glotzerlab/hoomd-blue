@@ -708,7 +708,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
                 unsigned int idx = rank_idx.second;
 
                 snapshot.type_id[snap_id] = typevals_proc[rank][idx].type;
-		for(int i = 0; i< group_size_half; i++)
+		for(unsigned int i = 0; i< group_size_half; i++)
 		    {
                     snapshot.groups[snap_id].tag[i] = members_proc[rank][idx].tag[i];
 		    }
