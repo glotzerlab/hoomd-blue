@@ -1172,7 +1172,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
     // clear the local bond and rejection lists
     m_overlap.clear();
 
-    auto patch = m_mc->getPatchInteraction();
+    auto patch = m_mc->getPatchEnergy();
 
     Scalar r_cut_patch(0.0);
     if (patch)
@@ -1684,7 +1684,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         m_prof->pop();
 
 
-    if (m_mc->getPatchInteraction())
+    if (m_mc->getPatchEnergy())
         {
         // sum up interaction energies
         #ifdef ENABLE_TBB_TASK
@@ -1778,7 +1778,7 @@ template < class Shape> void export_UpdaterClusters(pybind11::module& m, const s
           .def( pybind11::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr< IntegratorHPMCMono<Shape> > >())
         .def("getCounters", &UpdaterClusters<Shape>::getCounters)
-        .def_property("pivot_move_ratio", &UpdaterClusters<Shape>::getMoveRatio, &UpdaterClusters<Shape>::setMoveRatio)
+        .def_property("pivot_move_probability", &UpdaterClusters<Shape>::getMoveRatio, &UpdaterClusters<Shape>::setMoveRatio)
         .def_property("flip_probability", &UpdaterClusters<Shape>::getFlipProbability, &UpdaterClusters<Shape>::setFlipProbability)
     ;
     }

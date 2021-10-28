@@ -8,12 +8,14 @@ md.methods
 .. autosummary::
     :nosignatures:
 
+    Method
     Brownian
     Langevin
     NPH
     NPT
     NVE
     NVT
+    OverdampedViscous
 
 
 .. rubric:: Details
@@ -21,10 +23,17 @@ md.methods
 .. automodule:: hoomd.md.methods
     :synopsis: Integration methods.
     :members: Method,
-              MethodRATTLE,
               Brownian,
               Langevin,
               NPH,
               NPT,
               NVE,
-              NVT
+              NVT,
+              OverdampedViscous
+
+.. rubric:: Modules
+
+.. toctree::
+   :maxdepth: 3
+
+   module-md-methods-rattle

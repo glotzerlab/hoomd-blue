@@ -104,10 +104,11 @@ class ThermodynamicQuantities(_Thermo):
 
           .. math::
 
-              P_{ij} = \\left[  \\sum_{k \\in \\mathrm{filter}} m_k v_{k,i}
-              v_{k,j} + \\sum_{k \\in \\mathrm{filter}} \\sum_{l} \\frac{1}{2}
-              \\left(\\vec{r}_{kl,i} \\vec{F}_{kl,j} + \\vec{r}_{kl,j}
-              \\vec{F}_{kl, i} \\right) \\right]/V
+              P_{ij} = \\left[\\sum_{k \\in \\mathrm{filter}} m_k
+              \\vec{v}_{k,i} \\cdot \\vec{v}_{k,j} + \\sum_{k \\in
+              \\mathrm{filter}} \\sum_{l} \\frac{1}{2} \\left(\\vec{r}_{kl,i}
+              \\cdot \\vec{F}_{kl,j} + \\vec{r}_{kl,j} \\cdot \\vec{F}_{kl,i}
+              \\right) \\right]/V
 
         where :math:`V` is the total simulation box volume (or area in 2D).
         """
@@ -291,7 +292,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
     of particles and calculates harmonically mapped average (HMA) properties
     of those particles when requested. HMA computes properties more precisely
     (with less variance) for atomic crystals in NVT simulations.  The presence
-    of dffusion (vacancy hopping, etc.) will prevent HMA from providing
+    of diffusion (vacancy hopping, etc.) will prevent HMA from providing
     improvement.  HMA tracks displacements from the lattice positions, which
     are saved either during first call to `Simulation.run` or when the compute
     is first added to the simulation, whichever occurs last.

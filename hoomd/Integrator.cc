@@ -25,21 +25,36 @@ using namespace std;
 Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
     : Updater(sysdef), m_deltaT(deltaT)
     {
-    if (m_deltaT <= 0.0)
-        m_exec_conf->msg->warning()
-            << "integrate.*: A timestep of less than 0.0 was specified" << endl;
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+
+        // connect to ghost communication flags request
+        m_comm->getCommFlagsRequestSignal().connect<Integrator, &Integrator::determineFlags>(this);
+
+        m_comm->getComputeCallbackSignal().connect<Integrator, &Integrator::computeCallback>(this);
+        }
+#endif
+
+    if (m_deltaT < 0)
+        m_exec_conf->msg->warning() << "A step size dt of less than 0 was specified." << endl;
     }
 
 Integrator::~Integrator()
     {
 #ifdef ENABLE_MPI
     // disconnect
-    if (m_request_flags_connected && m_comm)
+    if (m_sysdef->isDomainDecomposed())
+        {
         m_comm->getCommFlagsRequestSignal().disconnect<Integrator, &Integrator::determineFlags>(
             this);
-    if (m_signals_connected && m_comm)
+
         m_comm->getComputeCallbackSignal().disconnect<Integrator, &Integrator::computeCallback>(
             this);
+        }
 #endif
     }
 
@@ -62,9 +77,8 @@ void Integrator::removeHalfStepHook()
  */
 void Integrator::setDeltaT(Scalar deltaT)
     {
-    if (m_deltaT <= 0.0)
-        m_exec_conf->msg->warning()
-            << "integrate.*: A timestep of less than 0.0 was specified" << endl;
+    if (m_deltaT < 0.0)
+        throw std::domain_error("delta_t must be positive");
 
     for (auto& force : m_forces)
         {
@@ -304,7 +318,7 @@ void Integrator::computeNetForce(uint64_t timestep)
         return;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // communicate the net force
         m_comm->updateNetForce(timestep);
@@ -652,7 +666,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         return;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // communicate the net force
         m_comm->updateNetForce(timestep);
@@ -883,6 +897,17 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
 void Integrator::update(uint64_t timestep)
     {
     Updater::update(timestep);
+
+    // ensure that the force computes know the current step size
+    for (auto& force : m_forces)
+        {
+        force->setDeltaT(m_deltaT);
+        }
+
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        constraint_force->setDeltaT(m_deltaT);
+        }
     }
 
 /** prepRun() is to be called at the very beginning of each run, before any analyzers are called,
@@ -921,23 +946,6 @@ CommFlags Integrator::determineFlags(uint64_t timestep)
     return flags;
     }
 
-void Integrator::setCommunicator(std::shared_ptr<Communicator> comm)
-    {
-    // call base class method
-    Updater::setCommunicator(comm);
-
-    // connect to ghost communication flags request
-    if (!m_request_flags_connected && m_comm)
-        m_comm->getCommFlagsRequestSignal().connect<Integrator, &Integrator::determineFlags>(this);
-
-    m_request_flags_connected = true;
-
-    if (!m_signals_connected && m_comm)
-        comm->getComputeCallbackSignal().connect<Integrator, &Integrator::computeCallback>(this);
-
-    m_signals_connected = true;
-    }
-
 void Integrator::computeCallback(uint64_t timestep)
     {
     // pre-compute all active forces
@@ -948,7 +956,7 @@ void Integrator::computeCallback(uint64_t timestep)
     }
 #endif
 
-bool Integrator::getAnisotropic()
+bool Integrator::areForcesAnisotropic()
     {
     bool aniso = false;
     // pre-compute all active forces

@@ -113,12 +113,12 @@ class ParticleLocalAccessBase(_LocalAccess):
             particles' masses :math:`[\\mathrm{mass}]`
         orientation ((N_particles, 4) `hoomd.data.array` object of ``float``):
             particle orientations expressed as quaternions
-        angular_momentum ((N_particles, 4) `hoomd.data.array` object of \
+        angmom ((N_particles, 4) `hoomd.data.array` object of \
             ``float``):
             particle angular momenta expressed as quaternions
             :math:`[\\mathrm{mass} \\cdot \\mathrm{velocity} \\cdot
             \\mathrm{length}]`
-        moment_of_inertia ((N_particles, 3) `hoomd.data.array` object of \
+        moment_inertia ((N_particles, 3) `hoomd.data.array` object of \
             ``float``):
             particle principal moments of inertia
             :math:`[\\mathrm{mass} \\cdot \\mathrm{length}^2]`
@@ -126,7 +126,7 @@ class ParticleLocalAccessBase(_LocalAccess):
             particle electrical charges :math:`[\\mathrm{charge}]`
         diameter ((N_particles) `hoomd.data.array` object of ``float``):
             particle diameters :math:`[\\mathrm{length}]`
-        rigid_body_id ((N_particles) `hoomd.data.array` object of ``int``):
+        body ((N_particles) `hoomd.data.array` object of ``int``):
             The id of the rigid body the particle is in.
         net_force ((N_particles, 3) `hoomd.data.array` object of ``float``):
             net force on particle :math:`[\\mathrm{force}]`
@@ -159,14 +159,14 @@ class ParticleLocalAccessBase(_LocalAccess):
         'mass': 'getMasses',
         'acceleration': 'getAcceleration',
         'orientation': 'getOrientation',
-        'angular_momentum': 'getAngularMomentum',
-        'moment_of_inertia': 'getMomentsOfInertia',
+        'angmom': 'getAngularMomentum',
+        'moment_inertia': 'getMomentsOfInertia',
         'charge': 'getCharge',
         'diameter': 'getDiameter',
         'image': 'getImages',
         'tag': 'getTags',
         'rtag': 'getRTags',
-        'rigid_body_id': 'getBodies',
+        'body': 'getBodies',
         'net_force': 'getNetForce',
         'net_torque': 'getNetTorque',
         'net_virial': 'getNetVirial',

@@ -1029,7 +1029,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 unsigned int snap_idx = (unsigned int)(it - snapshot.pos.begin());
 
                 // if requested, do not initialize constituent particles of bodies
-                if (ignore_bodies && snapshot.body[snap_idx] < MIN_FLOPPY)
+                if (ignore_bodies && snapshot.body[snap_idx] < MIN_FLOPPY
+                    && snapshot.body[snap_idx] != snap_idx)
                     {
                     continue;
                     }
@@ -1313,9 +1314,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
     m_origin = make_scalar3(0, 0, 0);
     m_o_image = make_int3(0, 0, 0);
 
-    // notify listeners that number of types has changed
-    m_num_types_signal.emit();
-
     unsigned int snapshot_size = snapshot.size;
 
 // Raise an exception if there are any invalid type ids. This is done here (instead of in the
@@ -1495,11 +1493,10 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
 
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
-                    m_exec_conf->msg->error()
-                        << endl
-                        << "Could not find particle " << tag << " on any processor. " << endl
-                        << endl;
-                    throw std::runtime_error("Error gathering ParticleData");
+                    ostringstream o;
+                    o << "Error gathering ParticleData: Could not find particle " << tag
+                      << " on any processor.";
+                    throw std::runtime_error(o.str());
                     }
 
                 // rank contains the processor rank on which the particle was found
@@ -2435,7 +2432,7 @@ unsigned int ParticleData::addParticle(unsigned int type)
         {
         // update reverse-lookup table
         ArrayHandle<unsigned int> h_rtag(m_rtag, access_location::host, access_mode::readwrite);
-        assert(h_rtag.data[tag] = NOT_LOCAL);
+        assert((h_rtag.data[tag] = NOT_LOCAL));
         if (m_exec_conf->getRank() == 0)
             {
             // we add the particle at the end
@@ -2787,7 +2784,6 @@ void export_ParticleData(py::module& m)
         .def("setDomainDecomposition", &ParticleData::setDomainDecomposition)
         .def("getDomainDecomposition", &ParticleData::getDomainDecomposition)
 #endif
-        .def("addType", &ParticleData::addType)
         .def("getTypes", &ParticleData::getTypesPy);
     }
 
@@ -3716,17 +3712,6 @@ void ParticleData::setGPUAdvice()
             }
         }
 #endif
-    }
-
-unsigned int ParticleData::addType(const std::string& type_name)
-    {
-    m_type_mapping.push_back(type_name);
-
-    // inform listeners about the number of types change
-    m_num_types_signal.emit();
-
-    // return id of newly added type
-    return (unsigned int)(m_type_mapping.size() - 1);
     }
 
 template<class Real>

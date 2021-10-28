@@ -109,7 +109,7 @@ class BoxMC(Updater):
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -141,7 +141,8 @@ class BoxMC(Updater):
 
         Note:
             The counts are reset to 0 at the start of each call to
-            `hoomd.Simulation.run`.
+            `hoomd.Simulation.run`. Before the first call to `Simulation.run`,
+            `counter` is `None`.
         """
         if not self._attached:
             return None
@@ -152,7 +153,7 @@ class BoxMC(Updater):
     def volume_moves(self):
         """tuple[int, int]: The accepted and rejected volume and length moves.
 
-        (0, 0) when not attached.
+        (0, 0) before the first call to `Simulation.run`.
         """
         counter = self.counter
         if counter is None:
@@ -168,7 +169,7 @@ class BoxMC(Updater):
     def shear_moves(self):
         """tuple[int, int]: The accepted and rejected shear moves.
 
-        (0, 0) when not attached.
+        (0, 0) before the first call to `Simulation.run`.
         """
         counter = self.counter
         if counter is None:
@@ -180,7 +181,7 @@ class BoxMC(Updater):
     def aspect_moves(self):
         """tuple[int, int]: The accepted and rejected aspect moves.
 
-        (0, 0) when not attached.
+        (0, 0) before the first call to `Simulation.run`.
         """
         counter = self.counter
         if counter is None:
@@ -354,8 +355,9 @@ class MuVT(Updater):
 
     Gibbs ensemble simulations are also supported, where particles and volumeare
     swapped between two or more boxes.  Every box correspond to one MPI
-    partition, and can therefore run on multiple ranks. See ``hoomd.comm`` and
-    the --nrank command line option for how to split a MPI task into partitions.
+    partition, and can therefore run on multiple ranks. Use the
+    ``ranks_per_partition`` argument of `hoomd.communicator.Communicator` to
+    enable partitioned simulations.
 
     Note:
         Multiple Gibbs ensembles are also supported in a single parallel job,
@@ -466,80 +468,12 @@ class MuVT(Updater):
         return N_dict
 
 
-class remove_drift:  # noqa - will be rewritten for v3
-    """Remove the center of mass drift from a system restrained on a lattice.
-
-    Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        external_lattice (:py:class:`hoomd.hpmc.field.lattice_field`): lattice
-          field where the lattice is defined.
-        period (int): the period to call the updater
-
-    The command hpmc.update.remove_drift sets up an updater that removes the
-    center of mass drift of a system every period timesteps,
-
-    Example::
-
-        mc = hpmc.integrate.convex_polyhedron(seed=seed);
-        mc.shape_param.set("A", vertices=verts)
-        mc.set_params(d=0.005, a=0.005)
-        lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice,
-                                             k=1000.0);
-        remove_drift = update.remove_drift(mc=mc, external_lattice=lattice,
-                                           period=1000);
-
-    """
-
-    def __init__(self, mc, external_lattice, period=1):
-        # initialize base class
-        # _updater.__init__(self)
-        cls = None
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            if isinstance(mc, integrate.sphere):
-                cls = _hpmc.RemoveDriftUpdaterSphere
-            elif isinstance(mc, integrate.convex_polygon):
-                cls = _hpmc.RemoveDriftUpdaterConvexPolygon
-            elif isinstance(mc, integrate.simple_polygon):
-                cls = _hpmc.RemoveDriftUpdaterSimplePolygon
-            elif isinstance(mc, integrate.convex_polyhedron):
-                cls = _hpmc.RemoveDriftUpdaterConvexPolyhedron
-            elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = _hpmc.RemoveDriftUpdaterSpheropolyhedron
-            elif isinstance(mc, integrate.ellipsoid):
-                cls = _hpmc.RemoveDriftUpdaterEllipsoid
-            elif isinstance(mc, integrate.convex_spheropolygon):
-                cls = _hpmc.RemoveDriftUpdaterSpheropolygon
-            elif isinstance(mc, integrate.faceted_sphere):
-                cls = _hpmc.RemoveDriftUpdaterFacetedEllipsoid
-            elif isinstance(mc, integrate.polyhedron):
-                cls = _hpmc.RemoveDriftUpdaterPolyhedron
-            elif isinstance(mc, integrate.sphinx):
-                cls = _hpmc.RemoveDriftUpdaterSphinx
-            elif isinstance(mc, integrate.sphere_union):
-                cls = _hpmc.RemoveDriftUpdaterSphereUnion
-            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-                cls = _hpmc.RemoveDriftUpdaterConvexPolyhedronUnion
-            elif isinstance(mc, integrate.faceted_ellipsoid_union):
-                cls = _hpmc.RemoveDriftUpdaterFacetedEllipsoidUnion
-            else:
-                hoomd.context.current.device.cpp_msg.error(
-                    "update.remove_drift: Unsupported integrator.\n")
-                raise RuntimeError("Error initializing update.remove_drift")
-        else:
-            raise RuntimeError(
-                "update.remove_drift: Error! GPU not implemented.")
-
-        self.cpp_updater = cls(hoomd.context.current.system_definition,
-                               external_lattice.cpp_compute, mc.cpp_integrator)
-        self.setupUpdater(period)
-
-
 class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
 
     Args:
-        pivot_move_ratio (float): Set the ratio between pivot and reflection
-          moves.
+        pivot_move_probability (float): Set the probability for attempting a
+                                        pivot move.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
         trigger (Trigger): Select the timesteps on which to perform cluster
@@ -569,8 +503,8 @@ class Clusters(Updater):
     The `Clusters` updater support threaded execution on multiple CPU cores.
 
     Attributes:
-        pivot_move_ratio (float): Set the ratio between pivot and reflection
-          moves.
+        pivot_move_probability (float): Set the probability for attempting a
+                                        pivot move.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
         trigger (Trigger): Select the timesteps on which to perform cluster
@@ -579,11 +513,15 @@ class Clusters(Updater):
     _remove_for_pickling = Updater._remove_for_pickling + ('_cpp_cell',)
     _skip_for_equality = Updater._skip_for_equality | {'_cpp_cell'}
 
-    def __init__(self, pivot_move_ratio=0.5, flip_probability=0.5, trigger=1):
+    def __init__(self,
+                 pivot_move_probability=0.5,
+                 flip_probability=0.5,
+                 trigger=1):
         super().__init__(trigger)
 
-        param_dict = ParameterDict(pivot_move_ratio=float(pivot_move_ratio),
-                                   flip_probability=float(flip_probability))
+        param_dict = ParameterDict(
+            pivot_move_probability=float(pivot_move_probability),
+            flip_probability=float(flip_probability))
 
         self._param_dict.update(param_dict)
         self.instance = 0
@@ -593,7 +531,7 @@ class Clusters(Updater):
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -731,7 +669,7 @@ class QuickCompress(Updater):
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)

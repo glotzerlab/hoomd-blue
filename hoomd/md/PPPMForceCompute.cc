@@ -436,7 +436,7 @@ uint3 PPPMForceCompute::computeGhostCellNum()
 
 // extra ghost cells to accommodate skin layer (max 1/2 ghost layer width)
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         Scalar r_buff = m_nlist->getRBuff() / 2.0;
 
@@ -1416,6 +1416,13 @@ void PPPMForceCompute::computeForces(uint64_t timestep)
             computeBodyCorrection();
             }
 
+        if (m_nlist->getDiameterShift())
+            {
+            m_exec_conf->msg->warning() << "Neighbor diameter shifting is enabled, "
+                                           "PPPM may not correct for all excluded interactions"
+                                        << std::endl;
+            }
+
         m_need_initialize = false;
         m_ptls_added_removed = false;
         }
@@ -1835,5 +1842,10 @@ void export_PPPMForceCompute(py::module& m)
                       std::shared_ptr<ParticleGroup>>())
         .def("setParams", &PPPMForceCompute::setParams)
         .def("getQSum", &PPPMForceCompute::getQSum)
-        .def("getQ2Sum", &PPPMForceCompute::getQ2Sum);
+        .def("getQ2Sum", &PPPMForceCompute::getQ2Sum)
+        .def_property_readonly("resolution", &PPPMForceCompute::getResolution)
+        .def_property_readonly("order", &PPPMForceCompute::getOrder)
+        .def_property_readonly("kappa", &PPPMForceCompute::getKappa)
+        .def_property_readonly("r_cut", &PPPMForceCompute::getRCut)
+        .def_property_readonly("alpha", &PPPMForceCompute::getAlpha);
     }

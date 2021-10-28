@@ -18,12 +18,7 @@ namespace hpmc
     {
 IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
     : Integrator(sysdef, 0.005), m_translation_move_probability(32768), m_nselect(4),
-      m_nominal_width(1.0), m_extra_ghost_width(0), m_external_base(NULL), m_patch_log(false),
-      m_past_first_run(false)
-#ifdef ENABLE_MPI
-      ,
-      m_communicator_ghost_width_connected(false), m_communicator_flags_connected(false)
-#endif
+      m_nominal_width(1.0), m_extra_ghost_width(0), m_external_base(NULL), m_past_first_run(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMC" << endl;
 
@@ -45,48 +40,35 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
         h_a.data[typ] = 0.1;
         }
 
-    // Connect to number of types change signal
-    m_pdata->getNumTypesChangeSignal().connect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(
-        this);
-
     resetStats();
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        assert(m_comm);
+
+        m_comm->getGhostLayerWidthRequestSignal()
+            .connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
+
+        m_comm->getCommFlagsRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(
+            this);
+        }
+#endif
     }
 
 IntegratorHPMC::~IntegratorHPMC()
     {
     m_exec_conf->msg->notice(5) << "Destroying IntegratorHPMC" << endl;
-    m_pdata->getNumTypesChangeSignal()
-        .disconnect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(this);
 
 #ifdef ENABLE_MPI
-    if (m_communicator_ghost_width_connected)
+    if (m_sysdef->isDomainDecomposed())
+        {
         m_comm->getGhostLayerWidthRequestSignal()
             .disconnect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
-    if (m_communicator_flags_connected)
         m_comm->getCommFlagsRequestSignal()
             .disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
-#endif
-    }
-
-void IntegratorHPMC::slotNumTypesChange()
-    {
-    // old size of arrays
-    unsigned int old_ntypes = (unsigned int)m_a.size();
-    assert(m_a.size() == m_d.size());
-
-    unsigned int ntypes = m_pdata->getNTypes();
-
-    m_a.resize(ntypes);
-    m_d.resize(ntypes);
-
-    // set default values for newly added types
-    ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
-    for (unsigned int typ = old_ntypes; typ < ntypes; typ++)
-        {
-        h_d.data[typ] = 0.1;
-        h_a.data[typ] = 0.1;
         }
+#endif
     }
 
 /*! \returns True if the particle orientations are normalized
@@ -201,7 +183,7 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
         result = h_counters.data[0] - m_count_step_start;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // MPI Reduction to total result values on all nodes.
         MPI_Allreduce(MPI_IN_PLACE,
@@ -263,11 +245,6 @@ void export_IntegratorHPMC(py::module& m)
         .def("getMPS", &IntegratorHPMC::getMPS)
         .def("getCounters", &IntegratorHPMC::getCounters)
         .def("communicate", &IntegratorHPMC::communicate)
-        .def("slotNumTypesChange", &IntegratorHPMC::slotNumTypesChange)
-        .def("disablePatchEnergyLogOnly", &IntegratorHPMC::disablePatchEnergyLogOnly)
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &IntegratorHPMC::setCommunicator)
-#endif
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
         .def_property("translation_move_probability",
                       &IntegratorHPMC::getTranslationMoveProbability,

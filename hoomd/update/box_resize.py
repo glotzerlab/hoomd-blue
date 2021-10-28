@@ -32,13 +32,13 @@ class BoxResize(Updater):
         properly in HPMC.
 
     Args:
+        trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
         box1 (hoomd.Box): The box associated with the minimum of the
             passed variant.
         box2 (hoomd.Box): The box associated with the maximum of the
             passed variant.
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
-        trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
         filter (hoomd.filter.ParticleFilter): The subset of particle positions
             to update.
 
@@ -54,7 +54,7 @@ class BoxResize(Updater):
             update.
     """
 
-    def __init__(self, box1, box2, variant, trigger, filter=All()):
+    def __init__(self, trigger, box1, box2, variant, filter=All()):
         params = ParameterDict(box1=OnlyTypes(Box,
                                               preprocess=box_preprocessing),
                                box2=OnlyTypes(Box,
@@ -85,6 +85,7 @@ class BoxResize(Updater):
 
         Returns:
             Box: The box used at the given timestep.
+            `None` before the first call to `Simulation.run`.
         """
         if self._attached:
             timestep = int(timestep)
@@ -107,6 +108,4 @@ class BoxResize(Updater):
         group = state._get_group(filter)
         updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def, state.box, box,
                                           Constant(1), group)
-        if state._simulation._system_communicator is not None:
-            updater.setCommunicator(state._simulation._system_communicator)
         updater.update(state._simulation.timestep)

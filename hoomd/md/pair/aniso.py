@@ -168,9 +168,9 @@ class GayBerne(AnisotropicPair):
 
         \begin{eqnarray*}
         V_{\mathrm{GB}}(\vec r, \vec e_i, \vec e_j)
-            = & 4 \varepsilon \left[ \zeta^{-12} - \zeta^{-6} \right]
+            = & 4 \varepsilon \left[ \zeta^{-12} - \zeta^{-6} \right];
             & \zeta < \zeta_{\mathrm{cut}} \\
-            = & 0 & \zeta \ge \zeta_{\mathrm{cut}} \\
+            = & 0; & \zeta \ge \zeta_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     .. math::

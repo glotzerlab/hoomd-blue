@@ -83,10 +83,6 @@ Messenger::Messenger(std::shared_ptr<MPIConfiguration> mpi_config) : m_mpi_confi
     assert(m_mpi_config);
     if (m_mpi_config->getRank() != 0)
         m_notice_level = 0;
-
-#ifdef ENABLE_MPI
-    m_shared_filename = "";
-#endif
     }
 
 Messenger::Messenger(const Messenger& msg)
@@ -105,10 +101,6 @@ Messenger::Messenger(const Messenger& msg)
     m_notice_level = msg.m_notice_level;
 
     m_mpi_config = msg.m_mpi_config;
-
-#ifdef ENABLE_MPI
-    m_shared_filename = msg.m_shared_filename;
-#endif
     }
 
 Messenger& Messenger::operator=(Messenger& msg)
@@ -127,10 +119,6 @@ Messenger& Messenger::operator=(Messenger& msg)
     m_notice_level = msg.m_notice_level;
 
     m_mpi_config = msg.m_mpi_config;
-
-#ifdef ENABLE_MPI
-    m_shared_filename = msg.m_shared_filename;
-#endif
 
     return *this;
     }
@@ -320,7 +308,27 @@ void Messenger::noticeStr(unsigned int level, const std::string& msg)
 */
 void Messenger::openFile(const std::string& fname)
     {
-    m_file_out = std::shared_ptr<std::ostream>(new ofstream(fname.c_str()));
+#ifdef ENABLE_MPI
+    if (m_mpi_config->getNRanks() > 1)
+        {
+        // open the shared file
+        std::string broadcast_fname = fname;
+        bcast(broadcast_fname, 0, m_mpi_config->getCommunicator());
+
+        m_streambuf_out
+            = std::make_shared<mpi_io>(m_mpi_config->getCommunicator(), broadcast_fname);
+        m_file_out = std::make_shared<std::ostream>(m_streambuf_out.get());
+        }
+    else
+        {
+        // open the file
+        m_file_out = std::make_shared<std::ofstream>(fname.c_str());
+        }
+#else
+    m_file_out = std::make_shared<std::ofstream>(fname.c_str());
+#endif
+
+    // update the error, warning, and notice streams
     m_file_err = std::shared_ptr<std::ostream>();
     m_err_stream = m_file_out.get();
     m_warning_stream = m_file_out.get();
@@ -377,29 +385,6 @@ void Messenger::reopenPythonIfNeeded()
             }
         }
     }
-
-#ifdef ENABLE_MPI
-/*! Open a shared file for error, warning, and notice streams
-
-    A suffix .rank (where rank is the partition number)
-    is appended to the filename
-*/
-void Messenger::openSharedFile()
-    {
-    std::ostringstream oss;
-    bcast(m_shared_filename, 0, m_mpi_config->getCommunicator());
-    oss << m_shared_filename << "." << m_mpi_config->getPartition();
-    m_streambuf_out = std::shared_ptr<std::streambuf>(
-        new mpi_io((const MPI_Comm&)m_mpi_config->getCommunicator(), oss.str()));
-
-    // now update the error, warning, and notice streams
-    m_file_out = std::shared_ptr<std::ostream>(new std::ostream(m_streambuf_out.get()));
-    m_file_err = std::shared_ptr<std::ostream>();
-    m_err_stream = m_file_out.get();
-    m_warning_stream = m_file_out.get();
-    m_notice_stream = m_file_out.get();
-    }
-#endif
 
 /*! Any open file is closed. stdout is opened again for notices and stderr for warnings and errors.
  */
@@ -480,8 +465,5 @@ void export_Messenger(py::module& m)
         .def("setWarningPrefix", &Messenger::setWarningPrefix)
         .def("openFile", &Messenger::openFile)
         .def("openPython", &Messenger::openPython)
-#ifdef ENABLE_MPI
-        .def("setSharedFile", &Messenger::setSharedFile)
-#endif
         .def("openStd", &Messenger::openStd);
     }

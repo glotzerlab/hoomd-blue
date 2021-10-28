@@ -18,7 +18,7 @@ using namespace std;
     \param dt Default step size
 */
 FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar dt)
-    : FIREEnergyMinimizer(sysdef, dt)
+    : FIREEnergyMinimizer(sysdef, dt), m_block_size(256)
     {
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
@@ -34,8 +34,19 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
     m_sum3.swap(sum3);
 
     // initialize the partial sum arrays
-    m_block_size = 256; // 128;
+    m_partial_sum1 = GPUVector<Scalar>(m_exec_conf);
+    m_partial_sum2 = GPUVector<Scalar>(m_exec_conf);
+    m_partial_sum3 = GPUVector<Scalar>(m_exec_conf);
 
+    reset();
+    }
+
+/*
+ * Update the size of the memory buffers to store the partial sums, if needed.
+ */
+void FIREEnergyMinimizerGPU::resizePartialSumArrays()
+    {
+    // initialize the partial sum arrays
     unsigned int num_blocks = 0;
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
@@ -46,14 +57,13 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
         }
 
     num_blocks = num_blocks / m_block_size + 1;
-    GPUArray<Scalar> partial_sum1(num_blocks, m_exec_conf);
-    m_partial_sum1.swap(partial_sum1);
-    GPUArray<Scalar> partial_sum2(num_blocks, m_exec_conf);
-    m_partial_sum2.swap(partial_sum2);
-    GPUArray<Scalar> partial_sum3(num_blocks, m_exec_conf);
-    m_partial_sum3.swap(partial_sum3);
 
-    reset();
+    if (num_blocks != m_partial_sum1.size())
+        {
+        m_partial_sum1.resize(num_blocks);
+        m_partial_sum2.resize(num_blocks);
+        m_partial_sum3.resize(num_blocks);
+        }
     }
 
 /*! \param timesteps is the iteration number
@@ -73,6 +83,9 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
     Scalar energy(0.0);
     Scalar tnorm(0.0);
     Scalar wnorm(0.0);
+
+    // update partial sum memory space if needed
+    resizePartialSumArrays();
 
     // compute the total energy on the GPU
     // CPU version is Scalar energy = computePotentialEnergy(timesteps)/Scalar(group_size);

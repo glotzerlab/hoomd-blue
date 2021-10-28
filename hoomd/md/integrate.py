@@ -8,21 +8,12 @@ import itertools
 
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
+from hoomd.data.typeconverter import OnlyTypes
 from hoomd.integrate import BaseIntegrator
 from hoomd.data import syncedlist
 from hoomd.md.methods import Method
 from hoomd.md.force import Force
 from hoomd.md.constrain import Constraint, Rigid
-
-
-def _preprocess_aniso(value):
-    if value is True:
-        return "true"
-    elif value is False:
-        return "false"
-    else:
-        return value
 
 
 def _set_synced_list(old_list, new_list):
@@ -61,6 +52,19 @@ class _DynamicIntegrator(BaseIntegrator):
         if self.rigid is not None:
             self.rigid._attach()
             self._cpp_obj.rigid = self.rigid._cpp_obj
+
+    def _detach(self):
+        self._forces._unsync()
+        self._methods._unsync()
+        self._constraints._unsync()
+        if self.rigid is not None:
+            self.rigid._detach()
+        super()._detach()
+
+    def _remove(self):
+        if self.rigid is not None:
+            self.rigid._remove()
+        super()._remove()
 
     def _add(self, simulation):
         super()._add(simulation)
@@ -114,30 +118,36 @@ class _DynamicIntegrator(BaseIntegrator):
             return
         super()._setattr_param(attr, value)
 
-    def _set_rigid(self, value):
+    def _set_rigid(self, new_rigid):
         """Handles the adding and detaching of potential Rigid objects."""
         # this generally only happens when attaching and we can ignore it since
         # we attach the rigid body in _attach.
-        if value is self.rigid:
+        if new_rigid is self.rigid:
             return
 
         old_rigid = self.rigid
-        self._param_dict["rigid"] = value
 
-        if self.rigid is not None and self.rigid._added:
+        if new_rigid is not None and new_rigid._added:
             raise ValueError("Cannot add Rigid object to multiple integrators.")
 
-        if old_rigid is not None and self._attached:
-            old_rigid._detach()
+        if old_rigid is not None:
+            if self._attached:
+                old_rigid._detach()
+            if self._added:
+                old_rigid._remove()
+
+        if new_rigid is None:
+            self._param_dict["rigid"] = None
+            if self._attached:
+                self._cpp_obj.rigid = None
+            return
 
         if self._added:
-            if old_rigid is not None:
-                old_rigid._remove()
-            self.rigid._add(self._simulation)
-
+            new_rigid._add(self._simulation)
         if self._attached:
             self.rigid._attach()
-            self._cpp_obj.rigid = value._cpp_obj
+            self._cpp_obj.rigid = new_rigid._cpp_obj
+        self._param_dict["rigid"] = new_rigid
 
 
 class Integrator(_DynamicIntegrator):
@@ -155,9 +165,8 @@ class Integrator(_DynamicIntegrator):
             the particles in the system. All the forces are summed together.
             The default value of ``None`` initializes an empty list.
 
-        aniso (str or bool): Whether to integrate rotational degrees of freedom
-            (bool), default 'auto' (autodetect if there is anisotropic factor
-            from any defined active or constraint forces).
+        integrate_rotational_dof (bool): When True, integrate rotational degrees
+            of freedom.
 
         constraints (Sequence[hoomd.md.constrain.Constraint]): Sequence of
             constraint forces applied to the particles in the system.
@@ -169,13 +178,10 @@ class Integrator(_DynamicIntegrator):
             rigid bodies in the simulation.
 
 
-    The following classes can be used as elements in `methods`
+    Classes of the following modules can be used as elements in `methods`:
 
-    - `hoomd.md.methods.Brownian`
-    - `hoomd.md.methods.Langevin`
-    - `hoomd.md.methods.NVE`
-    - `hoomd.md.methods.NVT`
-    - `hoomd.md.methods.NPT`
+    - `hoomd.md.methods`
+    - `hoomd.md.methods.rattle`
 
     The classes of following modules can be used as elements in `forces`
 
@@ -194,6 +200,7 @@ class Integrator(_DynamicIntegrator):
 
     - `hoomd.md.constrain`
 
+
     Examples::
 
         nlist = hoomd.md.nlist.Cell()
@@ -208,16 +215,17 @@ class Integrator(_DynamicIntegrator):
     Attributes:
         dt (float): Integrator time step size :math:`[\\mathrm{time}]`.
 
-        methods (List[hoomd.md.methods.Method]): List of integration methods.
+        methods (list[hoomd.md.methods.Method]): List of integration methods.
             Each integration method can be applied to only a specific subset of
             particles.
 
-        forces (List[hoomd.md.force.Force]): List of forces applied to
+        forces (list[hoomd.md.force.Force]): List of forces applied to
             the particles in the system. All the forces are summed together.
 
-        aniso (str): Whether rotational degrees of freedom are integrated.
+        integrate_rotational_dof (bool): When True, integrate rotational degrees
+            of freedom.
 
-        constraints (List[hoomd.md.constrain.Constraint]): List of
+        constraints (list[hoomd.md.constrain.Constraint]): List of
             constraint forces applied to the particles in the system.
 
         rigid (hoomd.md.constrain.Rigid): The rigid body definition for the
@@ -226,7 +234,7 @@ class Integrator(_DynamicIntegrator):
 
     def __init__(self,
                  dt,
-                 aniso='auto',
+                 integrate_rotational_dof=False,
                  forces=None,
                  constraints=None,
                  methods=None,
@@ -235,12 +243,9 @@ class Integrator(_DynamicIntegrator):
         super().__init__(forces, constraints, methods, rigid)
 
         self._param_dict.update(
-            ParameterDict(dt=float(dt),
-                          aniso=OnlyFrom(['true', 'false', 'auto'],
-                                         preprocess=_preprocess_aniso),
-                          _defaults={"aniso": "auto"}))
-        if aniso is not None:
-            self.aniso = aniso
+            ParameterDict(
+                dt=float(dt),
+                integrate_rotational_dof=bool(integrate_rotational_dof)))
 
     def _attach(self):
         # initialize the reflected c++ class
@@ -249,3 +254,10 @@ class Integrator(_DynamicIntegrator):
         # Call attach from DynamicIntegrator which attaches forces,
         # constraint_forces, and methods, and calls super()._attach() itself.
         super()._attach()
+
+    def __setattr__(self, attr, value):
+        """Hande group DOF update when setting integrate_rotational_dof."""
+        super().__setattr__(attr, value)
+        if (attr == 'integrate_rotational_dof' and self._simulation is not None
+                and self._simulation.state is not None):
+            self._simulation.state.update_group_dof()

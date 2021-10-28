@@ -46,8 +46,7 @@ class Harmonic(Bond):
 
         V(r) = \frac{1}{2} k \left( r - r_0 \right)^2
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other
-    in the bond.
+    where :math:`r` is the distance from one particle to the other in the bond.
 
     Attributes:
         params (TypeParameter[``bond type``, dict]):
@@ -85,9 +84,9 @@ class FENE(Bond):
         V(r) = - \frac{1}{2} k r_0^2 \ln \left( 1 - \left( \frac{r -
                \Delta}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other
-    in the bond, :math:`\Delta = (d_i + d_j)/2 - 1`, :math:`d_i` is the diameter
-    of particle :math:`i`, and
+    where :math:`r` is the distance from one particle to the other in the bond,
+    :math:`\Delta = (d_i + d_j)/2 - 1`, :math:`d_i` is the diameter of particle
+    :math:`i`, and
 
     .. math::
         :nowrap:
@@ -95,9 +94,9 @@ class FENE(Bond):
         \begin{eqnarray*}
         V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r -
                                  \Delta} \right)^{12} - \left( \frac{\sigma}{r -
-                                 \Delta} \right)^{6} \right]  + \varepsilon
+                                 \Delta} \right)^{6} \right]  + \varepsilon;
                                & r-\Delta < 2^{\frac{1}{6}}\sigma\\
-                             = & 0
+                             = & 0;
                                & r-\Delta \ge 2^{\frac{1}{6}}\sigma
         \end{eqnarray*}
 
@@ -163,11 +162,11 @@ class table(force._force):  # noqa - Will be renamed when updated for v3
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F}(\vec{r})     = & 0
+        \vec{F}(\vec{r})     = & 0;
                                & r < r_{\mathrm{min}} \\
-                             = & F_{\mathrm{user}}(r)\hat{r}
+                             = & F_{\mathrm{user}}(r)\hat{r};
                                & r < r_{\mathrm{max}} \\
-                             = & 0
+                             = & 0;
                                & r \ge r_{\mathrm{max}} \\
                              \\
         V(r)       = & 0                    & r < r_{\mathrm{min}} \\
@@ -175,11 +174,11 @@ class table(force._force):  # noqa - Will be renamed when updated for v3
                    = & 0                    & r \ge r_{\mathrm{max}} \\
         \end{eqnarray*}
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other
-    in the bond.  Care should be taken to define the range of the bond so that
-    it is not possible for the distance between two bonded particles to be
-    outside the specified range.  On the CPU, this will throw an error.  On the
-    GPU, this will throw an error if GPU error checking is enabled.
+    where :math:`r` is the distance from one particle to the other in the bond.
+    Care should be taken to define the range of the bond so that it is not
+    possible for the distance between two bonded particles to be outside the
+    specified range. On the CPU, this will throw an error. On the GPU, this
+    will throw an error if GPU error checking is enabled.
 
     :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)` are evaluated
     on *width* grid points between :math:`r_{\mathrm{min}}` and
@@ -381,3 +380,85 @@ class table(force._force):  # noqa - Will be renamed when updated for v3
                             rmin=rmin_table,
                             rmax=rmax_table,
                             coeff=dict(V=V_table, F=F_table, width=self.width))
+
+
+class Tether(Bond):
+    r"""Tethering bond potential.
+
+    :py:class:`Tether` specifies a Tethering potential energy between two
+    particles in each defined bond.
+
+    The tethered network is described in Refs. `Gompper, G. & Kroll, D. M.
+    Statistical Mechanics of Membranes and Surfaces 2nd edn (eds Nelson, D. R.
+    et al.) 359-426 (World Scientific, 2004)
+    <https://www.worldscientific.com/worldscibooks/10.1142/5473>`__ and
+    `Noguchi, H. & Gompper, G., Phys. Rev. E 72 011901 (2005)
+    <https://link.aps.org/doi/10.1103/PhysRevE.72.011901>`__.
+
+    .. math::
+
+        V(r) = V_{\mathrm{att}}(r) + V_{\mathrm{rep}}(r)
+
+    where :math:`r` is the distance from one particle to the other in the bond.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{att}}(r)  = & k_b \frac{exp(1/(l_{c0}-r)}{l_{max}-r};
+                                & r > l_{c0}\\
+                                = & 0;
+                                & r \leq l_{c0}
+        \end{eqnarray*}
+
+    .. math::
+
+        \begin{eqnarray*}
+        V_{\mathrm{rep}}(r)  = & k_b \frac{exp(1/(r-l_{c1})}{r-l_{min}};
+                                & r < l_{c1}\\
+                                = & 0;
+                                & r \ge l_{c1}
+        \end{eqnarray*}
+
+    .. math::
+        l_{min} < l_{c1} < l_{c0} < l_{max}
+
+
+    Attributes:
+        params (TypeParameter[``bond type``, dict]):
+            The parameter of the Tethering potential bonds.
+            The dictionary has the following keys:
+
+            * ``k_b`` (`float`, **required**) - bond stiffness
+              :math:`[\mathrm{energy}]`
+
+            * ``l_min`` (`float`, **required**) - minimum bond length
+              :math:`[\mathrm{length}]`
+
+            * ``l_c1`` (`float`, **required**) - cutoff distance of repulsive
+              part :math:`[\mathrm{length}]`
+
+            * ``l_c0`` (`float`, **required**) - cutoff distance of attractive
+              part :math:`[\mathrm{length}]`
+
+            * ``l_max`` (`float`, **required**) - maximum bond length
+              :math:`[\mathrm{length}]`
+
+    Examples::
+
+        bond_potential = bond.Tether()
+        bond_potential.params['tether'] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
+                                               l_c0=1.8, l_max=2.1)
+    """
+    _cpp_class_name = "PotentialBondTether"
+
+    def __init__(self):
+        params = TypeParameter(
+            "params", "bond_types",
+            TypeParameterDict(k_b=float,
+                              l_min=float,
+                              l_c1=float,
+                              l_c0=float,
+                              l_max=float,
+                              len_keys=1))
+        self._add_typeparam(params)

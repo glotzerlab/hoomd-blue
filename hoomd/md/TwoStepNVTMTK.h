@@ -132,19 +132,6 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
 
     Scalar getThermostatEnergy(uint64_t timestep);
 
-#ifdef ENABLE_MPI
-
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method
-        IntegrationMethodTwoStep::setCommunicator(comm);
-
-        // set the communicator on the internal thermo
-        m_thermo->setCommunicator(comm);
-        }
-
-#endif
-
     protected:
     std::shared_ptr<ComputeThermo> m_thermo; //!< compute for thermodynamic quantities
 

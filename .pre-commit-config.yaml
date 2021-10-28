@@ -13,7 +13,7 @@ repos:
     entry: python3 .github/workflows/make_workflows.py
     pass_filenames: false
     always_run: true
-    additional_dependencies: [jinja2==2.11.3, pyyaml==5.4.1]
+    additional_dependencies: [jinja2==3.0.1, pyyaml==5.4.1]
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: 'v4.0.1'
   hooks:
@@ -34,7 +34,7 @@ repos:
   hooks:
   - id: flake8
     additional_dependencies:
-    - pep8-naming==0.11.1
+    - pep8-naming==0.12.1
     - pydocstyle==6.1.1
     - flake8-docstrings==1.6.0
     - flake8-rst-docstrings==0.2.3
@@ -43,7 +43,6 @@ repos:
     # These also need to be removed in setup.cfg
     exclude: |
       (?x)(
-        ^hoomd/md/charge.py|
         ^hoomd/md/wall.py|
         ^hoomd/md/impropers.py|
         ^hoomd/hpmc/analyze.py|
@@ -51,9 +50,7 @@ repos:
         ^hoomd/extern/|
         ^hoomd/mpcd/|
         ^hoomd/dem/|
-        ^hoomd/jit/|
         ^hoomd/metal/|
-        ^hoomd/minimize/|
         ^doc/dev/
       )
 - repo: https://github.com/glotzerlab/pre-commit-clang-format

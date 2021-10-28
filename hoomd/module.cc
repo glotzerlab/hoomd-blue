@@ -22,8 +22,10 @@
 #include "HOOMDMath.h"
 #include "Initializers.h"
 #include "Integrator.h"
+#include "LoadBalancer.h"
 #include "Messenger.h"
 #include "ParticleData.h"
+#include "ParticleFilterUpdater.h"
 #include "Profiler.h"
 #include "PythonAnalyzer.h"
 #include "PythonLocalDataAccess.h"
@@ -36,6 +38,7 @@
 #include "Trigger.h"
 #include "Tuner.h"
 #include "Updater.h"
+#include "UpdaterRemoveDrift.h"
 #include "Variant.h"
 
 // ParticleFilter objects
@@ -44,6 +47,7 @@
 // include GPU classes
 #ifdef ENABLE_HIP
 #include "CellListGPU.h"
+#include "LoadBalancerGPU.h"
 #include "SFCPackTunerGPU.h"
 #include <hip/hip_runtime.h>
 #endif
@@ -52,11 +56,9 @@
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #include "DomainDecomposition.h"
-#include "LoadBalancer.h"
 
 #ifdef ENABLE_HIP
 #include "CommunicatorGPU.h"
-#include "LoadBalancerGPU.h"
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI
 
@@ -275,22 +277,23 @@ PYBIND11_MODULE(_hoomd, m)
     export_PythonUpdater(m);
     export_Integrator(m);
     export_BoxResizeUpdater(m);
+    export_UpdaterRemoveDrift(m);
 
     // tuners
     export_Tuner(m);
     export_PythonTuner(m);
     export_SFCPackTuner(m);
+    export_LoadBalancer(m);
 #ifdef ENABLE_HIP
     export_SFCPackTunerGPU(m);
+    export_LoadBalancerGPU(m);
 #endif
 
 #ifdef ENABLE_MPI
     export_Communicator(m);
     export_DomainDecomposition(m);
-    export_LoadBalancer(m);
 #ifdef ENABLE_HIP
     export_CommunicatorGPU(m);
-    export_LoadBalancerGPU(m);
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI
 
@@ -300,6 +303,7 @@ PYBIND11_MODULE(_hoomd, m)
     // filters and groups
     export_ParticleFilters(m);
     export_ParticleGroup(m);
+    export_ParticleFilterUpdater(m);
 
     // trigger
     export_Trigger(m);

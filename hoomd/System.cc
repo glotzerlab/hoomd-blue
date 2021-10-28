@@ -8,7 +8,6 @@
 */
 
 #include "System.h"
-#include "SignalHandler.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
@@ -86,7 +85,6 @@ void System::setCommunicator(std::shared_ptr<Communicator> comm)
 
 void System::run(uint64_t nsteps, bool write_at_start)
     {
-    ScopedSignalHandler signal_handler;
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
 
@@ -102,7 +100,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
     resetStats();
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // make sure we start off with a migration substep
         m_comm->forceMigrate();
@@ -164,19 +162,16 @@ void System::run(uint64_t nsteps, bool write_at_start)
 
         updateTPS();
 
-        // quit if Ctrl-C was pressed
-        if (g_sigint_recvd)
+        // propagate Python exceptions related to signals
+        if (PyErr_CheckSignals() != 0)
             {
-            g_sigint_recvd = 0;
-            PyErr_SetString(PyExc_KeyboardInterrupt, "");
-            throw pybind11::error_already_set();
-            return;
+            throw py::error_already_set();
             }
         }
 
 #ifdef ENABLE_MPI
     // make sure all ranks return the same TPS after the run completes
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
         bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
@@ -221,7 +216,7 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
         compute->setAutotunerParams(enabled, period);
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         m_comm->setAutotunerParams(enabled, period);
 #endif
     }
@@ -264,7 +259,7 @@ void System::setupProfiling()
 
 #ifdef ENABLE_MPI
     // communicator
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         m_comm->setProfiler(m_profiler);
 #endif
     }
@@ -352,7 +347,6 @@ void export_System(py::module& m)
         .def_property_readonly("computes", &System::getComputes)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &System::setCommunicator)
-        .def("getCommunicator", &System::getCommunicator)
 #endif
         ;
     }

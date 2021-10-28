@@ -40,13 +40,13 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
     virtual ~TwoStepRATTLELangevinGPU() {};
 
     //! Performs the first step of the integration
-    virtual void integrateStepOne(unsigned int timestep);
+    virtual void integrateStepOne(uint64_t timestep);
 
     //! Performs the second step of the integration
-    virtual void integrateStepTwo(unsigned int timestep);
+    virtual void integrateStepTwo(uint64_t timestep);
 
     //! Includes the RATTLE forces to the virial/net force
-    virtual void includeRATTLEForce(unsigned int timestep);
+    virtual void includeRATTLEForce(uint64_t timestep);
 
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
@@ -124,15 +124,19 @@ TwoStepRATTLELangevinGPU<Manifold>::TwoStepRATTLELangevinGPU(
                                             this->m_exec_conf));
     }
 template<class Manifold>
-void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
+void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(uint64_t timestep)
     {
     // profile this step
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "RATTLELangevin step 1");
 
-    if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
+    if (this->m_box_changed)
         {
-        throw std::runtime_error("Parts of the manifold are outside the box");
+        if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
+            {
+            throw std::runtime_error("Parts of the manifold are outside the box");
+            }
+        this->m_box_changed = false;
         }
 
     // access all the needed data
@@ -218,7 +222,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
 template<class Manifold>
-void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
+void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = this->m_pdata->getNetForce();
 
@@ -334,7 +338,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
         {
         ArrayHandle<Scalar> h_sumBD(m_sum, access_location::host, access_mode::read);
 #ifdef ENABLE_MPI
-        if (this->m_comm)
+        if (this->m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &h_sumBD.data[0],
@@ -353,7 +357,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
     }
 
 template<class Manifold>
-void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
+void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
     {
     // access all the needed data
     const GlobalArray<Scalar4>& net_force = this->m_pdata->getNetForce();

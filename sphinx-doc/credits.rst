@@ -72,6 +72,7 @@ The following people have contributed to the to HOOMD-blue:
 * Michael Howard, University of Texas
 * Mike Henry, Boise State University
 * Nathan Horst
+* Nipuli Gunaratne, University of Michigan
 * Patrick Lawton, University of Michigan
 * Paul Dodd, University of Michigan
 * Pavani Medapuram Lakshmi Narasimha, University of Minnesota
@@ -81,6 +82,7 @@ The following people have contributed to the to HOOMD-blue:
 * Philipp Mertmann, Ruhr University Bochum
 * Philipp Schönhöfer, University of Michigan
 * Rastko Sknepnek, Northwestern
+* Raymond Asare, University of Michigan
 * Richmond Newman, University of Michigan
 * Roman Bystryi, Joint Institute for High Temperatures of RAS
 * Ross Smith, University of Michigan
@@ -103,3 +105,4 @@ The following people have contributed to the to HOOMD-blue:
 * Wouter Ellenbroek, Eindhoven University of Technology
 * Yuan Zhou, University of Michigan
 * Åsmund Ervik, SINTEF
+* Nathan Barrett, Pritzker School of Molecular Engineering

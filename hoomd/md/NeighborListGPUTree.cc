@@ -23,11 +23,9 @@ namespace py = pybind11;
  */
 NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
     : NeighborListGPU(sysdef, r_buff), m_type_bits(1), m_lbvh_errors(m_exec_conf), m_n_images(0),
-      m_type_changed(true), m_box_changed(true), m_max_num_changed(true), m_max_types(0)
+      m_types_allocated(false), m_box_changed(true), m_max_num_changed(true), m_max_types(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUTree" << std::endl;
-    m_pdata->getNumTypesChangeSignal()
-        .connect<NeighborListGPUTree, &NeighborListGPUTree::slotNumTypesChanged>(this);
     m_pdata->getBoxChangeSignal()
         .connect<NeighborListGPUTree, &NeighborListGPUTree::slotBoxChanged>(this);
     m_pdata->getMaxParticleNumberChangeSignal()
@@ -65,8 +63,6 @@ NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysde
 NeighborListGPUTree::~NeighborListGPUTree()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUTree" << std::endl;
-    m_pdata->getNumTypesChangeSignal()
-        .disconnect<NeighborListGPUTree, &NeighborListGPUTree::slotNumTypesChanged>(this);
     m_pdata->getBoxChangeSignal()
         .disconnect<NeighborListGPUTree, &NeighborListGPUTree::slotBoxChanged>(this);
     m_pdata->getMaxParticleNumberChangeSignal()
@@ -115,7 +111,7 @@ void NeighborListGPUTree::buildNlist(uint64_t timestep)
         }
 
     // allocate memory that depends on type
-    if (m_type_changed)
+    if (!m_types_allocated)
         {
         if (m_pdata->getNTypes() > m_max_types)
             {
@@ -153,7 +149,7 @@ void NeighborListGPUTree::buildNlist(uint64_t timestep)
         ++m_type_bits;
 
         // all done with the type reallocation
-        m_type_changed = false;
+        m_types_allocated = true;
         }
 
     // update properties that depend on the box
@@ -227,7 +223,7 @@ void NeighborListGPUTree::buildTree()
         const BoxDim& box = m_pdata->getBox();
         Scalar ghost_layer_width(0.0);
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             ghost_layer_width = m_comm->getGhostLayerMaxWidth();
 #endif
         Scalar3 ghost_width = make_scalar3(0.0, 0.0, 0.0);

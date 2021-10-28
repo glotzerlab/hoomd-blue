@@ -183,13 +183,22 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
         next_pos.z = postype.z;
         Scalar3 normal = manifold.derivative(next_pos);
 
-        // draw a new random velocity for particle j
-        Scalar mass = vel.w;
-        Scalar sigma = fast::sqrt(T / mass);
-        NormalDistribution<Scalar> norm(sigma);
-        vel.x = norm(rng);
-        vel.y = norm(rng);
-        vel.z = norm(rng);
+        if (d_noiseless_t)
+            {
+            vel.x = net_force.x / gamma;
+            vel.y = net_force.y / gamma;
+            vel.z = net_force.y / gamma;
+            }
+        else
+            {
+            // draw a new random velocity for particle j
+            Scalar mass = vel.w;
+            Scalar sigma = fast::sqrt(T / mass);
+            NormalDistribution<Scalar> norm(sigma);
+            vel.x = norm(rng);
+            vel.y = norm(rng);
+            vel.z = norm(rng);
+            }
 
         Scalar norm_normal = fast::rsqrt(dot(normal, normal));
         normal.x *= norm_normal;
@@ -302,10 +311,20 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 d_orientation[idx] = quat_to_scalar4(q);
 
-                // draw a new random ang_mom for particle j in body frame
-                p_vec.x = NormalDistribution<Scalar>(fast::sqrt(T * I.x))(rng);
-                p_vec.y = NormalDistribution<Scalar>(fast::sqrt(T * I.y))(rng);
-                p_vec.z = NormalDistribution<Scalar>(fast::sqrt(T * I.z))(rng);
+                if (d_noiseless_r)
+                    {
+                    p_vec.x = t.x / gamma_r.x;
+                    p_vec.y = t.y / gamma_r.y;
+                    p_vec.z = t.z / gamma_r.z;
+                    }
+                else
+                    {
+                    // draw a new random ang_mom for particle j in body frame
+                    p_vec.x = NormalDistribution<Scalar>(fast::sqrt(T * I.x))(rng);
+                    p_vec.y = NormalDistribution<Scalar>(fast::sqrt(T * I.y))(rng);
+                    p_vec.z = NormalDistribution<Scalar>(fast::sqrt(T * I.z))(rng);
+                    }
+
                 if (x_zero)
                     p_vec.x = 0;
                 if (y_zero)
