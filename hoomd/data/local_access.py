@@ -449,11 +449,12 @@ class ForceLocalAccessBase(_LocalAccess):
     def __init__(self, force_obj):
         super().__init__()
         self._force_obj = force_obj
-        self._cpp_obj = self._cpp_class(force_obj._cpp_obj)
+        self._cpp_obj = self._cpp_cls(force_obj._cpp_obj)
 
     def __enter__(self):
         self._force_obj._in_context_manager = True
         self._enter()
+        return self
 
     def __exit__(self, type, value, traceback):
         self._force_obj._in_context_manager = False
