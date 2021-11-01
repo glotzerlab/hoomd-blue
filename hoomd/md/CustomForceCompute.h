@@ -70,19 +70,10 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
         }
 
     protected:
-    //! Function that is called on every particle sort
-    void rearrangeForces();
-
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
 
     private:
-    bool m_need_rearrange_forces; //!< True if forces need to be rearranged
-
-    //! Lists of particle tags and corresponding forces/torques
-    std::map<unsigned int, vec3<Scalar>> m_forces;
-    std::map<unsigned int, vec3<Scalar>> m_torques;
-
     //! A python callback when the force is updated
     pybind11::object m_callback;
     };
