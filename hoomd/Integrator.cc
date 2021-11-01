@@ -260,13 +260,9 @@ void Integrator::computeNetForce(uint64_t timestep)
             for (unsigned int j = 0; j < nparticles; j++)
                 {
                 h_net_force.data[j].x += h_force.data[j].x;
-                std::cout << h_force.data[j].x << std::endl;
                 h_net_force.data[j].y += h_force.data[j].y;
-                std::cout << h_force.data[j].y << std::endl;
                 h_net_force.data[j].z += h_force.data[j].z;
-                std::cout << h_force.data[j].z << std::endl;
                 h_net_force.data[j].w += h_force.data[j].w;
-                std::cout << h_force.data[j].w << std::endl;
 
                 h_net_torque.data[j].x += h_torque.data[j].x;
                 h_net_torque.data[j].y += h_torque.data[j].y;
