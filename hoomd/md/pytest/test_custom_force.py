@@ -72,20 +72,8 @@ class MyPeriodicField(md.force.Custom):
         with self._state.cpu_local_snapshot as snap, \
                 self.cpu_local_force_arrays as arrays:
             forces, potential = self._evaluate_periodic(snap)
-
-            position = snap.particles.position
-            #print(position)
-            print(arrays.force)
-            arrays.force = forces
-            print(arrays.force)
-            arrays.potential_energy = potential
-            arrays.torque = np.cross(position, forces)
-            arrays.virial[:, 0] = forces[:, 0] * position[:, 0]
-            arrays.virial[:, 1] = forces[:, 0] * position[:, 1]
-            arrays.virial[:, 2] = forces[:, 0] * position[:, 2]
-            arrays.virial[:, 3] = forces[:, 1] * position[:, 0]
-            arrays.virial[:, 4] = forces[:, 1] * position[:, 1]
-            arrays.virial[:, 5] = forces[:, 2] * position[:, 2]
+            arrays.force[:] = forces
+            arrays.potential_energy[:] = potential
 
 
 def test_compare_to_periodic(simulation_factory, two_particle_snapshot_factory):
@@ -108,28 +96,22 @@ def test_compare_to_periodic(simulation_factory, two_particle_snapshot_factory):
     sim2.operations.integrator = integrator2
 
     # run simulations next to each other
-    for i in range(100):
-        print(i)
-        #sim.run(1)
-        #print(sim.state.get_snapshot().particles.position)
-        #print(sim.operations.integrator.forces[0].forces)
-        sim2.run(1)
+    sim.run(100)
+    sim2.run(100)
+
     snap_end = sim.state.get_snapshot()
     snap_end2 = sim2.state.get_snapshot()
 
     # compare particle properties
     npt.assert_allclose(snap_end.particles.position,
                         snap_end2.particles.position)
-    #print(integrator.forces[0].forces)
-    #print(integrator2.forces[0].forces)
-    #npt.assert_allclose(integrator.forces[0].forces,
-    #                    integrator2.forces[0].forces)
-    #npt.assert_allclose(integrator.forces[0].torques,
-    #                    integrator2.forces[0].torques)
-    #print(integrator.forces[0].virials)
-    #print(integrator2.forces[0].virials)
-    npt.assert_allclose(integrator.forces[0].virials,
-                        integrator2.forces[0].virials)
-    #npt.assert_allclose(integrator.forces[0].energies,
-    #                    integrator2.forces[0].energies)
+    npt.assert_allclose(snap_end.particles.velocity,
+                        snap_end2.particles.velocity)
+    npt.assert_allclose(integrator.forces[0].forces,
+                        integrator2.forces[0].forces)
+    npt.assert_allclose(integrator.forces[0].energies,
+                        integrator2.forces[0].energies)
+    npt.assert_allclose(integrator.forces[0].torques,
+                        integrator2.forces[0].torques)
+    assert integrator.forces[0].virials == integrator2.forces[0].virials
 
