@@ -94,8 +94,9 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
     while (j < a.Nf){
         int jj = a.faces[j];
         std::vector<unsigned int> face;
-        for (int i=1; i <= jj; i++)
+        for (int i=1; i <= jj; i++){
     		face.push_back(a.faces[j+i]);
+		}
         faces.push_back(face);
         side.push_back(side_used);
         j = j + jj + 1;
@@ -149,7 +150,10 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
                     if(dot(n1,pos_b[i].v) > 0) side[face1][i] = true;
                     else separate = false;
                 }
-                if(separate) return false;
+                if(separate){
+		 	//std::cout << "Return 1" << std::endl;
+			return false;
+			}
 
         	all_faces++;
         	if(all_faces == Nf){
@@ -158,7 +162,10 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
          		for( int j = 0; j < Nf && separate; j++)
          		    if(side[j][i]) separate = false;
          	    }
-         	    if(separate) return true;
+         	    if(separate){ 
+		 	//std::cout << "Return 2" << std::endl;
+			return true;
+			}
         	}
         }
 
@@ -181,7 +188,10 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
                     if(dot(n1,pos_b[i].v) > 0) side[face2][i] = true;
                     else separate = false;
                 }
-                if(separate) return false;
+                if(separate){ 
+		 	//std::cout << "Return 3" << std::endl;
+			return false;
+		}
 
         	all_faces++;
         	if(all_faces == Nf){
@@ -190,7 +200,10 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
          		for( int j = 0; j < Nf && separate; j++)
          		    if(side[j][i]) separate = false;
          	    }
-         	    if(separate) return true;
+         	    if(separate){ 
+		 	//std::cout << "Return 4" << std::endl;
+			return true;
+			}
                 }
         }
 
@@ -224,7 +237,10 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
                 }
             }
 
-            if(separate) return false;
+            if(separate){
+		 //std::cout << "Return 5" << std::endl;
+		 return false;
+		}
         }
     }
 
@@ -279,7 +295,10 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
                         if(dot(n1,pos_a[i].v) > 0) side[face1][i] = true;
                         else separate = false;
                     }
-                    if(separate) return false;
+                    if(separate){ 
+			return false;
+		 	//std::cout << "Return 6" << std::endl;
+		    }
 
             	all_faces++;
             	if(all_faces == Nf){
@@ -288,7 +307,10 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
              		for( int j = 0; j < Nf && separate; j++)
              		    if(side[j][i]) separate = false;
              	    }
-             	    if(separate) return true;
+             	    if(separate){
+		 	//std::cout << "Return 7" << std::endl;
+			return true;
+			}
             	}
             }
 
@@ -311,7 +333,10 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
                         if(dot(n1,pos_a[i].v) > 0) side[face2][i] = true;
                         else separate = false;
                     }
-                    if(separate) return false;
+                    if(separate){ 
+		 	//std::cout << "Return 8" << std::endl;
+			return false;
+			}
 
             	all_faces++;
             	if(all_faces == Nf){
@@ -320,7 +345,10 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
              		for( int j = 0; j < Nf && separate; j++)
              		    if(side[j][i]) separate = false;
              	    }
-             	    if(separate) return true;
+             	    if(separate){ 
+		 	//std::cout << "Return 9" << std::endl;
+			return true;
+			}
                     }
             }
 
@@ -351,7 +379,10 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
                     }
                 }
 
-                if(separate) return false;
+                if(separate){ 
+		 	//std::cout << "Return 10" << std::endl;
+			return false;
+		}
             }
         }
     }else{
@@ -391,7 +422,10 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
                 for( int i = 0; i < a.N && separate; i++){
                     if(dot(n1,pos_a[i].v) < 0) separate = false;
                 }
-                if(separate) return false;
+                if(separate){ 
+		 	//std::cout << "Return 11" << std::endl;
+			return false;
+			}
 
            }
 
@@ -413,11 +447,15 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
                 for( int i = 0; i < a.N && separate; i++){
                     if(dot(n1,pos_a[i].v) < 0) separate = false;
                 }
-                if(separate) return false;
+                if(separate){ 
+		 	//std::cout << "Return 12" << std::endl;
+			return false;
+			}
             }
 
         }
     }
+//std::cout << "Return 13" << std::endl;
     return true;
 
     }
@@ -838,6 +876,595 @@ DEVICE inline bool xenocollide_hypersphereTetra(const SupportFuncA& a,const Supp
     }
 
 
+
+template<class SupportFuncA, class SupportFuncB>
+DEVICE inline bool xenocollide_hypersphereBiTetra(const SupportFuncA& a,const SupportFuncB& b,quat<OverlapReal>& quat_l,quat<OverlapReal>& quat_r,const Hypersphere& hypersphere,const OverlapReal Ra,unsigned int& err_count)
+    {
+    // This implementation of XenoCollide is hand-written from the description of the algorithm on page 171 of _Games
+    // Programming Gems 7_
+
+     quat<OverlapReal>  pos_a2, pos_a3, pos_a4, pos_a5;
+     vec3<OverlapReal> n124, n125, n134, n135, n234, n235;
+     std::vector<bool> side124(5,false);
+     std::vector<bool> side125(5,false);
+     std::vector<bool> side134(5,false);
+     std::vector<bool> side135(5,false);
+     std::vector<bool> side234(5,false);
+     std::vector<bool> side235(5,false);
+     std::vector< vec3<OverlapReal> > pm;
+     std::vector< vec3<OverlapReal> > mp;
+     bool mm, outside124, outside125, outside134, outside135, outside234, outside235;
+
+     std::vector<quat<OverlapReal> > pos_b;
+     quat<OverlapReal> pos_u;
+
+
+     quat<OverlapReal> a_p1 =  hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(a.x[0],a.y[0],a.z[0]));
+     quat<OverlapReal> a_p2 =  hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(a.x[1],a.y[1],a.z[1]));
+     quat<OverlapReal> a_p3 =  hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(a.x[2],a.y[2],a.z[2]));
+     quat<OverlapReal> a_p4 =  hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(a.x[3],a.y[3],a.z[3]));
+     quat<OverlapReal> a_p5 =  hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(a.x[4],a.y[4],a.z[4]));
+    
+     quat<OverlapReal> b_p1 =  hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(b.x[0],b.y[0],b.z[0]));
+     quat<OverlapReal> b_p2 =  hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(b.x[1],b.y[1],b.z[1]));
+     quat<OverlapReal> b_p3 =  hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(b.x[2],b.y[2],b.z[2]));
+     quat<OverlapReal> b_p4 =  hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(b.x[3],b.y[3],b.z[3]));
+     quat<OverlapReal> b_p5 =  hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(b.x[4],b.y[4],b.z[4]));
+
+
+     //move to Vertex 1 of A
+     pos_u =  hypersphere.hypersphericalToCartesian(conj(a_p1),conj(a_p1));
+     pos_a2 = hypersphere.hypersphericalToCartesian(conj(a_p1)*a_p2,a_p2*conj(a_p1));
+     pos_a3 = hypersphere.hypersphericalToCartesian(conj(a_p1)*a_p3,a_p3*conj(a_p1));
+     pos_a4 = hypersphere.hypersphericalToCartesian(conj(a_p1)*a_p4,a_p4*conj(a_p1));
+     pos_a5 = hypersphere.hypersphericalToCartesian(conj(a_p1)*a_p5,a_p5*conj(a_p1));
+
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p1)*quat_l*b_p1,b_p1*quat_r*conj(a_p1)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p1)*quat_l*b_p2,b_p2*quat_r*conj(a_p1)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p1)*quat_l*b_p3,b_p3*quat_r*conj(a_p1)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p1)*quat_l*b_p4,b_p4*quat_r*conj(a_p1)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p1)*quat_l*b_p5,b_p5*quat_r*conj(a_p1)));
+
+
+     // Face (1,2,4) of A 
+     n124 = cross(pos_a2.v, pos_a4.v);
+     if(dot(n124,pos_u.v) > 0) n124 = -n124;
+     
+     mm = true;
+     outside124 = false;
+     //inside or outside halfspace of (1,2,4)
+     for( int i = 0; i < side124.size(); i++){
+         if(dot(n124,pos_b[i].v) > 0){ 
+		side124[i] = true;
+		outside124 = true;
+	 }
+	 else mm = false;
+     }
+     
+     if(mm) return false;
+     
+     // Face (1,2,5) of A 
+     n125 = cross(pos_a2.v, pos_a5.v);
+     if(dot(n125,pos_u.v) > 0) n125 = -n125;
+     
+     mm = true;
+     outside125 = false;
+     //inside or outside halfspace of (1,2,5)
+     for( int i = 0; i < side125.size(); i++){
+         if(dot(n125,pos_b[i].v) > 0){ 
+		side125[i] = true;
+		outside125 = true;
+	 }
+	 else mm = false;
+     }
+     
+     if(mm) return false;
+
+
+     // Edge (1,2) of A 
+
+     if(outside124 && outside125){
+
+     	mm = true;
+     	
+     	
+     	for( int i = 0; i < side125.size(); i++){
+     	    if(!side124[i] && !side125[i] ){ 
+     	        mm=false;
+     	        break;
+     	    }
+     	    if(side124[i] && !side125[i] ) pm.push_back(pos_b[i].v);
+     	    else if(!side124[i] && side125[i]) mp.push_back(pos_b[i].v) ;
+     	}
+     	
+     	// See if edge of B goes through A 
+     	if(mp.size() > 0  && pm.size() > 0 && mm){
+     	    for (int i =0; i < pm.size() && mm; i++){
+     	        vec3<OverlapReal> n = cross(pm[i],pos_a2.v);
+     	        if(dot(n,pos_u.v)>0) n = -n;
+     	        for (int j =0; j < mp.size() && mm; j++){
+     	            if(dot(n,mp[j]) < 0 ){ 
+     	                mm = false;
+     	            }
+     	        }
+     	    }
+     	
+     	    if(mm) return false;
+     	}
+     	pm.resize(0);
+     	mp.resize(0);
+     }
+
+     // Face (1,3,4) of A 
+     n134 = cross(pos_a3.v, pos_a4.v);
+     if(dot(n134,pos_u.v) > 0) n134 = -n134;
+     
+     mm = true;
+     outside134 = false;
+     //inside or outside halfspace of (1,3,4)
+     for( int i = 0; i < side134.size(); i++){
+         if(dot(n134,pos_b[i].v) > 0){ 
+		side134[i] = true;
+		outside134 = true;
+	 }
+	 else mm = false;
+     }
+     
+     if(mm) return false;
+     
+     // Edge (1,4) of A 
+     if(outside134 && outside124){
+     	mm = true;
+     	
+     	for( int i = 0; i < side124.size(); i++){
+     	    if(!side124[i] && !side134[i] ){ 
+     	        mm=false;
+     	        break;
+     	    }
+     	    if(side124[i] && !side134[i] ) pm.push_back(pos_b[i].v);
+     	    else if(!side124[i] && side134[i]) mp.push_back(pos_b[i].v) ;
+     	}
+
+     	// See if edge of B goes through A 
+     	if(mp.size() > 0  && pm.size() > 0 && mm){
+     	    for (int i =0; i < pm.size() && mm; i++){
+     	        vec3<OverlapReal> n = cross(pm[i],pos_a4.v);
+     	        if(dot(n,pos_u.v)>0) n = -n;
+     	        for (int j =0; j < mp.size() && mm; j++){
+     	            if(dot(n,mp[j]) < 0 ){ 
+     	                mm = false;
+     	            }
+     	        }
+     	    }
+     	
+     	    if(mm) return false;
+     	}
+     	pm.resize(0);
+     	mp.resize(0);
+     }
+
+     // Face (1,3,5) of A 
+     n135 = cross(pos_a3.v, pos_a5.v);
+     if(dot(n135,pos_u.v) > 0) n135 = -n135;
+     
+     mm = true;
+     outside135 = false;
+     //inside or outside halfspace of (1,3,5)
+     for( int i = 0; i < side135.size(); i++){
+         if(dot(n135,pos_b[i].v) > 0){ 
+		side135[i] = true;
+		outside135 = true;
+	 }
+	 else mm = false;
+     }
+     
+     if(mm) return false;
+
+
+     if(outside135){
+
+     	// Edge (1,5) of A 
+	if(outside125){
+     		mm = true;
+     		
+     		for( int i = 0; i < side125.size(); i++){
+     		    if(!side125[i] && !side135[i] ){ 
+     		        mm=false;
+     		        break;
+     		    }
+     		    if(side125[i] && !side135[i] ) pm.push_back(pos_b[i].v);
+     		    else if(!side125[i] && side135[i]) mp.push_back(pos_b[i].v) ;
+     		}
+
+     		// See if edge of B goes through A 
+     		if(mp.size() > 0  && pm.size() > 0 && mm){
+     		    for (int i =0; i < pm.size() && mm; i++){
+     		        vec3<OverlapReal> n = cross(pm[i],pos_a5.v);
+     		        if(dot(n,pos_u.v)>0) n = -n;
+     		        for (int j =0; j < mp.size() && mm; j++){
+     		            if(dot(n,mp[j]) < 0 ){ 
+     		                mm = false;
+     		            }
+     		        }
+     		    }
+     		
+     		    if(mm) return false;
+     		}
+     		pm.resize(0);
+     		mp.resize(0);
+	}
+
+     	// Edge (1,3) of A 
+	if(outside134){
+     		mm = true;
+     		
+     		for( int i = 0; i < side134.size(); i++){
+     		    if(!side134[i] && !side135[i] ){ 
+     		        mm=false;
+     		        break;
+     		    }
+     		    if(side134[i] && !side135[i] ) pm.push_back(pos_b[i].v);
+     		    else if(!side134[i] && side135[i]) mp.push_back(pos_b[i].v) ;
+     		}
+     		
+     		// See if edge of B goes through A 
+     		if(mp.size() > 0  && pm.size() > 0 && mm){
+     		    for (int i =0; i < pm.size() && mm; i++){
+     		        vec3<OverlapReal> n = cross(pm[i],pos_a3.v);
+     		        if(dot(n,pos_u.v)>0) n = -n;
+     		        for (int j =0; j < mp.size() && mm; j++){
+     		            if(dot(n,mp[j]) < 0 ){ 
+     		                mm = false;
+     		            }
+     		        }
+     		    }
+     		
+     		    if(mm) return false;
+     		}
+     		pm.resize(0);
+     		mp.resize(0);
+	}
+     }
+     
+
+
+     //move to Vertex 2 of A
+     pos_u =  hypersphere.hypersphericalToCartesian(conj(a_p2),conj(a_p2));
+     pos_a3 = hypersphere.hypersphericalToCartesian(conj(a_p2)*a_p3,a_p3*conj(a_p2));
+     pos_a4 = hypersphere.hypersphericalToCartesian(conj(a_p2)*a_p4,a_p4*conj(a_p2));
+     pos_a5 = hypersphere.hypersphericalToCartesian(conj(a_p2)*a_p5,a_p5*conj(a_p2));
+
+     pos_b.resize(0);
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p2)*quat_l*b_p1,b_p1*quat_r*conj(a_p2)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p2)*quat_l*b_p2,b_p2*quat_r*conj(a_p2)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p2)*quat_l*b_p3,b_p3*quat_r*conj(a_p2)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p2)*quat_l*b_p4,b_p4*quat_r*conj(a_p2)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p2)*quat_l*b_p5,b_p5*quat_r*conj(a_p2)));
+
+     // Face (2,3,4) of A 
+     n234 = cross(pos_a3.v, pos_a4.v);
+     if(dot(n234,pos_u.v) > 0) n234 = -n234;
+     
+     mm = true;
+     outside234 = false;
+     //inside or outside halfspace of (2,3,4)
+     for( int i = 0; i < side234.size(); i++){
+         if(dot(n234,pos_b[i].v) > 0){ 
+		side234[i] = true;
+		outside234 = true;
+	 }
+	 else mm = false;
+     }
+     
+     if(mm) return false;
+     
+     // Edge (2,4) of A 
+     if(outside234 && outside124){
+
+     	mm = true;
+     	
+     	for( int i = 0; i < side234.size(); i++){
+     	    if(!side234[i] && !side124[i] ){ 
+     	        mm=false;
+     	        break;
+     	    }
+     	    if(side234[i] && !side124[i] ) pm.push_back(pos_b[i].v);
+     	    else if(!side234[i] && side124[i]) mp.push_back(pos_b[i].v) ;
+     	}
+     	
+     	// See if edge of B goes through A 
+     	if(mp.size() > 0 && pm.size() > 0 && mm){
+     	    for (int i =0; i < pm.size() && mm; i++){
+     	        vec3<OverlapReal> n = cross(pm[i],pos_a4.v);
+     	        if(dot(n,pos_u.v)>0) n = -n;
+     	        for (int j =0; j < mp.size() && mm; j++){
+     	            if(dot(n,mp[j]) < 0 ){ 
+     	                mm = false;
+     	            }
+     	        }
+     	    }
+     	
+     	    if(mm) return false;
+     	}
+     	pm.resize(0);
+     	mp.resize(0);
+     }
+
+     // Face (2,3,5) of A 
+     n235 = cross(pos_a3.v, pos_a5.v);
+     if(dot(n235,pos_u.v) > 0) n235 = -n235;
+     
+     mm = true;
+     outside235 = false;
+     //inside or outside halfspace of (2,3,5)
+     for( int i = 0; i < side235.size(); i++){
+         if(dot(n235,pos_b[i].v) > 0){ 
+		side235[i] = true;
+		outside235 = true;
+	 }
+	 else mm = false;
+     }
+     
+     if(mm) return false;
+
+     // See if vertex of B inside A 
+     if( (!side124[0] && !side125[0] && !side134[0] && !side135[0] && !side234[0] && !side235[0]) || (!side124[1] && !side125[1] && !side134[1] && !side135[1] && !side234[1] && !side235[1]) || (!side124[2] && !side125[2] && !side134[2] && !side135[2] && !side234[2] && !side235[2]) || (!side124[3] && !side125[3] && !side134[3] && !side135[3] && !side234[3] && !side235[3]) || (!side124[4] && !side125[4] && !side134[4] && !side135[4] && !side234[4] && !side235[4])) return true; 
+     
+
+     bool nchanged = true;
+     if(outside235){
+
+        // Edge (2,5) of A 
+     	if(outside125){
+     		mm = true;
+     		
+     		for( int i = 0; i < side235.size(); i++){
+     		    if(!side235[i] && !side125[i] ){ 
+     		        mm=false;
+     		        break;
+     		    }
+     		    if(side235[i] && !side125[i] ) pm.push_back(pos_b[i].v);
+     		    else if(!side235[i] && side125[i]) mp.push_back(pos_b[i].v) ;
+     		}
+     		
+     		// See if edge of B goes through A 
+     		if(mp.size() > 0 && pm.size() > 0 && mm){
+     		    for (int i =0; i < pm.size() && mm; i++){
+     		        vec3<OverlapReal> n = cross(pm[i],pos_a5.v);
+     		        if(dot(n,pos_u.v)>0) n = -n;
+     		        for (int j =0; j < mp.size() && mm; j++){
+     		            if(dot(n,mp[j]) < 0 ){ 
+     		                mm = false;
+     		            }
+     		        }
+     		    }
+     		
+     		    if(mm) return false;
+     		}
+     		pm.resize(0);
+     		mp.resize(0);
+	}
+
+        // Edge (2,3) of A 
+     	if(outside234){
+     		mm = true;
+     		
+     		for( int i = 0; i < side235.size(); i++){
+     		    if(!side235[i] && !side234[i] ){ 
+     		        mm=false;
+     		        break;
+     		    }
+     		    if(side235[i] && !side234[i] ) pm.push_back(pos_b[i].v);
+     		    else if(!side235[i] && side234[i]) mp.push_back(pos_b[i].v) ;
+     		}
+     		
+     		// See if edge of B goes through A 
+     		if(mp.size() > 0 && pm.size() > 0 && mm){
+     		    for (int i =0; i < pm.size() && mm; i++){
+     		        vec3<OverlapReal> n = cross(pm[i],pos_a3.v);
+     		        if(dot(n,pos_u.v)>0) n = -n;
+     		        for (int j =0; j < mp.size() && mm; j++){
+     		            if(dot(n,mp[j]) < 0 ){ 
+     		                mm = false;
+     		            }
+     		        }
+     		    }
+     		
+     		    if(mm) return false;
+     		}
+     		pm.resize(0);
+     		mp.resize(0);
+	}
+
+        // Edge (3,5) of A 
+     	if(outside135){
+                nchanged = false;
+     		pos_u =  hypersphere.hypersphericalToCartesian(conj(a_p3),conj(a_p3));
+     		pos_a5 = hypersphere.hypersphericalToCartesian(conj(a_p3)*a_p5,a_p5*conj(a_p3));
+     		
+     		pos_b.resize(0);
+     		pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p1,b_p1*quat_r*conj(a_p3)));
+     		pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p2,b_p2*quat_r*conj(a_p3)));
+     		pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p3,b_p3*quat_r*conj(a_p3)));
+     		pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p4,b_p4*quat_r*conj(a_p3)));
+     		pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p5,b_p5*quat_r*conj(a_p3)));
+
+     		mm = true;
+     		
+     		for( int i = 0; i < side235.size(); i++){
+     		    if(!side235[i] && !side135[i] ){ 
+     		        mm=false;
+     		        break;
+     		    }
+     		    if(side235[i] && !side135[i] ) pm.push_back(pos_b[i].v);
+     		    else if(!side235[i] && side135[i]) mp.push_back(pos_b[i].v) ;
+     		}
+     		
+     		// See if edge of B goes through A 
+     		if(mp.size() > 0 && pm.size() > 0 && mm){
+     		    for (int i =0; i < pm.size() && mm; i++){
+     		        vec3<OverlapReal> n = cross(pm[i],pos_a5.v);
+     		        if(dot(n,pos_u.v)>0) n = -n;
+     		        for (int j =0; j < mp.size() && mm; j++){
+     		            if(dot(n,mp[j]) < 0 ){ 
+     		                mm = false;
+     		            }
+     		        }
+     		    }
+     		
+     		    if(mm) return false;
+     		}
+     		pm.resize(0);
+     		mp.resize(0);
+	}
+     }
+
+     // Edge (3,4) of A 
+     if(outside134 && outside234){
+     	
+        if(nchanged){
+     	    pos_b.resize(0);
+     	    pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p1,b_p1*quat_r*conj(a_p3)));
+     	    pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p2,b_p2*quat_r*conj(a_p3)));
+     	    pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p3,b_p3*quat_r*conj(a_p3)));
+     	    pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p4,b_p4*quat_r*conj(a_p3)));
+     	    pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p5,b_p5*quat_r*conj(a_p3)));
+     	    pos_u =  hypersphere.hypersphericalToCartesian(conj(a_p3),conj(a_p3));
+	}
+     	pos_a4 = hypersphere.hypersphericalToCartesian(conj(a_p3)*a_p4,a_p4*conj(a_p3));
+     
+     	mm = true;
+     	
+     	for( int i = 0; i < side234.size(); i++){
+     	    if(!side234[i] && !side134[i] ){ 
+     	        mm=false;
+     	        break;
+     	    }
+     	    if(side234[i] && !side134[i] ) pm.push_back(pos_b[i].v);
+     	    else if(!side234[i] && side134[i]) mp.push_back(pos_b[i].v) ;
+     	}
+     	
+     	// See if edge of B goes through A 
+     	if(mp.size() > 0 && pm.size() > 0 && mm){
+     	    for (int i =0; i < pm.size() && mm; i++){
+     	        vec3<OverlapReal> n = cross(pm[i],pos_a4.v);
+     	        if(dot(n,pos_u.v)>0) n = -n;
+     	        for (int j =0; j < mp.size() && mm; j++){
+     	            if(dot(n,mp[j]) < 0 ){ 
+     	                mm = false;
+     	            }
+     	        }
+     	    }
+     	
+     	    if(mm) return false;
+     	}
+     	pm.resize(0);
+     	mp.resize(0);
+     }
+     
+     //move to Vertex 1 of B
+      pos_u =  hypersphere.hypersphericalToCartesian(conj(b_p1),conj(b_p1));
+      pos_a2 = hypersphere.hypersphericalToCartesian(conj(b_p1)*b_p2,b_p2*conj(b_p1));
+      pos_a3 = hypersphere.hypersphericalToCartesian(conj(b_p1)*b_p3,b_p3*conj(b_p1));
+      pos_a4 = hypersphere.hypersphericalToCartesian(conj(b_p1)*b_p4,b_p4*conj(b_p1));
+      pos_a5 = hypersphere.hypersphericalToCartesian(conj(b_p1)*b_p5,b_p5*conj(b_p1));
+     
+      pos_b.resize(0);
+      pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p1)*a_p1,a_p1*conj(b_p1*quat_r)));
+      pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p1)*a_p2,a_p2*conj(b_p1*quat_r)));
+      pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p1)*a_p3,a_p3*conj(b_p1*quat_r)));
+      pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p1)*a_p4,a_p4*conj(b_p1*quat_r)));
+      pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p1)*a_p5,a_p5*conj(b_p1*quat_r)));
+     
+     // Face (1,2,4) of B
+     n124 = cross(pos_a2.v, pos_a4.v);
+     if(dot(n124,pos_u.v) > 0) n124 = -n124;
+     
+     //inside or outside halfspace of (1,2,4)
+     mm = true;
+     for( int i = 0; i < side124.size() && mm; i++){
+         if(dot(n124,pos_b[i].v) < 0) mm = false;
+     }
+     
+     if(mm) return false;
+     
+     // Face (1,2,5) of B
+     n125 = cross(pos_a2.v, pos_a5.v);
+     if(dot(n125,pos_u.v) > 0) n125 = -n125;
+     
+     //inside or outside halfspace of (1,2,5)
+     mm = true;
+     for( int i = 0; i < side125.size() && mm; i++){
+         if(dot(n125,pos_b[i].v) < 0) mm = false;
+     }
+     
+     if(mm) return false;
+     
+     // Face (1,3,4) of B 
+     n134 = cross(pos_a3.v, pos_a4.v);
+     if(dot(n134,pos_u.v) > 0) n134 = -n134;
+     
+     //inside or outside halfspace of (1,3,4)
+     mm = true;
+     for( int i = 0; i < side134.size() && mm; i++){
+         if(dot(n134,pos_b[i].v) < 0) mm = false;
+     }
+     
+     if(mm) return false;
+
+     // Face (1,3,5) of B 
+     n135 = cross(pos_a3.v, pos_a5.v);
+     if(dot(n135,pos_u.v) > 0) n135 = -n135;
+     
+     //inside or outside halfspace of (1,3,5)
+     mm = true;
+     for( int i = 0; i < side135.size() && mm; i++){
+         if(dot(n135,pos_b[i].v) < 0) mm = false;
+     }
+     
+     if(mm) return false;
+     
+     //move to Vertex 2 of B
+     pos_u =  hypersphere.hypersphericalToCartesian(conj(b_p2),conj(b_p2));
+     pos_a3 = hypersphere.hypersphericalToCartesian(conj(b_p2)*b_p3,b_p3*conj(b_p2));
+     pos_a4 = hypersphere.hypersphericalToCartesian(conj(b_p2)*b_p4,b_p4*conj(b_p2));
+     pos_a5 = hypersphere.hypersphericalToCartesian(conj(b_p2)*b_p5,b_p5*conj(b_p2));
+    
+     pos_b.resize(0);
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p2)*a_p1,a_p1*conj(b_p2*quat_r)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p2)*a_p2,a_p2*conj(b_p2*quat_r)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p2)*a_p3,a_p3*conj(b_p2*quat_r)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p2)*a_p4,a_p4*conj(b_p2*quat_r)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p2)*a_p5,a_p5*conj(b_p2*quat_r)));
+     
+     // Face (2,3,4) of B
+     n234 = cross(pos_a3.v, pos_a4.v);
+     if(dot(n234,pos_u.v) > 0) n234 = -n234;
+     
+     //inside or outside halfspace of (2,3,4)
+     mm = true;
+     for( int i = 0; i < side234.size() && mm; i++){
+         if(dot(n234,pos_b[i].v) < 0) mm = false;
+     }
+     
+     if(mm) return false;
+
+     // Face (2,3,5) of B
+     n235 = cross(pos_a3.v, pos_a5.v);
+     if(dot(n235,pos_u.v) > 0) n235 = -n235;
+     
+     //inside or outside halfspace of (2,3,5)
+     mm = true;
+     for( int i = 0; i < side235.size() && mm; i++){
+         if(dot(n235,pos_b[i].v) < 0) mm = false;
+     }
+     
+     if(mm) return false;
+     
+     return true;
+
+
+    }
 
 
 
