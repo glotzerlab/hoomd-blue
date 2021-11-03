@@ -22,14 +22,14 @@ namespace hoomd
     {
 template<unsigned int group_size, typename group_t>
 __global__ void gpu_count_mesh_kernel(const unsigned int n_groups,
-                                        const group_t* d_group_table,
-                                        const unsigned int* d_rtag,
-                                        unsigned int* d_scratch_idx,
-                                        unsigned int* d_scratch_g,
-                                        unsigned int* d_n_groups,
-                                        unsigned int max_n_groups,
-                                        unsigned int* d_condition,
-                                        unsigned int next_flag)
+                                      const group_t* d_group_table,
+                                      const unsigned int* d_rtag,
+                                      unsigned int* d_scratch_idx,
+                                      unsigned int* d_scratch_g,
+                                      unsigned int* d_n_groups,
+                                      unsigned int max_n_groups,
+                                      unsigned int* d_condition,
+                                      unsigned int next_flag)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= n_groups)
@@ -37,7 +37,7 @@ __global__ void gpu_count_mesh_kernel(const unsigned int n_groups,
 
     group_t g = d_group_table[group_idx];
 
-    unsigned int group_size_half = group_size/2;
+    unsigned int group_size_half = group_size / 2;
 
     for (unsigned int i = 0; i < group_size_half; ++i)
         {
@@ -65,14 +65,14 @@ __global__ void gpu_count_mesh_kernel(const unsigned int n_groups,
 
 template<unsigned int group_size, typename group_t>
 __global__ void gpu_mesh_scatter_kernel(unsigned int n_scratch,
-                                         const unsigned int* d_scratch_g,
-                                         const unsigned int* d_scratch_idx,
-                                         const unsigned int* d_offset,
-                                         const group_t* d_members,
-                                         const typeval_union* d_group_typeval,
-                                         const unsigned int* d_rtag,
-                                         group_t* d_pidx_group_table,
-                                         unsigned int pidx_group_table_pitch)
+                                        const unsigned int* d_scratch_g,
+                                        const unsigned int* d_scratch_idx,
+                                        const unsigned int* d_offset,
+                                        const group_t* d_members,
+                                        const typeval_union* d_group_typeval,
+                                        const unsigned int* d_rtag,
+                                        group_t* d_pidx_group_table,
+                                        unsigned int pidx_group_table_pitch)
     {
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -82,7 +82,7 @@ __global__ void gpu_mesh_scatter_kernel(unsigned int n_scratch,
     unsigned int pidx = d_scratch_idx[i];
     unsigned int offset = d_offset[i] * pidx_group_table_pitch + pidx;
 
-    unsigned int group_size_half = group_size/2;
+    unsigned int group_size_half = group_size / 2;
 
     // load group
     unsigned int group_idx = d_scratch_g[i];
@@ -95,7 +95,7 @@ __global__ void gpu_mesh_scatter_kernel(unsigned int n_scratch,
 
     for (unsigned int k = group_size_half; k < group_size; ++k)
         {
-        p.idx[k-2] = g.tag[k];
+        p.idx[k - 2] = g.tag[k];
         }
 
     unsigned int j = 0;
@@ -117,27 +117,27 @@ __global__ void gpu_mesh_scatter_kernel(unsigned int n_scratch,
 
 template<unsigned int group_size, typename group_t>
 void gpu_update_mesh_table(const unsigned int n_groups,
-                            const unsigned int N,
-                            const group_t* d_group_table,
-                            const typeval_union* d_group_typeval,
-                            const unsigned int* d_rtag,
-                            unsigned int* d_n_groups,
-                            unsigned int max_n_groups,
-                            unsigned int* d_condition,
-                            unsigned int next_flag,
-                            unsigned int& flag,
-                            group_t* d_pidx_group_table,
-                            const unsigned int pidx_group_table_pitch,
-                            unsigned int* d_scratch_g,
-                            unsigned int* d_scratch_idx,
-                            unsigned int* d_offsets,
-                            CachedAllocator& alloc)
+                           const unsigned int N,
+                           const group_t* d_group_table,
+                           const typeval_union* d_group_typeval,
+                           const unsigned int* d_rtag,
+                           unsigned int* d_n_groups,
+                           unsigned int max_n_groups,
+                           unsigned int* d_condition,
+                           unsigned int next_flag,
+                           unsigned int& flag,
+                           group_t* d_pidx_group_table,
+                           const unsigned int pidx_group_table_pitch,
+                           unsigned int* d_scratch_g,
+                           unsigned int* d_scratch_idx,
+                           unsigned int* d_offsets,
+                           CachedAllocator& alloc)
     {
     // construct scratch table by expanding the group table by particle index
     unsigned int block_size = 256;
     unsigned n_blocks = n_groups / block_size + 1;
 
-    unsigned int group_size_half = group_size/2;
+    unsigned int group_size_half = group_size / 2;
 
     // reset number of groups
     hipMemsetAsync(d_n_groups, 0, sizeof(unsigned int) * N);
@@ -215,37 +215,37 @@ void gpu_update_mesh_table(const unsigned int n_groups,
 
 //! MeshBondData and MeshTriangleData
 template void gpu_update_mesh_table<4>(const unsigned int n_groups,
-                                        const unsigned int N,
-                                        const union group_storage<4>* d_group_table,
-                                        const typeval_union* d_group_typeval,
-                                        const unsigned int* d_rtag,
-                                        unsigned int* d_n_groups,
-                                        unsigned int max_n_groups,
-                                        unsigned int* d_condition,
-                                        unsigned int next_flag,
-                                        unsigned int& flag,
-                                        group_storage<4>* d_pidx_group_table,
-                                        const unsigned int pidx_group_table_pitch,
-                                        unsigned int* d_scratch_g,
-                                        unsigned int* d_scratch_idx,
-                                        unsigned int* d_offsets,
-                                        CachedAllocator& alloc);
+                                       const unsigned int N,
+                                       const union group_storage<4>* d_group_table,
+                                       const typeval_union* d_group_typeval,
+                                       const unsigned int* d_rtag,
+                                       unsigned int* d_n_groups,
+                                       unsigned int max_n_groups,
+                                       unsigned int* d_condition,
+                                       unsigned int next_flag,
+                                       unsigned int& flag,
+                                       group_storage<4>* d_pidx_group_table,
+                                       const unsigned int pidx_group_table_pitch,
+                                       unsigned int* d_scratch_g,
+                                       unsigned int* d_scratch_idx,
+                                       unsigned int* d_offsets,
+                                       CachedAllocator& alloc);
 
 //! MeshTriangleData
 template void gpu_update_mesh_table<6>(const unsigned int n_groups,
-                                        const unsigned int N,
-                                        const union group_storage<6>* d_group_table,
-                                        const typeval_union* d_group_typeval,
-                                        const unsigned int* d_rtag,
-                                        unsigned int* d_n_groups,
-                                        unsigned int max_n_groups,
-                                        unsigned int* d_condition,
-                                        unsigned int next_flag,
-                                        unsigned int& flag,
-                                        group_storage<6>* d_pidx_group_table,
-                                        const unsigned int pidx_group_table_pitch,
-                                        unsigned int* d_scratch_g,
-                                        unsigned int* d_scratch_idx,
-                                        unsigned int* d_offsets,
-                                        CachedAllocator& alloc);
+                                       const unsigned int N,
+                                       const union group_storage<6>* d_group_table,
+                                       const typeval_union* d_group_typeval,
+                                       const unsigned int* d_rtag,
+                                       unsigned int* d_n_groups,
+                                       unsigned int max_n_groups,
+                                       unsigned int* d_condition,
+                                       unsigned int next_flag,
+                                       unsigned int& flag,
+                                       group_storage<6>* d_pidx_group_table,
+                                       const unsigned int pidx_group_table_pitch,
+                                       unsigned int* d_scratch_g,
+                                       unsigned int* d_scratch_idx,
+                                       unsigned int* d_offsets,
+                                       CachedAllocator& alloc);
     } // end namespace hoomd

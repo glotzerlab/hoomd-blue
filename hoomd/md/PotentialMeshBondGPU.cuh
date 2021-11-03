@@ -31,45 +31,46 @@ struct mesh_bond_args_t
     {
     //! Construct a mesh_bond_args_t
     mesh_bond_args_t(Scalar4* _d_force,
-                Scalar* _d_virial,
-                const size_t _virial_pitch,
-                const unsigned int _N,
-                const unsigned int _n_max,
-                const Scalar4* _d_pos,
-                const Scalar* _d_charge,
-                const Scalar* _d_diameter,
-                const BoxDim& _box,
-                const group_storage<4>* _d_gpu_mesh_bondlist,
-                const Index2D& _gpu_table_indexer,
-                const unsigned int* _d_gpu_n_mesh_bonds,
-                const unsigned int _n_mesh_bond_types,
-                const unsigned int _block_size)
+                     Scalar* _d_virial,
+                     const size_t _virial_pitch,
+                     const unsigned int _N,
+                     const unsigned int _n_max,
+                     const Scalar4* _d_pos,
+                     const Scalar* _d_charge,
+                     const Scalar* _d_diameter,
+                     const BoxDim& _box,
+                     const group_storage<4>* _d_gpu_mesh_bondlist,
+                     const Index2D& _gpu_table_indexer,
+                     const unsigned int* _d_gpu_n_mesh_bonds,
+                     const unsigned int _n_mesh_bond_types,
+                     const unsigned int _block_size)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_charge(_d_charge), d_diameter(_d_diameter), box(_box),
           d_gpu_mesh_bondlist(_d_gpu_mesh_bondlist), gpu_table_indexer(_gpu_table_indexer),
-          d_gpu_n_mesh_bonds(_d_gpu_n_mesh_bonds), n_mesh_bond_types(_n_mesh_bond_types), block_size(_block_size) {};
+          d_gpu_n_mesh_bonds(_d_gpu_n_mesh_bonds), n_mesh_bond_types(_n_mesh_bond_types),
+          block_size(_block_size) {};
 
-    Scalar4* d_force;                       //!< Force to write out
-    Scalar* d_virial;                       //!< Virial to write out
-    const size_t virial_pitch;              //!< pitch of 2D array of virial matrix elements
-    unsigned int N;                         //!< number of particles
-    unsigned int n_max;                     //!< Size of local pdata arrays
-    const Scalar4* d_pos;                   //!< particle positions
-    const Scalar* d_charge;                 //!< particle charges
-    const Scalar* d_diameter;               //!< particle diameters
-    const BoxDim& box;                      //!< Simulation box in GPU format
+    Scalar4* d_force;                            //!< Force to write out
+    Scalar* d_virial;                            //!< Virial to write out
+    const size_t virial_pitch;                   //!< pitch of 2D array of virial matrix elements
+    unsigned int N;                              //!< number of particles
+    unsigned int n_max;                          //!< Size of local pdata arrays
+    const Scalar4* d_pos;                        //!< particle positions
+    const Scalar* d_charge;                      //!< particle charges
+    const Scalar* d_diameter;                    //!< particle diameters
+    const BoxDim& box;                           //!< Simulation box in GPU format
     const group_storage<4>* d_gpu_mesh_bondlist; //!< List of mesh_bonds stored on the GPU
-    const Index2D& gpu_table_indexer;       //!< Indexer of 2D mesh_bond list
+    const Index2D& gpu_table_indexer;            //!< Indexer of 2D mesh_bond list
     const unsigned int* d_gpu_n_mesh_bonds;      //!< List of number of mesh_bonds stored on the GPU
     const unsigned int n_mesh_bond_types;        //!< Number of mesh_bond types in the simulation
-    const unsigned int block_size;          //!< Block size to execute
+    const unsigned int block_size;               //!< Block size to execute
     };
 
 #ifdef __HIPCC__
 
 //! Kernel for calculating mesh_bond forces
-/*! This kernel is called to calculate the mesh_bond forces on all N particles. Actual evaluation of the
-   potentials and forces for each mesh_bond is handled via the template class \a evaluator.
+/*! This kernel is called to calculate the mesh_bond forces on all N particles. Actual evaluation of
+   the potentials and forces for each mesh_bond is handled via the template class \a evaluator.
 
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -94,19 +95,19 @@ struct mesh_bond_args_t
 */
 template<class evaluator>
 __global__ void gpu_compute_mesh_bond_forces_kernel(Scalar4* d_force,
-                                               Scalar* d_virial,
-                                               const size_t virial_pitch,
-                                               const unsigned int N,
-                                               const Scalar4* d_pos,
-                                               const Scalar* d_charge,
-                                               const Scalar* d_diameter,
-                                               const BoxDim box,
-                                               const group_storage<4>* blist,
-                                               const Index2D blist_idx,
-                                               const unsigned int* n_mesh_bonds_list,
-                                               const unsigned int n_mesh_bond_type,
-                                               const typename evaluator::param_type* d_params,
-                                               unsigned int* d_flags)
+                                                    Scalar* d_virial,
+                                                    const size_t virial_pitch,
+                                                    const unsigned int N,
+                                                    const Scalar4* d_pos,
+                                                    const Scalar* d_charge,
+                                                    const Scalar* d_diameter,
+                                                    const BoxDim box,
+                                                    const group_storage<4>* blist,
+                                                    const Index2D blist_idx,
+                                                    const unsigned int* n_mesh_bonds_list,
+                                                    const unsigned int n_mesh_bond_type,
+                                                    const typename evaluator::param_type* d_params,
+                                                    unsigned int* d_flags)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -245,8 +246,8 @@ __global__ void gpu_compute_mesh_bond_forces_kernel(Scalar4* d_force,
 */
 template<class evaluator>
 hipError_t gpu_compute_mesh_bond_forces(const kernel::mesh_bond_args_t& mesh_bond_args,
-                                   const typename evaluator::param_type* d_params,
-                                   unsigned int* d_flags)
+                                        const typename evaluator::param_type* d_params,
+                                        unsigned int* d_flags)
     {
     assert(d_params);
     assert(mesh_bond_args.n_mesh_bond_types > 0);
@@ -256,8 +257,9 @@ hipError_t gpu_compute_mesh_bond_forces(const kernel::mesh_bond_args_t& mesh_bon
 
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr,
-                         reinterpret_cast<const void*>(&gpu_compute_mesh_bond_forces_kernel<evaluator>));
+    hipFuncGetAttributes(
+        &attr,
+        reinterpret_cast<const void*>(&gpu_compute_mesh_bond_forces_kernel<evaluator>));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(mesh_bond_args.block_size, max_block_size);
@@ -266,7 +268,8 @@ hipError_t gpu_compute_mesh_bond_forces(const kernel::mesh_bond_args_t& mesh_bon
     dim3 grid(mesh_bond_args.N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-    const size_t shared_bytes = sizeof(typename evaluator::param_type) * mesh_bond_args.n_mesh_bond_types;
+    const size_t shared_bytes
+        = sizeof(typename evaluator::param_type) * mesh_bond_args.n_mesh_bond_types;
 
     // run the kernel
     hipLaunchKernelGGL(gpu_compute_mesh_bond_forces_kernel<evaluator>,

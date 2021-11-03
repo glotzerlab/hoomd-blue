@@ -14,6 +14,7 @@
 #ifndef __MESH_GROUP_DATA_H__
 #define __MESH_GROUP_DATA_H__
 
+#include "BondedGroupData.h"
 #include "ExecutionConfiguration.h"
 #include "GPUVector.h"
 #include "HOOMDMPI.h"
@@ -21,7 +22,6 @@
 #include "Index1D.h"
 #include "ParticleData.h"
 #include "Profiler.h"
-#include "BondedGroupData.h"
 
 #ifdef ENABLE_HIP
 #include "BondedGroupData.cuh"
@@ -51,7 +51,7 @@ namespace hoomd
  *  \tpp name Name of element, i.e. meshbond, meshtriangle.
  */
 template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
-class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
+class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
     {
     public:
     //! Group size
@@ -74,11 +74,11 @@ class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
     virtual ~MeshGroupData();
 
     //! Initialize from a snapshot
-    //using MeshGroupData<group_size,Group,name,snap,bond>::initializeFromSnapshot;
+    // using MeshGroupData<group_size,Group,name,snap,bond>::initializeFromSnapshot;
     void initializeFromSnapshot(const TriangleData::Snapshot& snapshot);
 
     //! Take a snapshot
-    //using MeshGroupData<group_size,Group,name,snap,bond>>::takeSnapshot;
+    // using MeshGroupData<group_size,Group,name,snap,bond>>::takeSnapshot;
     std::map<unsigned int, unsigned int> takeSnapshot(snap& snapshot) const;
 
     //! Add a single bonded mesh group on all processors
@@ -87,14 +87,12 @@ class MeshGroupData: public BondedGroupData<group_size,Group,name,true>
     unsigned int addBondedGroup(Group g);
 
     private:
-
     virtual void rebuildGPUTable();
 
 #ifdef ENABLE_HIP
     //! Helper function to rebuild lookup by index table on the GPU
     virtual void rebuildGPUTableGPU();
 #endif
-
     };
 
 namespace detail
@@ -102,9 +100,9 @@ namespace detail
 //! Exports MeshBondData to python
 template<class T, class Group>
 void export_MeshGroupData(pybind11::module& m,
-                            std::string name,
-                            std::string snapshot_name,
-                            bool export_struct = true);
+                          std::string name,
+                          std::string snapshot_name,
+                          bool export_struct = true);
     } // end namespace detail
 
 /*!
@@ -114,9 +112,9 @@ void export_MeshGroupData(pybind11::module& m,
 //! Definition of MeshBondData
 typedef MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot, true> MeshBondData;
 
-
 //! Definition of MeshTriangleData
-typedef MeshGroupData<6, MeshTriangle, name_meshtriangle_data, TriangleData::Snapshot, false> MeshTriangleData;
+typedef MeshGroupData<6, MeshTriangle, name_meshtriangle_data, TriangleData::Snapshot, false>
+    MeshTriangleData;
 
     } // end namespace hoomd
 #endif

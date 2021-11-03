@@ -22,8 +22,8 @@
 #include "Initializers.h"
 #include "Integrator.h"
 #include "LoadBalancer.h"
-#include "MeshGroupData.h"
 #include "MeshDefinition.h"
+#include "MeshGroupData.h"
 #include "Messenger.h"
 #include "ParticleData.h"
 #include "ParticleFilterUpdater.h"
@@ -238,7 +238,9 @@ PYBIND11_MODULE(_hoomd, m)
     export_BondedGroupData<TriangleData, Angle>(m, "TriangleData", "TriangleDataSnapshot", false);
     export_BondedGroupData<DihedralData, Dihedral>(m, "DihedralData", "DihedralDataSnapshot");
     export_MeshGroupData<MeshBondData, MeshBond>(m, "MeshBondData", "MeshBondDataSnapshot");
-    export_MeshGroupData<MeshTriangleData, MeshTriangle>(m, "MeshTriangleData", "MeshTriangleDataSnapshot");
+    export_MeshGroupData<MeshTriangleData, MeshTriangle>(m,
+                                                         "MeshTriangleData",
+                                                         "MeshTriangleDataSnapshot");
     export_BondedGroupData<ImproperData, Dihedral>(m,
                                                    "ImproperData",
                                                    "ImproperDataSnapshot",

@@ -41,7 +41,8 @@ class PotentialMeshBondGPU : public PotentialMeshBond<evaluator>
     {
     public:
     //! Construct the mesh_bond potential
-    PotentialMeshBondGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef);
+    PotentialMeshBondGPU(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<MeshDefinition> meshdef);
     //! Destructor
     virtual ~PotentialMeshBondGPU() { }
 
@@ -68,7 +69,9 @@ template<class evaluator,
          hipError_t gpu_cgbf(const kernel::mesh_bond_args_t& mesh_bond_args,
                              const typename evaluator::param_type* d_params,
                              unsigned int* d_flags)>
-PotentialMeshBondGPU<evaluator, gpu_cgbf>::PotentialMeshBondGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef)
+PotentialMeshBondGPU<evaluator, gpu_cgbf>::PotentialMeshBondGPU(
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<MeshDefinition> meshdef)
     : PotentialMeshBond<evaluator>(sysdef, meshdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -94,8 +97,13 @@ PotentialMeshBondGPU<evaluator, gpu_cgbf>::PotentialMeshBondGPU(std::shared_ptr<
     h_flags.data[0] = 0;
 
     unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_mesh_bond", this->m_exec_conf));
+    m_tuner.reset(new Autotuner(warp_size,
+                                1024,
+                                warp_size,
+                                5,
+                                100000,
+                                "harmonic_mesh_bond",
+                                this->m_exec_conf));
     }
 
 template<class evaluator,
@@ -120,8 +128,8 @@ void PotentialMeshBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
                                  access_mode::read);
 
     // we are using the minimum image of the global box here
-    // to ensure that ghosts are always correctly wrapped (even if a mesh_bond exceeds half the domain
-    // length)
+    // to ensure that ghosts are always correctly wrapped (even if a mesh_bond exceeds half the
+    // domain length)
     BoxDim box = this->m_pdata->getGlobalBox();
 
     // access parameters
@@ -139,30 +147,30 @@ void PotentialMeshBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
         const Index2D& gpu_table_indexer = this->m_mesh_bond_data->getGPUTableIndexer();
 
         ArrayHandle<typename MeshBondData::members_t> d_gpu_mesh_bondlist(gpu_mesh_bond_list,
-                                                                 access_location::device,
-                                                                 access_mode::read);
+                                                                          access_location::device,
+                                                                          access_mode::read);
         ArrayHandle<unsigned int> d_gpu_n_mesh_bonds(this->m_mesh_bond_data->getNGroupsArray(),
-                                                access_location::device,
-                                                access_mode::read);
+                                                     access_location::device,
+                                                     access_mode::read);
 
         // access the flags array for overwriting
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
         this->m_tuner->begin();
         gpu_cgbf(kernel::mesh_bond_args_t(d_force.data,
-                             d_virial.data,
-                             this->m_virial.getPitch(),
-                             this->m_pdata->getN(),
-                             this->m_pdata->getMaxN(),
-                             d_pos.data,
-                             d_charge.data,
-                             d_diameter.data,
-                             box,
-                             d_gpu_mesh_bondlist.data,
-                             gpu_table_indexer,
-                             d_gpu_n_mesh_bonds.data,
-                             this->m_mesh_bond_data->getNTypes(),
-                             this->m_tuner->getParam()),
+                                          d_virial.data,
+                                          this->m_virial.getPitch(),
+                                          this->m_pdata->getN(),
+                                          this->m_pdata->getMaxN(),
+                                          d_pos.data,
+                                          d_charge.data,
+                                          d_diameter.data,
+                                          box,
+                                          d_gpu_mesh_bondlist.data,
+                                          gpu_table_indexer,
+                                          d_gpu_n_mesh_bonds.data,
+                                          this->m_mesh_bond_data->getNTypes(),
+                                          this->m_tuner->getParam()),
                  d_params.data,
                  d_flags.data);
         }
@@ -177,8 +185,8 @@ void PotentialMeshBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
         if (h_flags.data[0] & 1)
             {
             this->m_exec_conf->msg->error()
-                << "mesh_bond." << evaluator::getName() << ": mesh_bond out of bounds (" << h_flags.data[0]
-                << ")" << std::endl
+                << "mesh_bond." << evaluator::getName() << ": mesh_bond out of bounds ("
+                << h_flags.data[0] << ")" << std::endl
                 << std::endl;
             throw std::runtime_error("Error in mesh_bond calculation");
             }
@@ -201,7 +209,7 @@ template<class T, class Base>
 void export_PotentialMeshBondGPU(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<MeshDefinition> >());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>());
     }
 
     } // end namespace detail
