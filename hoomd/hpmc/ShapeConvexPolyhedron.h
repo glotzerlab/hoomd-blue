@@ -562,7 +562,23 @@ DEVICE inline bool test_overlap_hypersphere(const ShapeConvexPolyhedron& a,
     quat<OverlapReal> ql = conj(a.quat_l)*b.quat_l;
     quat<OverlapReal> qr = b.quat_r*conj(a.quat_r);;
 
-    bool aaa =  detail::xenocollide_hypersphere(a.verts,
+    bool aaa;
+    
+    if(a.verts.N == 4)
+        {
+    	aaa =  detail::xenocollide_hypersphereTetra(a.verts,
+                                  b.verts,
+                                  ql,
+                                  qr,
+                                  hypersphere,
+                                  DaDb/2.0,
+                                  err);
+        }
+    else
+        {
+        if(a.verts.N == 5)
+        {
+    	aaa =  detail::xenocollide_hypersphereBiTetra(a.verts,
                                   b.verts,
                                   ql,
                                   qr,
@@ -570,26 +586,21 @@ DEVICE inline bool test_overlap_hypersphere(const ShapeConvexPolyhedron& a,
                                   DaDb/2.0,
                                   err);
 
+        }
+        else
+        {
+         aaa =  detail::xenocollide_hypersphere(a.verts,
+                                  b.verts,
+                                  ql,
+                                  qr,
+                                  hypersphere,
+                                  DaDb/2.0,
+                                  err);
+        }
+        }
 
-    //ql = conj(a.quat_l)*b.quat_l;
-    //qr = b.quat_r*conj(a.quat_r);;
-    
 
-    //bool aaa =  detail::xenocollide_hypersphereBiTetra(a.verts,
-    //                              b.verts,
-    //                              ql,
-    //                              qr,
-    //                              hypersphere,
-    //                              DaDb/2.0,
-    //                              err);
 
-    //bool aaa =  detail::xenocollide_hypersphereTetra(a.verts,
-    //                              b.verts,
-    //                              ql,
-    //                              qr,
-    //                              hypersphere,
-    //                              DaDb/2.0,
-    //                              err);
 
     //if ( aaa != bbb ){ 
 
