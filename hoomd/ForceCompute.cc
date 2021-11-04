@@ -625,7 +625,7 @@ Scalar ForceCompute::getVirial(unsigned int tag, unsigned int component)
     if (found)
         {
         ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::read);
-        result = h_virial.data[m_virial_pitch * component + i];
+        result = h_virial.data[m_virial_pitch * i + component];
         }
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
