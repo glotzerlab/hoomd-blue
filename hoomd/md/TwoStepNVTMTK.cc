@@ -78,7 +78,7 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
         m_prof->push("NVT step 1");
         }
 
-    // scope array handles for proper releasing before calling the thermo compute
+        // scope array handles for proper releasing before calling the thermo compute
         {
         ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                    access_location::host,

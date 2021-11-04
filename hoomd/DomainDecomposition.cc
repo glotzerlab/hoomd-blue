@@ -737,5 +737,5 @@ void export_DomainDecomposition(pybind11::module& m)
     }
     } // end namespace detail
 
-    }      // end namespace hoomd
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

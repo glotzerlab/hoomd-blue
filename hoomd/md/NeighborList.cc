@@ -129,7 +129,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_Nmax.swap(Nmax);
     TAG_ALLOCATION(m_Nmax);
 
-    // flood Nmax with 4s initially
+        // flood Nmax with 4s initially
         {
         ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::overwrite);
         for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
@@ -1739,7 +1739,7 @@ void NeighborList::updateMemoryMapping()
         // stash this partition for the future, so we can unset hints again
         m_last_gpu_partition = gpu_partition;
 
-        // split preferred location of neighbor list across GPUs
+            // split preferred location of neighbor list across GPUs
             {
             ArrayHandle<unsigned int> h_head_list(m_head_list,
                                                   access_location::host,

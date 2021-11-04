@@ -270,7 +270,7 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator,
     // move the particles across the boundary
     nve_up->update(0);
 
-    // check that they go to the proper final position
+        // check that they go to the proper final position
         {
         ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(),
                                    access_location::host,

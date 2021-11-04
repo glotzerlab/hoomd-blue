@@ -139,7 +139,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
     bool body_len_changed = false;
 
-    // detect if bodies have changed
+        // detect if bodies have changed
 
         {
         ArrayHandle<unsigned int> h_body_type(m_body_types,
