@@ -5,40 +5,36 @@ import hoomd
 from hoomd import md
 
 
-class MyConstantForce(md.force.Custom):
+class MyForce(md.force.Custom):
 
-    def __init__(self, magnitude):
+    def __init__(self):
         super().__init__()
-        self._mag = magnitude
-        self._direction = np.array([1, 0, 0])
-        self._force = self._direction * self._mag
 
     def set_forces(self, timestep):
-        with self._state.cpu_local_snapshot as snap, self.cpu_local_force_arrays as arrays:
-            rtags = snap.particles.rtag
-            position = snap.particles.position[rtags]
-            arrays.force[rtags] = self._force[None, :]
-            arrays.potential_energy[rtags] = -self._mag * position[rtags][:, 0]
-            arrays.torque[rtags] = np.cross(position, arrays.force[rtags])
-
-            # set the virial stress coefficients
-            arrays.virial[rtags][:, 0] = self._force[0] * position[rtags][:, 0]
-            arrays.virial[rtags][:, 1] = self._force[0] * position[rtags][:, 1]
-            arrays.virial[rtags][:, 2] = self._force[0] * position[rtags][:, 2]
-            arrays.virial[rtags][:, 3] = self._force[1] * position[rtags][:, 0]
-            arrays.virial[rtags][:, 4] = self._force[1] * position[rtags][:, 1]
-            arrays.virial[rtags][:, 5] = self._force[2] * position[rtags][:, 2]
+        with self.cpu_local_force_arrays as arrays:
+            arrays.force[:] = -5
+            arrays.potential_energy[:] = 37
+            arrays.torque[:] = 23
+            for i in range(6):
+                arrays.virial[:, i] = i
 
 
 def test_simulation(simulation_factory, two_particle_snapshot_factory):
     """Make sure custom force can plug into simulation without crashing."""
     snap = two_particle_snapshot_factory()
     sim = simulation_factory(snap)
-    custom_grav = MyConstantForce(2)
-    nvt = md.methods.NVT(hoomd.filter.All(), kT=1, tau=1)
-    integrator = md.Integrator(dt=0.005, forces=[custom_grav], methods=[nvt])
+    custom_force = MyForce()
+    nvt = md.methods.NPT(hoomd.filter.All(), kT=1, tau=1, S=1, tauS=1,
+                         couple="none")
+    integrator = md.Integrator(dt=0.005, forces=[custom_force], methods=[nvt])
     sim.operations.integrator = integrator
     sim.run(2)
+
+    npt.assert_allclose(integrator.forces[0].forces, -5)
+    npt.assert_allclose(integrator.forces[0].energies, 37)
+    npt.assert_allclose(integrator.forces[0].torques, 23)
+    for i in range(6):
+        npt.assert_allclose(integrator.forces[0].virials[:, i], i)
 
 
 class MyPeriodicField(md.force.Custom):
