@@ -88,7 +88,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
     public:
     LocalForceComputeData(CustomForceCompute& data)
         : LocalDataAccess<Output, CustomForceCompute>(data), m_force_handle(),
-        m_torque_handle(), m_virial_handle()
+        m_torque_handle(), m_virial_handle(), m_virial_pitch(data.getVirialArray().getPitch())
         {
         }
 
@@ -132,7 +132,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
                                                         flag,
                                                         6,
                                                         0,
-                                                        std::vector<ssize_t>({6 * sizeof(Scalar), sizeof(Scalar)}));
+                                                        std::vector<ssize_t>({m_virial_pitch * sizeof(Scalar), sizeof(Scalar)}));
         }
 
     protected:
@@ -149,6 +149,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
     std::unique_ptr<ArrayHandle<Scalar4>> m_torque_handle;
     std::unique_ptr<ArrayHandle<Scalar>> m_virial_handle;
     std::unique_ptr<ArrayHandle<unsigned int>> m_rtag_handle;
+    size_t m_virial_pitch;
     };
 
 
