@@ -15,9 +15,8 @@ void hoomd::md::export_wall_field(pybind11::module& m)
     pybind11::class_<hoomd::md::wall_type, std::shared_ptr<hoomd::md::wall_type>>(m,
                                                                                   "WallCollection")
         .def("_unsafe_create",
-             []() -> std::shared_ptr<hoomd::md::wall_type> {
-                 return std::make_shared<hoomd::md::wall_type>();
-             })
+             []() -> std::shared_ptr<hoomd::md::wall_type>
+             { return std::make_shared<hoomd::md::wall_type>(); })
         // The different get_*_list methods use array_view's (see hoomd/ArrayView.h for more info)
         // callback to ensure that the way_type object's sizes remain correct even during
         // modification.
