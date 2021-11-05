@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 import numpy.testing as npt
 
@@ -5,7 +6,7 @@ import hoomd
 from hoomd import md
 
 
-class MyForce(md.force.Custom):
+class MyForceCPU(md.force.Custom):
 
     def __init__(self):
         super().__init__()
@@ -19,11 +20,34 @@ class MyForce(md.force.Custom):
                 arrays.virial[:, i] = i
 
 
-def test_simulation(simulation_factory, two_particle_snapshot_factory):
+class MyForceGPU(md.force.Custom):
+
+    def __init__(self):
+        super().__init__()
+
+    def set_forces(self, timestep):
+        with self.gpu_local_force_arrays as arrays:
+            arrays.force[:] = -5
+            arrays.potential_energy[:] = 37
+            arrays.torque[:] = 23
+            for i in range(6):
+                arrays.virial[:, i] = i
+
+
+def _skip_if_gpu_with_cpu_device(force_cls, sim):
+    gpu_class = force_cls.__name__.endswith("GPU")
+    cpu_device = isinstance(sim.device, hoomd.device.CPU)
+    if cpu_device and gpu_class:
+        pytest.skip("Cannot access gpu force arrays with CPU device")
+
+
+@pytest.mark.parametrize("force_cls", [MyForceCPU, MyForceGPU], ids=lambda x: x.__name__)
+def test_simulation(force_cls, simulation_factory, two_particle_snapshot_factory):
     """Make sure custom force can plug into simulation without crashing."""
     snap = two_particle_snapshot_factory()
     sim = simulation_factory(snap)
-    custom_force = MyForce()
+    _skip_if_gpu_with_cpu_device(force_cls, sim)
+    custom_force = force_cls()
     nvt = md.methods.NPT(hoomd.filter.All(), kT=1, tau=1, S=1, tauS=1,
                          couple="none")
     integrator = md.Integrator(dt=0.005, forces=[custom_force], methods=[nvt])
@@ -37,7 +61,7 @@ def test_simulation(simulation_factory, two_particle_snapshot_factory):
         npt.assert_allclose(integrator.forces[0].virials[:, i], i)
 
 
-class MyPeriodicField(md.force.Custom):
+class MyPeriodicFieldCPU(md.force.Custom):
 
     def __init__(self, A, i, p, w):
         super().__init__()
@@ -72,7 +96,22 @@ class MyPeriodicField(md.force.Custom):
             arrays.potential_energy[:] = potential
 
 
-def test_compare_to_periodic(simulation_factory, two_particle_snapshot_factory):
+class MyPeriodicFieldGPU(MyPeriodicFieldCPU):
+
+    def __init__(self, A, i, p, w):
+        super().__init__(A, i, p, w)
+
+    def set_forces(self, timestep):
+        with self._state.gpu_local_snapshot as snap, \
+                self.gpu_local_force_arrays as arrays:
+            forces, potential = self._evaluate_periodic(snap)
+            arrays.force[:] = forces
+            arrays.potential_energy[:] = potential
+
+
+
+@pytest.mark.parametrize("force_cls", [MyPeriodicFieldCPU, MyPeriodicFieldGPU], ids=lambda x: x.__name__)
+def test_compare_to_periodic(force_cls, simulation_factory, two_particle_snapshot_factory):
     """Test hoomd external periodic compared to a python version."""
     # sim with built-in force field
     snap = two_particle_snapshot_factory()
@@ -86,7 +125,8 @@ def test_compare_to_periodic(simulation_factory, two_particle_snapshot_factory):
     # sim with custom but equivalent force field
     snap2 = two_particle_snapshot_factory()
     sim2 = simulation_factory(snap)
-    periodic2 = MyPeriodicField(A=1, i=0, p=1, w=1)
+    _skip_if_gpu_with_cpu_device(force_cls, sim2)
+    periodic2 = force_cls(A=1, i=0, p=1, w=1)
     nvt2 = md.methods.NVT(hoomd.filter.All(), kT=1, tau=1)
     integrator2 = md.Integrator(dt=0.005, forces=[periodic2], methods=[nvt2])
     sim2.operations.integrator = integrator2

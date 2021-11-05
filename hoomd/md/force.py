@@ -143,7 +143,7 @@ class Custom(Force):
     @property
     def gpu_local_force_arrays(self):
         """Access the local force buffers on device."""
-        if isinstance(self._simulation.device, hoomd.device.GPU):
+        if not isinstance(self._simulation.device, hoomd.device.GPU):
             raise RuntimeError(
                 "Cannot access gpu_local_force_arrays without a GPU device")
         if self._in_context_manager:
