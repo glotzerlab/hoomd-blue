@@ -6,7 +6,7 @@ r"""Wall potentials.
 
 Wall potentials add forces to any particles within a certain distance,
 :math:`r_{\mathrm{cut}}`, of each wall. In the extrapolated mode, all particles
-deemed outside of the wall boundary are included as well.
+outside of the wall boundary are included as well.
 
 Wall geometries (`hoomd.wall`) are used to specify half-spaces. There are two
 half spaces for each of the possible geometries included and each can be
@@ -61,7 +61,7 @@ class WallPotential(force.Force):
 
     All wall potential commands specify that a given potential energy and
     potential be computed on all particles in the system within a cutoff
-    distance, :math:`r_{\mathrm{cut}}`, from each wall in the given wall group.
+    distance, :math:`r_{\mathrm{cut}}`, from each wall.
     The force :math:`\vec{F}` is in the direction of :math:`\vec{r}`, the vector
     pointing from the particle to the wall or half-space boundary and
     :math:`V_{\mathrm{pair}}(r)` is the pair potential specified by subclasses
@@ -72,7 +72,7 @@ class WallPotential(force.Force):
     .. rubric:: Standard Mode.
 
     In the standard mode, when :math:`r_{\mathrm{extrap}} \le 0`, the potential
-    energy is only applied to the half-space specified in the wall group.
+    energy is only applied to the half-space specified by each wall.
     :math:`V(r)` is evaluated in the same manner as when the mode is shift for
     the analogous :py:mod:`pair <hoomd.md.pair>` potentials within the
     boundaries of the half-space.
@@ -155,7 +155,7 @@ class WallPotential(force.Force):
     To use extrapolated mode ``r_extrap`` must be set per particle type.
 
     .. attention::
-        The current wall force implementation does not support NPT integrators.
+        Walls are fixed in space and do not adjust with the box size. For example, NPT simulations may not behave as expected.
 
     Note:
         - The virial due to walls is computed, but the pressure and reported by
@@ -166,7 +166,7 @@ class WallPotential(force.Force):
         - An effective use of wall forces **requires** considering the geometry
           of the system. Each wall is only evaluated in one simulation box and
           thus is not periodic. Forces will be evaluated and added to all
-          particles from all walls in the wall group. Additionally there are no
+          particles from all walls. Additionally there are no
           safeguards requiring a wall to exist inside the box to have
           interactions. This means that an attractive force existing outside the
           simulation box would pull particles across the periodic boundary where
@@ -234,7 +234,7 @@ class LJ(WallPotential):
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        lj = hoomd.md.wall.LJ(walls)
+        lj = hoomd.md.external.wall.LJ(walls=walls)
         # potential plotted below in red
         lj.params['A'] = {"sigma": 1.0, "epsilon": 1.0, "r_cut": 2.5}
         # set for both types "A" and "B"
@@ -297,7 +297,7 @@ class Gauss(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        gaussian_wall=hoomd.md.wall.Gauss(walls)
+        gaussian_wall=hoomd.md.external.wall.Gauss(walls=walls)
         gaussian_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0, "r_cut": 2.5}
         gaussian_wall.params[['A','B']] = {
             "epsilon": 2.0, "sigma": 1.0, "r_cut": 1.0}
@@ -422,7 +422,7 @@ class Yukawa(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        yukawa_wall = hoomd.md.wall.Yukawa(walls)
+        yukawa_wall = hoomd.md.external.wall.Yukawa(walls=walls)
         yukawa_wall.params['A'] = {
             "epsilon": 1.0, "kappa": 1.0, "r_cut": 3.0}
         yukawa_wall.params[['A','B']] = {
@@ -484,7 +484,7 @@ class Morse(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        morse_wall=hoomd.md.wall.Morse(walls)
+        morse_wall=hoomd.md.external.wall.Morse(walls=walls)
         morse_wall.params['A'] = {
             "D0": 1.0, "alpha": 1.0, "r0": 1.0, "r_cut": 3.0}
         morse_wall.params[['A','B']] = {
@@ -545,8 +545,8 @@ class ForceShiftedLJ(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        shifted_lj_wall=hoomd.md.wall.ForceShiftedLJ(
-            walls)
+        shifted_lj_wall=hoomd.md.external.wall.ForceShiftedLJ(
+            walls=walls)
         shifted_lj_wall.params['A'] = {
             "epsilon": 1.0, "sigma": 1.0, "r_cut": 3.0}
         shifted_lj_wall.params[['A','B']] = {
@@ -606,7 +606,7 @@ class Mie(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         # add walls to interact with
-        mie_wall=hoomd.md.wall.Mie(walls, default_r_cut=3.0)
+        mie_wall=hoomd.md.external.wall.Mie(walls=walls)
         mie_wall.params['A'] = {
             "epsilon": 1.0, "sigma": 1.0, "n": 12, "m": 6, "r_cut": 3.0}
         mie_wall.params[['A','B']] = {
@@ -636,7 +636,7 @@ class Mie(WallPotential):
 
     _cpp_class_name = "WallsPotentialMie"
 
-    def __init__(self, walls=None):
+    def __init__(self, walls):
 
         # initialize the base class
         super().__init__(walls)

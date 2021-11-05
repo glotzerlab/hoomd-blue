@@ -138,9 +138,7 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
         Scalar energy;
         Scalar virial[6];
 
-        param_type params = h_params.data[type];
-        const auto& field = *m_field;
-        evaluator eval(X, box, params, field);
+        evaluator eval(X, box, h_params.data[type], *m_field);
 
         if (evaluator::needsDiameter())
             {
