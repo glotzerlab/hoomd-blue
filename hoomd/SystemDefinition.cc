@@ -167,9 +167,11 @@ void SystemDefinition::initializeFromSnapshot(std::shared_ptr<SnapshotSystemData
         bcast(m_n_dimensions, 0, exec_conf->getMPICommunicator());
 #endif
 
-    m_particle_data->setGlobalBox(snapshot->global_box);
     if (snapshot->particle_data.use_spherical_coord)
     	m_particle_data->setSphere(snapshot->sphere);
+    	m_particle_data->setGlobalBox(4*snapshot->sphere.getR() );
+    else:
+        m_particle_data->setGlobalBox(snapshot->global_box);
     m_particle_data->initializeFromSnapshot(snapshot->particle_data);
     m_bond_data->initializeFromSnapshot(snapshot->bond_data);
     m_angle_data->initializeFromSnapshot(snapshot->angle_data);
