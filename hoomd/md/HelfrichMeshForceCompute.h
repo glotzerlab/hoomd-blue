@@ -92,7 +92,7 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public ForceCompute
 
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
 
-    GlobalVector<Scalar3> m_normals; //! normal unit vectors at each vertex of the mesh
+    GlobalVector<Scalar3> m_normalVec; //! normal unit vectors at each vertex of the mesh
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
