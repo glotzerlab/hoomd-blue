@@ -7,6 +7,7 @@
 
 #include "hoomd/AABB.h"
 #include "hoomd/BoxDim.h"
+#include "hoomd/Sphere.h"
 #include "hoomd/hpmc/HPMCPrecisionSetup.h"
 #include "hoomd/hpmc/OBB.h"
 
@@ -54,6 +55,29 @@ DEVICE inline void move_translate(vec3<Scalar>& v, RNG& rng, Scalar d, unsigned 
 
     // apply the move vector
     v += dr;
+    }
+
+template<class RNG>
+DEVICE inline void move_translateSphere(quat<Scalar>& quat_pos, RNG& rng, Scalar d, const Sphere& sphere)
+    {
+   // Generate a random arc of maximum length d
+    hoomd::UniformDistribution<Scalar> uniform(-1.0, 1.0);
+
+    Scalar phi = uniform(rng)*d/sphere.getR();
+
+    vec3<Scalar> b;
+
+    //! Generate a direction (3d unit vector) for the translation
+    Scalar theta = (uniform(rng)+1)*M_PI;
+    Scalar z = uniform(rng);
+    b = vec3<Scalar>(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
+
+    // the transformation quaternion
+    quat<Scalar> p(fast::cos(0.5*phi),fast::sin(0.5*phi)*b);
+
+    // apply the translation in the standard position
+    quat_pos = quat_pos*p;
+    quat_pos = quat_pos * (fast::rsqrt(norm2(quat_pos)));
     }
 
 //! Rotation move

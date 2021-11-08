@@ -426,7 +426,7 @@ inline unsigned int AABBTree::buildNode(AABB* aabbs,
         {
         my_aabb = merge(my_aabb, aabbs[start + i]);
         }
-    vec3<Scalar> my_radius = my_aabb.getUpper() - my_aabb.getLower();
+    quat<Scalar> my_radius = my_aabb.getUpperS() - my_aabb.getLowerS();
 
     // handle the case of a leaf node creation
     if (len <= NODE_CAPACITY)
@@ -465,7 +465,7 @@ inline unsigned int AABBTree::buildNode(AABB* aabbs,
         {
         // otherwise, we need to split them based on a heuristic. split the longest dimension in
         // half
-        if (my_radius.x > my_radius.y && my_radius.x > my_radius.z)
+        if (my_radius.v.x > my_radius.v.y && my_radius.v.x > my_radius.v.z && my_radius.v.x > my_radius.s)
             {
             // split on x direction
             for (unsigned int i = 0; i < start_right; i++)
@@ -488,7 +488,7 @@ inline unsigned int AABBTree::buildNode(AABB* aabbs,
                     }
                 }
             }
-        else if (my_radius.y > my_radius.z)
+        else if (my_radius.v.y > my_radius.v.z && my_radius.v.y > my_radius.s)
             {
             // split on y direction
             for (unsigned int i = 0; i < start_right; i++)
@@ -511,7 +511,7 @@ inline unsigned int AABBTree::buildNode(AABB* aabbs,
                     }
                 }
             }
-        else
+        else if (my_radius.v.z > my_radius.s)
             {
             // split on z direction
             for (unsigned int i = 0; i < start_right; i++)
@@ -534,6 +534,28 @@ inline unsigned int AABBTree::buildNode(AABB* aabbs,
                     }
                 }
             }
+	else
+	    {
+            // split on fourth dimension
+            for (unsigned int i = 0; i < start_right; i++)
+                {
+                if (aabbs[start+i].getPositionS().s < my_aabb.getPositionS().s)
+                    {
+                    // if on the left side, everything is happy, just continue on
+                    }
+                else
+                    {
+                    // if on the right side, need to swap the current aabb with the one at start_right-1, subtract
+                    // one off of start_right to indicate the addition of one to the right side and subtrace 1
+                    // from i to look at the current index (new aabb). This is quick and easy to write, but will
+                    // randomize indices - might need to look into a stable partitioning algorithm!
+                    std::swap(aabbs[start+i], aabbs[start+start_right-1]);
+                    std::swap(idx[start+i], idx[start+start_right-1]);
+                    start_right--;
+                    i--;
+                    }
+                }
+	    }
         }
 
     // sanity check. The left or right tree may have ended up empty. If so, just borrow one particle
