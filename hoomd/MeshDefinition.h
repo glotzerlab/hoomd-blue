@@ -1,10 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
-
-/*! \file SystemDefinition.h
-    \brief Defines the SystemDefinition class
+/*! \file MeshDefinition.h
+    \brief Defines the MeshDefinition class
  */
 
 #ifdef __HIPCC__
@@ -84,13 +79,13 @@ class PYBIND11_EXPORT MeshDefinition
 
 
     TriangleData::Snapshot triangle_data;             //!< The triangle data accessible in python
-    Scalar m_mesh_energy;         //!< check if dynamic bonding has changed the mesh data
+    Scalar m_mesh_energy;         //!< storing energy for dynamic bonding later
 
     private:
     std::shared_ptr<SystemDefinition> m_sysdef;     //!< System definition later needed for dynamic bonding
     std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
-    Scalar m_mesh_energy_old;    //!< storing energy for dynamic bonding laster
+    Scalar m_mesh_energy_old;    //!< storing old energy for dynamic bonding later
     bool m_data_changed;         //!< check if dynamic bonding has changed the mesh data
     };
 

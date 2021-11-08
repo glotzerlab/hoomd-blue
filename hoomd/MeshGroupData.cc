@@ -1,10 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
-
-/*! \file BondedGroupData.h
-    \brief Defines implementation of BondedGroupData
+/*! \file MeshGroupData.h
+    \brief Defines implementation of MeshGroupData
  */
 
 #include "BondedGroupData.h"
@@ -46,7 +41,7 @@ template<unsigned int group_size, typename Group, const char* name, typename sna
 MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
     std::shared_ptr<ParticleData> pdata,
     const TriangleData::Snapshot& snapshot)
-    : BondedGroupData<group_size,Group,name,true>(pdata,(unsigned int) snapshot.type_mapping.size())
+    : BondedGroupData<group_size,Group,name,true>(pdata,static_cast<unsigned int>(snapshot.type_mapping.size()))
     {
     // connect to particle sort signal
     this->m_pdata->getParticleSortSignal()
@@ -267,6 +262,7 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
     unsigned int group_size_half = group_size/2;
     // validate user input
     for (unsigned int i = 0; i < group_size_half; ++i)
+	{
         if (members_tags.tag[i] > max_tag)
             {
             std::ostringstream oss;
@@ -277,8 +273,8 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
             throw runtime_error(oss.str());
             }
 
-    for (unsigned int i = 0; i < group_size_half; ++i)
         for (unsigned int j = 0; j < group_size_half; ++j)
+	    {
             if (i != j && members_tags.tag[i] == members_tags.tag[j])
                 {
                 std::ostringstream oss;
@@ -288,6 +284,8 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
                 oss << std::endl;
                 throw runtime_error(oss.str());
                 }
+	    }
+	}
 
     unsigned int type = typeval.type;
     if (type >= this->m_type_mapping.size())
@@ -297,8 +295,6 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
           << this->m_type_mapping.size() << ".";
         throw std::runtime_error(s.str());
         }
-
-    unsigned int tag = 0;
 
     // determine if bonded group needs to be added to local data
     bool is_local = true;
@@ -316,6 +312,7 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
         }
 #endif
 
+    unsigned int tag = 0;
     // first check if we can recycle a deleted tag
     if (this->m_recycled_tags.size())
         {
@@ -336,9 +333,13 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
         // add new reverse-lookup tag
         assert(this->m_group_rtag.size() == this->getNGlobal());
         if (is_local)
+            {
             this->m_group_rtag.push_back(this->getN());
+	    }
         else
+	    {
             this->m_group_rtag.push_back(GROUP_NOT_LOCAL);
+	    }
         }
 
     assert(tag <= this->m_recycled_tags.size() + this->getNGlobal());
@@ -439,9 +440,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
                 }
 
             // find the maximum number of groups
-            for (unsigned int i = 0; i < N; i++)
-                if (h_n_groups.data[i] > num_groups_max)
-                    num_groups_max = h_n_groups.data[i];
+	    num_groups_max = *std::max_element(h_n_groups.data, h_n_groups.data+N);
             }
 
         // resize lookup table
@@ -475,7 +474,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
 
                     members_t h;
 
-                    h.idx[group_size - 1] = ((typeval_t)this->m_group_typeval[cur_group]).type;
+                    h.idx[group_size - 1] = static_cast<typeval_t>(this->m_group_typeval[cur_group]).type;
                     for (unsigned int j = group_size_half; j < group_size; ++j)
                         {
                         h.idx[j - 2] = g.tag[j];

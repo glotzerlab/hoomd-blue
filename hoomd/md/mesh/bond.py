@@ -1,8 +1,4 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
-
-"""Bond potentials."""
+"""Mesh Bond potentials."""
 
 from hoomd.md import _md
 from hoomd.mesh import Mesh
@@ -54,7 +50,7 @@ class MeshBond(Force):
         # this ideopotent given the above check.
         self._mesh._add(simulation)
         # This is ideopotent, but we need to ensure that if we change
-        # neighbor list when not attached we handle correctly.
+        # mesh when not attached we handle correctly.
         self._add_dependency(self._mesh)
 
     def _attach(self):
@@ -105,10 +101,6 @@ class MeshBond(Force):
                                    "simulation or SyncedList.")
             self._mesh._add(self._simulation)
         self._mesh = mesh
-
-    @property
-    def _children(self):
-        return [self.mesh]
 
 
 class Harmonic(MeshBond):

@@ -791,9 +791,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                 }
 
             // find the maximum number of groups
-            for (unsigned int i = 0; i < N; i++)
-                if (h_n_groups.data[i] > num_groups_max)
-                    num_groups_max = h_n_groups.data[i];
+	    num_groups_max = *std::max_element(h_n_groups.data, h_n_groups.data+N);
             }
 
         // resize lookup table
@@ -1493,12 +1491,6 @@ template void export_BondedGroupData<BondData, Bond>(pybind11::module& m,
                                                      std::string snapshot_name,
                                                      bool export_struct);
 
-template void export_BondedGroupData<BMeshBondData, MeshBond>(pybind11::module& m,
-                                                     std::string name,
-                                                     std::string snapshot_name,
-                                                     bool export_struct);
-
-
 template void export_BondedGroupData<AngleData, Angle>(pybind11::module& m,
                                                        std::string name,
                                                        std::string snapshot_name,
@@ -1513,11 +1505,6 @@ template void export_BondedGroupData<DihedralData, Dihedral>(pybind11::module& m
                                                              std::string name,
                                                              std::string snapshot_name,
                                                              bool export_struct);
-
-template void export_BondedGroupData<BMeshTriangleData, MeshTriangle>(pybind11::module& m,
-                                                       std::string name,
-                                                       std::string snapshot_name,
-                                                       bool export_struct);
 
 template void export_BondedGroupData<ImproperData, Dihedral>(pybind11::module& m,
                                                              std::string name,

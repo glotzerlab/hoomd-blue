@@ -62,15 +62,13 @@ class Mesh(_HOOMDBaseObject):
         if self._attached:
             self._update_triangles()
             return self._cpp_obj.triangles.N
-        else:
-            return self._size
+        return self._size
 
     @size.setter
     def size(self, newN):
         if self._attached:
             self._cpp_obj.triangles.N = newN
-        else:
-            self._size = newN
+        self._size = newN
 
     @property
     def typeid(self):
@@ -78,8 +76,7 @@ class Mesh(_HOOMDBaseObject):
         if self._attached:
             self._update_triangles()
             return self._cpp_obj.triangles.typeid
-        else:
-            return self._typeid
+        return self._typeid
 
     @typeid.setter
     def typeid(self, tid):
@@ -87,8 +84,7 @@ class Mesh(_HOOMDBaseObject):
             self._cpp_obj.triangles.typeid[:] = tid
             if len(self.triangles) == self.size:
                 self._update_mesh()
-        else:
-            self._typeid = tid
+        self._typeid = tid
 
     @property
     def types(self):
@@ -96,15 +92,13 @@ class Mesh(_HOOMDBaseObject):
         if self._attached:
             self._update_triangles()
             return self._cpp_obj.triangles.types
-        else:
-            return self._types
+        return self._types
 
     @types.setter
     def types(self, newtypes):
         if self._attached:
             self._cpp_obj.triangles.types = newtypes
-        else:
-            self._types = newtypes
+        self._types = newtypes
 
     @log(category='sequence')
     def triangles(self):
@@ -116,8 +110,7 @@ class Mesh(_HOOMDBaseObject):
         if self._attached:
             self._update_triangles()
             return self._cpp_obj.triangles.group
-        else:
-            return self._triangles
+        return self._triangles
 
     @triangles.setter
     def triangles(self, triag):
@@ -125,8 +118,7 @@ class Mesh(_HOOMDBaseObject):
         if self._attached:
             self._cpp_obj.triangles.group[:] = triag
             self._update_mesh()
-        else:
-            self._triangles = triag
+        self._triangles = triag
 
     @log(category='sequence', requires_run=True)
     def bonds(self):

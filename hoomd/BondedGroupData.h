@@ -765,7 +765,6 @@ struct Bond
         {
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -774,7 +773,6 @@ struct Bond
         return m;
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -782,7 +780,6 @@ struct Bond
         return t;
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<Bond>(m, "Bond")
@@ -828,7 +825,6 @@ struct MeshBond
         {
         }
 
-    //! This helper function needs to be provided for the templated MeshBondData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -839,7 +835,6 @@ struct MeshBond
         return m;
         }
 
-    //! This helper function needs to be provided for the templated MeshBondData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -847,7 +842,6 @@ struct MeshBond
         return t;
         }
 
-    //! This helper function needs to be provided for the templated MeshBondData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<MeshBond>(m, "MeshBond")
@@ -898,7 +892,6 @@ struct Angle
         {
         }
 
-    //! This helper function needs to be provided for the templated AngleData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -908,7 +901,6 @@ struct Angle
         return m;
         }
 
-    //! This helper function needs to be provided for the templated AngleData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -916,7 +908,6 @@ struct Angle
         return t;
         }
 
-    //! This helper function needs to be provided for the templated AngleData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<Angle>(m, "Angle")
@@ -979,7 +970,6 @@ struct MeshTriangle
         {
         }
 
-    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -992,7 +982,6 @@ struct MeshTriangle
         return m;
         }
 
-    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -1000,7 +989,6 @@ struct MeshTriangle
         return t;
         }
 
-    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<MeshTriangle>(m, "MeshTriangle")
@@ -1057,7 +1045,6 @@ struct Dihedral
         {
         }
 
-    //! This helper function needs to be provided for the templated DihedralData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -1068,7 +1055,6 @@ struct Dihedral
         return m;
         }
 
-    //! This helper function needs to be provided for the templated DihedralData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -1076,7 +1062,6 @@ struct Dihedral
         return t;
         }
 
-    //! This helper function needs to be provided for the templated DihedralData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<Dihedral>(m, "Dihedral")
@@ -1138,7 +1123,6 @@ struct Constraint
         {
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -1147,7 +1131,6 @@ struct Constraint
         return m;
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -1155,7 +1138,6 @@ struct Constraint
         return t;
         }
 
-    //! This helper function needs to be provided for the templated ConstraintData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<Constraint>(m, "Constraint")
