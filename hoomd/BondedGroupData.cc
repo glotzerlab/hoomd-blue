@@ -791,7 +791,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                 }
 
             // find the maximum number of groups
-	    num_groups_max = *std::max_element(h_n_groups.data, h_n_groups.data+N);
+            num_groups_max = *std::max_element(h_n_groups.data, h_n_groups.data + N);
             }
 
         // resize lookup table
