@@ -2,20 +2,19 @@
     \brief Defines implementation of MeshGroupData
  */
 
+#include "MeshGroupData.h"
 #include "BondedGroupData.h"
 #include "Index1D.h"
 #include "ParticleData.h"
-#include "MeshGroupData.h"
 
 #include <pybind11/numpy.h>
 
 #ifdef ENABLE_HIP
-#include "MeshGroupData.cuh"
 #include "CachedAllocator.h"
+#include "MeshGroupData.cuh"
 #endif
 
 using namespace std;
-
 
 namespace hoomd
     {
@@ -30,9 +29,7 @@ template<unsigned int group_size, typename Group, const char* name, typename sna
 MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
     std::shared_ptr<ParticleData> pdata,
     unsigned int n_group_types)
-    : BondedGroupData<group_size,Group,name,true>(pdata,n_group_types)
-    {
-    };
+    : BondedGroupData<group_size, Group, name, true>(pdata, n_group_types) {};
 
 /*! \param pdata The particle data to associate with
     \param snapshot Snapshot to initialize from
@@ -46,8 +43,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
     // connect to particle sort signal
     this->m_pdata->getParticleSortSignal()
         .template connect<BondedGroupData<group_size, Group, name, true>,
-                          &BondedGroupData<group_size, Group, name, true>::setDirty>(
-            this);
+                          &BondedGroupData<group_size, Group, name, true>::setDirty>(this);
 
     // initialize from snapshot
     initializeFromSnapshot(snapshot);
@@ -56,9 +52,8 @@ MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
     if (this->m_pdata->getDomainDecomposition())
         {
         this->m_pdata->getSingleParticleMoveSignal()
-            .template connect<
-                BondedGroupData<group_size, Group, name, true>,
-                &BondedGroupData<group_size, Group, name, true>::moveParticleGroups>(
+            .template connect<BondedGroupData<group_size, Group, name, true>,
+                              &BondedGroupData<group_size, Group, name, true>::moveParticleGroups>(
                 this);
         }
 #endif
@@ -70,13 +65,12 @@ MeshGroupData<group_size, Group, name, snap, bond>::~MeshGroupData()
     {
     this->m_pdata->getParticleSortSignal()
         .template disconnect<BondedGroupData<group_size, Group, name, true>,
-                             &BondedGroupData<group_size, Group, name, true>::setDirty>(
-            this);
+                             &BondedGroupData<group_size, Group, name, true>::setDirty>(this);
 #ifdef ENABLE_MPI
     this->m_pdata->getSingleParticleMoveSignal()
-        .template disconnect<
-            BondedGroupData<group_size, Group, name, true>,
-            &BondedGroupData<group_size, Group, name, true>::moveParticleGroups>(this);
+        .template disconnect<BondedGroupData<group_size, Group, name, true>,
+                             &BondedGroupData<group_size, Group, name, true>::moveParticleGroups>(
+            this);
 #endif
     }
 
@@ -88,8 +82,9 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
     // check that all fields in the snapshot have correct length
     if (this->m_exec_conf->getRank() == 0 && !snapshot.validate())
         {
-        this->m_exec_conf->msg->error() << "init.*: invalid " << name << " data snapshot." << std::endl
-                                  << std::endl;
+        this->m_exec_conf->msg->error()
+            << "init.*: invalid " << name << " data snapshot." << std::endl
+            << std::endl;
         throw std::runtime_error(std::string("Error initializing ") + name + std::string(" data."));
         }
 
@@ -98,95 +93,100 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
 
     std::vector<members_t> all_groups;
 
-    if(bond)
-	{
+    if (bond)
+        {
         for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
             {
             members_t triag;
-	    std::vector<members_t> bonds(3);
+            std::vector<members_t> bonds(3);
             triag.tag[0] = snapshot.groups[group_idx].tag[0];
             triag.tag[1] = snapshot.groups[group_idx].tag[1];
             triag.tag[2] = snapshot.groups[group_idx].tag[2];
 
+            bonds[0].tag[0] = triag.tag[0];
+            bonds[0].tag[1] = triag.tag[1];
+            bonds[0].tag[2] = group_idx;
+            bonds[0].tag[3] = group_idx;
+            bonds[1].tag[0] = triag.tag[1];
+            bonds[1].tag[1] = triag.tag[2];
+            bonds[1].tag[2] = group_idx;
+            bonds[1].tag[3] = group_idx;
+            bonds[2].tag[0] = triag.tag[2];
+            bonds[2].tag[1] = triag.tag[0];
+            bonds[2].tag[2] = group_idx;
+            bonds[2].tag[3] = group_idx;
 
-	    bonds[0].tag[0] = triag.tag[0];
-	    bonds[0].tag[1] = triag.tag[1];
-	    bonds[0].tag[2] = group_idx;
-	    bonds[0].tag[3] = group_idx;
-	    bonds[1].tag[0] = triag.tag[1];
-	    bonds[1].tag[1] = triag.tag[2];
-	    bonds[1].tag[2] = group_idx;
-	    bonds[1].tag[3] = group_idx;
-	    bonds[2].tag[0] = triag.tag[2];
-	    bonds[2].tag[1] = triag.tag[0];
-	    bonds[2].tag[2] = group_idx;
-	    bonds[2].tag[3] = group_idx;
-
-	    for (unsigned int i = 0; i < all_groups.size(); ++i)
-		{
+            for (unsigned int i = 0; i < all_groups.size(); ++i)
+                {
                 for (unsigned int j = 0; j < bonds.size(); ++j)
-		   {
-                   if( (bonds[j].tag[0] == all_groups[i].tag[0] && bonds[j].tag[1] == all_groups[i].tag[1]) || (bonds[j].tag[0] == all_groups[i].tag[1] && bonds[j].tag[1] == all_groups[i].tag[0]) )
-		       {
-		       all_groups[i].tag[3]=group_idx;
-		       bonds.erase(bonds.begin()+j);
-		       break;
-		       }
-	           }
-	        }
+                    {
+                    if ((bonds[j].tag[0] == all_groups[i].tag[0]
+                         && bonds[j].tag[1] == all_groups[i].tag[1])
+                        || (bonds[j].tag[0] == all_groups[i].tag[1]
+                            && bonds[j].tag[1] == all_groups[i].tag[0]))
+                        {
+                        all_groups[i].tag[3] = group_idx;
+                        bonds.erase(bonds.begin() + j);
+                        break;
+                        }
+                    }
+                }
             for (unsigned int i = 0; i < bonds.size(); ++i)
-		{
-		all_groups.push_back(bonds[i]);
-	        }
-	    }
-	}
+                {
+                all_groups.push_back(bonds[i]);
+                }
+            }
+        }
     else
-	{
+        {
         std::vector<members_t> all_helper;
         all_groups.resize(snapshot.groups.size());
         for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
             {
             members_t triag;
-	    std::vector<members_t> bonds(3);
-	    std::vector<int> bond_id;
+            std::vector<members_t> bonds(3);
+            std::vector<int> bond_id;
             triag.tag[0] = snapshot.groups[group_idx].tag[0];
             triag.tag[1] = snapshot.groups[group_idx].tag[1];
             triag.tag[2] = snapshot.groups[group_idx].tag[2];
 
-	    bonds[0].tag[0] = triag.tag[0];
-	    bonds[0].tag[1] = triag.tag[1];
-	    bonds[1].tag[0] = triag.tag[1];
-	    bonds[1].tag[1] = triag.tag[2];
-	    bonds[2].tag[0] = triag.tag[2];
-	    bonds[2].tag[1] = triag.tag[0];
+            bonds[0].tag[0] = triag.tag[0];
+            bonds[0].tag[1] = triag.tag[1];
+            bonds[1].tag[0] = triag.tag[1];
+            bonds[1].tag[1] = triag.tag[2];
+            bonds[2].tag[0] = triag.tag[2];
+            bonds[2].tag[1] = triag.tag[0];
 
-	    for (unsigned int i = 0; i < all_helper.size(); ++i)
-		{
+            for (unsigned int i = 0; i < all_helper.size(); ++i)
+                {
                 for (unsigned int j = 0; j < bonds.size(); ++j)
-		   {
-                   if( (bonds[j].tag[0] == all_helper[i].tag[0] && bonds[j].tag[1] == all_helper[i].tag[1]) || (bonds[j].tag[0] == all_helper[i].tag[1] && bonds[j].tag[1] == all_helper[i].tag[0]) )
-		       {
-		       bond_id.push_back(i);
-		       bonds.erase(bonds.begin()+j);
-		       break;
-		       }
-	           }
-	        }
+                    {
+                    if ((bonds[j].tag[0] == all_helper[i].tag[0]
+                         && bonds[j].tag[1] == all_helper[i].tag[1])
+                        || (bonds[j].tag[0] == all_helper[i].tag[1]
+                            && bonds[j].tag[1] == all_helper[i].tag[0]))
+                        {
+                        bond_id.push_back(i);
+                        bonds.erase(bonds.begin() + j);
+                        break;
+                        }
+                    }
+                }
             unsigned int j = 0;
             for (j = 0; j < bond_id.size(); ++j)
-		{
-	        triag.tag[3+j]=bond_id[j];
-	        }
+                {
+                triag.tag[3 + j] = bond_id[j];
+                }
 
             for (unsigned int i = 0; i < bonds.size(); ++i)
-		{
-	        triag.tag[3+j]= (unsigned int) all_helper.size();
-		all_helper.push_back(bonds[i]);
-		j++;
-	        }
+                {
+                triag.tag[3 + j] = (unsigned int)all_helper.size();
+                all_helper.push_back(bonds[i]);
+                j++;
+                }
             all_groups[group_idx] = triag;
-	    }
-	}
+            }
+        }
 
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
@@ -205,47 +205,46 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
                 all_typeval[i] = t;
                 }
             this->m_type_mapping = snapshot.type_mapping;
-
             }
 
         bcast(all_groups, 0, this->m_exec_conf->getMPICommunicator());
         bcast(all_typeval, 0, this->m_exec_conf->getMPICommunicator());
         bcast(this->m_type_mapping, 0, this->m_exec_conf->getMPICommunicator());
 
-	if(bond)
-	    {
+        if (bond)
+            {
             for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
-               addBondedGroup(Group(all_typeval[0], all_groups[group_tag]));
-	    }
-	else
-	    {
+                addBondedGroup(Group(all_typeval[0], all_groups[group_tag]));
+            }
+        else
+            {
             for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
-               addBondedGroup(Group(all_typeval[group_tag], all_groups[group_tag]));
-	    }
+                addBondedGroup(Group(all_typeval[group_tag], all_groups[group_tag]));
+            }
         }
     else
 #endif
         {
         this->m_type_mapping = snapshot.type_mapping;
 
-	if(bond)
-	    {
+        if (bond)
+            {
             typeval_t t;
             t.type = snapshot.type_id[0];
             for (unsigned group_idx = 0; group_idx < all_groups.size(); group_idx++)
                 {
                 addBondedGroup(Group(t, all_groups[group_idx]));
-	        }
+                }
             }
-	    else
-	    {
+        else
+            {
             for (unsigned group_idx = 0; group_idx < all_groups.size(); group_idx++)
                 {
                 typeval_t t;
                 t.type = snapshot.type_id[group_idx];
                 addBondedGroup(Group(t, all_groups[group_idx]));
-	        }
-	    }
+                }
+            }
         }
     }
 
@@ -259,7 +258,7 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
 
     unsigned int max_tag = this->m_pdata->getMaximumTag();
 
-    unsigned int group_size_half = group_size/2;
+    unsigned int group_size_half = group_size / 2;
     // validate user input
     for (unsigned int i = 0; i < group_size_half; ++i)
 	{
@@ -378,7 +377,6 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
     return tag;
     }
 
-
 template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
 void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
     {
@@ -399,7 +397,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
 
         unsigned int num_groups_max = 0;
 
-	unsigned int group_size_half = group_size/2;
+        unsigned int group_size_half = group_size / 2;
 
         unsigned int ngroups_tot = this->m_n_groups + this->m_n_ghost;
             {
@@ -444,7 +442,8 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
             }
 
         // resize lookup table
-        this->m_gpu_table_indexer = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(), num_groups_max);
+        this->m_gpu_table_indexer
+            = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(), num_groups_max);
         this->m_gpu_table.resize(this->m_gpu_table_indexer.getNumElements());
 
             {
@@ -486,7 +485,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
                         {
                         if (j == i)
                             {
-			    continue;
+                            continue;
                             }
                         unsigned int tag2 = g.tag[j];
                         unsigned int idx2 = h_rtag.data[tag2];
@@ -503,7 +502,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
         }
     }
 
-
 #ifdef ENABLE_HIP
 template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
 void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
@@ -515,12 +513,12 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
     this->m_gpu_n_groups.resize(this->m_pdata->getN() + this->m_pdata->getNGhosts());
 
     // resize GPU table to current number of particles
-    this->m_gpu_table_indexer
-        = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(), this->m_gpu_table_indexer.getH());
+    this->m_gpu_table_indexer = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(),
+                                        this->m_gpu_table_indexer.getH());
     this->m_gpu_table.resize(this->m_gpu_table_indexer.getNumElements());
     this->m_gpu_pos_table.resize(this->m_gpu_table_indexer.getNumElements());
 
-    unsigned int group_size_half = group_size/2;
+    unsigned int group_size_half = group_size / 2;
 
     bool done = false;
     while (!done)
@@ -528,7 +526,9 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
         unsigned int flag = 0;
 
             {
-            ArrayHandle<members_t> d_groups(this->m_groups, access_location::device, access_mode::read);
+            ArrayHandle<members_t> d_groups(this->m_groups,
+                                            access_location::device,
+                                            access_mode::read);
             ArrayHandle<typeval_t> d_group_typeval(this->m_group_typeval,
                                                    access_location::device,
                                                    access_mode::read);
@@ -555,21 +555,21 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
 
             // fill group table on GPU
             gpu_update_mesh_table<group_size, members_t>(this->getN() + this->getNGhosts(),
-                                                          nptl,
-                                                          d_groups.data,
-                                                          d_group_typeval.data,
-                                                          d_rtag.data,
-                                                          d_n_groups.data,
-                                                          this->m_gpu_table_indexer.getH(),
-                                                          d_condition.data,
-                                                          this->m_next_flag,
-                                                          flag,
-                                                          d_gpu_table.data,
-                                                          this->m_gpu_table_indexer.getW(),
-                                                          d_scratch_g.data,
-                                                          d_scratch_idx.data,
-                                                          d_offsets.data,
-                                                          this->m_exec_conf->getCachedAllocator());
+                                                         nptl,
+                                                         d_groups.data,
+                                                         d_group_typeval.data,
+                                                         d_rtag.data,
+                                                         d_n_groups.data,
+                                                         this->m_gpu_table_indexer.getH(),
+                                                         d_condition.data,
+                                                         this->m_next_flag,
+                                                         flag,
+                                                         d_gpu_table.data,
+                                                         this->m_gpu_table_indexer.getW(),
+                                                         d_scratch_g.data,
+                                                         d_scratch_idx.data,
+                                                         d_offsets.data,
+                                                         this->m_exec_conf->getCachedAllocator());
             }
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -592,8 +592,8 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
         if (flag == this->m_next_flag)
             {
             // grow array by incrementing groups per particle
-            this->m_gpu_table_indexer
-                = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(), this->m_gpu_table_indexer.getH() + 1);
+            this->m_gpu_table_indexer = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(),
+                                                this->m_gpu_table_indexer.getH() + 1);
             this->m_gpu_table.resize(this->m_gpu_table_indexer.getNumElements());
             this->m_next_flag++;
             }
@@ -618,7 +618,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
     // map to lookup snapshot index by tag
     std::map<unsigned int, unsigned int> index;
 
-    unsigned int group_size_half = group_size/2;
+    unsigned int group_size_half = group_size / 2;
 
     std::map<unsigned int, unsigned int> rtag_map;
     for (unsigned int group_idx = 0; group_idx < this->getN(); group_idx++)
@@ -692,9 +692,9 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
                     this->m_exec_conf->msg->error() << endl
-                                              << "Could not find " << name << " " << group_tag
-                                              << " on any processor. " << endl
-                                              << endl;
+                                                    << "Could not find " << name << " " << group_tag
+                                                    << " on any processor. " << endl
+                                                    << endl;
                     throw std::runtime_error("Error gathering " + std::string(name) + "s");
                     }
 
@@ -707,10 +707,10 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
                 unsigned int idx = rank_idx.second;
 
                 snapshot.type_id[snap_id] = typevals_proc[rank][idx].type;
-		for(unsigned int i = 0; i< group_size_half; i++)
-		    {
+                for (unsigned int i = 0; i < group_size_half; i++)
+                    {
                     snapshot.groups[snap_id].tag[i] = members_proc[rank][idx].tag[i];
-		    }
+                    }
                 snap_id++;
                 }
             }
@@ -728,16 +728,17 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
 
         // loop through active tags
         std::set<unsigned int>::iterator active_tag_it;
-        for (active_tag_it = this->m_tag_set.begin(); active_tag_it != this->m_tag_set.end(); ++active_tag_it)
+        for (active_tag_it = this->m_tag_set.begin(); active_tag_it != this->m_tag_set.end();
+             ++active_tag_it)
             {
             unsigned int group_tag = *active_tag_it;
             rtag_it = rtag_map.find(group_tag);
             if (rtag_it == rtag_map.end())
                 {
                 this->m_exec_conf->msg->error() << endl
-                                          << "Could not find " << name << " " << group_tag
-                                          << ". Possible internal error?" << endl
-                                          << endl;
+                                                << "Could not find " << name << " " << group_tag
+                                                << ". Possible internal error?" << endl
+                                                << endl;
                 throw std::runtime_error("Error gathering " + std::string(name) + "s");
                 }
 
@@ -745,11 +746,11 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
             index.insert(std::make_pair(group_tag, snap_id));
 
             unsigned int group_idx = rtag_it->second;
-	    members_t member = this->m_groups[group_idx];
-	    for(unsigned int i = 0; i< group_size_half; i++)
-	        {
+            members_t member = this->m_groups[group_idx];
+            for (unsigned int i = 0; i < group_size_half; i++)
+                {
                 snapshot.groups[snap_id].tag[i] = member.tag[i];
-		}
+                }
             snapshot.type_id[snap_id] = ((typeval_t)this->m_group_typeval[group_idx]).type;
             snap_id++;
             }
@@ -760,14 +761,13 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
     return index;
     }
 
-
 namespace detail
     {
 template<class T, typename Group>
 void export_MeshGroupData(pybind11::module& m,
-                            std::string name,
-                            std::string snapshot_name,
-                            bool export_struct)
+                          std::string name,
+                          std::string snapshot_name,
+                          bool export_struct)
     {
     // export group structure
     if (export_struct)
@@ -775,7 +775,8 @@ void export_MeshGroupData(pybind11::module& m,
 
     pybind11::class_<T, std::shared_ptr<T>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<ParticleData>, unsigned int>())
-        .def(pybind11::init<std::shared_ptr<ParticleData>, const typename TriangleData::Snapshot&>())
+        .def(
+            pybind11::init<std::shared_ptr<ParticleData>, const typename TriangleData::Snapshot&>())
         .def("initializeFromSnapshot", &T::initializeFromSnapshot)
         .def("takeSnapshot", &T::takeSnapshot)
         .def("addBondedGroup", &T::addBondedGroup);
@@ -783,20 +784,21 @@ void export_MeshGroupData(pybind11::module& m,
 
     } // end namespace detail
 
-
-template class PYBIND11_EXPORT MeshGroupData<6, MeshTriangle, name_meshtriangle_data, TriangleData::Snapshot, false>;
-template class PYBIND11_EXPORT MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot, true>;
+template class PYBIND11_EXPORT
+    MeshGroupData<6, MeshTriangle, name_meshtriangle_data, TriangleData::Snapshot, false>;
+template class PYBIND11_EXPORT
+    MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot, true>;
 
 namespace detail
     {
 template void export_MeshGroupData<MeshTriangleData, MeshTriangle>(pybind11::module& m,
-                                                       std::string name,
-                                                       std::string snapshot_name,
-                                                       bool export_struct);
+                                                                   std::string name,
+                                                                   std::string snapshot_name,
+                                                                   bool export_struct);
 
 template void export_MeshGroupData<MeshBondData, MeshBond>(pybind11::module& m,
-                                                     std::string name,
-                                                     std::string snapshot_name,
-                                                     bool export_struct);
+                                                           std::string name,
+                                                           std::string snapshot_name,
+                                                           bool export_struct);
     } // end namespace detail
     } // end namespace hoomd

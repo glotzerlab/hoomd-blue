@@ -1497,9 +1497,9 @@ template void export_BondedGroupData<AngleData, Angle>(pybind11::module& m,
                                                        bool export_struct);
 
 template void export_BondedGroupData<TriangleData, Angle>(pybind11::module& m,
-                                                       std::string name,
-                                                       std::string snapshot_name,
-                                                       bool export_struct);
+                                                          std::string name,
+                                                          std::string snapshot_name,
+                                                          bool export_struct);
 
 template void export_BondedGroupData<DihedralData, Dihedral>(pybind11::module& m,
                                                              std::string name,

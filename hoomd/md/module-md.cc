@@ -44,8 +44,8 @@
 #include "OPLSDihedralForceCompute.h"
 #include "PPPMForceCompute.h"
 #include "PotentialBond.h"
-#include "PotentialMeshBond.h"
 #include "PotentialExternal.h"
+#include "PotentialMeshBond.h"
 #include "PotentialPair.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialTersoff.h"
@@ -88,8 +88,8 @@
 #include "OPLSDihedralForceComputeGPU.h"
 #include "PPPMForceComputeGPU.h"
 #include "PotentialBondGPU.h"
-#include "PotentialMeshBondGPU.h"
 #include "PotentialExternalGPU.h"
+#include "PotentialMeshBondGPU.h"
 #include "PotentialPairDPDThermoGPU.h"
 #include "PotentialPairGPU.h"
 #include "PotentialTersoffGPU.h"
@@ -398,9 +398,12 @@ PYBIND11_MODULE(_md, m)
     export_PotentialMeshBondGPU<PotentialMeshBondHarmonicGPU, PotentialMeshBondHarmonic>(
         m,
         "PotentialMeshBondHarmonicGPU");
-    export_PotentialMeshBondGPU<PotentialMeshBondFENEGPU, PotentialMeshBondFENE>(m, "PotentialMeshBondFENEGPU");
-    export_PotentialMeshBondGPU<PotentialMeshBondTetherGPU, PotentialMeshBondTether>(m,
-                                                                         "PotentialMeshBondTetherGPU");
+    export_PotentialMeshBondGPU<PotentialMeshBondFENEGPU, PotentialMeshBondFENE>(
+        m,
+        "PotentialMeshBondFENEGPU");
+    export_PotentialMeshBondGPU<PotentialMeshBondTetherGPU, PotentialMeshBondTether>(
+        m,
+        "PotentialMeshBondTetherGPU");
     export_PotentialSpecialPairGPU<PotentialSpecialPairLJGPU, PotentialSpecialPairLJ>(
         m,
         "PotentialSpecialPairLJGPU");

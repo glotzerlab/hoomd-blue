@@ -7,8 +7,8 @@
 #endif
 
 #include "BondedGroupData.h"
-#include "MeshGroupData.h"
 #include "IntegratorData.h"
+#include "MeshGroupData.h"
 #include "SystemDefinition.h"
 
 #include <memory>
@@ -16,7 +16,6 @@
 
 #ifndef __MESH_DEFINITION_H__
 #define __MESH_DEFINITION_H__
-
 
 namespace hoomd
     {
@@ -77,13 +76,13 @@ class PYBIND11_EXPORT MeshDefinition
 
     void updateMeshData();
 
-
     TriangleData::Snapshot triangle_data;             //!< The triangle data accessible in python
     Scalar m_mesh_energy;         //!< storing energy for dynamic bonding later
 
     private:
-    std::shared_ptr<SystemDefinition> m_sysdef;     //!< System definition later needed for dynamic bonding
-    std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
+    std::shared_ptr<SystemDefinition>
+        m_sysdef; //!< System definition later needed for dynamic bonding
+    std::shared_ptr<MeshBondData> m_meshbond_data;         //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
     Scalar m_mesh_energy_old;    //!< storing old energy for dynamic bonding later
     bool m_data_changed;         //!< check if dynamic bonding has changed the mesh data

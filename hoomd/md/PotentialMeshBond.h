@@ -1,6 +1,6 @@
 #include "hoomd/ForceCompute.h"
-#include "hoomd/MeshDefinition.h"
 #include "hoomd/GPUArray.h"
+#include "hoomd/MeshDefinition.h"
 #include <memory>
 
 #include <vector>
@@ -33,7 +33,8 @@ template<class evaluator> class PotentialMeshBond : public ForceCompute
     typedef typename evaluator::param_type param_type;
 
     //! Constructs the compute
-    PotentialMeshBond(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef);
+    PotentialMeshBond(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<MeshDefinition> meshdef);
 
     //! Destructor
     virtual ~PotentialMeshBond();
@@ -54,9 +55,9 @@ template<class evaluator> class PotentialMeshBond : public ForceCompute
 #endif
 
     protected:
-    GPUArray<param_type> m_params;         //!< Bond parameters per type
+    GPUArray<param_type> m_params;                  //!< Bond parameters per type
     std::shared_ptr<MeshBondData> m_mesh_bond_data; //!< Bond data to use in computing mesh_bonds
-    std::string m_prof_name;               //!< Cached profiler name
+    std::string m_prof_name;                        //!< Cached profiler name
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -65,7 +66,8 @@ template<class evaluator> class PotentialMeshBond : public ForceCompute
 /*! \param sysdef System to compute forces on
  */
 template<class evaluator>
-PotentialMeshBond<evaluator>::PotentialMeshBond(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef)
+PotentialMeshBond<evaluator>::PotentialMeshBond(std::shared_ptr<SystemDefinition> sysdef,
+                                                std::shared_ptr<MeshDefinition> meshdef)
     : ForceCompute(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing PotentialMeshBond<" << evaluator::getName() << ">"
@@ -175,8 +177,8 @@ template<class evaluator> void PotentialMeshBond<evaluator>::computeForces(uint6
     memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
     // we are using the minimum image of the global box here
-    // to ensure that ghosts are always correctly wrapped (even if a mesh_bond exceeds half the domain
-    // length)
+    // to ensure that ghosts are always correctly wrapped (even if a mesh_bond exceeds half the
+    // domain length)
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
@@ -187,8 +189,8 @@ template<class evaluator> void PotentialMeshBond<evaluator>::computeForces(uint6
         mesh_bond_virial[i] = Scalar(0.0);
 
     ArrayHandle<typename MeshBondData::members_t> h_mesh_bonds(m_mesh_bond_data->getMembersArray(),
-                                                      access_location::host,
-                                                      access_mode::read);
+                                                               access_location::host,
+                                                               access_mode::read);
     ArrayHandle<typeval_t> h_typeval(m_mesh_bond_data->getTypeValArray(),
                                      access_location::host,
                                      access_mode::read);
@@ -214,8 +216,8 @@ template<class evaluator> void PotentialMeshBond<evaluator>::computeForces(uint6
         if (idx_a >= max_local || idx_b >= max_local)
             {
             this->m_exec_conf->msg->error()
-                << "mesh_bond." << evaluator::getName() << ": mesh_bond " << mesh_bond.tag[0] << " " << mesh_bond.tag[1]
-                << " incomplete." << std::endl
+                << "mesh_bond." << evaluator::getName() << ": mesh_bond " << mesh_bond.tag[0] << " "
+                << mesh_bond.tag[1] << " incomplete." << std::endl
                 << std::endl;
             throw std::runtime_error("Error in mesh_bond calculation");
             }
@@ -346,7 +348,7 @@ namespace detail
 template<class T> void export_PotentialMeshBond(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition> >())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams);
     }
