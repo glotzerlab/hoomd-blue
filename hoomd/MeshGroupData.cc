@@ -772,6 +772,7 @@ void export_MeshGroupData(pybind11::module& m,
                           std::string snapshot_name,
                           bool export_struct)
     {
+
     // export group structure
     if (export_struct)
         Group::export_to_python(m);
@@ -782,7 +783,19 @@ void export_MeshGroupData(pybind11::module& m,
             pybind11::init<std::shared_ptr<ParticleData>, const typename TriangleData::Snapshot&>())
         .def("initializeFromSnapshot", &T::initializeFromSnapshot)
         .def("takeSnapshot", &T::takeSnapshot)
-        .def("addBondedGroup", &T::addBondedGroup);
+        .def("getN", &T::getN)
+        .def("getNGlobal", &T::getNGlobal)
+        .def("getNTypes", &T::getNTypes)
+        .def("getNthTag", &T::getNthTag)
+        .def("getMaximumTag", &T::getMaximumTag)
+        .def("getGroupByTag", &T::getGroupByTag)
+        .def("getTypeByName", &T::getTypeByName)
+        .def("setTypeName", &T::setTypeName)
+        .def("getNameByType", &T::getNameByType)
+        .def("addBondedGroup", &T::addBondedGroup)
+        .def("removeBondedGroup", &T::removeBondedGroup)
+        .def("setProfiler", &T::setProfiler)
+        .def("getTypes", &T::getTypesPy);
     }
 
     } // end namespace detail
