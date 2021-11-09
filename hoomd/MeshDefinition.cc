@@ -19,8 +19,8 @@ MeshDefinition::MeshDefinition() { }
 /*! \param sysdef Simulation system
  */
 MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef)
-	: m_sysdef(sysdef), m_data_changed(false), m_meshtriangle_data(std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), 1))),
-	  m_meshbond_data(std::shared_ptr<MeshBondData>(new MeshBondData(m_sysdef->getParticleData(), 1))), m_mesh_energy(0),m_mesh_energy_old(0)
+	: m_sysdef(sysdef), m_meshbond_data(std::shared_ptr<MeshBondData>(new MeshBondData(m_sysdef->getParticleData(), 1))),
+	  m_meshtriangle_data(std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), 1))), m_mesh_energy(0), m_mesh_energy_old(0), m_data_changed(false)
 
     {
     //m_sysdef = sysdef;
@@ -73,8 +73,8 @@ void export_MeshDefinition(pybind11::module& m)
         .def("getBondData", &MeshDefinition::getBondData)
         .def("updateTriangleData", &MeshDefinition::updateTriangleData)
         .def("updateMeshData", &MeshDefinition::updateMeshData)
-        .def_readonly("triangles", &MeshDefinition::triangle_data)
-        .def_readonly("mesh_energy", &MeshDefinition::m_mesh_energy);
+        .def("getEnergy", &MeshDefinition::getEnergy)
+        .def_readonly("triangles", &MeshDefinition::triangle_data);
     }
 
     } // end namespace detail
