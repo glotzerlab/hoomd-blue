@@ -7,7 +7,7 @@ from hoomd.error import DataAccessError
 
 
 @pytest.fixture(scope='session')
-def dihedral_snapshot_factory(device):
+def mesh_snapshot_factory(device):
 
     def make_snapshot(d=1.0, phi_deg=45, particle_types=['A'], L=20):
         phi_rad = phi_deg * (numpy.pi / 180)
@@ -30,11 +30,6 @@ def dihedral_snapshot_factory(device):
                                            d, d * numpy.cos(phi_rad / 2),
                                            -d * numpy.sin(phi_rad / 2) + 0.1
                                        ]]
-
-            s.dihedrals.N = 1
-            s.dihedrals.types = ['dihedral']
-            s.dihedrals.typeid[0] = 0
-            s.dihedrals.group[0] = (0, 1, 2, 3)
 
         return s
 
@@ -78,8 +73,8 @@ def test_mesh_setter():
     assert numpy.array_equal(mesh.typeid, numpy.array([0, 0]))
 
 
-def test_mesh_setter_attached(simulation_factory, dihedral_snapshot_factory):
-    sim = simulation_factory(dihedral_snapshot_factory(d=0.969, L=5))
+def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
+    sim = simulation_factory(mesh_snapshot_factory(d=0.969, L=5))
     mesh = Mesh()
 
     mesh._add(sim)
@@ -98,8 +93,8 @@ def test_mesh_setter_attached(simulation_factory, dihedral_snapshot_factory):
         mesh.bonds, numpy.array([[0, 1], [1, 2], [2, 0], [2, 3], [3, 1]]))
 
 
-def test_auto_detach_simulation(simulation_factory, dihedral_snapshot_factory):
-    sim = simulation_factory(dihedral_snapshot_factory(d=0.969, L=5))
+def test_auto_detach_simulation(simulation_factory, mesh_snapshot_factory):
+    sim = simulation_factory(mesh_snapshot_factory(d=0.969, L=5))
     mesh = Mesh()
     mesh.size = 2
     mesh.types = ['meshbond']
