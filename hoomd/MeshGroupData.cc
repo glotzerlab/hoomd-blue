@@ -772,7 +772,6 @@ void export_MeshGroupData(pybind11::module& m,
                           std::string snapshot_name,
                           bool export_struct)
     {
-
     // export group structure
     if (export_struct)
         Group::export_to_python(m);
