@@ -66,11 +66,16 @@ def test_simulation(force_cls, simulation_factory, two_particle_snapshot_factory
     sim.operations.integrator = integrator
     sim.run(2)
 
-    npt.assert_allclose(integrator.forces[0].forces, -5)
-    npt.assert_allclose(integrator.forces[0].energies, 37)
-    npt.assert_allclose(integrator.forces[0].torques, 23)
-    for i in range(6):
-        npt.assert_allclose(integrator.forces[0].virials[:, i], i)
+    force_arr = integrator.forces[0].forces
+    energy_arr = integrator.forces[0].energies
+    torque_arr = integrator.forces[0].torques
+    virial_arr = integrator.forces[0].virials
+    if sim.device.communicator.rank == 0:
+        npt.assert_allclose(force_arr, -5)
+        npt.assert_allclose(energy_arr, 37)
+        npt.assert_allclose(torque_arr, 23)
+        for i in range(6):
+            npt.assert_allclose(virial_arr[:, i], i)
 
 
 class MyPeriodicFieldCPU(md.force.Custom):
@@ -159,15 +164,29 @@ def test_compare_to_periodic(force_cls, simulation_factory, two_particle_snapsho
     snap_end2 = sim2.state.get_snapshot()
 
     # compare particle properties
-    npt.assert_allclose(snap_end.particles.position,
-                        snap_end2.particles.position)
-    npt.assert_allclose(snap_end.particles.velocity,
-                        snap_end2.particles.velocity)
-    npt.assert_allclose(integrator.forces[0].forces,
-                        integrator2.forces[0].forces)
-    npt.assert_allclose(integrator.forces[0].energies,
-                        integrator2.forces[0].energies)
-    npt.assert_allclose(integrator.forces[0].torques,
-                        integrator2.forces[0].torques)
+    positions1 = snap_end.particles.position
+    positions2 = snap_end2.particles.position
+    if sim.device.communicator.rank == 0:
+        npt.assert_allclose(positions1, positions2)
+
+    velocities1 = snap_end.particles.velocity
+    velocities2 = snap_end2.particles.velocity
+    if sim.device.communicator.rank == 0:
+        npt.assert_allclose(velocities1, velocities2)
+
+    forces1 = integrator.forces[0].forces
+    forces2 = integrator2.forces[0].forces
+    if sim.device.communicator.rank == 0:
+        npt.assert_allclose(forces1, forces2)
+
+    energies1 = integrator.forces[0].energies
+    energies2 = integrator2.forces[0].energies
+    if sim.device.communicator.rank == 0:
+        npt.assert_allclose(energies1, energies2)
+
+    torques1 = integrator.forces[0].torques
+    torques2 = integrator2.forces[0].torques
+    if sim.device.communicator.rank == 0:
+        npt.assert_allclose(torques1, torques2)
     assert integrator.forces[0].virials == integrator2.forces[0].virials
 
