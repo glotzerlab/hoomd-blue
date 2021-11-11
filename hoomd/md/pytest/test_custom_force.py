@@ -36,8 +36,10 @@ class MyForceGPU(md.force.Custom):
             arrays.force[:] = -5
             arrays.potential_energy[:] = 37
             arrays.torque[:] = 23
-            for i in range(6):
-                arrays.virial[:, i] = i
+            # cupy won't let me use two indices on arrays of length 0
+            if len(arrays.virial) > 0:
+                for i in range(6):
+                    arrays.virial[:, i] = i
 
 
 def _skip_if_gpu_with_cpu_device(force_cls, sim):
@@ -98,6 +100,11 @@ class MyPeriodicFieldCPU(md.force.Custom):
         """Evaluate force and energy in python."""
         box = snapshot.global_box
         positions = self._numpy_array(snapshot.particles.position)
+
+        # if no particles on this rank, return
+        if positions.shape == (0,):
+            return np.array([]), np.array([])
+
         a1, a2, a3 = box.lattice_vectors
         V = np.dot(a1, np.cross(a2, a3))
         b1 = 2 * np.pi / V * np.cross(a2, a3)
@@ -164,14 +171,13 @@ def test_compare_to_periodic(force_cls, simulation_factory, two_particle_snapsho
     snap_end2 = sim2.state.get_snapshot()
 
     # compare particle properties
-    positions1 = snap_end.particles.position
-    positions2 = snap_end2.particles.position
     if sim.device.communicator.rank == 0:
+        positions1 = snap_end.particles.position
+        positions2 = snap_end2.particles.position
         npt.assert_allclose(positions1, positions2)
 
-    velocities1 = snap_end.particles.velocity
-    velocities2 = snap_end2.particles.velocity
-    if sim.device.communicator.rank == 0:
+        velocities1 = snap_end.particles.velocity
+        velocities2 = snap_end2.particles.velocity
         npt.assert_allclose(velocities1, velocities2)
 
     forces1 = integrator.forces[0].forces
@@ -188,5 +194,6 @@ def test_compare_to_periodic(force_cls, simulation_factory, two_particle_snapsho
     torques2 = integrator2.forces[0].torques
     if sim.device.communicator.rank == 0:
         npt.assert_allclose(torques1, torques2)
+
     assert integrator.forces[0].virials == integrator2.forces[0].virials
 
