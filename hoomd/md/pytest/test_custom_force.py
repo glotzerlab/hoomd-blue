@@ -19,12 +19,11 @@ class MyForceCPU(md.force.Custom):
 
     def set_forces(self, timestep):
         with self.cpu_local_force_arrays as arrays:
-            arrays.force[:] = -5
-            arrays.potential_energy[:] = 37
-            arrays.torque[:] = 23
+            arrays.force = -5
+            arrays.potential_energy = 37
+            arrays.torque = 23
             for i in range(6):
                 arrays.virial[:, i] = i
-
 
 class MyForceGPU(md.force.Custom):
 
@@ -33,9 +32,9 @@ class MyForceGPU(md.force.Custom):
 
     def set_forces(self, timestep):
         with self.gpu_local_force_arrays as arrays:
-            arrays.force[:] = -5
-            arrays.potential_energy[:] = 37
-            arrays.torque[:] = 23
+            arrays.force = -5
+            arrays.potential_energy = 37
+            arrays.torque = 23
             # cupy won't let me use two indices on arrays of length 0
             if len(arrays.virial) > 0:
                 for i in range(6):
@@ -77,7 +76,7 @@ def test_simulation(force_cls, simulation_factory, two_particle_snapshot_factory
                          couple="none")
     integrator = md.Integrator(dt=0.005, forces=[custom_force], methods=[nvt])
     sim.operations.integrator = integrator
-    exit_test = _try_running_sim(sim, 2)
+    exit_test = _try_running_sim(sim, 1)
     if exit_test:  # return if the sim can't be run
         return
 
@@ -91,7 +90,6 @@ def test_simulation(force_cls, simulation_factory, two_particle_snapshot_factory
         npt.assert_allclose(torque_arr, 23)
         for i in range(6):
             npt.assert_allclose(virial_arr[:, i], i)
-
 
 class MyPeriodicFieldCPU(md.force.Custom):
 

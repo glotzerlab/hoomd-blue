@@ -59,19 +59,19 @@ class _LocalAccess(ABC):
             return raw_attr, _hoomd.GhostDataFlag.standard
 
     def __setattr__(self, attr, value):
-        try:
+        if attr in self.__slots__:
             super().__setattr__(attr, value)
+            return
+        try:
+            arr = getattr(self, attr)
         except AttributeError:
-            try:
-                arr = getattr(self, attr)
-            except AttributeError:
-                raise AttributeError("{} object has no attribute {}.".format(
-                    self.__class__, attr))
-            else:
-                if arr.read_only:
-                    raise RuntimeError(
-                        "Attribute {} is not settable.".format(attr))
-                arr[:] = value
+            raise AttributeError("{} object has no attribute {}.".format(
+                self.__class__, attr))
+        else:
+            if arr.read_only:
+                raise RuntimeError(
+                    "Attribute {} is not settable.".format(attr))
+            arr[:] = value
 
     def _enter(self):
         self._cpp_obj.enter()
@@ -433,6 +433,7 @@ class ForceLocalAccessBase(_LocalAccess):
             ``force_data.rtag[0]`` represents the current index accessing data
             for the particle with tag 0.
     """
+    __slots__ = ('_entered', '_accessed_fields', '_cpp_obj', '_force_obj')
 
     @property
     @abstractmethod
