@@ -27,6 +27,7 @@ namespace md
 namespace kernel
     {
 //! Wraps arguments to gpu_cgbf
+template<int group_size>
 struct bond_args_t
     {
     //! Construct a bond_args_t
@@ -39,7 +40,7 @@ struct bond_args_t
                 const Scalar* _d_charge,
                 const Scalar* _d_diameter,
                 const BoxDim& _box,
-                const group_storage<2>* _d_gpu_bondlist,
+                const group_storage<group_size>* _d_gpu_bondlist,
                 const Index2D& _gpu_table_indexer,
                 const unsigned int* _d_gpu_n_bonds,
                 const unsigned int _n_bond_types,
@@ -58,12 +59,17 @@ struct bond_args_t
     const Scalar* d_charge;                 //!< particle charges
     const Scalar* d_diameter;               //!< particle diameters
     const BoxDim& box;                      //!< Simulation box in GPU format
-    const group_storage<2>* d_gpu_bondlist; //!< List of bonds stored on the GPU
+    const group_storage<group_size>* d_gpu_bondlist; //!< List of bonds stored on the GPU
     const Index2D& gpu_table_indexer;       //!< Indexer of 2D bond list
     const unsigned int* d_gpu_n_bonds;      //!< List of number of bonds stored on the GPU
     const unsigned int n_bond_types;        //!< Number of bond types in the simulation
     const unsigned int block_size;          //!< Block size to execute
     };
+
+typedef bond_args_t<2> bonds_args_t;
+
+
+typedef bond_args_t<4> meshbonds_args_t;
 
 #ifdef __HIPCC__
 
@@ -92,7 +98,7 @@ struct bond_args_t
    are not enabled. \tparam evaluator EvaluatorBond class to evaluate V(r) and -delta V(r)/r
 
 */
-template<class evaluator>
+template<class evaluator, int group_size>
 __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
                                                Scalar* d_virial,
                                                const size_t virial_pitch,
@@ -101,7 +107,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
                                                const Scalar* d_charge,
                                                const Scalar* d_diameter,
                                                const BoxDim box,
-                                               const group_storage<2>* blist,
+                                               const group_storage<group_size>* blist,
                                                const Index2D blist_idx,
                                                const unsigned int* n_bonds_list,
                                                const unsigned int n_bond_type,
@@ -243,8 +249,8 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
 
     This is just a driver function for gpu_compute_bond_forces_kernel(), see it for details.
 */
-template<class evaluator>
-hipError_t gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
+template<class evaluator, int group_size>
+hipError_t gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
                                    const typename evaluator::param_type* d_params,
                                    unsigned int* d_flags)
     {
@@ -269,7 +275,7 @@ hipError_t gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
     const size_t shared_bytes = sizeof(typename evaluator::param_type) * bond_args.n_bond_types;
 
     // run the kernel
-    hipLaunchKernelGGL(gpu_compute_bond_forces_kernel<evaluator>,
+    hipLaunchKernelGGL(gpu_compute_bond_forces_kernel<evaluator, group_size>,
                        grid,
                        threads,
                        shared_bytes,

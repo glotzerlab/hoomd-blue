@@ -32,8 +32,8 @@ namespace md
 
     \sa export_PotentialBondGPU()
 */
-template<class evaluator,
-         hipError_t gpu_cgbf(const kernel::bond_args_t& bond_args,
+template<class evaluator, class Bonds, int group_size,
+         hipError_t gpu_cgbf(const kernel::bond_args_t<group_size>& bond_args,
                              const typename evaluator::param_type* d_params,
                              unsigned int* d_flags)>
 class PotentialBondGPU : public PotentialBond<evaluator>
@@ -50,7 +50,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
     */
     virtual void setAutotunerParams(bool enable, unsigned int period)
         {
-        PotentialBond<evaluator>::setAutotunerParams(enable, period);
+        PotentialBond<evaluator,Bonds>::setAutotunerParams(enable, period);
         m_tuner->setPeriod(period);
         m_tuner->setEnabled(enable);
         }
@@ -63,12 +63,12 @@ class PotentialBondGPU : public PotentialBond<evaluator>
     virtual void computeForces(uint64_t timestep);
     };
 
-template<class evaluator,
-         hipError_t gpu_cgbf(const kernel::bond_args_t& bond_args,
+template<class evaluator, class Bonds, int group_size,
+         hipError_t gpu_cgbf(const kernel::bond_args_t<group_size>& bond_args,
                              const typename evaluator::param_type* d_params,
                              unsigned int* d_flags)>
-PotentialBondGPU<evaluator, gpu_cgbf>::PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef)
-    : PotentialBond<evaluator>(sysdef)
+PotentialBondGPU<evaluator, Bonds, group_size, gpu_cgbf>::PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef)
+    : PotentialBond<evaluator,Bonds>(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -97,11 +97,11 @@ PotentialBondGPU<evaluator, gpu_cgbf>::PotentialBondGPU(std::shared_ptr<SystemDe
         new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_bond", this->m_exec_conf));
     }
 
-template<class evaluator,
-         hipError_t gpu_cgbf(const kernel::bond_args_t& bond_args,
+template<class evaluator, class Bonds, int group_size,
+         hipError_t gpu_cgbf(const kernel::bond_args_t<group_size>& bond_args,
                              const typename evaluator::param_type* d_params,
                              unsigned int* d_flags)>
-void PotentialBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
+void PotentialBondGPU<evaluator, Bonds, group_size, gpu_cgbf>::computeForces(uint64_t timestep)
     {
     // start the profile
     if (this->m_prof)
@@ -133,11 +133,11 @@ void PotentialBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
 
         {
-        const GPUArray<typename BondData::members_t>& gpu_bond_list
+        const GPUArray<typename Bonds::members_t>& gpu_bond_list
             = this->m_bond_data->getGPUTable();
         const Index2D& gpu_table_indexer = this->m_bond_data->getGPUTableIndexer();
 
-        ArrayHandle<typename BondData::members_t> d_gpu_bondlist(gpu_bond_list,
+        ArrayHandle<typename Bonds::members_t> d_gpu_bondlist(gpu_bond_list,
                                                                  access_location::device,
                                                                  access_mode::read);
         ArrayHandle<unsigned int> d_gpu_n_bonds(this->m_bond_data->getNGroupsArray(),
@@ -148,7 +148,7 @@ void PotentialBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
         this->m_tuner->begin();
-        gpu_cgbf(kernel::bond_args_t(d_force.data,
+        gpu_cgbf(kernel::bond_args_t<group_size>(d_force.data,
                                      d_virial.data,
                                      this->m_virial.getPitch(),
                                      this->m_pdata->getN(),

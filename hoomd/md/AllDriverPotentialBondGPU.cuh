@@ -24,19 +24,19 @@ namespace kernel
     {
 //! Compute harmonic bond forces on the GPU with BondEvaluatorHarmonic
 hipError_t __attribute__((visibility("default")))
-gpu_compute_harmonic_forces(const bond_args_t& bond_args,
+gpu_compute_harmonic_forces(const bonds_args_t& bond_args,
                             const harmonic_params* d_params,
                             unsigned int* d_flags);
 
 //! Compute FENE bond forces on the GPU with BondEvaluatorFENE
 hipError_t __attribute__((visibility("default")))
-gpu_compute_fene_forces(const bond_args_t& bond_args,
+gpu_compute_fene_forces(const bonds_args_t& bond_args,
                         const fene_params* d_params,
                         unsigned int* d_flags);
 
 //! Compute Tether bond forces on the GPU with BondEvaluatorTether
 hipError_t __attribute__((visibility("default")))
-gpu_compute_tether_forces(const bond_args_t& bond_args,
+gpu_compute_tether_forces(const bonds_args_t& bond_args,
                           const tether_params* d_params,
                           unsigned int* d_flags);
 
