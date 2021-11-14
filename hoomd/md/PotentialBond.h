@@ -36,42 +36,41 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
     typedef typename evaluator::param_type param_type;
 
     //! Constructs the compute
-    //template <class T = Bonds,
-    //          typename std::enable_if<std::is_same<T, BondData>::value, int>::type = 0>
-    PotentialBond(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceCompute(sysdef)
-    	{
-    	m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">"
-    	                            << std::endl;
-    	assert(m_pdata);
+    // template <class T = Bonds,
+    //           typename std::enable_if<std::is_same<T, BondData>::value, int>::type = 0>
+    PotentialBond(std::shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef)
+        {
+        m_exec_conf->msg->notice(5)
+            << "Constructing PotentialBond<" << evaluator::getName() << ">" << std::endl;
+        assert(m_pdata);
 
-    	// access the bond data for later use
-    	m_bond_data = m_sysdef->getBondData();
-    	m_prof_name = std::string("Bond ") + evaluator::getName();
+        // access the bond data for later use
+        m_bond_data = m_sysdef->getBondData();
+        m_prof_name = std::string("Bond ") + evaluator::getName();
 
-    	// allocate the parameters
-    	GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
-    	m_params.swap(params);
-    	}
+        // allocate the parameters
+        GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
+        m_params.swap(params);
+        }
 
     //! Constructs the compute with external Bond data
-    //template <class T = Bonds,
-    //          typename std::enable_if<std::is_same<T, MeshBondData>::value, int>::type = 0>
+    // template <class T = Bonds,
+    //           typename std::enable_if<std::is_same<T, MeshBondData>::value, int>::type = 0>
     PotentialBond(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef)
-    	: ForceCompute(sysdef)
-    	{
-    	m_exec_conf->msg->notice(5) << "Constructing PotentialMeshBond<" << evaluator::getName() << ">"
-    	                            << std::endl;
-    	assert(m_pdata);
+        : ForceCompute(sysdef)
+        {
+        m_exec_conf->msg->notice(5)
+            << "Constructing PotentialMeshBond<" << evaluator::getName() << ">" << std::endl;
+        assert(m_pdata);
 
-    	// access the bond data for later use
-    	m_bond_data = meshdef->getMeshBondData();
-    	m_prof_name = std::string("MeshBond ") + evaluator::getName();
+        // access the bond data for later use
+        m_bond_data = meshdef->getMeshBondData();
+        m_prof_name = std::string("MeshBond ") + evaluator::getName();
 
-    	// allocate the parameters
-    	GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
-    	m_params.swap(params);
-	}
+        // allocate the parameters
+        GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
+        m_params.swap(params);
+        }
 
     //! Destructor
     virtual ~PotentialBond();
@@ -92,15 +91,15 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
 #endif
 
     protected:
-    GPUArray<param_type> m_params;         //!< Bond parameters per type
+    GPUArray<param_type> m_params;      //!< Bond parameters per type
     std::shared_ptr<Bonds> m_bond_data; //!< Bond data to use in computing bonds
-    std::string m_prof_name;               //!< Cached profiler name
+    std::string m_prof_name;            //!< Cached profiler name
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
 
-template<class evaluator, class Bonds> PotentialBond<evaluator,Bonds>::~PotentialBond()
+template<class evaluator, class Bonds> PotentialBond<evaluator, Bonds>::~PotentialBond()
     {
     m_exec_conf->msg->notice(5) << "Destroying PotentialBond<" << evaluator::getName() << ">"
                                 << std::endl;
@@ -112,7 +111,7 @@ template<class evaluator, class Bonds> PotentialBond<evaluator,Bonds>::~Potentia
     Sets the parameters for the potential of a particular bond type
 */
 template<class evaluator, class Bonds>
-void PotentialBond<evaluator,Bonds>::validateType(unsigned int type, std::string action)
+void PotentialBond<evaluator, Bonds>::validateType(unsigned int type, std::string action)
     {
     // make sure the type is valid
     if (type >= m_bond_data->getNTypes())
@@ -124,7 +123,7 @@ void PotentialBond<evaluator,Bonds>::validateType(unsigned int type, std::string
     }
 
 template<class evaluator, class Bonds>
-void PotentialBond<evaluator,Bonds>::setParams(unsigned int type, const param_type& param)
+void PotentialBond<evaluator, Bonds>::setParams(unsigned int type, const param_type& param)
     {
     // make sure the type is valid
     validateType(type, "setting params");
@@ -138,7 +137,7 @@ void PotentialBond<evaluator,Bonds>::setParams(unsigned int type, const param_ty
     Sets the parameters for the potential of a particular bond type
 */
 template<class evaluator, class Bonds>
-void PotentialBond<evaluator,Bonds>::setParamsPython(std::string type, pybind11::dict param)
+void PotentialBond<evaluator, Bonds>::setParamsPython(std::string type, pybind11::dict param)
     {
     auto itype = m_bond_data->getTypeByName(type);
     auto struct_param = param_type(param);
@@ -150,7 +149,8 @@ void PotentialBond<evaluator,Bonds>::setParamsPython(std::string type, pybind11:
 
     Sets the parameters for the potential of a particular bond type
 */
-template<class evaluator, class Bonds> pybind11::dict PotentialBond<evaluator,Bonds>::getParams(std::string type)
+template<class evaluator, class Bonds>
+pybind11::dict PotentialBond<evaluator, Bonds>::getParams(std::string type)
     {
     auto itype = m_bond_data->getTypeByName(type);
     validateType(itype, "getting params");
@@ -161,7 +161,8 @@ template<class evaluator, class Bonds> pybind11::dict PotentialBond<evaluator,Bo
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-template<class evaluator, class Bonds> void PotentialBond<evaluator,Bonds>::computeForces(uint64_t timestep)
+template<class evaluator, class Bonds>
+void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push(m_prof_name);
@@ -206,8 +207,8 @@ template<class evaluator, class Bonds> void PotentialBond<evaluator,Bonds>::comp
         bond_virial[i] = Scalar(0.0);
 
     ArrayHandle<typename Bonds::members_t> h_bonds(m_bond_data->getMembersArray(),
-                                                      access_location::host,
-                                                      access_mode::read);
+                                                   access_location::host,
+                                                   access_mode::read);
     ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(),
                                      access_location::host,
                                      access_mode::read);
@@ -338,7 +339,7 @@ template<class evaluator, class Bonds> void PotentialBond<evaluator,Bonds>::comp
 /*! \param timestep Current time step
  */
 template<class evaluator, class Bonds>
-CommFlags PotentialBond<evaluator,Bonds>::getRequestedCommFlags(uint64_t timestep)
+CommFlags PotentialBond<evaluator, Bonds>::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 

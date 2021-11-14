@@ -395,15 +395,15 @@ PYBIND11_MODULE(_md, m)
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>(m, "PotentialBondFENEGPU");
     export_PotentialBondGPU<PotentialBondTetherGPU, PotentialBondTether>(m,
                                                                          "PotentialBondTetherGPU");
-    //export_PotentialMeshBondGPU<PotentialMeshBondHarmonicGPU, PotentialMeshBondHarmonic>(
-    //    m,
-    //    "PotentialMeshBondHarmonicGPU");
-    //export_PotentialMeshBondGPU<PotentialMeshBondFENEGPU, PotentialMeshBondFENE>(
-    //    m,
-    //    "PotentialMeshBondFENEGPU");
-    //export_PotentialMeshBondGPU<PotentialMeshBondTetherGPU, PotentialMeshBondTether>(
-    //    m,
-    //    "PotentialMeshBondTetherGPU");
+    // export_PotentialMeshBondGPU<PotentialMeshBondHarmonicGPU, PotentialMeshBondHarmonic>(
+    //     m,
+    //     "PotentialMeshBondHarmonicGPU");
+    // export_PotentialMeshBondGPU<PotentialMeshBondFENEGPU, PotentialMeshBondFENE>(
+    //     m,
+    //     "PotentialMeshBondFENEGPU");
+    // export_PotentialMeshBondGPU<PotentialMeshBondTetherGPU, PotentialMeshBondTether>(
+    //     m,
+    //     "PotentialMeshBondTetherGPU");
     export_PotentialSpecialPairGPU<PotentialSpecialPairLJGPU, PotentialSpecialPairLJ>(
         m,
         "PotentialSpecialPairLJGPU");
