@@ -39,26 +39,26 @@ hipError_t gpu_compute_tether_forces(const bonds_args_t& bond_args,
     return gpu_compute_bond_forces<EvaluatorBondTether>(bond_args, d_params, d_flags);
     }
 
-hipError_t gpu_compute_harmonic_forces_mesh(const mesh_bond_args_t& mesh_bond_args,
-                                            const harmonic_params* d_params,
-                                            unsigned int* d_flags)
-    {
-    return gpu_compute_mesh_bond_forces<EvaluatorBondHarmonic>(mesh_bond_args, d_params, d_flags);
-    }
-
-hipError_t gpu_compute_fene_forces_mesh(const mesh_bond_args_t& mesh_bond_args,
-                                        const fene_params* d_params,
-                                        unsigned int* d_flags)
-    {
-    return gpu_compute_mesh_bond_forces<EvaluatorBondFENE>(mesh_bond_args, d_params, d_flags);
-    }
-
-hipError_t gpu_compute_tether_forces_mesh(const mesh_bond_args_t& mesh_bond_args,
-                                          const tether_params* d_params,
-                                          unsigned int* d_flags)
-    {
-    return gpu_compute_mesh_bond_forces<EvaluatorBondTether>(mesh_bond_args, d_params, d_flags);
-    }
+//hipError_t gpu_compute_harmonic_forces_mesh(const mesh_bond_args_t& mesh_bond_args,
+//                                            const harmonic_params* d_params,
+//                                            unsigned int* d_flags)
+//    {
+//    return gpu_compute_mesh_bond_forces<EvaluatorBondHarmonic>(mesh_bond_args, d_params, d_flags);
+//    }
+//
+//hipError_t gpu_compute_fene_forces_mesh(const mesh_bond_args_t& mesh_bond_args,
+//                                        const fene_params* d_params,
+//                                        unsigned int* d_flags)
+//    {
+//    return gpu_compute_mesh_bond_forces<EvaluatorBondFENE>(mesh_bond_args, d_params, d_flags);
+//    }
+//
+//hipError_t gpu_compute_tether_forces_mesh(const mesh_bond_args_t& mesh_bond_args,
+//                                          const tether_params* d_params,
+//                                          unsigned int* d_flags)
+//    {
+//    return gpu_compute_mesh_bond_forces<EvaluatorBondTether>(mesh_bond_args, d_params, d_flags);
+//    }
     } // end namespace kernel
     } // end namespace md
     } // end namespace hoomd

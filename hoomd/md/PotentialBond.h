@@ -3,6 +3,7 @@
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
+#include "hoomd/MeshDefinition.h"
 #include <memory>
 
 #include <vector>
@@ -35,11 +36,42 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
     typedef typename evaluator::param_type param_type;
 
     //! Constructs the compute
-    PotentialBond(std::shared_ptr<SystemDefinition> sysdef);
+    //template <class T = Bonds,
+    //          typename std::enable_if<std::is_same<T, BondData>::value, int>::type = 0>
+    PotentialBond(std::shared_ptr<SystemDefinition> sysdef)
+    : ForceCompute(sysdef)
+    	{
+    	m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">"
+    	                            << std::endl;
+    	assert(m_pdata);
+
+    	// access the bond data for later use
+    	m_bond_data = m_sysdef->getBondData();
+    	m_prof_name = std::string("Bond ") + evaluator::getName();
+
+    	// allocate the parameters
+    	GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
+    	m_params.swap(params);
+    	}
 
     //! Constructs the compute with external Bond data
-    PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<Bonds> meshbonds);
+    //template <class T = Bonds,
+    //          typename std::enable_if<std::is_same<T, MeshBondData>::value, int>::type = 0>
+    PotentialBond(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef)
+    	: ForceCompute(sysdef)
+    	{
+    	m_exec_conf->msg->notice(5) << "Constructing PotentialMeshBond<" << evaluator::getName() << ">"
+    	                            << std::endl;
+    	assert(m_pdata);
+
+    	// access the bond data for later use
+    	m_bond_data = meshdef->getMeshBondData();
+    	m_prof_name = std::string("MeshBond ") + evaluator::getName();
+
+    	// allocate the parameters
+    	GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
+    	m_params.swap(params);
+	}
 
     //! Destructor
     virtual ~PotentialBond();
@@ -67,25 +99,6 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
-
-/*! \param sysdef System to compute forces on
- */
-template<class evaluator, class Bonds>
-PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceCompute(sysdef)
-    {
-    m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">"
-                                << std::endl;
-    assert(m_pdata);
-
-    // access the bond data for later use
-    m_bond_data = m_sysdef->getBondData();
-    m_prof_name = std::string("Bond ") + evaluator::getName();
-
-    // allocate the parameters
-    GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
-    m_params.swap(params);
-    }
 
 template<class evaluator, class Bonds> PotentialBond<evaluator,Bonds>::~PotentialBond()
     {
@@ -353,6 +366,18 @@ template<class T> void export_PotentialBond(pybind11::module& m, const std::stri
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+        .def("setParams", &T::setParamsPython)
+        .def("getParams", &T::getParams);
+    }
+
+//! Exports the PotentialMeshBond class to python
+/*! \param name Name of the class in the exported python module
+    \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
+*/
+template<class T> void export_PotentialMeshBond(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams);
     }
