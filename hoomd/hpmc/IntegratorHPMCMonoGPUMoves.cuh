@@ -63,7 +63,7 @@ __global__ void hpmc_gen_moves(const Scalar4* d_postype,
     Scalar* s_d = (Scalar*)(s_params + num_types);
     Scalar* s_a = (Scalar*)(s_d + num_types);
 
-    // copy over parameters one int per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;

@@ -122,7 +122,7 @@ __launch_bounds__(max_threads)
     unsigned int* s_queue_gid = (unsigned int*)(s_queue_j + max_queue_size);
     unsigned int* s_queue_didx = (unsigned int*)(s_queue_gid + max_queue_size);
 
-    // copy over parameters one int per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -331,7 +331,8 @@ __launch_bounds__(max_threads)
 
             // advance depletant idx
             i_dep += group_size * n_groups * blocks_per_particle;
-            } // end while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants)
+            } // end while (s_depletant_queue_size < max_depletant_queue_size && i_dep <
+              // n_depletants)
 
         __syncthreads();
 
