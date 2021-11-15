@@ -66,9 +66,9 @@ template<typename value_type> struct PYBIND11_EXPORT ArrayView
     size_t size;
 
     ArrayView(value_type* data_,
-               const size_t buffer_size_,
-               const size_t size_,
-               const std::function<void(const ArrayView<value_type>*)> callback = nullptr)
+              const size_t buffer_size_,
+              const size_t size_,
+              const std::function<void(const ArrayView<value_type>*)> callback = nullptr)
         : data(data_), buffer_size(buffer_size_), size(size_), update_callback(callback)
         {
         }
@@ -213,10 +213,10 @@ template<typename value_type> struct PYBIND11_EXPORT ArrayView
 // Helper function to make ArrayView objects
 template<class value_type>
 ArrayView<value_type> make_ArrayView(value_type* data,
-                                       size_t buffer_size,
-                                       size_t size,
-                                       std::function<void(const ArrayView<value_type>*)> callback
-                                       = nullptr)
+                                     size_t buffer_size,
+                                     size_t size,
+                                     std::function<void(const ArrayView<value_type>*)> callback
+                                     = nullptr)
     {
     return ArrayView<value_type>(data, buffer_size, size, callback);
     }
