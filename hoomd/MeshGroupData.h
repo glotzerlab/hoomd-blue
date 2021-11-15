@@ -68,12 +68,12 @@ class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
 
     virtual ~MeshGroupData();
 
-    //! Initialize from a snapshot
-    // using MeshGroupData<group_size,Group,name,snap,bond>::initializeFromSnapshot;
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Woverloaded-virtual"
+//! Initialize from a snapshot
+// using MeshGroupData<group_size,Group,name,snap,bond>::initializeFromSnapshot;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Woverloaded-virtual"
     void initializeFromSnapshot(const TriangleData::Snapshot& snapshot);
-    #pragma clang diagnostic pop
+#pragma clang diagnostic pop
 
     //! Take a snapshot
     // using MeshGroupData<group_size,Group,name,snap,bond>>::takeSnapshot;
