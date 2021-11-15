@@ -109,6 +109,10 @@ class WallPotential(force.Force):
 
     .. image:: md-wall-potential.svg
 
+    When ``inside=False`` the potential becomes,
+
+    .. image:: md-wall-potential-outside.svg
+
     .. rubric: Extrapolated Mode:
 
     The wall potential can be linearly extrapolated beyond a minimum separation
