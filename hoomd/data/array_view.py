@@ -2,7 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Provides the Python analog and wrapper around array_view.h.
+"""Provides the Python analog and wrapper around the C++ class ArrayView.
 
 See hoomd/ArrayView.h for more information.
 """

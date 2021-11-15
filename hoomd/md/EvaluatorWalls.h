@@ -49,7 +49,7 @@ struct PY wall_type
 
     wall_type() : numSpheres(0), numCylinders(0), numPlanes(0) { }
 
-    // The following methods are to test the array_view<> templated class.
+    // The following methods are to test the ArrayView<> templated class.
 
     unsigned int getNumSpheres()
         {
