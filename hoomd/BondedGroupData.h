@@ -267,7 +267,7 @@ class BondedGroupData
     void initialize();
 
     //! Initialize from a snapshot
-    void initializeFromSnapshot(const Snapshot& snapshot);
+    virtual void initializeFromSnapshot(const Snapshot& snapshot);
 
     //! Take a snapshot
     std::map<unsigned int, unsigned int> takeSnapshot(Snapshot& snapshot) const;
