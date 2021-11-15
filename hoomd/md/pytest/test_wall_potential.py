@@ -85,6 +85,15 @@ def test_wall_setting(cls):
 
 
 def _params(r_cut=None, r_extrap=None):
+    """Generate compatible potential parameters for _potential_cls.
+
+    Sets a random ``r_cut`` and ``r_extrap`` if not specified.
+
+    Args:
+        r_cut (float, optional): Provide an explicit r_cut for all parameters.
+        r_extrap (float, optional): Provide an explicit r_extrap for all
+            parameters.
+    """
     base = (
         {
             "sigma": 1.0,
@@ -130,7 +139,7 @@ _params.rng = np.random.default_rng(26456)
 
 
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params()))
-def test_params(cls, params):
+def test_potential_params(cls, params):
     wall_pot = cls(WallGenerator.generate_n(2))
     wall_pot.params["A"] = params
     for attr in params:
@@ -155,6 +164,7 @@ def test_attaching(simulation, cls, params):
 
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
 def test_plane(simulation, cls, params):
+    """Test that particles stay in box slice defined by two plane walls."""
     wall_pot = cls([
         hoomd.wall.Plane(normal=(0, 0, -1), origin=(0, 0, 1)),
         hoomd.wall.Plane(normal=(0, 0, 1), origin=(0, 0, -1)),
@@ -170,6 +180,7 @@ def test_plane(simulation, cls, params):
 
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
 def test_sphere(simulation, cls, params):
+    """Test that particles stay within a sphere wall."""
     radius = 5
     wall_pot = cls(
         [hoomd.wall.Sphere(radius=radius, origin=(0, 0, 0), inside=True)])
@@ -184,6 +195,7 @@ def test_sphere(simulation, cls, params):
 
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
 def test_cylinder(simulation, cls, params):
+    """Test that particles stay within the pipe defined by a cylinder wall."""
     radius = 5
     wall_pot = cls([
         hoomd.wall.Cylinder(radius=radius,
@@ -202,6 +214,7 @@ def test_cylinder(simulation, cls, params):
 
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
 def test_outside(simulation, cls, params):
+    """Test that particles stay outside a sphere wall when inside=False."""
     radius = 5.0
     wall_pot = cls(
         [hoomd.wall.Sphere(radius=radius, origin=(0, 0, 0), inside=False)])
@@ -221,6 +234,7 @@ def test_outside(simulation, cls, params):
 
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 1.1)))
 def test_r_extrap(simulation, cls, params):
+    """Test a force is generated in the other half space with r_extrap set."""
     radius = 5.0
     wall_pot = cls(
         [hoomd.wall.Sphere(radius=radius, origin=(0, 0, 0), inside=False)])
