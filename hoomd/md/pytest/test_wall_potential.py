@@ -71,9 +71,8 @@ def test_construction(cls):
     assert len(wall_pot.walls) == 10
 
 
-@pytest.mark.parametrize("cls", _potential_cls)
-def test_wall_setting(cls):
-    wall_pot = cls()
+@pytest.mark.parametrize("wall_pot", (cls([]) for cls in _potential_cls))
+def test_wall_setting(wall_pot):
     walls = [w for w in WallGenerator.generate_n(10)]
     wall_pot.walls = walls
     assert all(a is b for a, b in zip(walls, wall_pot.walls))
