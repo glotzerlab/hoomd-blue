@@ -119,7 +119,49 @@ class Force(_HOOMDBaseObject):
 
 
 class Custom(Force):
-    """TODO, this docstring."""
+    """Custom forces implemented in python.
+
+    This class serves as a base class for all custom forces. A custom force
+    class should inherit from this class, and override a method named
+    `set_forces`. Custom forces have direct, zero-copy access to HOOMD-Blue's
+    underlying force buffers via either the `cpu_local_force_arrays` or
+    `gpu_local_force_arrays` property. Choose the property that corresponds to
+    the device you wish to alter the data on. In addition to zero-copy access to
+    force buffers, custom force classes have access to the local snapshot API
+    via the `_state.cpu_local_snapshot` or the `_state.gpu_local_snapshot`
+    property. See the documentation in `hoomd.state` for more information on
+    the local snapshot API.
+
+    When accessing the local force arrays, the `force`, `potential_energy`,
+    `torque`, and `virial` of any particle can be set to any value.
+
+    .. code-block:: python
+
+        class MyCustomForce(hoomd.force.Custom):
+            def __init__(self):
+                super().__init__()
+
+            def set_forces(self, timestep):
+                with self.cpu_local_force_arrays as arrays:
+                    arrays.force = -5
+                    arrays.torque = 3
+                    arrays.potential_energy = 27
+                    arrays.virial = np.arange(6)[None, :]
+
+    Note:
+        When accessing the local force arrays, always use a context manager.
+
+    Note:
+        The shape of the exposed arrays cannot change while in the context
+        manager.
+
+    Note:
+        All force data buffers are MPI rank local, so in simulations with MPI,
+        only the data for a single rank is available.
+
+    Note:
+        Access to the force buffers is constant (O(1)) time.
+    """
 
     def __init__(self):
         self._in_context_manager = False
@@ -133,7 +175,23 @@ class Custom(Force):
 
     @property
     def cpu_local_force_arrays(self):
-        """Access the local force buffers on host."""
+        """hoomd.data.LocalForceAccess: Expose force arrays on the CPU.
+
+        Provides direct access to the force, potential energy, torque, and
+        virial data of the particles in the system on the cpu through a context
+        manager. All data is MPI rank-local.
+
+        The `hoomd.data.LocalForceAccess` object returned by this property has
+        four arrays through which one can modify the force data:
+
+        .. code-block:: python
+
+            with self.cpu_local_force_arrays as arrays:
+                arrays.force = ...
+                arrays.potential_energy = ...
+                arrays.torque = ...
+                arrays.virial = ...
+        """
         if self._in_context_manager:
             raise RuntimeError("Cannot enter cpu_local_force_arrays context "
                                "manager inside another local_force_arrays "
@@ -142,7 +200,27 @@ class Custom(Force):
 
     @property
     def gpu_local_force_arrays(self):
-        """Access the local force buffers on device."""
+        """hoomd.data.LocalForceAccessGPU: Expose force arrays on the GPU.
+
+        Provides direct access to the force, potential energy, torque, and
+        virial data of the particles in the system on the gpu through a context
+        manager. All data is MPI rank-local.
+
+        The `hoomd.data.LocalForceAccessGPU` object returned by this property
+        has four arrays through which one can modify the force data:
+
+        .. code-block:: python
+
+            with self.gpu_local_force_arrays as arrays:
+                arrays.force = ...
+                arrays.potential_energy = ...
+                arrays.torque = ...
+                arrays.virial = ...
+
+        Note:
+            GPU local force data is not available if the chosen device for the
+            simulation is `hoomd.device.CPU`.
+        """
         if not isinstance(self._simulation.device, hoomd.device.GPU):
             raise RuntimeError(
                 "Cannot access gpu_local_force_arrays without a GPU device")

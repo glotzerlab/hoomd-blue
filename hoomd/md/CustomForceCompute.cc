@@ -28,7 +28,7 @@ CustomForceCompute::~CustomForceCompute()
     }
 
 
-/*! This function calls rearrangeForces() whenever the particles have been sorted
+/*! This function calls the python set_forces method.
     \param timestep Current timestep
 */
 void CustomForceCompute::computeForces(uint64_t timestep)
