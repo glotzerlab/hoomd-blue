@@ -175,9 +175,7 @@ class Plane(WallGeometry):
             The normal vector to the plane.
     """
 
-    def __init__(self,
-                 origin=(0.0, 0.0, 0.0),
-                 normal=(0.0, 0.0, 1.0)):
+    def __init__(self, origin=(0.0, 0.0, 0.0), normal=(0.0, 0.0, 1.0)):
         param_dict = ParameterDict(origin=(float, float, float),
                                    normal=(float, float, float))
         param_dict["origin"] = origin
