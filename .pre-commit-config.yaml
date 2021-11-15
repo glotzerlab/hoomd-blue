@@ -53,6 +53,7 @@ repos:
   rev: v13.0.0
   hooks:
   - id: clang-format
+    types_or: [c, c++, cuda, inc]
     exclude: |
       (?x)(
         ^CMake/|
