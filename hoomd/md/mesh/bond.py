@@ -73,13 +73,12 @@ class MeshBond(Force):
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self._mesh._cpp_obj)
 
-        self._apply_param_dict()
-        self._apply_typeparam_dict_with_mesh(self._cpp_obj, self.mesh)
+        super()._attach()
 
-    def _apply_typeparam_dict_with_mesh(self, cpp_obj, mesh):
+    def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
             try:
-                typeparam._attach_with_mesh(cpp_obj, mesh)
+                typeparam._attach(cpp_obj, self.mesh)
             except ValueError as err:
                 raise err.__class__(
                     f"For {type(self)} in TypeParameter {typeparam.name} "
