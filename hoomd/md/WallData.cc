@@ -67,7 +67,7 @@ void hoomd::md::export_wall_data(pybind11::module& m)
 
     pybind11::class_<hoomd::md::PlaneWall>(m, "PlaneWall")
         .def(pybind11::init(
-                 [](pybind11::tuple origin, pybind11::tuple normal, bool inside)
+                 [](pybind11::tuple origin, pybind11::tuple normal)
                  {
                      return hoomd::md::PlaneWall(
                          hoomd::make_scalar3(origin[0].cast<hoomd::Scalar>(),
@@ -75,12 +75,10 @@ void hoomd::md::export_wall_data(pybind11::module& m)
                                              origin[2].cast<hoomd::Scalar>()),
                          hoomd::make_scalar3(normal[0].cast<hoomd::Scalar>(),
                                              normal[1].cast<hoomd::Scalar>(),
-                                             normal[2].cast<hoomd::Scalar>()),
-                         inside);
+                                             normal[2].cast<hoomd::Scalar>()));
                  }),
              pybind11::arg("origin"),
-             pybind11::arg("normal"),
-             pybind11::arg("inside"))
+             pybind11::arg("normal"))
         .def_property_readonly(
             "origin",
             [](const hoomd::md::PlaneWall& wall)
@@ -88,7 +86,5 @@ void hoomd::md::export_wall_data(pybind11::module& m)
         .def_property_readonly(
             "normal",
             [](const hoomd::md::PlaneWall& wall)
-            { return pybind11::make_tuple(wall.normal.x, wall.normal.y, wall.normal.z); })
-        .def_property_readonly("inside",
-                               [](const hoomd::md::PlaneWall& wall) { return wall.inside; });
+            { return pybind11::make_tuple(wall.normal.x, wall.normal.y, wall.normal.z); });
     }

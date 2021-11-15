@@ -41,7 +41,7 @@ class WallGenerator:
             if vector_norm == 0:
                 assert "Generated invalid normal."
             normal /= vector_norm
-            return hoomd.wall.Plane(origin=origin, normal=normal, inside=inside)
+            return hoomd.wall.Plane(origin=origin, normal=normal)
 
     @classmethod
     def float(cls):
@@ -156,8 +156,8 @@ def test_attaching(simulation, cls, params):
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
 def test_plane(simulation, cls, params):
     wall_pot = cls([
-        hoomd.wall.Plane(normal=(0, 0, -1), origin=(0, 0, 1), inside=True),
-        hoomd.wall.Plane(normal=(0, 0, 1), origin=(0, 0, -1), inside=True),
+        hoomd.wall.Plane(normal=(0, 0, -1), origin=(0, 0, 1)),
+        hoomd.wall.Plane(normal=(0, 0, 1), origin=(0, 0, -1)),
     ])
     simulation.operations.integrator.forces.append(wall_pot)
     wall_pot.params["A"] = params

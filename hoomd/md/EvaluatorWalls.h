@@ -248,7 +248,7 @@ template<class evaluator> class EvaluatorWalls
         // convert type as little as possible
         vec3<Scalar> position = vec3<Scalar>(m_pos);
         vec3<Scalar> drv;
-        bool inside = false;        // keeps compiler from complaining
+        bool inside = false;
         if (m_params.rextrap > 0.0) // extrapolated mode
             {
             Scalar rextrapsq = m_params.rextrap * m_params.rextrap;
@@ -273,8 +273,8 @@ template<class evaluator> class EvaluatorWalls
                         {
                         drv *= 1 / r;
                         }
-                    r = (inside) ? m_params.rextrap - r : m_params.rextrap + r;
-                    drv *= (inside) ? r : -r;
+                    r = inside ? m_params.rextrap - r : m_params.rextrap + r;
+                    drv *= inside ? r : -r;
                     extrapEvaluator(F, energy, drv, rextrapsq, r);
                     }
                 }

@@ -100,14 +100,12 @@ struct __attribute__((visibility("default"))) CylinderWall
 //! PlaneWall Constructor
 /*! \param origin The x,y,z coordinates of a point on the cylinder axis
     \param normal The x,y,z normal vector of the plane (normalized upon input)
-    \param inside Determines which half space is evaluated.
 */
 struct __attribute__((visibility("default"))) PlaneWall
     {
     PlaneWall(Scalar3 orig = make_scalar3(0.0, 0.0, 0.0),
-              Scalar3 norm = make_scalar3(0.0, 0.0, 1.0),
-              bool ins = true)
-        : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig)), inside(ins)
+              Scalar3 norm = make_scalar3(0.0, 0.0, 1.0))
+        : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig))
         {
         vec3<Scalar> nVec;
         nVec = normal;
@@ -178,7 +176,7 @@ vecPtToWall(const PlaneWall& wall, const vec3<Scalar>& position, bool& inside)
     {
     vec3<Scalar> t = position;
     Scalar d = dot(wall.normal, t) - dot(wall.normal, wall.origin);
-    inside = (((d >= 0.0) && wall.inside) || ((d < 0.0) && !(wall.inside))) ? true : false;
+    inside = d >= 0.0 ? true : false;
     vec3<Scalar> dx = -d * wall.normal;
     return dx;
     };
@@ -214,10 +212,7 @@ DEVICE inline Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& posi
 //! or not
 DEVICE inline Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& position)
     {
-    vec3<Scalar> t = position;
-    Scalar d = dot(wall.normal, t) - dot(wall.normal, wall.origin);
-    d = (wall.inside) ? d : -d;
-    return d;
+    return dot(wall.normal, position) - dot(wall.normal, wall.origin);
     };
 
 #ifndef __HIPCC__

@@ -61,17 +61,14 @@ _test_args = (
             {
                 "origin": (1.0, 0, 0),
                 "normal": (1.0, 0.0, 0),
-                "inside": True
             },
             {
                 "origin": (0.0, 0.0, 0.0),
                 "normal": (0.0, 1.0, 0.0),
-                "inside": False
             },
             {
                 "origin": (-1.0, -2.0, 1.0),
                 "normal": (0.0, 0.0, 1.0),
-                "inside": False
             })))
 
 

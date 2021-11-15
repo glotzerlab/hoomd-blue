@@ -33,7 +33,7 @@ def _to_md_cpp_wall(wall):
         return _md.CylinderWall(wall.radius, wall.origin, wall.axis,
                                 wall.inside)
     if isinstance(wall, hoomd.wall.Plane):
-        return _md.PlaneWall(wall.origin, wall.normal, wall.inside)
+        return _md.PlaneWall(wall.origin, wall.normal)
     raise TypeError(f"Unknown wall type encountered {type(wall)}.")
 
 

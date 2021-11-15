@@ -155,6 +155,8 @@ class Cylinder(WallGeometry):
 class Plane(WallGeometry):
     """Define a Plane in 3D Euclidean space.
 
+    The normal points to the active half space.
+
     Note:
         `Plane` objects are immutable.
 
@@ -164,10 +166,6 @@ class Plane(WallGeometry):
             the plane.
         normal (`tuple` [`float`,`float`,`float`], optional):
             The normal vector to the plane.
-        inside (`bool`, optional):
-            Whether particles are restricted to the space inside or outside the
-            cylinder. Inside is the side of the plane the normal points to, and
-            outside constitutes the other side.
 
     Attributes:
         origin (`tuple` [`float`,`float`,`float`]):
@@ -175,22 +173,15 @@ class Plane(WallGeometry):
             the plane.
         normal (`tuple` [`float`,`float`,`float`]):
             The normal vector to the plane.
-        inside (bool):
-            Whether particles are restricted to the space inside or outside the
-            cylinder. Inside is the side of the plane the normal points to, and
-            outside constitutes the other side.
     """
 
     def __init__(self,
                  origin=(0.0, 0.0, 0.0),
-                 normal=(0.0, 0.0, 1.0),
-                 inside=True):
+                 normal=(0.0, 0.0, 1.0)):
         param_dict = ParameterDict(origin=(float, float, float),
-                                   normal=(float, float, float),
-                                   inside=bool)
+                                   normal=(float, float, float))
         param_dict["origin"] = origin
         param_dict["normal"] = normal
-        param_dict["inside"] = inside
         self._param_dict = param_dict
 
     def __str__(self):
@@ -199,15 +190,13 @@ class Plane(WallGeometry):
 
     def __repr__(self):
         """A string representation of the Plane."""
-        return f"Plane(origin={self.origin}, normal={self.normal}, "
-        f"inside={self.inside})"
+        return f"Plane(origin={self.origin}, normal={self.normal})"
 
     def to_dict(self):
         """Return a dictionary specifying the plane."""
         return {
             "origin": self.origin,
             "normal": self.axis,
-            "inside": self.inside
         }
 
 

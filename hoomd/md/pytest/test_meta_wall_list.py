@@ -31,7 +31,7 @@ class WallGenerator:
             if vector_norm == 0:
                 assert "Generated invalid normal."
             normal /= vector_norm
-            return hoomd.wall.Plane(origin=origin, normal=normal, inside=inside)
+            return hoomd.wall.Plane(origin=origin, normal=normal)
 
     @classmethod
     def float(cls):

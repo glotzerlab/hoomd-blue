@@ -30,11 +30,9 @@ def wall_type_lists(request):
                                                    (0.0, 1.0, 0.0), True),
                                   _md.CylinderWall(0.5, (1.0, 2.0, 3.0),
                                                    (3.0, 2.5, 3.0), True))),
-        "plane": ("plane", (_md.PlaneWall(
-            (1.0, 0.0, 0.0), (1.0, 0.0, 0.0),
-            False), _md.PlaneWall(
-                (0.0, 1.0, 0.0), (0.0, 1.0, 0.0),
-                True), _md.PlaneWall((1.0, 2.0, 3.0), (3.0, 2.5, 3.0), True)))
+        "plane": ("plane", (_md.PlaneWall((1.0, 0.0, 0.0), (1.0, 0.0, 0.0)),
+                            _md.PlaneWall((0.0, 1.0, 0.0), (0.0, 1.0, 0.0)),
+                            _md.PlaneWall((1.0, 2.0, 3.0), (3.0, 2.5, 3.0))))
     }[request.param]
 
 
@@ -47,7 +45,7 @@ def wall_equality(a, b):
     attrs = {
         "SphereWall": ("radius", "origin", "inside"),
         "CylinderWall": ("radius", "origin", "axis", "inside"),
-        "PlaneWall": ("origin", "normal", "inside")
+        "PlaneWall": ("origin", "normal")
     }[type(a).__name__]
     return all(
         np.allclose(getattr(a, attr), getattr(b, attr)) for attr in attrs)

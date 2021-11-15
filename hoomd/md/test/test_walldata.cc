@@ -231,7 +231,7 @@ UP_TEST(cylinder_wall_math)
 
 UP_TEST(plane_wall_math)
     {
-    PlaneWall Plane = PlaneWall(make_scalar3(4.1, 2.1, 8.7), make_scalar3(-1.1, -0.3, -5.0), true);
+    PlaneWall Plane = PlaneWall(make_scalar3(4.1, 2.1, 8.7), make_scalar3(-1.1, -0.3, -5.0));
     bool inside = true;
 
     // test inside
@@ -264,8 +264,7 @@ UP_TEST(plane_wall_math)
     MY_CHECK_SMALL(dx, tol_small);
     UP_ASSERT(inside == true);
 
-    PlaneWall invPlane
-        = PlaneWall(make_scalar3(4.1, 2.1, 8.7), make_scalar3(-1.1, -0.3, -5.0), false);
+    PlaneWall invPlane = PlaneWall(make_scalar3(4.1, 2.1, 8.7), make_scalar3(1.1, 0.3, 5.0));
 
     // test on surface
     x = vec3<Scalar>(4.1, 2.1, 8.7);
