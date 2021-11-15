@@ -23,10 +23,10 @@
 #undef DEVICE
 #ifdef __HIPCC__
 #define DEVICE __device__
-#define PY
+#define HOOMD_PYBIND11_EXPORT
 #else
 #define DEVICE
-#define PY PYBIND11_EXPORT
+#define HOOMD_PYBIND11_EXPORT PYBIND11_EXPORT
 #endif
 
 // sets the max numbers for each wall geometry type
@@ -38,7 +38,7 @@ namespace hoomd
     {
 namespace md
     {
-struct PY wall_type
+struct HOOMD_PYBIND11_EXPORT wall_type
     {
     unsigned int numSpheres; // these data types come first, since the structs are aligned already
     unsigned int numCylinders;
@@ -393,3 +393,5 @@ void export_wall_field(pybind11::module& m);
 #endif
     } // end namespace md
     } // end namespace hoomd
+
+#undef HOOMD_PYBIND11_EXPORT
