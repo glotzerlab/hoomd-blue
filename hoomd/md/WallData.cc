@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "WallData.h"
-#include "hoomd/ArrayView.h"
 // Export all wall data types into Python. This is needed to allow for syncing Python and C++
 // list/array data structures containing walls for WallPotential objects.
 void hoomd::md::export_wall_data(pybind11::module& m)
