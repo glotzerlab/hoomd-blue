@@ -83,7 +83,7 @@ class EvaluatorExternalPeriodic
 #endif
         } __attribute__((aligned(16)));
 
-    typedef Scalar field_type; // dummy type
+    typedef void* field_type; // dummy type
 
     //! Constructs the constraint evaluator
     /*! \param X position of particle

@@ -28,6 +28,9 @@ namespace md
     {
 //! Applys an external force to particles based on position
 /*! \ingroup computes
+ *
+ * Note: A field_type of void* for the evaluator template type indicates that no field_type actually
+ * exists. Some type is needed for code to compile.
  */
 template<class evaluator> class PotentialExternal : public ForceCompute
     {
@@ -229,7 +232,8 @@ template<class T> void export_PotentialExternal(pybind11::module& m, const std::
                    .def("setParams", &T::setParamsPython)
                    .def("getParams", &T::getParams);
 
-    if constexpr (!std::is_same<typename T::field_type, Scalar>::value)
+    // void* serves as a sentinel type indicating that no field_type actually exists.
+    if constexpr (!std::is_same<typename T::field_type, void*>::value)
         {
         cls.def_property("field", &T::getField, &T::setField);
         }

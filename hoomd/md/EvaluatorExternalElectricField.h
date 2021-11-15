@@ -69,7 +69,7 @@ class EvaluatorExternalElectricField
 #endif // ifndef __HIPCC__
         } __attribute__((aligned(16)));
 
-    typedef Scalar field_type;
+    typedef void* field_type;
 
     //! Constructs the constraint evaluator
     /*! \param X position of particle
