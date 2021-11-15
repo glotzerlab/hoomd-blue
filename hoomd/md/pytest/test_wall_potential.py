@@ -56,7 +56,6 @@ class WallGenerator:
 _potential_cls = (
     md.external.wall.LJ,
     md.external.wall.Gauss,
-    md.external.wall.SLJ,
     md.external.wall.Yukawa,
     md.external.wall.Morse,
     md.external.wall.ForceShiftedLJ,
@@ -94,11 +93,6 @@ def _params(r_cut=None, r_extrap=None):
         {
             "sigma": 1.0,
             "epsilon": 5.5
-        },
-        {
-            "sigma": 1.0,
-            "epsilon": 1.0,
-            "delta": 0.1
         },
         {
             "kappa": 1.0,

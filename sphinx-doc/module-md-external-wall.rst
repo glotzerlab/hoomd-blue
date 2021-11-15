@@ -11,7 +11,6 @@ md.external.wall
     ForceShiftedLJ
     Gauss
     LJ
-    SLJ
     Mie
     Morse
     Yukawa
@@ -24,7 +23,6 @@ md.external.wall
     :members: ForceShiftedLJ,
         Gauss,
         LJ,
-        SLJ,
         Mie,
         Morse,
         Yukawa,
