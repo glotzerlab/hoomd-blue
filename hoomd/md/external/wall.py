@@ -103,6 +103,12 @@ class WallPotential(force.Force):
                  = & 0 & r \le 0
         \end{eqnarray*}
 
+    Below we show the potential for a `hoomd.wall.Sphere` with radius 5 in 2D,
+    using the Gaussian potential with :math:`\epsilon=1, \sigma=1` and
+    ``inside=True``.
+
+    .. image:: md-wall-potential.svg
+
     .. rubric: Extrapolated Mode:
 
     The wall potential can be linearly extrapolated beyond a minimum separation
@@ -150,12 +156,18 @@ class WallPotential(force.Force):
 
     In other words, if :math:`r_{\rm extrap}` is chosen so that the pair force
     would point into the active half-space, the extrapolated potential will push
-    all particles into the active half-space. See `LJ` for a pictorial example.
+    all particles into the active half-space. Below is an examle of
+    extrapolation with ``r_extrap=1.1`` for a LJ potential with
+    :math:`\epsilon=1, \sigma=1`.
+
+    .. image:: md-wall-extrapolate.svg
+
 
     To use extrapolated mode ``r_extrap`` must be set per particle type.
 
     .. attention::
-        Walls are fixed in space and do not adjust with the box size. For example, NPT simulations may not behave as expected.
+        Walls are fixed in space and do not adjust with the box size. For
+        example, NPT simulations may not behave as expected.
 
     Note:
         - The virial due to walls is computed, but the pressure and reported by
@@ -239,10 +251,6 @@ class LJ(WallPotential):
         lj.params[['A','B']] = {"epsilon": 2.0, "sigma": 1.0, "r_cut": 2.8}
         # set to extrapolated mode
         lj.params["A"] = {"r_extrap": 1.1}
-
-    V(r) plot:
-
-    .. image:: wall_extrap.png
 
     .. py:attribute:: params
 
