@@ -60,7 +60,7 @@ class WallPotential(force.Force):
         potentials.
 
     All wall potential commands specify that a given potential energy and
-    potential be computed on all particles in the system within a cutoff
+    force be computed on all particles in the system within a cutoff
     distance, :math:`r_{\mathrm{cut}}`, from each wall.
     The force :math:`\vec{F}` is in the direction of :math:`\vec{r}`, the vector
     pointing from the particle to the wall or half-space boundary and
