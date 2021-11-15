@@ -39,7 +39,8 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
     PotentialBond(std::shared_ptr<SystemDefinition> sysdef);
 
     //! Constructs the compute with external Bond data
-    PotentialBond(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef);
+    PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
+                  std::shared_ptr<MeshDefinition> meshdef);
 
     //! Destructor
     virtual ~PotentialBond();
@@ -68,11 +69,12 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
-template<class evaluator, class Bonds> PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef)
-    :ForceCompute(sysdef)
+template<class evaluator, class Bonds>
+PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef)
+    : ForceCompute(sysdef)
     {
-    m_exec_conf->msg->notice(5)
-        << "Constructing PotentialBond<" << evaluator::getName() << ">" << std::endl;
+    m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">"
+                                << std::endl;
     assert(m_pdata);
 
     // access the bond data for later use
@@ -84,21 +86,23 @@ template<class evaluator, class Bonds> PotentialBond<evaluator, Bonds>::Potentia
     m_params.swap(params);
     }
 
-template<class evaluator, class Bonds> PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef)
-        : ForceCompute(sysdef)
-        {
-        m_exec_conf->msg->notice(5)
-            << "Constructing PotentialMeshBond<" << evaluator::getName() << ">" << std::endl;
-        assert(m_pdata);
+template<class evaluator, class Bonds>
+PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
+                                               std::shared_ptr<MeshDefinition> meshdef)
+    : ForceCompute(sysdef)
+    {
+    m_exec_conf->msg->notice(5) << "Constructing PotentialMeshBond<" << evaluator::getName() << ">"
+                                << std::endl;
+    assert(m_pdata);
 
-        // access the bond data for later use
-        m_bond_data = meshdef->getMeshBondData();
-        m_prof_name = std::string("MeshBond ") + evaluator::getName();
+    // access the bond data for later use
+    m_bond_data = meshdef->getMeshBondData();
+    m_prof_name = std::string("MeshBond ") + evaluator::getName();
 
-        // allocate the parameters
-        GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
-        m_params.swap(params);
-        }
+    // allocate the parameters
+    GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
+    m_params.swap(params);
+    }
 
 template<class evaluator, class Bonds> PotentialBond<evaluator, Bonds>::~PotentialBond()
     {

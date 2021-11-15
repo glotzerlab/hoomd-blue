@@ -38,14 +38,14 @@ template<class evaluator,
          hipError_t gpu_cgbf(const kernel::bonds_args_t<group_size>& bond_args,
                              const typename evaluator::param_type* d_params,
                              unsigned int* d_flags)>
-class PotentialBondGPU : public PotentialBond<evaluator,Bonds>
+class PotentialBondGPU : public PotentialBond<evaluator, Bonds>
     {
     public:
     //! Construct the bond potential
     PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef);
     //! Construct the mesh_bond potential
     PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<MeshDefinition> meshdef);
+                     std::shared_ptr<MeshDefinition> meshdef);
     //! Destructor
     virtual ~PotentialBondGPU() { }
 
@@ -105,7 +105,6 @@ PotentialBondGPU<evaluator, Bonds, group_size, gpu_cgbf>::PotentialBondGPU(
         new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_bond", this->m_exec_conf));
     }
 
-
 template<class evaluator,
          class Bonds,
          int group_size,
@@ -115,7 +114,7 @@ template<class evaluator,
 PotentialBondGPU<evaluator, Bonds, group_size, gpu_cgbf>::PotentialBondGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef)
-    : PotentialBond<evaluator,Bonds>(sysdef, meshdef)
+    : PotentialBond<evaluator, Bonds>(sysdef, meshdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -140,15 +139,9 @@ PotentialBondGPU<evaluator, Bonds, group_size, gpu_cgbf>::PotentialBondGPU(
     h_flags.data[0] = 0;
 
     unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(new Autotuner(warp_size,
-                                1024,
-                                warp_size,
-                                5,
-                                100000,
-                                "harmonic_bond",
-                                this->m_exec_conf));
+    m_tuner.reset(
+        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_bond", this->m_exec_conf));
     }
-
 
 template<class evaluator,
          class Bonds,
@@ -203,19 +196,19 @@ void PotentialBondGPU<evaluator, Bonds, group_size, gpu_cgbf>::computeForces(uin
 
         this->m_tuner->begin();
         gpu_cgbf(kernel::bonds_args_t<group_size>(d_force.data,
-                                                 d_virial.data,
-                                                 this->m_virial.getPitch(),
-                                                 this->m_pdata->getN(),
-                                                 this->m_pdata->getMaxN(),
-                                                 d_pos.data,
-                                                 d_charge.data,
-                                                 d_diameter.data,
-                                                 box,
-                                                 d_gpu_bondlist.data,
-                                                 gpu_table_indexer,
-                                                 d_gpu_n_bonds.data,
-                                                 this->m_bond_data->getNTypes(),
-                                                 this->m_tuner->getParam()),
+                                                  d_virial.data,
+                                                  this->m_virial.getPitch(),
+                                                  this->m_pdata->getN(),
+                                                  this->m_pdata->getMaxN(),
+                                                  d_pos.data,
+                                                  d_charge.data,
+                                                  d_diameter.data,
+                                                  box,
+                                                  d_gpu_bondlist.data,
+                                                  gpu_table_indexer,
+                                                  d_gpu_n_bonds.data,
+                                                  this->m_bond_data->getNTypes(),
+                                                  this->m_tuner->getParam()),
                  d_params.data,
                  d_flags.data);
         }
