@@ -28,5 +28,5 @@ void gpu_update_mesh_table(const unsigned int n_groups,
                            unsigned int* d_scratch_idx,
                            unsigned int* d_offsets,
                            CachedAllocator& alloc);
-    }      // end namespace hoomd
+    }  // end namespace hoomd
 #endif // __MESH_GROUP_DATA_CUH__
