@@ -10,6 +10,7 @@
 #include "hoomd/TextureTools.h"
 
 #include "hoomd/BondedGroupData.cuh"
+#include "hoomd/MeshGroupData.cuh"
 
 #include <assert.h>
 
@@ -28,10 +29,10 @@ namespace kernel
     {
 //! Wraps arguments to gpu_cgbf
 template<int group_size>
-struct bond_args_t
+struct bonds_args_t
     {
     //! Construct a bond_args_t
-    bond_args_t(Scalar4* _d_force,
+    bonds_args_t(Scalar4* _d_force,
                 Scalar* _d_virial,
                 const size_t _virial_pitch,
                 const unsigned int _N,
@@ -66,10 +67,10 @@ struct bond_args_t
     const unsigned int block_size;          //!< Block size to execute
     };
 
-typedef bond_args_t<2> bonds_args_t;
+typedef bonds_args_t<2> bond_args_t;
 
 
-typedef bond_args_t<4> meshbonds_args_t;
+typedef bonds_args_t<4> meshbond_args_t;
 
 #ifdef __HIPCC__
 
@@ -169,7 +170,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     // loop over neighbors
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
-        group_storage<2> cur_bond = blist[blist_idx(idx, bond_idx)];
+        group_storage<group_size> cur_bond = blist[blist_idx(idx, bond_idx)];
 
         int cur_bond_idx = cur_bond.idx[0];
         int cur_bond_type = cur_bond.idx[1];
@@ -250,7 +251,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     This is just a driver function for gpu_compute_bond_forces_kernel(), see it for details.
 */
 template<class evaluator, int group_size>
-hipError_t gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
+hipError_t gpu_compute_bond_forces(const kernel::bonds_args_t<group_size>& bond_args,
                                    const typename evaluator::param_type* d_params,
                                    unsigned int* d_flags)
     {
@@ -263,7 +264,7 @@ hipError_t gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_a
     unsigned int max_block_size;
     hipFuncAttributes attr;
     hipFuncGetAttributes(&attr,
-                         reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator>));
+                         reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator,group_size>));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(bond_args.block_size, max_block_size);
@@ -275,7 +276,7 @@ hipError_t gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_a
     const size_t shared_bytes = sizeof(typename evaluator::param_type) * bond_args.n_bond_types;
 
     // run the kernel
-    hipLaunchKernelGGL(gpu_compute_bond_forces_kernel<evaluator, group_size>,
+    hipLaunchKernelGGL((gpu_compute_bond_forces_kernel<evaluator,group_size>),
                        grid,
                        threads,
                        shared_bytes,

@@ -35,14 +35,17 @@ namespace md
 template<class evaluator,
          class Bonds,
          int group_size,
-         hipError_t gpu_cgbf(const kernel::bond_args_t<group_size>& bond_args,
+         hipError_t gpu_cgbf(const kernel::bonds_args_t<group_size>& bond_args,
                              const typename evaluator::param_type* d_params,
                              unsigned int* d_flags)>
-class PotentialBondGPU : public PotentialBond<evaluator>
+class PotentialBondGPU : public PotentialBond<evaluator,Bonds>
     {
     public:
     //! Construct the bond potential
     PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef);
+    //! Construct the mesh_bond potential
+    PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<MeshDefinition> meshdef);
     //! Destructor
     virtual ~PotentialBondGPU() { }
 
@@ -68,7 +71,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
 template<class evaluator,
          class Bonds,
          int group_size,
-         hipError_t gpu_cgbf(const kernel::bond_args_t<group_size>& bond_args,
+         hipError_t gpu_cgbf(const kernel::bonds_args_t<group_size>& bond_args,
                              const typename evaluator::param_type* d_params,
                              unsigned int* d_flags)>
 PotentialBondGPU<evaluator, Bonds, group_size, gpu_cgbf>::PotentialBondGPU(
@@ -102,10 +105,55 @@ PotentialBondGPU<evaluator, Bonds, group_size, gpu_cgbf>::PotentialBondGPU(
         new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_bond", this->m_exec_conf));
     }
 
+
 template<class evaluator,
          class Bonds,
          int group_size,
-         hipError_t gpu_cgbf(const kernel::bond_args_t<group_size>& bond_args,
+         hipError_t gpu_cgbf(const kernel::bonds_args_t<group_size>& bond_args,
+                             const typename evaluator::param_type* d_params,
+                             unsigned int* d_flags)>
+PotentialBondGPU<evaluator, Bonds, group_size, gpu_cgbf>::PotentialBondGPU(
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<MeshDefinition> meshdef)
+    : PotentialBond<evaluator,Bonds>(sysdef, meshdef)
+    {
+    // can't run on the GPU if there aren't any GPUs in the execution configuration
+    if (!this->m_exec_conf->isCUDAEnabled())
+        {
+        this->m_exec_conf->msg->error()
+            << "Creating a PotentialMeshBondGPU with no GPU in the execution configuration"
+            << std::endl;
+        throw std::runtime_error("Error initializing PotentialMeshBondGPU");
+        }
+
+    // allocate and zero device memory
+    GPUArray<typename evaluator::param_type> params(this->m_bond_data->getNTypes(),
+                                                    this->m_exec_conf);
+    this->m_params.swap(params);
+
+    // allocate flags storage on the GPU
+    GPUArray<unsigned int> flags(1, this->m_exec_conf);
+    m_flags.swap(flags);
+
+    // reset flags
+    ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
+    h_flags.data[0] = 0;
+
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size,
+                                1024,
+                                warp_size,
+                                5,
+                                100000,
+                                "harmonic_bond",
+                                this->m_exec_conf));
+    }
+
+
+template<class evaluator,
+         class Bonds,
+         int group_size,
+         hipError_t gpu_cgbf(const kernel::bonds_args_t<group_size>& bond_args,
                              const typename evaluator::param_type* d_params,
                              unsigned int* d_flags)>
 void PotentialBondGPU<evaluator, Bonds, group_size, gpu_cgbf>::computeForces(uint64_t timestep)
@@ -154,7 +202,7 @@ void PotentialBondGPU<evaluator, Bonds, group_size, gpu_cgbf>::computeForces(uin
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
         this->m_tuner->begin();
-        gpu_cgbf(kernel::bond_args_t<group_size>(d_force.data,
+        gpu_cgbf(kernel::bonds_args_t<group_size>(d_force.data,
                                                  d_virial.data,
                                                  this->m_virial.getPitch(),
                                                  this->m_pdata->getN(),
@@ -207,6 +255,13 @@ void export_PotentialBondGPU(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+    }
+
+template<class T, class Base>
+void export_PotentialMeshBondGPU(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>());
     }
 
     } // end namespace detail

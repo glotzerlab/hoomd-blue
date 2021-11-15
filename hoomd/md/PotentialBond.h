@@ -36,41 +36,10 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
     typedef typename evaluator::param_type param_type;
 
     //! Constructs the compute
-    // template <class T = Bonds,
-    //           typename std::enable_if<std::is_same<T, BondData>::value, int>::type = 0>
-    PotentialBond(std::shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef)
-        {
-        m_exec_conf->msg->notice(5)
-            << "Constructing PotentialBond<" << evaluator::getName() << ">" << std::endl;
-        assert(m_pdata);
-
-        // access the bond data for later use
-        m_bond_data = m_sysdef->getBondData();
-        m_prof_name = std::string("Bond ") + evaluator::getName();
-
-        // allocate the parameters
-        GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
-        m_params.swap(params);
-        }
+    PotentialBond(std::shared_ptr<SystemDefinition> sysdef);
 
     //! Constructs the compute with external Bond data
-    // template <class T = Bonds,
-    //           typename std::enable_if<std::is_same<T, MeshBondData>::value, int>::type = 0>
-    PotentialBond(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef)
-        : ForceCompute(sysdef)
-        {
-        m_exec_conf->msg->notice(5)
-            << "Constructing PotentialMeshBond<" << evaluator::getName() << ">" << std::endl;
-        assert(m_pdata);
-
-        // access the bond data for later use
-        m_bond_data = meshdef->getMeshBondData();
-        m_prof_name = std::string("MeshBond ") + evaluator::getName();
-
-        // allocate the parameters
-        GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
-        m_params.swap(params);
-        }
+    PotentialBond(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef);
 
     //! Destructor
     virtual ~PotentialBond();
@@ -98,6 +67,38 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
+
+template<class evaluator, class Bonds> PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef)
+    :ForceCompute(sysdef)
+    {
+    m_exec_conf->msg->notice(5)
+        << "Constructing PotentialBond<" << evaluator::getName() << ">" << std::endl;
+    assert(m_pdata);
+
+    // access the bond data for later use
+    m_bond_data = m_sysdef->getBondData();
+    m_prof_name = std::string("Bond ") + evaluator::getName();
+
+    // allocate the parameters
+    GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
+    m_params.swap(params);
+    }
+
+template<class evaluator, class Bonds> PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef)
+        : ForceCompute(sysdef)
+        {
+        m_exec_conf->msg->notice(5)
+            << "Constructing PotentialMeshBond<" << evaluator::getName() << ">" << std::endl;
+        assert(m_pdata);
+
+        // access the bond data for later use
+        m_bond_data = meshdef->getMeshBondData();
+        m_prof_name = std::string("MeshBond ") + evaluator::getName();
+
+        // allocate the parameters
+        GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
+        m_params.swap(params);
+        }
 
 template<class evaluator, class Bonds> PotentialBond<evaluator, Bonds>::~PotentialBond()
     {
