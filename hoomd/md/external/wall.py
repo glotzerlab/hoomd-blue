@@ -174,10 +174,10 @@ class WallPotential(force.Force):
           It is therefore up to the user to use walls in a physically meaningful
           manner. This includes the geometry of the walls, their interactions,
           and as noted here their location.
-        - When :math:`r_{\mathrm{cut}} \le 0` or is set to False the particle
+        - When :math:`r_{\mathrm{cut}} \le 0` or is set to ``False`` the particle
           type wall interaction is excluded.
         - While wall potentials are based on the same potential energy
-          calculations as pair potentials, Features of pair potentials such as
+          calculations as pair potentials, features of pair potentials such as
           specified neighborlists, and alternative force shifting modes are not
           supported.
     """
@@ -289,7 +289,7 @@ class Gauss(WallPotential):
 
     Wall force evaluated using the Gaussian potential.  See
     `hoomd.md.pair.Gauss` for force details and base parameters and
-    `WallPotential` for generalized wall potential implementation
+    `WallPotential` for generalized wall potential implementation.
 
     Example::
 
@@ -348,7 +348,7 @@ class Yukawa(WallPotential):
 
     Wall force evaluated using the Yukawa potential.  See `hoomd.md.pair.Yukawa`
     for force details and base parameters and `WallPotential` for generalized
-    wall potential implementation
+    wall potential implementation.
 
     Example::
 
@@ -409,7 +409,7 @@ class Morse(WallPotential):
 
     Wall force evaluated using the Morse potential.  See
     :py:class:`hoomd.md.pair.Morse` for force details and base parameters and
-    :py:class:`WallPotential` for generalized wall potential implementation
+    :py:class:`WallPotential` for generalized wall potential implementation.
 
     Example::
 
@@ -532,7 +532,7 @@ class Mie(WallPotential):
 
     Wall force evaluated using the Mie potential.  See `hoomd.md.pair.Mie` for
     force details and base parameters and `WallPotential` for generalized wall
-    potential implementation
+    potential implementation.
 
     Example::
 
