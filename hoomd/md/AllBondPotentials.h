@@ -56,14 +56,17 @@ typedef PotentialBondGPU<EvaluatorBondTether, BondData, 2, kernel::gpu_compute_t
     PotentialBondTetherGPU;
 
 //! Mesh Bond potential force compute for harmonic forces on the GPU
-typedef PotentialBondGPU<EvaluatorBondHarmonic, MeshBondData, 4, kernel::gpu_compute_harmonic_forces>
+typedef PotentialBondGPU<EvaluatorBondHarmonic,
+                         MeshBondData,
+                         4,
+                         kernel::gpu_compute_harmonic_forces>
     PotentialMeshBondHarmonicGPU;
 //! Mesh Bond potential force compute for FENE forces on the GPU
 typedef PotentialBondGPU<EvaluatorBondFENE, MeshBondData, 4, kernel::gpu_compute_fene_forces>
-     PotentialMeshBondFENEGPU;
+    PotentialMeshBondFENEGPU;
 //! Mesh Bond potential force compute for Tethering forces on the GPU
 typedef PotentialBondGPU<EvaluatorBondTether, MeshBondData, 4, kernel::gpu_compute_tether_forces>
-     PotentialMeshBondTetherGPU;
+    PotentialMeshBondTetherGPU;
 #endif
 
     } // end namespace md
