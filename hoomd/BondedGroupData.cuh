@@ -19,14 +19,14 @@ namespace hoomd
 //! Sentinel value
 const unsigned int GROUP_NOT_LOCAL = 0xffffffff;
 
-//! Storage for group members (GPU declaration)
-template<unsigned int group_size> union group_storage {
+    //! Storage for group members (GPU declaration)
+    template<unsigned int group_size> union group_storage {
     unsigned int tag[group_size]; // access 'tags'
     unsigned int idx[group_size]; // access 'indices'
     };
 
-//! A union to allow storing a Scalar constraint value or a type integer (GPU declaration)
-union typeval_union {
+    //! A union to allow storing a Scalar constraint value or a type integer (GPU declaration)
+    union typeval_union {
     unsigned int type;
     Scalar val;
     };
@@ -71,5 +71,5 @@ void gpu_update_group_table(const unsigned int n_groups,
                             bool has_type_mapping,
                             CachedAllocator& alloc);
 
-    }      // end namespace hoomd
+    }  // end namespace hoomd
 #endif // __BONDED_GROUP_DATA_CUH__
