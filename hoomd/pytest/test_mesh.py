@@ -43,8 +43,6 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
 
     assert mesh.size == 0
     assert len(mesh.triangles) == 0
-    assert len(mesh.types) == 0
-    assert len(mesh.typeid) == 0
     with pytest.raises(DataAccessError):
         mesh.bonds == 0
 
@@ -53,8 +51,6 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
 
     assert mesh.size == 0
     assert len(mesh.triangles) == 0
-    assert len(mesh.types) == 0
-    assert len(mesh.typeid) == 0
     assert len(mesh.bonds) == 0
 
 
@@ -62,15 +58,11 @@ def test_mesh_setter():
     mesh = Mesh()
 
     mesh.size = 2
-    mesh.types = ["A"]
     mesh.triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
-    mesh.typeid = numpy.array([0, 0])
 
     assert mesh.size == 2
-    assert numpy.array_equal(mesh.types, ["A"])
     assert numpy.array_equal(mesh.triangles, numpy.array([[0, 1, 2], [1, 2,
                                                                       3]]))
-    assert numpy.array_equal(mesh.typeid, numpy.array([0, 0]))
 
 
 def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
@@ -80,15 +72,11 @@ def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
     mesh._add(sim)
     mesh._attach()
     mesh.size = 2
-    mesh.types = ["A"]
     mesh.triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
-    mesh.typeid = numpy.array([0, 0])
 
     assert mesh.size == 2
-    assert numpy.array_equal(mesh.types, ["A"])
     assert numpy.array_equal(mesh.triangles, numpy.array([[0, 1, 2], [1, 2,
                                                                       3]]))
-    assert numpy.array_equal(mesh.typeid, numpy.array([0, 0]))
     assert numpy.array_equal(
         mesh.bonds, numpy.array([[0, 1], [1, 2], [2, 0], [2, 3], [3, 1]]))
 
@@ -97,12 +85,10 @@ def test_auto_detach_simulation(simulation_factory, mesh_snapshot_factory):
     sim = simulation_factory(mesh_snapshot_factory(d=0.969, L=5))
     mesh = Mesh()
     mesh.size = 2
-    mesh.types = ['meshbond']
-    mesh.typeid = [0, 0]
     mesh.triangles = [[0, 1, 2], [0, 2, 3]]
 
     harmonic = hoomd.md.mesh.bond.Harmonic(mesh)
-    harmonic.params['meshbond'] = dict(k=1, r0=1)
+    harmonic.parameter = dict(k=1, r0=1)
 
     harmonic_2 = cp.deepcopy(harmonic)
     harmonic_2.mesh = mesh

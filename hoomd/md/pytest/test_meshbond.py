@@ -106,11 +106,11 @@ def triplet_snapshot_factory(device):
 def test_before_attaching(mesh_bond_cls, potential_kwargs):
     mesh = hoomd.mesh.Mesh()
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params['meshbond'] = potential_kwargs
+    mesh_bond_potential.parameter = potential_kwargs
 
     assert mesh is mesh_bond_potential.mesh
     for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.params['meshbond'][key],
+        np.testing.assert_allclose(mesh_bond_potential.parameter[key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
@@ -128,12 +128,10 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
 
     mesh = hoomd.mesh.Mesh()
     mesh.size = 1
-    mesh.types = ['meshbond']
-    mesh.typeid = [0]
     mesh.triangles = [[0, 1, 2]]
 
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params['meshbond'] = potential_kwargs
+    mesh_bond_potential.parameter = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -147,7 +145,7 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
 
     sim.run(0)
     for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.params['meshbond'][key],
+        np.testing.assert_allclose(mesh_bond_potential.parameter[key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
@@ -163,12 +161,10 @@ def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
 
     mesh = hoomd.mesh.Mesh()
     mesh.size = 1
-    mesh.types = ['meshbond']
-    mesh.typeid = [0]
     mesh.triangles = [[0, 1, 2]]
 
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params['meshbond'] = potential_kwargs
+    mesh_bond_potential.parameter = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
