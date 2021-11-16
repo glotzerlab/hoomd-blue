@@ -43,23 +43,23 @@ namespace hoomd
     {
 namespace detail
     {
-//! Computes warp-level reduction using shuffle instructions
-/*!
- * Reduction operations are performed at the warp or sub-warp level using shuffle instructions. The
- * sub-warp is defined as a consecutive group of threads that is (1) smaller than the hardware warp
- * size (32 threads) and (2) a power of 2. For additional details about any operator, refer to the
- * CUB documentation.
- *
- * This class is a thin wrapper around cub::WarpReduce. The CUB scan classes nominally request
- * "temporary" memory, which is shared memory for non-shuffle scans. However, the shuffle-based scan
- * does not use any shared memory, and so this temporary variable is put unused into a register. The
- * compiler can then optimize this out. We explicitly ensure that the storage type is an empty date
- * type.
- *
- * \tparam T data type to scan
- * \tparam LOGICAL_WARP_THREADS number of threads in a "logical" warp, must be a multiple of 2.
- * \tparam PTX_ARCH PTX architecture to build for, must be at least 300 (Kepler).
- */
+    //! Computes warp-level reduction using shuffle instructions
+    /*!
+     * Reduction operations are performed at the warp or sub-warp level using shuffle instructions.
+     * The sub-warp is defined as a consecutive group of threads that is (1) smaller than the
+     * hardware warp size (32 threads) and (2) a power of 2. For additional details about any
+     * operator, refer to the CUB documentation.
+     *
+     * This class is a thin wrapper around cub::WarpReduce. The CUB scan classes nominally request
+     * "temporary" memory, which is shared memory for non-shuffle scans. However, the shuffle-based
+     * scan does not use any shared memory, and so this temporary variable is put unused into a
+     * register. The compiler can then optimize this out. We explicitly ensure that the storage type
+     * is an empty date type.
+     *
+     * \tparam T data type to scan
+     * \tparam LOGICAL_WARP_THREADS number of threads in a "logical" warp, must be a multiple of 2.
+     * \tparam PTX_ARCH PTX architecture to build for, must be at least 300 (Kepler).
+     */
 
 #ifdef __HIP_PLATFORM_HCC__
 template<typename T, int LOGICAL_WARP_THREADS = HIPCUB_WARP_THREADS, int PTX_ARCH = HIPCUB_ARCH>
