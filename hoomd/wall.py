@@ -90,6 +90,9 @@ class Sphere(WallGeometry):
 class Cylinder(WallGeometry):
     """Define a cylinder in 3D Euclidean space.
 
+    Cylinder's in HOOMD span the simulation box in the direction given by the
+    ``axis`` attribute.
+
     Note:
         `Cylinder` objects are immutable.
 
