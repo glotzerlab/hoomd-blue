@@ -254,8 +254,7 @@ class Custom(Force):
         """Set the forces in the simulation loop.
 
         Args:
-            timestep (int):
-                The current timestep in the simulation.
+            timestep (int): The current timestep in the simulation.
         """
         pass
 

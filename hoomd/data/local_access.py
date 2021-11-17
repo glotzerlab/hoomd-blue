@@ -69,8 +69,7 @@ class _LocalAccess(ABC):
                 self.__class__, attr))
         else:
             if arr.read_only:
-                raise RuntimeError(
-                    "Attribute {} is not settable.".format(attr))
+                raise RuntimeError("Attribute {} is not settable.".format(attr))
             arr[:] = value
 
     def _enter(self):
@@ -426,7 +425,7 @@ class ForceLocalAccessBase(_LocalAccess):
             Local potential energy data. :math:`[\\mathrm{energy}]`
         torque ((N_particles, 3) `hoomd.data.array` of ``float``):
             Local torque data. :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`
-        virial ((N_particles,) `hoomd.data.array` of ``float``):
+        virial ((N_particles, 6) `hoomd.data.array` of ``float``):
             Local virial data. :math:`[\\mathrm{energy}]`
         rtag ((N_particles_global) `hoomd.data.array` of ``int``):
             The reverse tag of a particle. This means that the value

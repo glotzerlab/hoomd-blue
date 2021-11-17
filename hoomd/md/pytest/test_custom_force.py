@@ -5,7 +5,7 @@ import numpy.testing as npt
 try:
     import cupy
     CUPY_IMPORTED = True
-except:
+except ImportError:
     CUPY_IMPORTED = False
 
 import hoomd
@@ -42,22 +42,23 @@ class MyForceGPU(md.force.Custom):
 
 
 def _skip_if_cupy_not_imported_and_gpu_device(sim):
-    """force classes cant set values if cupy isn't installed."""
+    """Force classes cant set values if cupy isn't installed."""
     gpu_device = isinstance(sim.device, hoomd.device.GPU)
     if gpu_device and not CUPY_IMPORTED:
         pytest.skip("Cannot run this test on GPU without cupy")
 
 
 def _using_gpu_with_cpu_device(force_cls, sim):
-    """sims should throw an error if this returns true."""
+    """Sims should throw an error if this returns true."""
     gpu_class = force_cls.__name__.endswith("GPU")
     cpu_device = isinstance(sim.device, hoomd.device.CPU)
     return cpu_device and gpu_class
 
 
 def _try_running_sim(sim, tsteps):
-    """run the sim while checking that the error is raised."""
-    should_error = _using_gpu_with_cpu_device(sim.operations.integrator.forces[0].__class__, sim)
+    """Run the sim while checking that the error is raised."""
+    should_error = _using_gpu_with_cpu_device(
+        sim.operations.integrator.forces[0].__class__, sim)
     if should_error:
         with pytest.raises(RuntimeError):
             sim.run(tsteps)
@@ -66,13 +67,19 @@ def _try_running_sim(sim, tsteps):
     return should_error
 
 
-@pytest.mark.parametrize("force_cls", [MyForceCPU, MyForceGPU], ids=lambda x: x.__name__)
-def test_simulation(force_cls, simulation_factory, two_particle_snapshot_factory):
+@pytest.mark.parametrize("force_cls", [MyForceCPU, MyForceGPU],
+                         ids=lambda x: x.__name__)
+def test_simulation(force_cls, simulation_factory,
+                    two_particle_snapshot_factory):
     """Make sure custom force can plug into simulation without crashing."""
     snap = two_particle_snapshot_factory()
     sim = simulation_factory(snap)
     custom_force = force_cls()
-    nvt = md.methods.NPT(hoomd.filter.All(), kT=1, tau=1, S=1, tauS=1,
+    nvt = md.methods.NPT(hoomd.filter.All(),
+                         kT=1,
+                         tau=1,
+                         S=1,
+                         tauS=1,
                          couple="none")
     integrator = md.Integrator(dt=0.005, forces=[custom_force], methods=[nvt])
     sim.operations.integrator = integrator
@@ -123,11 +130,13 @@ class MyPeriodicFieldCPU(md.force.Custom):
         b2 = 2 * np.pi / V * np.cross(a3, a1)
         b3 = 2 * np.pi / V * np.cross(a1, a2)
         b = {0: b1, 1: b2, 2: b3}.get(self._i)
-        energies = self._A * np.tanh(
-            1 / (2 * np.pi * self._p * self._w) * np.cos(self._p * np.dot(positions, b)))
-        forces = self._A / (2 * np.pi * self._w) * np.sin(self._p * np.dot(positions, b))
+        energies = self._A * np.tanh(1 / (2 * np.pi * self._p * self._w)
+                                     * np.cos(self._p * np.dot(positions, b)))
+        forces = self._A / (2 * np.pi * self._w) * np.sin(
+            self._p * np.dot(positions, b))
         forces *= 1 - (np.tanh(
-            np.cos(self._p * np.dot(positions, b)) / (2 * np.pi * self._p * self._w)))**2
+            np.cos(self._p * np.dot(positions, b)) /
+            (2 * np.pi * self._p * self._w)))**2
         forces = np.outer(forces, b)
         return forces, energies
 
@@ -152,9 +161,10 @@ class MyPeriodicFieldGPU(MyPeriodicFieldCPU):
             arrays.potential_energy[:] = cupy.array(potential)
 
 
-
-@pytest.mark.parametrize("force_cls", [MyPeriodicFieldCPU, MyPeriodicFieldGPU], ids=lambda x: x.__name__)
-def test_compare_to_periodic(force_cls, simulation_factory, two_particle_snapshot_factory):
+@pytest.mark.parametrize("force_cls", [MyPeriodicFieldCPU, MyPeriodicFieldGPU],
+                         ids=lambda x: x.__name__)
+def test_compare_to_periodic(force_cls, simulation_factory,
+                             two_particle_snapshot_factory):
     """Test hoomd external periodic compared to a python version."""
     # sim with built-in force field
     snap = two_particle_snapshot_factory()
@@ -167,7 +177,7 @@ def test_compare_to_periodic(force_cls, simulation_factory, two_particle_snapsho
 
     # sim with custom but equivalent force field
     snap2 = two_particle_snapshot_factory()
-    sim2 = simulation_factory(snap)
+    sim2 = simulation_factory(snap2)
     _skip_if_cupy_not_imported_and_gpu_device(sim2)
     periodic2 = force_cls(A=1, i=0, p=1, w=1)
     nvt2 = md.methods.NVT(hoomd.filter.All(), kT=1, tau=1)
@@ -217,8 +227,8 @@ class NestedForceCPU(md.force.Custom):
         super().__init__()
 
     def set_forces(self, timestep):
-        with self.cpu_local_force_arrays as arrays:
-            with self.cpu_local_force_arrays as arrays2:
+        with self.cpu_local_force_arrays:
+            with self.cpu_local_force_arrays:
                 return
 
 
@@ -228,17 +238,23 @@ class NestedForceGPU(md.force.Custom):
         super().__init__()
 
     def set_forces(self, timestep):
-        with self.gpu_local_force_arrays as arrays:
-            with self.gpu_local_force_arrays as arrays2:
+        with self.gpu_local_force_arrays:
+            with self.gpu_local_force_arrays:
                 return
 
 
-@pytest.mark.parametrize("force_cls", [NestedForceCPU, NestedForceGPU], ids=lambda x: x.__name__)
-def test_nested_context_managers(force_cls, two_particle_snapshot_factory, simulation_factory):
+@pytest.mark.parametrize("force_cls", [NestedForceCPU, NestedForceGPU],
+                         ids=lambda x: x.__name__)
+def test_nested_context_managers(force_cls, two_particle_snapshot_factory,
+                                 simulation_factory):
     snap = two_particle_snapshot_factory()
     sim = simulation_factory(snap)
     custom_force = force_cls()
-    nvt = md.methods.NPT(hoomd.filter.All(), kT=1, tau=1, S=1, tauS=1,
+    nvt = md.methods.NPT(hoomd.filter.All(),
+                         kT=1,
+                         tau=1,
+                         S=1,
+                         tauS=1,
                          couple="none")
     integrator = md.Integrator(dt=0.005, forces=[custom_force], methods=[nvt])
     sim.operations.integrator = integrator
@@ -280,8 +296,11 @@ class GhostForceAccessGPU(GhostForceAccessCPU):
             self._check_buffer_lengths(arrays)
 
 
-@pytest.mark.parametrize("force_cls", [GhostForceAccessCPU, GhostForceAccessGPU], ids=lambda x: x.__name__)
-def test_ghost_data_access(force_cls, two_particle_snapshot_factory, simulation_factory):
+@pytest.mark.parametrize("force_cls",
+                         [GhostForceAccessCPU, GhostForceAccessGPU],
+                         ids=lambda x: x.__name__)
+def test_ghost_data_access(force_cls, two_particle_snapshot_factory,
+                           simulation_factory):
     snap = two_particle_snapshot_factory()
 
     # split simulation so there is 1 particle in rank
@@ -292,8 +311,14 @@ def test_ghost_data_access(force_cls, two_particle_snapshot_factory, simulation_
     nlist = md.nlist.Cell()
     lj_force = md.pair.LJ(nlist, default_r_cut=2.0)
     lj_force.params[('A', 'A')] = dict(sigma=1, epsilon=1)
-    nvt = md.methods.NPT(hoomd.filter.All(), kT=1, tau=1, S=1, tauS=1,
+    nvt = md.methods.NPT(hoomd.filter.All(),
+                         kT=1,
+                         tau=1,
+                         S=1,
+                         tauS=1,
                          couple="none")
-    integrator = md.Integrator(dt=0.005, forces=[custom_force, lj_force], methods=[nvt])
+    integrator = md.Integrator(dt=0.005,
+                               forces=[custom_force, lj_force],
+                               methods=[nvt])
     sim.operations.integrator = integrator
     _try_running_sim(sim, 2)
