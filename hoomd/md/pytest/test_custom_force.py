@@ -130,13 +130,12 @@ class MyPeriodicFieldCPU(md.force.Custom):
         b2 = 2 * np.pi / V * np.cross(a3, a1)
         b3 = 2 * np.pi / V * np.cross(a1, a2)
         b = {0: b1, 1: b2, 2: b3}.get(self._i)
-        energies = self._A * np.tanh(1 / (2 * np.pi * self._p * self._w)
-                                     * np.cos(self._p * np.dot(positions, b)))
-        forces = self._A / (2 * np.pi * self._w) * np.sin(
-            self._p * np.dot(positions, b))
-        forces *= 1 - (np.tanh(
-            np.cos(self._p * np.dot(positions, b)) /
-            (2 * np.pi * self._p * self._w)))**2
+        dot = np.dot(positions, b)
+        cos_term = 1 / (2 * np.pi * self._p * self._w) * np.cos(self._p * dot)
+        sin_term = 1 / (2 * np.pi * self._p * self._w) * np.sin(self._p * dot)
+        energies = self._A * np.tanh(cos_term)
+        forces = self._A * sin_term
+        forces *= 1 - np.tanh(cos_term)**2
         forces = np.outer(forces, b)
         return forces, energies
 
