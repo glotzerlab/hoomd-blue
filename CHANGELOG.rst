@@ -4,6 +4,19 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.11 (2021-11-19)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- Support Python 3.10.
+- Support clang 13.
+
+*Changed*
+
+- [developers] Place all all HOOMD C++ classes in the ``hoomd`` and nested namespaces.
+- [developers] Use official pre-commit clang-format repository.
+
 v3.0.0-beta.10 (2021-10-25)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
