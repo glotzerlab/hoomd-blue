@@ -4,9 +4,9 @@
 // Maintainer: joaander
 
 #include "Compute.h"
+#include "GlobalArray.h"
 #include "Index1D.h"
 #include "ParticleGroup.h"
-#include "GlobalArray.h"
 
 #ifdef ENABLE_HIP
 #include "ParticleData.cuh"
