@@ -21,6 +21,10 @@
 #ifndef __CUSTOMFORCECOMPUTE_H__
 #define __CUSTOMFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Adds a custom force
 /*! \ingroup computes
  */
@@ -28,7 +32,7 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
     {
     public:
     //! Constructs the compute
-    CustomForceCompute(std::shared_ptr<SystemDefinition> sysdef);
+    CustomForceCompute(std::shared_ptr<hoomd::SystemDefinition> sysdef);
 
     //! Destructor
     ~CustomForceCompute();
@@ -153,6 +157,8 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
     };
 
 
+namespace detail
+    {
 //! Exports the CustomForceComputeClass to python
 void export_CustomForceCompute(pybind11::module& m);
 
@@ -169,5 +175,9 @@ template<class Output> void export_LocalForceComputeData(pybind11::module& m, st
         .def("enter", &LocalForceComputeData<Output>::enter)
         .def("exit", &LocalForceComputeData<Output>::exit);
     };
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

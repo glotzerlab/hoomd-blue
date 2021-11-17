@@ -14,6 +14,10 @@ using namespace std;
     \brief Contains code for the CustomForceCompute class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
 CustomForceCompute::CustomForceCompute(std::shared_ptr<SystemDefinition> sysdef)
@@ -40,6 +44,8 @@ void CustomForceCompute::computeForces(uint64_t timestep)
         }
     }
 
+namespace detail
+    {
 void export_CustomForceCompute(py::module& m)
     {
     py::class_<CustomForceCompute, ForceCompute, std::shared_ptr<CustomForceCompute>>(
@@ -48,3 +54,7 @@ void export_CustomForceCompute(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>>())
         .def("setCallback", &CustomForceCompute::setCallback);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
