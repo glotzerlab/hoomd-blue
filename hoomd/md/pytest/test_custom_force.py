@@ -22,8 +22,8 @@ class MyForceCPU(md.force.Custom):
             arrays.force = -5
             arrays.potential_energy = 37
             arrays.torque = 23
-            for i in range(6):
-                arrays.virial[:, i] = i
+            arrays.virial = np.arange(6)[None, :]
+
 
 class MyForceGPU(md.force.Custom):
 
@@ -90,6 +90,7 @@ def test_simulation(force_cls, simulation_factory, two_particle_snapshot_factory
         npt.assert_allclose(torque_arr, 23)
         for i in range(6):
             npt.assert_allclose(virial_arr[:, i], i)
+
 
 class MyPeriodicFieldCPU(md.force.Custom):
 
@@ -255,11 +256,18 @@ class GhostForceAccessCPU(md.force.Custom):
             self._array_buffers.append(buffer + '_with_ghost')
             self._array_buffers.append('ghost_' + buffer)
 
+    def _check_buffer_lengths(self, arrays):
+        """Ensure the lengths of the accessed buffers are right."""
+        for buffer_name in self._array_buffers:
+            buffer = getattr(arrays, buffer_name)
+            if buffer_name.endswith('_with_ghost'):
+                assert len(buffer) == 2
+            else:
+                assert len(buffer) == 1
+
     def set_forces(self, timestep):
-        with self._state.cpu_local_snapshot as snap, \
-                self.cpu_local_force_arrays as arrays:
-            for buffer_name in self._array_buffers:
-                buffer = getattr(arrays, buffer_name)
+        with self.cpu_local_force_arrays as arrays:
+            self._check_buffer_lengths(arrays)
 
 
 class GhostForceAccessGPU(GhostForceAccessCPU):
@@ -268,19 +276,24 @@ class GhostForceAccessGPU(GhostForceAccessCPU):
         super().__init__()
 
     def set_forces(self, timestep):
-        with self._state.gpu_local_snapshot as snap, \
-                self.gpu_local_force_arrays as arrays:
-            for buffer_name in self._array_buffers:
-                buffer = getattr(arrays, buffer_name)
+        with self.gpu_local_force_arrays as arrays:
+            self._check_buffer_lengths(arrays)
 
 
 @pytest.mark.parametrize("force_cls", [GhostForceAccessCPU, GhostForceAccessGPU], ids=lambda x: x.__name__)
 def test_ghost_data_access(force_cls, two_particle_snapshot_factory, simulation_factory):
     snap = two_particle_snapshot_factory()
-    sim = simulation_factory(snap)
+
+    # split simulation so there is 1 particle in rank
+    sim = simulation_factory(snap, (2, 1, 1))
     custom_force = force_cls()
+
+    # make LJ force so there is a ghost width on each rank
+    nlist = md.nlist.Cell()
+    lj_force = md.pair.LJ(nlist, default_r_cut=2.0)
+    lj_force.params[('A', 'A')] = dict(sigma=1, epsilon=1)
     nvt = md.methods.NPT(hoomd.filter.All(), kT=1, tau=1, S=1, tauS=1,
                          couple="none")
-    integrator = md.Integrator(dt=0.005, forces=[custom_force], methods=[nvt])
+    integrator = md.Integrator(dt=0.005, forces=[custom_force, lj_force], methods=[nvt])
     sim.operations.integrator = integrator
     _try_running_sim(sim, 2)
