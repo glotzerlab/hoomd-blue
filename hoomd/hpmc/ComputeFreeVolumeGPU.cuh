@@ -19,6 +19,8 @@
 #include "hoomd/TextureTools.h"
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -202,7 +204,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     unsigned int ntyppairs = overlap_idx.getNumElements();
     unsigned int* s_overlap = (unsigned int*)(&s_check_overlaps[ntyppairs]);
 
-    // copy over parameters one int per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -445,5 +447,7 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
     }; // end namespace detail
 
     } // end namespace hpmc
+
+    } // end namespace hoomd
 
 #endif // _COMPUTE_FREE_VOLUME_CUH_

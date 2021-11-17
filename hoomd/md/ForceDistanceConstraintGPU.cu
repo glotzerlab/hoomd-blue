@@ -11,6 +11,12 @@
     \brief Defines GPU kernel code for pairwise distance constraints on the GPU
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel to fill the matrix for the linear constraint equation
 __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                                               unsigned int nptl_local,
@@ -418,3 +424,7 @@ hipError_t gpu_compute_constraint_forces(const Scalar4* d_pos,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

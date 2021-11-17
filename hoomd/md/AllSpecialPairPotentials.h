@@ -23,6 +23,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Special pair potential force compute for LJ forces
 typedef PotentialSpecialPair<EvaluatorSpecialPairLJ> PotentialSpecialPairLJ;
 //! Special pair potential force compute for Coulomb forces
@@ -30,11 +34,14 @@ typedef PotentialSpecialPair<EvaluatorSpecialPairCoulomb> PotentialSpecialPairCo
 
 #ifdef ENABLE_HIP
 //! Special potential force compute for LJ forces on the GPU
-typedef PotentialSpecialPairGPU<EvaluatorSpecialPairLJ, gpu_compute_lj_forces>
+typedef PotentialSpecialPairGPU<EvaluatorSpecialPairLJ, kernel::gpu_compute_lj_forces>
     PotentialSpecialPairLJGPU;
 //! Special potential force compute for Coulomb forces on the GPU
-typedef PotentialSpecialPairGPU<EvaluatorSpecialPairCoulomb, gpu_compute_coulomb_forces>
+typedef PotentialSpecialPairGPU<EvaluatorSpecialPairCoulomb, kernel::gpu_compute_coulomb_forces>
     PotentialSpecialPairCoulombGPU;
 #endif
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __SPECIAL_PAIR_POTENTIALS_H__

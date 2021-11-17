@@ -24,6 +24,8 @@
     @{
 */
 
+namespace hoomd
+    {
 /////////////////////////////// vec3 ///////////////////////////////////
 
 //! 3 element vector
@@ -1191,5 +1193,7 @@ template<class Vec> DEVICE inline Vec project(const Vec& a, const Vec& b)
 /*! @}*/
 
 #undef DEVICE
+
+    } // end namespace hoomd
 
 #endif //__VECTOR_MATH_H__

@@ -35,6 +35,12 @@
 #include "PotentialPairDPDThermoGPU.cuh"
 #include "PotentialPairGPU.cuh"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
 gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
@@ -148,4 +154,9 @@ gpu_compute_table_forces(const pair_args_t& pair_args,
 //! Compute oscillating pair potential forces on the GPU with EvaluatorPairOPP
 hipError_t __attribute__((visibility("default")))
 gpu_compute_twf_forces(const pair_args_t& pair_args, const EvaluatorPairTWF::param_type* d_params);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif

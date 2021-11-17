@@ -8,6 +8,8 @@
 #include <type_traits>
 #include <utility>
 
+namespace hoomd
+    {
 /// Base class for buffers for LocalDataAccess template class type checking.
 /** In addition, this class allows for a uniform way of specifying a CPU(Host)
  *  or GPU(Device) buffer.  HOOMDBuffer classes need to implement a templated
@@ -355,6 +357,8 @@ template<class Output, class Data> class LocalDataAccess
     bool m_in_manager;
     };
 
+namespace detail
+    {
 void export_HOOMDHostBuffer(pybind11::module& m);
 
 void export_GhostDataFlag(pybind11::module& m);
@@ -362,5 +366,9 @@ void export_GhostDataFlag(pybind11::module& m);
 #if ENABLE_HIP
 void export_HOOMDDeviceBuffer(pybind11::module& m);
 #endif
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

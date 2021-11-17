@@ -29,6 +29,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the LJ-12-8 pair potential
 /*! <b>General Overview</b>
 
@@ -96,9 +100,9 @@ class EvaluatorPairLJ1208
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -189,5 +193,8 @@ class EvaluatorPairLJ1208
     Scalar lj1;    //!< lj1 parameter extracted from the params passed to the constructor
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_LJ1208_H__

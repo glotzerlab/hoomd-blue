@@ -10,6 +10,12 @@
 #include "EvaluatorSquareDensity.h"
 #include "EvaluatorTersoff.h"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
                                       const EvaluatorTersoff::param_type* d_params)
     {
@@ -27,3 +33,7 @@ hipError_t gpu_compute_revcross_forces(const tersoff_args_t& pair_args,
     {
     return gpu_compute_triplet_forces<EvaluatorRevCross>(pair_args, d_params);
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

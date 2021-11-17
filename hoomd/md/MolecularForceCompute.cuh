@@ -16,6 +16,12 @@
 const unsigned int NO_MOLECULE = (unsigned int)0xffffffff;
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t __attribute__((visibility("default")))
 gpu_sort_by_molecule(unsigned int nptl,
                      const unsigned int* d_tag,
@@ -49,5 +55,9 @@ gpu_fill_molecule_table(unsigned int nptl,
                         unsigned int* d_molecule_order,
                         unsigned int block_size,
                         CachedAllocator& alloc);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

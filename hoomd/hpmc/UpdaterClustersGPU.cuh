@@ -30,6 +30,8 @@
 #define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -744,6 +746,6 @@ void transform_particles(const clusters_transform_args_t& args,
 
     } // end namespace gpu
     } // end namespace hpmc
-
+    } // end namespace hoomd
 #undef MAX_BLOCK_SIZE
 #undef MIN_BLOCK_SIZE

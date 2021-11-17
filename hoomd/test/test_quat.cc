@@ -4,10 +4,6 @@
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
-#include "upp11_config.h"
-
-HOOMD_UP_MAIN();
-
 #include <iostream>
 
 #include <math.h>
@@ -16,6 +12,12 @@ HOOMD_UP_MAIN();
 #include <pybind11/pybind11.h>
 
 #include "hoomd/VectorMath.h"
+
+#include "upp11_config.h"
+
+HOOMD_UP_MAIN();
+
+using namespace hoomd;
 
 UP_TEST(construction)
     {

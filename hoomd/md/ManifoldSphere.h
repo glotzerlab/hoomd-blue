@@ -23,6 +23,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for constructing the Sphere surface
 /*! <b>General Overview</b>
 
@@ -117,7 +121,13 @@ class ManifoldSphere
     Scalar R_sq;
     };
 
+namespace detail
+    {
 //! Exports the Sphere manifold class to python
 void export_ManifoldSphere(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_SPHERE_H__

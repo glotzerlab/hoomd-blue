@@ -10,6 +10,8 @@
 
 #include "StreamingMethod.h"
 
+namespace hoomd
+    {
 /*!
  * \param sysdata MPCD system data
  * \param cur_timestep Current system timestep
@@ -116,10 +118,13 @@ bool mpcd::StreamingMethod::shouldStream(uint64_t timestep)
  */
 void mpcd::detail::export_StreamingMethod(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::StreamingMethod, std::shared_ptr<mpcd::StreamingMethod>>(m, "StreamingMethod")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int>())
+    pybind11::class_<mpcd::StreamingMethod, std::shared_ptr<mpcd::StreamingMethod>>(
+        m,
+        "StreamingMethod")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int>())
         .def("setPeriod", &mpcd::StreamingMethod::setPeriod)
         .def("setField", &mpcd::StreamingMethod::setField)
         .def("removeField", &mpcd::StreamingMethod::removeField);
     }
+
+    } // end namespace hoomd

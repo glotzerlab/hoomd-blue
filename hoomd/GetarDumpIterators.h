@@ -15,6 +15,8 @@
 /// composite data types found in hoomd for use in the getar reader
 /// and writer to and from flat streams of data.
 
+namespace hoomd
+    {
 namespace getardump
     {
 // Iterator to give the keys of a map
@@ -646,5 +648,7 @@ class InvGroupTagIterator : public std::iterator<std::input_iterator_tag, group_
     };
 
     } // namespace getardump
+
+    } // end namespace hoomd
 
 #endif

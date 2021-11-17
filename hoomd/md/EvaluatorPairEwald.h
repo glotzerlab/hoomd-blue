@@ -26,6 +26,11 @@
 #define DEVICE
 #define HOSTDEVICE
 #endif
+
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Ewald pair potential
 /*! <b>General Overview</b>
 
@@ -81,9 +86,9 @@ class EvaluatorPairEwald
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -181,5 +186,8 @@ class EvaluatorPairEwald
     Scalar alpha;  //!< Debye screening parameter
     Scalar qiqj;   //!< product of qi and qj
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EWALD_H__

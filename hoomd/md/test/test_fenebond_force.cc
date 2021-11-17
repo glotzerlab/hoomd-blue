@@ -15,6 +15,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file fenebond_force_test.cc
     \brief Implements unit tests for BondForceCompute and child classes
@@ -101,7 +103,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
                        tol);
         }
 
-    // rearrange the two particles in memory and see if they are properly updated
+        // rearrange the two particles in memory and see if they are properly updated
         {
         ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(),
                                    access_location::host,
@@ -362,7 +364,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
     fc1->setParams(0, fene_params(Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0)));
     fc2->setParams(0, fene_params(Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0)));
 
-    // displace particles a little so all forces aren't alike
+        // displace particles a little so all forces aren't alike
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,

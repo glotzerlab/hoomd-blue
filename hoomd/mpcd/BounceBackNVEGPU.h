@@ -19,6 +19,8 @@
 #include "BounceBackNVE.h"
 #include "BounceBackNVEGPU.cuh"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Integrator that applies bounce-back boundary conditions in NVE using the GPU.
@@ -169,16 +171,16 @@ namespace detail
 //! Exports the BounceBackNVEGPU class to python
 template<class Geometry> void export_BounceBackNVEGPU(pybind11::module& m)
     {
-    namespace py = pybind11;
     const std::string name = "BounceBackNVE" + Geometry::getName() + "GPU";
 
-    py::class_<BounceBackNVEGPU<Geometry>,
-               BounceBackNVE<Geometry>,
-               std::shared_ptr<BounceBackNVEGPU<Geometry>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<const Geometry>>());
+    pybind11::class_<BounceBackNVEGPU<Geometry>,
+                     BounceBackNVE<Geometry>,
+                     std::shared_ptr<BounceBackNVEGPU<Geometry>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<const Geometry>>());
     }
-    }      // end namespace detail
-    }      // end namespace mpcd
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_BOUNCE_BACK_NVE_GPU_H_

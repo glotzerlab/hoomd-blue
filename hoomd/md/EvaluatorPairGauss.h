@@ -27,6 +27,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Gaussian pair potential
 /*! <b>General Overview</b>
 
@@ -93,9 +97,9 @@ class EvaluatorPairGauss
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -182,5 +186,8 @@ class EvaluatorPairGauss
     Scalar epsilon; //!< epsilon parameter extracted from the params passed to the constructor
     Scalar sigma;   //!< sigma parameter extracted from the params passed to the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_GAUSS_H__

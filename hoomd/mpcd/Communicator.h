@@ -32,6 +32,8 @@
 #include <pybind11/pybind11.h>
 #include <vector>
 
+namespace hoomd
+    {
 //! Forward declarations for some classes
 class SystemDefinition;
 class Profiler;
@@ -46,7 +48,8 @@ namespace mpcd
  * are used in parallel simulations on the CPU. A domain decomposition communication pattern
  * is used so that every processor owns particles that are spatially local (\cite Plimpton 1995). So
  * far, the only communication needed for MPCD particles is migration, which is handled
- * using the same algorithms as for the standard ::ParticleData (::Communicator::migrateParticles).
+ * using the same algorithms as for the standard hoomd::ParticleData
+ * (::Communicator::migrateParticles).
  *
  * There is unfortunately significant code duplication with ::Communicator, but
  * there is little that can be done about this without creating an abstracted
@@ -171,7 +174,7 @@ class PYBIND11_EXPORT Communicator
 
     std::shared_ptr<mpcd::SystemData> m_mpcd_sys;              //!< MPCD system data
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
-    std::shared_ptr<::ParticleData> m_pdata;                   //!< HOOMD particle data
+    std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
     const MPI_Comm m_mpi_comm;                                 //!< MPI communicator
@@ -215,7 +218,7 @@ namespace detail
 void export_Communicator(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_COMMUNICATOR_H_
 #endif // ENABLE_MPI

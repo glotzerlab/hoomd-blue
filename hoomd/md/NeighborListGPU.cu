@@ -16,6 +16,12 @@
 #include <thrust/scan.h>
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 /*! \param d_result Device pointer to a single uint. Will be set to 1 if an update is needed
     \param d_last_pos Particle positions at the time the nlist was last updated
     \param d_pos Current particle positions
@@ -477,3 +483,7 @@ hipError_t gpu_nlist_build_head_list(unsigned int* d_head_list,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

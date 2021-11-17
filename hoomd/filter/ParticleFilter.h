@@ -1,11 +1,12 @@
-#ifndef __PARTICLE_FILTER_H__
-#define __PARTICLE_FILTER_H__
+#pragma once
 
 #include "../SystemDefinition.h"
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <vector>
 
+namespace hoomd
+    {
 /// Utility class to select particles based on given conditions
 /** \b Overview
 
@@ -44,4 +45,5 @@ class PYBIND11_EXPORT ParticleFilter
         return std::vector<unsigned int>();
         }
     };
-#endif
+
+    } // end namespace hoomd

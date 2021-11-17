@@ -16,6 +16,12 @@
 
 #include <neighbor/neighbor.h>
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel to mark particles by type
 /*!
  * \param d_types Type of each particle.
@@ -1008,3 +1014,7 @@ std::vector<unsigned int> LBVHTraverserWrapper::getTunableParameters() const
     {
     return trav_->getTunableParameters();
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

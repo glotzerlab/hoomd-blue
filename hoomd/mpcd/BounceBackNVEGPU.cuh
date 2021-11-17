@@ -16,6 +16,8 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -171,6 +173,7 @@ cudaError_t nve_bounce_step_one(const bounce_args_t& args, const Geometry& geom)
     }
 #endif // __HIPCC__
 
-    }      // end namespace gpu
-    }      // end namespace mpcd
+    }  // end namespace gpu
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_BOUNCE_BACK_NVE_GPU_CUH_

@@ -4,6 +4,8 @@
 #include "ParticleFilter.h"
 #include <algorithm>
 
+namespace hoomd
+    {
 /// Represents the intersection of two filters: f and g.
 class PYBIND11_EXPORT ParticleFilterIntersection : public ParticleFilter
     {
@@ -49,4 +51,6 @@ class PYBIND11_EXPORT ParticleFilterIntersection : public ParticleFilter
     std::shared_ptr<ParticleFilter> m_f;
     std::shared_ptr<ParticleFilter> m_g;
     };
+
+    } // end namespace hoomd
 #endif

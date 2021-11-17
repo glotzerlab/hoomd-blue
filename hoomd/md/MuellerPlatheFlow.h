@@ -13,6 +13,10 @@
 #include <cfloat>
 #include <memory>
 
+namespace hoomd
+    {
+namespace md
+    {
 extern const unsigned int INVALID_TAG;
 extern const Scalar INVALID_VEL;
 
@@ -222,5 +226,11 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
 #endif // ENABLE_MPI
     };
 
+namespace detail
+    {
 //! Exports the MuellerPlatheFlow class to python
 void export_MuellerPlatheFlow(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

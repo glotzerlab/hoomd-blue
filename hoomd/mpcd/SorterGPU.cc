@@ -11,6 +11,8 @@
 #include "SorterGPU.h"
 #include "SorterGPU.cuh"
 
+namespace hoomd
+    {
 /*!
  * \param sysdata MPCD system data
  */
@@ -46,7 +48,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
         m_prof->push(m_exec_conf, "MPCD sort");
         }
 
-    // fill the empty cell list entries with a sentinel larger than number of MPCD particles
+        // fill the empty cell list entries with a sentinel larger than number of MPCD particles
         {
         ArrayHandle<unsigned int> d_cell_list(m_cl->getCellList(),
                                               access_location::device,
@@ -66,7 +68,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
         m_sentinel_tuner->end();
         }
 
-    // use thrust to select out the indexes of MPCD particles
+        // use thrust to select out the indexes of MPCD particles
         {
         ArrayHandle<unsigned int> d_cell_list(m_cl->getCellList(),
                                               access_location::device,
@@ -86,7 +88,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
             }
         }
 
-    // fill out the reverse ordering map
+        // fill out the reverse ordering map
         {
         ArrayHandle<unsigned int> d_order(m_order, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rorder(m_rorder,
@@ -111,7 +113,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
  */
 void mpcd::SorterGPU::applyOrder() const
     {
-    // apply the sorted order
+        // apply the sorted order
         {
         ArrayHandle<unsigned int> d_order(m_order, access_location::device, access_mode::read);
 
@@ -181,7 +183,9 @@ void mpcd::SorterGPU::applyOrder() const
  */
 void mpcd::detail::export_SorterGPU(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::SorterGPU, mpcd::Sorter, std::shared_ptr<mpcd::SorterGPU>>(m, "SorterGPU")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>());
+    pybind11::class_<mpcd::SorterGPU, mpcd::Sorter, std::shared_ptr<mpcd::SorterGPU>>(m,
+                                                                                      "SorterGPU")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>());
     }
+
+    } // end namespace hoomd

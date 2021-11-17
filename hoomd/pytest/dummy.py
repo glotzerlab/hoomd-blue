@@ -58,9 +58,6 @@ class DummyCppObj:
     def param2(self, value):
         self._param2 = value
 
-    def setCommunicator(self, communicator):  # noqa: N802
-        pass
-
     def notifyDetach(self):  # noqa: N802
         pass
 

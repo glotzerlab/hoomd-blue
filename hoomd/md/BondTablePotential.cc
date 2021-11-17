@@ -6,8 +6,6 @@
 #include "BondTablePotential.h"
 #include "hoomd/BondedGroupData.h"
 
-namespace py = pybind11;
-
 #include <stdexcept>
 
 /*! \file BondTablePotential.cc
@@ -16,6 +14,10 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -250,12 +252,18 @@ void BondTablePotential::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-//! Exports the BondTablePotential class to python
-void export_BondTablePotential(py::module& m)
+namespace detail
     {
-    py::class_<BondTablePotential, ForceCompute, std::shared_ptr<BondTablePotential>>(
+//! Exports the BondTablePotential class to python
+void export_BondTablePotential(pybind11::module& m)
+    {
+    pybind11::class_<BondTablePotential, ForceCompute, std::shared_ptr<BondTablePotential>>(
         m,
         "BondTablePotential")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
         .def("setTable", &BondTablePotential::setTable);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

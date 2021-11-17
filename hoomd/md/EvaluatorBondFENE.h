@@ -25,6 +25,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 struct fene_params
     {
     Scalar k;
@@ -189,5 +193,8 @@ class EvaluatorBondFENE
     Scalar diameter_a; //!< diameter of particle A
     Scalar diameter_b; //!< diameter of particle B
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_FENE_H__

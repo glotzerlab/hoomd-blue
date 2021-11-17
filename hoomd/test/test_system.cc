@@ -22,6 +22,7 @@ HOOMD_UP_MAIN();
 */
 
 using namespace std;
+using namespace hoomd;
 
 // we are going to need a dummy compute, a dummy analyzer and a dummy updater in order to test the
 // system

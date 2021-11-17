@@ -18,6 +18,12 @@ using namespace hoomd;
     \brief Defines GPU kernel code for Brownian integration on the GPU. Used by TwoStepBDGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Takes the second half-step forward in the Langevin integration on a group of particles with
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
@@ -48,33 +54,33 @@ using namespace hoomd;
 
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
-extern "C" __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
-                                                        Scalar4* d_vel,
-                                                        int3* d_image,
-                                                        const BoxDim box,
-                                                        const Scalar* d_diameter,
-                                                        const unsigned int* d_tag,
-                                                        const unsigned int* d_group_members,
-                                                        const unsigned int nwork,
-                                                        const Scalar4* d_net_force,
-                                                        const Scalar3* d_gamma_r,
-                                                        Scalar4* d_orientation,
-                                                        Scalar4* d_torque,
-                                                        const Scalar3* d_inertia,
-                                                        Scalar4* d_angmom,
-                                                        const Scalar* d_gamma,
-                                                        const unsigned int n_types,
-                                                        const bool use_alpha,
-                                                        const Scalar alpha,
-                                                        const uint64_t timestep,
-                                                        const uint16_t seed,
-                                                        const Scalar T,
-                                                        const bool aniso,
-                                                        const Scalar deltaT,
-                                                        unsigned int D,
-                                                        const bool d_noiseless_t,
-                                                        const bool d_noiseless_r,
-                                                        const unsigned int offset)
+__global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
+                                             Scalar4* d_vel,
+                                             int3* d_image,
+                                             const BoxDim box,
+                                             const Scalar* d_diameter,
+                                             const unsigned int* d_tag,
+                                             const unsigned int* d_group_members,
+                                             const unsigned int nwork,
+                                             const Scalar4* d_net_force,
+                                             const Scalar3* d_gamma_r,
+                                             Scalar4* d_orientation,
+                                             Scalar4* d_torque,
+                                             const Scalar3* d_inertia,
+                                             Scalar4* d_angmom,
+                                             const Scalar* d_gamma,
+                                             const unsigned int n_types,
+                                             const bool use_alpha,
+                                             const Scalar alpha,
+                                             const uint64_t timestep,
+                                             const uint16_t seed,
+                                             const Scalar T,
+                                             const bool aniso,
+                                             const Scalar deltaT,
+                                             unsigned int D,
+                                             const bool d_noiseless_t,
+                                             const bool d_noiseless_r,
+                                             const unsigned int offset)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
 
@@ -374,3 +380,7 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

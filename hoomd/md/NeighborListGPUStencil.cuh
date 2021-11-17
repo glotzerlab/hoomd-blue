@@ -22,6 +22,12 @@
 #define WARP_SIZE 64
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 const unsigned int min_threads_per_particle = 1;
 const unsigned int max_threads_per_particle = WARP_SIZE;
 
@@ -70,4 +76,9 @@ void gpu_compute_nlist_stencil_sort_types(unsigned int* d_pids,
                                           size_t& tmp_storage_bytes,
                                           bool& swap,
                                           const unsigned int N);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif // __NEIGHBORLOSTGPUSTENCIL_CUH__

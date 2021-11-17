@@ -13,8 +13,9 @@
 #include <algorithm>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 /*! \param sysdef system to compute the cell list of
  */
 CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
@@ -48,6 +49,15 @@ CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
 
     m_pdata->getParticleSortSignal().connect<CellList, &CellList::slotParticlesSorted>(this);
     m_pdata->getBoxChangeSignal().connect<CellList, &CellList::slotBoxChanged>(this);
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+        }
+#endif
     }
 
 CellList::~CellList()
@@ -84,7 +94,7 @@ uint3 CellList::computeDimensions()
     // size the ghost layer width
     m_ghost_width = make_scalar3(0.0, 0.0, 0.0);
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         Scalar ghost_width = m_comm->getGhostLayerMaxWidth();
         if (ghost_width > Scalar(0.0))
@@ -676,17 +686,23 @@ uint3 CellList::readConditions()
     return *h_conditions.data;
     }
 
-void export_CellList(py::module& m)
+namespace detail
     {
-    py::class_<CellList, Compute, std::shared_ptr<CellList>>(m, "CellList")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_CellList(pybind11::module& m)
+    {
+    pybind11::class_<CellList, Compute, std::shared_ptr<CellList>>(m, "CellList")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)
         .def("setComputeTDB", &CellList::setComputeTDB)
         .def("setFlagCharge", &CellList::setFlagCharge)
         .def("setFlagIndex", &CellList::setFlagIndex)
         .def("setSortCellList", &CellList::setSortCellList)
-        .def("getDim", &CellList::getDim, py::return_value_policy::reference_internal)
+        .def("getDim", &CellList::getDim, pybind11::return_value_policy::reference_internal)
         .def("getNmax", &CellList::getNmax)
         .def("benchmark", &CellList::benchmark);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

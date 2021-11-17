@@ -11,8 +11,6 @@
 #include "ComputeThermoHMAGPU.cuh"
 #include "hoomd/GPUPartition.cuh"
 
-namespace py = pybind11;
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #include "hoomd/HOOMDMPI.h"
@@ -21,6 +19,10 @@ namespace py = pybind11;
 #include <iostream>
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
     \param temperature The temperature that governs sampling of the integrator
@@ -149,7 +151,7 @@ void ComputeThermoHMAGPU::computeProperties()
         m_exec_conf->beginMultiGPU();
 
         // build up args list
-        compute_thermo_hma_args args;
+        kernel::compute_thermo_hma_args args;
         args.n_blocks = num_blocks;
         args.d_net_force = d_net_force.data;
         args.d_net_virial = d_net_virial.data;
@@ -204,13 +206,19 @@ void ComputeThermoHMAGPU::computeProperties()
         m_prof->pop(m_exec_conf);
     }
 
-void export_ComputeThermoHMAGPU(py::module& m)
+namespace detail
     {
-    py::class_<ComputeThermoHMAGPU, ComputeThermoHMA, std::shared_ptr<ComputeThermoHMAGPU>>(
+void export_ComputeThermoHMAGPU(pybind11::module& m)
+    {
+    pybind11::class_<ComputeThermoHMAGPU, ComputeThermoHMA, std::shared_ptr<ComputeThermoHMAGPU>>(
         m,
         "ComputeThermoHMAGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      const double,
-                      const double>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            const double,
+                            const double>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
