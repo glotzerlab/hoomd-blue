@@ -136,7 +136,8 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
             flag,
             6,
             0,
-            std::vector<ssize_t>({m_virial_pitch * sizeof(Scalar), sizeof(Scalar)}));
+            std::vector<ssize_t>({static_cast<ssize_t>(m_virial_pitch * sizeof(Scalar)),
+                sizeof(Scalar)}));
         }
 
     protected:
