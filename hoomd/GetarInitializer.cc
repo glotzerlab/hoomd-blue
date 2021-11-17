@@ -4,8 +4,8 @@
 #include "GetarInitializer.h"
 #include <iostream>
 
-namespace py = pybind11;
-
+namespace hoomd
+    {
 namespace getardump
     {
 using std::auto_ptr;
@@ -51,7 +51,7 @@ GetarInitializer::GetarInitializer(shared_ptr<const ExecutionConfiguration> exec
         }
     }
 
-map<set<Record>, string> GetarInitializer::parseModes(py::dict& pyModes)
+map<set<Record>, string> GetarInitializer::parseModes(pybind11::dict& pyModes)
     {
     map<set<Record>, string> modes;
 
@@ -60,10 +60,10 @@ map<set<Record>, string> GetarInitializer::parseModes(py::dict& pyModes)
 
     for (auto item : pyModes)
         {
-        py::tuple pyKey = py::cast<py::tuple>(item.first);
-        string value = py::cast<string>(item.second);
+        pybind11::tuple pyKey = pybind11::cast<pybind11::tuple>(item.first);
+        string value = pybind11::cast<string>(item.second);
         set<Record> key;
-        for (unsigned int j(0); j < py::len(pyKey); ++j)
+        for (unsigned int j(0); j < pybind11::len(pyKey); ++j)
             {
             string name = pyKey[j].cast<string>();
             if (!insertRecord(name, key))
@@ -89,13 +89,13 @@ map<set<Record>, string> GetarInitializer::parseModes(py::dict& pyModes)
     return modes;
     }
 
-shared_ptr<SystemSnapshot> GetarInitializer::initializePy(py::dict& pyModes)
+shared_ptr<SystemSnapshot> GetarInitializer::initializePy(pybind11::dict& pyModes)
     {
     map<set<Record>, string> modes(parseModes(pyModes));
     return initialize(modes);
     }
 
-void GetarInitializer::restorePy(py::dict& pyModes, shared_ptr<SystemDefinition> sysdef)
+void GetarInitializer::restorePy(pybind11::dict& pyModes, shared_ptr<SystemDefinition> sysdef)
     {
     map<set<Record>, string> modes(parseModes(pyModes));
     restore(sysdef, modes);
@@ -341,7 +341,7 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
     for (unsigned int i((unsigned int)snapshot->particle_data.type_mapping.size()); i < maxtype + 1;
          ++i)
         {
-        snapshot->particle_data.type_mapping.push_back(getDefaultTypeName(i));
+        snapshot->particle_data.type_mapping.push_back(detail::getDefaultTypeName(i));
         }
 
     unsigned int bond_N((unsigned int)snapshot->bond_data.type_id.size());
@@ -363,7 +363,7 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
              i < maxbondtype + 1;
              ++i)
             {
-            snapshot->bond_data.type_mapping.push_back(getDefaultTypeName(i));
+            snapshot->bond_data.type_mapping.push_back(detail::getDefaultTypeName(i));
             }
         }
 
@@ -386,7 +386,7 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
              i < maxpairtype + 1;
              ++i)
             {
-            snapshot->pair_data.type_mapping.push_back(getDefaultTypeName(i));
+            snapshot->pair_data.type_mapping.push_back(detail::getDefaultTypeName(i));
             }
         }
 
@@ -409,7 +409,7 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
              i < maxangletype + 1;
              ++i)
             {
-            snapshot->angle_data.type_mapping.push_back(getDefaultTypeName(i));
+            snapshot->angle_data.type_mapping.push_back(detail::getDefaultTypeName(i));
             }
         }
 
@@ -432,7 +432,7 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
              i < maxdihedraltype + 1;
              ++i)
             {
-            snapshot->dihedral_data.type_mapping.push_back(getDefaultTypeName(i));
+            snapshot->dihedral_data.type_mapping.push_back(detail::getDefaultTypeName(i));
             }
         }
 
@@ -455,7 +455,7 @@ void GetarInitializer::fillSnapshot(shared_ptr<SystemSnapshot> snapshot)
              i < maximpropertype + 1;
              ++i)
             {
-            snapshot->improper_data.type_mapping.push_back(getDefaultTypeName(i));
+            snapshot->improper_data.type_mapping.push_back(detail::getDefaultTypeName(i));
             }
         }
     }
@@ -1230,13 +1230,14 @@ bool GetarInitializer::insertRecord(const string& name, set<Record>& recs) const
     return result;
     }
 
-void export_GetarInitializer(py::module& m)
+void export_GetarInitializer(pybind11::module& m)
     {
-    py::class_<GetarInitializer, shared_ptr<GetarInitializer>>(m, "GetarInitializer")
-        .def(py::init<shared_ptr<const ExecutionConfiguration>, string>())
+    pybind11::class_<GetarInitializer, shared_ptr<GetarInitializer>>(m, "GetarInitializer")
+        .def(pybind11::init<shared_ptr<const ExecutionConfiguration>, string>())
         .def("initialize", &GetarInitializer::initializePy)
         .def("restore", &GetarInitializer::restorePy)
         .def("getTimestep", &GetarInitializer::getTimestep);
     }
 
     } // namespace getardump
+    } // end namespace hoomd

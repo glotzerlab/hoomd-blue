@@ -22,6 +22,10 @@
 #ifndef __BONDTABLEPOTENTIAL_H__
 #define __BONDTABLEPOTENTIAL_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes the potential and force on bonds based on values given in a table
 /*! \b Overview
     Bond potentials and forces are evaluated for all bonded particle pairs in the system.
@@ -90,7 +94,13 @@ class PYBIND11_EXPORT BondTablePotential : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the TablePotential class to python
 void export_BondTablePotential(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

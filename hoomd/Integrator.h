@@ -12,7 +12,6 @@
 #include "HalfStepHook.h"
 #include "ParticleGroup.h"
 #include "Updater.h"
-#include "md/ForceComposite.h"
 #include <pybind11/pybind11.h>
 #include <string>
 #include <vector>
@@ -21,6 +20,8 @@
 #include <hip/hip_runtime.h>
 #endif
 
+namespace hoomd
+    {
 /// Base class that defines an integrator
 /** An Integrator steps the entire simulation forward one time step in time.
     Prior to calling update(timestep), the system is at time step \a timestep.
@@ -130,11 +131,6 @@ class PYBIND11_EXPORT Integrator : public Updater
     virtual void prepRun(uint64_t timestep);
 
 #ifdef ENABLE_MPI
-    /// Set the communicator to use
-    /** @param comm The Communicator
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm);
-
     /// Callback for pre-computing the forces
     void computeCallback(uint64_t timestep);
 #endif
@@ -166,20 +162,20 @@ class PYBIND11_EXPORT Integrator : public Updater
 #ifdef ENABLE_MPI
     /// helper function to determine the ghost communication flags
     virtual CommFlags determineFlags(uint64_t timestep);
+
+    /// The systems's communicator.
+    std::shared_ptr<Communicator> m_comm;
 #endif
 
     /// Check if any forces introduce anisotropic degrees of freedom
-    virtual bool getAnisotropic();
-
-    private:
-#ifdef ENABLE_MPI
-    /// Connection to Communicator to request communication flags
-    bool m_request_flags_connected = false;
-
-    /// Track if we have already connected signals
-    bool m_signals_connected = false;
-#endif
+    virtual bool areForcesAnisotropic();
     };
 
+namespace detail
+    {
 /// Exports the NVEUpdater class to python
 void export_Integrator(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd

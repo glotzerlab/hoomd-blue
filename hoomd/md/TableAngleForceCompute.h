@@ -23,6 +23,10 @@
 #ifndef __TABLEANGLEFORCECOMPUTE_H__
 #define __TABLEANGLEFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes the potential and force on bonds based on values given in a table
 /*! \b Overview
     Bond potentials and forces are evaluated for all bonded particle pairs in the system.
@@ -87,7 +91,13 @@ class PYBIND11_EXPORT TableAngleForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the TableAngleForceCompute class to python
 void export_TableAngleForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

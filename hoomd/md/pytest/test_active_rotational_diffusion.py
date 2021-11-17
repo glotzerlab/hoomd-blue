@@ -83,7 +83,8 @@ def local_simulation_factory(simulation_factory, two_particle_snapshot_factory):
         else:
             method = hoomd.md.methods.rattle.NVE(hoomd.filter.All(),
                                                  hoomd.md.manifold.Plane(0.1))
-        sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
+        sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                        methods=[method])
         if active_force is not None:
             sim.operations.integrator.forces.append(active_force)
         if rd_updater is not None:
@@ -141,6 +142,7 @@ def test_update(active_force, local_simulation_factory):
     snapshot = sim.state.get_snapshot()
     if sim.device.communicator.rank == 0:
         old_orientations = snapshot.particles.orientation
+
     sim.run(10)
     snapshot = sim.state.get_snapshot()
     if sim.device.communicator.rank == 0:

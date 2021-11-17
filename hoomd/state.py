@@ -474,6 +474,11 @@ class State:
             else:
                 group = _hoomd.ParticleGroup(self._cpp_sys_def, filter_)
             self._groups[cls][filter_] = group
+
+            integrator = self._simulation.operations.integrator
+            if integrator is not None and integrator._attached:
+                integrator._cpp_obj.updateGroupDOF(group)
+
             return group
 
     def update_group_dof(self):

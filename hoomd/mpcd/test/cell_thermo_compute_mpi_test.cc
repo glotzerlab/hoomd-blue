@@ -16,6 +16,8 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 //! Test for correct calculation of MPCD grid dimensions
 template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
@@ -27,6 +29,8 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     std::shared_ptr<DomainDecomposition> decomposition(
         new DomainDecomposition(exec_conf, snap->global_box.getL(), 2, 2, 2));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
+    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
+    sysdef->setCommunicator(pdata_comm);
 
     // place each particle all in the same cell
     auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
@@ -61,10 +65,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     std::shared_ptr<mpcd::ParticleData> pdata = mpcd_sys->getParticleData();
 
     std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();
-    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
-    cl->setCommunicator(pdata_comm);
     std::shared_ptr<CT> thermo = std::make_shared<CT>(mpcd_sys);
-    thermo->setCommunicator(pdata_comm);
     AllThermoRequest thermo_req(thermo);
     thermo->compute(0);
         {
@@ -168,7 +169,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
         CHECK_CLOSE(thermo->getTemperature(), 2.0, tol);
         }
 
-    // scale all particles so that they move into one common cell
+        // scale all particles so that they move into one common cell
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,

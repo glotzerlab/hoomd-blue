@@ -19,6 +19,10 @@
 #ifndef __COSINESQANGLEFORCECOMPUTEGPU_H__
 #define __COSINESQANGLEFORCECOMPUTEGPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Implements the cosine squared angle force calculation on the GPU
 /*! CosineSqAngleForceComputeGPU implements the same calculations as CosineSqAngleForceCompute,
     but executing on the GPU.
@@ -61,7 +65,13 @@ class PYBIND11_EXPORT CosineSqAngleForceComputeGPU : public CosineSqAngleForceCo
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Export the AngleForceComputeGPU class to python
 void export_CosineSqAngleForceComputeGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

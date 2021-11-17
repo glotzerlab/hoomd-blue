@@ -26,6 +26,8 @@
 /*! \ingroup communication
  */
 
+namespace hoomd
+    {
 //! Class that initializes every processor using spatial domain-decomposition
 /*! This class is used to divide the global simulation box into sub-domains and to assign a box to
  * every processor.
@@ -233,9 +235,13 @@ class PYBIND11_EXPORT DomainDecomposition
 #endif                                       // ENABLE_MPI
     };
 
+namespace detail
+    {
 #ifdef ENABLE_MPI
 //! Export the domain decomposition information
 void export_DomainDecomposition(pybind11::module& m);
 #endif
+    } // end namespace detail
 
+    }  // end namespace hoomd
 #endif // __DOMAIN_DECOMPOSITION_H

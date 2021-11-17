@@ -10,6 +10,8 @@
 
 #include "CellListGPU.cuh"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -281,13 +283,10 @@ cudaError_t mpcd::gpu::compute_cell_list(unsigned int* d_cell_np,
     if (error != cudaSuccess)
         return error;
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::compute_cell_list);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::compute_cell_list);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N_tot / run_block_size + 1);
@@ -335,13 +334,10 @@ cudaError_t mpcd::gpu::cell_check_migrate_embed(unsigned int* d_migrate_flag,
     // ensure that the flag is always zeroed even if the caller forgets
     cudaMemset(d_migrate_flag, 0, sizeof(unsigned int));
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::cell_check_migrate_embed);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::cell_check_migrate_embed);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N / run_block_size + 1);
@@ -362,13 +358,10 @@ cudaError_t mpcd::gpu::cell_apply_sort(unsigned int* d_cell_list,
                                        const unsigned int N_mpcd,
                                        const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::cell_apply_sort);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::cell_apply_sort);
+    max_block_size = attr.maxThreadsPerBlock;
 
     const unsigned int N_cli = cli.getNumElements();
 
@@ -383,3 +376,5 @@ cudaError_t mpcd::gpu::cell_apply_sort(unsigned int* d_cell_list,
 
     return cudaSuccess;
     }
+
+    } // end namespace hoomd

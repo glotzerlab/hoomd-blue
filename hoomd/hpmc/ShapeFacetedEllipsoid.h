@@ -21,6 +21,8 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -542,7 +544,7 @@ struct ShapeFacetedEllipsoid
         }
 
     /// Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // use support function of the ellipsoid to determine the furthest extent in each direction
         detail::SupportFuncFacetedEllipsoid sfunc(params);
@@ -568,7 +570,7 @@ struct ShapeFacetedEllipsoid
         vec3<Scalar> upper(pos.x + s_x_plus.x, pos.y + s_y_plus.y, pos.z + s_z_plus.z);
         vec3<Scalar> lower(pos.x + s_x_minus.x, pos.y + s_y_minus.y, pos.z + s_z_minus.z);
 
-        return detail::AABB(lower, upper);
+        return hoomd::detail::AABB(lower, upper);
         }
 
     /// Return a tight fitting OBB around the shape
@@ -645,7 +647,8 @@ test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(const vec3<Scalar>& r
         err);
     }
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

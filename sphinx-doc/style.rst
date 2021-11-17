@@ -79,10 +79,6 @@ Tools
 
 * Autoformatter: `clang-format <https://clang.llvm.org/docs/ClangFormat.html>`_.
 
-  * Run: ``pre-commit run --all-files --hook-stage manual`` to apply changes to
-    the whole repository. You must have a ``conda`` installation in your
-    ``PATH`` to run this.
-
 Documentation
 ^^^^^^^^^^^^^
 

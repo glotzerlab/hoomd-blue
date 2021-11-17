@@ -24,6 +24,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the RevCross three-body potential
 class EvaluatorRevCross
     {
@@ -257,5 +261,8 @@ class EvaluatorRevCross
     Scalar epsilon_dev;
     Scalar lambda3_dev;
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

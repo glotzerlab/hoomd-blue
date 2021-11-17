@@ -10,8 +10,6 @@
 #include "NeighborList.h"
 #include "hoomd/BondedGroupData.h"
 
-namespace py = pybind11;
-
 #include <iostream>
 #include <stdexcept>
 
@@ -21,6 +19,10 @@ using namespace std;
     \brief Defines the NeighborList class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System the neighborlist is to compute neighbors for
     \param _r_cut Cutoff radius for all pairs under which particles are considered neighbors
     \param r_buff Buffer radius around \a r_cut in which neighbors will be included
@@ -127,7 +129,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_Nmax.swap(Nmax);
     TAG_ALLOCATION(m_Nmax);
 
-    // flood Nmax with 4s initially
+        // flood Nmax with 4s initially
         {
         ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::overwrite);
         for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
@@ -249,6 +251,21 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     if (m_exec_conf->isCUDAEnabled())
         m_last_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
 #endif
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+
+        m_comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
+        m_comm->getCommFlagsRequestSignal()
+            .connect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
+        m_comm->getGhostLayerWidthRequestSignal()
+            .connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
+        }
+#endif
     }
 
 void NeighborList::reallocate()
@@ -314,7 +331,7 @@ NeighborList::~NeighborList()
         .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         m_comm->getMigrateSignal().disconnect<NeighborList, &NeighborList::peekUpdate>(this);
         m_comm->getCommFlagsRequestSignal()
@@ -1690,23 +1707,6 @@ void NeighborList::growExclusionList()
     }
 
 #ifdef ENABLE_MPI
-//! Set the communicator to use
-void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
-    {
-    if (!m_comm)
-        {
-        // only add the migrate request on the first call
-        assert(comm);
-        comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
-        comm->getCommFlagsRequestSignal()
-            .connect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
-        comm->getGhostLayerWidthRequestSignal()
-            .connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
-        }
-
-    Compute::setCommunicator(comm);
-    }
-
 //! Returns true if the particle migration criterion is fulfilled
 /*! \note The criterion for when to request particle migration is the same as the one for neighbor
    list rebuilds, which is implemented in needsUpdating().
@@ -1739,7 +1739,7 @@ void NeighborList::updateMemoryMapping()
         // stash this partition for the future, so we can unset hints again
         m_last_gpu_partition = gpu_partition;
 
-        // split preferred location of neighbor list across GPUs
+            // split preferred location of neighbor list across GPUs
             {
             ArrayHandle<unsigned int> h_head_list(m_head_list,
                                                   access_location::host,
@@ -1803,10 +1803,12 @@ void NeighborList::updateMemoryMapping()
     }
 #endif
 
-void export_NeighborList(py::module& m)
+namespace detail
     {
-    py::class_<NeighborList, Compute, std::shared_ptr<NeighborList>> nlist(m, "NeighborList");
-    nlist.def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+void export_NeighborList(pybind11::module& m)
+    {
+    pybind11::class_<NeighborList, Compute, std::shared_ptr<NeighborList>> nlist(m, "NeighborList");
+    nlist.def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property("buffer", &NeighborList::getRBuff, &NeighborList::setRBuff)
         .def_property("rebuild_check_delay",
                       &NeighborList::getRebuildCheckDelay,
@@ -1828,14 +1830,14 @@ void export_NeighborList(py::module& m)
         .def("estimateNNeigh", &NeighborList::estimateNNeigh)
         .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
-        .def("getNumExclusions", &NeighborList::getNumExclusions)
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &NeighborList::setCommunicator)
-#endif
-        ;
+        .def("getNumExclusions", &NeighborList::getNumExclusions);
 
-    py::enum_<NeighborList::storageMode>(nlist, "storageMode")
+    pybind11::enum_<NeighborList::storageMode>(nlist, "storageMode")
         .value("half", NeighborList::storageMode::half)
         .value("full", NeighborList::storageMode::full)
         .export_values();
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -10,10 +10,13 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
 using namespace std;
 using namespace hoomd;
 
+namespace hoomd
+    {
+namespace md
+    {
 TwoStepLangevin::TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<ParticleGroup> group,
                                  std::shared_ptr<Variant> T)
@@ -414,7 +417,7 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
     if (m_tally)
         {
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &bd_energy_transfer,
@@ -433,16 +436,22 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
         m_prof->pop();
     }
 
-void export_TwoStepLangevin(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepLangevin, TwoStepLangevinBase, std::shared_ptr<TwoStepLangevin>>(
+void export_TwoStepLangevin(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepLangevin, TwoStepLangevinBase, std::shared_ptr<TwoStepLangevin>>(
         m,
         "TwoStepLangevin")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>>())
         .def_property("tally_reservoir_energy",
                       &TwoStepLangevin::getTallyReservoirEnergy,
                       &TwoStepLangevin::setTallyReservoirEnergy)
         .def_property_readonly("reservoir_energy", &TwoStepLangevin::getReservoirEnergy);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

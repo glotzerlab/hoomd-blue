@@ -10,6 +10,10 @@
 #include "WCAPotential.h"
 #include <assert.h>
 
+namespace hoomd
+    {
+namespace dem
+    {
 /*! Clip a value between 0 and 1 */
 template<typename Real> DEVICE inline Real clip(const Real& x)
     {
@@ -321,5 +325,8 @@ DEVICE inline void DEMEvaluator<Real, Real4, Potential>::edgeEdge(const vec3<Rea
 
     m_potential.evaluate(rij, closestI, closestJ, potential, force_i, torque_i, force_j, torque_j);
     }
+
+    } // end namespace dem
+    } // end namespace hoomd
 
 #endif

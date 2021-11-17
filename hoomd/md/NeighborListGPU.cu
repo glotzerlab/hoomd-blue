@@ -16,6 +16,12 @@
 #include <thrust/scan.h>
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 /*! \param d_result Device pointer to a single uint. Will be set to 1 if an update is needed
     \param d_last_pos Particle positions at the time the nlist was last updated
     \param d_pos Current particle positions
@@ -241,13 +247,10 @@ hipError_t gpu_nlist_filter(unsigned int* d_n_neigh,
                             const unsigned int N,
                             const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_nlist_filter_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_nlist_filter_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -445,13 +448,10 @@ hipError_t gpu_nlist_build_head_list(unsigned int* d_head_list,
                                      const unsigned int ntypes,
                                      const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_nlist_init_head_list_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_nlist_init_head_list_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
     const size_t shared_bytes = ntypes * sizeof(unsigned int);
@@ -483,3 +483,7 @@ hipError_t gpu_nlist_build_head_list(unsigned int* d_head_list,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

@@ -24,6 +24,10 @@
 
 #ifdef ENABLE_HIP
 
+namespace hoomd
+    {
+namespace dem
+    {
 //! Computes DEM3D forces on each particle using the GPU
 /*! Calculates the same forces as DEM3DForceCompute, but on the GPU.
 
@@ -36,7 +40,7 @@ class DEM3DForceComputeGPU : public DEM3DForceCompute<Real, Real4, Potential>
     public:
     //! Constructs the compute
     DEM3DForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<NeighborList> nlist,
+                         std::shared_ptr<md::NeighborList> nlist,
                          Real r_cut,
                          Potential potential);
 
@@ -59,6 +63,9 @@ class DEM3DForceComputeGPU : public DEM3DForceCompute<Real, Real4, Potential>
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
+
+    } // end namespace dem
+    } // end namespace hoomd
 
 #include "DEM3DForceComputeGPU.cc"
 

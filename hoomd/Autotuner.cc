@@ -13,8 +13,9 @@
 #include <stdexcept>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 /*! \file Autotuner.cc
     \brief Definition of Autotuner
 */
@@ -361,18 +362,24 @@ unsigned int Autotuner::computeOptimalParameter()
     return opt;
     }
 
-void export_Autotuner(py::module& m)
+namespace detail
     {
-    py::class_<Autotuner>(m, "Autotuner")
-        .def(py::init<unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      const std::string&,
-                      std::shared_ptr<ExecutionConfiguration>>())
+void export_Autotuner(pybind11::module& m)
+    {
+    pybind11::class_<Autotuner>(m, "Autotuner")
+        .def(pybind11::init<unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            const std::string&,
+                            std::shared_ptr<ExecutionConfiguration>>())
         .def("getParam", &Autotuner::getParam)
         .def("setEnabled", &Autotuner::setEnabled)
         .def("setMoveRatio", &Autotuner::isComplete)
         .def("setNSelect", &Autotuner::setPeriod);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

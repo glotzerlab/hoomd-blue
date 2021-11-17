@@ -9,21 +9,20 @@
 #include <map>
 #include <sstream>
 #include <string.h>
-namespace py = pybind11;
 
 /*! \file ForceComposite.cc
     \brief Contains code for the ForceComposite class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
     : MolecularForceCompute(sysdef), m_bodies_changed(false), m_particles_added_removed(false),
-      m_global_max_d(0.0),
-#ifdef ENABLE_MPI
-      m_comm_ghost_layer_connected(false),
-#endif
-      m_global_max_d_changed(true)
+      m_global_max_d(0.0), m_global_max_d_changed(true)
     {
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
@@ -64,6 +63,19 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
 
     m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+
+        // register this class with the communicator
+        m_comm->getExtraGhostLayerWidthRequestSignal()
+            .connect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+        }
+#endif
     }
 
 //! Destructor
@@ -75,9 +87,11 @@ ForceComposite::~ForceComposite()
     m_pdata->getCompositeParticlesSignal()
         .disconnect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
 #ifdef ENABLE_MPI
-    if (m_comm_ghost_layer_connected)
+    if (m_sysdef->isDomainDecomposed())
+        {
         m_comm->getExtraGhostLayerWidthRequestSignal()
             .disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+        }
 #endif
     }
 
@@ -125,7 +139,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
     bool body_len_changed = false;
 
-    // detect if bodies have changed
+        // detect if bodies have changed
 
         {
         ArrayHandle<unsigned int> h_body_type(m_body_types,
@@ -1006,15 +1020,21 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         }
     }
 
-void export_ForceComposite(py::module& m)
+namespace detail
     {
-    py::class_<ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite>>(
+void export_ForceComposite(pybind11::module& m)
+    {
+    pybind11::class_<ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite>>(
         m,
         "ForceComposite")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setBody", &ForceComposite::setBody)
         .def("getBody", &ForceComposite::getBody)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
         .def("createRigidBodies", &ForceComposite::createRigidBodies)
         .def("updateCompositeParticles", &ForceComposite::updateCompositeParticles);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -13,8 +13,8 @@
 using namespace std;
 using namespace hoomd::detail;
 
-namespace py = pybind11;
-
+namespace hoomd
+    {
 /*! \param exec_conf The execution configuration
     \param name File name to read
     \param frame Frame index to read from the file
@@ -459,20 +459,26 @@ pybind11::array GSDStateReader::readChunk(const std::string& name)
     return result;
     }
 
-void export_GSDReader(py::module& m)
+namespace detail
     {
-    py::class_<GSDReader, std::shared_ptr<GSDReader>>(m, "GSDReader")
-        .def(py::init<std::shared_ptr<const ExecutionConfiguration>,
-                      const string&,
-                      const uint64_t,
-                      bool>())
+void export_GSDReader(pybind11::module& m)
+    {
+    pybind11::class_<GSDReader, std::shared_ptr<GSDReader>>(m, "GSDReader")
+        .def(pybind11::init<std::shared_ptr<const ExecutionConfiguration>,
+                            const string&,
+                            const uint64_t,
+                            bool>())
         .def("getTimeStep", &GSDReader::getTimeStep)
         .def("getSnapshot", &GSDReader::getSnapshot)
         .def("clearSnapshot", &GSDReader::clearSnapshot)
         .def("readTypeShapesPy", &GSDReader::readTypeShapesPy);
 
-    py::class_<GSDStateReader, std::shared_ptr<GSDStateReader>>(m, "GSDStateReader")
-        .def(py::init<const std::string&, int64_t>())
+    pybind11::class_<GSDStateReader, std::shared_ptr<GSDStateReader>>(m, "GSDStateReader")
+        .def(pybind11::init<const std::string&, int64_t>())
         .def("getAvailableChunks", &GSDStateReader::getAvailableChunks)
         .def("readChunk", &GSDStateReader::readChunk);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

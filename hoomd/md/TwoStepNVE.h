@@ -18,6 +18,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps in the NVE ensemble
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
 
@@ -59,7 +63,12 @@ class PYBIND11_EXPORT TwoStepNVE : public IntegrationMethodTwoStep
     bool m_zero_force;  //!< True if the integration step should ignore computed forces
     };
 
+namespace detail
+    {
 //! Exports the TwoStepNVE class to python
 void export_TwoStepNVE(pybind11::module& m);
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NVE_H__

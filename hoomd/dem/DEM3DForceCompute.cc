@@ -26,6 +26,10 @@
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace dem
+    {
 /*! \param sysdef System to compute forces on
   \param nlist Neighborlist to use for computing the forces
   \param r_cut Cutoff radius beyond which the force is 0
@@ -35,7 +39,7 @@ using namespace std;
 template<typename Real, typename Real4, typename Potential>
 DEM3DForceCompute<Real, Real4, Potential>::DEM3DForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
-    std::shared_ptr<NeighborList> nlist,
+    std::shared_ptr<md::NeighborList> nlist,
     Real r_cut,
     Potential potential)
     : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_evaluator(potential),
@@ -74,7 +78,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::connectDEMGSDShapeSpec(
 template<typename Real, typename Real4, typename Potential>
 int DEM3DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec(gsd_handle& handle) const
     {
-    GSDShapeSpecWriter shapespec(m_exec_conf);
+    hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
     m_exec_conf->msg->notice(10)
         << "DEM3DForceCompute writing particle shape information to GSD file in chunk: "
         << shapespec.getName() << std::endl;
@@ -600,7 +604,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
 
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
-    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+    bool third_law = m_nlist->getStorageMode() == md::NeighborList::half;
 
     // access the neighbor list
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
@@ -992,6 +996,9 @@ void DEM3DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
     if (m_prof)
         m_prof->pop(flops, mem_transfer);
     }
+
+    } // end namespace dem
+    } // end namespace hoomd
 
 #ifdef WIN32
 #pragma warning(pop)

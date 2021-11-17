@@ -20,6 +20,12 @@
 #endif // __HIPCC__
 #include <cassert>
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 // currently this is hardcoded, we should set it to the max of platforms
 #if defined(__HIP_PLATFORM_NVCC__)
 const int gpu_dpd_pair_force_max_tpp = 32;
@@ -372,14 +378,12 @@ struct DPDForceComputeKernel
             const size_t shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                         * typpair_idx.getNumElements();
 
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size
-                    = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator,
-                                                                           shift_mode,
-                                                                           compute_virial,
-                                                                           use_gmem_nlist,
-                                                                           tpp>);
+            unsigned int max_block_size;
+            max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator,
+                                                                                  shift_mode,
+                                                                                  compute_virial,
+                                                                                  use_gmem_nlist,
+                                                                                  tpp>);
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(args.N / (block_size / tpp) + 1, 1, 1);
@@ -492,5 +496,9 @@ hipError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
     return hipSuccess;
     }
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_CUH__

@@ -29,6 +29,8 @@
 #include "hoomd/GPUPartition.cuh"
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -50,6 +52,7 @@ struct hpmc_patch_args_t
                       const uint16_t _seed,
                       const unsigned int _rank,
                       const uint64_t _timestep,
+                      const unsigned int _select,
                       const unsigned int _num_types,
                       const BoxDim& _box,
                       const unsigned int* _d_excell_idx,
@@ -67,27 +70,28 @@ struct hpmc_patch_args_t
         : d_postype(_d_postype), d_orientation(_d_orientation), d_trial_postype(_d_trial_postype),
           d_trial_orientation(_d_trial_orientation), d_trial_move_type(_d_trial_move_type), ci(_ci),
           cell_dim(_cell_dim), ghost_width(_ghost_width), N(_N), seed(_seed), rank(_rank),
-          timestep(_timestep), num_types(_num_types), box(_box), d_excell_idx(_d_excell_idx),
-          d_excell_size(_d_excell_size), excli(_excli), r_cut_patch(_r_cut_patch),
-          d_additive_cutoff(_d_additive_cutoff), d_update_order_by_ptl(_d_update_order_by_ptl),
-          d_reject_in(_d_reject_in), d_reject_out(_d_reject_out), d_charge(_d_charge),
-          d_diameter(_d_diameter), d_reject_out_of_cell(_d_reject_out_of_cell),
-          gpu_partition(_gpu_partition)
+          timestep(_timestep), select(_select), num_types(_num_types), box(_box),
+          d_excell_idx(_d_excell_idx), d_excell_size(_d_excell_size), excli(_excli),
+          r_cut_patch(_r_cut_patch), d_additive_cutoff(_d_additive_cutoff),
+          d_update_order_by_ptl(_d_update_order_by_ptl), d_reject_in(_d_reject_in),
+          d_reject_out(_d_reject_out), d_charge(_d_charge), d_diameter(_d_diameter),
+          d_reject_out_of_cell(_d_reject_out_of_cell), gpu_partition(_gpu_partition)
         {
         }
 
-    const Scalar4* d_postype;                  //!< postype array
-    const Scalar4* d_orientation;              //!< orientation array
-    const Scalar4* d_trial_postype;            //!< New positions (and type) of particles
-    const Scalar4* d_trial_orientation;        //!< New orientations of particles
-    const unsigned int* d_trial_move_type;     //!< 0=no move, 1/2 = translate/rotate
-    const Index3D& ci;                         //!< Cell indexer
-    const uint3& cell_dim;                     //!< Cell dimensions
-    const Scalar3& ghost_width;                //!< Width of the ghost layer
-    const unsigned int N;                      //!< Number of particles
-    const uint16_t seed;                       //!< RNG seed
-    const unsigned int rank;                   //!< MPI Rank
-    const uint64_t timestep;                   //!< Current timestep
+    const Scalar4* d_postype;              //!< postype array
+    const Scalar4* d_orientation;          //!< orientation array
+    const Scalar4* d_trial_postype;        //!< New positions (and type) of particles
+    const Scalar4* d_trial_orientation;    //!< New orientations of particles
+    const unsigned int* d_trial_move_type; //!< 0=no move, 1/2 = translate/rotate
+    const Index3D& ci;                     //!< Cell indexer
+    const uint3& cell_dim;                 //!< Cell dimensions
+    const Scalar3& ghost_width;            //!< Width of the ghost layer
+    const unsigned int N;                  //!< Number of particles
+    const uint16_t seed;                   //!< RNG seed
+    const unsigned int rank;               //!< MPI Rank
+    const uint64_t timestep;               //!< Current timestep
+    const unsigned int select;
     const unsigned int num_types;              //!< Number of particle types
     const BoxDim& box;                         //!< Current simulation box
     const unsigned int* d_excell_idx;          //!< Expanded cell list
@@ -108,22 +112,18 @@ struct hpmc_patch_args_t
 
     } // end namespace detail
 
-//! Integrator that implements the HPMC approach
-/*! **Overview** <br>
-    IntegratorHPMC is an non-templated base class that implements the basic methods that all HPMC
-   integrators have. This provides a base interface that any other code can use when given a shared
-   pointer to an IntegratorHPMC.
+//! Functor that computes patch interactions between particles
+/*! PatchEnergy allows cutoff energetic interactions to be included in an HPMC simulation. This
+    abstract base class defines the API for the patch energy object, consisting of cutoff radius
+    and the pair energy evaluation fuction.
 
-    The move ratio is stored as an unsigned int (0xffff = 100%) to avoid numerical issues when the
-   move ratio is exactly at 100%.
-
-    \ingroup hpmc_integrators
+    Provide a PatchEnergy instance to IntegratorHPMC. The pairwise patch energy will be evaluated
+    when needed during the HPMC trial moves.
 */
-
 class PatchEnergy
     {
     public:
-    PatchEnergy() { }
+    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef) { }
     virtual ~PatchEnergy() { }
 
 #ifdef ENABLE_HIP
@@ -131,13 +131,14 @@ class PatchEnergy
     typedef detail::hpmc_patch_args_t gpu_args_t;
 #endif
 
-    //! Returns the cut-off radius
+    //! Returns the non-additive distance from the center of the particle beyond which energies are
+    //! always zero
     virtual Scalar getRCut()
         {
         return 0;
         }
 
-    //! Returns the geometric extent, per type
+    //! Returns the additive part of the cutoff distance
     virtual Scalar getAdditiveCutoff(unsigned int type)
         {
         return 0;
@@ -187,8 +188,22 @@ class PatchEnergy
         throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
         }
 #endif
-    };
 
+    protected:
+    std::shared_ptr<SystemDefinition> m_sysdef; // HOOMD's system definition
+    };                                          // end class PatchEnergy
+
+//! Integrator that implements the HPMC approach
+/*! **Overview** <br>
+    IntegratorHPMC is an non-templated base class that implements the basic methods that all HPMC
+   integrators have. This provides a base interface that any other code can use when given a shared
+   pointer to an IntegratorHPMC.
+
+    The move ratio is stored as an unsigned int (0xffff = 100%) to avoid numerical issues when the
+   move ratio is exactly at 100%.
+
+    \ingroup hpmc_integrators
+*/
 class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     {
     public:
@@ -402,15 +417,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_external_base;
         }
 
-    //! Returns the patch energy interaction
-    std::shared_ptr<PatchEnergy> getPatchInteraction()
-        {
-        if (!m_patch_log)
-            return m_patch;
-        else
-            return std::shared_ptr<PatchEnergy>();
-        }
-
     //! Compute the energy due to patch interactions
     /*! \param timestep the current time step
      * \returns the total patch energy
@@ -424,6 +430,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     //! Prepare for the run
     virtual void prepRun(uint64_t timestep)
         {
+        Integrator::prepRun(timestep);
         m_past_first_run = true;
         }
 
@@ -433,43 +440,11 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         m_patch = patch;
         }
 
-    //! Enable the patch energy only for logging
-    /*! \param log if True, only enabled for logging purposes
-     */
-    void disablePatchEnergyLogOnly(bool log)
+    //! Get the patch energy
+    std::shared_ptr<PatchEnergy> getPatchEnergy()
         {
-        m_patch_log = log;
+        return m_patch;
         }
-
-#ifdef ENABLE_MPI
-    //! Set the MPI communicator
-    /*! \param comm the communicator
-        This method is overridden so that we can register with the signal to set the ghost layer
-       width.
-    */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        if (!m_communicator_ghost_width_connected)
-            {
-            // only add the migrate request on the first call
-            assert(comm);
-            comm->getGhostLayerWidthRequestSignal()
-                .connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
-            m_communicator_ghost_width_connected = true;
-            }
-        if (!m_communicator_flags_connected)
-            {
-            // only add the migrate request on the first call
-            assert(comm);
-            comm->getCommFlagsRequestSignal()
-                .connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
-            m_communicator_flags_connected = true;
-            }
-
-        // set the member variable
-        Integrator::setCommunicator(comm);
-        }
-#endif
 
     protected:
     unsigned int m_translation_move_probability; //!< Fraction of moves that are translation moves.
@@ -491,7 +466,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
                                     //! used in a more general setting.
 
     std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
-    bool m_patch_log;                     //!< If true, only use patch energy for logging
 
     bool m_past_first_run; //!< Flag to test if the first run() has started
     //! Update the nominal width of the cells
@@ -518,18 +492,16 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     private:
     hpmc_counters_t m_count_run_start;  //!< Count saved at run() start
     hpmc_counters_t m_count_step_start; //!< Count saved at the start of the last step
-
-#ifdef ENABLE_MPI
-    bool m_communicator_ghost_width_connected; //!< True if we have connected to Communicator's
-                                               //!< ghost layer width signal
-    bool m_communicator_flags_connected;       //!< True if we have connected to Communicator's
-                                               //!< communication flags signal
-#endif
     };
 
+namespace detail
+    {
 //! Export the IntegratorHPMC class to python
 void export_IntegratorHPMC(pybind11::module& m);
 
+    } // end namespace detail
+
     } // end namespace hpmc
 
+    }  // end namespace hoomd
 #endif // _INTEGRATOR_HPMC_H_

@@ -10,11 +10,13 @@
 #endif
 
 #include <vector>
-using namespace std;
 
 #include <memory>
 
 #include "upp11_config.h"
+
+using namespace std;
+using namespace hoomd;
 
 /*! \file test_cell_list_stencil.cc
     \brief Implements unit tests for CellListStencil
@@ -40,7 +42,7 @@ void celllist_stencil_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     std::shared_ptr<CellListStencil> cls(new CellListStencil(sysdef_3, cl));
     cls->compute(0);
 
-    // default initialization should be no stencils
+        // default initialization should be no stencils
         {
         ArrayHandle<unsigned int> h_nstencil(cls->getStencilSizes(),
                                              access_location::host,
@@ -52,7 +54,7 @@ void celllist_stencil_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     vector<Scalar> rstencil(2, 1.0);
     cls->setRStencil(rstencil);
     cls->compute(1);
-    // stencils should cover the box (27 cells)
+        // stencils should cover the box (27 cells)
         {
         ArrayHandle<unsigned int> h_nstencil(cls->getStencilSizes(),
                                              access_location::host,
@@ -65,7 +67,7 @@ void celllist_stencil_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     cl->setNominalWidth(Scalar(1.5));
     cl->compute(10);
     cls->compute(10);
-    // stencils should cover the box but not duplicate it (8 cells)
+        // stencils should cover the box but not duplicate it (8 cells)
         {
         ArrayHandle<unsigned int> h_nstencil(cls->getStencilSizes(),
                                              access_location::host,
@@ -79,8 +81,8 @@ void celllist_stencil_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     cl->setNominalWidth(Scalar(1.0));
     cl->compute(20);
     cls->compute(20);
-    // we should still only have 27 cells right now (and the updated box should have triggered the
-    // recompute)
+        // we should still only have 27 cells right now (and the updated box should have triggered
+        // the recompute)
         {
         ArrayHandle<unsigned int> h_nstencil(cls->getStencilSizes(),
                                              access_location::host,
@@ -94,7 +96,7 @@ void celllist_stencil_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     rstencil[1] = Scalar(2.0);
     cls->setRStencil(rstencil);
     cls->compute(21);
-    // the first type still has 27, the second type has all 125 cells
+        // the first type still has 27, the second type has all 125 cells
         {
         ArrayHandle<unsigned int> h_nstencil(cls->getStencilSizes(),
                                              access_location::host,
@@ -107,7 +109,7 @@ void celllist_stencil_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     rstencil[0] = Scalar(-1.0);
     cls->setRStencil(rstencil);
     cls->compute(22);
-    // the first type has 0, the second type has all 125 cells
+        // the first type has 0, the second type has all 125 cells
         {
         ArrayHandle<unsigned int> h_nstencil(cls->getStencilSizes(),
                                              access_location::host,
@@ -123,8 +125,8 @@ void celllist_stencil_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     rstencil[1] = Scalar(1.0);
     cls->setRStencil(rstencil);
     cls->compute(30);
-    // the first type has fewer than 344 cells (some corners get skipped), the second type has
-    // exactly 125 cells
+        // the first type has fewer than 344 cells (some corners get skipped), the second type has
+        // exactly 125 cells
         {
         ArrayHandle<unsigned int> h_nstencil(cls->getStencilSizes(),
                                              access_location::host,

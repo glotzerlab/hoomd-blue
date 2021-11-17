@@ -21,6 +21,10 @@
 #ifndef __NEIGHBORLISTGPU_H__
 #define __NEIGHBORLISTGPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Neighbor list build on the GPU
 /*! Implements common functions (like distance check)
     on the GPU for use by other GPU nlist classes derived from NeighborListGPU.
@@ -161,7 +165,13 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         m_alt_head_list; //!< Alternate array to hold the head list from prefix sum
     };
 
+namespace detail
+    {
 //! Exports NeighborListGPU to python
 void export_NeighborListGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif
