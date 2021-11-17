@@ -121,16 +121,17 @@ class Force(_HOOMDBaseObject):
 class Custom(Force):
     """Custom forces implemented in python.
 
-    This class serves as a base class for all custom forces. A custom force
-    class should inherit from this class, and override a method named
-    `set_forces`. Custom forces have direct, zero-copy access to HOOMD-Blue's
-    underlying force buffers via either the `cpu_local_force_arrays` or
-    `gpu_local_force_arrays` property. Choose the property that corresponds to
-    the device you wish to alter the data on. In addition to zero-copy access to
-    force buffers, custom force classes have access to the local snapshot API
-    via the `_state.cpu_local_snapshot` or the `_state.gpu_local_snapshot`
-    property. See the documentation in `hoomd.state` for more information on
-    the local snapshot API.
+    This class serves as a base class for all custom forces and should not be
+    instantiated directly. A custom force should be derived from this class, and
+    should override a method called `set_forces` in order to set the force data
+    however they wish. Custom forces have direct, zero-copy access to
+    HOOMD-Blue's underlying force buffers via either the
+    `cpu_local_force_arrays` or `gpu_local_force_arrays` property. Choose the
+    property that corresponds to the device you wish to alter the data on. In
+    addition to zero-copy access to force buffers, custom forces have access to
+    the local snapshot API via the `_state.cpu_local_snapshot` or the
+    `_state.gpu_local_snapshot` property. See the documentation in `hoomd.state`
+    for more information on the local snapshot API.
 
     When accessing the local force arrays, the `force`, `potential_energy`,
     `torque`, and `virial` of any particle can be set to any value.
@@ -147,6 +148,24 @@ class Custom(Force):
                     arrays.torque = 3
                     arrays.potential_energy = 27
                     arrays.virial = np.arange(6)[None, :]
+
+    In addition, since data is MPI rank-local, there may be ghost particle data
+    associated with each rank. To access this read-only ghost data, access the
+    property name with either the prefix `ghost_` of the suffix `_with_ghost`.
+
+    .. code-block:: python
+
+        class MyCustomForce(hoomd.force.Custom):
+            def __init__(self):
+                super().__init__()
+
+            def set_forces(self, timestep):
+                with self.cpu_local_force_arrays as arrays:
+                    # access only the ghost particle forces
+                    ghost_force_data = arrays.ghost_force
+
+                    # access torque data on this rank and ghost torque data
+                    torque_data = arrays.torque_with_ghost
 
     Note:
         When accessing the local force arrays, always use a context manager.
