@@ -452,10 +452,12 @@ class ForceLocalAccessBase(_LocalAccess):
         self._cpp_obj = self._cpp_cls(force_obj._cpp_obj)
 
     def __enter__(self):
+        """Called upon entering a context manager."""
         self._force_obj._in_context_manager = True
         self._enter()
         return self
 
     def __exit__(self, type, value, traceback):
+        """Called upon exiting a context manager."""
         self._force_obj._in_context_manager = False
         self._exit()
