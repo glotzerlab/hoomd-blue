@@ -9,6 +9,7 @@ md.force
     :nosignatures:
 
     Force
+    Custom
     Active
     ActiveOnManifold
 
@@ -18,6 +19,9 @@ md.force
     :synopsis: Apply forces to particles.
 
     .. autoclass:: Force
+        :members:
+
+    .. autoclass:: Custom
         :members:
 
     .. autoclass:: Active

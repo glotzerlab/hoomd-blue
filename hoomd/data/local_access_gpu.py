@@ -131,6 +131,4 @@ All array-like properties return a `hoomd.array.HOOMDGPUArray` object which
 prevents invalid memory accesses.
 """
 
-# TODO should I add a section here for the ForceLocalAccess?
-
 LocalSnapshotGPU.__doc__ = _gpu_snapshot_docs
