@@ -133,10 +133,10 @@ class Custom(Force):
     `_state.gpu_local_snapshot` property. See the documentation in `hoomd.state`
     for more information on the local snapshot API.
 
-    When accessing the local force arrays, the `force`, `potential_energy`,
-    `torque`, and `virial` of any particle can be set to any value.
+    When accessing the local force arrays, the force, potential energy, torque,
+    and virial of any particle can be set to any value.
 
-    .. code-block:: python
+    Examples::
 
         class MyCustomForce(hoomd.force.Custom):
             def __init__(self):
@@ -153,7 +153,7 @@ class Custom(Force):
     associated with each rank. To access this read-only ghost data, access the
     property name with either the prefix `ghost_` of the suffix `_with_ghost`.
 
-    .. code-block:: python
+    Examples::
 
         class MyCustomForce(hoomd.force.Custom):
             def __init__(self):
@@ -203,7 +203,7 @@ class Custom(Force):
         The `hoomd.data.LocalForceAccess` object returned by this property has
         four arrays through which one can modify the force data:
 
-        .. code-block:: python
+        Examples::
 
             with self.cpu_local_force_arrays as arrays:
                 arrays.force = ...
@@ -228,7 +228,7 @@ class Custom(Force):
         The `hoomd.data.LocalForceAccessGPU` object returned by this property
         has four arrays through which one can modify the force data:
 
-        .. code-block:: python
+        Examples::
 
             with self.gpu_local_force_arrays as arrays:
                 arrays.force = ...
