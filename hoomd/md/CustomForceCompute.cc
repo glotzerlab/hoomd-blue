@@ -3,8 +3,8 @@
 
 // Maintainer: joaander
 
-#include "hoomd/PythonLocalDataAccess.h"
 #include "CustomForceCompute.h"
+#include "hoomd/PythonLocalDataAccess.h"
 
 namespace py = pybind11;
 
@@ -19,7 +19,7 @@ namespace hoomd
 namespace md
     {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
-*/
+ */
 CustomForceCompute::CustomForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
     {
@@ -30,7 +30,6 @@ CustomForceCompute::~CustomForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying ConstForceCompute" << endl;
     }
-
 
 /*! This function calls the python set_forces method.
     \param timestep Current timestep
