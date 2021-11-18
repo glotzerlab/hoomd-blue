@@ -473,6 +473,7 @@ functionality.
 - ``COPY_HEADERS`` *CMake* option.
 - Many other python modules have been removed or re-implemented with new names.
   See the migration guide and new API documentation for a complete list.
+- Support for NVIDIA GPUS with compute capability < 6.0.
 
 v2.x
 ----
