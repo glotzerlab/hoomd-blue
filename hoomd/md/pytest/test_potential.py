@@ -300,8 +300,8 @@ def _invalid_params():
     cossq_valid_dict = {'sigma': 1.0, 'epsilon': 1.0, 'wca': True}
     cossq_invalid_dicts = _make_invalid_param_dict(cossq_valid_dict)
     invalid_params_list.extend(
-        _make_invalid_params(cossq_invalid_dicts, hoomd.md.pair.CosineSquared, 
-                                {}))
+        _make_invalid_params(cossq_invalid_dicts, hoomd.md.pair.CosineSquared,
+                             {}))
 
     table_valid_dict = {
         'V': np.arange(0, 20, 1) / 10,

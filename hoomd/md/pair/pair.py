@@ -1954,10 +1954,10 @@ class CosineSquared(Pair):
 
         \begin{eqnarray*}
         V_{\mathrm{CosSq}}(r)
-        = & \varepsilon \left[ \left(\frac{\sigma}{r} \right)^{12} - 
+        = & \varepsilon \left[ \left(\frac{\sigma}{r} \right)^{12} -
         2\left(\frac{\sigma}{r} \right)^{6} \right] \quad & r < \sigma \\
-        = & -\varepsilon cos^{2} 
-        \left[\frac{\pi(r - \sigma)}{2(r_{cut} - \sigma)}\right] 
+        = & -\varepsilon cos^{2}
+        \left[\frac{\pi(r - \sigma)}{2(r_{cut} - \sigma)}\right]
         \quad & \sigma < r < r_{cut} \\
         = & 0 \quad & r \geq r_{cut}
         \end{eqnarray*}
@@ -1970,7 +1970,7 @@ class CosineSquared(Pair):
         \begin{eqnarray*}
         V_{\mathrm{CosSq}}(r)
         = & -\varepsilon \quad & r < \sigma \\
-        = & -\varepsilon cos^{2} 
+        = & -\varepsilon cos^{2}
         \left[\frac{\pi(r - \sigma)}{2(r_{cut} - \sigma)} \right]
         \quad & \sigma < r < r_{cut} \\
         = & 0 \quad & r \geq r_{cut}

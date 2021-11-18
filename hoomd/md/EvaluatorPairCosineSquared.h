@@ -133,7 +133,7 @@ class EvaluatorPairCosineSquared
     */
     DEVICE EvaluatorPairCosineSquared(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
         : rsq(_rsq), rcutsq(_rcutsq), wca1(_params.wca1), wca2(_params.wca2), sigma(_params.sigma),
-        epsilon(_params.epsilon), wca(_params.wca)
+          epsilon(_params.epsilon), wca(_params.wca)
         {
         }
 
@@ -179,9 +179,9 @@ class EvaluatorPairCosineSquared
                 Scalar r2inv = Scalar(1.0) / rsq;
                 Scalar r6inv = r2inv * r2inv * r2inv;
                 Scalar shift = Scalar(0.0);
-                if (std::abs(sigmasq - rcutsq) < Scalar(0.000001)) 
+                if (std::abs(sigmasq - rcutsq) < Scalar(0.000001))
                     {
-                        shift = epsilon;
+                    shift = epsilon;
                     }
 
                 force_divr = Scalar(12.0) * r2inv * r6inv * (wca1 * r6inv - wca2);
