@@ -11,9 +11,7 @@ our [API documentation][hoomd_documentation] on readthedocs.
 
 [hoomd_documentation]: https://hoomd-blue.readthedocs.io/en/latest/
 
-## Testing
-
-### Hardware and software support
+## Hardware and software support
 
 Each minor and major release of HOOMD-blue at a minimum supports:
 
@@ -21,6 +19,8 @@ Each minor and major release of HOOMD-blue at a minimum supports:
 * NVIDIA GPUs released in the four prior years.
 * Compilers and software dependencies available on the oldest maintained Ubuntu LTS release.
 * The two most recent major **CUDA** toolkit versions
+
+## Testing
 
 ### Continuous integration
 
