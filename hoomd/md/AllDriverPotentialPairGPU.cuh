@@ -155,7 +155,7 @@ gpu_compute_table_forces(const pair_args_t& pair_args,
 //! Compute Cosine Squared pair potential forces on the GPU with PairEvaluatorCosineSqared
 hipError_t __attribute__((visibility("default")))
 gpu_compute_cosinesquared_forces(const pair_args_t& pair_args,
-                            const EvaluatorPairCosineSquared::param_type* d_params);
+                                 const EvaluatorPairCosineSquared::param_type* d_params);
 
 //! Compute oscillating pair potential forces on the GPU with EvaluatorPairOPP
 hipError_t __attribute__((visibility("default")))
