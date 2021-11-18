@@ -106,3 +106,4 @@ The following people have contributed to the to HOOMD-blue:
 * Youri Ran, Leiden University
 * Yuan Zhou, University of Michigan
 * Åsmund Ervik, SINTEF
+* Nathan Barrett, Pritzker School of Molecular Engineering

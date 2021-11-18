@@ -41,7 +41,7 @@ autodoc_mock_imports = [
     'hoomd.mpcd._mpcd',
     'hoomd.dem._dem',
     'hoomd.minimize._minimize',
-    'hoomd.jit._jit',
+    'hoomd.hpmc._jit',
     'hoomd.hpmc._hpmc',
 ]
 
@@ -56,8 +56,8 @@ project = 'HOOMD-blue'
 copyright = '2009-2021 The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.0.0-beta.9'
-release = '3.0.0-beta.9'
+version = '3.0.0-beta.11'
+release = '3.0.0-beta.11'
 
 language = None
 

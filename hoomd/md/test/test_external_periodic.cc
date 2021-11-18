@@ -18,6 +18,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file lj_force_test.cc
     \brief Implements unit tests for PotentialPairLJ and PotentialPairLJGPU and descendants

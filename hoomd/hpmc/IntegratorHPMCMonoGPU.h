@@ -36,6 +36,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -169,7 +171,7 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
         m_tuner_narrow->setPeriod(chain_length * period * this->m_nselect);
         m_tuner_narrow->setEnabled(enable);
 
-        if (this->m_patch && !this->m_patch_log)
+        if (this->m_patch)
             {
             this->m_patch->setAutotunerParams(enable, chain_length * period * this->m_nselect);
             }
@@ -837,7 +839,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
     {
     IntegratorHPMC::update(timestep);
 
-    if (this->m_patch && !this->m_patch_log)
+    if (this->m_patch)
         {
         ArrayHandle<Scalar> h_additive_cutoff(m_additive_cutoff,
                                               access_location::host,
@@ -906,7 +908,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
         // test if we are in domain decomposition mode
         bool domain_decomposition = false;
 #ifdef ENABLE_MPI
-        if (this->m_comm)
+        if (this->m_sysdef->isDomainDecomposed())
             domain_decomposition = true;
 #endif
 
@@ -1853,7 +1855,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                     this->m_exec_conf->endMultiGPU();
                     }
 
-                if (this->m_patch && !this->m_patch_log)
+                if (this->m_patch)
                     {
                     // access data for proposed moves
                     ArrayHandle<Scalar4> d_trial_postype(m_trial_postype,
@@ -1914,6 +1916,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                                        this->m_sysdef->getSeed(),
                                                        this->m_exec_conf->getRank(),
                                                        timestep,
+                                                       i,
                                                        this->m_pdata->getNTypes(),
                                                        box,
                                                        d_excell_idx.data,
@@ -2224,6 +2227,8 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateCellWidth()
         }
     }
 
+namespace detail
+    {
 //! Export this hpmc integrator to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
@@ -2242,6 +2247,8 @@ void export_IntegratorHPMCMonoGPU(pybind11::module& m, const std::string& name)
         ;
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP

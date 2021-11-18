@@ -9,6 +9,10 @@
 #include "WCAPotential.h"
 #include "DEMEvaluator.h"
 
+namespace hoomd
+    {
+namespace dem
+    {
 /*! Evaluate the potential between two points
 
   Parameters:
@@ -58,5 +62,8 @@ DEVICE inline void WCAPotential<Real, Real4, FrictionModel>::evaluate(const Vec&
         torque_j += cross(rjPrime, -force);
         }
     }
+
+    } // end namespace dem
+    } // end namespace hoomd
 
 #endif

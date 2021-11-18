@@ -19,6 +19,8 @@
 #include "hoomd/TextureTools.h"
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -202,7 +204,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     unsigned int ntyppairs = overlap_idx.getNumElements();
     unsigned int* s_overlap = (unsigned int*)(&s_check_overlaps[ntyppairs]);
 
-    // copy over parameters one int per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -376,14 +378,10 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
     hipMemsetAsync(args.d_n_overlap_all, 0, sizeof(unsigned int));
 
     // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    static hipFuncAttributes attr;
-    if (max_block_size == -1)
-        {
-        hipFuncGetAttributes(&attr,
-                             reinterpret_cast<const void*>(gpu_hpmc_free_volume_kernel<Shape>));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_hpmc_free_volume_kernel<Shape>));
+    max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel
     unsigned int n_groups
@@ -449,5 +447,7 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
     }; // end namespace detail
 
     } // end namespace hpmc
+
+    } // end namespace hoomd
 
 #endif // _COMPUTE_FREE_VOLUME_CUH_

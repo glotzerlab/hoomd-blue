@@ -10,8 +10,6 @@
 #include "NeighborListGPU.h"
 #include "NeighborListGPU.cuh"
 
-namespace py = pybind11;
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
@@ -21,6 +19,10 @@ namespace py = pybind11;
 #include <iostream>
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param num_iters Number of iterations to average for the benchmark
     \returns Milliseconds of execution time per calculation
 
@@ -96,18 +98,18 @@ bool NeighborListGPU::distanceCheck(uint64_t timestep)
 
         m_exec_conf->beginMultiGPU();
 
-        gpu_nlist_needs_update_check_new(d_flags.data,
-                                         d_last_pos.data,
-                                         d_pos.data,
-                                         m_pdata->getN(),
-                                         box,
-                                         d_rcut_max.data,
-                                         m_r_buff,
-                                         m_pdata->getNTypes(),
-                                         lambda_min,
-                                         lambda,
-                                         ++m_checkn,
-                                         m_pdata->getGPUPartition());
+        kernel::gpu_nlist_needs_update_check_new(d_flags.data,
+                                                 d_last_pos.data,
+                                                 d_pos.data,
+                                                 m_pdata->getN(),
+                                                 box,
+                                                 d_rcut_max.data,
+                                                 m_r_buff,
+                                                 m_pdata->getNTypes(),
+                                                 lambda_min,
+                                                 lambda,
+                                                 ++m_checkn,
+                                                 m_pdata->getGPUPartition());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -166,14 +168,14 @@ void NeighborListGPU::filterNlist()
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
 
     m_tuner_filter->begin();
-    gpu_nlist_filter(d_n_neigh.data,
-                     d_nlist.data,
-                     d_head_list.data,
-                     d_n_ex_idx.data,
-                     d_ex_list_idx.data,
-                     m_ex_list_indexer,
-                     m_pdata->getN(),
-                     m_tuner_filter->getParam());
+    kernel::gpu_nlist_filter(d_n_neigh.data,
+                             d_nlist.data,
+                             d_head_list.data,
+                             d_n_ex_idx.data,
+                             d_ex_list_idx.data,
+                             m_ex_list_indexer,
+                             m_pdata->getN(),
+                             m_tuner_filter->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_filter->end();
@@ -206,15 +208,15 @@ void NeighborListGPU::updateExListIdx()
                                             access_location::device,
                                             access_mode::overwrite);
 
-    gpu_update_exclusion_list(d_tag.data,
-                              d_rtag.data,
-                              d_n_ex_tag.data,
-                              d_ex_list_tag.data,
-                              m_ex_list_indexer_tag,
-                              d_n_ex_idx.data,
-                              d_ex_list_idx.data,
-                              m_ex_list_indexer,
-                              m_pdata->getN());
+    kernel::gpu_update_exclusion_list(d_tag.data,
+                                      d_rtag.data,
+                                      d_n_ex_tag.data,
+                                      d_ex_list_tag.data,
+                                      m_ex_list_indexer_tag,
+                                      d_n_ex_idx.data,
+                                      d_ex_list_idx.data,
+                                      m_ex_list_indexer,
+                                      m_pdata->getN());
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
@@ -256,13 +258,13 @@ void NeighborListGPU::buildHeadList()
                                                    access_mode::readwrite);
 
         m_tuner_head_list->begin();
-        gpu_nlist_build_head_list(d_head_list.data,
-                                  d_req_size_nlist.data,
-                                  d_Nmax.data,
-                                  d_pos.data,
-                                  m_pdata->getN(),
-                                  m_pdata->getNTypes(),
-                                  m_tuner_head_list->getParam());
+        kernel::gpu_nlist_build_head_list(d_head_list.data,
+                                          d_req_size_nlist.data,
+                                          d_Nmax.data,
+                                          d_pos.data,
+                                          m_pdata->getN(),
+                                          m_pdata->getNTypes(),
+                                          m_tuner_head_list->getParam());
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_head_list->end();
@@ -286,10 +288,17 @@ void NeighborListGPU::buildHeadList()
         m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListGPU(py::module& m)
+namespace detail
     {
-    py::class_<NeighborListGPU, NeighborList, std::shared_ptr<NeighborListGPU>>(m,
-                                                                                "NeighborListGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+void export_NeighborListGPU(pybind11::module& m)
+    {
+    pybind11::class_<NeighborListGPU, NeighborList, std::shared_ptr<NeighborListGPU>>(
+        m,
+        "NeighborListGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

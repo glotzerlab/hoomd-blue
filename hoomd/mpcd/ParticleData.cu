@@ -23,6 +23,8 @@
 #endif
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -119,13 +121,10 @@ cudaError_t mpcd::gpu::mark_removed_particles(unsigned char* d_remove_flags,
                                               const unsigned int N,
                                               const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::mark_removed_particles);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::mark_removed_particles);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N / run_block_size + 1);
@@ -203,13 +202,10 @@ cudaError_t mpcd::gpu::remove_particles(mpcd::detail::pdata_element* d_out,
                                         const unsigned int N,
                                         const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::remove_particles);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::remove_particles);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(n_remove / run_block_size + 1);
@@ -294,13 +290,10 @@ void mpcd::gpu::add_particles(unsigned int old_nparticles,
                               const unsigned int mask,
                               const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::add_particles);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::add_particles);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(num_add_ptls / run_block_size + 1);
@@ -313,5 +306,5 @@ void mpcd::gpu::add_particles(unsigned int old_nparticles,
                                                                d_in,
                                                                mask);
     }
-
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

@@ -20,6 +20,8 @@
 #include <bitset>
 #endif
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace detail
@@ -91,7 +93,7 @@ struct CellEnergyPackOp
 
     } // end namespace detail
     } // end namespace mpcd
-
+    } // end namespace hoomd
 #undef DEVICE
 
 #endif // MPCD_CELL_THERMO_TYPES_H_

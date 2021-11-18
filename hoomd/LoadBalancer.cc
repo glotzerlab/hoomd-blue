@@ -21,8 +21,9 @@
 #include <vector>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 /*!
  * \param sysdef System definition
  * \param decomposition Domain decomposition
@@ -44,12 +45,16 @@ LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
     m_decomposition = sysdef->getParticleData()->getDomainDecomposition();
 
     // default initialize the load balancing based on domain grid
-    if (m_decomposition)
+    if (m_sysdef->isDomainDecomposed())
         {
         const Index3D& di = m_decomposition->getDomainIndexer();
         m_enable_x = (di.getW() > 1);
         m_enable_y = (di.getH() > 1);
         m_enable_z = (di.getD() > 1);
+
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
         }
     else
 #endif // ENABLE_MPI
@@ -75,7 +80,7 @@ void LoadBalancer::update(uint64_t timestep)
 
 #ifdef ENABLE_MPI
     // do nothing if this run is not on MPI with more than 1 rank
-    if (!m_comm)
+    if (!m_sysdef->isDomainDecomposed())
         return;
 
     if (m_prof)
@@ -631,10 +636,12 @@ void LoadBalancer::resetStats()
     m_max_max_imbalance = Scalar(1.0);
     }
 
-void export_LoadBalancer(py::module& m)
+namespace detail
     {
-    py::class_<LoadBalancer, Tuner, std::shared_ptr<LoadBalancer>>(m, "LoadBalancer")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
+void export_LoadBalancer(pybind11::module& m)
+    {
+    pybind11::class_<LoadBalancer, Tuner, std::shared_ptr<LoadBalancer>>(m, "LoadBalancer")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
         .def_property("tolerance", &LoadBalancer::getTolerance, &LoadBalancer::setTolerance)
         .def_property("max_iterations",
                       &LoadBalancer::getMaxIterations,
@@ -643,3 +650,7 @@ void export_LoadBalancer(py::module& m)
         .def_property("y", &LoadBalancer::getEnableY, &LoadBalancer::setEnableY)
         .def_property("z", &LoadBalancer::getEnableZ, &LoadBalancer::setEnableZ);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

@@ -27,6 +27,8 @@
 
 #include <array>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Computes the MPCD cell list on the CPU
@@ -265,6 +267,9 @@ class PYBIND11_EXPORT CellList : public Compute
     std::array<unsigned int, 6> m_num_comm; //!< Number of cells to communicate on each face
     BoxDim m_cover_box;                     //!< Box covered by the cell list
 
+    /// The systems's communicator.
+    std::shared_ptr<Communicator> m_comm;
+
     //! Determine if embedded particles require migration
     virtual bool needsEmbedMigrate(uint64_t timestep);
 #endif // ENABLE_MPI
@@ -329,5 +334,6 @@ namespace detail
 void export_CellList(pybind11::module& m);
     } // end namespace detail
 
-    }      // end namespace mpcd
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_CELL_LIST_H_

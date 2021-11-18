@@ -34,6 +34,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing pair potentials
 /*! <b>Overview:</b>
     AnisoPotentialPair computes standard pair potentials (and forces) between all particle pairs in
@@ -243,7 +247,7 @@ void AnisoPotentialPair<aniso_evaluator>::connectGSDShapeSpec(std::shared_ptr<GS
 template<class aniso_evaluator>
 int AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
     {
-    GSDShapeSpecWriter shapespec(m_exec_conf);
+    hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
     m_exec_conf->msg->notice(10) << "AnisoPotentialPair writing to GSD File to name: "
                                  << shapespec.getName() << std::endl;
     int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params, m_shape_params));
@@ -725,6 +729,8 @@ CommFlags AnisoPotentialPair<aniso_evaluator>::getRequestedCommFlags(uint64_t ti
     }
 #endif
 
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated AnisoPotentialPair class template.
@@ -745,5 +751,9 @@ template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std:
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
         .def("getTypeShapesPy", &T::getTypeShapesPy);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __ANISO_POTENTIAL_PAIR_H__

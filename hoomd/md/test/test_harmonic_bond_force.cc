@@ -16,6 +16,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file harmonic_bond_force_test.cc
     \brief Implements unit tests for PotentialBondHarmonic and
@@ -104,7 +106,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
                        tol);
         }
 
-    // rearrange the two particles in memory and see if they are properly updated
+        // rearrange the two particles in memory and see if they are properly updated
         {
         ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(),
                                    access_location::host,
@@ -388,7 +390,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
     fc1->compute(0);
     fc2->compute(0);
 
-    // verify that the forces are identical (within roundoff errors)
+        // verify that the forces are identical (within roundoff errors)
         {
         GlobalArray<Scalar4>& force_array_7 = fc1->getForceArray();
         GlobalArray<Scalar>& virial_array_7 = fc1->getVirialArray();

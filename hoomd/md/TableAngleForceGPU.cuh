@@ -16,6 +16,12 @@
 #ifndef __TABLEANGLEFORCECOMPUTEGPU_CUH__
 #define __TABLEANGLEFORCECOMPUTEGPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver that computes table forces on the GPU for TableAngleForceGPU
 hipError_t gpu_compute_table_angle_forces(Scalar4* d_force,
                                           Scalar* d_virial,
@@ -31,5 +37,9 @@ hipError_t gpu_compute_table_angle_forces(Scalar4* d_force,
                                           const unsigned int table_width,
                                           const Index2D& table_value,
                                           const unsigned int block_size);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

@@ -31,6 +31,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 class EvaluatorPairDipole
     {
     public:
@@ -75,9 +79,9 @@ class EvaluatorPairDipole
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     struct shape_type
@@ -334,5 +338,8 @@ class EvaluatorPairDipole
     Scalar kappa;
     // const param_type &params;   //!< The pair potential parameters
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DIPOLE_H__

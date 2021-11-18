@@ -18,6 +18,10 @@
 #include <thrust/execution_policy.h>
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! Mark the particles that are off rank
 /*!
  * \param d_ranks The current rank of each particle
@@ -107,13 +111,11 @@ void gpu_load_balance_mark_rank(unsigned int* d_ranks,
                                 const unsigned int N,
                                 const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_load_balance_mark_rank_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_load_balance_mark_rank_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
+
     unsigned int run_block_size = min(block_size, max_block_size);
     unsigned int n_blocks = N / run_block_size + 1;
 
@@ -174,5 +176,9 @@ unsigned int gpu_load_balance_select_off_rank(unsigned int* d_off_rank,
         = thrust::copy_if(thrust::device, d_ranks, d_ranks + N, d_off_rank, NotEqual(cur_rank));
     return (unsigned int)(last - d_off_rank);
     }
+
+    } // end namespace kernel
+
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI

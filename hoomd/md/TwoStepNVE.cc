@@ -7,12 +7,15 @@
 #include "hoomd/VectorMath.h"
 
 using namespace std;
-namespace py = pybind11;
 
 /*! \file TwoStepNVE.h
     \brief Contains code for the TwoStepNVE class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param skip_restart Skip initialization of the restart information
@@ -400,10 +403,18 @@ void TwoStepNVE::integrateStepTwo(uint64_t timestep)
         m_prof->pop();
     }
 
-void export_TwoStepNVE(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE>>(m, "TwoStepNVE")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool>())
+void export_TwoStepNVE(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE>>(
+        m,
+        "TwoStepNVE")
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool>())
         .def_property("limit", &TwoStepNVE::getLimit, &TwoStepNVE::setLimit)
         .def_property("zero_force", &TwoStepNVE::getZeroForce, &TwoStepNVE::setZeroForce);
     }
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

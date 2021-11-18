@@ -10,6 +10,12 @@
 
 #include "AllDriverPotentialSpecialPairGPU.cuh"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! LJ special pair potential, internal
 hipError_t gpu_compute_lj_forces(const bond_args_t& bond_args,
                                  const special_lj_params* d_params,
@@ -25,3 +31,7 @@ hipError_t gpu_compute_coulomb_forces(const bond_args_t& bond_args,
     {
     return gpu_compute_bond_forces<EvaluatorSpecialPairCoulomb>(bond_args, d_params, d_flags);
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

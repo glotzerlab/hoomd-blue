@@ -14,11 +14,13 @@
 
 #include <array>
 
+namespace hoomd
+    {
 mpcd::SlitPoreGeometryFiller::SlitPoreGeometryFiller(
     std::shared_ptr<mpcd::SystemData> sysdata,
     Scalar density,
     unsigned int type,
-    std::shared_ptr<::Variant> T,
+    std::shared_ptr<Variant> T,
     uint16_t seed,
     std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom)
     : mpcd::VirtualParticleFiller(sysdata, density, type, T), m_num_boxes(0),
@@ -218,15 +220,16 @@ void mpcd::SlitPoreGeometryFiller::drawParticles(uint64_t timestep)
  */
 void mpcd::detail::export_SlitPoreGeometryFiller(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::SlitPoreGeometryFiller,
-               mpcd::VirtualParticleFiller,
-               std::shared_ptr<mpcd::SlitPoreGeometryFiller>>(m, "SlitPoreGeometryFiller")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
-                      Scalar,
-                      unsigned int,
-                      std::shared_ptr<::Variant>,
-                      unsigned int,
-                      std::shared_ptr<const mpcd::detail::SlitPoreGeometry>>())
+    pybind11::class_<mpcd::SlitPoreGeometryFiller,
+                     mpcd::VirtualParticleFiller,
+                     std::shared_ptr<mpcd::SlitPoreGeometryFiller>>(m, "SlitPoreGeometryFiller")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+                            Scalar,
+                            unsigned int,
+                            std::shared_ptr<Variant>,
+                            unsigned int,
+                            std::shared_ptr<const mpcd::detail::SlitPoreGeometry>>())
         .def("setGeometry", &mpcd::SlitPoreGeometryFiller::setGeometry);
     }
+
+    } // end namespace hoomd

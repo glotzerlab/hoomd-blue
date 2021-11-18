@@ -14,6 +14,8 @@
 
 #include "SystemDefinition.h"
 
+namespace hoomd
+    {
 class HalfStepHook
     {
     public:
@@ -25,5 +27,7 @@ class HalfStepHook
 
     virtual ~HalfStepHook() {};
     };
+
+    } // namespace hoomd
 
 #endif

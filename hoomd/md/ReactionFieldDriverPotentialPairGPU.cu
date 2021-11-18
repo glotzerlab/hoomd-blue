@@ -7,8 +7,19 @@
 
 #include "AllDriverPotentialPairGPU.cuh"
 #include "EvaluatorPairReactionField.h"
+
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_compute_reaction_field_forces(const pair_args_t& args,
                                              const EvaluatorPairReactionField::param_type* d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairReactionField>(args, d_params);
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

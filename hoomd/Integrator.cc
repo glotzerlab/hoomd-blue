@@ -3,8 +3,6 @@
 
 #include "Integrator.h"
 
-namespace py = pybind11;
-
 #ifdef ENABLE_HIP
 #include "Integrator.cuh"
 #endif
@@ -14,32 +12,49 @@ namespace py = pybind11;
 #endif
 
 #include <pybind11/stl_bind.h>
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceConstraint>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceCompute>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceConstraint>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceCompute>>);
 
 using namespace std;
 
+namespace hoomd
+    {
 /** @param sysdef System to update
     @param deltaT Time step to use
 */
 Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
     : Updater(sysdef), m_deltaT(deltaT)
     {
-    if (m_deltaT <= 0.0)
-        m_exec_conf->msg->warning()
-            << "integrate.*: A timestep of less than 0.0 was specified" << endl;
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+
+        // connect to ghost communication flags request
+        m_comm->getCommFlagsRequestSignal().connect<Integrator, &Integrator::determineFlags>(this);
+
+        m_comm->getComputeCallbackSignal().connect<Integrator, &Integrator::computeCallback>(this);
+        }
+#endif
+
+    if (m_deltaT < 0)
+        m_exec_conf->msg->warning() << "A step size dt of less than 0 was specified." << endl;
     }
 
 Integrator::~Integrator()
     {
 #ifdef ENABLE_MPI
     // disconnect
-    if (m_request_flags_connected && m_comm)
+    if (m_sysdef->isDomainDecomposed())
+        {
         m_comm->getCommFlagsRequestSignal().disconnect<Integrator, &Integrator::determineFlags>(
             this);
-    if (m_signals_connected && m_comm)
+
         m_comm->getComputeCallbackSignal().disconnect<Integrator, &Integrator::computeCallback>(
             this);
+        }
 #endif
     }
 
@@ -303,7 +318,7 @@ void Integrator::computeNetForce(uint64_t timestep)
         return;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // communicate the net force
         m_comm->updateNetForce(timestep);
@@ -472,7 +487,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force += 6)
             {
             // grab the device pointers for the current set
-            gpu_force_list force_list;
+            kernel::gpu_force_list force_list;
 
             const GlobalArray<Scalar4>& d_force_array0 = m_forces[cur_force]->getForceArray();
             ArrayHandle<Scalar4> d_force0(d_force_array0,
@@ -651,7 +666,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         return;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // communicate the net force
         m_comm->updateNetForce(timestep);
@@ -696,7 +711,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force += 6)
             {
             // grab the device pointers for the current set
-            gpu_force_list force_list;
+            kernel::gpu_force_list force_list;
             const GlobalArray<Scalar4>& d_force_array0
                 = m_constraint_forces[cur_force]->getForceArray();
             ArrayHandle<Scalar4> d_force0(d_force_array0,
@@ -904,7 +919,20 @@ void Integrator::update(uint64_t timestep)
 
     The base class does nothing, it is up to derived classes to implement the correct behavior.
 */
-void Integrator::prepRun(uint64_t timestep) { }
+void Integrator::prepRun(uint64_t timestep)
+    {
+    // ensure that all forces have updated delta t values at the start of step 0
+
+    for (auto& force : m_forces)
+        {
+        force->setDeltaT(m_deltaT);
+        }
+
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        constraint_force->setDeltaT(m_deltaT);
+        }
+    }
 
 #ifdef ENABLE_MPI
 /** @param tstep Time step for which to determine the flags
@@ -931,23 +959,6 @@ CommFlags Integrator::determineFlags(uint64_t timestep)
     return flags;
     }
 
-void Integrator::setCommunicator(std::shared_ptr<Communicator> comm)
-    {
-    // call base class method
-    Updater::setCommunicator(comm);
-
-    // connect to ghost communication flags request
-    if (!m_request_flags_connected && m_comm)
-        m_comm->getCommFlagsRequestSignal().connect<Integrator, &Integrator::determineFlags>(this);
-
-    m_request_flags_connected = true;
-
-    if (!m_signals_connected && m_comm)
-        comm->getComputeCallbackSignal().connect<Integrator, &Integrator::computeCallback>(this);
-
-    m_signals_connected = true;
-    }
-
 void Integrator::computeCallback(uint64_t timestep)
     {
     // pre-compute all active forces
@@ -958,7 +969,7 @@ void Integrator::computeCallback(uint64_t timestep)
     }
 #endif
 
-bool Integrator::getAnisotropic()
+bool Integrator::areForcesAnisotropic()
     {
     bool aniso = false;
     // pre-compute all active forces
@@ -975,15 +986,20 @@ bool Integrator::getAnisotropic()
     return aniso;
     }
 
-void export_Integrator(py::module& m)
+namespace detail
     {
-    py::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
-    py::bind_vector<std::vector<std::shared_ptr<ForceConstraint>>>(m, "ForceConstraintList");
-
-    py::class_<Integrator, Updater, std::shared_ptr<Integrator>>(m, "Integrator")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+void export_Integrator(pybind11::module& m)
+    {
+    pybind11::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<ForceConstraint>>>(m, "ForceConstraintList");
+    pybind11::class_<Integrator, Updater, std::shared_ptr<Integrator>>(m, "Integrator")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("updateGroupDOF", &Integrator::updateGroupDOF)
         .def_property("dt", &Integrator::getDeltaT, &Integrator::setDeltaT)
         .def_property_readonly("forces", &Integrator::getForces)
         .def_property_readonly("constraints", &Integrator::getConstraintForces);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

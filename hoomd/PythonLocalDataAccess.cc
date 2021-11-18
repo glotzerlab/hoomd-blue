@@ -1,5 +1,9 @@
 #include "PythonLocalDataAccess.h"
 
+namespace hoomd
+    {
+namespace detail
+    {
 void export_GhostDataFlag(pybind11::module& m)
     {
     pybind11::enum_<GhostDataFlag>(m, "GhostDataFlag")
@@ -17,6 +21,7 @@ void export_HOOMDHostBuffer(pybind11::module& m)
     }
 
 #if ENABLE_HIP
+
 void export_HOOMDDeviceBuffer(pybind11::module& m)
     {
     pybind11::class_<HOOMDDeviceBuffer>(m, "HOOMDDeviceBuffer")
@@ -25,4 +30,9 @@ void export_HOOMDDeviceBuffer(pybind11::module& m)
         .def_property_readonly("read_only", &HOOMDDeviceBuffer::getReadOnly);
     ;
     }
+
 #endif
+
+    } // end namespace detail
+
+    } // end namespace hoomd

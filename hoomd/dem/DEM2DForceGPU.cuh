@@ -18,6 +18,12 @@
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 
+namespace hoomd
+    {
+namespace dem
+    {
+namespace kernel
+    {
 //! Kernel driver that computes 2D DEM forces on the GPU for DEM2DForceComputeGPU
 template<typename Real, typename Real2, typename Real4, typename Evaluator>
 hipError_t gpu_compute_dem2d_forces(Scalar4* d_force,
@@ -42,6 +48,10 @@ hipError_t gpu_compute_dem2d_forces(Scalar4* d_force,
                                     const unsigned int n_shapes,
                                     const unsigned int particlesPerBlock,
                                     const unsigned int maxVerts);
+
+    } // end namespace kernel
+    } // end namespace dem
+    } // end namespace hoomd
 
 #endif
 
