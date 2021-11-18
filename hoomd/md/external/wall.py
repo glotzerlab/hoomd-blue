@@ -190,8 +190,8 @@ class WallPotential(force.Force):
           It is therefore up to the user to use walls in a physically meaningful
           manner. This includes the geometry of the walls, their interactions,
           and as noted here their location.
-        - When :math:`r_{\mathrm{cut}} \le 0` or is set to ``False`` the particle
-          type wall interaction is excluded.
+        - When :math:`r_{\mathrm{cut}} \le 0` or is set to ``False`` the
+          particle type wall interaction is excluded.
         - While wall potentials are based on the same potential energy
           calculations as pair potentials, features of pair potentials such as
           specified neighborlists, and alternative force shifting modes are not
