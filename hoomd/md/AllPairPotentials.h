@@ -166,18 +166,14 @@ typedef PotentialPairGPU<EvaluatorPairFourier, kernel::gpu_compute_fourier_force
 //! Pair potential force compute for oscillating pair potential
 typedef PotentialPairGPU<EvaluatorPairOPP, kernel::gpu_compute_opp_forces> PotentialPairOPPGPU;
 //! Pair potential force compute for Table pair potential on the GPU
-<<<<<<< HEAD
-typedef PotentialPairGPU<EvaluatorPairTable, gpu_compute_table_forces> PotentialPairTableGPU;
-//! Pair potential force compute for Cosine Squared pair potential on the GPU
-typedef PotentialPairGPU<EvaluatorPairCosineSquared, gpu_compute_cosinesquared_forces>
-    PotentialPairCosineSquaredGPU;
-=======
 typedef PotentialPairGPU<EvaluatorPairTable, kernel::gpu_compute_table_forces>
     PotentialPairTableGPU;
->>>>>>> master
 /// Pair potential force compute for Ten wolde and Frenkels globular protein
 /// model
 typedef PotentialPairGPU<EvaluatorPairTWF, kernel::gpu_compute_twf_forces> PotentialPairTWFGPU;
+//! Pair potential force compute for Cosine Squared pair potential on the GPU
+typedef PotentialPairGPU<EvaluatorPairCosineSquared, kernel::gpu_compute_cosinesquared_forces>
+    PotentialPairCosineSquaredGPU;
 
 #endif
 

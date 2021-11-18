@@ -6,7 +6,7 @@
 #include "AllDriverPotentialPairGPU.cuh"
 #include "EvaluatorPairCosineSquared.h"
 hipError_t gpu_compute_cosinesquared_forces(const pair_args_t& pair_args,
-                                            const EvaluatorPairCosineSquared::param_type* d_params)
+                                    const EvaluatorPairCosineSquared::param_type *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairCosineSquared>(pair_args, d_params);
     }

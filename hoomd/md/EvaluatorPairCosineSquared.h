@@ -25,6 +25,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Cosine Squared pair potential
 /*! <b>General Overview</b>
 
@@ -129,7 +133,7 @@ class EvaluatorPairCosineSquared
     */
     DEVICE EvaluatorPairCosineSquared(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
         : rsq(_rsq), rcutsq(_rcutsq), wca1(_params.wca1), wca2(_params.wca2), sigma(_params.sigma),
-          epsilon(_params.epsilon), wca(_params.wca)
+        epsilon(_params.epsilon), wca(_params.wca)
         {
         }
 
@@ -174,9 +178,14 @@ class EvaluatorPairCosineSquared
                 {
                 Scalar r2inv = Scalar(1.0) / rsq;
                 Scalar r6inv = r2inv * r2inv * r2inv;
+                Scalar shift = Scalar(0.0);
+                if (std::abs(sigmasq - rcutsq) < Scalar(0.000001)) 
+                    {
+                        shift = epsilon;
+                    }
 
                 force_divr = Scalar(12.0) * r2inv * r6inv * (wca1 * r6inv - wca2);
-                pair_eng = r6inv * (wca1 * r6inv - Scalar(2.0) * wca2);
+                pair_eng = r6inv * (wca1 * r6inv - Scalar(2.0) * wca2) + shift;
 
                 return true;
                 }
@@ -235,5 +244,8 @@ class EvaluatorPairCosineSquared
     Scalar epsilon; //!< parameters passed to the constructor
     bool wca;
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_COSINESQUARED_H__
