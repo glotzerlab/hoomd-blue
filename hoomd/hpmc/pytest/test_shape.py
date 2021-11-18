@@ -682,9 +682,13 @@ def test_logging():
             'translate_moves': {
                 'category': LoggerCategories.sequence,
                 'default': True
-            },
-            'type_shapes': {
-                'category': LoggerCategories.object,
-                'default': True
             }
         })
+    logging_check(
+        hoomd.hpmc.integrate.ConvexPolyhedron, ('hpmc', 'integrate'), {
+            'type_shapes': {
+                 'category': LoggerCategories.object,
+                 'default': True
+             }
+        }
+    )
