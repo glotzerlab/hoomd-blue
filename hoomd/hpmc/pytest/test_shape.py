@@ -685,10 +685,8 @@ def test_logging():
             }
         })
     logging_check(
-        hoomd.hpmc.integrate.ConvexPolyhedron, ('hpmc', 'integrate'), {
-            'type_shapes': {
-                 'category': LoggerCategories.object,
-                 'default': True
-             }
-        }
-    )
+        hoomd.hpmc.integrate.ConvexPolyhedron, ('hpmc', 'integrate'),
+        {'type_shapes': {
+            'category': LoggerCategories.object,
+            'default': True
+        }})
