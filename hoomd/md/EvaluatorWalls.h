@@ -242,16 +242,16 @@ template<class evaluator> class EvaluatorWalls
         // convert type as little as possible
         vec3<Scalar> position = vec3<Scalar>(m_pos);
         vec3<Scalar> drv;
-        bool inside = false;
+        bool in_active_space = false;
         if (m_params.rextrap > 0.0) // extrapolated mode
             {
             Scalar rextrapsq = m_params.rextrap * m_params.rextrap;
             Scalar rsq;
             for (unsigned int k = 0; k < m_field.numSpheres; k++)
                 {
-                drv = vecPtToWall(m_field.Spheres[k], position, inside);
+                drv = vecPtToWall(m_field.Spheres[k], position, in_active_space);
                 rsq = dot(drv, drv);
-                if (inside && rsq >= rextrapsq)
+                if (in_active_space && rsq >= rextrapsq)
                     {
                     callEvaluator(F, energy, drv);
                     }
@@ -260,23 +260,23 @@ template<class evaluator> class EvaluatorWalls
                     Scalar r = fast::sqrt(rsq);
                     if (rsq == 0.0)
                         {
-                        inside = true; // just in case
+                        in_active_space = true; // just in case
                         drv = (position - m_field.Spheres[k].origin) / m_field.Spheres[k].r;
                         }
                     else
                         {
                         drv *= 1 / r;
                         }
-                    r = inside ? m_params.rextrap - r : m_params.rextrap + r;
-                    drv *= inside ? r : -r;
+                    r = in_active_space ? m_params.rextrap - r : m_params.rextrap + r;
+                    drv *= in_active_space ? r : -r;
                     extrapEvaluator(F, energy, drv, rextrapsq, r);
                     }
                 }
             for (unsigned int k = 0; k < m_field.numCylinders; k++)
                 {
-                drv = vecPtToWall(m_field.Cylinders[k], position, inside);
+                drv = vecPtToWall(m_field.Cylinders[k], position, in_active_space);
                 rsq = dot(drv, drv);
-                if (inside && rsq >= rextrapsq)
+                if (in_active_space && rsq >= rextrapsq)
                     {
                     callEvaluator(F, energy, drv);
                     }
@@ -285,7 +285,7 @@ template<class evaluator> class EvaluatorWalls
                     Scalar r = fast::sqrt(rsq);
                     if (rsq == 0.0)
                         {
-                        inside = true; // just in case
+                        in_active_space = true; // just in case
                         drv = rotate(m_field.Cylinders[k].quatAxisToZRot,
                                      position - m_field.Cylinders[k].origin);
                         drv.z = 0.0;
@@ -296,16 +296,16 @@ template<class evaluator> class EvaluatorWalls
                         {
                         drv *= 1 / r;
                         }
-                    r = (inside) ? m_params.rextrap - r : m_params.rextrap + r;
-                    drv *= (inside) ? r : -r;
+                    r = (in_active_space) ? m_params.rextrap - r : m_params.rextrap + r;
+                    drv *= (in_active_space) ? r : -r;
                     extrapEvaluator(F, energy, drv, rextrapsq, r);
                     }
                 }
             for (unsigned int k = 0; k < m_field.numPlanes; k++)
                 {
-                drv = vecPtToWall(m_field.Planes[k], position, inside);
+                drv = vecPtToWall(m_field.Planes[k], position, in_active_space);
                 rsq = dot(drv, drv);
-                if (inside && rsq >= rextrapsq)
+                if (in_active_space && rsq >= rextrapsq)
                     {
                     callEvaluator(F, energy, drv);
                     }
@@ -314,15 +314,15 @@ template<class evaluator> class EvaluatorWalls
                     Scalar r = fast::sqrt(rsq);
                     if (rsq == 0.0)
                         {
-                        inside = true; // just in case
+                        in_active_space = true; // just in case
                         drv = m_field.Planes[k].normal;
                         }
                     else
                         {
                         drv *= 1 / r;
                         }
-                    r = (inside) ? m_params.rextrap - r : m_params.rextrap + r;
-                    drv *= (inside) ? r : -r;
+                    r = (in_active_space) ? m_params.rextrap - r : m_params.rextrap + r;
+                    drv *= (in_active_space) ? r : -r;
                     extrapEvaluator(F, energy, drv, rextrapsq, r);
                     }
                 }
@@ -331,24 +331,24 @@ template<class evaluator> class EvaluatorWalls
             {
             for (unsigned int k = 0; k < m_field.numSpheres; k++)
                 {
-                drv = vecPtToWall(m_field.Spheres[k], position, inside);
-                if (inside)
+                drv = vecPtToWall(m_field.Spheres[k], position, in_active_space);
+                if (in_active_space)
                     {
                     callEvaluator(F, energy, drv);
                     }
                 }
             for (unsigned int k = 0; k < m_field.numCylinders; k++)
                 {
-                drv = vecPtToWall(m_field.Cylinders[k], position, inside);
-                if (inside)
+                drv = vecPtToWall(m_field.Cylinders[k], position, in_active_space);
+                if (in_active_space)
                     {
                     callEvaluator(F, energy, drv);
                     }
                 }
             for (unsigned int k = 0; k < m_field.numPlanes; k++)
                 {
-                drv = vecPtToWall(m_field.Planes[k], position, inside);
-                if (inside)
+                drv = vecPtToWall(m_field.Planes[k], position, in_active_space);
+                if (in_active_space)
                     {
                     callEvaluator(F, energy, drv);
                     }

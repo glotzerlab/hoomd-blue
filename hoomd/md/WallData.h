@@ -129,16 +129,16 @@ struct __attribute__((visibility("default"))) PlaneWall
 /* Returns 0 vector when all normal directions are equal
  */
 DEVICE inline vec3<Scalar>
-vecPtToWall(const SphereWall& wall, const vec3<Scalar>& position, bool& inside)
+vecPtToWall(const SphereWall& wall, const vec3<Scalar>& position, bool& in_active_space)
     {
     const vec3<Scalar> dist_from_origin = position - wall.origin;
     const Scalar euclidean_dist = sqrt(dot(dist_from_origin, dist_from_origin));
     if (euclidean_dist == 0.0)
         {
-        inside = wall.open;
+        in_active_space = wall.open;
         return vec3<Scalar>(0.0, 0.0, 0.0);
         }
-    inside
+    in_active_space
         = ((euclidean_dist < wall.r) && wall.inside) || ((euclidean_dist > wall.r) && !wall.inside);
     return ((wall.r / euclidean_dist) - 1) * dist_from_origin;
     };
@@ -147,7 +147,7 @@ vecPtToWall(const SphereWall& wall, const vec3<Scalar>& position, bool& inside)
 /* Returns 0 vector when all normal directions are equal
  */
 DEVICE inline vec3<Scalar>
-vecPtToWall(const CylinderWall& wall, const vec3<Scalar>& position, bool& inside)
+vecPtToWall(const CylinderWall& wall, const vec3<Scalar>& position, bool& in_active_space)
     {
     const vec3<Scalar> dist_from_origin = position - wall.origin;
     vec3<Scalar> rotated_distance = rotate(wall.quatAxisToZRot, dist_from_origin);
@@ -155,27 +155,27 @@ vecPtToWall(const CylinderWall& wall, const vec3<Scalar>& position, bool& inside
     const Scalar euclidean_dist = sqrt(dot(rotated_distance, rotated_distance));
     if (euclidean_dist == 0.0)
         {
-        inside = wall.open;
+        in_active_space = wall.open;
         return vec3<Scalar>(0.0, 0.0, 0.0);
         }
-    inside = ((euclidean_dist < wall.r) && wall.inside)
-             || ((euclidean_dist > wall.r) && !(wall.inside));
+    in_active_space = ((euclidean_dist < wall.r) && wall.inside)
+                      || ((euclidean_dist > wall.r) && !(wall.inside));
     const vec3<Scalar> dx = ((wall.r / euclidean_dist) - 1) * rotated_distance;
     return rotate(conj(wall.quatAxisToZRot), dx);
     };
 
 //! Point to wall vector for a plane wall geometry
 DEVICE inline vec3<Scalar>
-vecPtToWall(const PlaneWall& wall, const vec3<Scalar>& position, bool& inside)
+vecPtToWall(const PlaneWall& wall, const vec3<Scalar>& position, bool& in_active_space)
     {
     vec3<Scalar> t = position;
     Scalar distance = dot(wall.normal, t) - dot(wall.normal, wall.origin);
     if (distance == 0)
         {
-        inside = wall.open;
+        in_active_space = wall.open;
         return vec3<Scalar>(0.0, 0.0, 0.0);
         }
-    inside = distance > 0.0;
+    in_active_space = distance > 0.0;
     return -distance * wall.normal;
     };
 
@@ -189,7 +189,7 @@ DEVICE inline Scalar distWall(const SphereWall& wall, const vec3<Scalar>& positi
     Scalar rxyz2
         = shiftedPos.x * shiftedPos.x + shiftedPos.y * shiftedPos.y + shiftedPos.z * shiftedPos.z;
     Scalar d = wall.r - sqrt(rxyz2);
-    d = (wall.inside) ? d : -d;
+    d = wall.inside ? d : -d;
     return d;
     };
 
@@ -202,7 +202,7 @@ DEVICE inline Scalar distWall(const CylinderWall& wall, const vec3<Scalar>& posi
     vec3<Scalar> shiftedPos = rotate(wall.quatAxisToZRot, t);
     Scalar rxy2 = shiftedPos.x * shiftedPos.x + shiftedPos.y * shiftedPos.y;
     Scalar d = wall.r - sqrt(rxy2);
-    d = (wall.inside) ? d : -d;
+    d = wall.inside ? d : -d;
     return d;
     };
 
