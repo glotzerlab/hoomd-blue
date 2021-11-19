@@ -17,3 +17,6 @@ compile_commands.json
 
 # general specification of editor standards
 .editorconfig
+
+# virtualenv
+.venv
