@@ -111,7 +111,7 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                                                   box,
                                                                   this->m_tuner->getParam()),
                                 d_params.data,
-                                this->field.get());
+                                this->m_field.get());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
