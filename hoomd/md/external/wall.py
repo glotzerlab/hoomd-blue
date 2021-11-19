@@ -28,12 +28,12 @@ import hoomd
 
 def _to_md_cpp_wall(wall):
     if isinstance(wall, hoomd.wall.Sphere):
-        return _md.SphereWall(wall.radius, wall.origin, wall.inside)
+        return _md.SphereWall(wall.radius, wall.origin, wall.inside, wall.open)
     if isinstance(wall, hoomd.wall.Cylinder):
         return _md.CylinderWall(wall.radius, wall.origin, wall.axis,
-                                wall.inside)
+                                wall.inside, wall.open)
     if isinstance(wall, hoomd.wall.Plane):
-        return _md.PlaneWall(wall.origin, wall.normal)
+        return _md.PlaneWall(wall.origin, wall.normal, wall.open)
     raise TypeError(f"Unknown wall type encountered {type(wall)}.")
 
 

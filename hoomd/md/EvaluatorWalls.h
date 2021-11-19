@@ -211,11 +211,7 @@ template<class evaluator> class EvaluatorWalls
 
         if (evaluated)
             {
-            // add the force and potential energy to the particle i
-            pair_eng
-                = pair_eng
-                  + force_divr * m_params.rextrap * r; // removing half since the other "particle"
-                                                       // won't be represented * Scalar(0.5);
+            pair_eng = pair_eng + force_divr * m_params.rextrap * r;
             force_divr *= m_params.rextrap / r;
 // correctly result in a 0 force in this case
 #ifdef __HIPCC__
@@ -227,10 +223,8 @@ template<class evaluator> class EvaluatorWalls
                 force_divr = Scalar(0.0);
                 pair_eng = Scalar(0.0);
                 }
-            // add the force and potential energy to the particle i
             F += dr * force_divr;
-            energy += pair_eng; // removing half since the other "particle" won't be represented *
-                                // Scalar(0.5);
+            energy += pair_eng;
             }
         }
 

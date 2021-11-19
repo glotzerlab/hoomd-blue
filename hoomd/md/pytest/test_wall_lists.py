@@ -21,18 +21,22 @@ def wall_collection():
 def wall_type_lists(request):
     """Returns a list of wall data objects and their type name."""
     return {
-        "sphere": ("sphere", (_md.SphereWall(4.0, (1.0, 0.0, 0.0), False),
-                              _md.SphereWall(6.5, (0.0, 1.0, 0.0), True),
-                              _md.SphereWall(0.5, (1.0, 2.0, 3.0), True))),
-        "cylinder": ("cylinder", (_md.CylinderWall(4.0, (1.0, 0.0, 0.0),
-                                                   (1.0, 0.0, 0.0), False),
-                                  _md.CylinderWall(6.5, (0.0, 1.0, 0.0),
-                                                   (0.0, 1.0, 0.0), True),
-                                  _md.CylinderWall(0.5, (1.0, 2.0, 3.0),
-                                                   (3.0, 2.5, 3.0), True))),
-        "plane": ("plane", (_md.PlaneWall((1.0, 0.0, 0.0), (1.0, 0.0, 0.0)),
-                            _md.PlaneWall((0.0, 1.0, 0.0), (0.0, 1.0, 0.0)),
-                            _md.PlaneWall((1.0, 2.0, 3.0), (3.0, 2.5, 3.0))))
+        "sphere": ("sphere", (_md.SphereWall(4.0, (1.0, 0.0, 0.0), False, True),
+                              _md.SphereWall(6.5, (0.0, 1.0, 0.0), True, False),
+                              _md.SphereWall(0.5, (1.0, 2.0, 3.0), True,
+                                             True))),
+        "cylinder":
+            ("cylinder", (_md.CylinderWall(4.0, (1.0, 0.0, 0.0),
+                                           (1.0, 0.0, 0.0), False, True),
+                          _md.CylinderWall(6.5, (0.0, 1.0, 0.0),
+                                           (0.0, 1.0, 0.0), True, False),
+                          _md.CylinderWall(0.5, (1.0, 2.0, 3.0),
+                                           (3.0, 2.5, 3.0), True, False))),
+        "plane": ("plane", (_md.PlaneWall(
+            (1.0, 0.0, 0.0), (1.0, 0.0, 0.0),
+            False), _md.PlaneWall(
+                (0.0, 1.0, 0.0), (0.0, 1.0, 0.0),
+                True), _md.PlaneWall((1.0, 2.0, 3.0), (3.0, 2.5, 3.0), True)))
     }[request.param]
 
 

@@ -27,31 +27,37 @@ _test_args = (
     (_md.SphereWall, ({
         "radius": 4.0,
         "origin": (1.0, 0, 0),
-        "inside": True
+        "inside": True,
+        "open": False
     }, {
         "radius": 1.0,
         "origin": (0.0, 0.0, 0.0),
-        "inside": False
+        "inside": False,
+        "open": False
     }, {
         "radius": 3.1415,
         "origin": (-1.0, -2.0, 2.0),
-        "inside": False
+        "inside": False,
+        "open": True
     })),
     (_md.CylinderWall, ({
         "radius": 4.0,
         "origin": (1.0, 0, 0),
         "axis": (1.0, 0.0, 0),
-        "inside": True
+        "inside": True,
+        "open": True
     }, {
         "radius": 1.0,
         "origin": (0.0, 0.0, 0.0),
         "axis": (0.0, 1.0, 0.0),
-        "inside": False
+        "inside": False,
+        "open": False
     }, {
         "radius": 3.1415,
         "origin": (-1.0, -2.0, 1.0),
         "axis": (0.0, 0.0, 1.0),
-        "inside": False
+        "inside": False,
+        "open": True
     })),
     (
         _md.PlaneWall,
@@ -61,14 +67,17 @@ _test_args = (
             {
                 "origin": (1.0, 0, 0),
                 "normal": (1.0, 0.0, 0),
+                "open": False
             },
             {
                 "origin": (0.0, 0.0, 0.0),
                 "normal": (0.0, 1.0, 0.0),
+                "open": True
             },
             {
                 "origin": (-1.0, -2.0, 1.0),
                 "normal": (0.0, 0.0, 1.0),
+                "open": False
             })))
 
 

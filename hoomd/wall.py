@@ -42,13 +42,16 @@ class Sphere(WallGeometry):
         `Sphere` objects are immutable.
 
     Args:
-        radius (`float`, optional):
+        radius (`float`):
             The radius of the sphere.
         origin (`tuple` [`float`,`float`,`float`], optional):
-            The origin of the sphere.
+            The origin of the sphere, defaults to ``(0, 0, 0)``.
         inside (`bool`, optional):
             Whether particles are restricted to the space inside or outside the
-            sphere.
+            sphere, defaults to ``True``.
+        open (`bool`, optional):
+            Whether to include the surface of the sphere in the space. ``True``
+            means do not include the surface, defaults to ``True``.
 
     Attributes:
         radius (float):
@@ -58,15 +61,20 @@ class Sphere(WallGeometry):
         inside (bool):
             Whether particles are restricted to the space inside or outside the
             sphere.
+        open (bool):
+            Whether to include the surface of the sphere in the space. Open
+            means do not include the surface.
     """
 
-    def __init__(self, radius=0.0, origin=(0.0, 0.0, 0.0), inside=True):
+    def __init__(self, radius, origin=(0.0, 0.0, 0.0), inside=True, open=True):
         param_dict = ParameterDict(radius=float,
                                    origin=(float, float, float),
-                                   inside=bool)
+                                   inside=bool,
+                                   open=bool)
         param_dict["radius"] = radius
         param_dict["origin"] = origin
         param_dict["inside"] = inside
+        param_dict["open"] = open
         self._param_dict = param_dict
 
     def __str__(self):
@@ -76,14 +84,15 @@ class Sphere(WallGeometry):
     def __repr__(self):
         """A string representation of the Sphere."""
         return f"Sphere(radius={self.radius}, origin={self.origin}, "
-        f"inside={self.inside})"
+        f"inside={self.inside}, open={self.open})"
 
     def to_dict(self):
         """Return a dictionary specifying the sphere."""
         return {
             "radius": self.radius,
             "origin": self.origin,
-            "inside": self.inside
+            "inside": self.inside,
+            "open": self.open
         }
 
 
@@ -97,16 +106,19 @@ class Cylinder(WallGeometry):
         `Cylinder` objects are immutable.
 
     Args:
-        radius (`float`, optional):
+        radius (`float`):
             The radius of the circle faces of the cylinder.
+        axis (`tuple` [`float`,`float`,`float`]):
+            A vector perpendicular to the circular faces.
         origin (`tuple` [`float`,`float`,`float`], optional):
             The origin of the cylinder defined as the center of the bisecting
             circle along the cylinder's axis.
-        axis (`tuple` [`float`,`float`,`float`], optional):
-            A vector perpendicular to the circular faces.
         inside (`bool`, optional):
             Whether particles are restricted to the space inside or outside the
             cylinder.
+        open (`bool`, optional):
+            Whether to include the surface of the cylinder in the space.
+            ``True`` means do not include the surface, defaults to ``True``.
 
     Attributes:
         radius (float):
@@ -119,21 +131,27 @@ class Cylinder(WallGeometry):
         inside (bool):
             Whether particles are restricted to the space inside or outside the
             cylinder.
+        open (`bool`, optional):
+            Whether to include the surface of the cylinder in the space.
+            ``True`` means do not include the surface.
     """
 
     def __init__(self,
-                 radius=0.0,
+                 radius,
+                 axis,
                  origin=(0.0, 0.0, 0.0),
-                 axis=(0.0, 0.0, 1.0),
-                 inside=True):
+                 inside=True,
+                 open=True):
         param_dict = ParameterDict(radius=float,
                                    origin=(float, float, float),
                                    axis=(float, float, float),
-                                   inside=bool)
+                                   inside=bool,
+                                   open=bool)
         param_dict["radius"] = radius
         param_dict["origin"] = origin
         param_dict["axis"] = axis
         param_dict["inside"] = inside
+        param_dict["open"] = open
         self._param_dict = param_dict
 
     def __str__(self):
@@ -143,7 +161,7 @@ class Cylinder(WallGeometry):
     def __repr__(self):
         """A string representation of the Cylinder."""
         return f"Cylinder(radius={self.radius}, origin={self.origin}, "
-        f"axis={self.axis}, inside={self.inside})"
+        f"axis={self.axis}, inside={self.inside}, open={self.open})"
 
     def to_dict(self):
         """Return a dictionary specifying the cylinder."""
@@ -151,7 +169,8 @@ class Cylinder(WallGeometry):
             "radius": self.radius,
             "origin": self.origin,
             "axis": self.axis,
-            "inside": self.inside
+            "inside": self.inside,
+            "open": self.open
         }
 
 
@@ -164,11 +183,14 @@ class Plane(WallGeometry):
         `Plane` objects are immutable.
 
     Args:
-        origin (`tuple` [`float`,`float`,`float`], optional):
+        origin (`tuple` [`float`,`float`,`float`]):
             A point that lies on the plane used with ``normal`` to fully specify
             the plane.
-        normal (`tuple` [`float`,`float`,`float`], optional):
+        normal (`tuple` [`float`,`float`,`float`]):
             The normal vector to the plane.
+        open (`bool`, optional):
+            Whether to include the surface of the plane in the space. ``True``
+            means do not include the surface, defaults to ``True``.
 
     Attributes:
         origin (`tuple` [`float`,`float`,`float`]):
@@ -176,13 +198,18 @@ class Plane(WallGeometry):
             the plane.
         normal (`tuple` [`float`,`float`,`float`]):
             The normal vector to the plane.
+        open (bool):
+            Whether to include the surface of the plane in the space. ``True``
+            means do not include the surface.
     """
 
-    def __init__(self, origin=(0.0, 0.0, 0.0), normal=(0.0, 0.0, 1.0)):
+    def __init__(self, origin, normal):
         param_dict = ParameterDict(origin=(float, float, float),
-                                   normal=(float, float, float))
+                                   normal=(float, float, float),
+                                   open=bool)
         param_dict["origin"] = origin
         param_dict["normal"] = normal
+        param_dict["open"] = open
         self._param_dict = param_dict
 
     def __str__(self):
@@ -191,14 +218,12 @@ class Plane(WallGeometry):
 
     def __repr__(self):
         """A string representation of the Plane."""
-        return f"Plane(origin={self.origin}, normal={self.normal})"
+        return f"Plane(origin={self.origin}, normal={self.normal}, "
+        f"open={self.open})"
 
     def to_dict(self):
         """Return a dictionary specifying the plane."""
-        return {
-            "origin": self.origin,
-            "normal": self.axis,
-        }
+        return {"origin": self.origin, "normal": self.axis, "open": self.open}
 
 
 class _MetaListIndex:

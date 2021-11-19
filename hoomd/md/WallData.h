@@ -41,13 +41,17 @@ namespace md
     {
 struct __attribute__((visibility("default"))) SphereWall
     {
-    SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0, 0.0, 0.0), bool ins = true)
-        : origin(vec3<Scalar>(orig)), r(rad), inside(ins)
+    SphereWall(Scalar rad = 0.0,
+               Scalar3 orig = make_scalar3(0.0, 0.0, 0.0),
+               bool ins = true,
+               bool open_ = true)
+        : origin(vec3<Scalar>(orig)), r(rad), inside(ins), open(open_)
         {
         }
     vec3<Scalar> origin; // need to order datatype in descending order of type size for Fermi
     Scalar r;
     bool inside;
+    bool open;
     } __attribute__((aligned(ALIGN_SCALAR))); // align according to first member of vec3<Scalar>
 
 //! CylinderWall Constructor
@@ -63,8 +67,9 @@ struct __attribute__((visibility("default"))) CylinderWall
     CylinderWall(Scalar rad = 0.0,
                  Scalar3 orig = make_scalar3(0.0, 0.0, 0.0),
                  Scalar3 zorient = make_scalar3(0.0, 0.0, 1.0),
-                 bool ins = true)
-        : origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient)), r(rad), inside(ins)
+                 bool ins = true,
+                 bool open_ = true)
+        : origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient)), r(rad), inside(ins), open(open_)
         {
         vec3<Scalar> zVec = axis;
         vec3<Scalar> zNorm(0.0, 0.0, 1.0);
@@ -95,6 +100,7 @@ struct __attribute__((visibility("default"))) CylinderWall
     vec3<Scalar> axis;
     Scalar r;
     bool inside;
+    bool open;
     } __attribute__((aligned(ALIGN_SCALAR))); // align according to first member of quat<Scalar>
 
 //! PlaneWall Constructor
@@ -104,8 +110,9 @@ struct __attribute__((visibility("default"))) CylinderWall
 struct __attribute__((visibility("default"))) PlaneWall
     {
     PlaneWall(Scalar3 orig = make_scalar3(0.0, 0.0, 0.0),
-              Scalar3 norm = make_scalar3(0.0, 0.0, 1.0))
-        : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig))
+              Scalar3 norm = make_scalar3(0.0, 0.0, 1.0),
+              bool open_ = true)
+        : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig)), open(open_)
         {
         vec3<Scalar> nVec;
         nVec = normal;
@@ -115,7 +122,7 @@ struct __attribute__((visibility("default"))) PlaneWall
         }
     vec3<Scalar> normal;
     vec3<Scalar> origin;
-    bool inside;
+    bool open;
     } __attribute__((aligned(ALIGN_SCALAR))); // align according to first member of vec3<Scalar>
 
 //! Point to wall vector for a sphere wall geometry
@@ -124,23 +131,16 @@ struct __attribute__((visibility("default"))) PlaneWall
 DEVICE inline vec3<Scalar>
 vecPtToWall(const SphereWall& wall, const vec3<Scalar>& position, bool& inside)
     {
-    vec3<Scalar> t = position;
-    t -= wall.origin;
-    vec3<Scalar> shiftedPos(t);
-    Scalar rxyz = sqrt(dot(shiftedPos, shiftedPos));
-    if (rxyz > 0.0)
+    const vec3<Scalar> dist_from_origin = position - wall.origin;
+    const Scalar euclidean_dist = sqrt(dot(dist_from_origin, dist_from_origin));
+    if (euclidean_dist == 0.0)
         {
-        inside = (((rxyz <= wall.r) && wall.inside) || ((rxyz > wall.r) && !(wall.inside))) ? true
-                                                                                            : false;
-        t *= wall.r / rxyz;
-        vec3<Scalar> dx = t - shiftedPos;
-        return dx;
-        }
-    else
-        {
-        inside = (wall.inside) ? true : false;
+        inside = wall.open;
         return vec3<Scalar>(0.0, 0.0, 0.0);
         }
+    inside
+        = ((euclidean_dist < wall.r) && wall.inside) || ((euclidean_dist > wall.r) && !wall.inside);
+    return ((wall.r / euclidean_dist) - 1) * dist_from_origin;
     };
 
 //! Point to wall vector for a cylinder wall geometry
@@ -149,25 +149,19 @@ vecPtToWall(const SphereWall& wall, const vec3<Scalar>& position, bool& inside)
 DEVICE inline vec3<Scalar>
 vecPtToWall(const CylinderWall& wall, const vec3<Scalar>& position, bool& inside)
     {
-    vec3<Scalar> t = position;
-    t -= wall.origin;
-    vec3<Scalar> shiftedPos = rotate(wall.quatAxisToZRot, t);
-    shiftedPos.z = 0.0;
-    Scalar rxy = sqrt(dot(shiftedPos, shiftedPos));
-    if (rxy > 0.0)
+    const vec3<Scalar> dist_from_origin = position - wall.origin;
+    vec3<Scalar> rotated_distance = rotate(wall.quatAxisToZRot, dist_from_origin);
+    rotated_distance.z = 0.0;
+    const Scalar euclidean_dist = sqrt(dot(rotated_distance, rotated_distance));
+    if (euclidean_dist == 0.0)
         {
-        inside = (((rxy <= wall.r) && wall.inside) || ((rxy > wall.r) && !(wall.inside))) ? true
-                                                                                          : false;
-        t = (wall.r / rxy) * shiftedPos;
-        vec3<Scalar> dx = t - shiftedPos;
-        dx = rotate(conj(wall.quatAxisToZRot), dx);
-        return dx;
-        }
-    else
-        {
-        inside = (wall.inside) ? true : false;
+        inside = wall.open;
         return vec3<Scalar>(0.0, 0.0, 0.0);
         }
+    inside = ((euclidean_dist < wall.r) && wall.inside)
+             || ((euclidean_dist > wall.r) && !(wall.inside));
+    const vec3<Scalar> dx = ((wall.r / euclidean_dist) - 1) * rotated_distance;
+    return rotate(conj(wall.quatAxisToZRot), dx);
     };
 
 //! Point to wall vector for a plane wall geometry
@@ -175,10 +169,14 @@ DEVICE inline vec3<Scalar>
 vecPtToWall(const PlaneWall& wall, const vec3<Scalar>& position, bool& inside)
     {
     vec3<Scalar> t = position;
-    Scalar d = dot(wall.normal, t) - dot(wall.normal, wall.origin);
-    inside = d >= 0.0 ? true : false;
-    vec3<Scalar> dx = -d * wall.normal;
-    return dx;
+    Scalar distance = dot(wall.normal, t) - dot(wall.normal, wall.origin);
+    if (distance == 0)
+        {
+        inside = wall.open;
+        return vec3<Scalar>(0.0, 0.0, 0.0);
+        }
+    inside = distance > 0.0;
+    return -distance * wall.normal;
     };
 
 //! Distance of point to inside sphere wall geometry, not really distance, +- based on if it's
