@@ -229,23 +229,12 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
         {
         this->m_type_mapping = snapshot.type_mapping;
 
-        if (bond)
+        typeval_t t;
+        t.type = 0;
+        //t.type = snapshot.type_id[0];
+        for (unsigned group_idx = 0; group_idx < all_groups.size(); group_idx++)
             {
-            typeval_t t;
-            t.type = snapshot.type_id[0];
-            for (unsigned group_idx = 0; group_idx < all_groups.size(); group_idx++)
-                {
-                addBondedGroup(Group(t, all_groups[group_idx]));
-                }
-            }
-        else
-            {
-            for (unsigned group_idx = 0; group_idx < all_groups.size(); group_idx++)
-                {
-                typeval_t t;
-                t.type = snapshot.type_id[group_idx];
-                addBondedGroup(Group(t, all_groups[group_idx]));
-                }
+            addBondedGroup(Group(t, all_groups[group_idx]));
             }
         }
     }
