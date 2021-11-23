@@ -55,12 +55,9 @@ class MeshBond(Force):
 
     def _attach(self):
         """Create the c++ mirror class."""
-        if not self._mesh._added:
-            self._mesh._add(self._simulation)
-        else:
-            if self._simulation != self._mesh._simulation:
-                raise RuntimeError("{} object's mesh is used in a "
-                                   "different simulation.".format(type(self)))
+        if self._simulation != self._mesh._simulation:
+            raise RuntimeError("{} object's mesh is used in a "
+                               "different simulation.".format(type(self)))
 
         if not self.mesh._attached:
             self.mesh._attach()
@@ -135,8 +132,8 @@ class Harmonic(MeshBond):
     Examples::
 
         harmonic = mesh.bond.Harmonic(mesh)
-        harmonic.params['wall'] = dict(k=3.0, r0=2.38)
-        harmonic.params['vesicle'] = dict(k=10.0, r0=1.0)
+        harmonic.params['mesh'] = dict(k=3.0, r0=2.38)
+        harmonic.parameter = dict(k=10.0, r0=1.0)
     """
     _cpp_class_name = "PotentialMeshBondHarmonic"
 
@@ -178,9 +175,9 @@ class FENE(MeshBond):
     Examples::
 
         bond_potential = mesh.bond.FENE(mesh)
-        bond_potential.params['molecule'] = dict(k=3.0, r0=2.38,
+        bond_potential.params['mesh'] = dict(k=3.0, r0=2.38,
                                                  epsilon=1.0, sigma=1.0)
-        bond_potential.params['vesicle'] = dict(k=10.0, r0=1.0,
+        bond_potential.parameter = dict(k=10.0, r0=1.0,
                                                  epsilon=0.8, sigma=1.2)
 
     """
@@ -232,8 +229,8 @@ class Tether(MeshBond):
     Examples::
 
         bond_potential = mesh.bond.Tether(mesh)
-        bond_potential.params['tether'] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
-                                               l_c0=1.8, l_max=2.1)
+        bond_potential.parameter = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
+                                         l_c0=1.8, l_max=2.1)
     """
     _cpp_class_name = "PotentialMeshBondTether"
 
