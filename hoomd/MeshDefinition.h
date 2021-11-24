@@ -24,7 +24,8 @@ namespace hoomd
 class Communicator;
 #endif
 
-//! Mesh class that contains all infrastructure necessary to combine a set of particles into a mesh triangulation
+//! Mesh class that contains all infrastructure necessary to combine a set of particles into a mesh
+//! triangulation
 /*! MeshDefinition is a container class to define a mesh tringulation comprised of the
     particles within the simulation system. The vertices of the mesh are given by the
     particle positions. The information which vertex tuples are directly bonded (i.e. share an
