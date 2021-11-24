@@ -5,7 +5,6 @@
 """Implement type conversion helpers."""
 
 import numpy as np
-from itertools import repeat, cycle
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping
 from inspect import isclass
@@ -446,28 +445,24 @@ class TypeConverterSequence(TypeConverter):
     the inputted sequence, a corresponding `TypeConverter` object is
     constructed.
 
-    Parameters:
-        sequence (Sequence[Any]): Any sequence or iterator, anything else passed
-            is an error.
+    Args:
+         coverter (TypeConverter): Any object compatible with the type converter
+            API.
 
     Specification:
-        When validating, if a single element was given that element is repeated
-        for every element of the inputed sequence. Otherwise, we cycle through
-        the given values. This makes this class unsuited for fix length
-        sequences (`TypeConverterFixedLengthSequence` exists for this). Examples
-        include,
+        When validating, the given element was given that element is repeated
+        for every element of the inputed sequence. This class is unsuited for
+        fix length sequences (`TypeConverterFixedLengthSequence` exists for
+        this). An Example,
 
         .. code-block:: python
 
             # All elements should be floats
-            TypeConverterSequence([float])
-
-            # All elements should be in a float int ordering
-            TypeConverterSequence([float, int])
+            TypeConverterSequence(float)
     """
 
-    def __init__(self, sequence):
-        self.converter = [to_type_converter(item) for item in sequence]
+    def __init__(self, converter):
+        self.converter = converter
 
     def __call__(self, sequence):
         """Called when the value is set."""
@@ -478,19 +473,12 @@ class TypeConverterSequence(TypeConverter):
         else:
             new_sequence = []
             try:
-                for i, (v, c) in enumerate(zip(sequence, self)):
-                    new_sequence.append(c(v))
+                for i, v in enumerate(sequence):
+                    new_sequence.append(self.converter(v))
             except (ValueError, TypeError) as err:
                 raise TypeConversionError(
                     "In list item number {i}: {str(err)}") from err
             return new_sequence
-
-    def __iter__(self):
-        """Iterate over converters in the sequence."""
-        if len(self.converter) == 1:
-            yield from repeat(self.converter[0])
-        else:
-            yield from cycle(self.converter)
 
 
 class TypeConverterFixedLengthSequence(TypeConverter):
@@ -632,7 +620,7 @@ def to_type_converter(value):
     if isinstance(value, tuple):
         return TypeConverterFixedLengthSequence(value)
     if _is_iterable(value):
-        return TypeConverterSequence(value)
+        return TypeConverterSequence(value[0])
     elif isinstance(value, Mapping):
         return TypeConverterMapping(value)
     else:
