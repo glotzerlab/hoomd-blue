@@ -358,7 +358,9 @@ class TypeParameterDict(_ValidatedDefaultDict):
     def _single_getitem(self, key):
         """Access parameter by key."""
         if not self._attached:
-            return self._dict.get(key, self.default)
+            if key not in self:
+                self._dict[key] = self.default
+            return self._dict[key]
         return getattr(self._cpp_obj, self._getter)(key)
 
     def _single_setitem(self, key, item):
