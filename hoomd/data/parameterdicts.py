@@ -82,7 +82,7 @@ class _ValidatedDefaultDict(MutableMapping):
     The keyword argument ``_defaults`` is special and is used to specify default
     values at object construction.
 
-    All keys into this mapping are expected to be str instance is _len_keys is
+    All keys into this mapping are expected to be str instance if _len_keys is
     one, otherwise a tuple of str instances. For tuples, the tuple is sorted
     first before accessing or setting any data. This is to prevent needing to
     store data for both ``("a", "b")`` and ``("b", "a")`` while preventing the
@@ -176,8 +176,8 @@ class _ValidatedDefaultDict(MutableMapping):
                 the mapping.  Must be compatible with the typing specification
                 specified on construction.
         """
-        self.__setitem__(filter(self.__contains__, self._yield_keys(keys)),
-                         default)
+        self.__setitem__(
+            (key for key in self._yield_keys(keys) if key not in self), default)
 
     def _validate_values(self, value):
         validated_value = self._type_converter(value)
