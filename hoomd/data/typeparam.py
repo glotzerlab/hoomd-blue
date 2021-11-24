@@ -5,9 +5,13 @@
 """Implement TypeParameter."""
 
 from collections.abc import MutableMapping
-from hoomd.data.parameterdicts import AttachedTypeParameterDict
+import copy
 
 
+# This class serves as a shim class between TypeParameterDict and the user. This
+# class is documented for users and methods are documented for the API
+# documentation. For documentation on the mechanics and internal structure go to
+# the documentation for hoomd.data.parameterdicts.TypeParameterDict.
 class TypeParameter(MutableMapping):
     """Implement a type based mutable mapping.
 
@@ -192,13 +196,12 @@ class TypeParameter(MutableMapping):
         self.param_dict.default = value
 
     def _attach(self, cpp_obj, sim):
-        self.param_dict = AttachedTypeParameterDict(
-            cpp_obj, self.name, getattr(sim.state, self.type_kind),
-            self.param_dict)
+        self.param_dict._attach(cpp_obj, self.name,
+                                getattr(sim.state, self.type_kind))
         return self
 
     def _detach(self):
-        self.param_dict = self.param_dict.to_detached()
+        self.param_dict._detach()
         return self
 
     def to_dict(self):
@@ -215,14 +218,13 @@ class TypeParameter(MutableMapping):
 
     def __getstate__(self):
         """Prepare data for pickling."""
-        state = {
+        param_dict = copy.copy(self.param_dict)
+        param_dict._detach()
+        return {
             'name': self.name,
             'type_kind': self.type_kind,
-            'param_dict': self.param_dict
+            'param_dict': param_dict
         }
-        if isinstance(self.param_dict, AttachedTypeParameterDict):
-            state['param_dict'] = self.param_dict.to_detached()
-        return state
 
     def __setstate__(self, state):
         """Load pickled data."""

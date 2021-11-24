@@ -1,9 +1,8 @@
 from hoomd.conftest import pickling_check
-from hoomd.data.parameterdicts import (TypeParameterDict,
-                                       AttachedTypeParameterDict)
+from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
 from hoomd.data.typeconverter import RequiredArg
-from hoomd.error import TypeConversionError
+from hoomd.error import TypeConversionError, IncompleteSpecificationError
 from pytest import fixture, raises
 
 
@@ -176,21 +175,30 @@ def test_changing_defaults(typedict_singleton_keys):
         typedict_singleton_keys.default
 
 
+def test_premature_attaching(typedict_singleton_keys):
+    sim = DummySimulation()
+    cpp_obj = DummyCppObj()
+    typedict_singleton_keys['A'] = dict(bar='first')
+    typedict_singleton_keys['B'] = dict(bar='second')
+    with raises(IncompleteSpecificationError):
+        typedict_singleton_keys._attach(cpp_obj,
+                                        param_name='type_param',
+                                        types=sim.state.particle_types)
+
+
 def test_attaching(typedict_singleton_keys):
     sim = DummySimulation()
     cpp_obj = DummyCppObj()
     typedict_singleton_keys['A'] = dict(bar='first')
     typedict_singleton_keys['B'] = dict(bar='second')
-    with raises(ValueError):
-        AttachedTypeParameterDict(cpp_obj,
-                                  param_name='type_param',
-                                  types=sim.state.particle_types,
-                                  type_param_dict=typedict_singleton_keys)
     typedict_singleton_keys['C'] = dict(bar='third')
-    return AttachedTypeParameterDict(cpp_obj,
-                                     param_name='type_param',
-                                     types=sim.state.particle_types,
-                                     type_param_dict=typedict_singleton_keys)
+    typedict_singleton_keys._attach(cpp_obj,
+                                    param_name='type_param',
+                                    types=sim.state.particle_types)
+    assert typedict_singleton_keys['A']["bar"] == "first"
+    assert typedict_singleton_keys['B']["bar"] == "second"
+    assert typedict_singleton_keys['C']["bar"] == "third"
+    return typedict_singleton_keys
 
 
 @fixture(scope='function')
@@ -240,24 +248,20 @@ def test_pair_attached_value_setting(typedict_pair_keys, valid_pair_keys):
     # all other values have defaults so add a default to prevent errors for not
     # specifying all required parameters.
     typedict_pair_keys.default = {"bar": 3.0}
-    attached_type_parameter = AttachedTypeParameterDict(
-        cpp_obj,
-        param_name='type_param',
-        types=sim.state.particle_types,
-        type_param_dict=typedict_pair_keys)
-    attached_type_parameter[("A", "B")] = {"foo": 2, "baz": "world"}
-    attached_type_parameter[("A", ["B", "C"])] = {"foo": 2, "baz": "world"}
+    typedict_pair_keys._attach(cpp_obj,
+                               param_name='type_param',
+                               types=sim.state.particle_types)
+
+    typedict_pair_keys[("A", "B")] = {"foo": 2, "baz": "world"}
+    typedict_pair_keys[("A", ["B", "C"])] = {"foo": 2, "baz": "world"}
     with raises(KeyError):
-        attached_type_parameter[("A", "D")] = {"foo": 4}
+        typedict_pair_keys[("A", "D")] = {"foo": 4}
 
 
 def test_attach_dettach(attached_param_dict):
-    tp = attached_param_dict.to_detached()
-    assert tp.default == attached_param_dict.default
-    assert tp._type_converter == attached_param_dict._type_converter
-    assert tp['A'] == attached_param_dict['A']
-    assert tp['B'] == attached_param_dict['B']
-    assert type(tp) == TypeParameterDict
+    attached_param_dict._detach()
+    assert attached_param_dict['A'] == attached_param_dict['A']
+    assert attached_param_dict['B'] == attached_param_dict['B']
 
 
 def test_pickling(typedict_pair_keys, attached_param_dict):

@@ -113,7 +113,6 @@ attaching, detaching, and removal.
 In Python, five fundamental classes exist for value validation, processing, and
 syncing when attached: `hoomd.data.parameterdicts.ParameterDict`,
 `hoomd.data.parameterdicts.TypeParameterDict`,
-`hoomd.data.parameterdicts.AttachedTypeParameterDict`,
 `hoomd.data.typeparam.TypeParameter`, and
 `hoomd.data.syncedlist.SyncedList`.
 These can be/are used by `_HOOMDBaseObject` subclasses as well as others.
@@ -136,7 +135,7 @@ variables that are on a per-object basis (i.e. not per type). Examples of
 this can be seen in many HOOMD classes.  One good example is
 `hoomd.md.update.ReversePerturbationFlow`.
 
-#### `TypeParameterDict` and `AttachedTypeParameterDict`
+#### `TypeParameterDict`
 
 These classes work together to define validated mappings from types or groups of
 types to values. The type validation and processing logic is identical to that
@@ -152,11 +151,11 @@ potential `params` (see `hoomd/md/pair/pair.py`) and HPMC shape specs (see
 
 #### `TypeParameter`
 
-This class is a wrapper for `TypeParameterDict` and `AttachedTypeParameterDict`
-to work with `_HOOMDBaseObject` subclass instances. It provides very little
-independent logic and can be found in `hoomd/data/typeparam.py`.
-`_HOOMDBaseObject` expects the values of `_typeparam_dict` keys to be
-`TypeParameter` instances. See the methods
+This class is a wrapper for `TypeParameterDict` to work with `_HOOMDBaseObject`
+subclass instances. It provides very little independent logic and can be found
+in `hoomd/data/typeparam.py`. This class primarily serves as the source of user
+documentation for type parameters. `_HOOMDBaseObject` expects the values of
+`_typeparam_dict` keys to be `TypeParameter` instances. See the methods
 `hoomd.operation._HOOMDBaseObject._append_typeparm` and
 `hoomd.operation._HOOMDBaseObject._extend_typeparm` for more information.
 

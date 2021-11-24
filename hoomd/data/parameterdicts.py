@@ -6,9 +6,11 @@
 
 from abc import abstractmethod
 from collections.abc import Mapping, MutableMapping
-from itertools import product, combinations_with_replacement
 from copy import copy
+from itertools import product, combinations_with_replacement
+
 import numpy as np
+
 from hoomd.util import _to_camel_case, _is_iterable
 from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
                                       TypeConverterMapping, OnlyIf, Either)
@@ -302,7 +304,42 @@ class _ValidatedDefaultDict(MutableMapping):
 
 
 class TypeParameterDict(_ValidatedDefaultDict):
-    """Type parameter dictionary."""
+    """Type parameter dictionary.
+
+    This class has an attached and detached mode. When attached the mapping is
+    synchronized with a C++ class.
+
+    The class performs the same indexing and mutation options as
+    `_ValidatedDefaultDict` allows. However, when attached it only allows
+    querying for keys that match the actual types of the simulation it is
+    attached to.
+
+    The interface expects the passed in C++ object to have a getter and setter
+    that follow the camel case style version of ``param_name`` as passed to
+    `_attach`.
+
+    Note:
+        This class should not be directly instantiated even by developers, but
+        the `hoomd.data.type_param.TypeParameter` class should be used to
+        automatically handle this in conjunction with
+        `hoomd.operation._BaseHOOMDObject` subclasses.
+
+    Attributes:
+        _len_keys (int): The size of each key.
+        _dict (dict): The underlying data when unattached.
+        _cpp_obj: Either ``None`` when not attached or a pybind11 C++ wrapped
+            class to interface setting and getting type parameters with.
+        _getter (str or NoneType): ``None`` when instantiated and set when first
+            attached. This records the getter name for the `cpp_obj` associated
+            with the last `_attach` call.
+        _setter (str or NoneType): ``None`` when instantiated and set when first
+            attached. This records the setter name for the `cpp_obj` associated
+            with the last `_attach` call.
+        _type_keys (list[``key_type``] or NoneType): ``None`` when instantiated
+            and set when first attached. This records the available types for
+            the `simulation` associated with the last `_attach` call.
+
+    """
 
     def __init__(self, *args, len_keys, **kwargs):
 
@@ -312,109 +349,47 @@ class TypeParameterDict(_ValidatedDefaultDict):
         self._len_keys = len_keys
         self._set_validation_and_defaults(*args, **kwargs)
         self._dict = {}
+        self._cpp_obj = None
+
+    @property
+    def _attached(self):
+        return self._cpp_obj is not None
 
     def _single_getitem(self, key):
         """Access parameter by key."""
-        try:
-            return self._dict[key]
-        except KeyError:
-            return self.default
+        if not self._attached:
+            return self._dict.get(key, self.default)
+        return getattr(self._cpp_obj, self._getter)(key)
 
     def _single_setitem(self, key, item):
-        """Set parameter by key."""
-        self._dict[key] = item
+        """Set parameter by key.
+
+        Assumes value to be validated already.
+        """
+        if not self._attached:
+            self._dict[key] = item
+        else:
+            getattr(self._cpp_obj, self._setter)(key, item)
 
     def __iter__(self):
         """Get the keys in the mapping."""
-        if self._len_keys == 1:
-            yield from self._dict.keys()
-        else:
-            for key in self._dict.keys():
-                yield tuple(sorted(list(key)))
+        if self._attached:
+            yield from self._type_keys
+            return
+        # keys are already sorted so no need to sort again
+        yield from self._dict.keys()
 
     def __len__(self):
         """Return mapping length."""
+        if self._attached:
+            return len(self._type_keys)
         return len(self._dict)
 
     def to_dict(self):
         """Convert to a `dict`."""
-        return self._dict
-
-
-class AttachedTypeParameterDict(_ValidatedDefaultDict):
-    """Parameter dictionary synchronized with a C++ class.
-
-    This class serves as the "attached" version of the `TypeParameterDict`. The
-    class performs the same indexing and mutation options as
-    `TypeParameterDict`, but only allows querying for keys that match the actual
-    types of the simulation it is attached to.
-
-    The interface expects the passed in C++ object to have a getter and setter
-    that follow the camel case style version of ``param_name``. Likewise
-    type_kind must be a str of a valid attribute to query types from the state.
-
-    Args:
-        cpp_obj:
-            A pybind11 wrapped C++ object to set and get the type parameters
-            from.
-        param_name (str):
-            A snake case parameter name (handled automatically by
-            ``TypeParameter``) that when changed to camel case prefixed by get
-            or set is the str name for the pybind11 exported getter and setter.
-        type_kind (str):
-            The str name of the attribute to query the parent simulation's state
-            for existent types.
-        type_param_dict (TypeParameterDict):
-            The `TypeParameterDict` to convert to the "attached" version.
-        sim (hoomd.Simulation):
-            The simulation to attach to.
-
-    Note:
-        This class should not be directly instantiated even by developers, but
-        the `hoomd.data.type_param.TypeParameter` class should be used to
-        automatically handle this in conjunction with
-        `hoomd.operation._BaseHOOMDObject` subclasses.
-    """
-
-    def __init__(self, cpp_obj, param_name, types, type_param_dict):
-        # store info to communicate with c++
-        self._cpp_obj = cpp_obj
-        self._setter = "set" + _to_camel_case(param_name)
-        self._getter = "get" + _to_camel_case(param_name)
-        self._len_keys = type_param_dict._len_keys
-        self._type_keys = self._compute_type_keys(types)
-        # Get default data
-        self._default = type_param_dict._default
-        self._type_converter = type_param_dict._type_converter
-        # add all types to c++
-        for key in self:
-            parameter = type_param_dict._single_getitem(key)
-            try:
-                _raise_if_required_arg(parameter)
-            except IncompleteSpecificationError as err:
-                raise IncompleteSpecificationError(f"for key {key} {str(err)}")
-            self._single_setitem(key, parameter)
-
-    def to_detached(self):
-        """Convert to a detached parameter dict."""
-        if isinstance(self.default, dict):
-            type_param_dict = TypeParameterDict(**self.default,
-                                                len_keys=self._len_keys)
-        else:
-            type_param_dict = TypeParameterDict(self.default,
-                                                len_keys=self._len_keys)
-        type_param_dict._type_converter = self._type_converter
-        for key in self:
-            type_param_dict[key] = self[key]
-        return type_param_dict
-
-    def _single_getitem(self, key):
-        """Access parameter by key."""
-        return getattr(self._cpp_obj, self._getter)(key)
-
-    def _single_setitem(self, key, item):
-        """Set parameter by key."""
-        getattr(self._cpp_obj, self._setter)(key, item)
+        if not self._attached:
+            return self._dict
+        return {key: getattr(self._cpp_obj, self._getter)(key) for key in self}
 
     def _yield_keys(self, key):
         """Includes key check for existing simulation keys.
@@ -423,6 +398,10 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         methods that rely on them will error properly even if we don't check for
         the key's existence there.
         """
+        if not self._attached:
+            yield from super()._yield_keys(key)
+            return
+
         for key in super()._yield_keys(key):
             if key not in self._type_keys:
                 raise KeyError("Type {} does not exist in the "
@@ -432,7 +411,8 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
     def _validate_values(self, val):
         val = super()._validate_values(val)
-        _raise_if_required_arg(val)
+        if self._attached:
+            _raise_if_required_arg(val)
         return val
 
     def _compute_type_keys(self, types):
@@ -450,20 +430,38 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
                 for key in combinations_with_replacement(types, self._len_keys)
             }
 
-    def __iter__(self):
-        """Iterate through mapping keys."""
-        yield from self._type_keys
+    def _attach(self, cpp_obj, param_name, types):
+        """Attach type parameter to a C++ object with per type data.
 
-    def __len__(self):
-        """Return mapping length."""
-        return len(self._type_keys)
-
-    def to_dict(self):
-        """Convert to a `dict`."""
-        rtn_dict = {}
+        Args:
+            cpp_obj: A pybind11 wrapped C++ object to set and get the type
+                parameters from.
+            param_name (str): A snake case parameter name (handled automatically
+                by ``TypeParameter``) that when changed to camel case prefixed
+                by get or set is the str name for the pybind11 exported getter
+                and setter.
+            types (list[str]): The str names of the available types for the type
+                parameter.
+        """
+        # store info to communicate with c++
+        self._cpp_obj = cpp_obj
+        self._setter = "set" + _to_camel_case(param_name)
+        self._getter = "get" + _to_camel_case(param_name)
+        self._type_keys = self._compute_type_keys(types)
+        # add all types to c++
         for key in self:
-            rtn_dict[key] = getattr(self._cpp_obj, self._getter)(key)
-        return rtn_dict
+            parameter = self._dict.get(key, self.default)
+            try:
+                _raise_if_required_arg(parameter)
+            except IncompleteSpecificationError as err:
+                raise IncompleteSpecificationError(f"for key {key} {str(err)}")
+            self._single_setitem(key, parameter)
+
+    def _detach(self):
+        """Convert to a detached parameter dict."""
+        for key in self:
+            self._dict[key] = self._single_getitem(key)
+        self._cpp_obj = None
 
 
 class ParameterDict(MutableMapping):
