@@ -5,11 +5,10 @@
 """Implement local access classes for the GPU."""
 
 from hoomd import _hoomd
-from hoomd.md import _md
 from hoomd.data.local_access import (
     ParticleLocalAccessBase, BondLocalAccessBase, ConstraintLocalAccessBase,
     DihedralLocalAccessBase, AngleLocalAccessBase, ImproperLocalAccessBase,
-    PairLocalAccessBase, _LocalSnapshot, ForceLocalAccessBase)
+    PairLocalAccessBase, _LocalSnapshot)
 
 from hoomd.data.array import HOOMDGPUArray
 import hoomd
@@ -64,11 +63,6 @@ if hoomd.version.gpu_enabled:
             self._pairs = PairLocalAccessGPU(state)
             self._constraints = ConstraintLocalAccessGPU(state)
 
-    class ForceLocalAccessGPU(ForceLocalAccessBase):
-        """Access force array data on the GPU."""
-        _cpp_cls = _md.LocalForceComputeDataDevice
-        _array_cls = HOOMDGPUArray
-
 else:
     from hoomd.util import _NoGPU
 
@@ -101,10 +95,6 @@ else:
         pass
 
     class LocalSnapshotGPU(_NoGPU, _LocalSnapshot):
-        """GPU data access is not available in CPU builds."""
-        pass
-
-    class ForceLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""
         pass
 

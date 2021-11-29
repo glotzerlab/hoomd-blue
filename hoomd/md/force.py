@@ -215,7 +215,7 @@ class Custom(Force):
             raise RuntimeError("Cannot enter cpu_local_force_arrays context "
                                "manager inside another local_force_arrays "
                                "context manager")
-        return hoomd.data.ForceLocalAccess(self)
+        return hoomd.md.data.ForceLocalAccess(self)
 
     @property
     def gpu_local_force_arrays(self):
@@ -247,7 +247,7 @@ class Custom(Force):
             raise RuntimeError(
                 "Cannot enter gpu_local_force_arrays context manager inside "
                 "another local_force_arrays context manager")
-        return hoomd.data.ForceLocalAccessGPU(self)
+        return hoomd.md.data.ForceLocalAccessGPU(self)
 
     @abstractmethod
     def set_forces(self, timestep):

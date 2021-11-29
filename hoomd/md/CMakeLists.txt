@@ -358,6 +358,8 @@ install(FILES ${_md_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/md
        )
 
+add_subdirectory(data)
+
 add_subdirectory(pair)
 
 add_subdirectory(methods)

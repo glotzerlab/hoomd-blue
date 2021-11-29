@@ -4,13 +4,14 @@
 
 """Implement local access classes for the CPU."""
 
-from hoomd.data.local_access import (
-    ParticleLocalAccessBase, BondLocalAccessBase, AngleLocalAccessBase,
-    DihedralLocalAccessBase, ImproperLocalAccessBase, ConstraintLocalAccessBase,
-    PairLocalAccessBase, _LocalSnapshot, ForceLocalAccessBase)
+from hoomd.data.local_access import (ParticleLocalAccessBase,
+                                     BondLocalAccessBase, AngleLocalAccessBase,
+                                     DihedralLocalAccessBase,
+                                     ImproperLocalAccessBase,
+                                     ConstraintLocalAccessBase,
+                                     PairLocalAccessBase, _LocalSnapshot)
 from hoomd.data.array import HOOMDArray
 from hoomd import _hoomd
-from hoomd.md import _md
 
 
 class ParticleLocalAccessCPU(ParticleLocalAccessBase):
@@ -91,13 +92,3 @@ class LocalSnapshot(_LocalSnapshot):
         self._impropers = ImproperLocalAccessCPU(state)
         self._pairs = PairLocalAccessCPU(state)
         self._constraints = ConstraintLocalAccessCPU(state)
-
-
-class ForceLocalAccess(ForceLocalAccessBase):
-    """Access force data on the CPU."""
-
-    _cpp_cls = _md.LocalForceComputeDataHost
-    _array_cls = HOOMDArray
-
-    def __init__(self, force_obj):
-        super().__init__(force_obj)
