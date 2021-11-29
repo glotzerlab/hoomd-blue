@@ -17,7 +17,6 @@ hoomd.data
     ImproperLocalAccessBase
     PairLocalAccessBase
     ParticleLocalAccessBase
-    ForceLocalAccessBase
     hoomd.data.typeparam.TypeParameter
 
 .. rubric:: Details
@@ -30,8 +29,7 @@ hoomd.data
               DihedralLocalAccessBase,
               ImproperLocalAccessBase,
               PairLocalAccessBase,
-              ParticleLocalAccessBase,
-              ForceLocalAccessBase
+              ParticleLocalAccessBase
 
     .. autoclass:: LocalSnapshot
         :inherited-members:

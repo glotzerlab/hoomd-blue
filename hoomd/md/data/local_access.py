@@ -8,23 +8,7 @@ from abc import abstractmethod
 import hoomd
 
 
-class ForceLocalAccessBase(hoomd.data.local_access._LocalAccess):
-    """Class for accessing HOOMD-Blue custom force data.
-
-    Attributes:
-        force ((N_particles, 3) `hoomd.data.array` of ``float``):
-            Local force data. :math:`[\\mathrm{force}]`
-        potential_energy ((N_particles,) `hoomd.data.array` of ``float``):
-            Local potential energy data. :math:`[\\mathrm{energy}]`
-        torque ((N_particles, 3) `hoomd.data.array` of ``float``):
-            Local torque data. :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`
-        virial ((N_particles, 6) `hoomd.data.array` of ``float``):
-            Local virial data. :math:`[\\mathrm{energy}]`
-        rtag ((N_particles_global) `hoomd.data.array` of ``int``):
-            The reverse tag of a particle. This means that the value
-            ``force_data.rtag[0]`` represents the current index accessing data
-            for the particle with tag 0.
-    """
+class _ForceLocalAccessBase(hoomd.data.local_access._LocalAccess):
     __slots__ = ('_entered', '_accessed_fields', '_cpp_obj', '_force_obj')
 
     @property
@@ -45,12 +29,10 @@ class ForceLocalAccessBase(hoomd.data.local_access._LocalAccess):
         self._cpp_obj = self._cpp_cls(force_obj._cpp_obj)
 
     def __enter__(self):
-        """Called upon entering a context manager."""
         self._force_obj._in_context_manager = True
         self._enter()
         return self
 
     def __exit__(self, type, value, traceback):
-        """Called upon exiting a context manager."""
         self._force_obj._in_context_manager = False
         self._exit()
