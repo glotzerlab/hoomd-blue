@@ -263,8 +263,9 @@ def test_nested_context_managers(force_cls, two_particle_snapshot_factory,
 
 class GhostForceAccessCPU(md.force.Custom):
 
-    def __init__(self):
+    def __init__(self, num_ranks):
         super().__init__()
+        self._num_ranks = num_ranks
         self._array_buffers = []
         for buffer in ['force', 'torque', 'potential_energy', 'virial']:
             self._array_buffers.append(buffer)
@@ -275,7 +276,9 @@ class GhostForceAccessCPU(md.force.Custom):
         """Ensure the lengths of the accessed buffers are right."""
         for buffer_name in self._array_buffers:
             buffer = getattr(arrays, buffer_name)
-            if buffer_name.endswith('_with_ghost'):
+            if buffer_name.startswith('ghost_') and self._num_ranks == 1:
+                assert len(buffer) == 0
+            elif buffer_name.endswith('_with_ghost') or self._num_ranks == 1:
                 assert len(buffer) == 2
             else:
                 assert len(buffer) == 1
@@ -287,8 +290,8 @@ class GhostForceAccessCPU(md.force.Custom):
 
 class GhostForceAccessGPU(GhostForceAccessCPU):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, num_ranks):
+        super().__init__(num_ranks)
 
     def set_forces(self, timestep):
         with self.gpu_local_force_arrays as arrays:
@@ -304,7 +307,7 @@ def test_ghost_data_access(force_cls, two_particle_snapshot_factory,
 
     # split simulation so there is 1 particle in rank
     sim = simulation_factory(snap, (2, 1, 1))
-    custom_force = force_cls()
+    custom_force = force_cls(sim.device.communicator.num_ranks)
 
     # make LJ force so there is a ghost width on each rank
     nlist = md.nlist.Cell()
