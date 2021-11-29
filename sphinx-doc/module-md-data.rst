@@ -24,4 +24,3 @@ md.data
         :inherited-members:
 
 .. rubric:: Modules
-
