@@ -536,3 +536,203 @@ class ListWriter(hoomd.custom.Action):
     def act(self, timestep):
         """Add the attribute value to the list."""
         self.data.append(getattr(self._operation, self._attribute))
+
+
+class BaseTestList:
+    """Basic extensible test suite for list-like classes."""
+
+    @pytest.fixture
+    def generate_plain_list(self):
+        """Return a function that generates plain lists for tests."""
+        raise NotImplementedError
+
+    def check_equivalent(self, a, b):
+        """Assert whether two lists are equivalent for test purposes."""
+        assert len(a) == len(b)
+        for x, y in zip(a, b):
+            assert self.is_equal(x, y)
+
+    def is_equal(self, a, b):
+        """Return whether two list items are equal."""
+        return a is b
+
+    def final_check(self, test_list):
+        """Perform any final assert on the list like object."""
+        assert True
+
+    _rng = numpy.random.default_rng(15656456)
+
+    @property
+    def rng(self):
+        """Return a randon number generator."""
+        return self._rng
+
+    @pytest.fixture(autouse=True, params=(5, 10, 20))
+    def n(self, request):
+        """Fixture that controls tested list sizes."""
+        return request.param
+
+    @pytest.fixture(scope="function")
+    def plain_list(self, n, generate_plain_list):
+        """Return a plain list with specified items."""
+        return generate_plain_list(n)
+
+    @pytest.fixture(scope="function")
+    def empty_list(self):
+        """Return an empty test class list."""
+        raise NotImplementedError
+
+    @pytest.fixture(scope="function")
+    def populated_list(self, empty_list, plain_list):
+        """Return a test list populated with plain_list and the plain_list."""
+        empty_list.extend(plain_list)
+        return empty_list, plain_list
+
+    def test_contains(self, empty_list, plain_list, generate_plain_list):
+        """Test __contains__."""
+        for item in plain_list:
+            empty_list._list.append(item)
+            assert item in empty_list
+        new_list = generate_plain_list(5)
+        for item in new_list:
+            if item in plain_list:
+                assert item in empty_list
+            else:
+                assert item not in empty_list
+
+    def test_len(self, populated_list):
+        """Test __len__."""
+        test_list, plain_list = populated_list
+        assert len(test_list) == len(plain_list)
+        del test_list._list[-1]
+        assert len(test_list) == len(plain_list) - 1
+
+    def test_iter(self, populated_list):
+        """Test __iter__."""
+        test_list, plain_list = populated_list
+        for t_item, p_item in zip(test_list, plain_list):
+            assert self.is_equal(t_item, p_item)
+
+    def test_getitem(self, populated_list):
+        """Test __getitem__."""
+        test_list, plain_list = populated_list
+        for i, p_item in enumerate(plain_list):
+            assert self.is_equal(test_list[i], p_item)
+        assert all(
+            self.is_equal(t, p) for t, p in zip(test_list[:], plain_list))
+        assert all(
+            self.is_equal(t, p) for t, p in zip(test_list[1:], plain_list[1:]))
+
+    @pytest.fixture(params=(3, 6, 11))
+    def delete_index(self, request):
+        """Determines the indices used for test_delitem."""
+        return request.param
+
+    def test_delitem(self, delete_index, populated_list):
+        """Test __delitem__."""
+        test_list, plain_list = populated_list
+        if delete_index >= len(test_list):
+            with pytest.raises(IndexError):
+                del test_list[delete_index]
+            return
+        old_item = test_list[delete_index]
+        del test_list[delete_index]
+        del plain_list[delete_index]
+        self.check_equivalent(test_list, plain_list)
+        assert old_item not in test_list
+        old_items = test_list[1:]
+        del test_list[1:]
+        assert len(test_list) == 1
+        assert all(old_item not in test_list for old_item in old_items)
+        self.final_check(test_list)
+
+    def test_append(self, empty_list, plain_list):
+        """Test append."""
+        for i, item in enumerate(plain_list):
+            empty_list.append(item)
+            assert len(empty_list) == i + 1
+            assert self.is_equal(item, empty_list[-1])
+        self.check_equivalent(empty_list, plain_list)
+        self.final_check(empty_list)
+
+    @pytest.fixture(params=(3, 6, 11))
+    def insert_index(self, request):
+        """Determines the indices used for test_insert."""
+        return request.param
+
+    def test_insert(self, insert_index, empty_list, plain_list):
+        """Test insert."""
+        check_list = []
+        empty_list.extend(plain_list[:-1])
+        check_list.extend(plain_list[:-1])
+        empty_list.insert(insert_index, plain_list[-1])
+        check_list.insert(insert_index, plain_list[-1])
+        assert len(empty_list) == len(plain_list)
+        assert self.is_equal(empty_list[min(len(empty_list) - 1, insert_index)],
+                             plain_list[-1])
+        self.check_equivalent(empty_list, check_list)
+        self.final_check(empty_list)
+
+    def test_extend(self, empty_list, plain_list):
+        """Test extend."""
+        empty_list.extend(plain_list)
+        self.check_equivalent(empty_list, plain_list)
+        self.final_check(empty_list)
+
+    def test_clear(self, populated_list):
+        """Test clear."""
+        test_list, plain_list = populated_list
+        test_list.clear()
+        assert len(test_list) == 0
+        self.final_check(test_list)
+
+    @pytest.fixture(params=(3, 6, 11))
+    def setitem_index(self, request):
+        """Determines the indices used for test_setitem."""
+        return request.param
+
+    def test_setitem(self, setitem_index, populated_list, generate_plain_list):
+        """Test __setitem__."""
+        test_list, plain_list = populated_list
+        item = generate_plain_list(1)[0]
+        if setitem_index >= len(test_list):
+            with pytest.raises(IndexError):
+                test_list[setitem_index] = item
+            return
+
+        test_list[setitem_index] = item
+        assert self.is_equal(test_list[setitem_index], item)
+        assert len(test_list) == len(plain_list)
+        self.final_check(test_list)
+
+    @pytest.fixture(params=(3, 6, 11))
+    def pop_index(self, request):
+        """Determines the indices used for test_pop."""
+        return request.param
+
+    def test_pop(self, pop_index, populated_list):
+        """Test pop."""
+        test_list, plain_list = populated_list
+        if pop_index >= len(test_list):
+            with pytest.raises(IndexError):
+                test_list.pop(pop_index)
+            return
+
+        item = test_list.pop(pop_index)
+        assert self.is_equal(item, plain_list[pop_index])
+        plain_list.pop(pop_index)
+        self.check_equivalent(test_list, plain_list)
+        self.final_check(test_list)
+
+    @pytest.fixture
+    def remove_index(self, n):
+        """Determines the indices used for test_remove."""
+        return self.rng.integers(n)
+
+    def test_remove(self, remove_index, populated_list):
+        """Test remove."""
+        test_list, plain_list = populated_list
+        test_list.remove(plain_list[remove_index])
+        assert plain_list[remove_index] not in test_list
+        plain_list.remove(plain_list[remove_index])
+        self.check_equivalent(test_list, plain_list)
