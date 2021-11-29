@@ -9,7 +9,6 @@ from hoomd.md import _md
 from hoomd.data.array import HOOMDGPUArray
 from hoomd.md.data.local_access import ForceLocalAccessBase
 
-
 if hoomd.version.gpu_enabled:
 
     class ForceLocalAccessGPU(ForceLocalAccessBase):
