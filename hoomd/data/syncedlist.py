@@ -211,14 +211,16 @@ class SyncedList(MutableSequence):
         if self._synced:
             value._attach()
 
-    def _detach_value(self, value):
+    def _detach_value(self, value, remove=True):
         """Detaches and/or removes value to simulation if attached."""
         if not self._attach_members:
             return
         if self._synced:
             value._detach()
-        if value._added:
+        if remove and value._added:
             value._remove()
+        else:
+            value._add(self._simulation)
 
     def _validate_or_error(self, value):
         """Complete error checking and processing of value."""
@@ -253,10 +255,10 @@ class SyncedList(MutableSequence):
         # avoid looping unless necessary (_detach_value checks
         # self._attach_members as well) making the check a slight performance
         # bump for non-attaching members.
+        self._simulation = _SimulationPlaceHolder(self)
         if self._attach_members:
             for item in self:
-                self._detach_value(item)
-        self._simulation = _SimulationPlaceHolder(self)
+                self._detach_value(item, False)
         del self._synced_list
         self._synced = False
 
