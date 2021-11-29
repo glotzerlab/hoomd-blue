@@ -8,7 +8,6 @@
 
 #include <functional>
 
-#include "hoomd/ConstForceCompute.h"
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/md/AllBondPotentials.h"
 
@@ -441,69 +440,6 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
         }
     }
 
-//! Check ConstForceCompute to see that it operates properly
-void const_force_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
-    {
-    // Generate a simple test particle data
-    std::shared_ptr<SystemDefinition> sysdef_2(
-        new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-    pdata_2->setFlags(~PDataFlags(0));
-
-    pdata_2->setPosition(0, make_scalar3(0.0, 0.0, 0.0));
-    pdata_2->setPosition(1, make_scalar3(0.9, 0.0, 0.0));
-
-    // Create the ConstForceCompute and check that it works properly
-    ConstForceCompute fc(sysdef_2, Scalar(-1.3), Scalar(2.5), Scalar(45.67));
-        {
-        GlobalArray<Scalar4>& force_array_9 = fc.getForceArray();
-        GlobalArray<Scalar>& virial_array_9 = fc.getVirialArray();
-        size_t pitch = virial_array_9.getPitch();
-        ArrayHandle<Scalar4> h_force_9(force_array_9, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_virial_9(virial_array_9, access_location::host, access_mode::read);
-        MY_CHECK_CLOSE(h_force_9.data[0].x, -1.3, tol);
-        MY_CHECK_CLOSE(h_force_9.data[0].y, 2.5, tol);
-        MY_CHECK_CLOSE(h_force_9.data[0].z, 45.67, tol);
-        MY_CHECK_SMALL(h_force_9.data[0].w, tol_small);
-        MY_CHECK_SMALL(h_virial_9.data[0 * pitch + 0] + h_virial_9.data[3 * pitch + 0]
-                           + h_virial_9.data[5 * pitch + 0],
-                       tol_small);
-
-        MY_CHECK_CLOSE(h_force_9.data[1].x, -1.3, tol);
-        MY_CHECK_CLOSE(h_force_9.data[1].y, 2.5, tol);
-        MY_CHECK_CLOSE(h_force_9.data[1].z, 45.67, tol);
-        MY_CHECK_SMALL(h_force_9.data[1].w, tol_small);
-        MY_CHECK_SMALL(h_virial_9.data[0 * pitch + 1] + h_virial_9.data[3 * pitch + 1]
-                           + h_virial_9.data[5 * pitch + 1],
-                       tol_small);
-        }
-
-    // check the setforce method
-    fc.setForce(Scalar(67.54), Scalar(22.1), Scalar(-1.4));
-        {
-        GlobalArray<Scalar4>& force_array_10 = fc.getForceArray();
-        GlobalArray<Scalar>& virial_array_10 = fc.getVirialArray();
-        size_t pitch = virial_array_10.getPitch();
-        ArrayHandle<Scalar4> h_force_10(force_array_10, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_virial_10(virial_array_10, access_location::host, access_mode::read);
-        MY_CHECK_CLOSE(h_force_10.data[0].x, 67.54, tol);
-        MY_CHECK_CLOSE(h_force_10.data[0].y, 22.1, tol);
-        MY_CHECK_CLOSE(h_force_10.data[0].z, -1.4, tol);
-        MY_CHECK_SMALL(h_force_10.data[0].w, tol_small);
-        MY_CHECK_SMALL(h_virial_10.data[0 * pitch + 0] + h_virial_10.data[3 * pitch + 0]
-                           + h_virial_10.data[5 * pitch + 0],
-                       tol_small);
-
-        MY_CHECK_CLOSE(h_force_10.data[1].x, 67.54, tol);
-        MY_CHECK_CLOSE(h_force_10.data[1].y, 22.1, tol);
-        MY_CHECK_CLOSE(h_force_10.data[1].z, -1.4, tol);
-        MY_CHECK_SMALL(h_force_10.data[1].w, tol_small);
-        MY_CHECK_SMALL(h_virial_10.data[0 * pitch + 1] + h_virial_10.data[3 * pitch + 1]
-                           + h_virial_10.data[5 * pitch + 1],
-                       tol_small);
-        }
-    }
-
 //! PotentialBondHarmonic creator for bond_force_basic_tests()
 std::shared_ptr<PotentialBondHarmonic>
 base_class_bf_creator(std::shared_ptr<SystemDefinition> sysdef)
@@ -550,10 +486,3 @@ UP_TEST(PotentialBondHarmonicGPU_compare)
     }
 
 #endif
-
-//! test case for constant forces
-UP_TEST(ConstForceCompute_basic)
-    {
-    const_force_test(std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    }
