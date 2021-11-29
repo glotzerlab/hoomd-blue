@@ -9,3 +9,14 @@ __pycache__
 .vscode/launch.json
 .vscode/*.db*
 .vscode/c_cpp_properties.json
+
+# clangd
+.clangd
+.cache
+compile_commands.json
+
+# general specification of editor standards
+.editorconfig
+
+# virtualenv
+.venv
