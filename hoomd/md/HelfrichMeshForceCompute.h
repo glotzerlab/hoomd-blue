@@ -94,11 +94,16 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public ForceCompute
 
     GlobalVector<Scalar3> m_normalVec; //! normal unit vectors at each vertex of the mesh
 
+    GlobalVector<Scalar> m_sigmas; //! normal unit vectors at each vertex of the mesh
+
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
 
     //! compute normals
     virtual void computeNormals();
+
+    //! compute normals
+    virtual void computeSigmas();
     };
 
 namespace detail

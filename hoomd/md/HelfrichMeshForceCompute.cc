@@ -40,6 +40,12 @@ HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinit
     m_normalVec.swap(tmp_normalVec);
     TAG_ALLOCATION(m_normalVec);
 
+    // allocate memory for the per-type normal verctors
+    GlobalVector<Scalar4> tmp_sigmas(m_pdata->getNTypes(), m_exec_conf);
+
+    m_sigmas.swap(tmp_sigmas);
+    TAG_ALLOCATION(m_sigmas);
+
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
