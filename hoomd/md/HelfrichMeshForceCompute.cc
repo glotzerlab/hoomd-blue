@@ -32,7 +32,7 @@ HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinit
     m_exec_conf->msg->notice(5) << "Constructing HelfrichMeshForceCompute" << endl;
 
     // allocate the parameters
-    m_K = new Scalar[m_angle_data->getNTypes()];
+    m_K = new Scalar[m_pdata->getNTypes()];
 
     // allocate memory for the per-type normal verctors
     GlobalVector<Scalar4> tmp_normalVec(m_pdata->getNTypes(), m_exec_conf);
@@ -40,11 +40,15 @@ HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinit
     m_normalVec.swap(tmp_normalVec);
     TAG_ALLOCATION(m_normalVec);
 
+    computeNormals();
+
     // allocate memory for the per-type normal verctors
     GlobalVector<Scalar4> tmp_sigmas(m_pdata->getNTypes(), m_exec_conf);
 
     m_sigmas.swap(tmp_sigmas);
     TAG_ALLOCATION(m_sigmas);
+
+    computeSigmas();
 
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
@@ -63,56 +67,43 @@ HelfrichMeshForceCompute::~HelfrichMeshForceCompute()
     m_exec_conf->msg->notice(5) << "Destroying HelfrichMeshForceCompute" << endl;
 
     delete[] m_K;
-    delete[] m_t_0;
     m_K = NULL;
-    m_t_0 = NULL;
     }
 
 /*! \param type Type of the angle to set parameters for
     \param K Stiffness parameter for the force computation
-    \param t_0 Equilibrium angle in radians for the force computation
 
     Sets parameters for the potential of a particular angle type
 */
-void HelfrichMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0)
+void HelfrichMeshForceCompute::setParams(unsigned int type, Scalar K)
     {
-    // make sure the type is valid
-    if (type >= m_angle_data->getNTypes())
-        {
-        m_exec_conf->msg->error() << "angle.harmonic: Invalid angle type specified" << endl;
-        throw runtime_error("Error setting parameters in HelfrichMeshForceCompute");
-        }
 
     m_K[type] = K;
-    m_t_0[type] = t_0;
 
     // check for some silly errors a user could make
     if (K <= 0)
-        m_exec_conf->msg->warning() << "angle.harmonic: specified K <= 0" << endl;
-    if (t_0 <= 0)
-        m_exec_conf->msg->warning() << "angle.harmonic: specified t_0 <= 0" << endl;
+        m_exec_conf->msg->warning() << "helfrich: specified K <= 0" << endl;
     }
 
-void HelfrichMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
-    {
-    auto typ = m_angle_data->getTypeByName(type);
-    auto _params = angle_harmonic_params(params);
-    setParams(typ, _params.k, _params.t_0);
-    }
+//void HelfrichMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
+//    {
+//    auto typ = m_angle_data->getTypeByName(type);
+//    auto _params = angle_harmonic_params(params);
+//    setParams(typ, _params.k, _params.t_0);
+//    }
 
-pybind11::dict HelfrichMeshForceCompute::getParams(std::string type)
-    {
-    auto typ = m_angle_data->getTypeByName(type);
-    if (typ >= m_angle_data->getNTypes())
-        {
-        m_exec_conf->msg->error() << "angle.harmonic: Invalid angle type specified" << endl;
-        throw runtime_error("Error setting parameters in HelfrichMeshForceCompute");
-        }
-    pybind11::dict params;
-    params["k"] = m_K[typ];
-    params["t0"] = m_t_0[typ];
-    return params;
-    }
+//pybind11::dict HelfrichMeshForceCompute::getParams(std::string type)
+//    {
+//    auto typ = m_angle_data->getTypeByName(type);
+//    if (typ >= m_angle_data->getNTypes())
+//        {
+//        m_exec_conf->msg->error() << "angle.harmonic: Invalid angle type specified" << endl;
+//        throw runtime_error("Error setting parameters in HelfrichMeshForceCompute");
+//        }
+//    pybind11::dict params;
+//    params["k"] = m_K[typ];
+//    return params;
+//    }
 
 /*! Actually perform the force computation
     \param timestep Current time step
@@ -125,17 +116,27 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
 
+    ArrayHandle<typename MeshBond::members_t> h_bonds(m_mesh_data->getMeshBondData()->getMembersArray(),
+                                                   access_location::host,
+                                                   access_mode::read);
+    ArrayHandle<typename MeshTriangle::members_t> h_triangles(m_mesh_data->getMeshTriangleData()->getMembersArray(),
+                                                   access_location::host,
+                                                   access_mode::read);
+
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
     assert(h_pos.data);
     assert(h_rtag.data);
+    assert(h_bonds.data);
+    assert(h_triangles.data);
 
     // Zero data for force calculation.
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
@@ -145,34 +146,47 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     const BoxDim& box = m_pdata->getGlobalBox();
 
     // for each of the angles
-    const unsigned int size = (unsigned int)m_angle_data->getN();
+    const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
-        // lookup the tag of each of the particles participating in the angle
-        const AngleData::members_t& angle = m_angle_data->getMembersByIndex(i);
-        assert(angle.tag[0] <= m_pdata->getMaximumTag());
-        assert(angle.tag[1] <= m_pdata->getMaximumTag());
-        assert(angle.tag[2] <= m_pdata->getMaximumTag());
+        // lookup the tag of each of the particles participating in the bond
+        const typename MeshBond::members_t& bond = h_bonds.data[i];
+        assert(bond.tag[0] < m_pdata->getMaximumTag() + 1);
+        assert(bond.tag[1] < m_pdata->getMaximumTag() + 1);
 
-        // transform a, b, and c into indices into the particle data arrays
-        // MEM TRANSFER: 6 ints
-        unsigned int idx_a = h_rtag.data[angle.tag[0]];
-        unsigned int idx_b = h_rtag.data[angle.tag[1]];
-        unsigned int idx_c = h_rtag.data[angle.tag[2]];
+        // transform a and b into indices into the particle data arrays
+        // (MEM TRANSFER: 4 integers)
+        unsigned int idx_a = h_rtag.data[bond.tag[0]];
+        unsigned int idx_b = h_rtag.data[bond.tag[1]];
 
-        // throw an error if this angle is incomplete
-        if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL || idx_c == NOT_LOCAL)
-            {
-            this->m_exec_conf->msg->error()
-                << "angle.harmonic: angle " << angle.tag[0] << " " << angle.tag[1] << " "
-                << angle.tag[2] << " incomplete." << endl
-                << endl;
-            throw std::runtime_error("Error in angle calculation");
-            }
+        unsigned int tr_idx1 = bond.tag[2];
+        unsigned int tr_idx2 = bond.tag[3];
+
+        const typename MeshTriangle::members_t& triangle1 = h_triangles.data[tr_idx1];
+        const typename MeshTriangle::members_t& triangle2 = h_triangles.data[tr_idx2];
+
+        unsigned int idx_c = h_rtag.data[triangle1.tag[0]];
+
+	unsigned int iterator = 1;
+	while( idx_a == idx_c || idx_b == idx_c)
+		{
+		idx_c = h_rtag.data[triangle1.tag[iterator]];
+		iterator++;
+		}
+
+        unsigned int idx_d = h_rtag.data[triangle2.tag[0]];
+
+	iterator = 1;
+	while( idx_a == idx_d || idx_b == idx_d)
+		{
+		idx_d = h_rtag.data[triangle2.tag[iterator]];
+		iterator++;
+		}
 
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_d < m_pdata->getN() + m_pdata->getNGhosts());
 
         // calculate d\vec{r}
         Scalar3 dab;
@@ -180,20 +194,32 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
         dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
 
-        Scalar3 dcb;
-        dcb.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
-        dcb.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
-        dcb.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
-
         Scalar3 dac;
-        dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x; // used for the 1-3 JL interaction
+        dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
         dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
         dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
 
+        Scalar3 dad;
+        dad.x = h_pos.data[idx_a].x - h_pos.data[idx_d].x;
+        dad.y = h_pos.data[idx_a].y - h_pos.data[idx_d].y;
+        dad.z = h_pos.data[idx_a].z - h_pos.data[idx_d].z;
+
+        Scalar3 dbc;
+        dbc.x = h_pos.data[idx_b].x - h_pos.data[idx_c].x;
+        dbc.y = h_pos.data[idx_b].y - h_pos.data[idx_c].y;
+        dbc.z = h_pos.data[idx_b].z - h_pos.data[idx_c].z;
+
+        Scalar3 dbd;
+        dbd.x = h_pos.data[idx_b].x - h_pos.data[idx_d].x;
+        dbd.y = h_pos.data[idx_b].y - h_pos.data[idx_d].y;
+        dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
+
         // apply minimum image conventions to all 3 vectors
         dab = box.minImage(dab);
-        dcb = box.minImage(dcb);
         dac = box.minImage(dac);
+        dad = box.minImage(dad);
+        dbc = box.minImage(dbc);
+        dbd = box.minImage(dbd);
 
         // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
         // FLOPS: 14 / MEM TRANSFER: 2 Scalars
@@ -201,10 +227,17 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rab = sqrt(rsqab);
-        Scalar rsqcb = dcb.x * dcb.x + dcb.y * dcb.y + dcb.z * dcb.z;
-        Scalar rcb = sqrt(rsqcb);
+        Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+        Scalar rac = sqrt(rsqac);
+        Scalar rsqad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
+        Scalar rad = sqrt(rsqad);
 
-        Scalar c_abbc = dab.x * dcb.x + dab.y * dcb.y + dab.z * dcb.z;
+        Scalar rsqbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
+        Scalar rbc = sqrt(rsqbc);
+        Scalar rsqbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
+        Scalar rbd = sqrt(rsqbd);
+
+        Scalar c_accb = dac.x * dbc.x + dac.y * dbc.y + dac.z * dbc.z;
         c_abbc /= rab * rcb;
 
         if (c_abbc > 1.0)
