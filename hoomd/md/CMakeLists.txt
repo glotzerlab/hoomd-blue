@@ -143,9 +143,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialBondGPU.h
                 PotentialBondGPU.cuh
                 PotentialBond.h
-                PotentialMeshBondGPU.h
-                PotentialMeshBondGPU.cuh
-                PotentialMeshBond.h
                 PotentialExternalGPU.h
                 PotentialExternalGPU.cuh
                 PotentialExternal.h

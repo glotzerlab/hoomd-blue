@@ -1,10 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
-
-/*! \file SystemDefinition.h
-    \brief Defines the SystemDefinition class
+/*! \file MeshDefinition.h
+    \brief Defines the MeshDefinition class
  */
 
 #ifdef __HIPCC__
@@ -12,8 +7,8 @@
 #endif
 
 #include "BondedGroupData.h"
-#include "MeshGroupData.h"
 #include "IntegratorData.h"
+#include "MeshGroupData.h"
 #include "SystemDefinition.h"
 
 #include <memory>
@@ -22,7 +17,6 @@
 #ifndef __MESH_DEFINITION_H__
 #define __MESH_DEFINITION_H__
 
-
 namespace hoomd
     {
 #ifdef ENABLE_MPI
@@ -30,32 +24,38 @@ namespace hoomd
 class Communicator;
 #endif
 
-//! Container class for all data needed to define a mesh system
-/*! MeshDefinition is a big bucket where all of the data for a mesh structure goes.
-    Everything is stored as a shared pointer for quick and easy access from within C++
-    and python without worrying about data management.
+//! Mesh class that contains all infrastructure necessary to combine a set of particles into a mesh triangulation
+/*! MeshDefinition is a container class to define a mesh tringulation comprised of the
+    particles within the simulation system. The vertices of the mesh are given by the
+    particle positions. The information which vertex tuples are directly bonded (i.e. share an
+    edge) and which vertex triplets consitute triangles is stored as two shared pointer for
+    quick and easy access from within C++ and python without worrying about data management.
+    The pointers also encode simplex labels such that the we can detect easily which bonds make
+    up a triangle and which triangles share a common edge bond.
+
 
     <b>Background and intended usage</b>
 
-    The data structure stored in MeshDefinition is all the bonds and triangles within a mesh.
-    These will need access to information such as the number of particles in the system or
-    potentially some of the per-particle data to allow for dynamic bonding and meshes.
+    The data structure stored in MeshDefinition is all the edge bonds and triangles within
+    a particle mesh. It is used to combine a set of particles into a bonded mesh. In doing so
+    we can asign different potentials (as bond or surface potentials) to the mesh data structure.
+    The class has to access system information such as the particle positions to define the mesh
+    vertices.
 
-    More generally, any data structure class in MeshDefinition can potentially reference any
-   other, simply by giving the shared pointer to the referenced class to the constructor of the one
-   that needs to refer to it. Note that using this setup, there can be no circular references. This
-   is a \b good \b thing ^TM, as it promotes good separation and isolation of the various classes
-   responsibilities.
+    As any data structure class in MeshDefinition can potentially reference any
+   other, other classes can simply use the mesh data by giving the shared pointer to the referenced
+   class to the constructor of the onem that needs to refer to it. Note that using this setup, there
+   can be no circular references. This is a \b good \b thing ^TM, as it promotes good separation
+   and isolation of the various classes responsibilities.
 
     <b>Initializing</b>
 
-    A default constructed MeshDefinition is full of NULL shared pointers. Such is intended to be
-   assigned to by one created by a SystemInitializer.
+    A default constructed MeshDefinition is full of NULL shared pointers. Afterwards the user has to
+    specify the triangulation information via a Triangle snapshot (see MeshGroupData.h). The
+    corresponding edge information is calculated automatically. MeshDefinition allows for only one
+    mesh type to prevent ambiguity how to set triangle and edge bond types.
 
-    Several other default constructors are provided, mainly to provide backward compatibility to
-   unit tests that relied on the simple initialization constructors provided by ParticleData.
 
-    \ingroup data_structs
 */
 class PYBIND11_EXPORT MeshDefinition
     {
@@ -78,20 +78,24 @@ class PYBIND11_EXPORT MeshDefinition
 
     BondData::Snapshot getBondData();
 
+    Scalar getEnergy()
+        {
+        return m_mesh_energy;
+        }
+
     void updateTriangleData();
 
     void updateMeshData();
 
-
-    TriangleData::Snapshot triangle_data;             //!< The triangle data accessible in python
-    Scalar m_mesh_energy;         //!< check if dynamic bonding has changed the mesh data
+    TriangleData::Snapshot triangle_data; //!< The triangle data accessible in python
 
     private:
-    std::shared_ptr<SystemDefinition> m_sysdef;     //!< System definition later needed for dynamic bonding
-    std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
+    std::shared_ptr<SystemDefinition>
+        m_sysdef; //!< System definition later needed for dynamic bonding
+    std::shared_ptr<MeshBondData> m_meshbond_data;         //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
-    Scalar m_mesh_energy_old;    //!< storing energy for dynamic bonding laster
-    bool m_data_changed;         //!< check if dynamic bonding has changed the mesh data
+    Scalar m_mesh_energy; //!< storing energy for dynamic bonding later
+    bool m_data_changed;  //!< check if dynamic bonding has changed the mesh data
     };
 
 namespace detail

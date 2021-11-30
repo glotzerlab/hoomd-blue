@@ -8,6 +8,7 @@ from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.logging import log
 import numpy as np
+import warnings
 
 
 class Mesh(_HOOMDBaseObject):
@@ -20,8 +21,6 @@ class Mesh(_HOOMDBaseObject):
 
         mesh = mesh.Mesh()
         mesh.size = 4
-        mesh.types = ["mesh"]
-        mesh.typeid = [0,0,0,0]
         mesh.triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]]
 
     """
@@ -30,19 +29,16 @@ class Mesh(_HOOMDBaseObject):
 
         self._triangles = np.empty([0, 3], dtype=int)
         self._size = 0
-        self._types = []
-        self._typeid = []
 
     def _attach(self):
 
         self._cpp_obj = _hoomd.MeshDefinition(
             self._simulation.state._cpp_sys_def)
 
+        self.types = ["mesh"]
         if self._size != 0:
             self.size = self._size
-            self.types = self._types
             self.triangles = self._triangles
-            self.typeid = self._typeid
 
         super()._attach()
 
@@ -62,49 +58,25 @@ class Mesh(_HOOMDBaseObject):
         if self._attached:
             self._update_triangles()
             return self._cpp_obj.triangles.N
-        else:
-            return self._size
+        return self._size
 
     @size.setter
     def size(self, newN):
         if self._attached:
             self._cpp_obj.triangles.N = newN
-        else:
-            self._size = newN
-
-    @property
-    def typeid(self):
-        """((*N*,) `numpy.ndarray` of ``uint32``): Triangle type id."""
-        if self._attached:
-            self._update_triangles()
-            return self._cpp_obj.triangles.typeid
-        else:
-            return self._typeid
-
-    @typeid.setter
-    def typeid(self, tid):
-        if self._attached:
-            self._cpp_obj.triangles.typeid[:] = tid
-            if len(self.triangles) == self.size:
-                self._update_mesh()
-        else:
-            self._typeid = tid
+        self._size = newN
 
     @property
     def types(self):
         """(list[str]): Names of the triangle types."""
-        if self._attached:
-            self._update_triangles()
-            return self._cpp_obj.triangles.types
-        else:
-            return self._types
+        return ["mesh"]
 
     @types.setter
     def types(self, newtypes):
         if self._attached:
-            self._cpp_obj.triangles.types = newtypes
+            self._cpp_obj.triangles.types = ["mesh"]
         else:
-            self._types = newtypes
+            warnings.warn("Mesh only allows for one type!")
 
     @log(category='sequence')
     def triangles(self):
@@ -116,17 +88,14 @@ class Mesh(_HOOMDBaseObject):
         if self._attached:
             self._update_triangles()
             return self._cpp_obj.triangles.group
-        else:
-            return self._triangles
+        return self._triangles
 
     @triangles.setter
     def triangles(self, triag):
-
         if self._attached:
             self._cpp_obj.triangles.group[:] = triag
             self._update_mesh()
-        else:
-            self._triangles = triag
+        self._triangles = triag
 
     @log(category='sequence', requires_run=True)
     def bonds(self):
@@ -142,7 +111,7 @@ class Mesh(_HOOMDBaseObject):
     @log(requires_run=True)
     def energy(self):
         """(float): Surface energy of the mesh."""
-        return self._cpp_obj.mesh_energy
+        return self._cpp_obj.getEnergy()
 
     def _update_mesh(self):
         self._cpp_obj.updateMeshData()

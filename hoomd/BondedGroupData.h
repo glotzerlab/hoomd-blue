@@ -267,7 +267,7 @@ class BondedGroupData
     void initialize();
 
     //! Initialize from a snapshot
-    void initializeFromSnapshot(const Snapshot& snapshot);
+    virtual void initializeFromSnapshot(const Snapshot& snapshot);
 
     //! Take a snapshot
     std::map<unsigned int, unsigned int> takeSnapshot(Snapshot& snapshot) const;
@@ -643,7 +643,6 @@ class BondedGroupData
 #endif
 
     protected:
-
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf;                       //!< Execution configuration for CUDA context
     std::shared_ptr<ParticleData> m_pdata; //!< Particle Data these bonds belong to
@@ -684,7 +683,7 @@ class BondedGroupData
 
     Nano::Signal<void()> m_group_num_change_signal; //!< Signal that is triggered when groups are
                                                     //!< added or deleted (globally)
-						    //
+                                                    //
 #ifdef ENABLE_HIP
     GPUArray<unsigned int> m_condition; //!< Condition variable for rebuilding GPU table on the GPU
     unsigned int m_next_flag;           //!< Next flag value for GPU table rebuild
@@ -694,7 +693,6 @@ class BondedGroupData
 
     Nano::Signal<void()> m_group_reorder_signal; //!< Signal that is triggered when groups are added
                                                  //!< or deleted locally
-
 
     //! Helper function to rebuild the active tag cache if necessary
     void maybe_rebuild_tag_cache();
@@ -765,7 +763,6 @@ struct Bond
         {
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -774,7 +771,6 @@ struct Bond
         return m;
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -782,7 +778,6 @@ struct Bond
         return t;
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<Bond>(m, "Bond")
@@ -817,18 +812,25 @@ struct MeshBond
      * \param _ta First triangle
      * \param _tb Second triangle
      */
-    MeshBond(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _ta, unsigned int _tb ) : type(_type), a(_a), b(_b), ta(_ta), tb(_tb) { }
+    MeshBond(unsigned int _type,
+             unsigned int _a,
+             unsigned int _b,
+             unsigned int _ta,
+             unsigned int _tb)
+        : type(_type), a(_a), b(_b), ta(_ta), tb(_tb)
+        {
+        }
 
     //! Constructor that takes a members_t (used internally by MeshBondData)
     /*! \param type
      *  \param members group members
      */
     MeshBond(typeval_t _typeval, members_t _members)
-        : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1]), ta(_members.tag[2]), tb(_members.tag[3])
+        : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1]), ta(_members.tag[2]),
+          tb(_members.tag[3])
         {
         }
 
-    //! This helper function needs to be provided for the templated MeshBondData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -839,7 +841,6 @@ struct MeshBond
         return m;
         }
 
-    //! This helper function needs to be provided for the templated MeshBondData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -847,11 +848,11 @@ struct MeshBond
         return t;
         }
 
-    //! This helper function needs to be provided for the templated MeshBondData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<MeshBond>(m, "MeshBond")
-            .def(pybind11::init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
+            .def(pybind11::
+                     init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
             .def_readonly("type", &MeshBond::type)
             .def_readonly("a", &MeshBond::a)
             .def_readonly("b", &MeshBond::b)
@@ -862,8 +863,8 @@ struct MeshBond
     unsigned int type; //!< Group type
     unsigned int a;    //!< First bond member
     unsigned int b;    //!< Second bond member
-    unsigned int ta;    //!< First triangle
-    unsigned int tb;    //!< Second triangle
+    unsigned int ta;   //!< First triangle
+    unsigned int tb;   //!< Second triangle
     };
 
 //! Definition of BondData
@@ -898,7 +899,6 @@ struct Angle
         {
         }
 
-    //! This helper function needs to be provided for the templated AngleData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -908,7 +908,6 @@ struct Angle
         return m;
         }
 
-    //! This helper function needs to be provided for the templated AngleData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -916,7 +915,6 @@ struct Angle
         return t;
         }
 
-    //! This helper function needs to be provided for the templated AngleData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<Angle>(m, "Angle")
@@ -944,7 +942,6 @@ extern char name_triangle_data[];
 //! Definition of TriangleData
 typedef BondedGroupData<3, Angle, name_triangle_data> TriangleData;
 
-
 /*
  * MeshTriangleData
  */
@@ -964,7 +961,13 @@ struct MeshTriangle
      * \param _eb Second edge
      * \param _ec Third edge
      */
-    MeshTriangle(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c, unsigned int _ea, unsigned int _eb , unsigned int _ec)
+    MeshTriangle(unsigned int _type,
+                 unsigned int _a,
+                 unsigned int _b,
+                 unsigned int _c,
+                 unsigned int _ea,
+                 unsigned int _eb,
+                 unsigned int _ec)
         : type(_type), a(_a), b(_b), c(_c), ea(_ea), eb(_eb), ec(_ec)
         {
         }
@@ -979,7 +982,6 @@ struct MeshTriangle
         {
         }
 
-    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -992,7 +994,6 @@ struct MeshTriangle
         return m;
         }
 
-    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -1000,12 +1001,16 @@ struct MeshTriangle
         return t;
         }
 
-    //! This helper function needs to be provided for the templated MeshTriangleData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<MeshTriangle>(m, "MeshTriangle")
-            .def(pybind11::
-                     init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
+            .def(pybind11::init<unsigned int,
+                                unsigned int,
+                                unsigned int,
+                                unsigned int,
+                                unsigned int,
+                                unsigned int,
+                                unsigned int>())
             .def_readonly("type", &MeshTriangle::type)
             .def_readonly("a", &MeshTriangle::a)
             .def_readonly("b", &MeshTriangle::b)
@@ -1019,9 +1024,9 @@ struct MeshTriangle
     unsigned int a;    //!< First dihedral member
     unsigned int b;    //!< Second dihedral member
     unsigned int c;    //!< Third dihedral member
-    unsigned int ea;    //!< First endge
-    unsigned int eb;    //!< Second edge
-    unsigned int ec;    //!< Third edge
+    unsigned int ea;   //!< First endge
+    unsigned int eb;   //!< Second edge
+    unsigned int ec;   //!< Third edge
     };
 
 //! Definition of BondData
@@ -1057,7 +1062,6 @@ struct Dihedral
         {
         }
 
-    //! This helper function needs to be provided for the templated DihedralData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -1068,7 +1072,6 @@ struct Dihedral
         return m;
         }
 
-    //! This helper function needs to be provided for the templated DihedralData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -1076,7 +1079,6 @@ struct Dihedral
         return t;
         }
 
-    //! This helper function needs to be provided for the templated DihedralData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<Dihedral>(m, "Dihedral")
@@ -1138,7 +1140,6 @@ struct Constraint
         {
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -1147,7 +1148,6 @@ struct Constraint
         return m;
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -1155,7 +1155,6 @@ struct Constraint
         return t;
         }
 
-    //! This helper function needs to be provided for the templated ConstraintData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<Constraint>(m, "Constraint")

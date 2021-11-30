@@ -1,8 +1,3 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
-
 /*! \file MeshDefinition.cc
     \brief Defines MeshDefinition
 */
@@ -22,19 +17,15 @@ namespace hoomd
 MeshDefinition::MeshDefinition() { }
 
 /*! \param sysdef Simulation system
-*/
+ */
 MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef)
+    : m_sysdef(sysdef), m_meshbond_data(std::shared_ptr<MeshBondData>(
+                            new MeshBondData(m_sysdef->getParticleData(), 1))),
+      m_meshtriangle_data(
+          std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), 1))),
+      m_mesh_energy(0), m_data_changed(false)
+
     {
-
-    m_sysdef = sysdef;
-    m_data_changed = false;
-    m_meshtriangle_data
-        = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), 1));
-    m_meshbond_data
-        = std::shared_ptr<MeshBondData>(new MeshBondData(m_sysdef->getParticleData(), 1));
-
-    m_mesh_energy = 0;
-    m_mesh_energy_old = 0;
     }
 
 //! Bond array getter
@@ -48,18 +39,20 @@ BondData::Snapshot MeshDefinition::getBondData()
 //! Update triangle data to make it accessible for python
 void MeshDefinition::updateTriangleData()
     {
-    if(m_data_changed)
-         {
-	 m_meshtriangle_data->takeSnapshot(triangle_data);
-	 m_data_changed=false;
-	 }
+    if (m_data_changed)
+        {
+        m_meshtriangle_data->takeSnapshot(triangle_data);
+        m_data_changed = false;
+        }
     }
 
 //! Update data from snapshot
 void MeshDefinition::updateMeshData()
     {
-    m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), triangle_data));
-    m_meshbond_data = std::shared_ptr<MeshBondData>(new MeshBondData(m_sysdef->getParticleData(), triangle_data));
+    m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(
+        new MeshTriangleData(m_sysdef->getParticleData(), triangle_data));
+    m_meshbond_data = std::shared_ptr<MeshBondData>(
+        new MeshBondData(m_sysdef->getParticleData(), triangle_data));
     }
 
 namespace detail
@@ -68,14 +61,14 @@ void export_MeshDefinition(pybind11::module& m)
     {
     pybind11::class_<MeshDefinition, std::shared_ptr<MeshDefinition>>(m, "MeshDefinition")
         .def(pybind11::init<>())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition> >())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("getMeshTriangleData", &MeshDefinition::getMeshTriangleData)
         .def("getMeshBondData", &MeshDefinition::getMeshBondData)
         .def("getBondData", &MeshDefinition::getBondData)
         .def("updateTriangleData", &MeshDefinition::updateTriangleData)
         .def("updateMeshData", &MeshDefinition::updateMeshData)
-        .def_readonly("triangles", &MeshDefinition::triangle_data)
-        .def_readonly("mesh_energy", &MeshDefinition::m_mesh_energy);
+        .def("getEnergy", &MeshDefinition::getEnergy)
+        .def_readonly("triangles", &MeshDefinition::triangle_data);
     }
 
     } // end namespace detail

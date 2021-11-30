@@ -10,6 +10,7 @@
 #include "hoomd/TextureTools.h"
 
 #include "hoomd/BondedGroupData.cuh"
+#include "hoomd/MeshGroupData.cuh"
 
 #include <assert.h>
 
@@ -27,43 +28,47 @@ namespace md
 namespace kernel
     {
 //! Wraps arguments to gpu_cgbf
-struct bond_args_t
+template<int group_size> struct bonds_args_t
     {
     //! Construct a bond_args_t
-    bond_args_t(Scalar4* _d_force,
-                Scalar* _d_virial,
-                const size_t _virial_pitch,
-                const unsigned int _N,
-                const unsigned int _n_max,
-                const Scalar4* _d_pos,
-                const Scalar* _d_charge,
-                const Scalar* _d_diameter,
-                const BoxDim& _box,
-                const group_storage<2>* _d_gpu_bondlist,
-                const Index2D& _gpu_table_indexer,
-                const unsigned int* _d_gpu_n_bonds,
-                const unsigned int _n_bond_types,
-                const unsigned int _block_size)
+    bonds_args_t(Scalar4* _d_force,
+                 Scalar* _d_virial,
+                 const size_t _virial_pitch,
+                 const unsigned int _N,
+                 const unsigned int _n_max,
+                 const Scalar4* _d_pos,
+                 const Scalar* _d_charge,
+                 const Scalar* _d_diameter,
+                 const BoxDim& _box,
+                 const group_storage<group_size>* _d_gpu_bondlist,
+                 const Index2D& _gpu_table_indexer,
+                 const unsigned int* _d_gpu_n_bonds,
+                 const unsigned int _n_bond_types,
+                 const unsigned int _block_size)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_charge(_d_charge), d_diameter(_d_diameter), box(_box),
           d_gpu_bondlist(_d_gpu_bondlist), gpu_table_indexer(_gpu_table_indexer),
           d_gpu_n_bonds(_d_gpu_n_bonds), n_bond_types(_n_bond_types), block_size(_block_size) {};
 
-    Scalar4* d_force;                       //!< Force to write out
-    Scalar* d_virial;                       //!< Virial to write out
-    const size_t virial_pitch;              //!< pitch of 2D array of virial matrix elements
-    unsigned int N;                         //!< number of particles
-    unsigned int n_max;                     //!< Size of local pdata arrays
-    const Scalar4* d_pos;                   //!< particle positions
-    const Scalar* d_charge;                 //!< particle charges
-    const Scalar* d_diameter;               //!< particle diameters
-    const BoxDim& box;                      //!< Simulation box in GPU format
-    const group_storage<2>* d_gpu_bondlist; //!< List of bonds stored on the GPU
-    const Index2D& gpu_table_indexer;       //!< Indexer of 2D bond list
-    const unsigned int* d_gpu_n_bonds;      //!< List of number of bonds stored on the GPU
-    const unsigned int n_bond_types;        //!< Number of bond types in the simulation
-    const unsigned int block_size;          //!< Block size to execute
+    Scalar4* d_force;          //!< Force to write out
+    Scalar* d_virial;          //!< Virial to write out
+    const size_t virial_pitch; //!< pitch of 2D array of virial matrix elements
+    unsigned int N;            //!< number of particles
+    unsigned int n_max;        //!< Size of local pdata arrays
+    const Scalar4* d_pos;      //!< particle positions
+    const Scalar* d_charge;    //!< particle charges
+    const Scalar* d_diameter;  //!< particle diameters
+    const BoxDim& box;         //!< Simulation box in GPU format
+    const group_storage<group_size>* d_gpu_bondlist; //!< List of bonds stored on the GPU
+    const Index2D& gpu_table_indexer;                //!< Indexer of 2D bond list
+    const unsigned int* d_gpu_n_bonds;               //!< List of number of bonds stored on the GPU
+    const unsigned int n_bond_types;                 //!< Number of bond types in the simulation
+    const unsigned int block_size;                   //!< Block size to execute
     };
+
+typedef bonds_args_t<2> bond_args_t;
+
+typedef bonds_args_t<4> meshbond_args_t;
 
 #ifdef __HIPCC__
 
@@ -92,7 +97,7 @@ struct bond_args_t
    are not enabled. \tparam evaluator EvaluatorBond class to evaluate V(r) and -delta V(r)/r
 
 */
-template<class evaluator>
+template<class evaluator, int group_size>
 __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
                                                Scalar* d_virial,
                                                const size_t virial_pitch,
@@ -101,7 +106,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
                                                const Scalar* d_charge,
                                                const Scalar* d_diameter,
                                                const BoxDim box,
-                                               const group_storage<2>* blist,
+                                               const group_storage<group_size>* blist,
                                                const Index2D blist_idx,
                                                const unsigned int* n_bonds_list,
                                                const unsigned int n_bond_type,
@@ -163,7 +168,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     // loop over neighbors
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
-        group_storage<2> cur_bond = blist[blist_idx(idx, bond_idx)];
+        group_storage<group_size> cur_bond = blist[blist_idx(idx, bond_idx)];
 
         int cur_bond_idx = cur_bond.idx[0];
         int cur_bond_type = cur_bond.idx[1];
@@ -243,8 +248,8 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
 
     This is just a driver function for gpu_compute_bond_forces_kernel(), see it for details.
 */
-template<class evaluator>
-hipError_t gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
+template<class evaluator, int group_size>
+hipError_t gpu_compute_bond_forces(const kernel::bonds_args_t<group_size>& bond_args,
                                    const typename evaluator::param_type* d_params,
                                    unsigned int* d_flags)
     {
@@ -256,8 +261,9 @@ hipError_t gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
 
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr,
-                         reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator>));
+    hipFuncGetAttributes(
+        &attr,
+        reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator, group_size>));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(bond_args.block_size, max_block_size);
@@ -269,7 +275,7 @@ hipError_t gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
     const size_t shared_bytes = sizeof(typename evaluator::param_type) * bond_args.n_bond_types;
 
     // run the kernel
-    hipLaunchKernelGGL(gpu_compute_bond_forces_kernel<evaluator>,
+    hipLaunchKernelGGL((gpu_compute_bond_forces_kernel<evaluator, group_size>),
                        grid,
                        threads,
                        shared_bytes,

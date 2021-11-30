@@ -57,15 +57,14 @@ def get_mesh_bond_args_forces_and_energies():
     Tether_args_and_vals = []
     for i in range(3):
         harmonic_args_and_vals.append(
-            (_harmonic_arg_list[i][0], _harmonic_arg_list[i][1],
-             harmonic_forces1[i], harmonic_forces2[i], harmonic_forces3[i],
-             harmonic_energies[i]))
+            (*_harmonic_arg_list[i], harmonic_forces1[i], harmonic_forces2[i],
+             harmonic_forces3[i], harmonic_energies[i]))
         FENE_args_and_vals.append(
-            (_FENE_arg_list[i][0], _FENE_arg_list[i][1], FENE_forces1[i],
-             FENE_forces2[i], FENE_forces3[i], FENE_energies[i]))
+            (*_FENE_arg_list[i], FENE_forces1[i], FENE_forces2[i],
+             FENE_forces3[i], FENE_energies[i]))
         Tether_args_and_vals.append(
-            (_Tether_arg_list[i][0], _Tether_arg_list[i][1], Tether_forces1[i],
-             Tether_forces2[i], Tether_forces3[i], Tether_energies[i]))
+            (*_Tether_arg_list[i], Tether_forces1[i], Tether_forces2[i],
+             Tether_forces3[i], Tether_energies[i]))
     return harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
 
 
@@ -107,17 +106,17 @@ def triplet_snapshot_factory(device):
 def test_before_attaching(mesh_bond_cls, potential_kwargs):
     mesh = hoomd.mesh.Mesh()
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params['meshbond'] = potential_kwargs
+    mesh_bond_potential.parameter = potential_kwargs
 
-    assert mesh == mesh_bond_potential.mesh
+    assert mesh is mesh_bond_potential.mesh
     for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.params['meshbond'][key],
+        np.testing.assert_allclose(mesh_bond_potential.parameter[key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
     mesh1 = hoomd.mesh.Mesh()
     mesh_bond_potential.mesh = mesh1
-    assert mesh1 == mesh_bond_potential.mesh
+    assert mesh1 is mesh_bond_potential.mesh
 
 
 @pytest.mark.parametrize("mesh_bond_cls, potential_kwargs",
@@ -129,12 +128,10 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
 
     mesh = hoomd.mesh.Mesh()
     mesh.size = 1
-    mesh.types = ['meshbond']
-    mesh.typeid = [0]
     mesh.triangles = [[0, 1, 2]]
 
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params['meshbond'] = potential_kwargs
+    mesh_bond_potential.parameter = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -148,7 +145,7 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
 
     sim.run(0)
     for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.params['meshbond'][key],
+        np.testing.assert_allclose(mesh_bond_potential.parameter[key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
@@ -164,12 +161,10 @@ def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
 
     mesh = hoomd.mesh.Mesh()
     mesh.size = 1
-    mesh.types = ['meshbond']
-    mesh.typeid = [0]
     mesh.triangles = [[0, 1, 2]]
 
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params['meshbond'] = potential_kwargs
+    mesh_bond_potential.parameter = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 

@@ -1,8 +1,4 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
-
-"""Bond potentials."""
+"""Mesh Bond potentials."""
 
 from hoomd.md import _md
 from hoomd.mesh import Mesh
@@ -54,17 +50,14 @@ class MeshBond(Force):
         # this ideopotent given the above check.
         self._mesh._add(simulation)
         # This is ideopotent, but we need to ensure that if we change
-        # neighbor list when not attached we handle correctly.
+        # mesh when not attached we handle correctly.
         self._add_dependency(self._mesh)
 
     def _attach(self):
         """Create the c++ mirror class."""
-        if not self._mesh._added:
-            self._mesh._add(self._simulation)
-        else:
-            if self._simulation != self._mesh._simulation:
-                raise RuntimeError("{} object's mesh is used in a "
-                                   "different simulation.".format(type(self)))
+        if self._simulation != self._mesh._simulation:
+            raise RuntimeError("{} object's mesh is used in a "
+                               "different simulation.".format(type(self)))
 
         if not self.mesh._attached:
             self.mesh._attach()
@@ -77,17 +70,25 @@ class MeshBond(Force):
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self._mesh._cpp_obj)
 
-        self._apply_param_dict()
-        self._apply_typeparam_dict_with_mesh(self._cpp_obj, self.mesh)
+        super()._attach()
 
-    def _apply_typeparam_dict_with_mesh(self, cpp_obj, mesh):
+    def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
             try:
-                typeparam._attach_with_mesh(cpp_obj, mesh)
+                typeparam._attach(cpp_obj, self.mesh)
             except ValueError as err:
                 raise err.__class__(
                     f"For {type(self)} in TypeParameter {typeparam.name} "
                     f"{str(err)}")
+
+    @property
+    def parameter(self):
+        """Shortcut to set params."""
+        return self.params["mesh"]
+
+    @parameter.setter
+    def parameter(self, value):
+        self.params["mesh"] = value
 
     @property
     def mesh(self):
@@ -106,10 +107,6 @@ class MeshBond(Force):
             self._mesh._add(self._simulation)
         self._mesh = mesh
 
-    @property
-    def _children(self):
-        return [self.mesh]
-
 
 class Harmonic(MeshBond):
     r"""Harmonic bond potential.
@@ -122,9 +119,10 @@ class Harmonic(MeshBond):
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
     Attributes:
-        params (TypeParameter[``mesh type``, dict]):
-            The parameter of the harmonic bonds for each particle type.
-            The dictionary has the following keys:
+        parameter (TypeParameter[dict]):
+            The parameter of the harmonic bonds for the defined mesh.
+            As the mesh can only have one type a type name does not have
+            to be stated. The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - potential constant
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
@@ -135,8 +133,7 @@ class Harmonic(MeshBond):
     Examples::
 
         harmonic = mesh.bond.Harmonic(mesh)
-        harmonic.params['wall'] = dict(k=3.0, r0=2.38)
-        harmonic.params['vesicle'] = dict(k=10.0, r0=1.0)
+        harmonic.parameter = dict(k=10.0, r0=1.0)
     """
     _cpp_class_name = "PotentialMeshBondHarmonic"
 
@@ -159,9 +156,10 @@ class FENE(MeshBond):
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
     Attributes:
-        params (TypeParameter[``mesh type``, dict]):
-            The parameter of the FENE potential bonds.
-            The dictionary has the following keys:
+        parameter (TypeParameter[dict]):
+            The parameter of the FENE bonds for the defined mesh.
+            As the mesh can only have one type a type name does not have
+            to be stated. The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - attractive force strength
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
@@ -178,9 +176,7 @@ class FENE(MeshBond):
     Examples::
 
         bond_potential = mesh.bond.FENE(mesh)
-        bond_potential.params['molecule'] = dict(k=3.0, r0=2.38,
-                                                 epsilon=1.0, sigma=1.0)
-        bond_potential.params['vesicle'] = dict(k=10.0, r0=1.0,
+        bond_potential.parameter = dict(k=10.0, r0=1.0,
                                                  epsilon=0.8, sigma=1.2)
 
     """
@@ -210,9 +206,10 @@ class Tether(MeshBond):
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
     Attributes:
-        params (TypeParameter[``mesh type``, dict]):
-            The parameter of the Tethering potential bonds.
-            The dictionary has the following keys:
+        parameter (TypeParameter[dict]):
+            The parameter of the Tethering bonds for the defined mesh.
+            As the mesh can only have one type a type name does not have
+            to be stated. The dictionary has the following keys:
 
             * ``k_b`` (`float`, **required**) - bond stiffness
               :math:`[\mathrm{energy}]`
@@ -232,8 +229,8 @@ class Tether(MeshBond):
     Examples::
 
         bond_potential = mesh.bond.Tether(mesh)
-        bond_potential.params['tether'] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
-                                               l_c0=1.8, l_max=2.1)
+        bond_potential.parameter = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
+                                         l_c0=1.8, l_max=2.1)
     """
     _cpp_class_name = "PotentialMeshBondTether"
 
