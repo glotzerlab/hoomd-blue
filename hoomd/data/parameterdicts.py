@@ -130,7 +130,7 @@ class _ValidatedDefaultDict(MutableMapping):
 
     def __setitem__(self, keys, item):
         """Set parameter by key."""
-        keys = self._yield_keys(keys)
+        keys = self._validated_keys(keys)
         try:
             validated_value = self._validate_values(item)
         except ValueError as err:
@@ -162,6 +162,9 @@ class _ValidatedDefaultDict(MutableMapping):
         # default with the benefit that __getitem__ can be defined in terms of
         # get.
         value = {}
+        # We shouldn't error here regardless of key (assuming it is well formed,
+        # and get doesn't error on non-existent key. self._yield_keys does
+        # not raise an exception on non-existent keys.
         for key in self._yield_keys(keys):
             try:
                 value[key] = self._single_getitem(key)
@@ -179,8 +182,11 @@ class _ValidatedDefaultDict(MutableMapping):
                 the mapping.  Must be compatible with the typing specification
                 specified on construction.
         """
-        self.__setitem__(
-            (key for key in self._yield_keys(keys) if key not in self), default)
+        set_keys = [
+            key for key in self._validated_keys(keys) if key not in self
+        ]
+        if len(set_keys) > 0:
+            self.__setitem__(set_keys, default)
 
     def _validate_values(self, value):
         validated_value = self._type_converter(value)
@@ -269,6 +275,10 @@ class _ValidatedDefaultDict(MutableMapping):
                 yield tuple(sorted(list(key)))
         else:
             yield from self._validate_and_split_key(key)
+
+    def _validated_keys(self, key):
+        """Use this method to restrict viable keys for the mapping."""
+        yield from self._yield_keys(key)
 
     def __eq__(self, other):
         if not isinstance(other, _ValidatedDefaultDict):
@@ -392,23 +402,21 @@ class TypeParameterDict(_ValidatedDefaultDict):
             return self._dict
         return {key: getattr(self._cpp_obj, self._getter)(key) for key in self}
 
-    def _yield_keys(self, key):
+    def _validated_keys(self, key):
         """Includes key check for existing simulation keys.
 
         Overwritting this means that __getitem__ and __setitem__ plus any
         methods that rely on them will error properly even if we don't check for
         the key's existence there.
         """
-        if not self._attached:
-            yield from super()._yield_keys(key)
-            return
-
-        for key in super()._yield_keys(key):
-            if key not in self._type_keys:
-                raise KeyError("Type {} does not exist in the "
-                               "system.".format(key))
-            else:
+        if self._attached:
+            for key in self._yield_keys(key):
+                if key not in self._type_keys:
+                    raise KeyError(
+                        "Type {} does not exist in the system.".format(key))
                 yield key
+        else:
+            yield from super()._validated_keys(key)
 
     def _validate_values(self, val):
         val = super()._validate_values(val)
