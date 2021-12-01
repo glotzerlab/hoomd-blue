@@ -538,26 +538,26 @@ class ListWriter(hoomd.custom.Action):
         self.data.append(getattr(self._operation, self._attribute))
 
 
-class BaseTestList:
-    """Basic extensible test suite for list-like classes."""
+class BaseCollectionsTest:
+    """Basic extensible test suite for collection classes."""
 
     @pytest.fixture
-    def generate_plain_list(self):
-        """Return a function that generates plain lists for tests."""
+    def generate_plain_collection(self):
+        """Return a function that generates plain collections for tests."""
         raise NotImplementedError
 
     def check_equivalent(self, a, b):
-        """Assert whether two lists are equivalent for test purposes."""
+        """Assert whether two collections are equivalent for test purposes."""
         assert len(a) == len(b)
         for x, y in zip(a, b):
             assert self.is_equal(x, y)
 
     def is_equal(self, a, b):
-        """Return whether two list items are equal."""
+        """Return whether two collection items are equal."""
         return a is b
 
-    def final_check(self, test_list):
-        """Perform any final assert on the list like object."""
+    def final_check(self, test_collection):
+        """Perform any final assert on the collection like object."""
         assert True
 
     _rng = numpy.random.default_rng(15656456)
@@ -569,68 +569,77 @@ class BaseTestList:
 
     @pytest.fixture(autouse=True, params=(5, 10, 20))
     def n(self, request):
-        """Fixture that controls tested list sizes."""
+        """Fixture that controls tested collection sizes."""
         return request.param
 
     @pytest.fixture(scope="function")
-    def plain_list(self, n, generate_plain_list):
-        """Return a plain list with specified items."""
-        return generate_plain_list(n)
+    def plain_collection(self, n, generate_plain_collection):
+        """Return a plain collection with specified items."""
+        return generate_plain_collection(n)
 
     @pytest.fixture(scope="function")
-    def empty_list(self):
-        """Return an empty test class list."""
+    def empty_collection(self):
+        """Return an empty test class collection."""
         raise NotImplementedError
 
     @pytest.fixture(scope="function")
-    def populated_list(self, empty_list, plain_list):
-        """Return a test list populated with plain_list and the plain_list."""
-        empty_list.extend(plain_list)
-        return empty_list, plain_list
+    def populated_collection(self, empty_collection, plain_collection):
+        """Return a test collection and the plain data the collection uses."""
+        raise NotImplementedError
 
-    def test_contains(self, empty_list, plain_list, generate_plain_list):
+    def test_contains(self, populated_collection, generate_plain_collection):
         """Test __contains__."""
-        for item in plain_list:
-            empty_list._list.append(item)
-            assert item in empty_list
-        new_list = generate_plain_list(5)
-        for item in new_list:
-            if item in plain_list:
-                assert item in empty_list
+        test_collection, plain_collection = populated_collection
+        for item in plain_collection:
+            assert item in test_collection
+        new_collection = generate_plain_collection(5)
+        for item in new_collection:
+            if item in plain_collection:
+                assert item in test_collection
             else:
-                assert item not in empty_list
+                assert item not in test_collection
 
-    def test_len(self, populated_list):
+    def test_len(self, populated_collection):
         """Test __len__."""
-        test_list, plain_list = populated_list
-        assert len(test_list) == len(plain_list)
-        del test_list._list[-1]
-        assert len(test_list) == len(plain_list) - 1
+        test_collection, plain_collection = populated_collection
+        assert len(test_collection) == len(plain_collection)
 
-    def test_iter(self, populated_list):
+    def test_iter(self, populated_collection):
         """Test __iter__."""
-        test_list, plain_list = populated_list
-        for t_item, p_item in zip(test_list, plain_list):
+        test_collection, plain_collection = populated_collection
+        for t_item, p_item in zip(test_collection, plain_collection):
             assert self.is_equal(t_item, p_item)
 
-    def test_getitem(self, populated_list):
+
+class BaseSequenceTest(BaseCollectionsTest):
+    """Basic extensible test suite for tuple-like classes."""
+
+    def test_getitem(self, populated_collection):
         """Test __getitem__."""
-        test_list, plain_list = populated_list
-        for i, p_item in enumerate(plain_list):
-            assert self.is_equal(test_list[i], p_item)
+        test_collection, plain_collection = populated_collection
+        for i, p_item in enumerate(plain_collection):
+            assert self.is_equal(test_collection[i], p_item)
         assert all(
-            self.is_equal(t, p) for t, p in zip(test_list[:], plain_list))
+            self.is_equal(t, p)
+            for t, p in zip(test_collection[:], plain_collection))
         assert all(
-            self.is_equal(t, p) for t, p in zip(test_list[1:], plain_list[1:]))
+            self.is_equal(t, p)
+            for t, p in zip(test_collection[1:], plain_collection[1:]))
+        with pytest.raises(IndexError):
+            _ = test_collection[len(test_collection)]
+
+
+class BaseTestList(BaseSequenceTest):
+    """Basic extensible test suite for list-like classes."""
 
     @pytest.fixture(params=(3, 6, 11))
     def delete_index(self, request):
         """Determines the indices used for test_delitem."""
         return request.param
 
-    def test_delitem(self, delete_index, populated_list):
+    def test_delitem(self, delete_index, populated_collection):
         """Test __delitem__."""
-        test_list, plain_list = populated_list
+        test_list, plain_list = populated_collection
         if delete_index >= len(test_list):
             with pytest.raises(IndexError):
                 del test_list[delete_index]
@@ -646,42 +655,44 @@ class BaseTestList:
         assert all(old_item not in test_list for old_item in old_items)
         self.final_check(test_list)
 
-    def test_append(self, empty_list, plain_list):
+    def test_append(self, empty_collection, plain_collection):
         """Test append."""
-        for i, item in enumerate(plain_list):
-            empty_list.append(item)
-            assert len(empty_list) == i + 1
-            assert self.is_equal(item, empty_list[-1])
-        self.check_equivalent(empty_list, plain_list)
-        self.final_check(empty_list)
+        for i, item in enumerate(plain_collection):
+            empty_collection.append(item)
+            assert len(empty_collection) == i + 1
+            assert self.is_equal(item, empty_collection[-1])
+        self.check_equivalent(empty_collection, plain_collection)
+        self.final_check(empty_collection)
 
     @pytest.fixture(params=(3, 6, 11))
     def insert_index(self, request):
         """Determines the indices used for test_insert."""
         return request.param
 
-    def test_insert(self, insert_index, empty_list, plain_list):
+    def test_insert(self, insert_index, empty_collection, plain_collection):
         """Test insert."""
-        check_list = []
-        empty_list.extend(plain_list[:-1])
-        check_list.extend(plain_list[:-1])
-        empty_list.insert(insert_index, plain_list[-1])
-        check_list.insert(insert_index, plain_list[-1])
-        assert len(empty_list) == len(plain_list)
-        assert self.is_equal(empty_list[min(len(empty_list) - 1, insert_index)],
-                             plain_list[-1])
-        self.check_equivalent(empty_list, check_list)
-        self.final_check(empty_list)
+        check_collection = []
+        empty_collection.extend(plain_collection[:-1])
+        check_collection.extend(plain_collection[:-1])
+        empty_collection.insert(insert_index, plain_collection[-1])
+        check_collection.insert(insert_index, plain_collection[-1])
+        assert len(empty_collection) == len(plain_collection)
+        assert self.is_equal(
+            empty_collection[min(len(empty_collection) - 1, insert_index)],
+            plain_collection[-1],
+        )
+        self.check_equivalent(empty_collection, check_collection)
+        self.final_check(empty_collection)
 
-    def test_extend(self, empty_list, plain_list):
+    def test_extend(self, empty_collection, plain_collection):
         """Test extend."""
-        empty_list.extend(plain_list)
-        self.check_equivalent(empty_list, plain_list)
-        self.final_check(empty_list)
+        empty_collection.extend(plain_collection)
+        self.check_equivalent(empty_collection, plain_collection)
+        self.final_check(empty_collection)
 
-    def test_clear(self, populated_list):
+    def test_clear(self, populated_collection):
         """Test clear."""
-        test_list, plain_list = populated_list
+        test_list, plain_list = populated_collection
         test_list.clear()
         assert len(test_list) == 0
         self.final_check(test_list)
@@ -691,10 +702,11 @@ class BaseTestList:
         """Determines the indices used for test_setitem."""
         return request.param
 
-    def test_setitem(self, setitem_index, populated_list, generate_plain_list):
+    def test_setitem(self, setitem_index, populated_collection,
+                     generate_plain_collection):
         """Test __setitem__."""
-        test_list, plain_list = populated_list
-        item = generate_plain_list(1)[0]
+        test_list, plain_list = populated_collection
+        item = generate_plain_collection(1)[0]
         if setitem_index >= len(test_list):
             with pytest.raises(IndexError):
                 test_list[setitem_index] = item
@@ -710,9 +722,9 @@ class BaseTestList:
         """Determines the indices used for test_pop."""
         return request.param
 
-    def test_pop(self, pop_index, populated_list):
+    def test_pop(self, pop_index, populated_collection):
         """Test pop."""
-        test_list, plain_list = populated_list
+        test_list, plain_list = populated_collection
         if pop_index >= len(test_list):
             with pytest.raises(IndexError):
                 test_list.pop(pop_index)
@@ -729,10 +741,234 @@ class BaseTestList:
         """Determines the indices used for test_remove."""
         return self.rng.integers(n)
 
-    def test_remove(self, remove_index, populated_list):
+    def test_remove(self, remove_index, populated_collection):
         """Test remove."""
-        test_list, plain_list = populated_list
+        test_list, plain_list = populated_collection
         test_list.remove(plain_list[remove_index])
         assert plain_list[remove_index] not in test_list
         plain_list.remove(plain_list[remove_index])
         self.check_equivalent(test_list, plain_list)
+
+
+class BaseMappingTest(BaseCollectionsTest):
+    """Basic extensible test suite for mapping classes."""
+
+    _allow_new_keys = True
+    _deletion_error = None
+    _has_default = False
+
+    @pytest.fixture
+    def populated_collection(self, empty_collection, plain_collection):
+        """Return a test mapping and the plain data the collection uses."""
+        empty_collection.update(plain_collection)
+        return empty_collection, plain_collection
+
+    def check_equivalent(self, a, b):
+        """Assert whether two collections are equivalent for test purposes."""
+        assert set(a) == set(b)
+        for key in a:
+            assert self.is_equal(a[key], b[key])
+
+    def random_keys(self):
+        """Generate random string keys."""
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        while True:
+            length = self.rng.integers(10) + 1
+            characters = []
+            for _ in range(length):
+                characters.append(alphabet[self.rng.choice(len(alphabet))])
+            yield "".join(characters)
+
+    def choose_random_key(self, mapping):
+        """Pick a random existing key from mapping.
+
+        Fails on an empty mapping.
+        """
+        return list(mapping)[self.rng.choice(len(mapping))]
+
+    def test_iter(self, populated_collection):
+        """Test __iter__."""
+        test_mapping, plain_mapping = populated_collection
+        assert set(test_mapping) == plain_mapping.keys()
+
+    def test_contains(self, populated_collection):
+        """Test __contains__."""
+        test_collection, plain_collection = populated_collection
+        for key in plain_collection:
+            assert key in test_collection
+        cnt = 0
+        for key in self.random_keys():
+            if key in plain_collection:
+                assert key in test_collection
+            else:
+                assert key not in test_collection
+                cnt += 1
+                if cnt == 5:
+                    break
+
+    def test_getitem(self, populated_collection):
+        """Test __getitem__."""
+        test_mapping, plain_mapping = populated_collection
+        for key, value in plain_mapping.items():
+            assert self.is_equal(test_mapping[key], value)
+        if self._has_default:
+            for key in self.random_keys():
+                if key not in test_mapping:
+                    value = test_mapping[key]
+                    assert self.is_equal(value, test_mapping.default)
+                    return
+        with pytest.raises(KeyError):
+            for key in self.random_keys():
+                if key not in test_mapping:
+                    _ = test_mapping[key]
+                    break
+
+    def test_delitem(self, populated_collection):
+        """Test __delitem__."""
+        test_mapping, plain_mapping = populated_collection
+        key = self.choose_random_key(test_mapping)
+        old_item = test_mapping[key]
+        if self._deletion_error is not None:
+            with pytest.raises(self._deletion_error):
+                del test_mapping[key]
+            return
+
+        del test_mapping[key]
+        del plain_mapping[key]
+        self.check_equivalent(test_mapping, plain_mapping)
+        assert old_item not in test_mapping
+        self.final_check(test_mapping)
+        with pytest.raises(IndexError):
+            for key in self.random_keys():
+                if key not in self:
+                    del test_mapping[key]
+
+    def test_clear(self, populated_collection):
+        """Test clear."""
+        test_mapping, plain_mapping = populated_collection
+        if self._deletion_error is not None:
+            with pytest.raises(self._deletion_error):
+                test_mapping.clear()
+            return
+        test_mapping.clear()
+        assert len(test_mapping) == 0
+        self.final_check(test_mapping)
+
+    def setitem_key_value(self):
+        """Determines the indices used for test_setitem."""
+        raise NotImplementedError
+
+    def test_setitem(self, setitem_key_value, populated_collection):
+        """Test __setitem__."""
+        test_mapping, plain_mapping = populated_collection
+        key, value = setitem_key_value
+        if not self._allow_new_keys and key not in test_mapping:
+            with pytest.raises(KeyError):
+                test_mapping[key] = value
+            return
+        test_mapping[key] = value
+        assert self.is_equal(test_mapping[key], value)
+        if key in plain_mapping:
+            assert len(test_mapping) == len(plain_mapping)
+        else:
+            assert len(test_mapping) == len(plain_mapping) + 1
+        self.final_check(test_mapping)
+
+    def test_pop(self, populated_collection):
+        """Test pop."""
+        test_mapping, plain_mapping = populated_collection
+        key = self.choose_random_key(test_mapping)
+        if self._deletion_error is not None:
+            with pytest.raises(self._deletion_error):
+                item = test_mapping.pop(key)
+            return
+        item = test_mapping.pop(key)
+        assert self.is_equal(item, plain_mapping[key])
+        plain_mapping.pop(key)
+        self.check_equivalent(test_mapping, plain_mapping)
+        self.final_check(test_mapping)
+        with pytest.raises(KeyError):
+            for key in self.random_keys():
+                if key not in test_mapping:
+                    test_mapping.pop()
+                    break
+        test_mapping.pop(key, None)
+
+    def test_keys(self, populated_collection):
+        """Test keys."""
+        test_mapping, plain_mapping = populated_collection
+        assert set(test_mapping.keys()) == plain_mapping.keys()
+
+    def test_values(self, populated_collection):
+        """Test __iter__."""
+        test_mapping, plain_mapping = populated_collection
+        # We rely on keys() and values() using the same ordering
+        for key, item in zip(test_mapping.keys(), test_mapping.values()):
+            assert self.is_equal(item, plain_mapping[key])
+
+    def test_items(self, populated_collection):
+        """Test __iter__."""
+        test_mapping, plain_mapping = populated_collection
+        for key, value in test_mapping.items():
+            assert self.is_equal(value, plain_mapping[key])
+
+    def test_update(self, populated_collection, generate_plain_collection, n):
+        """Test update."""
+        test_mapping, plain_mapping = populated_collection
+        new_mapping = generate_plain_collection(max(n - 1, 1))
+        test_mapping.update(new_mapping)
+        for key in new_mapping:
+            assert key in test_mapping
+            assert self.is_equal(test_mapping[key], new_mapping[key])
+        for key in test_mapping:
+            if key not in new_mapping:
+                assert self.is_equal(test_mapping[key], plain_mapping[key])
+
+    def setdefault_key_value(self):
+        """Determines the indices used for test_setdefault."""
+        raise NotImplementedError
+
+    def test_setdefault(self, setdefault_key_value, populated_collection):
+        """Test update."""
+        test_mapping, plain_mapping = populated_collection
+        key, value = setdefault_key_value
+        if not self._allow_new_keys and key not in test_mapping:
+            with pytest.raises(KeyError):
+                test_mapping.setdefault(key, value)
+            return
+        test_mapping.setdefault(key, value)
+        if key in plain_mapping:
+            assert self.is_equal(test_mapping[key], plain_mapping[key])
+        else:
+            assert self.is_equal(test_mapping[key], value)
+        if key in plain_mapping:
+            assert len(test_mapping) == len(plain_mapping)
+        else:
+            assert len(test_mapping) == len(plain_mapping) + 1
+        self.final_check(test_mapping)
+        pass
+
+    def test_popitem(self, populated_collection):
+        """Test popitem."""
+        test_mapping, plain_mapping = populated_collection
+        if self._deletion_error is not None:
+            with pytest.raises(self._deletion_error):
+                test_mapping.popitem()
+            return
+        N = len(test_mapping)
+        for length in range(N, -1, -1):
+            key, item = test_mapping.popitem()
+            assert key in plain_mapping
+            assert key not in test_mapping
+            assert len(test_mapping) == length
+
+    def test_get(self, populated_collection):
+        """Test get."""
+        test_mapping, plain_mapping = populated_collection
+        for key, value in plain_mapping.items():
+            assert self.is_equal(test_mapping.get(key), value)
+        for key in self.random_keys():
+            if key not in test_mapping:
+                assert test_mapping.get(key) is None
+                assert test_mapping.get(key, 1) == 1
+                break
