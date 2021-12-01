@@ -141,6 +141,15 @@ class _ValidatedDefaultDict(MutableMapping):
     def __delitem__(self, key):
         raise NotImplementedError("__delitem__ is not defined for this type.")
 
+    def __contains__(self, key):
+        try:
+            keys = self._validate_and_split_key(key)
+        except KeyError:
+            return False
+        if self._attached:
+            return len(keys) == 1 and keys[0] in self._type_keys
+        return len(keys) == 1 and key in self._dict
+
     def get(self, keys, default=None):
         """Get values for keys with undefined keys returning default.
 
