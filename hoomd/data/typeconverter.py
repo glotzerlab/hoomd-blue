@@ -482,7 +482,7 @@ class TypeConverterSequence(TypeConverter):
                     new_sequence.append(self.converter(v))
             except (ValueError, TypeError) as err:
                 raise TypeConversionError(
-                    "In list item number {i}: {str(err)}") from err
+                    f"In list item number {i}: {str(err)}") from err
             return new_sequence
 
 
