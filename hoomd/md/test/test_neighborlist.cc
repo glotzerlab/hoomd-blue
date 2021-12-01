@@ -112,7 +112,7 @@ template<class NL> void neighborlist_basic_tests(std::shared_ptr<ExecutionConfig
         ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_2->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_2->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -183,7 +183,7 @@ template<class NL> void neighborlist_basic_tests(std::shared_ptr<ExecutionConfig
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_6->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -242,7 +242,7 @@ template<class NL> void neighborlist_basic_tests(std::shared_ptr<ExecutionConfig
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_6->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -299,7 +299,7 @@ template<class NL> void neighborlist_basic_tests(std::shared_ptr<ExecutionConfig
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_6->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -375,7 +375,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist_3->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_3->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_3->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -403,7 +403,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist_3->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_3->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_3->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -442,7 +442,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist_3->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_3->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_3->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -562,7 +562,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist_18->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_18->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_18->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -603,7 +603,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist_18->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_18->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_18->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -642,7 +642,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist_18->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_18->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_18->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -712,7 +712,7 @@ template<class NL> void neighborlist_type_tests(std::shared_ptr<ExecutionConfigu
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_6->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
         for (unsigned int cur_p = 0; cur_p < 6; ++cur_p)
@@ -796,7 +796,7 @@ template<class NL> void neighborlist_type_tests(std::shared_ptr<ExecutionConfigu
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_6->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
         // just check the first 5 particles, since the last has no neighbors
@@ -897,7 +897,7 @@ void neighborlist_exclusion_tests(std::shared_ptr<ExecutionConfiguration> exec_c
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_6->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -1011,7 +1011,7 @@ void neighborlist_body_filter_tests(std::shared_ptr<ExecutionConfiguration> exec
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_6->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -1136,7 +1136,7 @@ void neighborlist_diameter_shift_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_2->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_2->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -1242,7 +1242,7 @@ void neighborlist_diameter_shift_periodic_tests(std::shared_ptr<ExecutionConfigu
         ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist_2->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist_2->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -1313,7 +1313,7 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
     ArrayHandle<unsigned int> h_nlist1(nlist1->getNListArray(),
                                        access_location::host,
                                        access_mode::read);
-    ArrayHandle<unsigned int> h_head_list1(nlist1->getHeadList(),
+    ArrayHandle<size_t> h_head_list1(nlist1->getHeadList(),
                                            access_location::host,
                                            access_mode::read);
     ArrayHandle<unsigned int> h_n_neigh2(nlist2->getNNeighArray(),
@@ -1322,7 +1322,7 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
     ArrayHandle<unsigned int> h_nlist2(nlist2->getNListArray(),
                                        access_location::host,
                                        access_mode::read);
-    ArrayHandle<unsigned int> h_head_list2(nlist2->getHeadList(),
+    ArrayHandle<size_t> h_head_list2(nlist2->getHeadList(),
                                            access_location::host,
                                            access_mode::read);
 
@@ -1344,7 +1344,7 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
         // check all elements from ref list are in the test list
         for (unsigned int j = 0; j < h_n_neigh1.data[i]; ++j)
             {
-            const unsigned int ref_idx = h_nlist1.data[h_head_list1.data[i] + j];
+            const size_t ref_idx = h_nlist1.data[h_head_list1.data[i] + j];
             bool found = std::find(test_list.begin(), test_list.end(), ref_idx) != test_list.end();
             if (!found)
                 {
@@ -1387,7 +1387,7 @@ void neighborlist_large_ex_tests(std::shared_ptr<ExecutionConfiguration> exec_co
         ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -1493,7 +1493,7 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0]], 1);
@@ -1535,7 +1535,7 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
 
@@ -1618,7 +1618,7 @@ template<class NL> void neighborlist_2d_tests(std::shared_ptr<ExecutionConfigura
         ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0]], 1);
@@ -1665,7 +1665,7 @@ template<class NL> void neighborlist_2d_tests(std::shared_ptr<ExecutionConfigura
         ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0]], 1);
@@ -1716,7 +1716,7 @@ template<class NL> void neighborlist_2d_tests(std::shared_ptr<ExecutionConfigura
         ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(),
+        ArrayHandle<size_t> h_head_list(nlist->getHeadList(),
                                               access_location::host,
                                               access_mode::read);
         CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0]], 1);

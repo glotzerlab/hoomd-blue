@@ -152,7 +152,7 @@ void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(),
                                       access_location::device,
                                       access_mode::read);
-    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(),
+    ArrayHandle<size_t> d_head_list(this->m_nlist->getHeadList(),
                                           access_location::device,
                                           access_mode::read);
 

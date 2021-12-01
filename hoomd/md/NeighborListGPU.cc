@@ -165,7 +165,7 @@ void NeighborListGPU::filterNlist()
                                             access_mode::read);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
+    ArrayHandle<size_t> d_head_list(m_head_list, access_location::device, access_mode::read);
 
     m_tuner_filter->begin();
     kernel::gpu_nlist_filter(d_n_neigh.data,
@@ -237,7 +237,7 @@ void NeighborListGPU::buildHeadList()
         }
 
         {
-        ArrayHandle<unsigned int> h_req_size_nlist(m_req_size_nlist,
+        ArrayHandle<size_t> h_req_size_nlist(m_req_size_nlist,
                                                    access_location::host,
                                                    access_mode::overwrite);
         // reset flags
@@ -245,7 +245,7 @@ void NeighborListGPU::buildHeadList()
         }
 
         {
-        ArrayHandle<unsigned int> d_head_list(m_head_list,
+        ArrayHandle<size_t> d_head_list(m_head_list,
                                               access_location::device,
                                               access_mode::overwrite);
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
@@ -253,7 +253,7 @@ void NeighborListGPU::buildHeadList()
                                    access_mode::read);
         ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
 
-        ArrayHandle<unsigned int> d_req_size_nlist(m_req_size_nlist,
+        ArrayHandle<size_t> d_req_size_nlist(m_req_size_nlist,
                                                    access_location::device,
                                                    access_mode::readwrite);
 
@@ -270,9 +270,9 @@ void NeighborListGPU::buildHeadList()
         m_tuner_head_list->end();
         }
 
-    unsigned int req_size_nlist;
+    size_t req_size_nlist;
         {
-        ArrayHandle<unsigned int> h_req_size_nlist(m_req_size_nlist,
+        ArrayHandle<size_t> h_req_size_nlist(m_req_size_nlist,
                                                    access_location::host,
                                                    access_mode::read);
         req_size_nlist = *h_req_size_nlist.data;

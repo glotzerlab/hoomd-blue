@@ -120,7 +120,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     TAG_ALLOCATION(m_nlist);
 
     // allocate head list indexer
-    GlobalArray<unsigned int> head_list(m_pdata->getMaxN(), m_exec_conf);
+    GlobalArray<size_t> head_list(m_pdata->getMaxN(), m_exec_conf);
     m_head_list.swap(head_list);
     TAG_ALLOCATION(m_head_list);
 
@@ -1545,7 +1545,7 @@ void NeighborList::filterNlist()
         m_prof->push("filter");
 
     // access data
-    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_ex_list_idx(m_ex_list_idx,
                                             access_location::host,
@@ -1556,7 +1556,7 @@ void NeighborList::filterNlist()
     // for each particle's neighbor list
     for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
         {
-        unsigned int myHead = h_head_list.data[idx];
+        size_t myHead = h_head_list.data[idx];
         unsigned int n_neigh = h_n_neigh.data[idx];
         unsigned int n_ex = h_n_ex_idx.data[idx];
         unsigned int new_n_neigh = 0;
@@ -1605,9 +1605,9 @@ void NeighborList::buildHeadList()
     if (m_prof)
         m_prof->push("head-list");
 
-    unsigned int headAddress = 0;
+    size_t headAddress = 0;
         {
-        ArrayHandle<unsigned int> h_head_list(m_head_list,
+        ArrayHandle<size_t> h_head_list(m_head_list,
                                               access_location::host,
                                               access_mode::overwrite);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
@@ -1741,7 +1741,7 @@ void NeighborList::updateMemoryMapping()
 
             // split preferred location of neighbor list across GPUs
             {
-            ArrayHandle<unsigned int> h_head_list(m_head_list,
+            ArrayHandle<size_t> h_head_list(m_head_list,
                                                   access_location::host,
                                                   access_mode::read);
 
@@ -1749,7 +1749,7 @@ void NeighborList::updateMemoryMapping()
                 {
                 auto range = gpu_partition.getRange(idev);
 
-                unsigned int start = h_head_list.data[range.first];
+                size_t start = h_head_list.data[range.first];
                 unsigned int end = (range.second == m_pdata->getN())
                                        ? m_nlist.getNumElements()
                                        : h_head_list.data[range.second];
@@ -1774,7 +1774,7 @@ void NeighborList::updateMemoryMapping()
                 continue;
 
             cudaMemAdvise(m_head_list.get() + range.first,
-                          sizeof(unsigned int) * nelem,
+                          sizeof(size_t) * nelem,
                           cudaMemAdviseSetPreferredLocation,
                           gpu_map[idev]);
             cudaMemAdvise(m_n_neigh.get() + range.first,
@@ -1788,7 +1788,7 @@ void NeighborList::updateMemoryMapping()
 
             // pin to that device by prefetching
             cudaMemPrefetchAsync(m_head_list.get() + range.first,
-                                 sizeof(unsigned int) * nelem,
+                                 sizeof(size_t) * nelem,
                                  gpu_map[idev]);
             cudaMemPrefetchAsync(m_n_neigh.get() + range.first,
                                  sizeof(unsigned int) * nelem,

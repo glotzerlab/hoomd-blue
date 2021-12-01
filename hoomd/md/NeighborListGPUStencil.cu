@@ -56,7 +56,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
                                                  Scalar4* d_last_updated_pos,
                                                  unsigned int* d_conditions,
                                                  const unsigned int* d_Nmax,
-                                                 const unsigned int* d_head_list,
+                                                 const size_t* d_head_list,
                                                  const unsigned int* d_pid_map,
                                                  const Scalar4* d_pos,
                                                  const unsigned int* d_body,
@@ -125,7 +125,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
     unsigned int my_type = __scalar_as_int(my_postype.w);
     unsigned int my_body = d_body[my_pidx];
     Scalar my_diam = d_diameter[my_pidx];
-    unsigned int my_head = d_head_list[my_pidx];
+    size_t my_head = d_head_list[my_pidx];
 
     Scalar3 f = box.makeFraction(my_pos, ghost_width);
 
@@ -326,7 +326,7 @@ inline void stencil_launcher(unsigned int* d_nlist,
                              Scalar4* d_last_updated_pos,
                              unsigned int* d_conditions,
                              const unsigned int* d_Nmax,
-                             const unsigned int* d_head_list,
+                             const size_t* d_head_list,
                              const unsigned int* d_pid_map,
                              const Scalar4* d_pos,
                              const unsigned int* d_body,
@@ -554,7 +554,7 @@ inline void stencil_launcher<min_threads_per_particle / 2>(unsigned int* d_nlist
                                                            Scalar4* d_last_updated_pos,
                                                            unsigned int* d_conditions,
                                                            const unsigned int* d_Nmax,
-                                                           const unsigned int* d_head_list,
+                                                           const size_t* d_head_list,
                                                            const unsigned int* d_pid_map,
                                                            const Scalar4* d_pos,
                                                            const unsigned int* d_body,
@@ -585,7 +585,7 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                      Scalar4* d_last_updated_pos,
                                      unsigned int* d_conditions,
                                      const unsigned int* d_Nmax,
-                                     const unsigned int* d_head_list,
+                                     const size_t* d_head_list,
                                      const unsigned int* d_pid_map,
                                      const Scalar4* d_pos,
                                      const unsigned int* d_body,
