@@ -121,7 +121,8 @@ class _ValidatedDefaultDict(MutableMapping):
 
     def __getitem__(self, keys):
         """Access parameter by key."""
-        return self.get(keys, self.default)
+        self.setdefault(keys, self.default)
+        return self.get(keys)
 
     @abstractmethod
     def _single_setitem(self, key, item):
