@@ -288,9 +288,14 @@ class TypeConverter(ABC):
     def __init__(self, *args, **kwargs):
         pass
 
-    @abstractmethod
     def __call__(self, value):
         """Called when values are set."""
+        if value is RequiredArg:
+            return value
+        return self._validate(value)
+
+    @abstractmethod
+    def _validate(self, value):
         pass
 
 
@@ -427,7 +432,7 @@ class TypeConverterValue(TypeConverter):
         else:
             self.converter = OnlyTypes(type(value))
 
-    def __call__(self, value):
+    def _validate(self, value):
         """Called when the value is set."""
         try:
             return self.converter(value)
@@ -462,9 +467,9 @@ class TypeConverterSequence(TypeConverter):
     """
 
     def __init__(self, converter):
-        self.converter = converter
+        self.converter = to_type_converter(converter)
 
-    def __call__(self, sequence):
+    def _validate(self, sequence):
         """Called when the value is set."""
         if not _is_iterable(sequence):
             raise TypeConversionError(
@@ -508,7 +513,7 @@ class TypeConverterFixedLengthSequence(TypeConverter):
     def __init__(self, sequence):
         self.converter = tuple([to_type_converter(item) for item in sequence])
 
-    def __call__(self, sequence):
+    def _validate(self, sequence):
         """Called when the value is set."""
         if not _is_iterable(sequence):
             raise TypeConversionError(
@@ -566,7 +571,7 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
             key: to_type_converter(value) for key, value in mapping.items()
         }
 
-    def __call__(self, mapping):
+    def _validate(self, mapping):
         """Called when the value is set."""
         if not isinstance(mapping, Mapping):
             raise TypeConversionError(
