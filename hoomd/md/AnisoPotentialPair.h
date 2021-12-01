@@ -503,8 +503,8 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                                       access_location::host,
                                       access_mode::read);
     ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
-                                          access_location::host,
-                                          access_mode::read);
+                                    access_location::host,
+                                    access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),

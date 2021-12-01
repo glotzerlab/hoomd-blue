@@ -122,8 +122,8 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
                                       access_location::host,
                                       access_mode::read);
     ArrayHandle<size_t> h_head_list(this->m_nlist->getHeadList(),
-                                          access_location::host,
-                                          access_mode::read);
+                                    access_location::host,
+                                    access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(),
                                access_location::host,

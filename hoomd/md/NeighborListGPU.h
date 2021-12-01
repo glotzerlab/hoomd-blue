@@ -128,8 +128,7 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
     protected:
     GlobalArray<unsigned int> m_flags; //!< Storage for device flags on the GPU
 
-    GlobalArray<size_t>
-        m_req_size_nlist; //!< Flag to hold the required size of the neighborlist
+    GlobalArray<size_t> m_req_size_nlist; //!< Flag to hold the required size of the neighborlist
 
     //! Builds the neighbor list
     virtual void buildNlist(uint64_t timestep);

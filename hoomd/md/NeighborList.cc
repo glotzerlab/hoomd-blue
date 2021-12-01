@@ -1607,9 +1607,7 @@ void NeighborList::buildHeadList()
 
     size_t headAddress = 0;
         {
-        ArrayHandle<size_t> h_head_list(m_head_list,
-                                              access_location::host,
-                                              access_mode::overwrite);
+        ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::read);
@@ -1741,9 +1739,7 @@ void NeighborList::updateMemoryMapping()
 
             // split preferred location of neighbor list across GPUs
             {
-            ArrayHandle<size_t> h_head_list(m_head_list,
-                                                  access_location::host,
-                                                  access_mode::read);
+            ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
 
             for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
                 {

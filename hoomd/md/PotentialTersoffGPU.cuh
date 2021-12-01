@@ -70,13 +70,13 @@ struct tersoff_args_t
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
-    const size_t* d_head_list; //!< Indexes for accessing d_nlist
-    const Scalar* d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const size_t size_nlist;         //!< Number of elements in the neighborlist
-    const unsigned int ntypes;       //!< Number of particle types in the simulation
-    const unsigned int block_size;   //!< Block size to execute
-    const unsigned int tpp;          //!< Threads per particle
-    const hipDeviceProp_t& devprop;  //!< CUDA device properties
+    const size_t* d_head_list;   //!< Indexes for accessing d_nlist
+    const Scalar* d_rcutsq;      //!< Device array listing r_cut squared per particle type pair
+    const size_t size_nlist;     //!< Number of elements in the neighborlist
+    const unsigned int ntypes;   //!< Number of particle types in the simulation
+    const unsigned int block_size;  //!< Block size to execute
+    const unsigned int tpp;         //!< Threads per particle
+    const hipDeviceProp_t& devprop; //!< CUDA device properties
     };
 
 #ifdef __HIPCC__

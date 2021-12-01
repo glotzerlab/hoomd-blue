@@ -79,16 +79,16 @@ struct dpd_pair_args_t
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
-    const size_t* d_head_list; //!< Indexes for accessing d_nlist
-    const Scalar* d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const size_t size_nlist;         //!< Total length of the neighbor list
-    const unsigned int ntypes;       //!< Number of particle types in the simulation
-    const unsigned int block_size;   //!< Block size to execute
-    const uint16_t seed;             //!< user provided seed for PRNG
-    const uint64_t timestep;         //!< timestep of simulation
-    const Scalar deltaT;             //!< timestep size
-    const Scalar T;                  //!< temperature
-    const unsigned int shift_mode;   //!< The potential energy shift mode
+    const size_t* d_head_list;   //!< Indexes for accessing d_nlist
+    const Scalar* d_rcutsq;      //!< Device array listing r_cut squared per particle type pair
+    const size_t size_nlist;     //!< Total length of the neighbor list
+    const unsigned int ntypes;   //!< Number of particle types in the simulation
+    const unsigned int block_size;     //!< Block size to execute
+    const uint16_t seed;               //!< user provided seed for PRNG
+    const uint64_t timestep;           //!< timestep of simulation
+    const Scalar deltaT;               //!< timestep size
+    const Scalar T;                    //!< temperature
+    const unsigned int shift_mode;     //!< The potential energy shift mode
     const unsigned int compute_virial; //!< Flag to indicate if virials should be computed
     const unsigned int
         threads_per_particle; //!< Number of threads per particle (maximum: 32==1 warp)

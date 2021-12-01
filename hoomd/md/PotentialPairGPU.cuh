@@ -83,15 +83,15 @@ struct pair_args_t
     const Scalar* d_charge;    //!< particle charges
     const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int*
-        d_n_neigh;               //!< Device array listing the number of neighbors on each particle
-    const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
-    const size_t* d_head_list; //!< Head list indexes for accessing d_nlist
-    const Scalar* d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const Scalar* d_ronsq;           //!< Device array listing r_on squared per particle type pair
-    const size_t size_neigh_list;    //!< Size of the neighbor list for texture binding
-    const unsigned int ntypes;       //!< Number of particle types in the simulation
-    const unsigned int block_size;   //!< Block size to execute
-    const unsigned int shift_mode;   //!< The potential energy shift mode
+        d_n_neigh;                //!< Device array listing the number of neighbors on each particle
+    const unsigned int* d_nlist;  //!< Device array listing the neighbors of each particle
+    const size_t* d_head_list;    //!< Head list indexes for accessing d_nlist
+    const Scalar* d_rcutsq;       //!< Device array listing r_cut squared per particle type pair
+    const Scalar* d_ronsq;        //!< Device array listing r_on squared per particle type pair
+    const size_t size_neigh_list; //!< Size of the neighbor list for texture binding
+    const unsigned int ntypes;    //!< Number of particle types in the simulation
+    const unsigned int block_size;           //!< Block size to execute
+    const unsigned int shift_mode;           //!< The potential energy shift mode
     const unsigned int compute_virial;       //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 1 warp)
     const GPUPartition& gpu_partition; //!< The load balancing partition of particles between GPUs

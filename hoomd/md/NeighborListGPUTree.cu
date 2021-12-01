@@ -682,7 +682,7 @@ struct NeighborListOp
             }
 
         unsigned int idx;       //!< Index of primitive
-        size_t first;     //!< First index to use for writing neighbors
+        size_t first;           //!< First index to use for writing neighbors
         unsigned int num_neigh; //!< Number of neighbors for this thread
         unsigned int stack[4];  //!< Internal stack of neighbors
         };
@@ -777,11 +777,11 @@ struct NeighborListOp
             }
         }
 
-    uint4* neigh_list;               //!< Neighbors of each sphere
-    unsigned int* nneigh;            //!< Number of neighbors per search sphere
-    unsigned int* new_max_neigh;     //!< New maximum number of neighbors
-    const size_t* first_neigh; //!< Index of first neighbor
-    unsigned int max_neigh;          //!< Maximum number of neighbors allocated
+    uint4* neigh_list;           //!< Neighbors of each sphere
+    unsigned int* nneigh;        //!< Number of neighbors per search sphere
+    unsigned int* new_max_neigh; //!< New maximum number of neighbors
+    const size_t* first_neigh;   //!< Index of first neighbor
+    unsigned int max_neigh;      //!< Maximum number of neighbors allocated
     };
 
 //! Host function to convert a double to a float in round-down mode

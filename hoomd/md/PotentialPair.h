@@ -492,8 +492,8 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
                                       access_mode::read);
     //     Index2D nli = m_nlist->getNListIndexer();
     ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
-                                          access_location::host,
-                                          access_mode::read);
+                                    access_location::host,
+                                    access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
