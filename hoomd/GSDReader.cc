@@ -68,7 +68,7 @@ GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
         {
         std::ostringstream s;
         s << "Cannot read frame " << m_frame << " " << name << " only has "
-                                  << gsd_get_nframes(&m_handle) << " frames.";
+          << gsd_get_nframes(&m_handle) << " frames.";
         throw runtime_error(s.str());
         }
 
@@ -126,7 +126,8 @@ bool GSDReader::readChunk(void* data,
         if (actual_size != expected_size)
             {
             std::ostringstream s;
-            s << "Expecting " << expected_size << " bytes in " << name << " but found " << actual_size << ".";
+            s << "Expecting " << expected_size << " bytes in " << name << " but found "
+              << actual_size << ".";
             throw runtime_error(s.str());
             }
         int retval = gsd_read_chunk(&m_handle, data, entry);

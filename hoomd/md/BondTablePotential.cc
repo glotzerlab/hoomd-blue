@@ -82,8 +82,7 @@ void BondTablePotential::setTable(unsigned int type,
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
         std::ostringstream s;
-        s << "Bond rmin, rmax (" << rmin << "," << rmax
-                                  << ") is invalid.";
+        s << "Bond rmin, rmax (" << rmin << "," << rmax << ") is invalid.";
         throw runtime_error(s.str());
         }
 
@@ -156,8 +155,7 @@ void BondTablePotential::computeForces(uint64_t timestep)
         if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
             {
             std::ostringstream s;
-            s << "bond.table: bond " << bond.tag[0] << " "
-                                            << bond.tag[1] << " incomplete.";
+            s << "bond.table: bond " << bond.tag[0] << " " << bond.tag[1] << " incomplete.";
             throw std::runtime_error(s.str());
             }
         assert(idx_a <= m_pdata->getN() + m_pdata->getNGhosts());

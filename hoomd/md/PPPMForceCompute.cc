@@ -90,36 +90,29 @@ void PPPMForceCompute::setParams(unsigned int nx,
         if (!is_pow2(m_mesh_points.x) || !is_pow2(m_mesh_points.y) || !is_pow2(m_mesh_points.z))
             {
             std::ostringstream s;
-            s
-                << "The number of mesh points along the every direction must be a power of two!";
+            s << "The number of mesh points along the every direction must be a power of two!";
             throw std::runtime_error(s.str());
             }
 
         if (nx % didx.getW())
             {
             std::ostringstream s;
-            s << "The number of mesh points along the x-direction (" << nx
-                                      << ") is not"
-                                      << "a multiple of the width (" << didx.getW()
-                                      << ") of the processor grid!";
+            s << "The number of mesh points along the x-direction (" << nx << ") is not"
+              << "a multiple of the width (" << didx.getW() << ") of the processor grid!";
             throw std::runtime_error(s.str());
             }
         if (ny % didx.getH())
             {
             std::ostringstream s;
-            s << "The number of mesh points along the y-direction (" << ny
-                                      << ") is not"
-                                      << "a multiple of the height (" << didx.getH()
-                                      << ") of the processor grid!";
+            s << "The number of mesh points along the y-direction (" << ny << ") is not"
+              << "a multiple of the height (" << didx.getH() << ") of the processor grid!";
             throw std::runtime_error(s.str());
             }
         if (nz % didx.getD())
             {
             std::ostringstream s;
-            s << "The number of mesh points along the z-direction (" << nz
-                                      << ") is not"
-                                      << "a multiple of the depth (" << didx.getD()
-                                      << ") of the processor grid!";
+            s << "The number of mesh points along the z-direction (" << nz << ") is not"
+              << "a multiple of the depth (" << didx.getD() << ") of the processor grid!";
             throw std::runtime_error(s.str());
             }
 

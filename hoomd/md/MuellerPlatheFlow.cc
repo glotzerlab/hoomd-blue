@@ -173,8 +173,8 @@ void MuellerPlatheFlow::setMinSlab(const unsigned int min_slab)
     if (min_slab >= m_N_slabs)
         {
         ostringstream s;
-        s << "MuellerPlatheFlow is initialized with invalid min_slab: "
-                                  << min_slab << "/" << m_N_slabs << ".";
+        s << "MuellerPlatheFlow is initialized with invalid min_slab: " << min_slab << "/"
+          << m_N_slabs << ".";
         throw runtime_error(s.str());
         }
     if (min_slab != m_min_slab)
@@ -186,8 +186,8 @@ void MuellerPlatheFlow::setMaxSlab(const unsigned int max_slab)
     if (max_slab >= m_N_slabs)
         {
         ostringstream s;
-        s << "MuellerPlatheFlow is initialized with invalid max_slab: "
-                                  << max_slab << "/" << m_N_slabs << ".";
+        s << "MuellerPlatheFlow is initialized with invalid max_slab: " << max_slab << "/"
+          << m_N_slabs << ".";
         throw runtime_error(s.str());
         }
     if (max_slab != m_max_slab)

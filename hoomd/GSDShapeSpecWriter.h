@@ -60,7 +60,8 @@ class GSDShapeSpecWriter
         else if (number != 0)
             {
             std::ostringstream s;
-            s << "Error writing GSD file: " << "Unknown error " << number;
+            s << "Error writing GSD file: "
+              << "Unknown error " << number;
             throw std::runtime_error(s.str());
             }
         }

@@ -1085,20 +1085,17 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 if (rank >= n_ranks)
                     {
                     ostringstream s;
-                    s
-                        << "init.*: Particle " << snap_idx << " out of bounds." << std::endl;
+                    s << "init.*: Particle " << snap_idx << " out of bounds." << std::endl;
                     s << "Cartesian coordinates: " << std::endl;
-                    s
-                        << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
+                    s << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
                     s << "Fractional coordinates: " << std::endl;
-                    s
-                        << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
+                    s << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
                     Scalar3 lo = m_global_box.getLo();
                     Scalar3 hi = m_global_box.getHi();
-                    s << "Global box lo: (" << lo.x << ", " << lo.y << ", "
-                                              << lo.z << ")" << std::endl;
-                    s << "           hi: (" << hi.x << ", " << hi.y << ", "
-                                              << hi.z << ")" << std::endl;
+                    s << "Global box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")"
+                      << std::endl;
+                    s << "           hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")"
+                      << std::endl;
 
                     throw std::runtime_error(s.str());
                     }
@@ -2154,8 +2151,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                 if (buf.size() != 1)
                     {
                     std::ostringstream s;
-                    s << "More than one (" << buf.size()
-                                              << ") particle marked for sending.";
+                    s << "More than one (" << buf.size() << ") particle marked for sending.";
                     throw std::runtime_error(s.str());
                     }
 

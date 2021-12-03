@@ -435,7 +435,7 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::getNthT
         {
         std::ostringstream s;
         s << name << " index " << n << " out of bounds!"
-                                  << "The number of " << name << "s is " << getNGlobal();
+          << "The number of " << name << "s is " << getNGlobal();
         throw std::runtime_error(s.str());
         }
 
@@ -491,8 +491,8 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::getGroupByTag(unsign
         if (group_idx == GROUP_NOT_LOCAL)
             {
             std::ostringstream s;
-            s << "Trying to get type or constraint value of " << name << " "
-                                      << tag << " which does not exist!";
+            s << "Trying to get type or constraint value of " << name << " " << tag
+              << " which does not exist!";
             throw runtime_error(std::string(s.str()));
             }
 
@@ -508,8 +508,8 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::getGroupByTag(unsign
         if (!m_pdata->isTagActive(ptag))
             {
             std::ostringstream s;
-            s << "Member tag " << ptag << " of " << name << " "
-                                      << tag << " does not exist!" << endl;
+            s << "Member tag " << ptag << " of " << name << " " << tag << " does not exist!"
+              << endl;
             throw runtime_error(s.str());
             }
         }
@@ -565,8 +565,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
     if (tag >= m_group_rtag.size())
         {
         std::ostringstream s;
-        s << "Trying to remove " << name << " " << tag
-                                  << " which does not exist!";
+        s << "Trying to remove " << name << " " << tag << " which does not exist!";
         throw runtime_error(s.str());
         }
 
@@ -594,8 +593,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
     if (!is_available)
         {
         std::ostringstream s;
-        s << "Trying to remove " << name << " " << tag
-                                  << " which has been previously removed!";
+        s << "Trying to remove " << name << " " << tag << " which has been previously removed!";
         throw runtime_error(s.str());
         }
 
@@ -1049,8 +1047,7 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapsho
                     {
                     std::ostringstream s;
                     s << "Could not find " << name << " " << group_tag
-                                              << " on any processor."
-                    throw std::runtime_error(s.str());
+                      << " on any processor." throw std::runtime_error(s.str());
                     }
 
                 // store tag in index
