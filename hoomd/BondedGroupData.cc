@@ -1046,8 +1046,8 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapsho
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
                     std::ostringstream s;
-                    s << "Could not find " << name << " " << group_tag
-                      << " on any processor." throw std::runtime_error(s.str());
+                    s << "Could not find " << name << " " << group_tag << " on any processor.";
+                    throw std::runtime_error(s.str());
                     }
 
                 // store tag in index
