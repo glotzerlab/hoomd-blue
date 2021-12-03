@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from hoomd.conftest import BaseTestList, pickling_check
+from hoomd.conftest import BaseListTest, pickling_check
 from hoomd.pytest.dummy import DummyOperation, DummySimulation
 from hoomd.data.syncedlist import SyncedList, _PartialIsInstance
 
@@ -29,7 +29,7 @@ class OpInt(int):
         return hasattr(self, '_simulation')
 
 
-class TestSyncedList(BaseTestList):
+class TestSyncedList(BaseListTest):
     _rng = np.random.default_rng(12564)
 
     @property
@@ -49,7 +49,7 @@ class TestSyncedList(BaseTestList):
         return request.param
 
     @pytest.fixture
-    def generate_plain_list(self, item_cls):
+    def generate_plain_collection(self, item_cls):
         if item_cls == DummyOperation:
 
             def generate(n):
@@ -64,7 +64,7 @@ class TestSyncedList(BaseTestList):
             return generate
 
     @pytest.fixture(scope="function")
-    def empty_list(self, item_cls, attached, attach_items):
+    def empty_collection(self, item_cls, attached, attach_items):
         list_ = SyncedList(validation=_PartialIsInstance(item_cls),
                            attach_members=attach_items)
         if attached:
@@ -72,8 +72,8 @@ class TestSyncedList(BaseTestList):
         return list_
 
     @pytest.fixture(scope="function")
-    def plain_list(self, generate_plain_list, n):
-        return generate_plain_list(n)
+    def plain_collection(self, generate_plain_collection, n):
+        return generate_plain_collection(n)
 
     def is_equal(self, a, b):
         if isinstance(a, DummyOperation):
@@ -92,7 +92,7 @@ class TestSyncedList(BaseTestList):
         else:
             assert not any(getattr(item, "_added", False) for item in test_list)
 
-    def test_init(self, generate_plain_list, item_cls):
+    def test_init(self, generate_plain_collection, item_cls):
 
         validate = _PartialIsInstance(item_cls)
 
@@ -107,7 +107,7 @@ class TestSyncedList(BaseTestList):
             return x._cpp_obj
 
         # Test full initialziation
-        plain_list = generate_plain_list(5)
+        plain_list = generate_plain_collection(5)
         synced_list = SyncedList(validation=validate,
                                  to_synced_list=cpp_identity,
                                  iterable=plain_list)
@@ -125,38 +125,39 @@ class TestSyncedList(BaseTestList):
         test_list._unsync()
         assert not test_list._synced
 
-    def test_attach_value(self, empty_list, item_cls):
+    def test_attach_value(self, empty_collection, item_cls):
         op = item_cls()
-        empty_list._attach_value(op)
-        assert op._attached == (empty_list._synced
-                                and empty_list._attach_members)
-        assert op._added or not empty_list._attach_members
+        empty_collection._attach_value(op)
+        assert op._attached == (empty_collection._synced
+                                and empty_collection._attach_members)
+        assert op._added or not empty_collection._attach_members
 
-    def test_validate_or_error(self, empty_list, item_cls):
+    def test_validate_or_error(self, empty_collection, item_cls):
         with pytest.raises(ValueError):
-            empty_list._validate_or_error(3)
+            empty_collection._validate_or_error(3)
         with pytest.raises(ValueError):
-            empty_list._validate_or_error(None)
+            empty_collection._validate_or_error(None)
         with pytest.raises(ValueError):
-            empty_list._validate_or_error("hello")
-        empty_list._validate_or_error(item_cls())
+            empty_collection._validate_or_error("hello")
+        empty_collection._validate_or_error(item_cls())
 
-    def test_syncing(self, populated_list):
-        test_list, plain_list = populated_list
+    def test_syncing(self, populated_collection):
+        test_list, plain_list = populated_collection
         self.final_check(test_list)
 
-    def test_unsync(self, populated_list):
-        test_list, plain_list = populated_list
+    def test_unsync(self, populated_collection):
+        test_list, plain_list = populated_collection
         test_list._unsync()
         assert not hasattr(test_list, "_synced_list")
         self.final_check(test_list)
 
-    def test_synced_iter(self, empty_list):
-        empty_list._simulation = None
-        empty_list._empty_list = [1, 2, 3]
-        assert all(
-            [i == j for i, j in zip(range(1, 4), empty_list._synced_iter())])
+    def test_synced_iter(self, empty_collection):
+        empty_collection._sync(None, [3, 2, 1])
+        empty_collection._synced_list = [1, 2, 3]
+        assert all([
+            i == j for i, j in zip(range(1, 4), empty_collection._synced_iter())
+        ])
 
-    def test_pickling(self, populated_list):
-        test_list, _ = populated_list
+    def test_pickling(self, populated_collection):
+        test_list, _ = populated_collection
         pickling_check(test_list)

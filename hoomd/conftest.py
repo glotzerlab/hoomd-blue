@@ -538,53 +538,136 @@ class ListWriter(hoomd.custom.Action):
         self.data.append(getattr(self._operation, self._attribute))
 
 
+def index_id(i):
+    """Used for pytest fixture ids of indices."""
+    return f"({i=})"
+
+
 class BaseCollectionsTest:
-    """Basic extensible test suite for collection classes."""
+    """Basic extensible test suite for collection classes.
+
+    This class and subclasses allow for extensive testing of list, tuple, dict,
+    and set like objects. Given that different data structure classes require
+    different specific in testing (see `to_base` for an example) these classes
+    can have class specific accommodations. However, this code smell is worth
+    the increase in testing and reduction in code.
+
+    For usage of this and subclasses see ``hoomd.pytest.test_collections.py``,
+    and the documentation of the provided methods.
+
+    Note:
+        This test suite isn't meant to contain class specific tests, merely
+        those of the given data structure. Class specific tests should be added
+        to the speceific test class for the tested class.
+
+    Note:
+        Not using `abc.ABC` was a a conscious decision. ``pytest`` fails when
+        test classes inherit from `abc.ABC`
+    """
+
+    def to_base(self, obj):
+        """Use to convert an item removed from a data structure.
+
+        This is only necessary for things like _HoomdDict objects since they
+        will error when isolated. Having something this niche isn't ideal, but
+        reduces the amount of testing code signifcantly.
+        """
+        if hasattr(obj, "to_base"):
+            return obj.to_base()
+        return obj
 
     @pytest.fixture
     def generate_plain_collection(self):
-        """Return a function that generates plain collections for tests."""
+        """Return a function that generates plain collections for tests.
+
+        For a list this would be a plain list, a mapping a dict, etc. The
+        returned function should take in an integer and return a data structure
+        of that size.
+
+        Note:
+            For cases where the data structure size is not variable the function
+            can ignore the passed in argument.
+        """
         raise NotImplementedError
 
     def check_equivalent(self, a, b):
-        """Assert whether two collections are equivalent for test purposes."""
+        """Assert whether two collections are equivalent for test purposes.
+
+        This takes in the "plain" data structure and an instance of the tested
+        class. In general this does not need to be overwritten by subclasses,
+        but `is_equal` does.
+        """
         assert len(a) == len(b)
         for x, y in zip(a, b):
             assert self.is_equal(x, y)
 
     def is_equal(self, a, b):
-        """Return whether two collection items are equal."""
+        """Return whether two collection items are equal.
+
+        Default to the safest assumption which is identity equality. For more
+        specific checks overwrite this. This is the main work horse for checks
+        in the suite.
+
+        Note:
+            For mapping types `is_equal` has to deal with the key values as
+            well.
+        """
         return a is b
 
     def final_check(self, test_collection):
-        """Perform any final assert on the collection like object."""
+        """Perform any final assert on the collection like object.
+
+        For test that modify a collection this is called at the end to perform
+        any specific tests relevant to the currently tested class. For instance,
+        this can test that a synced list is kept up to date with modification.
+        """
         assert True
 
     _rng = numpy.random.default_rng(15656456)
 
     @property
     def rng(self):
-        """Return a randon number generator."""
+        """Return a randon number generator.
+
+        Many test rely on the generation of random numbers. To ensure
+        reproducible this should have a constant seed.
+        """
         return self._rng
 
     @pytest.fixture(autouse=True, params=(5, 10, 20))
     def n(self, request):
-        """Fixture that controls tested collection sizes."""
+        """Fixture that controls tested collection sizes.
+
+        Note:
+            This can also be used to test the number of exaples each test gets.
+            This function is useful even when data structure size does not
+            change.
+        """
         return request.param
 
     @pytest.fixture(scope="function")
     def plain_collection(self, n, generate_plain_collection):
-        """Return a plain collection with specified items."""
+        """Return a plain collection with specified items.
+
+        Used by `populated_collection`.
+        """
         return generate_plain_collection(n)
 
     @pytest.fixture(scope="function")
     def empty_collection(self):
-        """Return an empty test class collection."""
+        """Return an empty test class collection.
+
+        This is required by `populated_collection`.
+        """
         raise NotImplementedError
 
     @pytest.fixture(scope="function")
     def populated_collection(self, empty_collection, plain_collection):
-        """Return a test collection and the plain data the collection uses."""
+        """Return a test collection and the plain data the collection uses.
+
+        This is implemented by subclasses and in general is not required to be
+        overwritten. The exception is immutable classes.
+        """
         raise NotImplementedError
 
     def test_contains(self, populated_collection, generate_plain_collection):
@@ -592,6 +675,9 @@ class BaseCollectionsTest:
         test_collection, plain_collection = populated_collection
         for item in plain_collection:
             assert item in test_collection
+        # This does not guarentee that items that do not exist in the collection
+        # will be tested for inclusion, but with a suffiently broad random
+        # collection generation this is all but guaranteed.
         new_collection = generate_plain_collection(5)
         for item in new_collection:
             if item in plain_collection:
@@ -629,30 +715,44 @@ class BaseSequenceTest(BaseCollectionsTest):
             _ = test_collection[len(test_collection)]
 
 
-class BaseTestList(BaseSequenceTest):
+class BaseListTest(BaseSequenceTest):
     """Basic extensible test suite for list-like classes."""
 
-    @pytest.fixture(params=(3, 6, 11))
+    @pytest.fixture
+    def populated_collection(self, empty_collection, plain_collection):
+        """Return a test collection and the plain data the collection uses."""
+        empty_collection.extend(plain_collection)
+        return empty_collection, plain_collection
+
+    @pytest.fixture(params=(3, 6, 11, -2, -15), ids=index_id)
     def delete_index(self, request):
-        """Determines the indices used for test_delitem."""
+        """Determines the indices used for test_delitem.
+
+        Note:
+            At least one index should be out of range to test proper behavior.
+        """
         return request.param
 
     def test_delitem(self, delete_index, populated_collection):
         """Test __delitem__."""
         test_list, plain_list = populated_collection
-        if delete_index >= len(test_list):
+        # out of bounds test
+        if delete_index >= len(test_list) or delete_index < -len(test_list):
             with pytest.raises(IndexError):
                 del test_list[delete_index]
             return
+        # single index test
         old_item = test_list[delete_index]
         del test_list[delete_index]
         del plain_list[delete_index]
         self.check_equivalent(test_list, plain_list)
-        assert old_item not in test_list
+        assert self.to_base(old_item) not in test_list
+        # test slice deletion
         old_items = test_list[1:]
         del test_list[1:]
         assert len(test_list) == 1
-        assert all(old_item not in test_list for old_item in old_items)
+        assert all(
+            self.to_base(old_item) not in test_list for old_item in old_items)
         self.final_check(test_list)
 
     def test_append(self, empty_collection, plain_collection):
@@ -664,9 +764,14 @@ class BaseTestList(BaseSequenceTest):
         self.check_equivalent(empty_collection, plain_collection)
         self.final_check(empty_collection)
 
-    @pytest.fixture(params=(3, 6, 11))
+    @pytest.fixture(params=(3, 6, 11, -1, -10), ids=index_id)
     def insert_index(self, request):
-        """Determines the indices used for test_insert."""
+        """Determines the indices used for test_insert.
+
+        Note:
+            At least one index should be greater than the list size to test
+            proper performance.
+        """
         return request.param
 
     def test_insert(self, insert_index, empty_collection, plain_collection):
@@ -676,9 +781,18 @@ class BaseTestList(BaseSequenceTest):
         check_collection.extend(plain_collection[:-1])
         empty_collection.insert(insert_index, plain_collection[-1])
         check_collection.insert(insert_index, plain_collection[-1])
+        N = len(plain_collection) - 1
+        # The fancy indexing is just the insert_index or the last item in
+        # the list with a positive index or the beginning of the list or
+        # insert_index away from the end of the list when negative which is the
+        # expected behavior for insert.
+        if insert_index >= 0:
+            expected_index = min(N, insert_index)
+        else:
+            expected_index = max(0, N + insert_index)
         assert len(empty_collection) == len(plain_collection)
         assert self.is_equal(
-            empty_collection[min(len(empty_collection) - 1, insert_index)],
+            empty_collection[expected_index],
             plain_collection[-1],
         )
         self.check_equivalent(empty_collection, check_collection)
@@ -697,9 +811,14 @@ class BaseTestList(BaseSequenceTest):
         assert len(test_list) == 0
         self.final_check(test_list)
 
-    @pytest.fixture(params=(3, 6, 11))
+    @pytest.fixture(params=(3, 6, 11, -3, -10), ids=index_id)
     def setitem_index(self, request):
-        """Determines the indices used for test_setitem."""
+        """Determines the indices used for test_setitem.
+
+        Note:
+            At least one index should be larger than the list size to test
+            proper behavior.
+        """
         return request.param
 
     def test_setitem(self, setitem_index, populated_collection,
@@ -707,31 +826,37 @@ class BaseTestList(BaseSequenceTest):
         """Test __setitem__."""
         test_list, plain_list = populated_collection
         item = generate_plain_collection(1)[0]
-        if setitem_index >= len(test_list):
+        # Test out of bounds setting
+        if setitem_index >= len(test_list) or setitem_index < -len(test_list):
             with pytest.raises(IndexError):
                 test_list[setitem_index] = item
             return
-
+        # Basic test
         test_list[setitem_index] = item
         assert self.is_equal(test_list[setitem_index], item)
         assert len(test_list) == len(plain_list)
         self.final_check(test_list)
 
-    @pytest.fixture(params=(3, 6, 11))
+    @pytest.fixture(params=(3, 6, 11, -1, -10), ids=index_id)
     def pop_index(self, request):
-        """Determines the indices used for test_pop."""
+        """Determines the indices used for test_pop.
+
+        Note:
+            At least one index should be larger than the list size to test
+            proper behavior.
+        """
         return request.param
 
     def test_pop(self, pop_index, populated_collection):
         """Test pop."""
         test_list, plain_list = populated_collection
-        if pop_index >= len(test_list):
+        if pop_index >= len(test_list) or pop_index < -len(test_list):
             with pytest.raises(IndexError):
                 test_list.pop(pop_index)
             return
 
         item = test_list.pop(pop_index)
-        assert self.is_equal(item, plain_list[pop_index])
+        assert self.is_equal(self.to_base(item), plain_list[pop_index])
         plain_list.pop(pop_index)
         self.check_equivalent(test_list, plain_list)
         self.final_check(test_list)
@@ -753,8 +878,13 @@ class BaseTestList(BaseSequenceTest):
 class BaseMappingTest(BaseCollectionsTest):
     """Basic extensible test suite for mapping classes."""
 
+    # Some mapping classes do not allow new keys. This enables branched testing
+    # for those that do and don't.
     _allow_new_keys = True
+    # Classes that do not allow for the removal of keys should set this to the
+    # appropriate error type.
     _deletion_error = None
+    # Whether the class has a default system.
     _has_default = False
 
     @pytest.fixture
@@ -770,7 +900,14 @@ class BaseMappingTest(BaseCollectionsTest):
             assert self.is_equal(a[key], b[key])
 
     def random_keys(self):
-        """Generate random string keys."""
+        """Generate random string keys.
+
+        Note:
+            This can be used to geneate random strings too.
+
+        Warning:
+            This is an infinite generator.
+        """
         alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         while True:
             length = self.rng.integers(10) + 1
@@ -796,6 +933,7 @@ class BaseMappingTest(BaseCollectionsTest):
         test_collection, plain_collection = populated_collection
         for key in plain_collection:
             assert key in test_collection
+        # Test non-existent keys
         cnt = 0
         for key in self.random_keys():
             if key in plain_collection:
@@ -811,6 +949,8 @@ class BaseMappingTest(BaseCollectionsTest):
         test_mapping, plain_mapping = populated_collection
         for key, value in plain_mapping.items():
             assert self.is_equal(test_mapping[key], value)
+        # Test non-existent keys. With a default this will not error otherwise
+        # it will. Currently we expect the default to be named default.
         if self._has_default:
             for key in self.random_keys():
                 if key not in test_mapping:
@@ -827,7 +967,6 @@ class BaseMappingTest(BaseCollectionsTest):
         """Test __delitem__."""
         test_mapping, plain_mapping = populated_collection
         key = self.choose_random_key(test_mapping)
-        old_item = test_mapping[key]
         if self._deletion_error is not None:
             with pytest.raises(self._deletion_error):
                 del test_mapping[key]
@@ -836,12 +975,13 @@ class BaseMappingTest(BaseCollectionsTest):
         del test_mapping[key]
         del plain_mapping[key]
         self.check_equivalent(test_mapping, plain_mapping)
-        assert old_item not in test_mapping
-        self.final_check(test_mapping)
-        with pytest.raises(IndexError):
+        assert key not in test_mapping
+        # Test that non-existent keys error appropriately.
+        with pytest.raises(KeyError):
             for key in self.random_keys():
-                if key not in self:
+                if key not in test_mapping:
                     del test_mapping[key]
+        self.final_check(test_mapping)
 
     def test_clear(self, populated_collection):
         """Test clear."""
@@ -854,18 +994,27 @@ class BaseMappingTest(BaseCollectionsTest):
         assert len(test_mapping) == 0
         self.final_check(test_mapping)
 
+    @pytest.fixture
     def setitem_key_value(self):
-        """Determines the indices used for test_setitem."""
+        """Determines the indices used for test_setitem.
+
+        Required for all subclasses.
+
+        Note:
+            A non-existent key should be included in this.
+        """
         raise NotImplementedError
 
     def test_setitem(self, setitem_key_value, populated_collection):
         """Test __setitem__."""
         test_mapping, plain_mapping = populated_collection
         key, value = setitem_key_value
+
         if not self._allow_new_keys and key not in test_mapping:
             with pytest.raises(KeyError):
                 test_mapping[key] = value
             return
+
         test_mapping[key] = value
         assert self.is_equal(test_mapping[key], value)
         if key in plain_mapping:
@@ -882,15 +1031,17 @@ class BaseMappingTest(BaseCollectionsTest):
             with pytest.raises(self._deletion_error):
                 item = test_mapping.pop(key)
             return
+
         item = test_mapping.pop(key)
         assert self.is_equal(item, plain_mapping[key])
         plain_mapping.pop(key)
         self.check_equivalent(test_mapping, plain_mapping)
         self.final_check(test_mapping)
+        # Test for error with non-existent keys.
         with pytest.raises(KeyError):
             for key in self.random_keys():
                 if key not in test_mapping:
-                    test_mapping.pop()
+                    test_mapping.pop(key)
                     break
         test_mapping.pop(key, None)
 
@@ -923,9 +1074,17 @@ class BaseMappingTest(BaseCollectionsTest):
         for key in test_mapping:
             if key not in new_mapping:
                 assert self.is_equal(test_mapping[key], plain_mapping[key])
+        self.final_check(test_mapping)
 
+    @pytest.fixture
     def setdefault_key_value(self):
-        """Determines the indices used for test_setdefault."""
+        """Determines the indices used for test_setdefault.
+
+        Subclasses are required to implement this.
+
+        Note:
+            A non-existent key should be included for proper testing.
+        """
         raise NotImplementedError
 
     def test_setdefault(self, setdefault_key_value, populated_collection):
@@ -936,17 +1095,15 @@ class BaseMappingTest(BaseCollectionsTest):
             with pytest.raises(KeyError):
                 test_mapping.setdefault(key, value)
             return
+
         test_mapping.setdefault(key, value)
         if key in plain_mapping:
             assert self.is_equal(test_mapping[key], plain_mapping[key])
-        else:
-            assert self.is_equal(test_mapping[key], value)
-        if key in plain_mapping:
             assert len(test_mapping) == len(plain_mapping)
         else:
+            assert self.is_equal(test_mapping[key], value)
             assert len(test_mapping) == len(plain_mapping) + 1
         self.final_check(test_mapping)
-        pass
 
     def test_popitem(self, populated_collection):
         """Test popitem."""
@@ -955,12 +1112,13 @@ class BaseMappingTest(BaseCollectionsTest):
             with pytest.raises(self._deletion_error):
                 test_mapping.popitem()
             return
+
         N = len(test_mapping)
-        for length in range(N, -1, -1):
+        for length in range(N - 1, -1, -1):
             key, item = test_mapping.popitem()
-            assert key in plain_mapping
             assert key not in test_mapping
             assert len(test_mapping) == length
+        self.final_check(test_mapping)
 
     def test_get(self, populated_collection):
         """Test get."""
