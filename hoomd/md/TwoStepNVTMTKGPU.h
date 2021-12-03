@@ -20,6 +20,10 @@
 
 #include "hoomd/Autotuner.h"
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps in the NVT ensemble on the GPU
 /*! Implements Nose-Hoover NVT integration through the IntegrationMethodTwoStep interface, runs on
    the GPU
@@ -74,7 +78,12 @@ class PYBIND11_EXPORT TwoStepNVTMTKGPU : public TwoStepNVTMTK
         m_tuner_angular_two; //!< Autotuner_angular for block size (angular step two kernel)
     };
 
+namespace detail
+    {
 //! Exports the TwoStepNVTMTKGPU class to python
 void export_TwoStepNVTMTKGPU(pybind11::module& m);
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NVT_MTK_GPU_H__

@@ -5,9 +5,15 @@
 """Version and build information.
 
 Attributes:
+    build_dir (str): The directory where this build was compiled.
+
     compile_date (str): The date this build was compiled.
 
     compile_flags (str): Human readable summary of compilation flags.
+
+    cuda_include_path (str): CUDA toolkit include directory.
+
+    cuda_devrt_library (str): CUDA devrt library.
 
     cxx_compiler (str): Name and version of the C++ compiler used to build
         HOOMD.
@@ -29,6 +35,9 @@ Attributes:
 
     install_dir (str): The installation directory.
 
+    llvm_enabled (bool): ``True`` when this build supports LLVM run time
+        compilation.
+
     metal_built (bool): ``True`` when the `metal` component is built.
 
     md_built (bool): ``True`` when the `md` component is built.
@@ -46,16 +55,18 @@ Attributes:
 from hoomd import _hoomd
 
 from hoomd.version_config import (
+    build_dir,
     compile_date,
-    git_branch,
-    git_sha1,
-    md_built,
-    hpmc_built,
-    dem_built,
-    mpcd_built,
-    metal_built,
     cuda_include_path,
     cuda_devrt_library,
+    dem_built,
+    git_branch,
+    git_sha1,
+    hpmc_built,
+    llvm_enabled,
+    md_built,
+    metal_built,
+    mpcd_built,
 )
 
 version = _hoomd.BuildInfo.getVersion()

@@ -23,6 +23,8 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
 //! A device-side, fixed-size array memory-managed through cudaMallocManaged
 template<class T> class ManagedArray
     {
@@ -286,11 +288,11 @@ template<class T> class ManagedArray
 #ifndef __HIPCC__
     void allocate()
         {
-        ptr = managed_allocator<T>::allocate_construct_aligned(N,
-                                                               managed,
-                                                               align,
-                                                               allocation_bytes,
-                                                               allocation_ptr);
+        ptr = detail::managed_allocator<T>::allocate_construct_aligned(N,
+                                                                       managed,
+                                                                       align,
+                                                                       allocation_bytes,
+                                                                       allocation_ptr);
         data = ptr;
         }
 
@@ -298,7 +300,10 @@ template<class T> class ManagedArray
         {
         if (N > 0)
             {
-            managed_allocator<T>::deallocate_destroy_aligned(ptr, N, managed, allocation_ptr);
+            detail::managed_allocator<T>::deallocate_destroy_aligned(ptr,
+                                                                     N,
+                                                                     managed,
+                                                                     allocation_ptr);
             }
         ptr = nullptr;
         }
@@ -313,6 +318,8 @@ template<class T> class ManagedArray
     void* allocation_ptr;    //!< Pointer to un-aligned start of allocation
     size_t allocation_bytes; //!< Total size of allocation, including aligned part
     };
+
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

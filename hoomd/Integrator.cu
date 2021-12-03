@@ -12,6 +12,10 @@
     \brief Defines methods and data structures used by the Integrator class on the GPU
 */
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! helper to add a given force/virial pointer pair
 template<unsigned int compute_virial>
 __device__ void add_force_total(Scalar4& net_force,
@@ -226,3 +230,7 @@ hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+
+    } // end namespace hoomd

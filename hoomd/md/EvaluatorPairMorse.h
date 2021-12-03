@@ -27,6 +27,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Morse pair potential
 /*! <b>General Overview</b>
 
@@ -187,5 +191,8 @@ class EvaluatorPairMorse
     Scalar alpha;  //!< Controls width of the potential well
     Scalar r0;     //!< Offset, i.e., position of the potential minimum
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_MORSE_H__

@@ -15,6 +15,10 @@
    Used by SFCPackTunerGPU.
 */
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! Generate sorted order on GPU
 void gpu_generate_sorted_order(unsigned int N,
                                const Scalar4* d_pos,
@@ -60,5 +64,9 @@ void gpu_apply_sorted_order(unsigned int N,
                             const Scalar4* d_net_torque,
                             Scalar4* d_net_torque_alt,
                             unsigned int* d_rtag);
+
+    } // namespace kernel
+
+    } // end namespace hoomd
 
 #endif // __SFC_PACK_UPDATER_GPU_CUH__

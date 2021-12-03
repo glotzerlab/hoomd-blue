@@ -15,6 +15,8 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 //! Test for basic setup and functionality of the SRD collision method
 template<class CM>
 void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -54,7 +56,7 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     AllThermoRequest thermo_req(thermo);
 
     auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
-    std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(1.5);
+    std::shared_ptr<Variant> T = std::make_shared<VariantConstant>(1.5);
 
     std::shared_ptr<mpcd::ATCollisionMethod> collide
         = std::make_shared<CM>(mpcd_sys, 0, 2, 1, thermo, rand_thermo, T);
@@ -148,7 +150,7 @@ void at_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec
     AllThermoRequest thermo_req(thermo);
 
     auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
-    std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(1.5);
+    std::shared_ptr<Variant> T = std::make_shared<VariantConstant>(1.5);
 
     std::shared_ptr<mpcd::ATCollisionMethod> collide
         = std::make_shared<CM>(mpcd_sys, 0, 1, -1, thermo, rand_thermo, T);

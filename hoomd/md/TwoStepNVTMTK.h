@@ -20,6 +20,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps in the NVT ensemble
 /*! Implements Martyna-Tobias-Klein (MTK) NVT integration through the IntegrationMethodTwoStep
    interface
@@ -132,19 +136,6 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
 
     Scalar getThermostatEnergy(uint64_t timestep);
 
-#ifdef ENABLE_MPI
-
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method
-        IntegrationMethodTwoStep::setCommunicator(comm);
-
-        // set the communicator on the internal thermo
-        m_thermo->setCommunicator(comm);
-        }
-
-#endif
-
     protected:
     std::shared_ptr<ComputeThermo> m_thermo; //!< compute for thermodynamic quantities
 
@@ -160,7 +151,13 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     void advanceThermostat(uint64_t timestep, bool broadcast = true);
     };
 
+namespace detail
+    {
 //! Exports the TwoStepNVTMTK class to python
 void export_TwoStepNVTMTK(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NVT_MTK_H__

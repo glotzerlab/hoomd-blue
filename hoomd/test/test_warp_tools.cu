@@ -19,6 +19,10 @@
 #define MAX_TPP 32
 #endif
 
+namespace hoomd
+    {
+namespace test
+    {
 //! Performs an iterative warp reduction on a data set using \a tpp threads per row.
 /*!
  * \param d_data Data to scan as a N x width matrix.
@@ -271,3 +275,6 @@ void warp_scan(const scan_params& params)
     hipMemset(params.sum, 0, params.N * sizeof(int));
     warp_scan_launcher<MAX_TPP>(params);
     }
+
+    } // end namespace test
+    } // end namespace hoomd

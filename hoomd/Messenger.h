@@ -24,6 +24,10 @@
 #ifndef __MESSENGER_H__
 #define __MESSENGER_H__
 
+namespace hoomd
+    {
+namespace detail
+    {
 //! A null stream that doesn't write anything sent to it
 /*! From: http://bytes.com/topic/c/answers/127843-null-output-stream#post444998
  */
@@ -32,6 +36,8 @@ struct PYBIND11_EXPORT nullstream : std::ostream
     //! Construct a null stream
     nullstream() : std::ios(0), std::ostream(0) { }
     };
+
+    } // end namespace detail
 
 //! Utility class for controlling message printing
 /*! Large code projects need something more intelligent than just cout's for warning and
@@ -261,11 +267,11 @@ class PYBIND11_EXPORT Messenger
     std::ostream* m_warning_stream; //!< warning stream
     std::ostream* m_notice_stream;  //!< notice stream
 
-    std::shared_ptr<std::streambuf> m_streambuf_out; //!< streambuf (stdout)
-    std::shared_ptr<std::streambuf> m_streambuf_err; //!< streambuf (if err different from out)
-    std::shared_ptr<nullstream> m_nullstream;        //!< null stream
-    std::shared_ptr<std::ostream> m_file_out;        //!< File stream (stdout)
-    std::shared_ptr<std::ostream> m_file_err;        //!< File stream (stderr)
+    std::shared_ptr<std::streambuf> m_streambuf_out;  //!< streambuf (stdout)
+    std::shared_ptr<std::streambuf> m_streambuf_err;  //!< streambuf (if err different from out)
+    std::shared_ptr<detail::nullstream> m_nullstream; //!< null stream
+    std::shared_ptr<std::ostream> m_file_out;         //!< File stream (stdout)
+    std::shared_ptr<std::ostream> m_file_err;         //!< File stream (stderr)
 
     std::string m_err_prefix;     //!< Prefix for error messages
     std::string m_warning_prefix; //!< Prefix for warning messages
@@ -279,7 +285,13 @@ class PYBIND11_EXPORT Messenger
     pybind11::object m_pystderr; //!< Currently bound python sys.stderr
     };
 
+namespace detail
+    {
 //! Exports Messenger to python
 void export_Messenger(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif // #ifndef __MESSENGER_H__

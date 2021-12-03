@@ -23,6 +23,10 @@
 #ifndef __HARMONICIMPROPERFORCECOMPUTE_H__
 #define __HARMONICIMPROPERFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes harmonic improper forces on each particle
 /*! Harmonic improper forces are computed on every particle in the simulation.
 
@@ -64,7 +68,13 @@ class PYBIND11_EXPORT HarmonicImproperForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the ImproperForceCompute class to python
 void export_HarmonicImproperForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

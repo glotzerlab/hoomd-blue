@@ -10,6 +10,8 @@
 
 #include "Sorter.h"
 
+namespace hoomd
+    {
 /*!
  * \param sysdata MPCD system data
  */
@@ -117,7 +119,7 @@ void mpcd::Sorter::computeOrder(uint64_t timestep)
  */
 void mpcd::Sorter::applyOrder() const
     {
-    // apply the sorted order
+        // apply the sorted order
         {
         ArrayHandle<unsigned int> h_order(m_order, access_location::host, access_mode::read);
 
@@ -190,8 +192,9 @@ bool mpcd::Sorter::shouldSort(uint64_t timestep)
  */
 void mpcd::detail::export_Sorter(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::Sorter, std::shared_ptr<mpcd::Sorter>>(m, "Sorter")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>())
+    pybind11::class_<mpcd::Sorter, std::shared_ptr<mpcd::Sorter>>(m, "Sorter")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>())
         .def("setPeriod", &mpcd::Sorter::setPeriod);
     }
+
+    } // end namespace hoomd

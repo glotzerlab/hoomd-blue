@@ -1,7 +1,11 @@
+#pragma once
+
 #include <pybind11/pybind11.h>
 
 #include "Analyzer.h"
 
+namespace hoomd
+    {
 class PYBIND11_EXPORT PythonAnalyzer : public Analyzer
     {
     public:
@@ -23,4 +27,10 @@ class PYBIND11_EXPORT PythonAnalyzer : public Analyzer
     PDataFlags m_flags;
     };
 
+namespace detail
+    {
 void export_PythonAnalyzer(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd

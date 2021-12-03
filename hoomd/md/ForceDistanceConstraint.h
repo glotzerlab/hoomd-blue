@@ -24,6 +24,10 @@
 #include <Eigen/Dense>
 #include <Eigen/SparseLU>
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Implements a pairwise distance constraint using the algorithm of
 
     [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, “A Non-Iterative Matrix Method for
@@ -125,25 +129,12 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
      */
     virtual Scalar askGhostLayerWidth(unsigned int type);
 
+    private:
 #ifdef ENABLE_MPI
-    //! Set the communicator object
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method to set m_comm
-        MolecularForceCompute::setCommunicator(comm);
-
-        if (!m_comm_ghost_layer_connected)
-            {
-            // register this class with the communicator
-            m_comm->getGhostLayerWidthRequestSignal()
-                .connect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(
-                    this);
-            m_comm_ghost_layer_connected = true;
-            }
-        }
+    /// The systems's communicator.
+    std::shared_ptr<Communicator> m_comm;
 #endif
 
-    private:
     //! Helper function to perform a depth-first search
     Scalar dfs(unsigned int iconstraint,
                unsigned int molecule,
@@ -151,14 +142,15 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
                unsigned int* label,
                std::vector<ConstraintData::members_t>& groups,
                std::vector<Scalar>& length);
-
-#ifdef ENABLE_MPI
-    bool m_comm_ghost_layer_connected
-        = false; //!< Track if we have already connected to ghost layer width requests
-#endif
     };
 
+namespace detail
+    {
 //! Exports the ForceDistanceConstraint to python
 void export_ForceDistanceConstraint(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

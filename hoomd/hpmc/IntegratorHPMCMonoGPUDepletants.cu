@@ -11,6 +11,8 @@
 #include <thrust/execution_policy.h>
 #include <thrust/reduce.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -181,13 +183,10 @@ void generate_num_depletants(const uint16_t seed,
                              const GPUPartition& gpu_partition)
     {
     // determine the maximum block size and clamp the input block size down
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::generate_num_depletants));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::generate_num_depletants));
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -233,14 +232,11 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                                     const hipStream_t* streams)
     {
     // determine the maximum block size and clamp the input block size down
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr,
-                             reinterpret_cast<const void*>(kernel::generate_num_depletants_ntrial));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr,
+                         reinterpret_cast<const void*>(kernel::generate_num_depletants_ntrial));
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -376,13 +372,10 @@ void hpmc_depletants_accept(const uint16_t seed,
                             const unsigned int block_size)
     {
     // determine the maximum block size and clamp the input block size down
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_depletants_accept));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_depletants_accept));
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -417,3 +410,4 @@ void hpmc_depletants_accept(const uint16_t seed,
     }
     } // end namespace gpu
     } // end namespace hpmc
+    } // end namespace hoomd

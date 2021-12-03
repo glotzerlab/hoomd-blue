@@ -37,6 +37,8 @@
 /*! @}
  */
 
+namespace hoomd
+    {
 //! Performs computations on ParticleData structures
 /*! The Compute is an abstract concept that performs some kind of computation on the
     particles in a ParticleData structure. This computation is to be done by reading
@@ -68,17 +70,7 @@ class PYBIND11_EXPORT Compute
     /*! \param timestep Current time step
         Derived classes will implement this method to calculate their results
     */
-    virtual void compute(uint64_t timestep)
-        {
-#ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition() && !m_comm)
-            {
-            throw std::runtime_error(
-                "Bug: m_comm not set for a system with a domain decomposition in "
-                + std::string(typeid(*this).name()));
-            }
-#endif
-        }
+    virtual void compute(uint64_t timestep) { }
 
     //! Abstract method that performs a benchmark
     virtual double benchmark(unsigned int num_iters);
@@ -111,15 +103,6 @@ class PYBIND11_EXPORT Compute
     /// Python will notify C++ objects when they are detached from Simulation
     virtual void notifyDetach() {};
 
-#ifdef ENABLE_MPI
-    //! Set communicator this Compute is to use
-    /*! \param comm The communicator
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        m_comm = comm;
-        }
-#endif
     void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
         {
         m_slots.push_back(slot);
@@ -148,9 +131,6 @@ class PYBIND11_EXPORT Compute
     const std::shared_ptr<ParticleData>
         m_pdata;                      //!< The particle data this compute is associated with
     std::shared_ptr<Profiler> m_prof; //!< The profiler this compute is to use
-#ifdef ENABLE_MPI
-    std::shared_ptr<Communicator> m_comm; //!< The communicator this compute is to use
-#endif
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>
@@ -170,9 +150,13 @@ class PYBIND11_EXPORT Compute
     friend void export_Compute();
     };
 
+namespace detail
+    {
 //! Exports the Compute class to python
 #ifndef __HIPCC__
 void export_Compute(pybind11::module& m);
 #endif
+    } // end namespace detail
 
+    } // end namespace hoomd
 #endif

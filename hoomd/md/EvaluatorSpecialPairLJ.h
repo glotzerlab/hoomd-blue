@@ -30,6 +30,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 struct special_lj_params
     {
     Scalar lj1;
@@ -67,9 +71,9 @@ struct special_lj_params
 #endif
     }
 #ifdef SINGLE_PRECISION
-__attribute__((aligned(16)));
+    __attribute__((aligned(16)));
 #else
-__attribute__((aligned(32)));
+    __attribute__((aligned(32)));
 #endif
 
 //! Class for evaluating the LJ bond potential
@@ -151,5 +155,8 @@ class EvaluatorSpecialPairLJ
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     Scalar rcutsq; //!< Stored rcutsq from the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_LJ_H__

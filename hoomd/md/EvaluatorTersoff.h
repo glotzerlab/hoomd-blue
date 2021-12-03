@@ -22,6 +22,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Tersoff three-body potential
 class EvaluatorTersoff
     {
@@ -451,5 +455,8 @@ class EvaluatorTersoff
     Scalar tersoff_m;    //!< Cosine of the minimum-energy bonding angle
     Scalar cutoff_alpha; //!< \a alpha in the cutoff smoothing function
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

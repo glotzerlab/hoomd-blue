@@ -27,6 +27,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the DLVO pair potential
 /*! <b>General Overview</b>
 
@@ -235,5 +239,8 @@ class EvaluatorPairDLVO
     Scalar radsubsq; //!< radsubsq parameter extracted from the call to setDiameter
     Scalar delta;    //!< Diameter sum minus one
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DLVO_H__

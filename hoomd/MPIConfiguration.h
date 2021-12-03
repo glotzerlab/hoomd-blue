@@ -22,6 +22,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 //! Defines the MPI configuration for the simulation
 /*! \ingroup data_structs
     MPIConfiguration is class that stores the MPI communicator and splits it into partitions if
@@ -137,7 +139,13 @@ class PYBIND11_EXPORT MPIConfiguration
     unsigned int m_n_rank; //!< Ranks per partition
     };
 
+namespace detail
+    {
 //! Exports MPIConfiguration to python
 #ifndef __HIPCC__
 void export_MPIConfiguration(pybind11::module& m);
 #endif
+
+    } // end namespace detail
+
+    } // end namespace hoomd

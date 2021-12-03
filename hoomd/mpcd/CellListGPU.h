@@ -18,6 +18,8 @@
 #include "CellList.h"
 #include "hoomd/Autotuner.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Computes the MPCD cell list on the GPU
@@ -78,6 +80,6 @@ namespace detail
 void export_CellListGPU(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_CELL_LIST_GPU_H_

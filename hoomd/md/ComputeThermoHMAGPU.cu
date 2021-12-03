@@ -8,6 +8,12 @@
 
 #include <assert.h>
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Shared memory used in reducing the sums
 extern __shared__ Scalar3 compute_thermo_hma_sdata[];
 //! Shared memory used in final reduction
@@ -361,3 +367,7 @@ hipError_t gpu_compute_thermo_hma_final(Scalar* d_properties,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

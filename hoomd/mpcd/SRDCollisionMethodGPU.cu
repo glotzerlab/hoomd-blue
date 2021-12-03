@@ -12,6 +12,8 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -197,13 +199,10 @@ cudaError_t srd_draw_vectors(double3* d_rotvec,
     {
     if (d_factors != NULL)
         {
-        static unsigned int max_block_thermostat = UINT_MAX;
-        if (max_block_thermostat == UINT_MAX)
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::srd_draw_vectors<true>);
-            max_block_thermostat = attr.maxThreadsPerBlock;
-            }
+        unsigned int max_block_thermostat;
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::srd_draw_vectors<true>);
+        max_block_thermostat = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = min(block_size, max_block_thermostat);
 
@@ -224,13 +223,10 @@ cudaError_t srd_draw_vectors(double3* d_rotvec,
         }
     else
         {
-        static unsigned int max_block_nothermostat = UINT_MAX;
-        if (max_block_nothermostat == UINT_MAX)
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::srd_draw_vectors<false>);
-            max_block_nothermostat = attr.maxThreadsPerBlock;
-            }
+        unsigned int max_block_nothermostat;
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::srd_draw_vectors<false>);
+        max_block_nothermostat = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = min(block_size, max_block_nothermostat);
 
@@ -265,13 +261,10 @@ cudaError_t srd_rotate(Scalar4* d_vel,
                        const unsigned int N_tot,
                        const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::srd_rotate);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::srd_rotate);
+    max_block_size = attr.maxThreadsPerBlock;
 
     // precompute angles for rotation
     const double cos_a = slow::cos(angle);
@@ -298,3 +291,4 @@ cudaError_t srd_rotate(Scalar4* d_vel,
 
     } // end namespace gpu
     } // end namespace mpcd
+    } // end namespace hoomd

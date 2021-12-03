@@ -13,6 +13,12 @@
  \brief Defines GPU kernel code for calculating the EAM forces. Used by EAMForceComputeGPU.
  */
 
+namespace hoomd
+    {
+namespace metal
+    {
+namespace kernel
+    {
 //! Kernel for computing EAM forces on the GPU
 __global__ void gpu_kernel_1(Scalar4* d_force,
                              Scalar* d_virial,
@@ -324,8 +330,8 @@ hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
                                             const Scalar4* d_drphi,
                                             const unsigned int block_size)
     {
-    static unsigned int max_block_size_1 = UINT_MAX;
-    static unsigned int max_block_size_2 = UINT_MAX;
+    unsigned int max_block_size_1;
+    unsigned int max_block_size_2;
 
     hipFuncAttributes attr1;
     hipFuncGetAttributes(&attr1, reinterpret_cast<const void*>(gpu_kernel_1));
@@ -394,3 +400,7 @@ hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace metal
+    } // end namespace hoomd

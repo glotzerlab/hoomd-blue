@@ -31,8 +31,10 @@
 
 using namespace std;
 
-namespace py = pybind11;
-
+namespace hoomd
+    {
+namespace detail
+    {
 std::string getDefaultTypeName(unsigned int id)
     {
     const char default_name[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -47,6 +49,8 @@ std::string getDefaultTypeName(unsigned int id)
 
     return result;
     }
+
+    } // end namespace detail
 
 ////////////////////////////////////////////////////////////////////////////
 // ParticleData members
@@ -88,7 +92,7 @@ ParticleData::ParticleData(unsigned int N,
     // setup the type mappings
     for (unsigned int i = 0; i < n_types; i++)
         {
-        snap.type_mapping.push_back(getDefaultTypeName(i));
+        snap.type_mapping.push_back(detail::getDefaultTypeName(i));
         }
 
 #ifdef ENABLE_MPI
@@ -1493,11 +1497,10 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
 
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
-                    m_exec_conf->msg->error()
-                        << endl
-                        << "Could not find particle " << tag << " on any processor. " << endl
-                        << endl;
-                    throw std::runtime_error("Error gathering ParticleData");
+                    ostringstream o;
+                    o << "Error gathering ParticleData: Could not find particle " << tag
+                      << " on any processor.";
+                    throw std::runtime_error(o.str());
                     }
 
                 // rank contains the processor rank on which the particle was found
@@ -2136,7 +2139,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                     h_comm_flag.data[idx] = 1;
                     }
 
-                std::vector<pdata_element> buf;
+                std::vector<detail::pdata_element> buf;
 
                 // retrieve particle data
                 std::vector<unsigned int> comm_flags; // not used here
@@ -2158,7 +2161,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
 
                 // send particle data to new domain
                 MPI_Isend(&buf.front(),
-                          sizeof(pdata_element),
+                          sizeof(detail::pdata_element),
                           MPI_BYTE,
                           new_rank,
                           0,
@@ -2168,14 +2171,14 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                 }
             else if (new_rank == my_rank)
                 {
-                std::vector<pdata_element> buf(1);
+                std::vector<detail::pdata_element> buf(1);
 
                 MPI_Request req;
                 MPI_Status stat;
 
                 // receive particle data
                 MPI_Irecv(&buf.front(),
-                          sizeof(pdata_element),
+                          sizeof(detail::pdata_element),
                           MPI_BYTE,
                           owner_rank,
                           0,
@@ -2656,21 +2659,23 @@ unsigned int ParticleData::getNthTag(unsigned int n)
     return m_cached_tag_set[n];
     }
 
-void export_BoxDim(py::module& m)
+namespace detail
+    {
+void export_BoxDim(pybind11::module& m)
     {
     void (BoxDim::*wrap_overload)(Scalar3&, int3&, char3) const = &BoxDim::wrap;
     Scalar3 (BoxDim::*minImage_overload)(const Scalar3&) const = &BoxDim::minImage;
     Scalar3 (BoxDim::*makeFraction_overload)(const Scalar3&, const Scalar3&) const
         = &BoxDim::makeFraction;
 
-    py::class_<BoxDim>(m, "BoxDim")
-        .def(py::init<Scalar>())
-        .def(py::init<Scalar, Scalar, Scalar>())
-        .def(py::init<Scalar3>())
-        .def(py::init<Scalar3, Scalar3, uchar3>())
-        .def(py::init<Scalar, Scalar, Scalar, Scalar>())
-        .def(py::self == py::self)
-        .def(py::self != py::self)
+    pybind11::class_<BoxDim>(m, "BoxDim")
+        .def(pybind11::init<Scalar>())
+        .def(pybind11::init<Scalar, Scalar, Scalar>())
+        .def(pybind11::init<Scalar3>())
+        .def(pybind11::init<Scalar3, Scalar3, uchar3>())
+        .def(pybind11::init<Scalar, Scalar, Scalar, Scalar>())
+        .def(pybind11::self == pybind11::self)
+        .def(pybind11::self != pybind11::self)
         .def("getPeriodic",
              [](const BoxDim& box)
              {
@@ -2705,6 +2710,8 @@ string print_ParticleData(ParticleData* pdata)
     return s.str();
     }
 
+    } // end namespace detail
+
 // instantiate both float and double methods for snapshots
 template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot,
                                     const BoxDim& global_box,
@@ -2726,17 +2733,19 @@ ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float>& s
 template std::map<unsigned int, unsigned int>
 ParticleData::takeSnapshot<float>(SnapshotParticleData<float>& snapshot);
 
-void export_ParticleData(py::module& m)
+namespace detail
     {
-    py::class_<ParticleData, std::shared_ptr<ParticleData>>(m, "ParticleData")
-        .def(py::init<unsigned int,
-                      const BoxDim&,
-                      unsigned int,
-                      std::shared_ptr<ExecutionConfiguration>>())
+void export_ParticleData(pybind11::module& m)
+    {
+    pybind11::class_<ParticleData, std::shared_ptr<ParticleData>>(m, "ParticleData")
+        .def(pybind11::init<unsigned int,
+                            const BoxDim&,
+                            unsigned int,
+                            std::shared_ptr<ExecutionConfiguration>>())
         .def("getGlobalBox",
              &ParticleData::getGlobalBox,
-             py::return_value_policy::reference_internal)
-        .def("getBox", &ParticleData::getBox, py::return_value_policy::reference_internal)
+             pybind11::return_value_policy::reference_internal)
+        .def("getBox", &ParticleData::getBox, pybind11::return_value_policy::reference_internal)
         .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
         .def("setGlobalBox", &ParticleData::setGlobalBox)
         .def("getN", &ParticleData::getN)
@@ -2787,6 +2796,8 @@ void export_ParticleData(py::module& m)
 #endif
         .def("getTypes", &ParticleData::getTypesPy);
     }
+
+    } // end namespace detail
 
 //! Constructor for SnapshotParticleData
 template<class Real>
@@ -2858,7 +2869,7 @@ struct comm_flag_select : std::unary_function<const unsigned int, bool>
  *        no ghost particles are present, because ghost particle values
  *        are undefined after calling this method.
  */
-void ParticleData::removeParticles(std::vector<pdata_element>& out,
+void ParticleData::removeParticles(std::vector<detail::pdata_element>& out,
                                    std::vector<unsigned int>& comm_flags)
     {
     if (m_prof)
@@ -3005,7 +3016,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out,
             else
                 {
                 // write to packed array
-                pdata_element p;
+                detail::pdata_element p;
                 p.pos = h_pos.data[i];
                 p.vel = h_vel.data[i];
                 p.accel = h_accel.data[i];
@@ -3073,7 +3084,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out,
     }
 
 //! Remove particles from local domain and append new particle data
-void ParticleData::addParticles(const std::vector<pdata_element>& in)
+void ParticleData::addParticles(const std::vector<detail::pdata_element>& in)
     {
     if (m_prof)
         m_prof->push("unpack");
@@ -3128,9 +3139,10 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
         unsigned int net_virial_pitch = (unsigned int)m_net_virial.getPitch();
         // add new particles at the end
         unsigned int n = old_nparticles;
-        for (std::vector<pdata_element>::const_iterator it = in.begin(); it != in.end(); ++it)
+        for (std::vector<detail::pdata_element>::const_iterator it = in.begin(); it != in.end();
+             ++it)
             {
-            pdata_element p = *it;
+            detail::pdata_element p = *it;
             h_pos.data[n] = p.pos;
             h_vel.data[n] = p.vel;
             h_accel.data[n] = p.accel;
@@ -3175,7 +3187,7 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
  *        no ghost particles are present, because ghost particle values
  *        are undefined after calling this method.
  */
-void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out,
+void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
                                       GlobalVector<unsigned int>& comm_flags)
     {
     if (m_prof)
@@ -3281,7 +3293,9 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out,
 
             {
             // Access output array
-            ArrayHandle<pdata_element> d_out(out, access_location::device, access_mode::overwrite);
+            ArrayHandle<detail::pdata_element> d_out(out,
+                                                     access_location::device,
+                                                     access_mode::overwrite);
             ArrayHandle<unsigned int> d_comm_flags_out(comm_flags,
                                                        access_location::device,
                                                        access_mode::overwrite);
@@ -3291,44 +3305,44 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out,
 
             m_exec_conf->beginMultiGPU();
 
-            n_out = gpu_pdata_remove(getN(),
-                                     d_pos.data,
-                                     d_vel.data,
-                                     d_accel.data,
-                                     d_charge.data,
-                                     d_diameter.data,
-                                     d_image.data,
-                                     d_body.data,
-                                     d_orientation.data,
-                                     d_angmom.data,
-                                     d_inertia.data,
-                                     d_net_force.data,
-                                     d_net_torque.data,
-                                     d_net_virial.data,
-                                     (unsigned int)getNetVirial().getPitch(),
-                                     d_tag.data,
-                                     d_rtag.data,
-                                     d_pos_alt.data,
-                                     d_vel_alt.data,
-                                     d_accel_alt.data,
-                                     d_charge_alt.data,
-                                     d_diameter_alt.data,
-                                     d_image_alt.data,
-                                     d_body_alt.data,
-                                     d_orientation_alt.data,
-                                     d_angmom_alt.data,
-                                     d_inertia_alt.data,
-                                     d_net_force_alt.data,
-                                     d_net_torque_alt.data,
-                                     d_net_virial_alt.data,
-                                     d_tag_alt.data,
-                                     d_out.data,
-                                     d_comm_flags.data,
-                                     d_comm_flags_out.data,
-                                     max_n_out,
-                                     d_tmp.data,
-                                     m_exec_conf->getCachedAllocatorManaged(),
-                                     m_gpu_partition);
+            n_out = kernel::gpu_pdata_remove(getN(),
+                                             d_pos.data,
+                                             d_vel.data,
+                                             d_accel.data,
+                                             d_charge.data,
+                                             d_diameter.data,
+                                             d_image.data,
+                                             d_body.data,
+                                             d_orientation.data,
+                                             d_angmom.data,
+                                             d_inertia.data,
+                                             d_net_force.data,
+                                             d_net_torque.data,
+                                             d_net_virial.data,
+                                             (unsigned int)getNetVirial().getPitch(),
+                                             d_tag.data,
+                                             d_rtag.data,
+                                             d_pos_alt.data,
+                                             d_vel_alt.data,
+                                             d_accel_alt.data,
+                                             d_charge_alt.data,
+                                             d_diameter_alt.data,
+                                             d_image_alt.data,
+                                             d_body_alt.data,
+                                             d_orientation_alt.data,
+                                             d_angmom_alt.data,
+                                             d_inertia_alt.data,
+                                             d_net_force_alt.data,
+                                             d_net_torque_alt.data,
+                                             d_net_virial_alt.data,
+                                             d_tag_alt.data,
+                                             d_out.data,
+                                             d_comm_flags.data,
+                                             d_comm_flags_out.data,
+                                             max_n_out,
+                                             d_tmp.data,
+                                             m_exec_conf->getCachedAllocatorManaged(),
+                                             m_gpu_partition);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -3376,7 +3390,7 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out,
     }
 
 //! Add new particle data (GPU version)
-void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
+void ParticleData::addParticlesGPU(const GlobalVector<detail::pdata_element>& in)
     {
     if (m_prof)
         m_prof->push(m_exec_conf, "unpack");
@@ -3432,29 +3446,29 @@ void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
                                                access_mode::readwrite);
 
         // Access input array
-        ArrayHandle<pdata_element> d_in(in, access_location::device, access_mode::read);
+        ArrayHandle<detail::pdata_element> d_in(in, access_location::device, access_mode::read);
 
         // add new particles on GPU
-        gpu_pdata_add_particles(old_nparticles,
-                                num_add_ptls,
-                                d_pos.data,
-                                d_vel.data,
-                                d_accel.data,
-                                d_charge.data,
-                                d_diameter.data,
-                                d_image.data,
-                                d_body.data,
-                                d_orientation.data,
-                                d_angmom.data,
-                                d_inertia.data,
-                                d_net_force.data,
-                                d_net_torque.data,
-                                d_net_virial.data,
-                                (unsigned int)getNetVirial().getPitch(),
-                                d_tag.data,
-                                d_rtag.data,
-                                d_in.data,
-                                d_comm_flags.data);
+        kernel::gpu_pdata_add_particles(old_nparticles,
+                                        num_add_ptls,
+                                        d_pos.data,
+                                        d_vel.data,
+                                        d_accel.data,
+                                        d_charge.data,
+                                        d_diameter.data,
+                                        d_image.data,
+                                        d_body.data,
+                                        d_orientation.data,
+                                        d_angmom.data,
+                                        d_inertia.data,
+                                        d_net_force.data,
+                                        d_net_torque.data,
+                                        d_net_virial.data,
+                                        (unsigned int)getNetVirial().getPitch(),
+                                        d_tag.data,
+                                        d_rtag.data,
+                                        d_in.data,
+                                        d_comm_flags.data);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -3790,7 +3804,7 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx,
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getPosNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getPosNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3806,7 +3820,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getPosNP(pybind11::o
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getVelNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getVelNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3822,7 +3836,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getVelNP(pybind11::o
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getAccelNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getAccelNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3838,7 +3852,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getAccelNP(pybind11:
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getTypeNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getTypeNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3851,7 +3865,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getTypeNP(pybind11::
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getMassNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getMassNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3864,7 +3878,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getMassNP(pybind11::
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getChargeNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getChargeNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3877,7 +3891,8 @@ template<class Real> py::object SnapshotParticleData<Real>::getChargeNP(pybind11
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getDiameterNP(pybind11::object self)
+template<class Real>
+pybind11::object SnapshotParticleData<Real>::getDiameterNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3890,7 +3905,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getDiameterNP(pybind
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getImageNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getImageNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3906,7 +3921,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getImageNP(pybind11:
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getBodyNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getBodyNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3919,7 +3934,8 @@ template<class Real> py::object SnapshotParticleData<Real>::getBodyNP(pybind11::
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getOrientationNP(pybind11::object self)
+template<class Real>
+pybind11::object SnapshotParticleData<Real>::getOrientationNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3936,7 +3952,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getOrientationNP(pyb
    snapshot
 */
 template<class Real>
-py::object SnapshotParticleData<Real>::getMomentInertiaNP(pybind11::object self)
+pybind11::object SnapshotParticleData<Real>::getMomentInertiaNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3952,7 +3968,7 @@ py::object SnapshotParticleData<Real>::getMomentInertiaNP(pybind11::object self)
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getAngmomNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getAngmomNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -3966,19 +3982,19 @@ template<class Real> py::object SnapshotParticleData<Real>::getAngmomNP(pybind11
 
 /*! \returns A python list of type names
  */
-template<class Real> py::list SnapshotParticleData<Real>::getTypes()
+template<class Real> pybind11::list SnapshotParticleData<Real>::getTypes()
     {
-    py::list types;
+    pybind11::list types;
 
     for (unsigned int i = 0; i < type_mapping.size(); i++)
-        types.append(py::str(type_mapping[i]));
+        types.append(pybind11::str(type_mapping[i]));
 
     return types;
     }
 
 /*! \param types Python list of type names to set
  */
-template<class Real> void SnapshotParticleData<Real>::setTypes(py::list types)
+template<class Real> void SnapshotParticleData<Real>::setTypes(pybind11::list types)
     {
     // set dirty
     is_accel_set = false;
@@ -3986,29 +4002,29 @@ template<class Real> void SnapshotParticleData<Real>::setTypes(py::list types)
     type_mapping.resize(len(types));
 
     for (unsigned int i = 0; i < len(types); i++)
-        type_mapping[i] = py::cast<string>(types[i]);
+        type_mapping[i] = pybind11::cast<string>(types[i]);
     }
 
 #ifdef ENABLE_MPI
 template<class Real> void SnapshotParticleData<Real>::bcast(unsigned int root, MPI_Comm mpi_comm)
     {
     // broadcast all member quantities
-    ::bcast(pos, root, mpi_comm);
-    ::bcast(vel, root, mpi_comm);
-    ::bcast(accel, root, mpi_comm);
-    ::bcast(type, root, mpi_comm);
-    ::bcast(mass, root, mpi_comm);
-    ::bcast(charge, root, mpi_comm);
-    ::bcast(diameter, root, mpi_comm);
-    ::bcast(image, root, mpi_comm);
-    ::bcast(body, root, mpi_comm);
-    ::bcast(orientation, root, mpi_comm);
-    ::bcast(angmom, root, mpi_comm);
-    ::bcast(inertia, root, mpi_comm);
+    hoomd::bcast(pos, root, mpi_comm);
+    hoomd::bcast(vel, root, mpi_comm);
+    hoomd::bcast(accel, root, mpi_comm);
+    hoomd::bcast(type, root, mpi_comm);
+    hoomd::bcast(mass, root, mpi_comm);
+    hoomd::bcast(charge, root, mpi_comm);
+    hoomd::bcast(diameter, root, mpi_comm);
+    hoomd::bcast(image, root, mpi_comm);
+    hoomd::bcast(body, root, mpi_comm);
+    hoomd::bcast(orientation, root, mpi_comm);
+    hoomd::bcast(angmom, root, mpi_comm);
+    hoomd::bcast(inertia, root, mpi_comm);
 
-    ::bcast(size, root, mpi_comm);
-    ::bcast(type_mapping, root, mpi_comm);
-    ::bcast(is_accel_set, root, mpi_comm);
+    hoomd::bcast(size, root, mpi_comm);
+    hoomd::bcast(type_mapping, root, mpi_comm);
+    hoomd::bcast(is_accel_set, root, mpi_comm);
     }
 #endif
 
@@ -4016,12 +4032,14 @@ template<class Real> void SnapshotParticleData<Real>::bcast(unsigned int root, M
 template struct SnapshotParticleData<float>;
 template struct SnapshotParticleData<double>;
 
-void export_SnapshotParticleData(py::module& m)
+namespace detail
     {
-    py::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float>>>(
+void export_SnapshotParticleData(pybind11::module& m)
+    {
+    pybind11::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float>>>(
         m,
         "SnapshotParticleData_float")
-        .def(py::init<unsigned int>())
+        .def(pybind11::init<unsigned int>())
         .def_property_readonly("position", &SnapshotParticleData<float>::getPosNP)
         .def_property_readonly("velocity", &SnapshotParticleData<float>::getVelNP)
         .def_property_readonly("acceleration", &SnapshotParticleData<float>::getAccelNP)
@@ -4042,10 +4060,10 @@ void export_SnapshotParticleData(py::module& m)
                       &SnapshotParticleData<float>::resize)
         .def_readonly("is_accel_set", &SnapshotParticleData<float>::is_accel_set);
 
-    py::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double>>>(
+    pybind11::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double>>>(
         m,
         "SnapshotParticleData_double")
-        .def(py::init<unsigned int>())
+        .def(pybind11::init<unsigned int>())
         .def_property_readonly("position", &SnapshotParticleData<double>::getPosNP)
         .def_property_readonly("velocity", &SnapshotParticleData<double>::getVelNP)
         .def_property_readonly("acceleration", &SnapshotParticleData<double>::getAccelNP)
@@ -4066,3 +4084,7 @@ void export_SnapshotParticleData(py::module& m)
                       &SnapshotParticleData<double>::resize)
         .def_readonly("is_accel_set", &SnapshotParticleData<double>::is_accel_set);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

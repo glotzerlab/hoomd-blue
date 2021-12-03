@@ -66,6 +66,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 //! MPCD component
 /*!
  * The mpcd namespace contains all classes, data members, and functions related
@@ -99,11 +101,14 @@ namespace gpu
  */
 namespace kernel
     {
-    }; // end namespace kernel
+    } // end namespace kernel
 
-    }; // end namespace gpu
+    } // end namespace gpu
 
-    }; // end namespace mpcd
+    } // end namespace mpcd
+    } // end namespace hoomd
+
+using namespace hoomd;
 
 PYBIND11_MODULE(_mpcd, m)
     {

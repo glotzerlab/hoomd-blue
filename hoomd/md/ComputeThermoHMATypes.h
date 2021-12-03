@@ -11,7 +11,10 @@
     \brief Data structures common to both CPU and GPU implementations of ComputeThermoHMA
     */
 
-//
+namespace hoomd
+    {
+namespace md
+    {
 //! Enum for indexing the GPUArray of computed values
 struct thermoHMA_index
     {
@@ -23,4 +26,7 @@ struct thermoHMA_index
         num_quantities           // final element to count number of quantities
         };
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 #endif

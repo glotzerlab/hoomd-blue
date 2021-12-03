@@ -22,6 +22,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 //! Autotuner for low level GPU kernel parameters
 /*! **Overview** <br>
     Autotuner is a helper class that autotunes GPU kernel parameters (such as block size) for
@@ -237,7 +239,12 @@ class PYBIND11_EXPORT Autotuner
     mode_Enum m_mode; //!< The sampling mode
     };
 
+namespace detail
+    {
 //! Export the Autotuner class to python
 void export_Autotuner(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace hoomd
 
 #endif // _AUTOTUNER_H_
