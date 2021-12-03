@@ -22,6 +22,7 @@ set(files __init__.py
           test_snapshot.py
           test_state.py
           test_simulation.py
+          test_synced_collections.py
           test_table.py
           test_variant.py
           test_sorter.py

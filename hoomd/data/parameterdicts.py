@@ -11,6 +11,8 @@ from itertools import product, combinations_with_replacement
 
 import numpy as np
 
+from hoomd.data.collections import (_HOOMDSyncedCollection, _to_hoomd_data,
+                                    _to_base)
 from hoomd.util import _to_camel_case, _is_iterable
 from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
                                       TypeConverterMapping, OnlyIf, Either)
@@ -376,20 +378,47 @@ class TypeParameterDict(_ValidatedDefaultDict):
         return self._cpp_obj is not None
 
     def _single_getitem(self, key):
-        """Access parameter by key."""
+        """Access parameter by key.
+
+        __getitem__ expects an exception to indicate the key is not there.
+        """
         if not self._attached:
-            return self._dict.get(key, self.default)
-        return getattr(self._cpp_obj, self._getter)(key)
+            return self._dict[key]
+        # We always attempt to keep the _dict up to date with the C++ values,
+        # and isolate existing components otherwise.
+        validated_cpp_value = self._validate_values(
+            getattr(self._cpp_obj, self._getter)(key))
+        if isinstance(self._dict[key], _HOOMDSyncedCollection):
+            try:
+                self._dict[key]._update(validated_cpp_value)
+            except ValueError:
+                self._dict[key]._isolate()
+            else:
+                return self._dict[key]
+        self._dict[key] = _to_hoomd_data(root=self,
+                                         schema=self._type_converter,
+                                         data=validated_cpp_value,
+                                         parent=None,
+                                         identity=key)
+        return self._dict[key]
 
     def _single_setitem(self, key, item):
         """Set parameter by key.
 
         Assumes value to be validated already.
         """
+        if isinstance(self._dict.get(key), _HOOMDSyncedCollection):
+            self._dict[key]._isolate()
+        self._dict[key] = _to_hoomd_data(root=self,
+                                         schema=self._type_converter,
+                                         data=item,
+                                         parent=None,
+                                         identity=key)
         if not self._attached:
-            self._dict[key] = item
-        else:
-            getattr(self._cpp_obj, self._setter)(key, item)
+            return
+        # We don't need to set the _dict yet since we will query C++ when
+        # retreiving the key the next time.
+        getattr(self._cpp_obj, self._setter)(key, item)
 
     def __iter__(self):
         """Get the keys in the mapping."""
@@ -462,24 +491,53 @@ class TypeParameterDict(_ValidatedDefaultDict):
                 parameter.
         """
         # store info to communicate with c++
-        self._cpp_obj = cpp_obj
         self._setter = "set" + _to_camel_case(param_name)
         self._getter = "get" + _to_camel_case(param_name)
         self._type_keys = self._compute_type_keys(types)
         # add all types to c++
+        parameters = {
+            key: _to_base(self._dict.get(key, self.default))
+            for key in self._type_keys
+        }
+        self._cpp_obj = cpp_obj
         for key in self:
-            parameter = self._dict.get(key, self.default)
             try:
-                _raise_if_required_arg(parameter)
+                _raise_if_required_arg(parameters[key])
             except IncompleteSpecificationError as err:
+                self._cpp_obj = None
                 raise IncompleteSpecificationError(f"for key {key} {str(err)}")
-            self._single_setitem(key, parameter)
+            self._single_setitem(key, parameters[key])
 
     def _detach(self):
         """Convert to a detached parameter dict."""
         for key in self:
             self._dict[key] = self._single_getitem(key)
         self._cpp_obj = None
+
+    def _read(self, obj):
+        if not self._attached:
+            return
+        key = obj._identity
+        new_value = getattr(self._cpp_obj, self._getter)(key)
+        obj._parent._update(new_value)
+        if obj._isolated:
+            raise ValueError(
+                "collection is no longer associated with the attribute. "
+                "Access the attribute directly to modify.")
+
+    def _write(self, obj):
+        if not self._attached:
+            return
+        # the _dict attribute is the store for the Python copy of the data.
+        self._single_setitem(obj._identity, obj._parent)
+
+    def __repr__(self):
+        """A string representation of the TypeParameterDict.
+
+        As no single command could give the same object with ``eval``, this just
+        returns a convenient form for debugging.
+        """
+        return f"TypeParameterDict{self.to_dict()}"
 
 
 class ParameterDict(MutableMapping):
