@@ -310,9 +310,7 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i,
         }
     else
         {
-        m_exec_conf->msg->error() << "comm.balance: unknown dimension for particle reduction"
-                                  << endl;
-        throw runtime_error("Unknown dimension for particle reduction");
+        throw runtime_error("Unknown dimension for particle reduction.");
         }
 
     return true;
@@ -443,14 +441,14 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
                 if (x(cur_div) < min_domain_size)
                     {
                     m_exec_conf->msg->warning()
-                        << "comm.balance: no convergence, domains too small" << endl;
+                        << "LoadBalancer: no convergence, domains too small" << endl;
                     return false;
                     }
                 sorted_f[cur_div] = x(cur_div) / L_i;
                 if (cur_div > 0 && sorted_f[cur_div] < sorted_f[cur_div - 1])
                     {
                     m_exec_conf->msg->warning()
-                        << "comm.balance: domains attempting to flip" << endl;
+                        << "LoadBalancer: domains attempting to flip" << endl;
                     return false;
                     }
                 }
@@ -463,15 +461,9 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
             }
         else
             {
-            m_exec_conf->msg->warning() << "comm.balance: converged load balance not found" << endl;
+            m_exec_conf->msg->warning() << "LoadBalancer: converged load balance not found" << endl;
             return false;
             }
-        }
-    catch (const runtime_error& e)
-        {
-        m_exec_conf->msg->error() << "comm.balance: an error occurred seeking optimal load balance"
-                                  << endl;
-        throw e;
         }
 
     return false;

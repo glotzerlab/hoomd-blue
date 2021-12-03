@@ -43,8 +43,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     // r_buff must be non-negative or it is not physical
     if (m_r_buff < 0.0)
         {
-        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
-        throw runtime_error("Error initializing NeighborList");
+        throw runtime_error("Requested buffer radius is less than zero.");
         }
 
     // initialize values
@@ -465,8 +464,7 @@ void NeighborList::setRBuff(Scalar r_buff)
     m_r_buff = r_buff;
     if (m_r_buff < 0.0)
         {
-        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
-        throw runtime_error("Error changing NeighborList parameters");
+        throw runtime_error("Requested buffer radius is less than zero.");
         }
     notifyRCutMatrixChange();
     forceUpdate();
@@ -1103,20 +1101,16 @@ void NeighborList::addOneThreeExclusionsFromTopology()
 
         if (nBondsA >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagA << ".";
+            throw runtime_error(s.str());
             }
 
         if (nBondsB >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagB << ".";
+            throw runtime_error(s.str());
             }
 
         localBondList[tagA * MAXNBONDS + nBondsA] = tagB;
@@ -1187,20 +1181,16 @@ void NeighborList::addOneFourExclusionsFromTopology()
 
         if (nBondsA >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagA << ".";
+            throw runtime_error(s.str());
             }
 
         if (nBondsB >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagB << ".";
+            throw runtime_error(s.str());
             }
 
         localBondList[tagA * MAXNBONDS + nBondsA] = tagB;
@@ -1485,8 +1475,7 @@ unsigned int NeighborList::getSmallestRebuild()
  */
 void NeighborList::buildNlist(uint64_t timestep)
     {
-    m_exec_conf->msg->error() << "nlist: O(N^2) neighbor lists are no longer supported." << endl;
-    throw runtime_error("Error updating neighborlist bins");
+    throw runtime_error("Not implemented.");
     }
 
 /*! Translates the exclusions set in \c m_n_ex_tag and \c m_ex_list_tag to indices in \c m_n_ex_idx
