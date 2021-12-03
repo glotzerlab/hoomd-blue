@@ -941,7 +941,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
             for (unsigned int k = 0; k < group_size; ++k)
                 oss << g.tag[k] << ((k != group_size - 1) ? ", " : " ");
             oss << "incomplete!";
-            throw std::runtime_error(s.str);
+            throw std::runtime_error(oss.str());
             }
 
         if (flag == m_next_flag)
