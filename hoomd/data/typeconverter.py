@@ -537,6 +537,10 @@ class TypeConverterFixedLengthSequence(TypeConverter):
         """Iterate over converters in the sequence."""
         yield from self.converter
 
+    def __getitem__(self, index):
+        """Return the index-th converter."""
+        return self.converter[index]
+
 
 class TypeConverterMapping(TypeConverter, MutableMapping):
     """Validation for a mapping of string keys to any type values.
