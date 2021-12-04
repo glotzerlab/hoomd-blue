@@ -867,9 +867,6 @@ struct MeshBond
     unsigned int tb;   //!< Second triangle
     };
 
-//! Definition of BondData
-typedef BondedGroupData<4, MeshBond, name_meshbond_data> BMeshBondData;
-
 /*
  * AngleData
  */
@@ -1028,9 +1025,6 @@ struct MeshTriangle
     unsigned int eb;   //!< Second edge
     unsigned int ec;   //!< Third edge
     };
-
-//! Definition of BondData
-typedef BondedGroupData<6, MeshTriangle, name_meshtriangle_data> BMeshTriangleData;
 
 /*
  * DihedralData
