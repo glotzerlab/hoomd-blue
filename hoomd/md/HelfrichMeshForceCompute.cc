@@ -145,6 +145,11 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
+
+    computeSigma(h_pos, h_rtag, h_bonds, h_triangles);
+
+    computeNormal();//has to be implemented
+
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
@@ -190,29 +195,29 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
         // calculate d\vec{r}
         Scalar3 dab;
-        dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
-        dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
-        dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
+        dab.x =  h_pos.data[idx_b].x - h_pos.data[idx_a].x;
+        dab.y =  h_pos.data[idx_b].y - h_pos.data[idx_a].y;
+        dab.z =  h_pos.data[idx_b].z - h_pos.data[idx_a].z;
 
         Scalar3 dac;
-        dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
-        dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
-        dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
+        dac.x =  h_pos.data[idx_c].x - h_pos.data[idx_a].x;
+        dac.y =  h_pos.data[idx_c].y - h_pos.data[idx_a].y;
+        dac.z =  h_pos.data[idx_c].z - h_pos.data[idx_a].z;
 
         Scalar3 dad;
-        dad.x = h_pos.data[idx_a].x - h_pos.data[idx_d].x;
-        dad.y = h_pos.data[idx_a].y - h_pos.data[idx_d].y;
-        dad.z = h_pos.data[idx_a].z - h_pos.data[idx_d].z;
+        dad.x = h_pos.data[idx_d].x - h_pos.data[idx_a].x;
+        dad.y = h_pos.data[idx_d].y - h_pos.data[idx_a].y;
+        dad.z = h_pos.data[idx_d].z - h_pos.data[idx_a].z;
 
         Scalar3 dbc;
-        dbc.x = h_pos.data[idx_b].x - h_pos.data[idx_c].x;
-        dbc.y = h_pos.data[idx_b].y - h_pos.data[idx_c].y;
-        dbc.z = h_pos.data[idx_b].z - h_pos.data[idx_c].z;
+        dbc.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
+        dbc.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
+        dbc.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
 
         Scalar3 dbd;
-        dbd.x = h_pos.data[idx_b].x - h_pos.data[idx_d].x;
-        dbd.y = h_pos.data[idx_b].y - h_pos.data[idx_d].y;
-        dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
+        dbd.x = h_pos.data[idx_d].x - h_pos.data[idx_b].x;
+        dbd.y = h_pos.data[idx_d].y - h_pos.data[idx_b].y;
+        dbd.z = h_pos.data[idx_d].z - h_pos.data[idx_b].z;
 
         // apply minimum image conventions to all 3 vectors
         dab = box.minImage(dab);
@@ -238,17 +243,41 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar rbd = sqrt(rsqbd);
 
         Scalar c_accb = dac.x * dbc.x + dac.y * dbc.y + dac.z * dbc.z;
-        c_abbc /= rab * rcb;
+        c_accb /= rac * rbc;
 
-        if (c_abbc > 1.0)
-            c_abbc = 1.0;
-        if (c_abbc < -1.0)
-            c_abbc = -1.0;
+        if (c_accb > 1.0)
+            c_accb = 1.0;
+        if (c_accb < -1.0)
+            c_accb = -1.0;
 
-        Scalar s_abbc = sqrt(1.0 - c_abbc * c_abbc);
-        if (s_abbc < SMALL)
-            s_abbc = SMALL;
-        s_abbc = 1.0 / s_abbc;
+        Scalar s_accb = sqrt(1.0 - c_accb * c_accb);
+        if (s_accb < SMALL)
+            s_accb = SMALL;
+        s_accb = 1.0 / s_accb;
+
+	Scalar cot_accb = c_accb/s_accb;
+
+        Scalar c_addb = dad.x * dbd.x + dad.y * dbd.y + dad.z * dbd.z;
+        c_addb /= rad * rbd;
+
+        if (c_addb > 1.0)
+            c_addb = 1.0;
+        if (c_addb < -1.0)
+            c_addb = -1.0;
+
+        Scalar s_addb = sqrt(1.0 - c_addb * c_addb);
+        if (s_addb < SMALL)
+            s_addb = SMALL;
+        s_addb = 1.0 / s_addb;
+
+	Scalar cot_addb = c_addb/s_addb;
+
+
+	Scalar sigma_hat = (cot_accb + cot_addb)/2;
+
+
+
+
 
         // actually calculate the force
         unsigned int angle_type = m_angle_data->getTypeByIndex(i);
@@ -318,6 +347,145 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
     if (m_prof)
         m_prof->pop();
+    }
+
+void HelfrichMeshForceCompute::computeSigma(ArrayHandle<Scalar4> h_pos, ArrayHandle<unsigned int> h_rtag, ArrayHandle<typename MeshBond::members_t> h_bonds, ArrayHandle<typename MeshTriangle::members_t> h_triangles)
+    {
+
+    // get a local copy of the simulation box too
+    const BoxDim& box = m_pdata->getGlobalBox();
+
+
+    // for each of the angles
+    const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
+    for (unsigned int i = 0; i < size; i++)
+        {
+        // lookup the tag of each of the particles participating in the bond
+        const typename MeshBond::members_t& bond = h_bonds.data[i];
+        assert(bond.tag[0] < m_pdata->getMaximumTag() + 1);
+        assert(bond.tag[1] < m_pdata->getMaximumTag() + 1);
+
+        // transform a and b into indices into the particle data arrays
+        // (MEM TRANSFER: 4 integers)
+        unsigned int idx_a = h_rtag.data[bond.tag[0]];
+        unsigned int idx_b = h_rtag.data[bond.tag[1]];
+
+        unsigned int tr_idx1 = bond.tag[2];
+        unsigned int tr_idx2 = bond.tag[3];
+
+        const typename MeshTriangle::members_t& triangle1 = h_triangles.data[tr_idx1];
+        const typename MeshTriangle::members_t& triangle2 = h_triangles.data[tr_idx2];
+
+        unsigned int idx_c = h_rtag.data[triangle1.tag[0]];
+
+	unsigned int iterator = 1;
+	while( idx_a == idx_c || idx_b == idx_c)
+		{
+		idx_c = h_rtag.data[triangle1.tag[iterator]];
+		iterator++;
+		}
+
+        unsigned int idx_d = h_rtag.data[triangle2.tag[0]];
+
+	iterator = 1;
+	while( idx_a == idx_d || idx_b == idx_d)
+		{
+		idx_d = h_rtag.data[triangle2.tag[iterator]];
+		iterator++;
+		}
+
+        assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_d < m_pdata->getN() + m_pdata->getNGhosts());
+
+        // calculate d\vec{r}
+        Scalar3 dab;
+        dab.x =  h_pos.data[idx_b].x - h_pos.data[idx_a].x;
+        dab.y =  h_pos.data[idx_b].y - h_pos.data[idx_a].y;
+        dab.z =  h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+
+        Scalar3 dac;
+        dac.x =  h_pos.data[idx_c].x - h_pos.data[idx_a].x;
+        dac.y =  h_pos.data[idx_c].y - h_pos.data[idx_a].y;
+        dac.z =  h_pos.data[idx_c].z - h_pos.data[idx_a].z;
+
+        Scalar3 dad;
+        dad.x = h_pos.data[idx_d].x - h_pos.data[idx_a].x;
+        dad.y = h_pos.data[idx_d].y - h_pos.data[idx_a].y;
+        dad.z = h_pos.data[idx_d].z - h_pos.data[idx_a].z;
+
+        Scalar3 dbc;
+        dbc.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
+        dbc.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
+        dbc.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
+
+        Scalar3 dbd;
+        dbd.x = h_pos.data[idx_d].x - h_pos.data[idx_b].x;
+        dbd.y = h_pos.data[idx_d].y - h_pos.data[idx_b].y;
+        dbd.z = h_pos.data[idx_d].z - h_pos.data[idx_b].z;
+
+        // apply minimum image conventions to all 3 vectors
+        dab = box.minImage(dab);
+        dac = box.minImage(dac);
+        dad = box.minImage(dad);
+        dbc = box.minImage(dbc);
+        dbd = box.minImage(dbd);
+
+        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
+        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
+
+        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
+        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+        Scalar rab = sqrt(rsqab);
+        Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+        Scalar rac = sqrt(rsqac);
+        Scalar rsqad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
+        Scalar rad = sqrt(rsqad);
+
+        Scalar rsqbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
+        Scalar rbc = sqrt(rsqbc);
+        Scalar rsqbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
+        Scalar rbd = sqrt(rsqbd);
+
+        Scalar c_accb = dac.x * dbc.x + dac.y * dbc.y + dac.z * dbc.z;
+        c_accb /= rac * rbc;
+
+        if (c_accb > 1.0)
+            c_accb = 1.0;
+        if (c_accb < -1.0)
+            c_accb = -1.0;
+
+        Scalar s_accb = sqrt(1.0 - c_accb * c_accb);
+        if (s_accb < SMALL)
+            s_accb = SMALL;
+        s_accb = 1.0 / s_accb;
+
+	Scalar cot_accb = c_accb/s_accb;
+
+        Scalar c_addb = dad.x * dbd.x + dad.y * dbd.y + dad.z * dbd.z;
+        c_addb /= rad * rbd;
+
+        if (c_addb > 1.0)
+            c_addb = 1.0;
+        if (c_addb < -1.0)
+            c_addb = -1.0;
+
+        Scalar s_addb = sqrt(1.0 - c_addb * c_addb);
+        if (s_addb < SMALL)
+            s_addb = SMALL;
+        s_addb = 1.0 / s_addb;
+
+	Scalar cot_addb = c_addb/s_addb;
+
+
+	Scalar sigma_hat = (cot_accb + cot_addb)/2;
+
+
+	m_sigmas[idx_a] += sigma_hat*rsqab*0.25;
+	m_sigmas[idx_b] += sigma_hat*rsqab*0.25;
+	}
+
     }
 
 namespace detail
