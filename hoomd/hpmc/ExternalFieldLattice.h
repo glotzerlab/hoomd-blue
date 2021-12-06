@@ -383,14 +383,19 @@ template<class Shape> void export_LatticeField(pybind11::module& m, std::string 
                             pybind11::list,
                             Scalar,
                             pybind11::list>())
-        .def("setReferences", &ExternalFieldLattice<Shape>::setReferences)
-        .def("setParams", &ExternalFieldLattice<Shape>::setParams)
-        .def("reset", &ExternalFieldLattice<Shape>::reset)
-        .def("clearPositions", &ExternalFieldLattice<Shape>::clearPositions)
-        .def("clearOrientations", &ExternalFieldLattice<Shape>::clearOrientations)
-        .def("getEnergy", &ExternalFieldLattice<Shape>::getEnergy)
-        .def("getAvgEnergy", &ExternalFieldLattice<Shape>::getAvgEnergy)
-        .def("getSigma", &ExternalFieldLattice<Shape>::getSigma);
+        .def_property("reference_positions",
+                      &ExternalFieldLattice<Shape>::getReferencePositions,
+                      &ExternalFieldLattice<Shape>::setReferencePositions)
+        .def_property("reference_orientations",
+                      &ExternalFieldLattice<Shape>::getReferenceOrientations,
+                      &ExternalFieldLattice<Shape>::setReferenceOrientations)
+        .def_property("k_translational",
+                      &ExternalFieldLattice<Shape>::getKTranslational,
+                      &ExternalFieldLattice<Shape>::setKTranslational)
+        .def_property("k_rotational",
+                      &ExternalFieldLattice<Shape>::getKRotational,
+                      &ExternalFieldLattice<Shape>::setKRotational)
+        .def("getEnergy", &ExternalFieldLattice<Shape>::getEnergy);
     }
 
 void export_LatticeFields(pybind11::module& m);
