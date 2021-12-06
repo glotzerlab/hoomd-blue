@@ -36,19 +36,8 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
                          pybind11::list q0,
                          Scalar q,
                          pybind11::list symRotations)
-        : ExternalFieldMono<Shape>(sysdef), m_k(k), m_q(q), m_Energy(0)
+        : ExternalFieldMono<Shape>(sysdef), m_k_translational(k), m_k_rotational(q), m_energy(0.0)
         {
-        m_ProvidedQuantities.push_back(LATTICE_ENERGY_LOG_NAME);
-        m_ProvidedQuantities.push_back(LATTICE_ENERGY_AVG_LOG_NAME);
-        m_ProvidedQuantities.push_back(LATTICE_ENERGY_SIGMA_LOG_NAME);
-        m_ProvidedQuantities.push_back(LATTICE_TRANS_SPRING_CONSTANT_LOG_NAME);
-        m_ProvidedQuantities.push_back(LATTICE_ROTAT_SPRING_CONSTANT_LOG_NAME);
-        m_ProvidedQuantities.push_back(LATTICE_NUM_SAMPLES_LOG_NAME);
-        // Connect to the BoxChange signal
-        m_box = m_pdata->getBox();
-        m_pdata->getBoxChangeSignal()
-            .template connect<ExternalFieldLattice<Shape>,
-                              &ExternalFieldLattice<Shape>::scaleReferencePoints>(this);
         setReferences(r0, q0);
 
         std::vector<Scalar4> rots;
@@ -66,19 +55,6 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             {
             m_symmetry.push_back(identity);
             }
-        reset(0); // initializes all of the energy parameters.
-        }
-
-    ~ExternalFieldLattice()
-        {
-        m_pdata->getBoxChangeSignal()
-            .template disconnect<ExternalFieldLattice<Shape>,
-                                 &ExternalFieldLattice<Shape>::scaleReferencePoints>(this);
-        }
-
-    Scalar calculateBoltzmannWeight(uint64_t timestep)
-        {
-        return 0.0;
         }
 
     double calculateDeltaE(const Scalar4* const position_old_arg,
@@ -172,18 +148,6 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
 #endif
 
-        Scalar energy_per = m_Energy / Scalar(m_pdata->getNGlobal());
-        m_EnergySum_y = energy_per - m_EnergySum_c;
-        m_EnergySum_t = m_EnergySum + m_EnergySum_y;
-        m_EnergySum_c = (m_EnergySum_t - m_EnergySum) - m_EnergySum_y;
-        m_EnergySum = m_EnergySum_t;
-
-        Scalar energy_sq_per = energy_per * energy_per;
-        m_EnergySqSum_y = energy_sq_per - m_EnergySqSum_c;
-        m_EnergySqSum_t = m_EnergySqSum + m_EnergySqSum_y;
-        m_EnergySqSum_c = (m_EnergySqSum_t - m_EnergySqSum) - m_EnergySqSum_y;
-        m_EnergySqSum = m_EnergySqSum_t;
-        m_num_samples++;
         }
 
     double energydiff(const unsigned int& index,
@@ -437,31 +401,12 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         }
 
     private:
-    LatticeReferenceList<Scalar3> m_latticePositions; // positions of the lattice.
-    Scalar m_k;                                       // spring constant
-
-    LatticeReferenceList<Scalar4> m_latticeOrientations; // orientation of the lattice particles.
-    Scalar m_q;                                          // spring constant
-
-    std::vector<quat<Scalar>> m_symmetry; // quaternions in the symmetry group of the shape.
-
-    Scalar m_Energy; // Store the total energy of the last computed timestep
-
-    // All of these are on a per particle basis
-    Scalar m_EnergySum;
-    Scalar m_EnergySum_y;
-    Scalar m_EnergySum_t;
-    Scalar m_EnergySum_c;
-
-    Scalar m_EnergySqSum;
-    Scalar m_EnergySqSum_y;
-    Scalar m_EnergySqSum_t;
-    Scalar m_EnergySqSum_c;
-
-    unsigned int m_num_samples;
-
-    std::vector<std::string> m_ProvidedQuantities;
-    BoxDim m_box; //!< Save the last known box;
+    std::vector<vec3<Scalar>> m_lattice_positions;     // reference positions
+    std::vector<quat<Scalar>> m_lattice_orientations;  // reference orientations
+    std::vector<quat<Scalar>> m_symmetry;              // symmetry-equivalent orientations
+    Scalar m_k_translational;                          // translational spring constant
+    Scalar m_k_rotational;                             // rotational spring constant
+    Scalar m_energy;                                   // total energy from previous timestep
     };
 
 namespace detail
