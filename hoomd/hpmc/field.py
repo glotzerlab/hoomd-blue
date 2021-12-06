@@ -8,6 +8,7 @@ from hoomd import _hoomd
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
 from hoomd.operation import Compute
+from hoomd.operation import _HOOMDBaseObject
 import hoomd
 
 
@@ -32,11 +33,10 @@ class _external(Compute):
         # nothing else to do.
 
 
-class lattice_field(_external):
+class LatticeField(_HOOMDBaseObject):
     R""" Restrain particles on a lattice
 
     Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
         position (list): list of positions to restrain each particle (distance units).
         orientation (list): list of orientations to restrain each particle (quaternions).
         k (float): translational spring constant.
@@ -52,7 +52,7 @@ class lattice_field(_external):
         V_{i}(q)  = k_q*(q_i-q_{oi})^2
 
     Note:
-        1/2 is not included in the formulas, specify your spring constants accordingly.
+        1/2 is not included in the formulas; specify your spring constants accordingly.
 
     * :math:`k_r` - translational spring constant.
     * :math:`r_{o}` - lattice positions (in distance units).
@@ -80,7 +80,6 @@ class lattice_field(_external):
     """
 
     def __init__(self,
-                 mc,
                  position=[],
                  orientation=[],
                  k=0.0,
@@ -137,103 +136,16 @@ class lattice_field(_external):
         if not composite:
             mc.set_external(self)
 
-    def set_references(self, position=[], orientation=[]):
-        R""" Reset the reference positions or reference orientations.
+    def _attach(self):
+        super()._attach()
 
-        Args:
-            position (list): list of positions to restrain each particle.
-            orientation (list): list of orientations to restrain each particle.
+    @log(requires_run=True)
+    def energy(self):
+        """float: The energy of the lattice field :math:`[\\mathrm{energy}]`.
 
-        Example::
-
-            mc = hpmc.integrate.sphere(seed=415236);
-            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
-            lattice.set_references(position=bcc_lattice)
-
-        """
-        import numpy
-        enlist = hoomd.hpmc.data._param.ensure_list
-        self.cpp_compute.setReferences(enlist(position), enlist(orientation))
-
-    def set_params(self, k, q):
-        R""" Set the translational and rotational spring constants.
-
-        Args:
-            k (float): translational spring constant.
-            q (float): rotational spring constant.
-
-        Example::
-
-            mc = hpmc.integrate.sphere(seed=415236);
-            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
-            ks = np.linspace(1000, 0.01, 100);
-            for k in ks:
-              lattice.set_params(k=k, q=0.0);
-              run(1000)
-
-        """
-        self.cpp_compute.setParams(float(k), float(q))
-
-    def reset(self, timestep=None):
-        R""" Reset the statistics counters.
-
-        Args:
-            timestep (int): the timestep to pass into the reset function.
-
-        Example::
-
-            mc = hpmc.integrate.sphere(seed=415236);
-            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
-            ks = np.linspace(1000, 0.01, 100);
-            for k in ks:
-              lattice.set_params(k=k, q=0.0);
-              lattice.reset();
-              run(1000)
-
-        """
-        if timestep == None:
-            timestep = hoomd.context.current.system.getCurrentTimeStep()
-        self.cpp_compute.reset(timestep)
-
-    def get_energy(self):
-        R"""    Get the current energy of the lattice field.
-                This is a collective call and must be called on all ranks.
-        Example::
-            mc = hpmc.integrate.sphere(seed=415236);
-            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
-            run(20000)
-            eng = lattice.get_energy()
         """
         timestep = hoomd.context.current.system.getCurrentTimeStep()
         return self.cpp_compute.getEnergy(timestep)
-
-    def get_average_energy(self):
-        R"""    Get the average energy per particle of the lattice field.
-                This is a collective call and must be called on all ranks.
-
-        Example::
-            mc = hpmc.integrate.sphere(seed=415236);
-            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=exp(15));
-            run(20000)
-            avg_eng = lattice.get_average_energy() //  should be about 1.5kT
-
-        """
-        timestep = hoomd.context.current.system.getCurrentTimeStep()
-        return self.cpp_compute.getAvgEnergy(timestep)
-
-    def get_sigma_energy(self):
-        R"""    Gives the standard deviation of the average energy per particle of the lattice field.
-                This is a collective call and must be called on all ranks.
-
-        Example::
-            mc = hpmc.integrate.sphere(seed=415236);
-            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=exp(15));
-            run(20000)
-            sig_eng = lattice.get_sigma_energy()
-
-        """
-        timestep = hoomd.context.current.system.getCurrentTimeStep()
-        return self.cpp_compute.getSigma(timestep)
 
 
 class external_field_composite(_external):
