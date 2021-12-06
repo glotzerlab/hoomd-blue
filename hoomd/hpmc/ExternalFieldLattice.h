@@ -161,182 +161,143 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         return new_U - old_U;
         }
 
+    /**
+     * Set the reference positions and orientations
+     *
+     * Passing an empty list to either argument causes that member to remain unchanged
+     */
     void setReferences(const pybind11::list& r0, const pybind11::list& q0)
         {
         unsigned int ndim = m_sysdef->getNDimensions();
         std::vector<Scalar3> lattice_positions;
-        std::vector<Scalar> pbuffer;
+        std::vector<Scalar> pos_buffer;
         std::vector<Scalar4> lattice_orientations;
-        std::vector<Scalar> qbuffer;
+        std::vector<Scalar> ors_buffer;
 #ifdef ENABLE_MPI
-        unsigned int psz = 0, qsz = 0;
+        unsigned int pos_size = 0, ors_size = 0;  // should this be a size_t?
 
         if (this->m_exec_conf->isRoot())
             {
             python_list_to_vector_scalar3(r0, lattice_positions, ndim);
             python_list_to_vector_scalar4(q0, lattice_orientations);
-            psz = (unsigned int)lattice_positions.size();
-            qsz = (unsigned int)lattice_orientations.size();
+            pos_size = (unsigned int)lattice_positions.size();
+            ors_size = (unsigned int)lattice_orientations.size();
             }
         if (this->m_pdata->getDomainDecomposition())
             {
-            if (psz)
+            if (pos_size)
                 {
-                pbuffer.resize(3 * psz, 0.0);
-                for (size_t i = 0; i < psz; i++)
+                pos_buffer.resize(3 * pos_size, 0.0);
+                for (size_t i = 0; i < pos_size; i++)
                     {
-                    pbuffer[3 * i] = lattice_positions[i].x;
-                    pbuffer[3 * i + 1] = lattice_positions[i].y;
-                    pbuffer[3 * i + 2] = lattice_positions[i].z;
+                    pos_buffer[3 * i] = lattice_positions[i].x;
+                    pos_buffer[3 * i + 1] = lattice_positions[i].y;
+                    pos_buffer[3 * i + 2] = lattice_positions[i].z;
                     }
                 }
-            if (qsz)
+            if (ors_size)
                 {
-                qbuffer.resize(4 * qsz, 0.0);
-                for (size_t i = 0; i < qsz; i++)
+                ors_buffer.resize(4 * ors_size, 0.0);
+                for (size_t i = 0; i < ors_size; i++)
                     {
-                    qbuffer[4 * i] = lattice_orientations[i].x;
-                    qbuffer[4 * i + 1] = lattice_orientations[i].y;
-                    qbuffer[4 * i + 2] = lattice_orientations[i].z;
-                    qbuffer[4 * i + 3] = lattice_orientations[i].w;
+                    ors_buffer[4 * i] = lattice_orientations[i].x;
+                    ors_buffer[4 * i + 1] = lattice_orientations[i].y;
+                    ors_buffer[4 * i + 2] = lattice_orientations[i].z;
+                    ors_buffer[4 * i + 3] = lattice_orientations[i].w;
                     }
                 }
-            MPI_Bcast(&psz, 1, MPI_UNSIGNED, 0, m_exec_conf->getMPICommunicator());
-            if (psz)
+            MPI_Bcast(&pos_size, 1, MPI_UNSIGNED, 0, m_exec_conf->getMPICommunicator());
+            if (pos_size)
                 {
-                if (!pbuffer.size())
-                    pbuffer.resize(3 * psz, 0.0);
-                MPI_Bcast(&pbuffer.front(),
-                          3 * psz,
+                if (!pos_buffer.size())
+                    pos_buffer.resize(3 * pos_size, 0.0);
+                MPI_Bcast(&pos_buffer.front(),
+                          3 * pos_size,
                           MPI_HOOMD_SCALAR,
                           0,
                           m_exec_conf->getMPICommunicator());
                 if (!lattice_positions.size())
                     {
-                    lattice_positions.resize(psz, make_scalar3(0.0, 0.0, 0.0));
-                    for (size_t i = 0; i < psz; i++)
+                    lattice_positions.resize(pos_size, make_scalar3(0.0, 0.0, 0.0));
+                    for (size_t i = 0; i < pos_size; i++)
                         {
-                        lattice_positions[i].x = pbuffer[3 * i];
-                        lattice_positions[i].y = pbuffer[3 * i + 1];
-                        lattice_positions[i].z = pbuffer[3 * i + 2];
+                        lattice_positions[i].x = pos_buffer[3 * i];
+                        lattice_positions[i].y = pos_buffer[3 * i + 1];
+                        lattice_positions[i].z = pos_buffer[3 * i + 2];
                         }
                     }
                 }
-            MPI_Bcast(&qsz, 1, MPI_UNSIGNED, 0, m_exec_conf->getMPICommunicator());
-            if (qsz)
+            MPI_Bcast(&ors_size, 1, MPI_UNSIGNED, 0, m_exec_conf->getMPICommunicator());
+            if (ors_size)
                 {
-                if (!qbuffer.size())
-                    qbuffer.resize(4 * qsz, 0.0);
-                MPI_Bcast(&qbuffer.front(),
-                          4 * qsz,
+                if (!ors_buffer.size())
+                    ors_buffer.resize(4 * ors_size, 0.0);
+                MPI_Bcast(&ors_buffer.front(),
+                          4 * ors_size,
                           MPI_HOOMD_SCALAR,
                           0,
                           m_exec_conf->getMPICommunicator());
                 if (!lattice_orientations.size())
                     {
-                    lattice_orientations.resize(qsz, make_scalar4(0, 0, 0, 0));
-                    for (size_t i = 0; i < qsz; i++)
+                    lattice_orientations.resize(ors_size, make_scalar4(0, 0, 0, 0));
+                    for (size_t i = 0; i < ors_size; i++)
                         {
-                        lattice_orientations[i].x = qbuffer[4 * i];
-                        lattice_orientations[i].y = qbuffer[4 * i + 1];
-                        lattice_orientations[i].z = qbuffer[4 * i + 2];
-                        lattice_orientations[i].w = qbuffer[4 * i + 3];
+                        lattice_orientations[i].x = ors_buffer[4 * i];
+                        lattice_orientations[i].y = ors_buffer[4 * i + 1];
+                        lattice_orientations[i].z = ors_buffer[4 * i + 2];
+                        lattice_orientations[i].w = ors_buffer[4 * i + 3];
                         }
                     }
                 }
             }
 
-#else
+#else  // ENABLE_MPI == false
         python_list_to_vector_scalar3(r0, lattice_positions, ndim);
         python_list_to_vector_scalar4(q0, lattice_orientations);
-#endif
+#endif  // end if ENABLE_MPI
 
         if (lattice_positions.size())
-            m_latticePositions.setReferences(lattice_positions.begin(),
-                                             lattice_positions.end(),
-                                             m_pdata,
-                                             m_exec_conf);
+            m_lattice_positions.setReferences(lattice_positions.begin(),
+                                              lattice_positions.end(),
+                                              m_pdata,
+                                              m_exec_conf);
 
         if (lattice_orientations.size())
-            m_latticeOrientations.setReferences(lattice_orientations.begin(),
-                                                lattice_orientations.end(),
-                                                m_pdata,
-                                                m_exec_conf);
+            m_lattice_orientations.setReferences(lattice_orientations.begin(),
+                                                 lattice_orientations.end(),
+                                                 m_pdata,
+                                                 m_exec_conf);
+        }  // end void setReferences
+
+    void setKTranslational(Scalar k_translational)
+        {
+        m_k_translational = k_translational;
         }
 
-    void clearPositions()
+    Scalar getKTranslational()
         {
-        m_latticePositions.clear();
+        return m_k_translational;
         }
 
-    void clearOrientations()
+    void setKRotational(Scalar k_rotational)
         {
-        m_latticeOrientations.clear();
+        m_k_rotational = k_rotational;
         }
 
-    void scaleReferencePoints()
+    Scalar getKRotational()
         {
-        BoxDim newBox = m_pdata->getBox();
-        Scalar newVol = newBox.getVolume();
-        Scalar lastVol = m_box.getVolume();
-        Scalar scale;
-        if (this->m_sysdef->getNDimensions() == 2)
-            scale = pow((newVol / lastVol), Scalar(1.0 / 2.0));
-        else
-            scale = pow((newVol / lastVol), Scalar(1.0 / 3.0));
-        m_latticePositions.scale(scale);
-        m_box = newBox;
-        }
-
-    void setParams(Scalar k, Scalar q)
-        {
-        m_k = k;
-        m_q = q;
-        }
-
-    const GPUArray<Scalar3>& getReferenceLatticePositions()
-        {
-        return m_latticePositions.getReferenceArray();
-        }
-
-    const GPUArray<Scalar4>& getReferenceLatticeOrientations()
-        {
-        return m_latticeOrientations.getReferenceArray();
-        }
-
-    virtual void reset(uint64_t timestep) // TODO: remove the timestep
-        {
-        m_EnergySum = m_EnergySum_y = m_EnergySum_t = m_EnergySum_c = Scalar(0.0);
-        m_EnergySqSum = m_EnergySqSum_y = m_EnergySqSum_t = m_EnergySqSum_c = Scalar(0.0);
-        m_num_samples = 0;
+        return m_k_rotational;
         }
 
     Scalar getEnergy(uint64_t timestep)
         {
         compute(timestep);
-        return m_Energy;
-        }
-    Scalar getAvgEnergy(uint64_t timestep)
-        {
-        compute(timestep);
-        if (!m_num_samples)
-            return 0.0;
-        return m_EnergySum / double(m_num_samples);
-        }
-    Scalar getSigma(uint64_t timestep)
-        {
-        compute(timestep);
-        if (!m_num_samples)
-            return 0.0;
-        Scalar first_moment = m_EnergySum / double(m_num_samples);
-        Scalar second_moment = m_EnergySqSum / double(m_num_samples);
-        return sqrt(second_moment - (first_moment * first_moment));
+        return m_energy;
         }
 
     protected:
     // These could be a little redundant. think about this more later.
-    Scalar
-    calcE_trans(const unsigned int& index, const vec3<Scalar>& position, const Scalar& scale = 1.0)
+    Scalar calcE_trans(const unsigned int& index, const vec3<Scalar>& position, const Scalar& scale = 1.0)
         {
         ArrayHandle<unsigned int> h_tags(m_pdata->getTags(),
                                          access_location::host,
