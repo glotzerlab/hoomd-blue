@@ -121,7 +121,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             {
             return;
             }
-        m_Energy = Scalar(0.0);
+        m_energy = Scalar(0.0);
         // access particle data and system box
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                        access_location::host,
@@ -133,14 +133,14 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             {
             vec3<Scalar> position(h_postype.data[i]);
             quat<Scalar> orientation(h_orient.data[i]);
-            m_Energy += calcE(i, position, orientation);
+            m_energy += calcE(i, position, orientation);
             }
 
 #ifdef ENABLE_MPI
         if (this->m_pdata->getDomainDecomposition())
             {
             MPI_Allreduce(MPI_IN_PLACE,
-                          &m_Energy,
+                          &m_energy,
                           1,
                           MPI_HOOMD_SCALAR,
                           MPI_SUM,
