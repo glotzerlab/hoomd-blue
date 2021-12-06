@@ -305,13 +305,13 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         int3 dummy = make_int3(0, 0, 0);
         vec3<Scalar> origin(m_pdata->getOrigin());
         const BoxDim& box = this->m_pdata->getGlobalBox();
-        vec3<Scalar> r0(m_latticePositions.getReference(h_tags.data[index]));
+        vec3<Scalar> r0(m_lattice_positions.getReference(h_tags.data[index]));
         r0 *= scale;
         Scalar3 t = vec_to_scalar3(position - origin);
         box.wrap(t, dummy);
         vec3<Scalar> shifted_pos(t);
         vec3<Scalar> dr = vec3<Scalar>(box.minImage(vec_to_scalar3(r0 - position + origin)));
-        return m_k * dot(dr, dr);
+        return m_k_translational * dot(dr, dr);
         }
 
     Scalar calcE_rot(const unsigned int& index, const quat<Scalar>& orientation)
@@ -320,7 +320,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         ArrayHandle<unsigned int> h_tags(m_pdata->getTags(),
                                          access_location::host,
                                          access_mode::read);
-        quat<Scalar> q0(m_latticeOrientations.getReference(h_tags.data[index]));
+        quat<Scalar> q0(m_lattice_orientations.getReference(h_tags.data[index]));
         Scalar dqmin = 0.0;
         for (size_t i = 0; i < m_symmetry.size(); i++)
             {
@@ -328,7 +328,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             quat<Scalar> dq = q0 - equiv_orientation;
             dqmin = (i == 0) ? norm2(dq) : fmin(dqmin, norm2(dq));
             }
-        return m_q * dqmin;
+        return m_k_rotational * dqmin;
         }
     Scalar calcE_rot(const unsigned int& index, const Shape& shape)
         {
@@ -343,11 +343,11 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
                  const Scalar& scale = 1.0)
         {
         Scalar energy = 0.0;
-        if (m_latticePositions.isValid())
+        if (m_lattice_positions.isValid())
             {
             energy += calcE_trans(index, position, scale);
             }
-        if (m_latticeOrientations.isValid())
+        if (m_lattice_orientations.isValid())
             {
             energy += calcE_rot(index, orientation);
             }
