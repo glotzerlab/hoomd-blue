@@ -55,14 +55,25 @@ def _assert_error_if_nonpositive(fire):
 def test_constructor_validation():
     """Make sure constructor validates arguments."""
     with pytest.raises(ValueError):
-        md.minimize.FIRE(dt=0.01, min_steps_conv=-5)
+        md.minimize.FIRE(dt=0.01,
+                         force_tol=1e-1,
+                         angmom_tol=1e-1,
+                         energy_tol=1e-5,
+                         min_steps_conv=-5)
     with pytest.raises(ValueError):
-        md.minimize.FIRE(dt=0.01, min_steps_adapt=0)
+        md.minimize.FIRE(dt=0.01,
+                         force_tol=1e-1,
+                         angmom_tol=1e-1,
+                         energy_tol=1e-5,
+                         min_steps_adapt=0)
 
 
 def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
     """Assert we can get/set params when not attached and when attached."""
-    fire = md.minimize.FIRE(dt=0.01)
+    fire = md.minimize.FIRE(dt=0.01,
+                            force_tol=1e-1,
+                            angmom_tol=1e-1,
+                            energy_tol=1e-5)
     default_params = {
         'dt': 0.01,
         'integrate_rotational_dof': False,
@@ -106,6 +117,9 @@ def test_run_minimization(lattice_snapshot_factory, simulation_factory):
     nve = md.methods.NVE(hoomd.filter.All())
 
     fire = md.minimize.FIRE(dt=0.0025,
+                            force_tol=1e-1,
+                            angmom_tol=1e-1,
+                            energy_tol=1e-5,
                             methods=[nve],
                             forces=[lj],
                             min_steps_conv=3)
@@ -132,14 +146,21 @@ def test_pickling(lattice_snapshot_factory, simulation_factory):
 
     nve = md.methods.NVE(hoomd.filter.All())
 
-    fire = md.minimize.FIRE(dt=0.0025, methods=[nve])
+    fire = md.minimize.FIRE(dt=0.0025,
+                            force_tol=1e-1,
+                            angmom_tol=1e-1,
+                            energy_tol=1e-5,
+                            methods=[nve])
 
     operation_pickling_check(fire, sim)
 
 
 def _try_add_to_fire(sim, method, should_error=False):
     """Try adding method to FIRE's method list."""
-    fire = md.minimize.FIRE(dt=0.0025)
+    fire = md.minimize.FIRE(dt=0.0025,
+                            force_tol=1e-1,
+                            angmom_tol=1e-1,
+                            energy_tol=1e-5)
     sim.operations.integrator = fire
     if should_error:
         with pytest.raises(ValueError):
