@@ -9,6 +9,7 @@ from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
 from hoomd.operation import Compute
 from hoomd.operation import _HOOMDBaseObject
+from hoomd.data.typeconverter import NDArrayValidator
 import hoomd
 
 
@@ -79,6 +80,11 @@ class LatticeField(_HOOMDBaseObject):
 
     """
 
+    def __init__(self, reference_positions, reference_orientations,
+                 k_translational, k_orientational, sym_ors):
+        pass
+        self.compute_name = "lattice_field"
+
     def __init__(self,
                  position=[],
                  orientation=[],
@@ -86,9 +92,31 @@ class LatticeField(_HOOMDBaseObject):
                  q=0.0,
                  symmetry=[],
                  composite=False):
-        import numpy
-        _external.__init__(self)
+        param_dict = ParameterDict(
+                reference_positions=NDArrayValidator(
+                    dtype=np.float32, shape=(None, 3)),
+                reference_orientations=NDArrayValidator(
+                    dtype=np.float32, shape=(None, 4)),
+                k_translational=float,
+                k_rotational=float,
+                symmetries=NDArrayValidator(
+                    dtype=np.float32, shape=(None, 4)),
+        )
+        self._param_dict.update(param_dict)
+
+    def _attach(self):
         cls = None
+
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+
+        if not integrator._attached:
+            raise RuntimeError("Integrator is not attached yet.")
+
+        device = self._simulation.device
+        cpp_sys_def = self._simulation.state._cpp_sys_def
+
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ExternalFieldLatticeSphere
@@ -126,17 +154,25 @@ class LatticeField(_HOOMDBaseObject):
             raise RuntimeError(
                 "Error initializing compute.position_lattice_field")
 
-        self.compute_name = "lattice_field"
-        enlist = hoomd.hpmc.data._param.ensure_list
+        self._cpp_obj = cls(
+                cpp_sys_def,
+                self.reference_positions,
+                self.k_translational,
+                self.reference_orientations,
+                self.k_rotational,
+                self.symmetries,
+        )
+
         self.cpp_compute = cls(hoomd.context.current.system_definition,
                                enlist(position), float(k), enlist(orientation),
                                float(q), enlist(symmetry))
         hoomd.context.current.system.addCompute(self.cpp_compute,
                                                 self.compute_name)
+
+        # is this needed?
         if not composite:
             mc.set_external(self)
 
-    def _attach(self):
         super()._attach()
 
     @log(requires_run=True)
