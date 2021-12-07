@@ -197,48 +197,63 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         return reference_array;
         }
 
+    //! Setter for translational spring constant
     void setKTranslational(Scalar k_translational)
         {
         m_k_translational = k_translational;
         }
 
+    //! Getter for translational spring constant
     Scalar getKTranslational()
         {
         return m_k_translational;
         }
 
+    //! Setter for rotational spring constant
     void setKRotational(Scalar k_rotational)
         {
         m_k_rotational = k_rotational;
         }
 
+    //! Getter for rotational spring constant
     Scalar getKRotational()
         {
         return m_k_rotational;
         }
 
-    //! Calculate the change in energy...between what and what!?
-    double calculateDeltaE(const Scalar4* const position_old_arg,
+    //! Getter for energy
+    Scalar getEnergy(uint64_t timestep)
+        {
+        compute(timestep);
+        return m_energy;
+        }
+
+    /** Calculate the change in energy for trial moves
+     *
+     * This function currently ignores any information associated with box changes.
+     * However, this function only gets called in the box updater, so it should not ignore box changes.
+     * But why would you have a lattice field and a box updater active in the same simulation?
+     */
+    double calculateDeltaE(const Scalar4* const position_old_arg,  // why is this a Scalar4?
                            const Scalar4* const orientation_old_arg,
                            const BoxDim* const box_old_arg)
         {
-        // TODO: rethink the formatting a bit.
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::readwrite);
         ArrayHandle<Scalar4> h_orient(m_pdata->getOrientationArray(),
                                       access_location::host,
                                       access_mode::readwrite);
-        const Scalar4* const position_new = h_pos.data;
-        const Scalar4* const orientation_new = h_orient.data;
-        const BoxDim* const box_new = &m_pdata->getGlobalBox();
+        const Scalar4* const position_new = h_pos.data;  // current positions from system definition
+        const Scalar4* const orientation_new = h_orient.data;  // current orientations from system definition
+        //const BoxDim* const box_new = &m_pdata->getGlobalBox();
         const Scalar4 *position_old = position_old_arg, *orientation_old = orientation_old_arg;
-        const BoxDim* box_old = box_old_arg;
+        //const BoxDim* box_old = box_old_arg;
         if (!position_old)
             position_old = position_new;
         if (!orientation_old)
             orientation_old = orientation_new;
-        if (!box_old)
+        /*if (!box_old)
             box_old = box_new;
 
         Scalar curVolume = m_pdata->getBox().getVolume();
@@ -246,18 +261,19 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         Scalar oldVolume = box_old->getVolume();
         Scalar scaleOld = pow((oldVolume / curVolume), Scalar(1.0 / 3.0));
         Scalar scaleNew = pow((newVolume / curVolume), Scalar(1.0 / 3.0));
+        */
 
         double dE = 0.0;
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
             Scalar old_E = calcE(i,
                                  vec3<Scalar>(*(position_old + i)),
-                                 quat<Scalar>(*(orientation_old + i)),
-                                 scaleOld);
+                                 quat<Scalar>(*(orientation_old + i)));
+                                 //scaleOld);
             Scalar new_E = calcE(i,
                                  vec3<Scalar>(*(position_new + i)),
-                                 quat<Scalar>(*(orientation_new + i)),
-                                 scaleNew);
+                                 quat<Scalar>(*(orientation_new + i)));
+                                 //scaleNew);
             dE += new_E - old_E;
             }
 
@@ -276,6 +292,10 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         return dE;
         }
 
+    /** This function gets called during the update step in the MC integrator
+     *
+     * What purpose does this function serve?
+     */
     void compute(uint64_t timestep)
         {
         if (!this->shouldCompute(timestep))
@@ -309,8 +329,9 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
 #endif
 
-        }
+        }  // end void compute(uin64_t)
 
+    //! Calculate the change in energy from moving a single particle with tag = index
     double energydiff(const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
@@ -323,14 +344,8 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         }
 
 
-    Scalar getEnergy(uint64_t timestep)
-        {
-        compute(timestep);
-        return m_energy;
-        }
-
     protected:
-    // These could be a little redundant. think about this more later.
+    //! Calculate the energy associated with the deviation of a single particle from its reference position
     Scalar calcE_trans(const unsigned int& index, const vec3<Scalar>& position, const Scalar& scale = 1.0)
         {
         ArrayHandle<unsigned int> h_tags(m_pdata->getTags(),
@@ -348,6 +363,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         return m_k_translational * dot(dr, dr);
         }
 
+    //! Calculate the energy associated with the deviation of a single particle from its reference orientation
     Scalar calcE_rot(const unsigned int& index, const quat<Scalar>& orientation)
         {
         assert(m_symmetry.size());
@@ -373,6 +389,11 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         return calcE_rot(index, shape.orientation);
         }
 
+    /** Calculate the total energy associated with the deviation of a single particle from its ref. pos. and orientation
+     *
+     * This function _should_ only be used for logging purposes and not for calculating move acceptance criteria, since
+     * it's the energy difference that matters for the latter.
+     */
     Scalar calcE(const unsigned int& index,
                  const vec3<Scalar>& position,
                  const quat<Scalar>& orientation,
@@ -389,6 +410,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         //    }
         return energy;
         }
+
     Scalar calcE(const unsigned int& index,
                  const vec3<Scalar>& position,
                  const Shape& shape,
