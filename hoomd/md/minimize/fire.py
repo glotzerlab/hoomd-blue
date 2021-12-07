@@ -132,9 +132,8 @@ class FIRE(_DynamicIntegrator):
            sim.run(100)
 
     Note:
-        The `minimire.FIRE` class should be used as the integrator for
-        simulations, just as the standard `md.Integrator` class is (see
-        examples).
+        `FIRE` should be used as the integrator for simulations, just as the
+        standard `md.Integrator` class is (see examples).
 
     Note:
         The algorithm requires an integration method to update the particle

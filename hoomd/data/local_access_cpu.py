@@ -74,7 +74,7 @@ class LocalSnapshot(_LocalSnapshot):
     suffixing with ``_with_ghost`` will grab all data on the rank (regular and
     ghost particles) in a read only array.
 
-    All array-like properties return a `hoomd.array.HOOMDArray` object which
+    All array-like properties return a `hoomd.data.array.HOOMDArray` object which
     prevents invalid memory accesses.
 
     Note:
