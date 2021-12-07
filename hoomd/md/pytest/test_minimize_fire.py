@@ -101,7 +101,7 @@ def test_run_minimization(lattice_snapshot_factory, simulation_factory):
     snap = lattice_snapshot_factory(a=1.5, n=8)
     sim = simulation_factory(snap)
 
-    lj = md.pair.LJ(default_r_cut=2.5, nlist=md.nlist.Cell())
+    lj = md.pair.LJ(default_r_cut=2.5, nlist=md.nlist.Cell(buffer=0.4))
     lj.params[('A', 'A')] = dict(sigma=1.0, epsilon=1.0)
     nve = md.methods.NVE(hoomd.filter.All())
 
