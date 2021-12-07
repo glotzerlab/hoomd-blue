@@ -98,7 +98,9 @@ def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
 
 
 def test_ron(simulation_factory, two_particle_snapshot_factory):
-    lj = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), mode='xplor', default_r_cut=2.5)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4),
+                    mode='xplor',
+                    default_r_cut=2.5)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     with pytest.raises(TypeConversionError):
         lj.r_on[('A', 'A')] = 'str'

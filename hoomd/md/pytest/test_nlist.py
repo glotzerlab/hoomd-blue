@@ -71,7 +71,7 @@ def test_cell_specific_params():
 
 def test_stencil_specific_params():
     cell_width = np.random.uniform(12.1)
-    nlist = Stencil(cell_width=cell_width,buffer=0.4)
+    nlist = Stencil(cell_width=cell_width, buffer=0.4)
     _assert_nlist_params(nlist, dict(deterministic=False,
                                      cell_width=cell_width))
     nlist.deterministic = True

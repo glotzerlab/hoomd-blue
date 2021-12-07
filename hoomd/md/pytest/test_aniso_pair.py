@@ -96,7 +96,8 @@ def test_mode_invalid(mode):
         gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(buffer=0.4),
                                            default_r_cut=2.5,
                                            mode=mode)
-    gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(buffer=0.4), default_r_cut=2.5)
+    gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(buffer=0.4),
+                                       default_r_cut=2.5)
     gay_berne.params[('A', 'A')] = {'epsilon': 1, 'lpar': 0.5, 'lperp': 1.0}
     # Test errors on setting
     with pytest.raises(TypeConversionError):
@@ -299,7 +300,8 @@ def _aniso_forces_and_energies():
 @pytest.fixture(scope="function", params=_valid_params())
 def pair_potential(request):
     spec = request.param
-    pair_potential = spec.cls(nlist=md.nlist.Cell(buffer=0.4), default_r_cut=2.5)
+    pair_potential = spec.cls(nlist=md.nlist.Cell(buffer=0.4),
+                              default_r_cut=2.5)
     for key, value in spec.type_parameters.items():
         setattr(pair_potential, key, value)
     return pair_potential
@@ -347,9 +349,8 @@ def test_aniso_force_computes(make_two_particle_simulation,
         \theta_1 = (1, 0, 0, 0) \ \theta_2 = (0.70738827, 0, 0, 0.70682518) \\
 
     """
-    pot = aniso_forces_and_energies.pair_potential(nlist=md.nlist.Cell(buffer=0.4),
-                                                   default_r_cut=2.5,
-                                                   mode='none')
+    pot = aniso_forces_and_energies.pair_potential(
+        nlist=md.nlist.Cell(buffer=0.4), default_r_cut=2.5, mode='none')
     for param, value in aniso_forces_and_energies.pair_potential_params.items():
         getattr(pot, param)[('A', 'A')] = value
     sim = make_two_particle_simulation(types=['A'], d=0.75, force=pot)
