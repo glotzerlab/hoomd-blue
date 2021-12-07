@@ -374,10 +374,10 @@ class HPMCIntegrator(BaseIntegrator):
         self._pair_potential = new_potential
 
     @property
-    def external_potential(self):
+    def external_potentials(self):
         """The user-defined potential energy field associated with the\
                 integrator."""
-        return self._external_potential
+        return self._external_potentials
 
     @external_potential.setter
     def external_potential(self, new_external_potential):

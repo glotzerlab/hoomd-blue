@@ -5,12 +5,15 @@
 """
 
 from hoomd import _hoomd
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import NDArrayValidator
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
+from hoomd.logging import log
 from hoomd.operation import Compute
 from hoomd.operation import _HOOMDBaseObject
-from hoomd.data.typeconverter import NDArrayValidator
 import hoomd
+import numpy as np
 
 
 ## \internal
@@ -86,12 +89,11 @@ class LatticeField(_HOOMDBaseObject):
         self.compute_name = "lattice_field"
 
     def __init__(self,
-                 position=[],
-                 orientation=[],
-                 k=0.0,
-                 q=0.0,
-                 symmetry=[],
-                 composite=False):
+                 position,
+                 orientation,
+                 k_translational,
+                 k_rotational,
+                 symmetry):
         param_dict = ParameterDict(
                 reference_positions=NDArrayValidator(
                     dtype=np.float32, shape=(None, 3)),
@@ -102,6 +104,11 @@ class LatticeField(_HOOMDBaseObject):
                 symmetries=NDArrayValidator(
                     dtype=np.float32, shape=(None, 4)),
         )
+        param_dict['k_translational'] = k_translational
+        param_dict['k_rotational'] = k_rotational
+        param_dict['reference_positions'] = position
+        param_dict['reference_orientations'] = orientation
+        param_dict['symmetries'] = symmetry
         self._param_dict.update(param_dict)
 
     def _attach(self):
