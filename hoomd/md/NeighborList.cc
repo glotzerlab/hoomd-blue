@@ -1103,6 +1103,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
             {
             std::ostringstream s;
             s << "Too many bonds to process exclusions for particle with tag: " << tagA << ".";
+            s << "Compile time maximum set to: " << MAXNBONDS - 1 << endl;
             throw runtime_error(s.str());
             }
 
