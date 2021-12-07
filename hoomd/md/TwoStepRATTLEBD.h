@@ -328,9 +328,9 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
                 vec3<Scalar> I(h_inertia.data[j]);
 
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 Scalar3 sigma_r
                     = make_scalar3(fast::sqrt(Scalar(2.0) * gamma_r.x * currentTemp / m_deltaT),
