@@ -30,6 +30,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
     using ExternalFieldMono<Shape>::m_sysdef;
 
     public:
+    //! Constructor
     ExternalFieldLattice(std::shared_ptr<SystemDefinition> sysdef,
                          pybind11::list r0,
                          Scalar k,
@@ -57,6 +58,109 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
         }
 
+    //! Set reference positions from a (N_particles, 3) numpy array
+    void setReferencePositions(const pybind11::array_t<double> ref_pos)
+        {
+        if (ref_pos.ndim() != 2)
+            {
+            throw std::runtime_error("The array must be of shape (N_particles, 3).");
+            }
+
+        const size_t N_particles = ref_pos.shape(0);
+        const size_t dim = ref_pos.shape(1);
+        if (N_particles != this->m_pdata->getNGlobal() || dim != 3)
+            {
+            throw std::runtime_error("The array must be of shape (N_particles, 3).");
+            }
+        const double* rawdata = static_cast<const double*>(ref_pos.data());
+        m_lattice_positions.resize(m_pdata->getNGlobal());
+        for (size_t i = 0; i < N_particles; i++)
+            {
+            const size_t array_index = i * 3;
+            this->m_lattice_positions[i] = vec3<Scalar>(rawdata[array_index],
+                                                    rawdata[array_index + 1],
+                                                    rawdata[array_index + 2]);
+            }
+
+#ifdef ENABLE_MPI
+        if (this->m_pdata->getDomainDecomposition())
+            {
+            bcast(m_lattice_positions, 0, m_exec_conf->getMPICommunicator());
+            }
+#endif
+        }  // end setReferencePositions
+
+
+    //! Set reference orientations from a (N_particles, 4) numpy array
+    void setReferenceOrientations(const pybind11::array_t<double> ref_ors)
+        {
+        if (ref_ors.ndim() != 2)
+            {
+            throw std::runtime_error("The array must be of shape (N_particles, 4).");
+            }
+
+        const size_t N_particles = ref_ors.shape(0);
+        const size_t dim = ref_ors.shape(1);
+        if (N_particles != this->m_pdata->getNGlobal() || dim != 4)
+            {
+            throw std::runtime_error("The array must be of shape (N_particles, 4).");
+            }
+        const double* rawdata = static_cast<const double*>(ref_ors.data());
+        m_lattice_orientations.resize(m_pdata->getNGlobal());
+        for (size_t i = 0; i < N_particles; i++)
+            {
+            const size_t array_index = i * 4;
+            this->m_lattice_orientations[i] = quat<Scalar>(rawdata[array_index],
+                                                    rawdata[array_index + 1],
+                                                    rawdata[array_index + 2],
+                                                    rawdata[array_index + 3]);
+            }
+
+#ifdef ENABLE_MPI
+        if (this->m_pdata->getDomainDecomposition())
+            {
+            bcast(m_lattice_orientations, 0, m_exec_conf->getMPICommunicator());
+            }
+#endif
+        }  // end setReferenceOrientations
+
+    //! Get lattice positions as a (N_particles, 3) numpy array
+    pybind11::array_t<Scalar> getReferencePositions() const
+        {
+        std::vector<size_t> dims(2);
+        dims[0] = this->m_lattice_positions.size();
+        dims[1] = 3;
+        // the cast from vec3<Scalar>* to Scalar* is safe since vec3 is tightly packed without any
+        // padding. This also makes a copy so, modifications of this array do not effect the
+        // original reference positions.
+        const auto reference_array = pybind11::array_t<Scalar>(
+            dims,
+            reinterpret_cast<const Scalar*>(this->m_lattice_positions.data()));
+        // This is necessary to expose the array in a read only fashion through C++
+        reinterpret_cast<pybind11::detail::PyArray_Proxy*>(reference_array.ptr())->flags
+            &= ~pybind11::detail::npy_api::NPY_ARRAY_WRITEABLE_;
+        return reference_array;
+        }
+
+    //! Get lattice orientations as a (N_particles, 3) numpy array
+    pybind11::array_t<Scalar> getReferenceOrientations() const
+        {
+        std::vector<size_t> dims(2);
+        dims[0] = this->m_lattice_positions.size();
+        dims[1] = 4;
+        // the cast from vec3<Scalar>* to Scalar* is safe since vec3 is tightly packed without any
+        // padding. This also makes a copy so, modifications of this array do not effect the
+        // original reference positions.
+        const auto reference_array = pybind11::array_t<Scalar>(
+            dims,
+            reinterpret_cast<const Scalar*>(this->m_lattice_orientations.data()));
+        // This is necessary to expose the array in a read only fashion through C++
+        reinterpret_cast<pybind11::detail::PyArray_Proxy*>(reference_array.ptr())->flags
+            &= ~pybind11::detail::npy_api::NPY_ARRAY_WRITEABLE_;
+        return reference_array;
+        }
+
+    //! Calculate the change in energy...between what and what!?
     double calculateDeltaE(const Scalar4* const position_old_arg,
                            const Scalar4* const orientation_old_arg,
                            const BoxDim* const box_old_arg)
