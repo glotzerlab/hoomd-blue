@@ -493,7 +493,7 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::getGroupByTag(unsign
             std::ostringstream s;
             s << "Trying to get type or constraint value of " << name << " " << tag
               << " which does not exist!";
-            throw runtime_error(std::string(s.str()));
+            throw runtime_error(s.str());
             }
 
         typeval = m_group_typeval[group_idx];
