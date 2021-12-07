@@ -162,10 +162,10 @@ class State:
     dihedrals, and impropers contain 2, 3, 4, and 4 particles per group
     respectively. Bonds specify the toplogy used when computing energies and
     forces in `md.bond`, angles define the same for `md.angle`, dihedrals for
-    `md.dihedral` and impropers for `md.improper`. These collectively
-    implement bonding potentials used in molecular dynamics force fields. Like
-    bonds, special pairs define connections between two particles, but special
-    pairs are intended to adjust the 1-4 pairwise interactions in some molecular
+    `md.dihedral` and impropers for `md.improper`. These collectively implement
+    bonding potentials used in molecular dynamics force fields. Like bonds,
+    special pairs define connections between two particles, but special pairs
+    are intended to adjust the 1-4 pairwise interactions in some molecular
     dynamics force fields: see `md.special_pair`. Each bonded group is defined
     by a type id, the group members, and a tag.
 
