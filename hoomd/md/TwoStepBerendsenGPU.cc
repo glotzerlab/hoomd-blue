@@ -33,8 +33,7 @@ TwoStepBerendsenGPU::TwoStepBerendsenGPU(std::shared_ptr<SystemDefinition> sysde
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a BerendsenGPU when CUDA is disabled" << endl;
-        throw std::runtime_error("Error initializing BerendsenGPU");
+        throw std::runtime_error("Cannot create BerendsenGPU on a CPU device.");
         }
 
     m_block_size = 256;

@@ -306,5 +306,5 @@ void mpcd::gpu::add_particles(unsigned int old_nparticles,
                                                                d_in,
                                                                mask);
     }
-    }      // end namespace hoomd
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

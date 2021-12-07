@@ -40,7 +40,7 @@ hipError_t gpu_nlist_needs_update_check_new(unsigned int* d_result,
 //! Kernel driver for gpu_nlist_filter_kernel()
 hipError_t gpu_nlist_filter(unsigned int* d_n_neigh,
                             unsigned int* d_nlist,
-                            const unsigned int* d_head_list,
+                            const size_t* d_head_list,
                             const unsigned int* d_n_ex,
                             const unsigned int* d_ex_list,
                             const Index2D& exli,
@@ -48,8 +48,8 @@ hipError_t gpu_nlist_filter(unsigned int* d_n_neigh,
                             const unsigned int block_size);
 
 //! Kernel driver to build head list on gpu
-hipError_t gpu_nlist_build_head_list(unsigned int* d_head_list,
-                                     unsigned int* d_req_size_nlist,
+hipError_t gpu_nlist_build_head_list(size_t* d_head_list,
+                                     size_t* d_req_size_nlist,
                                      const unsigned int* d_Nmax,
                                      const Scalar4* d_pos,
                                      const unsigned int N,

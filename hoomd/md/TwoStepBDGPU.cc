@@ -29,8 +29,7 @@ TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepBDGPU while CUDA is disabled" << endl;
-        throw std::runtime_error("Error initializing TwoStepBDGPU");
+        throw std::runtime_error("Cannot create TwoStepBDGPU on a CPU device.");
         }
 
     m_block_size = 256;

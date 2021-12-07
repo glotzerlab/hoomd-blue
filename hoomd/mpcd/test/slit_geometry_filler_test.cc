@@ -49,7 +49,7 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
     filler->fill(0);
     // volume to fill is from 5->7 (2) on + side, with cross section of 20^2, mirrored on bottom
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * (2 * 20 * 20) * 2);
-    // count that particles have been placed on the right sides
+        // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
@@ -89,7 +89,7 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
      */
     filler->fill(1);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * 2 * (2 * 20 * 20) * 2);
-    // count that particles have been placed on the right sides
+        // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
@@ -121,7 +121,7 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
     filler->fill(2);
     // volume to fill is now from 5->5.5 on + side, same other parameters
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * (20 * 20 / 2) * 2);
-    // count that particles have been placed on the right sides
+        // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         unsigned int N_lo(0), N_hi(0);

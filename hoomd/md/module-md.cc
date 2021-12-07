@@ -128,10 +128,7 @@ wall_type make_wall_field_params(pybind11::object walls,
 
     if (w.numSpheres > MAX_N_SWALLS || w.numCylinders > MAX_N_CWALLS || w.numPlanes > MAX_N_PWALLS)
         {
-        m_exec_conf->msg->error() << "A number of walls greater than the maximum number allowed "
-                                     "was specified in a wall force."
-                                  << std::endl;
-        throw std::runtime_error("Error loading wall group.");
+        throw std::runtime_error("Too many walls.");
         }
     else
         {

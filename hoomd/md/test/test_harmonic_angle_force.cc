@@ -83,7 +83,7 @@ void angle_force_basic_tests(angleforce_creator af_creator,
         Angle(0, 0, 1, 2)); // add type 0 between angle formed by atom 0-1-2
     fc_3->compute(1);
 
-    // this time there should be a force
+        // this time there should be a force
         {
         GlobalArray<Scalar4>& force_array_2 = fc_3->getForceArray();
         GlobalArray<Scalar>& virial_array_2 = fc_3->getVirialArray();
@@ -103,11 +103,11 @@ void angle_force_basic_tests(angleforce_creator af_creator,
         // MY_CHECK_CLOSE(h_force_2.data[0].w, 0.298813, tol);
         // MY_CHECK_CLOSE(h_virial_2.data[0], 0.0000001, tol);
         }
-    /*
-        printf("\n");
-    */
+        /*
+            printf("\n");
+        */
 
-    // rearrange the two particles in memory and see if they are properly updated
+        // rearrange the two particles in memory and see if they are properly updated
         {
         ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(),
                                    access_location::host,
@@ -253,7 +253,7 @@ void angle_force_basic_tests(angleforce_creator af_creator,
         new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 1, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
-    // make a square of particles
+        // make a square of particles
         {
         ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(),
                                    access_location::host,

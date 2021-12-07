@@ -119,7 +119,7 @@ void mpcd::Sorter::computeOrder(uint64_t timestep)
  */
 void mpcd::Sorter::applyOrder() const
     {
-    // apply the sorted order
+        // apply the sorted order
         {
         ArrayHandle<unsigned int> h_order(m_order, access_location::host, access_mode::read);
 

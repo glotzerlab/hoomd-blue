@@ -169,7 +169,7 @@ inline bool UpdaterBoxMC::remove_overshear()
         newBox.setTiltFactors(xy, xz, yz);
         m_pdata->setGlobalBox(newBox);
 
-        // Use lexical scope to make sure ArrayHandles get cleaned up
+            // Use lexical scope to make sure ArrayHandles get cleaned up
             {
             // Get particle positions and images
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
@@ -281,7 +281,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
         }
     else
         {
-        // Restore original box and particle positions
+            // Restore original box and particle positions
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                        access_location::host,

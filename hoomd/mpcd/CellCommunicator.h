@@ -222,7 +222,7 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
         packBuffer(props, op);
         }
 
-    // make the MPI calls
+        // make the MPI calls
         {
         // determine whether to use CPU or GPU CUDA buffers
         access_location::Enum mpi_loc;
