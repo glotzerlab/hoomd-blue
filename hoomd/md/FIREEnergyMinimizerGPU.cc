@@ -26,8 +26,7 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a FIREEnergyMinimizer with CUDA disabled" << endl;
-        throw std::runtime_error("Error initializing FIREEnergyMinimizer");
+        throw std::runtime_error("FIREEnergyMinimizerGPU requires a GPU device.");
         }
 
     // allocate the sum arrays

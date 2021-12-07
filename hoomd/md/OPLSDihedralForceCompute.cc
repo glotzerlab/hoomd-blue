@@ -34,8 +34,7 @@ OPLSDihedralForceCompute::OPLSDihedralForceCompute(std::shared_ptr<SystemDefinit
     // check for some silly errors a user could make
     if (m_dihedral_data->getNTypes() == 0)
         {
-        m_exec_conf->msg->error() << "dihedral.opls: No dihedral types specified" << endl;
-        throw runtime_error("Error initializing OPLSDihedralForceCompute");
+        throw runtime_error("No dihedral types in the system.");
         }
 
     // allocate the parameters
@@ -66,8 +65,7 @@ void OPLSDihedralForceCompute::setParams(unsigned int type,
     // make sure the type is valid
     if (type >= m_dihedral_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "dihedral.opls: Invalid dihedral type specified" << endl;
-        throw runtime_error("Error setting parameters in OPLSDihedralForceCompute");
+        throw runtime_error("Invalid dihedral type.");
         }
 
     // set parameters in m_params
@@ -88,8 +86,7 @@ pybind11::dict OPLSDihedralForceCompute::getParams(std::string type)
     // make sure the type is valid
     if (typ >= m_dihedral_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "dihedral.opls: Invalid dihedral type specified" << endl;
-        throw runtime_error("Error setting parameters in OPLSDihedralForceCompute");
+        throw runtime_error("Invalid dihedral type.");
         }
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
     auto val = h_params.data[typ];

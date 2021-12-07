@@ -98,8 +98,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
             m_enable_z = enable;
         else
             {
-            m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
-            throw std::runtime_error("comm: requested direction does not exist");
+            throw std::runtime_error("LoadBalancer: requested direction does not exist");
             }
         }
 

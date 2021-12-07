@@ -40,8 +40,7 @@ TableDihedralForceCompute::TableDihedralForceCompute(std::shared_ptr<SystemDefin
 
     if (table_width == 0)
         {
-        m_exec_conf->msg->error() << "dihedral.table: Table width of 0 is invalid" << endl;
-        throw runtime_error("Error initializing TableDihedralForceCompute");
+        throw runtime_error("Dihedral table must have width greater than 0.");
         }
 
     // allocate storage for the tables and parameters
@@ -72,8 +71,7 @@ void TableDihedralForceCompute::setTable(unsigned int type,
     // make sure the type is valid
     if (type >= m_dihedral_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "dihedral.table: Invalid dihedral type specified" << endl;
-        throw runtime_error("Error setting parameters in PotentialDihedral");
+        throw runtime_error("Invalid dihedral type.");
         }
 
     // access the arrays
