@@ -89,9 +89,8 @@ void PPPMForceCompute::setParams(unsigned int nx,
 
         if (!is_pow2(m_mesh_points.x) || !is_pow2(m_mesh_points.y) || !is_pow2(m_mesh_points.z))
             {
-            std::ostringstream s;
-            s << "The number of mesh points along the every direction must be a power of two!";
-            throw std::runtime_error(s.str());
+            throw std::runtime_error(
+                "The number of mesh points along the every direction must be a power of two!");
             }
 
         if (nx % didx.getW())
