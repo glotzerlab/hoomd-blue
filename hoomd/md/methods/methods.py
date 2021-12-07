@@ -424,10 +424,10 @@ class NPT(Method):
 
         `thermalize_thermostat_and_barostat_dof` sets a random value for the
         momentum :math:`\xi` and the barostat :math:`\nu_{\mathrm{ij}}`. When
-        `Integrator.integrate_rotational_dof` is `True`, it also sets a random value for the
-        rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`. Call
-        `thermalize_thermostat_and_barostat_dof` to set a new random state for
-        the thermostat and barostat.
+        `Integrator.integrate_rotational_dof` is `True`, it also sets a random
+        value for the rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`.
+        Call `thermalize_thermostat_and_barostat_dof` to set a new random state
+        for the thermostat and barostat.
 
         .. important::
             You must call `Simulation.run` before

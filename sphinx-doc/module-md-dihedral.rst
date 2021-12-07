@@ -20,4 +20,3 @@ md.dihedral
     :members: Dihedral,
               Harmonic,
               OPLS
-
