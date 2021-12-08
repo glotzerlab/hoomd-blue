@@ -22,6 +22,12 @@
 
 #include "NoFriction.h"
 
+namespace hoomd
+    {
+namespace dem
+    {
+namespace kernel
+    {
 /*! \file DEM2DForceGPU.cu
   \brief Defines GPU kernel code for calculating conservative DEM pair forces. Used by
   DEM2DForceComputeGPU.
@@ -73,7 +79,7 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4* d_pos,
                                                 const BoxDim box,
                                                 const unsigned int* d_n_neigh,
                                                 const unsigned int* d_nlist,
-                                                const unsigned int* d_head_list,
+                                                const size_t* d_head_list,
                                                 Evaluator evaluator,
                                                 const Real r_cutsq,
                                                 const unsigned int n_shapes,
@@ -161,7 +167,7 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4* d_pos,
     if (partIdx < N)
         {
         const size_t n_neigh(d_n_neigh[partIdx]);
-        const unsigned int myHead(d_head_list[partIdx]);
+        const size_t myHead(d_head_list[partIdx]);
 
         // fetch position and orientation of this particle
         const Scalar4 postype(__ldg(d_pos + partIdx));
@@ -417,7 +423,7 @@ hipError_t gpu_compute_dem2d_forces(Scalar4* d_force,
                                     const BoxDim& box,
                                     const unsigned int* d_n_neigh,
                                     const unsigned int* d_nlist,
-                                    const unsigned int* d_head_list,
+                                    const size_t* d_head_list,
                                     Evaluator potential,
                                     const Real r_cutsq,
                                     const unsigned int n_shapes,
@@ -470,4 +476,6 @@ hipError_t gpu_compute_dem2d_forces(Scalar4* d_force,
     return hipSuccess;
     }
 
-// vim:syntax=cpp
+    } // end namespace kernel
+    } // end namespace dem
+    } // end namespace hoomd

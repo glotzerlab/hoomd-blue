@@ -16,6 +16,12 @@ using namespace hoomd;
     \brief Defines GPU kernel code for Langevin integration on the GPU. Used by TwoStepLangevinGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Takes the second half-step forward in the Langevin integration on a group of particles with
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
@@ -509,3 +515,7 @@ hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

@@ -15,9 +15,12 @@
 
 #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
 using namespace std;
 
+namespace hoomd
+    {
+namespace metal
+    {
 /*! \param sysdef System to compute forces on
  \param filename Name of EAM potential file to load
  \param type_of_file EAM/Alloy=0, EAM/FS=1
@@ -42,12 +45,12 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     // allocate the coefficients data on the GPU
     loadFile(filename, type_of_file);
-    GlobalArray<EAMTexInterData> eam_data(1, m_exec_conf);
+    GlobalArray<kernel::EAMTexInterData> eam_data(1, m_exec_conf);
     std::swap(eam_data, m_eam_data);
 
-    ArrayHandle<EAMTexInterData> h_eam_data(m_eam_data,
-                                            access_location::host,
-                                            access_mode::overwrite);
+    ArrayHandle<kernel::EAMTexInterData> h_eam_data(m_eam_data,
+                                                    access_location::host,
+                                                    access_mode::overwrite);
     h_eam_data.data->nr = nr;     //!< number of tabulated values of interpolated rho(r), r*phi(r)
     h_eam_data.data->nrho = nrho; //!< number of tabulated values of interpolated F(rho)
     h_eam_data.data->dr = dr;     //!< interval of r in interpolated table
@@ -71,7 +74,7 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->push(m_exec_conf, "EAM pair");
 
     // The GPU implementation CANNOT handle a half neighborlist, error out now
-    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+    bool third_law = m_nlist->getStorageMode() == md::NeighborList::half;
     if (third_law)
         {
         m_exec_conf->msg->error() << "EAMForceComputeGPU cannot handle a half neighborlist" << endl;
@@ -86,9 +89,9 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(),
                                       access_location::device,
                                       access_mode::read);
-    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(),
-                                          access_location::device,
-                                          access_mode::read);
+    ArrayHandle<size_t> d_head_list(this->m_nlist->getHeadList(),
+                                    access_location::device,
+                                    access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -104,7 +107,9 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> d_drho(m_drho, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_rphi(m_rphi, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_drphi(m_drphi, access_location::device, access_mode::read);
-    ArrayHandle<EAMTexInterData> d_eam_data(m_eam_data, access_location::device, access_mode::read);
+    ArrayHandle<kernel::EAMTexInterData> d_eam_data(m_eam_data,
+                                                    access_location::device,
+                                                    access_mode::read);
 
     // Derivative Embedding Function for each atom
     GPUArray<Scalar> t_dFdP(m_pdata->getN(), m_exec_conf);
@@ -113,25 +118,25 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
 
     // Compute energy and forces in GPU
     m_tuner->begin();
-    gpu_compute_eam_tex_inter_forces(d_force.data,
-                                     d_virial.data,
-                                     m_virial.getPitch(),
-                                     m_pdata->getN(),
-                                     d_pos.data,
-                                     box,
-                                     d_n_neigh.data,
-                                     d_nlist.data,
-                                     d_head_list.data,
-                                     this->m_nlist->getNListArray().getPitch(),
-                                     d_eam_data.data,
-                                     d_dFdP.data,
-                                     d_F.data,
-                                     d_rho.data,
-                                     d_rphi.data,
-                                     d_dF.data,
-                                     d_drho.data,
-                                     d_drphi.data,
-                                     m_tuner->getParam());
+    kernel::gpu_compute_eam_tex_inter_forces(d_force.data,
+                                             d_virial.data,
+                                             m_virial.getPitch(),
+                                             m_pdata->getN(),
+                                             d_pos.data,
+                                             box,
+                                             d_n_neigh.data,
+                                             d_nlist.data,
+                                             d_head_list.data,
+                                             this->m_nlist->getNListArray().getPitch(),
+                                             d_eam_data.data,
+                                             d_dFdP.data,
+                                             d_F.data,
+                                             d_rho.data,
+                                             d_rphi.data,
+                                             d_dF.data,
+                                             d_drho.data,
+                                             d_drphi.data,
+                                             m_tuner->getParam());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -141,10 +146,16 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_EAMForceComputeGPU(py::module& m)
+namespace detail
     {
-    py::class_<EAMForceComputeGPU, EAMForceCompute, std::shared_ptr<EAMForceComputeGPU>>(
+void export_EAMForceComputeGPU(pybind11::module& m)
+    {
+    pybind11::class_<EAMForceComputeGPU, EAMForceCompute, std::shared_ptr<EAMForceComputeGPU>>(
         m,
         "EAMForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, char*, int>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, char*, int>());
     }
+
+    } // end namespace detail
+    } // end namespace metal
+    } // end namespace hoomd

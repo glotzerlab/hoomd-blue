@@ -24,6 +24,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Bond potential force compute for harmonic forces
 typedef PotentialBond<EvaluatorBondHarmonic> PotentialBondHarmonic;
 //! Bond potential force compute for FENE forces
@@ -33,12 +37,16 @@ typedef PotentialBond<EvaluatorBondTether> PotentialBondTether;
 
 #ifdef ENABLE_HIP
 //! Bond potential force compute for harmonic forces on the GPU
-typedef PotentialBondGPU<EvaluatorBondHarmonic, gpu_compute_harmonic_forces>
+typedef PotentialBondGPU<EvaluatorBondHarmonic, kernel::gpu_compute_harmonic_forces>
     PotentialBondHarmonicGPU;
 //! Bond potential force compute for FENE forces on the GPU
-typedef PotentialBondGPU<EvaluatorBondFENE, gpu_compute_fene_forces> PotentialBondFENEGPU;
+typedef PotentialBondGPU<EvaluatorBondFENE, kernel::gpu_compute_fene_forces> PotentialBondFENEGPU;
 //! Bond potential force compute for Tethering forces on the GPU
-typedef PotentialBondGPU<EvaluatorBondTether, gpu_compute_tether_forces> PotentialBondTetherGPU;
+typedef PotentialBondGPU<EvaluatorBondTether, kernel::gpu_compute_tether_forces>
+    PotentialBondTetherGPU;
 #endif
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_POTENTIALS_H__

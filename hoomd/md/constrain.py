@@ -18,7 +18,7 @@ Warning:
     same particle.
 
 The degrees of freedom removed from the system by constraints are
-accounted for in `hoomd.md.ThermodynamicQuantities`.
+accounted for in `hoomd.md.compute.ThermodynamicQuantities`.
 """
 
 from hoomd.md import _md

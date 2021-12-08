@@ -29,6 +29,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Fourier pair potential
 /*! <b>General Overview</b>
 
@@ -214,5 +218,8 @@ class EvaluatorPairFourier
     Scalar rcutsq;            //!< Stored rcutsq from the constructor
     const param_type& params; //!< Fourier component coefficents
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_FOURIER_H__

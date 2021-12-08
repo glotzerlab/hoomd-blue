@@ -23,6 +23,10 @@
 #ifndef __HARMONICDIHEDRALFORCECOMPUTE_H__
 #define __HARMONICDIHEDRALFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 struct dihedral_harmonic_params
     {
     Scalar k;
@@ -100,7 +104,13 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the DihedralForceCompute class to python
 void export_HarmonicDihedralForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

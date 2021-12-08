@@ -23,6 +23,8 @@
 #include <string>
 #include <vector>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Container for all MPCD particle data
@@ -87,6 +89,6 @@ namespace detail
 void export_ParticleDataSnapshot(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_PARTICLE_DATA_SNAPSHOT_H_

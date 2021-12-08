@@ -12,6 +12,12 @@
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel call for generating neighbor list on the GPU (Kepler optimized version)
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
     \param d_nlist Neighbor list data structure to write
@@ -48,7 +54,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
                                                 Scalar4* d_last_updated_pos,
                                                 unsigned int* d_conditions,
                                                 const unsigned int* d_Nmax,
-                                                const unsigned int* d_head_list,
+                                                const size_t* d_head_list,
                                                 const Scalar4* d_pos,
                                                 const unsigned int* d_body,
                                                 const Scalar* d_diameter,
@@ -119,7 +125,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
     unsigned int my_type = __scalar_as_int(my_postype.w);
     unsigned int my_body = d_body[my_pidx];
     Scalar my_diam = d_diameter[my_pidx];
-    unsigned int my_head = d_head_list[my_pidx];
+    size_t my_head = d_head_list[my_pidx];
 
     Scalar3 f = box.makeFraction(my_pos, ghost_width);
 
@@ -309,7 +315,7 @@ inline void launcher(unsigned int* d_nlist,
                      Scalar4* d_last_updated_pos,
                      unsigned int* d_conditions,
                      const unsigned int* d_Nmax,
-                     const unsigned int* d_head_list,
+                     const size_t* d_head_list,
                      const Scalar4* d_pos,
                      const unsigned int* d_body,
                      const Scalar* d_diameter,
@@ -349,10 +355,8 @@ inline void launcher(unsigned int* d_nlist,
             {
             if (!diameter_shift && !filter_body)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size
-                        = get_max_block_size(gpu_compute_nlist_binned_kernel<0, 0, cur_tpp>);
+                unsigned int max_block_size;
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<0, 0, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -391,10 +395,8 @@ inline void launcher(unsigned int* d_nlist,
                 }
             else if (!diameter_shift && filter_body)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size
-                        = get_max_block_size(gpu_compute_nlist_binned_kernel<1, 0, cur_tpp>);
+                unsigned int max_block_size;
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<1, 0, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -433,10 +435,8 @@ inline void launcher(unsigned int* d_nlist,
                 }
             else if (diameter_shift && !filter_body)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size
-                        = get_max_block_size(gpu_compute_nlist_binned_kernel<2, 0, cur_tpp>);
+                unsigned int max_block_size;
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<2, 0, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -475,10 +475,8 @@ inline void launcher(unsigned int* d_nlist,
                 }
             else if (diameter_shift && filter_body)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size
-                        = get_max_block_size(gpu_compute_nlist_binned_kernel<3, 0, cur_tpp>);
+                unsigned int max_block_size;
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<3, 0, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -520,10 +518,8 @@ inline void launcher(unsigned int* d_nlist,
             {
             if (!diameter_shift && !filter_body)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size
-                        = get_max_block_size(gpu_compute_nlist_binned_kernel<0, 1, cur_tpp>);
+                unsigned int max_block_size;
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<0, 1, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -562,10 +558,8 @@ inline void launcher(unsigned int* d_nlist,
                 }
             else if (!diameter_shift && filter_body)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size
-                        = get_max_block_size(gpu_compute_nlist_binned_kernel<1, 1, cur_tpp>);
+                unsigned int max_block_size;
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<1, 1, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -604,10 +598,8 @@ inline void launcher(unsigned int* d_nlist,
                 }
             else if (diameter_shift && !filter_body)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size
-                        = get_max_block_size(gpu_compute_nlist_binned_kernel<2, 1, cur_tpp>);
+                unsigned int max_block_size;
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<2, 1, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -646,10 +638,8 @@ inline void launcher(unsigned int* d_nlist,
                 }
             else if (diameter_shift && filter_body)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size
-                        = get_max_block_size(gpu_compute_nlist_binned_kernel<3, 1, cur_tpp>);
+                unsigned int max_block_size;
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<3, 1, cur_tpp>);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size / tpp) + 1);
@@ -730,7 +720,7 @@ inline void launcher<min_threads_per_particle / 2>(unsigned int* d_nlist,
                                                    Scalar4* d_last_updated_pos,
                                                    unsigned int* d_conditions,
                                                    const unsigned int* d_Nmax,
-                                                   const unsigned int* d_head_list,
+                                                   const size_t* d_head_list,
                                                    const Scalar4* d_pos,
                                                    const unsigned int* d_body,
                                                    const Scalar* d_diameter,
@@ -763,7 +753,7 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     Scalar4* d_last_updated_pos,
                                     unsigned int* d_conditions,
                                     const unsigned int* d_Nmax,
-                                    const unsigned int* d_head_list,
+                                    const size_t* d_head_list,
                                     const Scalar4* d_pos,
                                     const unsigned int* d_body,
                                     const Scalar* d_diameter,
@@ -828,3 +818,7 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
         }
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

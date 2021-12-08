@@ -23,6 +23,10 @@
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace dem
+    {
 /*! \param sysdef System to compute forces on
   \param nlist Neighborlist to use for computing the forces
   \param r_cut Cutoff radius beyond which the force is 0
@@ -32,7 +36,7 @@ using namespace std;
 template<typename Real, typename Real4, typename Potential>
 DEM2DForceCompute<Real, Real4, Potential>::DEM2DForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
-    std::shared_ptr<NeighborList> nlist,
+    std::shared_ptr<md::NeighborList> nlist,
     Real r_cut,
     Potential potential)
     : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_evaluator(potential), m_shapes()
@@ -71,7 +75,7 @@ void DEM2DForceCompute<Real, Real4, Potential>::connectDEMGSDShapeSpec(
 template<typename Real, typename Real4, typename Potential>
 int DEM2DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec(gsd_handle& handle) const
     {
-    GSDShapeSpecWriter shapespec(m_exec_conf);
+    hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
     m_exec_conf->msg->notice(10)
         << "DEM3DForceCompute writing particle shape information to GSD file in chunk: "
         << shapespec.getName() << std::endl;
@@ -215,7 +219,7 @@ void DEM2DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
 
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
-    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+    bool third_law = m_nlist->getStorageMode() == md::NeighborList::half;
 
     // access the neighbor list
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
@@ -224,9 +228,9 @@ void DEM2DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
                                       access_location::host,
                                       access_mode::read);
-    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
-                                          access_location::host,
-                                          access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+                                    access_location::host,
+                                    access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -288,7 +292,7 @@ void DEM2DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
             *vertIter = rotate(quati, *vertIter);
 
         // loop over all of the neighbors of this particle
-        const unsigned int myHead = h_head_list.data[i];
+        const size_t myHead = h_head_list.data[i];
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int j = 0; j < size; j++)
             {
@@ -492,3 +496,6 @@ void DEM2DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
 #ifdef WIN32
 #pragma warning(pop)
 #endif
+
+    } // end namespace dem
+    } // end namespace hoomd

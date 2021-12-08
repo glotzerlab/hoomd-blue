@@ -9,6 +9,8 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 class VirtualCallback
     {
     public:

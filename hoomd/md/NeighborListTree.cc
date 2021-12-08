@@ -10,15 +10,16 @@
 #include "NeighborListTree.h"
 #include "hoomd/SystemDefinition.h"
 
-namespace py = pybind11;
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
 
 using namespace std;
-using namespace hpmc::detail;
 
+namespace hoomd
+    {
+namespace md
+    {
 NeighborListTree::NeighborListTree(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
     : NeighborList(sysdef, r_buff), m_box_changed(true), m_max_num_changed(true),
       m_remap_particles(true), m_types_allocated(false), m_n_images(0)
@@ -210,12 +211,14 @@ void NeighborListTree::buildTree()
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::read);
-    ArrayHandle<AABB> h_aabbs(m_aabbs, access_location::host, access_mode::readwrite);
+    ArrayHandle<hoomd::detail::AABB> h_aabbs(m_aabbs,
+                                             access_location::host,
+                                             access_mode::readwrite);
 
     const BoxDim& box = m_pdata->getBox();
     Scalar ghost_layer_width(0.0);
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         ghost_layer_width = m_comm->getGhostLayerMaxWidth();
 #endif
 
@@ -260,7 +263,7 @@ void NeighborListTree::buildTree()
 
         unsigned int my_type = __scalar_as_int(h_postype.data[i].w);
         unsigned int my_aabb_idx = m_type_head[my_type] + m_map_pid_tree[i];
-        h_aabbs.data[my_aabb_idx] = AABB(my_pos, i);
+        h_aabbs.data[my_aabb_idx] = hoomd::detail::AABB(my_pos, i);
         }
 
     // call the tree build routine, one tree per type
@@ -300,7 +303,7 @@ void NeighborListTree::traverseTree()
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
 
     // neighborlist data
-    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_conditions(m_conditions,
                                            access_location::host,
@@ -319,7 +322,7 @@ void NeighborListTree::traverseTree()
         const Scalar diam_i = h_diameter.data[i];
 
         const unsigned int Nmax_i = h_Nmax.data[type_i];
-        const unsigned int nlist_head_i = h_head_list.data[i];
+        const size_t nlist_head_i = h_head_list.data[i];
 
         unsigned int n_neigh_i = 0;
         for (unsigned int cur_pair_type = 0; cur_pair_type < m_pdata->getNTypes();
@@ -347,14 +350,14 @@ void NeighborListTree::traverseTree()
             if (m_diameter_shift)
                 r_list_i += m_d_max - Scalar(1.0);
 
-            AABBTree* cur_aabb_tree = &m_aabb_trees[cur_pair_type];
+            hoomd::detail::AABBTree* cur_aabb_tree = &m_aabb_trees[cur_pair_type];
 
             for (unsigned int cur_image = 0; cur_image < m_n_images;
                  ++cur_image) // for each image vector
                 {
                 // make an AABB for the image of this particle
                 vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
-                AABB aabb = AABB(pos_i_image, r_list_i);
+                hoomd::detail::AABB aabb = hoomd::detail::AABB(pos_i_image, r_list_i);
 
                 // stackless traversal of the tree
                 for (unsigned int cur_node_idx = 0; cur_node_idx < cur_aabb_tree->getNumNodes();
@@ -432,10 +435,16 @@ void NeighborListTree::traverseTree()
         this->m_prof->pop();
     }
 
-void export_NeighborListTree(py::module& m)
+namespace detail
     {
-    py::class_<NeighborListTree, NeighborList, std::shared_ptr<NeighborListTree>>(
+void export_NeighborListTree(pybind11::module& m)
+    {
+    pybind11::class_<NeighborListTree, NeighborList, std::shared_ptr<NeighborListTree>>(
         m,
         "NeighborListTree")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

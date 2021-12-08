@@ -26,6 +26,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Expanded Mie pair potential
 /*! <b>General Overview</b>
 
@@ -221,5 +225,8 @@ class EvaluatorPairExpandedMie
     Scalar m_pow;      //!< Lower exponent for potential
     Scalar delta;      //!< shift in radial distance for use in Mie potential
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EXPANDEDMIE_H__

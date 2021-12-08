@@ -22,6 +22,8 @@
 #include <iostream>
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -248,8 +250,9 @@ DEVICE inline bool xenocollide_2d(const SupportFuncA& sa,
         }
     }
 
-    }; // end namespace detail
+    } // end namespace detail
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // __XENOCOLLIDE_2D_H__

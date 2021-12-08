@@ -19,10 +19,12 @@ hoomd.md
     module-md-dihedral
     module-md-external
     module-md-force
+    module-md-improper
     module-md-long_range
     module-md-manifold
     module-md-many_body
     module-md-methods
+    module-md-minimize
     module-md-nlist
     module-md-pair
     module-md-special_pair

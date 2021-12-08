@@ -14,6 +14,10 @@
 #include "HOOMDMath.h"
 #include "ParticleData.cuh"
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! struct to pack up several force and virial arrays for addition
 /*! To keep the argument count down to gpu_integrator_sum_accel, up to 6 force/virial array pairs
    are packed up in this struct for addition to the net force/virial in a single kernel call. If
@@ -69,5 +73,9 @@ hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
                                         bool clear,
                                         bool compute_virial,
                                         const GPUPartition& gpu_partition);
+
+    } // end namespace kernel
+
+    } // end namespace hoomd
 
 #endif

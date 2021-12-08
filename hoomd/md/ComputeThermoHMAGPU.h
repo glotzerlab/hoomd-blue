@@ -18,6 +18,10 @@
 #ifndef __COMPUTE_THERMO_HMA_GPU_H__
 #define __COMPUTE_THERMO_HMA_GPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes HMA thermodynamic properties of a group of particles on the GPU
 /*! ComputeThermoHMAGPU is a GPU accelerated implementation of ComputeThermoHMA
     \ingroup computes
@@ -41,7 +45,13 @@ class PYBIND11_EXPORT ComputeThermoHMAGPU : public ComputeThermoHMA
     virtual void computeProperties();
     };
 
+namespace detail
+    {
 //! Exports the ComputeThermoHMAGPU class to python
 void export_ComputeThermoHMAGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

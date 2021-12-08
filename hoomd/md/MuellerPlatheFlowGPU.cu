@@ -14,6 +14,12 @@
 #include <thrust/transform_reduce.h>
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 struct vel_search_un_opt : public thrust::unary_function<const unsigned int, Scalar3>
     {
     vel_search_un_opt(const Scalar4* const d_vel,
@@ -249,3 +255,7 @@ hipError_t gpu_update_min_max_velocity(const unsigned int* const d_rtag,
 
     return hipPeekAtLastError();
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

@@ -17,6 +17,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 /** This updater removes the average particle drift from the reference positions.
  * The minimum image convention is applied to each particle displacement from the
  * reference configuration before averaging over N_particles. The particles are
@@ -36,13 +38,18 @@ class UpdaterRemoveDrift : public Updater
     //! Set reference positions from a (N_particles, 3) numpy array
     void setReferencePositions(const pybind11::array_t<double> ref_pos)
         {
-        const size_t N_particles = ref_pos.request().shape[0];
-        const size_t dim = ref_pos.request().shape[1];
+        if (ref_pos.ndim() != 2)
+            {
+            throw std::runtime_error("The array must be of shape (N_particles, 3).");
+            }
+
+        const size_t N_particles = ref_pos.shape(0);
+        const size_t dim = ref_pos.shape(1);
         if (N_particles != this->m_pdata->getNGlobal() || dim != 3)
             {
             throw std::runtime_error("The array must be of shape (N_particles, 3).");
             }
-        const double* rawdata = static_cast<double*>(ref_pos.request().ptr);
+        const double* rawdata = static_cast<const double*>(ref_pos.data());
         m_ref_positions.resize(m_pdata->getNGlobal());
         for (size_t i = 0; i < N_particles; i++)
             {
@@ -138,6 +145,8 @@ class UpdaterRemoveDrift : public Updater
     std::vector<vec3<Scalar>> m_ref_positions;
     };
 
+namespace detail
+    {
 /// Export the UpdaterRemoveDrift to python
 void export_UpdaterRemoveDrift(pybind11::module& m)
     {
@@ -149,5 +158,9 @@ void export_UpdaterRemoveDrift(pybind11::module& m)
                       &UpdaterRemoveDrift::getReferencePositions,
                       &UpdaterRemoveDrift::setReferencePositions);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif // _REMOVE_DRIFT_UPDATER_H_

@@ -33,6 +33,8 @@
 #ifndef __FORCECOMPUTE_H__
 #define __FORCECOMPUTE_H__
 
+namespace hoomd
+    {
 //! Handy structure for passing the force arrays around
 /*! \c fx, \c fy, \c fz have length equal to the number of particles and store the x,y,z
     components of the force on that particle. \a pe is also included as the potential energy
@@ -225,9 +227,14 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     virtual void computeForces(uint64_t timestep) { }
     };
 
+namespace detail
+    {
 //! Exports the ForceCompute class to python
 #ifndef __HIPCC__
 void export_ForceCompute(pybind11::module& m);
 #endif
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

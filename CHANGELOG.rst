@@ -4,8 +4,62 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.9 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.11 (2021-11-18)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- Support Python 3.10.
+- Support clang 13.
+
+*Changed*
+
+- [developers] Place all all HOOMD C++ classes in the ``hoomd`` and nested namespaces.
+- [developers] Use official pre-commit clang-format repository.
+
+v3.0.0-beta.10 (2021-10-25)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``hoomd.md.minimize.FIRE`` - MD integrator that minimizes the system's potential energy.
+- Include example AKMA and MD unit conversion factors in the documentation.
+- ``BUILD_LLVM`` CMake option  (defaults off) to enable features that require LLVM.
+- ``hoomd.hpmc.pair.user.CPPPotential`` - user-defined pair potentials between particles in HPMC.
+- ``hoomd.hpmc.pair.user.CPPPotentialUnion`` - user-defined site-site pair potentials between shapes
+  in HPMC.
+- ``hoomd.hpmc.external.user.CPPExternalPotential`` - user-defined external potentials in HPMC.
+- Support user-defined pair potentials in HPMC on the GPU.
+
+*Changed*
+
+- Improved documentation.
+- Improved error messages when setting operation parameters.
+- Noted some dependencies of dependencies for building documentation.
+- [developers] Removed ``m_comm`` from most classes. Use ``m_sysdef->isDomainDecomposed()`` instead.
+- Add support for LLVM 12
+- ``ENABLE_LLVM=on`` requires the clang development libraries.
+- [breaking] Renamed the Integrator attribute ``aniso`` to ``integrate_rotational_dof`` and removed
+  the ``'auto'`` option. Users must now explicitly choose ``integrate_rotational_dof=True`` to
+  integrate the rotational degrees of freedom in the system.
+
+*Fixed*
+
+- Calling ``hoomd.Operations.__len__`` no longer raises a ``RecursionError``.
+- RATTLE integration methods execute on the GPU.
+- Include ``EvaluatorPairDLVO.h`` in the installation for plugins.
+- Bug in setting zero sized ``ManagedArrays``.
+- Kernel launch errors when one process uses different GPU devices.
+- Race condition that lead to incorrect simulations with ``md.pair.Table``.
+- Bug where some particle filers would have 0 rotational degrees of freedom.
+
+*Removed*
+
+- The ``BUILD_JIT`` CMake option.
+- Support for LLVM <= 9.
+
+v3.0.0-beta.9 (2021-09-08)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
@@ -20,6 +74,10 @@ v3.0.0-beta.9 (not yet released)
   `hoomd.filter.ParticleFilter` instance.
 - ``hoomd.update.RemoveDrift`` - Remove the average drift from a system restrained on a lattice.
 - Developer documentation for HOOMD-blue's Python object data model in ``ARCHITECTURE.md``.
+- Autocomplete support for interactive notebooks.
+- ``hoomd.md.methods.OverdampedViscous`` - Overdamped integrator with a drag force but no random
+  force .
+- ``MutabilityError`` exception when setting read-only operation parameters.
 
 *Changed*
 
@@ -28,6 +86,11 @@ v3.0.0-beta.9 (not yet released)
   ``hoomd.md.methods.rattle``.
 - [breaking] Moved ``trigger`` to first argument position in `hoomd.update.BoxResize`,
   `hoomd.write.DCD`, and `hoomd.write.GSD`.
+- [breaking] ``hoomd.data.LocalSnapshot`` particle data API now matches ``Snapshot``. Changes to
+  angular momentum, moment of intertia, and rigid body id attributes.
+- ``hoomd.write.CustomWriter`` now exposes action through the ``writer`` attribute.
+- [breaking] Active force rotational diffusion is managed by
+  ``hoomd.md.update.ActiveRotationalDiffusion``.
 
 *Fixed*
 
@@ -37,10 +100,17 @@ v3.0.0-beta.9 (not yet released)
 - MD integration methods can be removed from the integrator's method list.
 - Neighborlist exclusions update when the number of bonds change.
 - Errors related to equality checks between HOOMD operations.
+- The integrator can be removed from a simulation after running.
+- ``hoomd.md.constrain.Rigid.create_bodies`` method correctly assigns the body attribute.
+- Setting rigid attribute of a MD integrator to ``None`` is allowed.
 
 *Deprecated*
 
 *Removed*
+
+- ``Snapshot.exists`` - use ``snapshot.communicator.rank == 0``
+- ``State.snapshot`` - use ``get_snapshot`` and ``set_snapshot``
+-   The ``State.box`` property setter - use ``State.set_box``
 
 v3.0.0-beta.8 (2021-08-03)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -403,6 +473,7 @@ functionality.
 - ``COPY_HEADERS`` *CMake* option.
 - Many other python modules have been removed or re-implemented with new names.
   See the migration guide and new API documentation for a complete list.
+- Support for NVIDIA GPUS with compute capability < 6.0.
 
 v2.x
 ----
@@ -413,7 +484,7 @@ v2.9.7 (2021-08-03)
 *Bug fixes*
 
 * Support CUDA 11.5. A bug in CUDA 11.4 may result in the error
-  `__global__ function call is not configure` when running HOOMD.
+  ``__global__ function call is not configured`` when running HOOMD.
 
 v2.9.6 (2021-03-16)
 ^^^^^^^^^^^^^^^^^^^

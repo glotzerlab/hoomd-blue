@@ -10,6 +10,12 @@
     \brief Defines GPU driver functions for the composite particle integration on the GPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_rigid_force(Scalar4* d_force,
                            Scalar4* d_torque,
                            const unsigned int* d_molecule_len,
@@ -87,3 +93,7 @@ hipError_t gpu_find_rigid_centers(const unsigned int* d_body,
                                   unsigned int* d_rigid_center,
                                   unsigned int* d_lookup_center,
                                   unsigned int& n_rigid);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

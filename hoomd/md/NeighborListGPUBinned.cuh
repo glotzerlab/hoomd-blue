@@ -24,6 +24,12 @@
 #define WARP_SIZE 64
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 const unsigned int min_threads_per_particle = 1;
 const unsigned int max_threads_per_particle = WARP_SIZE;
 
@@ -33,7 +39,7 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     Scalar4* d_last_updated_pos,
                                     unsigned int* d_conditions,
                                     const unsigned int* d_Nmax,
-                                    const unsigned int* d_head_list,
+                                    const size_t* d_head_list,
                                     const Scalar4* d_pos,
                                     const unsigned int* d_body,
                                     const Scalar* d_diameter,
@@ -57,4 +63,9 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     const Scalar3& ghost_width,
                                     const GPUPartition& gpu_partition,
                                     bool use_index);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif

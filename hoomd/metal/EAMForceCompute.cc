@@ -12,8 +12,10 @@ using namespace std;
 
 #include <stdexcept>
 
-namespace py = pybind11;
-
+namespace hoomd
+    {
+namespace metal
+    {
 /*! \file EAMForceCompute.cc
  \brief Defines the EAMForceCompute class
  */
@@ -304,7 +306,7 @@ void EAMForceCompute::computeForces(uint64_t timestep)
 
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
-    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+    bool third_law = m_nlist->getStorageMode() == md::NeighborList::half;
 
     // access the neighbor list
     assert(m_nlist);
@@ -314,9 +316,9 @@ void EAMForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
                                       access_location::host,
                                       access_mode::read);
-    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
-                                          access_location::host,
-                                          access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+                                    access_location::host,
+                                    access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -377,7 +379,7 @@ void EAMForceCompute::computeForces(uint64_t timestep)
         // access the particle's position and type
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-        const unsigned int head_i = h_head_list.data[i];
+        const size_t head_i = h_head_list.data[i];
 
         // sanity check
         assert(typei < m_pdata->getNTypes());
@@ -460,7 +462,7 @@ void EAMForceCompute::computeForces(uint64_t timestep)
         // access the particle's position and type
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-        const unsigned int head_i = h_head_list.data[i];
+        const size_t head_i = h_head_list.data[i];
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
@@ -577,7 +579,7 @@ void EAMForceCompute::computeForces(uint64_t timestep)
         m_prof->pop(flops, mem_transfer);
     }
 
-void EAMForceCompute::set_neighbor_list(std::shared_ptr<NeighborList> nlist)
+void EAMForceCompute::set_neighbor_list(std::shared_ptr<md::NeighborList> nlist)
     {
     m_nlist = nlist;
     assert(m_nlist);
@@ -588,11 +590,18 @@ Scalar EAMForceCompute::get_r_cut()
     return m_r_cut;
     }
 
-void export_EAMForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<EAMForceCompute, ForceCompute, std::shared_ptr<EAMForceCompute>>(m,
-                                                                                "EAMForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>, char*, int>())
+void export_EAMForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<EAMForceCompute, ForceCompute, std::shared_ptr<EAMForceCompute>>(
+        m,
+        "EAMForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, char*, int>())
         .def("set_neighbor_list", &EAMForceCompute::set_neighbor_list)
         .def("get_r_cut", &EAMForceCompute::get_r_cut);
     }
+
+    } // end namespace detail
+    } // end namespace metal
+    } // end namespace hoomd

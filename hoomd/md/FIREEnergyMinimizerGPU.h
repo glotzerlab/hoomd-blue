@@ -20,6 +20,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
 
@@ -38,18 +42,26 @@ class PYBIND11_EXPORT FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     virtual void update(uint64_t timestep);
 
     protected:
-    unsigned int m_nparticles;       //!< number of particles in the system
-    unsigned int m_block_size;       //!< block size for partial sum memory
-    GPUArray<Scalar> m_partial_sum1; //!< memory space for partial sum over P
-    GPUArray<Scalar> m_partial_sum2; //!< memory space for partial sum over vsq
-    GPUArray<Scalar> m_partial_sum3; //!< memory space for partial sum over asq
-    GPUArray<Scalar> m_sum;          //!< memory space for sum over vsq
-    GPUArray<Scalar> m_sum3;         //!< memory space for the sum over P, vsq, asq
+    unsigned int m_block_size; //!< block size for partial sum memory
+
+    GPUVector<Scalar> m_partial_sum1; //!< memory space for partial sum over P and E
+    GPUVector<Scalar> m_partial_sum2; //!< memory space for partial sum over vsq
+    GPUVector<Scalar> m_partial_sum3; //!< memory space for partial sum over asq
+    GPUArray<Scalar> m_sum;           //!< memory space for sum over E
+    GPUArray<Scalar> m_sum3;          //!< memory space for the sum over P, vsq, asq
 
     private:
+    //! allocate the memory needed to store partial sums
+    void resizePartialSumArrays();
     };
 
+namespace detail
+    {
 //! Exports the FIREEnergyMinimizerGPU class to python
 void export_FIREEnergyMinimizerGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_GPU_H__

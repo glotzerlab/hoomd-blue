@@ -13,6 +13,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 /** Quick compression algorithm
@@ -147,7 +149,10 @@ class UpdaterQuickCompress : public Updater
     bool m_is_complete = false;
     };
 
+namespace detail
+    {
 /// Export UpdaterQuickCompress to Python
 void export_UpdaterQuickCompress(pybind11::module& m);
-
-    } // namespace hpmc
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd

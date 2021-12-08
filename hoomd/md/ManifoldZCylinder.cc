@@ -6,6 +6,12 @@
 #include "ManifoldZCylinder.h"
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 //! Exports the Cylinder manifold class to python
 void export_ManifoldZCylinder(pybind11::module& m)
     {
@@ -14,3 +20,7 @@ void export_ManifoldZCylinder(pybind11::module& m)
         .def_property_readonly("r", &ManifoldZCylinder::getR)
         .def_property_readonly("P", &ManifoldZCylinder::getP);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

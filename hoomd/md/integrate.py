@@ -8,21 +8,12 @@ import itertools
 
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
+from hoomd.data.typeconverter import OnlyTypes
 from hoomd.integrate import BaseIntegrator
 from hoomd.data import syncedlist
 from hoomd.md.methods import Method
 from hoomd.md.force import Force
 from hoomd.md.constrain import Constraint, Rigid
-
-
-def _preprocess_aniso(value):
-    if value is True:
-        return "true"
-    elif value is False:
-        return "false"
-    else:
-        return value
 
 
 def _set_synced_list(old_list, new_list):
@@ -174,9 +165,8 @@ class Integrator(_DynamicIntegrator):
             the particles in the system. All the forces are summed together.
             The default value of ``None`` initializes an empty list.
 
-        aniso (str or bool): Whether to integrate rotational degrees of freedom
-            (bool), default 'auto' (autodetect if there is anisotropic factor
-            from any defined active or constraint forces).
+        integrate_rotational_dof (bool): When True, integrate rotational degrees
+            of freedom.
 
         constraints (Sequence[hoomd.md.constrain.Constraint]): Sequence of
             constraint forces applied to the particles in the system.
@@ -197,13 +187,13 @@ class Integrator(_DynamicIntegrator):
 
     - `hoomd.md.angle`
     - `hoomd.md.bond`
-    - `hoomd.md.charge`
+    - `hoomd.md.long_range.pppm`
     - `hoomd.md.dihedral`
     - `hoomd.md.external.field`
     - `hoomd.md.force`
     - `hoomd.md.improper`
     - `hoomd.md.pair`
-    - `hoomd.md.wall`
+    - ``hoomd.md.wall`` - TODO: Convert back to link once implemented.
     - `hoomd.md.special_pair`
 
     The classes of the following module can be used as elements in `constraints`
@@ -232,7 +222,8 @@ class Integrator(_DynamicIntegrator):
         forces (list[hoomd.md.force.Force]): List of forces applied to
             the particles in the system. All the forces are summed together.
 
-        aniso (str): Whether rotational degrees of freedom are integrated.
+        integrate_rotational_dof (bool): When True, integrate rotational degrees
+            of freedom.
 
         constraints (list[hoomd.md.constrain.Constraint]): List of
             constraint forces applied to the particles in the system.
@@ -243,7 +234,7 @@ class Integrator(_DynamicIntegrator):
 
     def __init__(self,
                  dt,
-                 aniso='auto',
+                 integrate_rotational_dof=False,
                  forces=None,
                  constraints=None,
                  methods=None,
@@ -252,12 +243,9 @@ class Integrator(_DynamicIntegrator):
         super().__init__(forces, constraints, methods, rigid)
 
         self._param_dict.update(
-            ParameterDict(dt=float(dt),
-                          aniso=OnlyFrom(['true', 'false', 'auto'],
-                                         preprocess=_preprocess_aniso),
-                          _defaults={"aniso": "auto"}))
-        if aniso is not None:
-            self.aniso = aniso
+            ParameterDict(
+                dt=float(dt),
+                integrate_rotational_dof=bool(integrate_rotational_dof)))
 
     def _attach(self):
         # initialize the reflected c++ class
@@ -266,3 +254,10 @@ class Integrator(_DynamicIntegrator):
         # Call attach from DynamicIntegrator which attaches forces,
         # constraint_forces, and methods, and calls super()._attach() itself.
         super()._attach()
+
+    def __setattr__(self, attr, value):
+        """Hande group DOF update when setting integrate_rotational_dof."""
+        super().__setattr__(attr, value)
+        if (attr == 'integrate_rotational_dof' and self._simulation is not None
+                and self._simulation.state is not None):
+            self._simulation.state.update_group_dof()

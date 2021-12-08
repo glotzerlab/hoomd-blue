@@ -18,6 +18,8 @@
 // The factor with which the array size is incremented
 #define RESIZE_FACTOR 9.f / 8.f
 
+namespace hoomd
+    {
 //! Forward declarations
 template<class T> class GPUVector;
 
@@ -44,8 +46,12 @@ template<class T, class Array> class GPUVectorBase : public Array
 
     //! Copy constructor
     GPUVectorBase(const GPUVectorBase& from);
+    //! Move constructor
+    GPUVectorBase(GPUVectorBase&& other);
     //! = operator
     GPUVectorBase& operator=(const GPUVectorBase& rhs);
+    //! Move assignment operator
+    GPUVectorBase& operator=(GPUVectorBase&& other);
 
     //! swap this GPUVectorBase with another
     inline void swap(GPUVectorBase& from);
@@ -214,13 +220,32 @@ GPUVectorBase<T, Array>::GPUVectorBase(const GPUVectorBase& from) : Array(from),
     }
 
 template<class T, class Array>
+GPUVectorBase<T, Array>::GPUVectorBase(GPUVectorBase&& other)
+    : Array(std::move(other)), m_size(std::move(other.m_size))
+    {
+    }
+
+template<class T, class Array>
 GPUVectorBase<T, Array>& GPUVectorBase<T, Array>::operator=(const GPUVectorBase& rhs)
     {
     if (this != &rhs) // protect against invalid self-assignment
         {
         m_size = rhs.m_size;
         // invoke base class operator
-        (Array)* this = rhs;
+        Array::operator=(rhs);
+        }
+
+    return *this;
+    }
+
+template<class T, class Array>
+GPUVectorBase<T, Array>& GPUVectorBase<T, Array>::operator=(GPUVectorBase&& other)
+    {
+    if (this != &other)
+        {
+        m_size = std::move(other.m_size);
+        // invoke move assignment for the base class
+        Array::operator=(std::move(other));
         }
 
     return *this;
@@ -421,3 +446,5 @@ template<class T> class GlobalVector : public GPUVectorBase<T, GlobalArray<T>>
         return static_cast<GlobalArray<T> const&>(*this).get();
         }
     };
+
+    } // end namespace hoomd

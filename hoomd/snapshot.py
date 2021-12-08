@@ -329,9 +329,9 @@ class Snapshot:
                 stored on every rank.
 
         Note:
-            `from_gsd_snapshot` only accesses the `gsd_snap` argument on rank 0.
-            In MPI simulations, avoid duplicating memory and file reads by
-            reading GSD files only on rank 0 and passing `gsd_snap=None` on
+            `from_gsd_snapshot` only accesses the ``gsd_snap`` argument on rank
+            0. In MPI simulations, avoid duplicating memory and file reads by
+            reading GSD files only on rank 0 and passing ``gsd_snap=None`` on
             other ranks.
         """
         snap = cls(communicator=communicator)
@@ -373,5 +373,4 @@ class Snapshot:
                 snap.configuration.box = box
 
         snap._broadcast_box()
-
         return snap

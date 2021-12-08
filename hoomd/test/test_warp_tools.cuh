@@ -13,6 +13,10 @@
 
 #include "hoomd/Index1D.h"
 
+namespace hoomd
+    {
+namespace test
+    {
 //! Arguments for warp reduce tests
 struct reduce_params
     {
@@ -65,5 +69,8 @@ struct scan_params
 
 //! Calls the warp scan kernel
 void warp_scan(const scan_params& params);
+
+    } // end namespace test
+    } // end namespace hoomd
 
 #endif // HOOMD_TEST_TEST_WARP_TOOLS_CUH_

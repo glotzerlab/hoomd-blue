@@ -21,6 +21,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing pair potentials on the GPU
 /*! Derived from PotentialPair, this class provides exactly the same interface for computing pair
    potentials and forces. In the same way as PotentialPair, this class serves as a shell dealing
@@ -39,7 +43,7 @@
     \sa export_PotentialPairDPDThermoGPU()
 */
 template<class evaluator,
-         hipError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
+         hipError_t gpu_cpdf(const kernel::dpd_pair_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     {
@@ -81,7 +85,7 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     };
 
 template<class evaluator,
-         hipError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
+         hipError_t gpu_cpdf(const kernel::dpd_pair_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 PotentialPairDPDThermoGPU<evaluator, gpu_cpdf>::PotentialPairDPDThermoGPU(
     std::shared_ptr<SystemDefinition> sysdef,
@@ -119,7 +123,7 @@ PotentialPairDPDThermoGPU<evaluator, gpu_cpdf>::PotentialPairDPDThermoGPU(
     }
 
 template<class evaluator,
-         hipError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
+         hipError_t gpu_cpdf(const kernel::dpd_pair_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 void PotentialPairDPDThermoGPU<evaluator, gpu_cpdf>::computeForces(uint64_t timestep)
     {
@@ -146,9 +150,9 @@ void PotentialPairDPDThermoGPU<evaluator, gpu_cpdf>::computeForces(uint64_t time
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(),
                                       access_location::device,
                                       access_mode::read);
-    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(),
-                                          access_location::device,
-                                          access_mode::read);
+    ArrayHandle<size_t> d_head_list(this->m_nlist->getHeadList(),
+                                    access_location::device,
+                                    access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
@@ -177,29 +181,29 @@ void PotentialPairDPDThermoGPU<evaluator, gpu_cpdf>::computeForces(uint64_t time
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
-    gpu_cpdf(dpd_pair_args_t(d_force.data,
-                             d_virial.data,
-                             this->m_virial.getPitch(),
-                             this->m_pdata->getN(),
-                             this->m_pdata->getMaxN(),
-                             d_pos.data,
-                             d_vel.data,
-                             d_tag.data,
-                             box,
-                             d_n_neigh.data,
-                             d_nlist.data,
-                             d_head_list.data,
-                             d_rcutsq.data,
-                             this->m_nlist->getNListArray().getPitch(),
-                             this->m_pdata->getNTypes(),
-                             block_size,
-                             this->m_sysdef->getSeed(),
-                             timestep,
-                             this->m_deltaT,
-                             (*this->m_T)(timestep),
-                             this->m_shift_mode,
-                             flags[pdata_flag::pressure_tensor],
-                             threads_per_particle),
+    gpu_cpdf(kernel::dpd_pair_args_t(d_force.data,
+                                     d_virial.data,
+                                     this->m_virial.getPitch(),
+                                     this->m_pdata->getN(),
+                                     this->m_pdata->getMaxN(),
+                                     d_pos.data,
+                                     d_vel.data,
+                                     d_tag.data,
+                                     box,
+                                     d_n_neigh.data,
+                                     d_nlist.data,
+                                     d_head_list.data,
+                                     d_rcutsq.data,
+                                     this->m_nlist->getNListArray().getPitch(),
+                                     this->m_pdata->getNTypes(),
+                                     block_size,
+                                     this->m_sysdef->getSeed(),
+                                     timestep,
+                                     this->m_deltaT,
+                                     (*this->m_T)(timestep),
+                                     this->m_shift_mode,
+                                     flags[pdata_flag::pressure_tensor],
+                                     threads_per_particle),
              this->m_params.data());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -211,6 +215,8 @@ void PotentialPairDPDThermoGPU<evaluator, gpu_cpdf>::computeForces(uint64_t time
         this->m_prof->pop(this->m_exec_conf);
     }
 
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPairDPDThermoGPU class
@@ -224,6 +230,10 @@ void export_PotentialPairDPDThermoGPU(pybind11::module& m, const std::string& na
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setTuningParam", &T::setTuningParam);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __POTENTIAL_PAIR_DPDTHERMO_GPU_H__

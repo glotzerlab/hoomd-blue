@@ -25,6 +25,12 @@
 #ifndef __POTENTIAL_PAIR_GPU_CUH__
 #define __POTENTIAL_PAIR_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Maximum number of threads (width of a warp)
 // currently this is hardcoded, we should set it to the max of platforms
 #if defined(__HIP_PLATFORM_NVCC__)
@@ -48,7 +54,7 @@ struct pair_args_t
                 const BoxDim& _box,
                 const unsigned int* _d_n_neigh,
                 const unsigned int* _d_nlist,
-                const unsigned int* _d_head_list,
+                const size_t* _d_head_list,
                 const Scalar* _d_rcutsq,
                 const Scalar* _d_ronsq,
                 const size_t _size_neigh_list,
@@ -77,15 +83,15 @@ struct pair_args_t
     const Scalar* d_charge;    //!< particle charges
     const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int*
-        d_n_neigh;               //!< Device array listing the number of neighbors on each particle
-    const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
-    const unsigned int* d_head_list; //!< Head list indexes for accessing d_nlist
-    const Scalar* d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const Scalar* d_ronsq;           //!< Device array listing r_on squared per particle type pair
-    const size_t size_neigh_list;    //!< Size of the neighbor list for texture binding
-    const unsigned int ntypes;       //!< Number of particle types in the simulation
-    const unsigned int block_size;   //!< Block size to execute
-    const unsigned int shift_mode;   //!< The potential energy shift mode
+        d_n_neigh;                //!< Device array listing the number of neighbors on each particle
+    const unsigned int* d_nlist;  //!< Device array listing the neighbors of each particle
+    const size_t* d_head_list;    //!< Head list indexes for accessing d_nlist
+    const Scalar* d_rcutsq;       //!< Device array listing r_cut squared per particle type pair
+    const Scalar* d_ronsq;        //!< Device array listing r_on squared per particle type pair
+    const size_t size_neigh_list; //!< Size of the neighbor list for texture binding
+    const unsigned int ntypes;    //!< Number of particle types in the simulation
+    const unsigned int block_size;           //!< Block size to execute
+    const unsigned int shift_mode;           //!< The potential energy shift mode
     const unsigned int compute_virial;       //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 1 warp)
     const GPUPartition& gpu_partition; //!< The load balancing partition of particles between GPUs
@@ -145,7 +151,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                                       const BoxDim box,
                                       const unsigned int* d_n_neigh,
                                       const unsigned int* d_nlist,
-                                      const unsigned int* d_head_list,
+                                      const size_t* d_head_list,
                                       const typename evaluator::param_type* d_params,
                                       const Scalar* d_rcutsq,
                                       const Scalar* d_ronsq,
@@ -188,6 +194,8 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
 
     // initialize extra shared mem
     auto s_extra = reinterpret_cast<char*>(s_ronsq + num_typ_parameters);
+
+    __syncthreads();
 
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_pair = 0; cur_pair < num_typ_parameters; ++cur_pair)
@@ -233,7 +241,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
         if (evaluator::needsCharge())
             qi = __ldg(d_charge + idx);
 
-        unsigned int my_head = d_head_list[idx];
+        size_t my_head = d_head_list[idx];
         unsigned int cur_j = 0;
 
         unsigned int next_j(0);
@@ -434,13 +442,9 @@ struct PairForceComputeKernel
                 = (2 * sizeof(Scalar) + sizeof(typename evaluator::param_type))
                   * typpair_idx.getNumElements();
 
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size
-                    = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator,
-                                                                               shift_mode,
-                                                                               compute_virial,
-                                                                               tpp>);
+            unsigned int max_block_size;
+            max_block_size = get_max_block_size(
+                gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp>);
 
             hipFuncAttributes attr;
             hipFuncGetAttributes(
@@ -596,4 +600,9 @@ hipError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     return hipSuccess;
     }
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif // __POTENTIAL_PAIR_GPU_CUH__

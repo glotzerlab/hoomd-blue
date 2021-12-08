@@ -13,8 +13,8 @@
 using namespace std;
 using namespace hoomd::detail;
 
-namespace py = pybind11;
-
+namespace hoomd
+    {
 /*! \param exec_conf The execution configuration
     \param name File name to read
     \param frame Frame index to read from the file
@@ -47,15 +47,15 @@ GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
     // validate schema
     if (string(m_handle.header.schema) != string("hoomd"))
         {
-        m_exec_conf->msg->error() << "data.gsd_snapshot: "
-                                  << "Invalid schema in " << name << endl;
-        throw runtime_error("Error opening GSD file");
+        std::ostringstream s;
+        s << "Invalid schema in " << name << endl;
+        throw runtime_error(s.str());
         }
     if (m_handle.header.schema_version >= gsd_make_version(2, 1))
         {
-        m_exec_conf->msg->error() << "data.gsd_snapshot: "
-                                  << "Invalid schema version in " << name << endl;
-        throw runtime_error("Error opening GSD file");
+        std::ostringstream s;
+        s << "Invalid schema version in " << name << endl;
+        throw runtime_error(s.str());
         }
 
     // set frame from the end of the file if requested
@@ -66,10 +66,10 @@ GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
     // validate number of frames
     if (m_frame >= nframes)
         {
-        m_exec_conf->msg->error() << "data.gsd_snapshot: "
-                                  << "Cannot read frame " << m_frame << " " << name << " only has "
-                                  << gsd_get_nframes(&m_handle) << " frames" << endl;
-        throw runtime_error("Error opening GSD file");
+        std::ostringstream s;
+        s << "Cannot read frame " << m_frame << " " << name << " only has "
+          << gsd_get_nframes(&m_handle) << " frames.";
+        throw runtime_error(s.str());
         }
 
     readHeader();
@@ -125,10 +125,10 @@ bool GSDReader::readChunk(void* data,
         size_t actual_size = entry->N * entry->M * gsd_sizeof_type((enum gsd_type)entry->type);
         if (actual_size != expected_size)
             {
-            m_exec_conf->msg->error() << "data.gsd_snapshot: "
-                                      << "Expecting " << expected_size << " bytes in " << name
-                                      << " but found " << actual_size << endl;
-            throw runtime_error("Error reading GSD file");
+            std::ostringstream s;
+            s << "Expecting " << expected_size << " bytes in " << name << " but found "
+              << actual_size << ".";
+            throw runtime_error(s.str());
             }
         int retval = gsd_read_chunk(&m_handle, data, entry);
         GSDUtils::checkError(retval, m_name);
@@ -199,9 +199,9 @@ void GSDReader::readHeader()
     readChunk(&N, m_frame, "particles/N", 4);
     if (N == 0)
         {
-        m_exec_conf->msg->error() << "data.gsd_snapshot: "
-                                  << "cannot read a file with 0 particles" << endl;
-        throw runtime_error("Error reading GSD file");
+        std::ostringstream s;
+        s << "Cannot read a file with 0 particles.";
+        throw runtime_error(s.str());
         }
     m_snapshot->particle_data.resize(N);
     }
@@ -459,20 +459,26 @@ pybind11::array GSDStateReader::readChunk(const std::string& name)
     return result;
     }
 
-void export_GSDReader(py::module& m)
+namespace detail
     {
-    py::class_<GSDReader, std::shared_ptr<GSDReader>>(m, "GSDReader")
-        .def(py::init<std::shared_ptr<const ExecutionConfiguration>,
-                      const string&,
-                      const uint64_t,
-                      bool>())
+void export_GSDReader(pybind11::module& m)
+    {
+    pybind11::class_<GSDReader, std::shared_ptr<GSDReader>>(m, "GSDReader")
+        .def(pybind11::init<std::shared_ptr<const ExecutionConfiguration>,
+                            const string&,
+                            const uint64_t,
+                            bool>())
         .def("getTimeStep", &GSDReader::getTimeStep)
         .def("getSnapshot", &GSDReader::getSnapshot)
         .def("clearSnapshot", &GSDReader::clearSnapshot)
         .def("readTypeShapesPy", &GSDReader::readTypeShapesPy);
 
-    py::class_<GSDStateReader, std::shared_ptr<GSDStateReader>>(m, "GSDStateReader")
-        .def(py::init<const std::string&, int64_t>())
+    pybind11::class_<GSDStateReader, std::shared_ptr<GSDStateReader>>(m, "GSDStateReader")
+        .def(pybind11::init<const std::string&, int64_t>())
         .def("getAvailableChunks", &GSDStateReader::getAvailableChunks)
         .def("readChunk", &GSDStateReader::readChunk);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

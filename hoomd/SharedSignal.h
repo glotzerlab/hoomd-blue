@@ -8,7 +8,7 @@
 
 namespace hoomd
     {
-namespace detail // Adding namespace to avoid name conflicts with Nano
+namespace detail
     {
 /*! \ingroup hoomd_lib
     @{

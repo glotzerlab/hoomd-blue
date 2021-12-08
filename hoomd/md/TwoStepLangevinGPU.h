@@ -12,6 +12,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Implements Langevin dynamics on the GPU
 /*! GPU accelerated version of TwoStepLangevin
 
@@ -56,5 +60,11 @@ class PYBIND11_EXPORT TwoStepLangevinGPU : public TwoStepLangevin
         m_tuner_angular_one; //!< Autotuner for block size (angular step one kernel)
     };
 
+namespace detail
+    {
 //! Exports the TwoStepLangevinGPU class to python
 void export_TwoStepLangevinGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

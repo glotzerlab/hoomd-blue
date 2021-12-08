@@ -42,6 +42,10 @@
 
 const unsigned int NO_MOLECULE = (unsigned int)0xffffffff;
 
+namespace hoomd
+    {
+namespace md
+    {
 class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
     {
     public:
@@ -192,7 +196,13 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
 #endif
     };
 
+namespace detail
+    {
 //! Exports the MolecularForceCompute to python
 void export_MolecularForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

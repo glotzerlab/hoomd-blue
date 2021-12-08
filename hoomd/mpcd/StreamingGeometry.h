@@ -19,6 +19,8 @@
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace detail
@@ -35,8 +37,8 @@ void export_SlitGeometry(pybind11::module& m);
 //! Export SlitPoreGeometry to python
 void export_SlitPoreGeometry(pybind11::module& m);
 
-    } // end namespace detail
-    } // end namespace mpcd
-
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // __HIPCC__
 #endif // MPCD_STREAMING_GEOMETRY_H_

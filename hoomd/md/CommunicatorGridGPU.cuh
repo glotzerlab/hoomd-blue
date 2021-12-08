@@ -3,6 +3,12 @@
 
 #include "hoomd/HOOMDMath.h"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 template<typename T>
 void gpu_gridcomm_scatter_send_cells(unsigned int n_send_cells,
                                      unsigned int* d_send_idx,
@@ -18,3 +24,7 @@ void gpu_gridcomm_scatter_add_recv_cells(unsigned int n_unique_cell_recvs,
                                          const unsigned int* d_cell_recv_end,
                                          const unsigned int* d_recv_idx,
                                          bool add_outer);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
