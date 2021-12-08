@@ -3,6 +3,7 @@ set(files __init__.py
           test_clusters.py
           test_compute_free_volume.py
           test_compute_sdf.py
+          test_external.py
           test_external_user.py
           test_muvt.py
           test_boxmc.py
