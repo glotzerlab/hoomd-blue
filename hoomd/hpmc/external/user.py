@@ -7,6 +7,7 @@
 import hoomd
 from hoomd import _compile
 from hoomd.hpmc import integrate
+from hoomd.hpmc.field import ExternalField
 if hoomd.version.llvm_enabled:
     from hoomd.hpmc import _jit
 from hoomd.operation import _HOOMDBaseObject
@@ -14,7 +15,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 
 
-class CPPExternalPotential(_HOOMDBaseObject):
+class CPPExternalPotential(ExternalField):
     """Define an external potential energy field imposed on all particles in \
             the system.
 

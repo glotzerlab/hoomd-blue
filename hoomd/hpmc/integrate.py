@@ -382,13 +382,10 @@ class HPMCIntegrator(BaseIntegrator):
 
     @external_potential.setter
     def external_potential(self, new_external_potential):
-        # TODO: make all external fields inherit from a common base class to use
-        # for this check
-        if not isinstance(new_external_potential,
-                          (hoomd.hpmc.external.user.CPPExternalPotential,
-                           hoomd.hpmc.field.LatticeField)):
+        if not isinstance(
+                new_external_potential, hoomd.hpmc.field.ExternalField):
             msg = 'External potentials should be an instance of '
-            msg += 'CPPExternalPotential or similar'
+            msg += 'hoomd.hpmc.field.ExternalField.'
             raise TypeError(msg)
         if self._added:
             new_external_potential._add(self._simulation)

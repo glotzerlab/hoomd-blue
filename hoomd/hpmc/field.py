@@ -37,7 +37,18 @@ class _external(Compute):
         # nothing else to do.
 
 
-class LatticeField(_HOOMDBaseObject):
+class ExternalField(_HOOMDBaseObject):
+    """Base class external field.
+
+    Provides common methods for all subclasses.
+
+    Note:
+        Users should use the subclasses and not instantiate `ExternalField`
+        directly.
+    """
+
+
+class LatticeField(ExternalField):
     R""" Restrain particles on a lattice
 
     Args:
