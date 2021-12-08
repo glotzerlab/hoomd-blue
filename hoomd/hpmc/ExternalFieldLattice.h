@@ -45,8 +45,9 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
 
         // connect updateMemberTags() method to maximum particle number change signal
         m_pdata->getGlobalParticleNumberChangeSignal()
-            .template connect<ExternalFieldLattice, &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
-        }  // end constructor
+            .template connect<ExternalFieldLattice,
+                              &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
+        } // end constructor
 
     //! Destructor
     ~ExternalFieldLattice()
@@ -54,9 +55,10 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         if (m_pdata)
             {
             m_pdata->getGlobalParticleNumberChangeSignal()
-                .template disconnect<ExternalFieldLattice, &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
+                .template disconnect<ExternalFieldLattice,
+                                     &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
             }
-        }  // end destructor
+        } // end destructor
 
     //! Set reference positions from a (N_particles, 3) numpy array
     void setReferencePositions(const pybind11::array_t<double> ref_pos)
