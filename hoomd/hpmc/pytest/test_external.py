@@ -2,7 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Test hoomd.hpmc.field"""
+"""Test hoomd.hpmc.field."""
 
 import hoomd
 import pytest
@@ -88,7 +88,7 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
 @pytest.mark.cpu
 def test_lattice_displacement(device, simulation_factory,
                               two_particle_snapshot_factory):
-    """Ensure lattice displacements result in expected energy"""
+    """Ensure lattice displacements result in expected energy."""
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
 
