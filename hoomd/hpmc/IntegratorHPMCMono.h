@@ -968,7 +968,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     } // end loop over images
                 } // end if (m_patch)
 
-            // Add external energetic contribution
+            // Add external energetic contribution if there are no overlaps
             if (m_external && !overlap)
                 {
                 patch_field_energy_diff -= m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
