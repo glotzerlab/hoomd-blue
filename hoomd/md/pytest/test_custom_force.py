@@ -73,6 +73,7 @@ def test_simulation(force_cls, simulation_factory, lattice_snapshot_factory):
     """Make sure custom force can plug into simulation without crashing."""
     snap = lattice_snapshot_factory()
     sim = simulation_factory(snap)
+    _skip_if_cupy_not_imported_and_gpu_device(sim)
     custom_force = force_cls()
     nvt = md.methods.NPT(hoomd.filter.All(),
                          kT=1,
