@@ -93,6 +93,7 @@ class LatticeField(ExternalField):
         log = analyze.log(quantities=['lattice_energy'], period=100, filename='log.dat', overwrite=True);
 
     """
+
     def __init__(self, position, orientation, k_translational, k_rotational,
                  symmetries):
         param_dict = ParameterDict(

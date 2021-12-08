@@ -8,15 +8,12 @@ import hoomd
 import pytest
 import numpy as np
 
-
 valid_constructor_args = [
-        dict(
-            position=[[0, 0, 0]],
-            orientation=[[1, 0, 0, 0]],
-            k_translational=1.0,
-            k_rotational=1.0,
-            symmetries=[[1, 0, 0, 0]]
-            ),
+    dict(position=[[0, 0, 0]],
+         orientation=[[1, 0, 0, 0]],
+         k_translational=1.0,
+         k_rotational=1.0,
+         symmetries=[[1, 0, 0, 0]]),
 ]
 
 
@@ -28,8 +25,8 @@ def test_valid_construction_latticefield(device, constructor_args):
 
     # validate the params were set properly
     translator = {
-            'position': 'reference_positions',
-            'orientation': 'reference_orientations'
+        'position': 'reference_positions',
+        'orientation': 'reference_orientations'
     }
     for attr, value in constructor_args.items():
         assert np.all(getattr(field, translator.get(attr, attr)) == value)
@@ -46,11 +43,11 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
 
     # create lattice field
     lattice = hoomd.hpmc.field.LatticeField(
-            position=sim.state.get_snapshot().particles.position,
-            orientation=sim.state.get_snapshot().particles.orientation,
-            k_translational=1.0,
-            k_rotational=1.0,
-            symmetries=[[1, 0, 0, 0]])
+        position=sim.state.get_snapshot().particles.position,
+        orientation=sim.state.get_snapshot().particles.orientation,
+        k_translational=1.0,
+        k_rotational=1.0,
+        symmetries=[[1, 0, 0, 0]])
     mc.external_potential = lattice
 
     # create C++ mirror classes and set parameters
@@ -72,11 +69,11 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
 
     # create lattice field
     lattice = hoomd.hpmc.field.LatticeField(
-            position=sim.state.get_snapshot().particles.position,
-            orientation=sim.state.get_snapshot().particles.orientation,
-            k_translational=1.0,
-            k_rotational=1.0,
-            symmetries=[[1, 0, 0, 0]])
+        position=sim.state.get_snapshot().particles.position,
+        orientation=sim.state.get_snapshot().particles.orientation,
+        k_translational=1.0,
+        k_rotational=1.0,
+        symmetries=[[1, 0, 0, 0]])
     mc.external_potential = lattice
 
     # create C++ mirror classes and set parameters
@@ -87,9 +84,10 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
     assert not mc._attached
     assert not lattice._attached
 
+
 @pytest.mark.cpu
 def test_lattice_displacement(device, simulation_factory,
-        two_particle_snapshot_factory):
+                              two_particle_snapshot_factory):
     """Ensure lattice displacements result in expected energy"""
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
@@ -101,11 +99,11 @@ def test_lattice_displacement(device, simulation_factory,
     # create lattice field
     k_trans = 1.0
     lattice = hoomd.hpmc.field.LatticeField(
-            position=sim.state.get_snapshot().particles.position,
-            orientation=sim.state.get_snapshot().particles.orientation,
-            k_translational=k_trans,
-            k_rotational=1.0,
-            symmetries=[[1, 0, 0, 0]])
+        position=sim.state.get_snapshot().particles.position,
+        orientation=sim.state.get_snapshot().particles.orientation,
+        k_translational=k_trans,
+        k_rotational=1.0,
+        symmetries=[[1, 0, 0, 0]])
     mc.external_potential = lattice
 
     dx = 0.01
@@ -114,7 +112,4 @@ def test_lattice_displacement(device, simulation_factory,
 
     # create C++ mirror classes and set parameters
     sim.run(0)
-    assert np.allclose(
-            lattice.energy,
-            dx**2 * k_trans * sim.state.N_particles
-    )
+    assert np.allclose(lattice.energy, dx**2 * k_trans * sim.state.N_particles)
