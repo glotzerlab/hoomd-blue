@@ -161,7 +161,6 @@ class LatticeField(_HOOMDBaseObject):
             msg += 'GPU not supported.'
             raise RuntimeError(msg)
 
-        breakpoint()
         self._cpp_obj = cls(
                 cpp_sys_def,
                 self.reference_positions,
@@ -170,19 +169,6 @@ class LatticeField(_HOOMDBaseObject):
                 self.k_rotational,
                 self.symmetries,
         )
-
-        """
-        self.cpp_compute = cls(hoomd.context.current.system_definition,
-                               enlist(position), float(k), enlist(orientation),
-                               float(q), enlist(symmetry))
-        hoomd.context.current.system.addCompute(self.cpp_compute,
-                                                self.compute_name)
-
-        # is this needed?
-        if not composite:
-            mc.set_external(self)
-        """
-
         super()._attach()
 
     @log(requires_run=True)

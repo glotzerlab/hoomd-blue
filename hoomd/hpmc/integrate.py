@@ -6,7 +6,6 @@
 
 from hoomd import _hoomd
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
-from hoomd.data import syncedlist
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.data.typeparam import TypeParameter
 from hoomd.error import DataAccessError
@@ -15,11 +14,6 @@ from hoomd.integrate import BaseIntegrator
 from hoomd.logging import log
 import hoomd
 import json
-
-
-def _set_synced_list(old_list, new_list):
-    old_list.clear()
-    old_list.extend(new_list)
 
 
 class HPMCIntegrator(BaseIntegrator):
@@ -131,20 +125,13 @@ class HPMCIntegrator(BaseIntegrator):
                  nselect):
         super().__init__()
 
-        self._valid_external_field_types = (
-                hoomd.hpmc.external.user.CPPExternalPotential,
-                hoomd.hpmc.field.LatticeField,
-        )
-
         # Set base parameter dict for hpmc integrators
         param_dict = ParameterDict(
             translation_move_probability=float(translation_move_probability),
             nselect=int(nselect))
         self._param_dict.update(param_dict)
         self._pair_potential = None
-        self._external_potentials = syncedlist.SyncedList(
-                lambda x: isinstance(x, self._valid_external_field_types)
-        )
+        self._external_potential = None
 
         # Set standard typeparameters for hpmc integrators
         typeparam_d = TypeParameter('d',
@@ -185,8 +172,8 @@ class HPMCIntegrator(BaseIntegrator):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
-        for external_potential in self._external_potentials:
-            external_potential._add(simulation)
+        if self._external_potential is not None:
+            self._external_potential._add(simulation)
         if self._pair_potential is not None:
             self._pair_potential._add(simulation)
 
@@ -208,29 +195,24 @@ class HPMCIntegrator(BaseIntegrator):
 
         super()._attach()
 
-        for external_potential in self._external_potentials:
-            external_potential._attach()
-            self._cpp_obj.addExternalField(external_field._cpp_obj)
-        """ TODO: remove once the above works
         if self._external_potential is not None:
             self._external_potential._attach()
             self._cpp_obj.setExternalField(self._external_potential._cpp_obj)
-        """
 
         if self._pair_potential is not None:
             self._pair_potential._attach()
             self._cpp_obj.setPatchEnergy(self._pair_potential._cpp_obj)
 
     def _detach(self):
-        for external_potential in self._external_potentials:
-            external_potential._detach()
+        if self._external_potential is not None:
+            self._external_potential._detach()
         if self._pair_potential is not None:
             self._pair_potential._detach()
         super()._detach()
 
     def _remove(self):
-        for external_potential in self._external_potentials:
-            external_potential._remove()
+        if self._external_potential is not None:
+            self._external_potential._remove()
         if self._pair_potential is not None:
             self._pair_potential._remove()
         super()._remove()
@@ -393,30 +375,23 @@ class HPMCIntegrator(BaseIntegrator):
         self._pair_potential = new_potential
 
     @property
-    def external_potentials(self):
+    def external_potential(self):
         """The user-defined potential energy field associated with the\
                 integrator."""
-        return self._external_potentials
+        return self._external_potential
 
-    @external_potentials.setter
-    def external_potentials(self, new_external_potential):
-        if not isinstance(
-                new_external_potential,
-                self._valid_external_field_types
-        ):
-            msg = 'External potentials should be an instance of one of: '
-            for vt in valid_types:
-                msg += f'{vt}, '
-            raise TypeError(msg)
-        _set_synced_list(self._external_potentials, new_external_potential)
-
-    """
     @external_potential.setter
     def external_potential(self, new_external_potential):
-        if not isinstance(new_external_potential,
-                          hoomd.hpmc.external.user.CPPExternalPotential):
+        # TODO: make all external fields inherit from a common base class to use
+        # for this check
+        if not isinstance(
+                new_external_potential,
+                (
+                    hoomd.hpmc.external.user.CPPExternalPotential,
+                    hoomd.hpmc.field.LatticeField)
+                ):
             msg = 'External potentials should be an instance of '
-            msg += 'CPPExternalPotential'
+            msg += 'CPPExternalPotential or similar'
             raise TypeError(msg)
         if self._added:
             new_external_potential._add(self._simulation)
@@ -428,7 +403,6 @@ class HPMCIntegrator(BaseIntegrator):
         if self._added and self._external_potential is not None:
             self._external_potential._remove()
         self._external_potential = new_external_potential
-    """
 
 
 class Sphere(HPMCIntegrator):

@@ -44,18 +44,20 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         setSymmetricallyEquivalentOrientations(symRotations);  // TODO: check for identity?
 
         // connect updateMemberTags() method to maximum particle number change signal
-        m_pdata->getGlobalParticleNumberChangeSignal()
-            .connect<ExternalFieldLattice, &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
+        //m_pdata->getGlobalParticleNumberChangeSignal()
+        //    .connect<ExternalFieldLattice, &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
         }  // end constructor
 
     //! Destructor
     ~ExternalFieldLattice()
         {
+        /*
         if (m_pdata)
             {
             m_pdata->getGlobalParticleNumberChangeSignal()
                 .disconnect<ExternalFieldLattice, &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
             }
+        */
         }  // end destructor
 
     //! Set reference positions from a (N_particles, 3) numpy array
