@@ -64,11 +64,11 @@ class EvaluatorPairExpandedLJ
     {
     public:
     //! Define the parameter type used by this pair potential evaluator
-    //    typedef EvaluatorPairExpandedLJ::param_type param_type;
     struct param_type
         {
         Scalar sigma_6;
         Scalar epsilon_x_4;
+        Scalar delta;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -83,12 +83,13 @@ class EvaluatorPairExpandedLJ
 #endif
 
 #ifndef __HIPCC__
-        param_type() : sigma_6(0), epsilon_x_4(0) { }
+        param_type() : sigma_6(0), epsilon_x_4(0), delta(0) { }
 
         param_type(pybind11::dict v, bool managed = false)
             {
             auto sigma(v["sigma"].cast<Scalar>());
             auto epsilon(v["epsilon"].cast<Scalar>());
+            auto delta(v["delta"].cast<Scalar>());
 
             sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
             epsilon_x_4 = Scalar(4.0) * epsilon;
@@ -102,7 +103,7 @@ class EvaluatorPairExpandedLJ
             }
 
         // this constructor facilitates unit testing
-        param_type(Scalar sigma, Scalar epsilon, bool managed = false)
+        param_type(Scalar sigma, Scalar epsilon, Scalar delta, bool managed = false)
             {
             sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
             epsilon_x_4 = Scalar(4.0) * epsilon;
@@ -113,6 +114,7 @@ class EvaluatorPairExpandedLJ
             pybind11::dict v;
             v["sigma"] = pow(sigma_6, 1. / 6.);
             v["epsilon"] = epsilon_x_4 / 4.0;
+            v["delta"] = delta
             return v;
             }
 #endif
@@ -124,7 +126,8 @@ class EvaluatorPairExpandedLJ
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairExpandedLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2), delta(_params.delta)
+        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
+        lj2(_params.epsilon_x_4 * _params.sigma_6), delta(_params.delta)
         {
         }
 
