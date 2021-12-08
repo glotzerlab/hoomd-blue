@@ -798,19 +798,22 @@
       ]
     ]
   },
-"SLJ": {
+  "ExpandedLJ": {
     "params": [
       {
         "sigma": 0.5,
-        "epsilon": 0.0005
+        "epsilon": 0.0005,
+        "delta": 1.0
       },
       {
         "sigma": 1.0,
-        "epsilon": 0.001
+        "epsilon": 0.001,
+        "delta": 1.0
       },
       {
         "sigma": 1.5,
-        "epsilon": 0.0015
+        "epsilon": 0.0015,
+        "delta": 1.0
       }
     ],
     "forces": [
