@@ -118,7 +118,8 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
     // within v1 support plane. If origin is on a line between v1 and v0, particles overlap.
     // if (dot(n, n) < tol)
     // cross product has units of length**2, multiply tolerance by R**2 to put in the same units
-    if (fabs(n.x) < precision_tol * R * R && fabs(n.y) < precision_tol * R * R && fabs(n.z) < precision_tol * R * R)
+    if (fabs(n.x) < precision_tol * R * R && fabs(n.y) < precision_tol * R * R
+        && fabs(n.z) < precision_tol * R * R)
         return true;
 
     v2 = S(n); // Convexity should guarantee ||v2|| > 0, but v2 == v1 may be possible in edge cases

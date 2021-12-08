@@ -8,12 +8,14 @@ import hoomd
 import pytest
 import math
 
+
 @pytest.mark.parametrize("scale", [1e-9, 1, 1000, 1e9])
 @pytest.mark.parametrize("shape", ['ConvexPolygon', 'SimplePolygon'])
 @pytest.mark.parametrize("offset", [-100, -10, -1, 1, 10, 100])
 @pytest.mark.serial
 @pytest.mark.cpu
-def test_polygon(scale, shape, offset, simulation_factory, two_particle_snapshot_factory):
+def test_polygon(scale, shape, offset, simulation_factory,
+                 two_particle_snapshot_factory):
     """Test polygons at a variety of scales."""
     # make a many sided polygon to ensure that the overlap check is non-trivial
     a = 0.5 * scale
@@ -24,8 +26,9 @@ def test_polygon(scale, shape, offset, simulation_factory, two_particle_snapshot
         vertices.append([math.cos(theta) * a, math.sin(theta) * a])
 
     epsilon = 1e-5
-    initial_snap = two_particle_snapshot_factory(dimensions=2, d=scale * (1 + offset*epsilon), L=scale*3)
-    initial_snap.particles.position[:,1] = 0
+    d = scale * (1 + offset * epsilon)
+    initial_snap = two_particle_snapshot_factory(dimensions=2, d=d, L=scale * 3)
+    initial_snap.particles.position[:, 1] = 0
     sim = simulation_factory(initial_snap)
 
     mc = getattr(hoomd.hpmc.integrate, shape)(default_d=0)
@@ -43,7 +46,8 @@ def test_polygon(scale, shape, offset, simulation_factory, two_particle_snapshot
 @pytest.mark.parametrize("offset", [-100, -10, -1, 1, 10, 100])
 @pytest.mark.serial
 @pytest.mark.cpu
-def test_convex_polyhedron(scale, offset, simulation_factory, two_particle_snapshot_factory):
+def test_convex_polyhedron(scale, offset, simulation_factory,
+                           two_particle_snapshot_factory):
     """Test convex polyhedrons at a variety of scales."""
     # make a many sized prism to ensure that the overlap check is non-trivial
     a = 0.5 * scale
@@ -55,8 +59,9 @@ def test_convex_polyhedron(scale, offset, simulation_factory, two_particle_snaps
         vertices.append([math.cos(theta) * a, math.sin(theta) * a, a])
 
     epsilon = 1e-5
-    initial_snap = two_particle_snapshot_factory(dimensions=3, d=scale * (1 + offset*epsilon), L=scale*3)
-    initial_snap.particles.position[:,2] = 0
+    d = scale * (1 + offset * epsilon)
+    initial_snap = two_particle_snapshot_factory(dimensions=3, d=d, L=scale * 3)
+    initial_snap.particles.position[:, 2] = 0
     sim = simulation_factory(initial_snap)
 
     mc = hoomd.hpmc.integrate.ConvexPolyhedron(default_d=0)
