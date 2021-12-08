@@ -37,8 +37,7 @@ HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(std::shared_ptr<Syste
     // check for some silly errors a user could make
     if (m_dihedral_data->getNTypes() == 0)
         {
-        m_exec_conf->msg->error() << "dihedral.harmonic: No dihedral types specified" << endl;
-        throw runtime_error("Error initializing HarmonicDihedralForceCompute");
+        throw runtime_error("No dihedral types in the system.");
         }
 
     // allocate the parameters
@@ -78,8 +77,7 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type,
     // make sure the type is valid
     if (type >= m_dihedral_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "dihedral.harmonic: Invalid dihedral type specified" << endl;
-        throw runtime_error("Error setting parameters in HarmonicDihedralForceCompute");
+        throw runtime_error("Invalid dihedral type.");
         }
 
     m_K[type] = K;

@@ -34,8 +34,7 @@ Compute::Compute(std::shared_ptr<SystemDefinition> sysdef)
     Derived classes can optionally implement this method. */
 double Compute::benchmark(unsigned int num_iters)
     {
-    m_exec_conf->msg->error() << "This compute doesn't support benchmarking" << endl;
-    throw runtime_error("Error benchmarking compute");
+    throw runtime_error("Benchmarking not supported.");
     return 0.0;
     }
 

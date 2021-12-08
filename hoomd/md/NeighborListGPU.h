@@ -69,7 +69,7 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         m_checkn = 1;
 
         // flag to say how big to resize
-        GlobalArray<unsigned int> req_size_nlist(1, m_exec_conf);
+        GlobalArray<size_t> req_size_nlist(1, m_exec_conf);
         std::swap(m_req_size_nlist, req_size_nlist);
         TAG_ALLOCATION(m_req_size_nlist);
 
@@ -77,7 +77,7 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         if (m_exec_conf->allConcurrentManagedAccess())
             {
             cudaMemAdvise(m_req_size_nlist.get(),
-                          m_req_size_nlist.getNumElements() * sizeof(unsigned int),
+                          m_req_size_nlist.getNumElements() * sizeof(size_t),
                           cudaMemAdviseSetPreferredLocation,
                           cudaCpuDeviceId);
             CHECK_CUDA_ERROR();
@@ -128,8 +128,7 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
     protected:
     GlobalArray<unsigned int> m_flags; //!< Storage for device flags on the GPU
 
-    GlobalArray<unsigned int>
-        m_req_size_nlist; //!< Flag to hold the required size of the neighborlist
+    GlobalArray<size_t> m_req_size_nlist; //!< Flag to hold the required size of the neighborlist
 
     //! Builds the neighbor list
     virtual void buildNlist(uint64_t timestep);
