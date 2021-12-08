@@ -252,6 +252,16 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(slj_invalid_dicts, md.pair.SLJ, {}))
 
+    expanded_lj_valid_dict = {
+        "sigma": 0.5,
+        "epsilon": 0.0005,
+        "delta": 0.25
+    }
+    expanded_lj_invalid_dicts = _make_invalid_param_dict(expanded_lj_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(expanded_lj_invalid_dicts, md.pair.ExpandedLJ, {})
+    )
+
     expanded_mie_valid_dict = {
         "epsilon": 0.05,
         "sigma": 0.5,
