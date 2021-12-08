@@ -88,21 +88,16 @@ class LatticeField(_HOOMDBaseObject):
         pass
         self.compute_name = "lattice_field"
 
-    def __init__(self,
-                 position,
-                 orientation,
-                 k_translational,
-                 k_rotational,
+    def __init__(self, position, orientation, k_translational, k_rotational,
                  symmetry):
         param_dict = ParameterDict(
-                reference_positions=NDArrayValidator(
-                    dtype=np.float32, shape=(None, 3)),
-                reference_orientations=NDArrayValidator(
-                    dtype=np.float32, shape=(None, 4)),
-                k_translational=float,
-                k_rotational=float,
-                symmetries=NDArrayValidator(
-                    dtype=np.float32, shape=(None, 4)),
+            reference_positions=NDArrayValidator(dtype=np.float32,
+                                                 shape=(None, 3)),
+            reference_orientations=NDArrayValidator(dtype=np.float32,
+                                                    shape=(None, 4)),
+            k_translational=float,
+            k_rotational=float,
+            symmetries=NDArrayValidator(dtype=np.float32, shape=(None, 4)),
         )
         param_dict['k_translational'] = k_translational
         param_dict['k_rotational'] = k_rotational
@@ -162,12 +157,12 @@ class LatticeField(_HOOMDBaseObject):
             raise RuntimeError(msg)
 
         self._cpp_obj = cls(
-                cpp_sys_def,
-                self.reference_positions,
-                self.k_translational,
-                self.reference_orientations,
-                self.k_rotational,
-                self.symmetries,
+            cpp_sys_def,
+            self.reference_positions,
+            self.k_translational,
+            self.reference_orientations,
+            self.k_rotational,
+            self.symmetries,
         )
         super()._attach()
 
