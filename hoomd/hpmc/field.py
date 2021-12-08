@@ -82,12 +82,6 @@ class LatticeField(_HOOMDBaseObject):
         log = analyze.log(quantities=['lattice_energy'], period=100, filename='log.dat', overwrite=True);
 
     """
-
-    def __init__(self, reference_positions, reference_orientations,
-                 k_translational, k_orientational, sym_ors):
-        pass
-        self.compute_name = "lattice_field"
-
     def __init__(self, position, orientation, k_translational, k_rotational,
                  symmetries):
         param_dict = ParameterDict(
