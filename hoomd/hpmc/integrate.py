@@ -382,8 +382,8 @@ class HPMCIntegrator(BaseIntegrator):
 
     @external_potential.setter
     def external_potential(self, new_external_potential):
-        if not isinstance(
-                new_external_potential, hoomd.hpmc.field.ExternalField):
+        if not isinstance(new_external_potential,
+                          hoomd.hpmc.field.ExternalField):
             msg = 'External potentials should be an instance of '
             msg += 'hoomd.hpmc.field.ExternalField.'
             raise TypeError(msg)
