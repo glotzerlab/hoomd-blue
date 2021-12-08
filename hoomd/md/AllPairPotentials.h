@@ -11,7 +11,7 @@
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairDPDThermo.h"
 #include "EvaluatorPairEwald.h"
-#include "EvaluatorPairExpandedLj.h"
+#include "EvaluatorPairExpandedLJ.h"
 #include "EvaluatorPairExpandedMie.h"
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "EvaluatorPairFourier.h"
@@ -110,7 +110,7 @@ typedef PotentialPairGPU<EvaluatorPairLJ, kernel::gpu_compute_ljtemp_forces> Pot
 typedef PotentialPairGPU<EvaluatorPairGauss, kernel::gpu_compute_gauss_forces>
     PotentialPairGaussGPU;
 //! Pair potential force compute for slj forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairSLJ, gpu_compute_slj_forces> PotentialPairSLJGPU;
+typedef PotentialPairGPU<EvaluatorPairSLJ, kernel::gpu_compute_slj_forces> PotentialPairSLJGPU;
 //! Pair potential force compute for expanded lj forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairExpandedLJ, kernel::gpu_compute_expanded_lj_forces>
     PotentialPairExpandedLJGPU;

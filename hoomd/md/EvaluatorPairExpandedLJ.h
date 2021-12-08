@@ -28,6 +28,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Expanded LJ pair potential
 /*! <b>General Overview</b>
 
@@ -60,7 +64,7 @@ class EvaluatorPairExpandedLJ
     {
     public:
     //! Define the parameter type used by this pair potential evaluator
-    typedef EvaluatorPairLJ::param_type param_type;
+    typedef EvaluatorPairExpandedLJ::param_type param_type;
 
     DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -167,5 +171,8 @@ class EvaluatorPairExpandedLJ
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     Scalar delta;  //!< outward radial shift to apply to LJ potential
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EXPANDEDLJ_H__
