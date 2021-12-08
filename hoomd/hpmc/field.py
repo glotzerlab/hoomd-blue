@@ -93,7 +93,7 @@ class LatticeField(_HOOMDBaseObject):
                  orientation,
                  k_translational,
                  k_rotational,
-                 symmetry):
+                 symmetries):
         param_dict = ParameterDict(
                 reference_positions=NDArrayValidator(
                     dtype=np.float32, shape=(None, 3)),
@@ -108,7 +108,7 @@ class LatticeField(_HOOMDBaseObject):
         param_dict['k_rotational'] = k_rotational
         param_dict['reference_positions'] = position
         param_dict['reference_orientations'] = orientation
-        param_dict['symmetries'] = symmetry
+        param_dict['symmetries'] = symmetries
         self._param_dict.update(param_dict)
 
     def _attach(self):
@@ -176,8 +176,8 @@ class LatticeField(_HOOMDBaseObject):
         """float: The energy of the lattice field :math:`[\\mathrm{energy}]`.
 
         """
-        timestep = hoomd.context.current.system.getCurrentTimeStep()
-        return self.cpp_compute.getEnergy(timestep)
+        timestep = self._simulation.timestep
+        return self._cpp_obj.getEnergy(timestep)
 
 
 class external_field_composite(_external):

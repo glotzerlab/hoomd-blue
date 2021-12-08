@@ -44,20 +44,18 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         setSymmetricallyEquivalentOrientations(symRotations);  // TODO: check for identity?
 
         // connect updateMemberTags() method to maximum particle number change signal
-        //m_pdata->getGlobalParticleNumberChangeSignal()
-        //    .connect<ExternalFieldLattice, &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
+        m_pdata->getGlobalParticleNumberChangeSignal()
+            .template connect<ExternalFieldLattice, &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
         }  // end constructor
 
     //! Destructor
     ~ExternalFieldLattice()
         {
-        /*
         if (m_pdata)
             {
             m_pdata->getGlobalParticleNumberChangeSignal()
-                .disconnect<ExternalFieldLattice, &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
+                .template disconnect<ExternalFieldLattice, &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
             }
-        */
         }  // end destructor
 
     //! Set reference positions from a (N_particles, 3) numpy array
@@ -469,7 +467,7 @@ template<class Shape> void export_LatticeField(pybind11::module& m, std::string 
         .def_property("k_rotational",
                       &ExternalFieldLattice<Shape>::getKRotational,
                       &ExternalFieldLattice<Shape>::setKRotational)
-        .def_property("symmetry",
+        .def_property("symmetries",
                       &ExternalFieldLattice<Shape>::getSymmetricallyEquivalentOrientations,
                       &ExternalFieldLattice<Shape>::setSymmetricallyEquivalentOrientations)
         .def("getEnergy", &ExternalFieldLattice<Shape>::getEnergy);
