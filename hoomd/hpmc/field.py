@@ -89,7 +89,7 @@ class LatticeField(_HOOMDBaseObject):
         self.compute_name = "lattice_field"
 
     def __init__(self, position, orientation, k_translational, k_rotational,
-            symmetries):
+                 symmetries):
         param_dict = ParameterDict(
             reference_positions=NDArrayValidator(dtype=np.float32,
                                                  shape=(None, 3)),
