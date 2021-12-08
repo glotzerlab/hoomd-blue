@@ -418,14 +418,8 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
                  const Scalar& scale = 1.0)
         {
         Scalar energy = 0.0;
-        // if (m_lattice_positions.isValid())
-        //     {
         energy += calcE_trans(index, position, scale);
-        //    }
-        // if (m_lattice_orientations.isValid())
-        //    {
         energy += calcE_rot(index, orientation);
-        //    }
         return energy;
         }
 
