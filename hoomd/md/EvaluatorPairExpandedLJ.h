@@ -64,16 +64,59 @@ class EvaluatorPairExpandedLJ
     {
     public:
     //! Define the parameter type used by this pair potential evaluator
-    typedef EvaluatorPairExpandedLJ::param_type param_type;
+    //    typedef EvaluatorPairExpandedLJ::param_type param_type;
+    struct param_type
+        {
+        Scalar sigma_6;
+        Scalar epsilon_x_4;
 
-    DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
-    HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
-    // set CUDA memory hints
-    void set_memory_hint() const { }
+        //! Set CUDA memory hints
+        void set_memory_hint() const
+            {
+            // default implementation does nothing
+            }
 #endif
+
+#ifndef __HIPCC__
+        param_type() : sigma_6(0), epsilon_x_4(0) { }
+
+        param_type(pybind11::dict v, bool managed = false)
+            {
+            auto sigma(v["sigma"].cast<Scalar>());
+            auto epsilon(v["epsilon"].cast<Scalar>());
+
+            sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
+            epsilon_x_4 = Scalar(4.0) * epsilon;
+
+            // previous parameters
+            // lj1 = 4.0 * epsilon * pow(sigma, 12.0);
+            // - > lj1 = epsilon_x_4 * sigma_6 * sigma_6
+
+            // lj2 = 4.0 * epsilon * pow(sigma, 6.0);
+            // - > lj2 = epsilon_x_4 * sigma_6
+            }
+
+        // this constructor facilitates unit testing
+        param_type(Scalar sigma, Scalar epsilon, bool managed = false)
+            {
+            sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
+            epsilon_x_4 = Scalar(4.0) * epsilon;
+            }
+
+        pybind11::dict asDict()
+            {
+            pybind11::dict v;
+            v["sigma"] = pow(sigma_6, 1. / 6.);
+            v["epsilon"] = epsilon_x_4 / 4.0;
+            return v;
+            }
+#endif
+        }
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
