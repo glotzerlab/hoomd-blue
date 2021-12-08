@@ -69,10 +69,9 @@ def _try_running_sim(sim, tsteps):
 
 @pytest.mark.parametrize("force_cls", [MyForceCPU, MyForceGPU],
                          ids=lambda x: x.__name__)
-def test_simulation(force_cls, simulation_factory,
-                    two_particle_snapshot_factory):
+def test_simulation(force_cls, simulation_factory, lattice_snapshot_factory):
     """Make sure custom force can plug into simulation without crashing."""
-    snap = two_particle_snapshot_factory()
+    snap = lattice_snapshot_factory()
     sim = simulation_factory(snap)
     custom_force = force_cls()
     nvt = md.methods.NPT(hoomd.filter.All(),
