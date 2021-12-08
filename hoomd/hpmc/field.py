@@ -121,46 +121,47 @@ class LatticeField(_HOOMDBaseObject):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
+        # get device and system definition from simulation
         device = self._simulation.device
         cpp_sys_def = self._simulation.state._cpp_sys_def
 
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            if isinstance(mc, integrate.sphere):
+        if not isinstance(device, hoomd.device.GPU):
+            if isinstance(integrator, integrate.Sphere):
                 cls = _hpmc.ExternalFieldLatticeSphere
-            elif isinstance(mc, integrate.convex_polygon):
+            elif isinstance(integrator, integrate.ConvexPolygon):
                 cls = _hpmc.ExternalFieldLatticeConvexPolygon
-            elif isinstance(mc, integrate.simple_polygon):
+            elif isinstance(integrator, integrate.SimplePolygon):
                 cls = _hpmc.ExternalFieldLatticeSimplePolygon
-            elif isinstance(mc, integrate.convex_polyhedron):
+            elif isinstance(integrator, integrate.ConvexPolyhedron):
                 cls = _hpmc.ExternalFieldLatticeConvexPolyhedron
-            elif isinstance(mc, integrate.convex_spheropolyhedron):
+            elif isinstance(integrator, integrate.ConvexSpheropolyhedron):
                 cls = _hpmc.ExternalFieldLatticeSpheropolyhedron
-            elif isinstance(mc, integrate.ellipsoid):
+            elif isinstance(integrator, integrate.Ellipsoid):
                 cls = _hpmc.ExternalFieldLatticeEllipsoid
-            elif isinstance(mc, integrate.convex_spheropolygon):
+            elif isinstance(integrator, integrate.ConvexSpheropolygon):
                 cls = _hpmc.ExternalFieldLatticeSpheropolygon
-            elif isinstance(mc, integrate.faceted_ellipsoid):
+            elif isinstance(integrator, integrate.FacetedEllipsoid):
                 cls = _hpmc.ExternalFieldLatticeFacetedEllipsoid
-            elif isinstance(mc, integrate.polyhedron):
+            elif isinstance(integrator, integrate.Polyhedron):
                 cls = _hpmc.ExternalFieldLatticePolyhedron
-            elif isinstance(mc, integrate.sphinx):
+            elif isinstance(integrator, integrate.Sphinx):
                 cls = _hpmc.ExternalFieldLatticeSphinx
-            elif isinstance(mc, integrate.sphere_union):
+            elif isinstance(integrator, integrate.SphereUnion):
                 cls = _hpmc.ExternalFieldLatticeSphereUnion
-            elif isinstance(mc, integrate.faceted_ellipsoid_union):
+            elif isinstance(integrator, integrate.FacetedEllipsoidUnion):
                 cls = _hpmc.ExternalFieldlatticeFacetedEllipsoidUnion
-            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
+            elif isinstance(integrator, integrate.ConvexSpheropolyhedronUnion):
                 cls = _hpmc.ExternalFieldLatticeConvexPolyhedronUnion
             else:
-                hoomd.context.current.device.cpp_msg.error(
-                    "compute.position_lattice_field: Unsupported integrator.\n")
-                raise RuntimeError(
-                    "Error initializing compute.position_lattice_field")
+                msg = 'Error initializing hoomd.hpmc.field.LatticeField: '
+                msg += 'unsupported integrator'
+                raise RuntimeError(msg)
         else:
-            hoomd.context.current.device.cpp_msg.error("GPU not supported yet")
-            raise RuntimeError(
-                "Error initializing compute.position_lattice_field")
+            msg = 'Error initializing hoomd.hpmc.field.LatticeField: '
+            msg += 'GPU not supported.'
+            raise RuntimeError(msg)
 
+        breakpoint()
         self._cpp_obj = cls(
                 cpp_sys_def,
                 self.reference_positions,
@@ -170,6 +171,7 @@ class LatticeField(_HOOMDBaseObject):
                 self.symmetries,
         )
 
+        """
         self.cpp_compute = cls(hoomd.context.current.system_definition,
                                enlist(position), float(k), enlist(orientation),
                                float(q), enlist(symmetry))
@@ -179,6 +181,7 @@ class LatticeField(_HOOMDBaseObject):
         # is this needed?
         if not composite:
             mc.set_external(self)
+        """
 
         super()._attach()
 

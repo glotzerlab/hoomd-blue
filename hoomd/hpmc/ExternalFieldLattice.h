@@ -32,17 +32,31 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
     public:
     //! Constructor
     ExternalFieldLattice(std::shared_ptr<SystemDefinition> sysdef,
-                         pybind11::list r0,
+                         pybind11::array_t<double> r0,
                          Scalar k,
-                         pybind11::list q0,
+                         pybind11::array_t<double> q0,
                          Scalar q,
-                         pybind11::list symRotations)
-        : ExternalFieldMono<Shape>(sysdef), m_k_translational(k), m_k_rotational(q), m_energy(0.0)
+                         pybind11::array_t<double> symRotations)
+        : ExternalFieldMono<Shape>(sysdef), m_k_translational(k), m_k_rotational(q)
         {
         setReferencePositions(r0);
         setReferenceOrientations(q0);
         setSymmetricallyEquivalentOrientations(symRotations);  // TODO: check for identity?
-        }
+
+        // connect updateMemberTags() method to maximum particle number change signal
+        m_pdata->getGlobalParticleNumberChangeSignal()
+            .connect<ExternalFieldLattice, &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
+        }  // end constructor
+
+    //! Destructor
+    ~ExternalFieldLattice()
+        {
+        if (m_pdata)
+            {
+            m_pdata->getGlobalParticleNumberChangeSignal()
+                .disconnect<ExternalFieldLattice, &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
+            }
+        }  // end destructor
 
     //! Set reference positions from a (N_particles, 3) numpy array
     void setReferencePositions(const pybind11::array_t<double> ref_pos)
@@ -221,11 +235,15 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         return m_k_rotational;
         }
 
-    //! Getter for energy
-    Scalar getEnergy(uint64_t timestep)
+    //! Helper function to be called when particles are added/removed
+    void slotGlobalParticleNumChange()
         {
-        compute(timestep);
-        return m_energy;
+        if (m_lattice_positions.size() != this->m_pdata->getNGlobal()
+                || m_lattice_orientations.size() != this->m_pdata->getNGlobal())
+            {
+            throw std::runtime_error(
+                    "Number of particles no longer equals number of lattice points in ExternalFieldLattice.");
+            }
         }
 
     /** Calculate the change in energy for trial moves
@@ -296,13 +314,9 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
      *
      * What purpose does this function serve?
      */
-    void compute(uint64_t timestep)
+    Scalar getEnergy(uint64_t timestep)
         {
-        if (!this->shouldCompute(timestep))
-            {
-            return;
-            }
-        m_energy = Scalar(0.0);
+        Scalar energy = Scalar(0.0);
         // access particle data and system box
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                        access_location::host,
@@ -314,14 +328,14 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             {
             vec3<Scalar> position(h_postype.data[i]);
             quat<Scalar> orientation(h_orient.data[i]);
-            m_energy += calcE(i, position, orientation);
+            energy += calcE(i, position, orientation);
             }
 
 #ifdef ENABLE_MPI
         if (this->m_pdata->getDomainDecomposition())
             {
             MPI_Allreduce(MPI_IN_PLACE,
-                          &m_energy,
+                          &energy,
                           1,
                           MPI_HOOMD_SCALAR,
                           MPI_SUM,
@@ -329,7 +343,8 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
 #endif
 
-        }  // end void compute(uin64_t)
+        return energy;
+        }  // end getEnergy(uin64_t)
 
     //! Calculate the change in energy from moving a single particle with tag = index
     double energydiff(const unsigned int& index,
@@ -425,7 +440,6 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
     std::vector<quat<Scalar>> m_symmetry;              // symmetry-equivalent orientations
     Scalar m_k_translational;                          // translational spring constant
     Scalar m_k_rotational;                             // rotational spring constant
-    Scalar m_energy;                                   // total energy from previous timestep
     };
 
 namespace detail
@@ -436,11 +450,11 @@ template<class Shape> void export_LatticeField(pybind11::module& m, std::string 
                      ExternalFieldMono<Shape>,
                      std::shared_ptr<ExternalFieldLattice<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            pybind11::list,
+                            pybind11::array_t<double>,
                             Scalar,
-                            pybind11::list,
+                            pybind11::array_t<double>,
                             Scalar,
-                            pybind11::list>())
+                            pybind11::array_t<double>>())
         .def_property("reference_positions",
                       &ExternalFieldLattice<Shape>::getReferencePositions,
                       &ExternalFieldLattice<Shape>::setReferencePositions)
