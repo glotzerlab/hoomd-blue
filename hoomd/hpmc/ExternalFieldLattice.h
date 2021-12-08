@@ -41,7 +41,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         {
         setReferencePositions(r0);
         setReferenceOrientations(q0);
-        setSymmetricallyEquivalentOrientations(symRotations);  // TODO: check for identity?
+        setSymmetricallyEquivalentOrientations(symRotations); // TODO: check for identity?
 
         // connect updateMemberTags() method to maximum particle number change signal
         m_pdata->getGlobalParticleNumberChangeSignal()
@@ -78,8 +78,8 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             {
             const size_t array_index = i * 3;
             this->m_lattice_positions[i] = vec3<Scalar>(rawdata[array_index],
-                                                    rawdata[array_index + 1],
-                                                    rawdata[array_index + 2]);
+                                                        rawdata[array_index + 1],
+                                                        rawdata[array_index + 2]);
             }
 
 #ifdef ENABLE_MPI
@@ -88,8 +88,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             bcast(m_lattice_positions, 0, m_exec_conf->getMPICommunicator());
             }
 #endif
-        }  // end setReferencePositions
-
+        } // end setReferencePositions
 
     //! Set reference orientations from a (N_particles, 4) numpy array
     void setReferenceOrientations(const pybind11::array_t<double> ref_ors)
@@ -111,9 +110,9 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             {
             const size_t array_index = i * 4;
             this->m_lattice_orientations[i] = quat<Scalar>(rawdata[array_index],
-                                                    vec3<Scalar>(rawdata[array_index + 1],
-                                                    rawdata[array_index + 2],
-                                                    rawdata[array_index + 3]));
+                                                           vec3<Scalar>(rawdata[array_index + 1],
+                                                                        rawdata[array_index + 2],
+                                                                        rawdata[array_index + 3]));
             }
 
 #ifdef ENABLE_MPI
@@ -122,17 +121,18 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             bcast(m_lattice_orientations, 0, m_exec_conf->getMPICommunicator());
             }
 #endif
-        }  // end setReferenceOrientations
+        } // end setReferenceOrientations
 
     //! Set symmetrically equivalent orientations from a (N_symmetry, 4) numpy array
-    void setSymmetricallyEquivalentOrientations(const pybind11::array_t<double> equivalent_quaternions)
+    void
+    setSymmetricallyEquivalentOrientations(const pybind11::array_t<double> equivalent_quaternions)
         {
         if (equivalent_quaternions.ndim() != 2)
             {
             throw std::runtime_error("The array must be of shape (N_sym, 4).");
             }
 
-        const size_t N_sym = equivalent_quaternions.shape(0);  // Number of equivalent orientations
+        const size_t N_sym = equivalent_quaternions.shape(0); // Number of equivalent orientations
         const size_t dim = equivalent_quaternions.shape(1);
         if (dim != 4)
             {
@@ -145,8 +145,8 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             const size_t array_index = i * 4;
             this->m_symmetry[i] = quat<Scalar>(rawdata[array_index],
                                                vec3<Scalar>(rawdata[array_index + 1],
-                                               rawdata[array_index + 2],
-                                               rawdata[array_index + 3]));
+                                                            rawdata[array_index + 2],
+                                                            rawdata[array_index + 3]));
             }
 
 #ifdef ENABLE_MPI
@@ -155,7 +155,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             bcast(m_symmetry, 0, m_exec_conf->getMPICommunicator());
             }
 #endif
-        }  // end setSymmetricallyEquivalentOrientations
+        } // end setSymmetricallyEquivalentOrientations
 
     //! Get lattice positions as a (N_particles, 3) numpy array
     pybind11::array_t<Scalar> getReferencePositions() const
@@ -202,9 +202,9 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         // the cast from vec3<Scalar>* to Scalar* is safe since vec3 is tightly packed without any
         // padding. This also makes a copy so, modifications of this array do not effect the
         // original reference positions.
-        const auto reference_array = pybind11::array_t<Scalar>(
-            dims,
-            reinterpret_cast<const Scalar*>(this->m_symmetry.data()));
+        const auto reference_array
+            = pybind11::array_t<Scalar>(dims,
+                                        reinterpret_cast<const Scalar*>(this->m_symmetry.data()));
         // This is necessary to expose the array in a read only fashion through C++
         reinterpret_cast<pybind11::detail::PyArray_Proxy*>(reference_array.ptr())->flags
             &= ~pybind11::detail::npy_api::NPY_ARRAY_WRITEABLE_;
@@ -239,20 +239,21 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
     void slotGlobalParticleNumChange()
         {
         if (m_lattice_positions.size() != this->m_pdata->getNGlobal()
-                || m_lattice_orientations.size() != this->m_pdata->getNGlobal())
+            || m_lattice_orientations.size() != this->m_pdata->getNGlobal())
             {
-            throw std::runtime_error(
-                    "Number of particles no longer equals number of lattice points in ExternalFieldLattice.");
+            throw std::runtime_error("Number of particles no longer equals number of lattice "
+                                     "points in ExternalFieldLattice.");
             }
         }
 
     /** Calculate the change in energy for trial moves
      *
      * This function currently ignores any information associated with box changes.
-     * However, this function only gets called in the box updater, so it should not ignore box changes.
-     * But why would you have a lattice field and a box updater active in the same simulation?
+     * However, this function only gets called in the box updater, so it should not ignore box
+     * changes. But why would you have a lattice field and a box updater active in the same
+     * simulation?
      */
-    double calculateDeltaE(const Scalar4* const position_old_arg,  // why is this a Scalar4?
+    double calculateDeltaE(const Scalar4* const position_old_arg, // why is this a Scalar4?
                            const Scalar4* const orientation_old_arg,
                            const BoxDim* const box_old_arg)
         {
@@ -262,11 +263,12 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         ArrayHandle<Scalar4> h_orient(m_pdata->getOrientationArray(),
                                       access_location::host,
                                       access_mode::readwrite);
-        const Scalar4* const position_new = h_pos.data;  // current positions from system definition
-        const Scalar4* const orientation_new = h_orient.data;  // current orientations from system definition
-        //const BoxDim* const box_new = &m_pdata->getGlobalBox();
+        const Scalar4* const position_new = h_pos.data; // current positions from system definition
+        const Scalar4* const orientation_new
+            = h_orient.data; // current orientations from system definition
+        // const BoxDim* const box_new = &m_pdata->getGlobalBox();
         const Scalar4 *position_old = position_old_arg, *orientation_old = orientation_old_arg;
-        //const BoxDim* box_old = box_old_arg;
+        // const BoxDim* box_old = box_old_arg;
         if (!position_old)
             position_old = position_new;
         if (!orientation_old)
@@ -284,14 +286,12 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         double dE = 0.0;
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
-            Scalar old_E = calcE(i,
-                                 vec3<Scalar>(*(position_old + i)),
-                                 quat<Scalar>(*(orientation_old + i)));
-                                 //scaleOld);
-            Scalar new_E = calcE(i,
-                                 vec3<Scalar>(*(position_new + i)),
-                                 quat<Scalar>(*(orientation_new + i)));
-                                 //scaleNew);
+            Scalar old_E
+                = calcE(i, vec3<Scalar>(*(position_old + i)), quat<Scalar>(*(orientation_old + i)));
+            // scaleOld);
+            Scalar new_E
+                = calcE(i, vec3<Scalar>(*(position_new + i)), quat<Scalar>(*(orientation_new + i)));
+            // scaleNew);
             dE += new_E - old_E;
             }
 
@@ -344,7 +344,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
 #endif
 
         return energy;
-        }  // end getEnergy(uin64_t)
+        } // end getEnergy(uin64_t)
 
     //! Calculate the change in energy from moving a single particle with tag = index
     double energydiff(const unsigned int& index,
@@ -358,10 +358,11 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         return new_U - old_U;
         }
 
-
     protected:
-    //! Calculate the energy associated with the deviation of a single particle from its reference position
-    Scalar calcE_trans(const unsigned int& index, const vec3<Scalar>& position, const Scalar& scale = 1.0)
+    //! Calculate the energy associated with the deviation of a single particle from its reference
+    //! position
+    Scalar
+    calcE_trans(const unsigned int& index, const vec3<Scalar>& position, const Scalar& scale = 1.0)
         {
         ArrayHandle<unsigned int> h_tags(m_pdata->getTags(),
                                          access_location::host,
@@ -378,7 +379,8 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         return m_k_translational * dot(dr, dr);
         }
 
-    //! Calculate the energy associated with the deviation of a single particle from its reference orientation
+    //! Calculate the energy associated with the deviation of a single particle from its reference
+    //! orientation
     Scalar calcE_rot(const unsigned int& index, const quat<Scalar>& orientation)
         {
         assert(m_symmetry.size());
@@ -404,10 +406,11 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         return calcE_rot(index, shape.orientation);
         }
 
-    /** Calculate the total energy associated with the deviation of a single particle from its ref. pos. and orientation
+    /** Calculate the total energy associated with the deviation of a single particle from its ref.
+     * pos. and orientation
      *
-     * This function _should_ only be used for logging purposes and not for calculating move acceptance criteria, since
-     * it's the energy difference that matters for the latter.
+     * This function _should_ only be used for logging purposes and not for calculating move
+     * acceptance criteria, since it's the energy difference that matters for the latter.
      */
     Scalar calcE(const unsigned int& index,
                  const vec3<Scalar>& position,
@@ -415,13 +418,13 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
                  const Scalar& scale = 1.0)
         {
         Scalar energy = 0.0;
-        //if (m_lattice_positions.isValid())
-        //    {
-            energy += calcE_trans(index, position, scale);
+        // if (m_lattice_positions.isValid())
+        //     {
+        energy += calcE_trans(index, position, scale);
         //    }
-        //if (m_lattice_orientations.isValid())
+        // if (m_lattice_orientations.isValid())
         //    {
-            energy += calcE_rot(index, orientation);
+        energy += calcE_rot(index, orientation);
         //    }
         return energy;
         }
@@ -435,11 +438,11 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         }
 
     private:
-    std::vector<vec3<Scalar>> m_lattice_positions;     // reference positions
-    std::vector<quat<Scalar>> m_lattice_orientations;  // reference orientations
-    std::vector<quat<Scalar>> m_symmetry;              // symmetry-equivalent orientations
-    Scalar m_k_translational;                          // translational spring constant
-    Scalar m_k_rotational;                             // rotational spring constant
+    std::vector<vec3<Scalar>> m_lattice_positions;    // reference positions
+    std::vector<quat<Scalar>> m_lattice_orientations; // reference orientations
+    std::vector<quat<Scalar>> m_symmetry;             // symmetry-equivalent orientations
+    Scalar m_k_translational;                         // translational spring constant
+    Scalar m_k_rotational;                            // rotational spring constant
     };
 
 namespace detail
