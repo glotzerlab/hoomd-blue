@@ -130,6 +130,9 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
 
     Output getVirial(GhostDataFlag flag)
         {
+        // we order the strides as (1, m_virial_pitch) because we need to expose
+        // the array as having shape (N, 6) even though the underlying data has
+        // shape (6, m_virial_pitch)
         return this->template getBuffer<Scalar, Scalar>(
             m_virial_handle,
             &CustomForceCompute::getVirialArray,
@@ -137,7 +140,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
             6,
             0,
             std::vector<ssize_t>(
-                {static_cast<ssize_t>(m_virial_pitch * sizeof(Scalar)), sizeof(Scalar)}));
+                {sizeof(Scalar), static_cast<ssize_t>(m_virial_pitch * sizeof(Scalar))}));
         }
 
     protected:
