@@ -112,7 +112,8 @@ typedef PotentialPairGPU<EvaluatorPairGauss, kernel::gpu_compute_gauss_forces>
 //! Pair potential force compute for slj forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairSLJ, gpu_compute_slj_forces> PotentialPairSLJGPU;
 //! Pair potential force compute for expanded lj forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairExpandedLJ, kernel::gpu_compute_expanded_lj_forces> PotentialPairExpandedLJGPU;
+typedef PotentialPairGPU<EvaluatorPairExpandedLJ, kernel::gpu_compute_expanded_lj_forces>
+    PotentialPairExpandedLJGPU;
 //! Pair potential force compute for yukawa forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairYukawa, kernel::gpu_compute_yukawa_forces>
     PotentialPairYukawaGPU;

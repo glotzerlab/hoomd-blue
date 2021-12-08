@@ -334,7 +334,9 @@ PYBIND11_MODULE(_md, m)
                                                                          "PotentialPairLJ0804GPU");
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>(m, "PotentialPairGaussGPU");
     export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>(m, "PotentialPairSLJGPU");
-    export_PotentialPairGPU<PotentialPairExpandedLJGPU, PotentialPairExpandedLJ>(m, "PotentialPairExpandedLJGPU");
+    export_PotentialPairGPU<PotentialPairExpandedLJGPU, PotentialPairExpandedLJ>(
+        m,
+        "PotentialPairExpandedLJGPU");
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>(m,
                                                                          "PotentialPairYukawaGPU");
     export_PotentialPairGPU<PotentialPairReactionFieldGPU, PotentialPairReactionField>(

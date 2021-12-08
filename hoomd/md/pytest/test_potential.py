@@ -252,15 +252,10 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(slj_invalid_dicts, md.pair.SLJ, {}))
 
-    expanded_lj_valid_dict = {
-        "sigma": 0.5,
-        "epsilon": 0.0005,
-        "delta": 0.25
-    }
+    expanded_lj_valid_dict = {"sigma": 0.5, "epsilon": 0.0005, "delta": 0.25}
     expanded_lj_invalid_dicts = _make_invalid_param_dict(expanded_lj_valid_dict)
     invalid_params_list.extend(
-        _make_invalid_params(expanded_lj_invalid_dicts, md.pair.ExpandedLJ, {})
-    )
+        _make_invalid_params(expanded_lj_invalid_dicts, md.pair.ExpandedLJ, {}))
 
     expanded_mie_valid_dict = {
         "epsilon": 0.05,
@@ -521,9 +516,11 @@ def _valid_params(particle_types=['A', 'B']):
         'epsilon': [0.0005, 0.001, 0.0015],
         'delta': [0.0, 0.5, 1.2]
     }
-    expanded_lj_valid_param_dicts = _make_valid_param_dicts(expanded_lj_arg_dict)
+    expanded_lj_valid_param_dicts = _make_valid_param_dicts(
+        expanded_lj_arg_dict)
     valid_params_list.append(
-        paramtuple(md.pair.ExpandedLJ, dict(zip(combos, expanded_lj_valid_param_dicts)), {}))
+        paramtuple(md.pair.ExpandedLJ,
+                   dict(zip(combos, expanded_lj_valid_param_dicts)), {}))
 
     dpd_arg_dict = {'A': [0.5, 1.0, 1.5], 'gamma': [0.0005, 0.001, 0.0015]}
     dpd_valid_param_dicts = _make_valid_param_dicts(dpd_arg_dict)
