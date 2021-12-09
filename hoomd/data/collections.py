@@ -46,17 +46,15 @@ class _Buffer:
                 child._buffer_write = False
 
 
-def _find_structural_validator(schema, type_=None):
-    if type_ is None:
-        type_ = _typeconverter.TypeConverter
+def _find_structural_validator(schema, type_):
     if isinstance(schema, type_):
         return schema
     elif isinstance(schema, _typeconverter.OnlyIf):
-        if isinstance(schema.cond, _typeconverter.TypeConverter):
+        if isinstance(schema.cond, type_):
             return schema.cond
     elif isinstance(schema, _typeconverter.Either):
         for spec in schema.specs:
-            if isinstance(spec, _typeconverter.TypeConverter):
+            if isinstance(spec, type_):
                 return spec
     raise RuntimeError("Appropriate validator could not be found.")
 
