@@ -208,12 +208,12 @@ class _ValidatedDefaultDict(MutableMapping):
         if isinstance(validated_value, dict):
             if isinstance(self._type_converter, TypeConverterMapping):
                 expected_keys = set(self._type_converter.keys())
-            elif isinstance(self._type_converter.converter, OnlyIf):
-                expected_keys = set(self._type_converter.converter.cond.keys())
-            elif isinstance(self._type_converter.converter, Either):
+            elif isinstance(self._type_converter, OnlyIf):
+                expected_keys = set(self._type_converter.cond.keys())
+            elif isinstance(self._type_converter, Either):
                 mapping = next(
                     filter(lambda x: isinstance(x, TypeConverterMapping),
-                           self._type_converter.converter.specs))
+                           self._type_converter.specs))
                 expected_keys = set(mapping.keys())
             else:
                 # the code shouldn't reach here so raise an error.
