@@ -48,10 +48,9 @@ class _DynamicIntegrator(BaseIntegrator):
         self.forces._sync(self._simulation, self._cpp_obj.forces)
         self.constraints._sync(self._simulation, self._cpp_obj.constraints)
         self.methods._sync(self._simulation, self._cpp_obj.methods)
-        super()._attach()
         if self.rigid is not None:
             self.rigid._attach()
-            self._cpp_obj.rigid = self.rigid._cpp_obj
+        super()._attach()
 
     def _detach(self):
         self._forces._unsync()
@@ -109,7 +108,7 @@ class _DynamicIntegrator(BaseIntegrator):
 
     def _getattr_param(self, attr):
         if attr == "rigid":
-            return self._param_dict["rigid"]
+            return self._param_dict._dict["rigid"]
         return super()._getattr_param(attr)
 
     def _setattr_param(self, attr, value):
@@ -138,15 +137,12 @@ class _DynamicIntegrator(BaseIntegrator):
 
         if new_rigid is None:
             self._param_dict["rigid"] = None
-            if self._attached:
-                self._cpp_obj.rigid = None
             return
 
         if self._added:
             new_rigid._add(self._simulation)
         if self._attached:
-            self.rigid._attach()
-            self._cpp_obj.rigid = new_rigid._cpp_obj
+            new_rigid._attach()
         self._param_dict["rigid"] = new_rigid
 
 
