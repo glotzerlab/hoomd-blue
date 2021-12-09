@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 import hoomd
 from hoomd.conftest import operation_pickling_check
 from hoomd.error import DataAccessError
@@ -29,8 +31,7 @@ def check_dict(shape_dict, args):
                 shape_args = shape_dict[key][i]
                 val_args = val[i]
                 for shape_key in shape_args:
-                    if isinstance(shape_args[shape_key], list) \
-                       and len(shape_args[shape_key]) > 0:
+                    if isinstance(shape_args[shape_key], Sequence):
                         np.testing.assert_allclose(val_args[shape_key],
                                                    shape_args[shape_key])
                     else:
@@ -58,7 +59,7 @@ def test_valid_shape_params(valid_args):
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     check_dict(mc.shape["A"], args)
@@ -86,7 +87,7 @@ def test_shape_attached(simulation_factory, two_particle_snapshot_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     sim = simulation_factory(
@@ -648,7 +649,7 @@ def test_pickling(valid_args, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     # L needs to be ridiculously large as to not be too small for the domain

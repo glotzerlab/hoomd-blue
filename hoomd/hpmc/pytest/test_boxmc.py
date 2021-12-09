@@ -6,6 +6,7 @@
 
 import hoomd
 from hoomd.conftest import operation_pickling_check
+from hoomd.data.collections import _HOOMDSyncedCollection
 import pytest
 import numpy as np
 
@@ -90,6 +91,11 @@ def counter_attrs():
 
 
 def _is_close(v1, v2):
+    if isinstance(v1, _HOOMDSyncedCollection):
+        v1 = v1.to_base()
+    if isinstance(v2, _HOOMDSyncedCollection):
+        v2 = v2.to_base()
+
     return v1 == v2 if isinstance(v1, str) else np.allclose(v1, v2)
 
 
