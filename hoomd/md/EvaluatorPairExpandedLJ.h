@@ -114,7 +114,7 @@ class EvaluatorPairExpandedLJ
             pybind11::dict v;
             v["sigma"] = pow(sigma_6, 1. / 6.);
             v["epsilon"] = epsilon_x_4 / 4.0;
-            v["delta"] = delta
+            v["delta"] = delta;
             return v;
             }
 #endif
