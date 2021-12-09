@@ -44,14 +44,14 @@ class _HOOMDGetSetAttrBase:
     _skip_for_equality = set()
 
     def __getattr__(self, attr):
-        if attr in self._reserved_default_attrs.keys():
+        if attr in self._reserved_default_attrs:
             default = self._reserved_default_attrs[attr]
             value = default() if callable(default) else default
             object.__setattr__(self, attr, value)
             return value
-        elif attr in self._param_dict.keys():
+        elif attr in self._param_dict:
             return self._getattr_param(attr)
-        elif attr in self._typeparam_dict.keys():
+        elif attr in self._typeparam_dict:
             return self._getattr_typeparam(attr)
         else:
             raise AttributeError("Object {} has no attribute {}".format(
