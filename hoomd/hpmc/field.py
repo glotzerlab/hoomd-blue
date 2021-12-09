@@ -83,7 +83,7 @@ class LatticeField(ExternalField):
     """
 
     def __init__(self, reference_positions, reference_orientations,
-            k_translational, k_rotational, symmetries):
+                 k_translational, k_rotational, symmetries):
         param_dict = ParameterDict(
             reference_positions=NDArrayValidator(dtype=np.float32,
                                                  shape=(None, 3)),
