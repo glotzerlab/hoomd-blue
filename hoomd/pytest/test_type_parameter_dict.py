@@ -258,6 +258,8 @@ class TestTypeParameterDictAttached(TestTypeParameterDict):
     def test_detach(self, populated_collection):
         test_mapping, plain_mapping = populated_collection
         test_mapping._detach()
+        assert not test_mapping._attached
+        assert test_mapping._cpp_obj is None
         self.check_equivalent(test_mapping, plain_mapping)
 
     def test_premature_attaching(self, empty_collection, plain_collection, n):

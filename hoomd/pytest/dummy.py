@@ -61,6 +61,9 @@ class DummyCppObj:
     def notifyDetach(self):  # noqa: N802
         pass
 
+    def __getstate__(self):
+        raise RuntimeError("Mimic lack of pickling for C++ objects.")
+
 
 class DummyOperation(Operation):
     """Requires that user manually add param_dict and typeparam_dict items.
