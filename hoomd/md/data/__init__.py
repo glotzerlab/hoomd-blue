@@ -1,4 +1,4 @@
-"""Particle data local access."""
+"""Force data local access."""
 
 from .local_access import _ForceLocalAccessBase
 from .local_access_cpu import ForceLocalAccess

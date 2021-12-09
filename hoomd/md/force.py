@@ -129,9 +129,9 @@ class Custom(Force):
     `cpu_local_force_arrays` or `gpu_local_force_arrays` property. Choose the
     property that corresponds to the device you wish to alter the data on. In
     addition to zero-copy access to force buffers, custom forces have access to
-    the local snapshot API via the `_state.cpu_local_snapshot` or the
-    `_state.gpu_local_snapshot` property. See the documentation in `hoomd.state`
-    for more information on the local snapshot API.
+    the local snapshot API via the ``_state.cpu_local_snapshot`` or the
+    ``_state.gpu_local_snapshot`` property. See the documentation in
+    ``hoomd.state`` for more information on the local snapshot API.
 
     When accessing the local force arrays, the force, potential energy, torque,
     and virial of any particle can be set to any value.
@@ -151,7 +151,8 @@ class Custom(Force):
 
     In addition, since data is MPI rank-local, there may be ghost particle data
     associated with each rank. To access this read-only ghost data, access the
-    property name with either the prefix `ghost_` of the suffix `_with_ghost`.
+    property name with either the prefix ``ghost_`` of the suffix
+    ``_with_ghost``.
 
     Examples::
 
@@ -194,14 +195,14 @@ class Custom(Force):
 
     @property
     def cpu_local_force_arrays(self):
-        """hoomd.data.LocalForceAccess: Expose force arrays on the CPU.
+        """hoomd.md.data.ForceLocalAccess: Expose force arrays on the CPU.
 
         Provides direct access to the force, potential energy, torque, and
         virial data of the particles in the system on the cpu through a context
         manager. All data is MPI rank-local.
 
-        The `hoomd.data.LocalForceAccess` object returned by this property has
-        four arrays through which one can modify the force data:
+        The `hoomd.md.data.ForceLocalAccess` object returned by this property
+        has four arrays through which one can modify the force data:
 
         Examples::
 
@@ -219,13 +220,13 @@ class Custom(Force):
 
     @property
     def gpu_local_force_arrays(self):
-        """hoomd.data.LocalForceAccessGPU: Expose force arrays on the GPU.
+        """hoomd.md.data.ForceLocalAccessGPU: Expose force arrays on the GPU.
 
         Provides direct access to the force, potential energy, torque, and
         virial data of the particles in the system on the gpu through a context
         manager. All data is MPI rank-local.
 
-        The `hoomd.data.LocalForceAccessGPU` object returned by this property
+        The `hoomd.md.data.ForceLocalAccessGPU` object returned by this property
         has four arrays through which one can modify the force data:
 
         Examples::
