@@ -313,8 +313,8 @@ class _TableInternal(_InternalAction):
             param_dict = ParameterDict()
             param_dict.update(state['_param_dict'])
             state['_param_dict'] = param_dict
-            del state['_param_dict']['output']
-            state['_param_dict']['output'] = None
+            state['_param_dict']._dict['output'] = None
+            state['_param_dict']['output']
             return state
         else:
             return super().__getstate__()
