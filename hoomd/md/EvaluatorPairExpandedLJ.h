@@ -118,7 +118,7 @@ class EvaluatorPairExpandedLJ
             return v;
             }
 #endif
-        }
+    };
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
