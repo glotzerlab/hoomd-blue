@@ -116,7 +116,13 @@ class _HelpValidate(ABC):
                 raise ValueError("None is not allowed.")
             else:
                 return None
-        return self._postprocess(self._validate(self._preprocess(value)))
+        try:
+            return self._postprocess(self._validate(self._preprocess(value)))
+        except Exception as err:
+            if isinstance(err, TypeConversionError):
+                raise err
+            raise TypeConversionError(
+                f"Error raised in conversion: {str(err)}") from err
 
     @abstractmethod
     def _validate(self, value):
@@ -218,7 +224,8 @@ class OnlyTypes(_HelpValidate):
 
     def _validate(self, value):
         if isinstance(value, self.disallow_types):
-            raise ValueError(f"Value {value} cannot be of type {type(value)}")
+            raise TypeConversionError(
+                f"Value {value} cannot be of type {type(value)}")
         if isinstance(value, self.types):
             return value
         elif self.strict:
@@ -556,15 +563,16 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
                 f"Expected a dict like value. Recieved {mapping} of type "
                 f"{type(mapping)}.")
 
-        new_mapping = dict()
-        try:
-            for key, value in mapping.items():
-                if key in self:
+        new_mapping = {}
+        for key, value in mapping.items():
+            if key in self:
+                try:
                     new_mapping[key] = self.converter[key](value)
-                else:
-                    new_mapping[key] = value
-        except (ValueError, TypeError) as err:
-            raise TypeConversionError(f"In key {key}: {str(err)}") from err
+                except (ValueError, TypeError) as err:
+                    raise TypeConversionError(
+                        f"In key {key}: {str(err)}") from err
+            else:
+                new_mapping[key] = value
         return new_mapping
 
     def __iter__(self):
