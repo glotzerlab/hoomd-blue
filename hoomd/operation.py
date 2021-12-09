@@ -206,27 +206,16 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     _remove_for_pickling = ('_simulation', '_cpp_obj')
 
     def _getattr_param(self, attr):
-        if self._attached:
-            return getattr(self._cpp_obj, attr)
-        else:
-            return self._param_dict[attr]
+        return self._param_dict[attr]
 
     def _setattr_param(self, attr, value):
         """Hook for setting an attribute in `_param_dict`."""
-        old_value = self._param_dict[attr]
         self._param_dict[attr] = value
-        new_value = self._param_dict[attr]
-        if self._attached:
-            try:
-                setattr(self._cpp_obj, attr, new_value)
-            except (AttributeError):
-                self._param_dict[attr] = old_value
-                raise MutabilityError(attr)
 
     def _detach(self):
         if self._attached:
             self._unapply_typeparam_dict()
-            self._update_param_dict()
+            self._param_dict._detach()
             if hasattr(self._cpp_obj, "notifyDetach"):
                 self._cpp_obj.notifyDetach()
             # In case the C++ object is necessary for proper disconnect
@@ -261,11 +250,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         return self._simulation is not None
 
     def _apply_param_dict(self):
-        for attr, value in self._param_dict.items():
-            try:
-                setattr(self, attr, value)
-            except AttributeError:
-                pass
+        self._param_dict._attach(self._cpp_obj)
 
     def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
@@ -275,10 +260,6 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
                 raise err.__class__(
                     f"For {type(self)} in TypeParameter {typeparam.name} "
                     f"{str(err)}")
-
-    def _update_param_dict(self):
-        for key in self._param_dict.keys():
-            self._param_dict[key] = getattr(self, key)
 
     def _unapply_typeparam_dict(self):
         for typeparam in self._typeparam_dict.values():
@@ -339,13 +320,14 @@ class _TriggeredOperation(Operation):
 
     @property
     def trigger(self):
-        return self._param_dict['trigger']
+        return self._param_dict._dict['trigger']
 
     @trigger.setter
     def trigger(self, new_trigger):
         # Overwrite python trigger
         old_trigger = self.trigger
-        self._param_dict['trigger'] = new_trigger
+        self._param_dict._dict['trigger'] = self._param_dict._type_converter[
+            "trigger"](new_trigger)
         new_trigger = self.trigger
         if self._attached:
             sys = self._simulation._cpp_sys
@@ -356,16 +338,6 @@ class _TriggeredOperation(Operation):
                 # location (python's is), replace with new trigger
                 if op is self._cpp_obj and trigger is old_trigger:
                     triggered_ops[index] = (op, new_trigger)
-
-    def _attach(self):
-        super()._attach()
-
-    def _update_param_dict(self):
-        if self._attached:
-            for key in self._param_dict:
-                if key == 'trigger':
-                    continue
-                self._param_dict[key] = getattr(self, key)
 
 
 class Updater(_TriggeredOperation):

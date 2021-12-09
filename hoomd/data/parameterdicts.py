@@ -13,6 +13,7 @@ import numpy as np
 
 from hoomd.data.collections import (_HOOMDSyncedCollection, _to_hoomd_data,
                                     _to_base)
+from hoomd.error import MutabilityError
 from hoomd.util import _to_camel_case, _is_iterable
 from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
                                       TypeConverterMapping, OnlyIf, Either)
@@ -544,47 +545,179 @@ class ParameterDict(MutableMapping):
     """Parameter dictionary."""
 
     def __init__(self, _defaults=_NoDefault, **kwargs):
-        self._type_converter = to_type_converter(kwargs)
-        self._dict = {**_to_base_defaults(kwargs, _defaults)}
+        self._cpp_obj = None
+        self._dict = {}
+        self._getters = {}
+        self._setters = {}
+        # This if statement is necessary to avoid a RecursionError from Python's
+        # collections.abc module. The reason for this error is not clear but
+        # results from an isinstance check of an empty dictionary.
+        if len(kwargs) != 0:
+            self._type_converter = to_type_converter(kwargs)
+            for key, value in _to_base_defaults(kwargs, _defaults).items():
+                self._dict[key] = self._to_hoomd_data(key, value)
+        else:
+            self._type_converter = {}
+
+    def _set_special_getter(self, attr, func):
+        self._getters[attr] = func
+
+    def _set_special_setter(self, attr, func):
+        self._setters[attr] = func
+
+    def _cpp_setting(self, key, value):
+        setter = self._setters.get(key)
+        if setter is not None:
+            setter(self, key, value)
+            return
+        if hasattr(value, "_cpp_obj"):
+            setattr(self._cpp_obj, key, value._cpp_obj)
+            return
+        if isinstance(value, _HOOMDSyncedCollection):
+            with value._suspend_read_and_write:
+                setattr(self._cpp_obj, key, self._to_base(value))
+            return
+        setattr(self._cpp_obj, key, self._to_base(value))
 
     def __setitem__(self, key, value):
         """Set parameter by key."""
         if key not in self._type_converter.keys():
-            self._dict[key] = value
+            if self._attached:
+                raise KeyError("Keys cannot be added after Simulation.run().")
             self._type_converter[key] = to_type_converter(value)
-        else:
-            self._dict[key] = self._type_converter[key](value)
+        validated_value = self._type_converter[key](value)
+        if self._attached:
+            try:
+                self._cpp_setting(key, validated_value)
+            except (AttributeError):
+                raise MutabilityError(key)
+        if key in self._dict and isinstance(self._dict[key],
+                                            _HOOMDSyncedCollection):
+            self._dict[key]._isolate()
+        self._dict[key] = self._to_hoomd_data(key, validated_value)
 
     def __getitem__(self, key):
         """Access parameter by key."""
+        if not self._attached:
+            return self._dict[key]
+        try:
+            # While trigger remains not a member of  the the C++ classes, we
+            # have to allow for attributes that are not gettable.
+            getter = self._getters.get(key)
+            if getter is None:
+                new_value = getattr(self._cpp_obj, key)
+            else:
+                new_value = getter(self, key)
+        except AttributeError:
+            return self._dict[key]
+
+        old_value = self._dict[key]
+        if isinstance(old_value, _HOOMDSyncedCollection):
+            if old_value._update(new_value):
+                return old_value
+            else:
+                old_value._isolate()
+        self._dict[key] = self._to_hoomd_data(key, new_value)
         return self._dict[key]
 
     def __delitem__(self, key):
         """Remove parameter by key."""
-        del self._dict[key]
+        if self._attached:
+            raise RuntimeError(
+                "Item deletion is not supported after calling Simulation.run()")
         del self._type_converter[key]
+        self._dict.pop(key, None)
 
     def __iter__(self):
         """Iterate over keys."""
-        yield from self._dict
+        for key in self._type_converter:
+            # We use getitem to ensure that data is updated.
+            if key in self._dict:
+                yield key
+
+    def __contains__(self, key):
+        """Does the mapping contain the given key."""
+        return key in self._type_converter and key in self._dict
 
     def __len__(self):
         """int: The number of keys."""
         return len(self._dict)
 
     def __eq__(self, other):
-        """Equality between ParameterDict objects."""
+        """Determine equality between ParameterDict objects."""
         if not isinstance(other, ParameterDict):
             return NotImplemented
-        return (set(self.keys()) == set(other.keys()) and np.all(
-            [np.all(self[key] == other[key]) for key in self.keys()]))
+        return (set(self.keys()) == set(other.keys())
+                and np.all([np.all(self[key] == other[key]) for key in self]))
 
     def update(self, other):
         """Add keys and values to the dictionary."""
-        if isinstance(other, ParameterDict):
-            for key, value in other.items():
-                self._type_converter[key] = other._type_converter[key]
-                self._dict[key] = value
+        # We do not allow new keys or type specification after attaching so we
+        # need to check if we are attached here.
+        if not self._attached and isinstance(other, ParameterDict):
+            self._type_converter.update(other._type_converter)
+            self._dict.update(other._dict)
+            self._getters.update(other._getters)
+            self._setters.update(other._setters)
         else:
             for key, value in other.items():
                 self[key] = value
+
+    def _attach(self, cpp_obj):
+        self._cpp_obj = cpp_obj
+        for key in self:
+            try:
+                self._cpp_setting(key, self._dict[key])
+            except AttributeError:
+                pass
+
+    @property
+    def _attached(self):
+        return self._cpp_obj is not None
+
+    def _detach(self):
+        # Simply accessing the keys will update them.
+        for key in self:
+            self[key]
+        self._cpp_obj = None
+
+    def _to_hoomd_data(self, key, value):
+        return _to_hoomd_data(root=self,
+                              schema=self._type_converter[key],
+                              parent=None,
+                              identity=key,
+                              data=value)
+
+    def _write(self, obj):
+        if self._attached:
+            self._cpp_setting(obj._identity, obj)
+
+    def _read(self, obj):
+        if self._attached:
+            obj._parent._update(getattr(self._cpp_obj, obj._identity))
+
+    def _to_base(self, obj):
+        if hasattr(obj, "to_base"):
+            return obj.to_base()
+        return obj
+
+    def to_base(self):
+        """Return a plain dictionary with equivalent data.
+
+        This recursively convert internal data to base HOOMD types.
+        """
+        return {key: self._to_base(value) for key, value in self.items()}
+
+    def __getstate__(self):
+        """Get object state for deepcopying and pickling."""
+        return {
+            "_dict": self.to_base(),
+            "_type_converter": self._type_converter,
+            "_cpp_obj": None,
+            "_setters": self._setters,
+            "_getters": self._getters
+        }
+
+    def __repr__(self):
+        """Return a string representation useful for debugging."""
+        return f"ParameterDict{{{self.to_base()}}}"
