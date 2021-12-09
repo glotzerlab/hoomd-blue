@@ -123,6 +123,20 @@ class _HelpValidate(ABC):
         pass
 
 
+class Any(_HelpValidate):
+    """Accept any input."""
+
+    def __init__(self, preprocess=None, postprocess=None):
+        super().__init__(preprocess, postprocess)
+
+    def _validate(self, value):
+        return value
+
+    def __str__(self):
+        """str: String representation of the validator."""
+        return "Any()"
+
+
 class Either(_HelpValidate):
     """Class that has multiple equally valid validation methods for an input.
 
@@ -589,6 +603,8 @@ def to_type_converter(value):
     if isinstance(value, tuple):
         return TypeConverterFixedLengthSequence(value)
     if _is_iterable(value):
+        if len(value) == 0:
+            return TypeConverterSequence(Any())
         return TypeConverterSequence(value[0])
     elif isinstance(value, Mapping):
         return TypeConverterMapping(value)
