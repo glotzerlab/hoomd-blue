@@ -49,53 +49,41 @@ class ExternalField(_HOOMDBaseObject):
 
 
 class LatticeField(ExternalField):
-    R""" Restrain particles on a lattice
+    R"""Restrain particles on a lattice
 
     Args:
-        position (list): list of positions to restrain each particle (distance units).
-        orientation (list): list of orientations to restrain each particle (quaternions).
-        k (float): translational spring constant.
-        q (float): rotational spring constant.
-        symmetry (list): list of equivalent quaternions for the shape.
-        composite (bool): Set this to True when this field is part of a :py:class:`external_field_composite`.
+        reference_positions ((*N_particles*, 3) `numpy.ndarray` of
+            `float`): the reference positions of the
+            lattice :math:`[\mathrm{length}]`.
+        reference_orientations ((*N_particles*, 4) `numpy.ndarray` of
+            `float`): the reference orientations of the lattice.
+        k_translational (`float`): translational spring constant.
+        k_rotational (`float`): rotational spring constant.
+        symmetries ((*N_sym*, 4) `numpy.ndarray` of
+            `float`): the orientations that are equivalent through symmetry,
+            i.e., the rotation quaternions that leave the particles unchanged.
 
-    :py:class:`lattice_field` specifies that a harmonic spring is added to every particle:
+    :py:class:`LatticeField` specifies that a harmonic spring is added to every
+    particle:
 
     .. math::
 
-        V_{i}(r)  = k_r*(r_i-r_{oi})^2 \\
-        V_{i}(q)  = k_q*(q_i-q_{oi})^2
+        V_{i}(r_i)  = k_{trans} \cdot (r_i-r_{0,i})^2 \\
+        V_{i}(q_i)  = k_{rot} \cdot (q_i-q_{0,i})^2
+
+    where :math:`k_{trans}` and :math:`k_{rot}` correspond to the arguments
+    ``k_translational`` and ``k_rotational``, respectively, :math:`r_i` and
+    :math:`q_i` are the position and orientation of particle :math:`i`, and the
+    :math:`0` subscripts lattice quantities.
 
     Note:
-        1/2 is not included in the formulas; specify your spring constants accordingly.
-
-    * :math:`k_r` - translational spring constant.
-    * :math:`r_{o}` - lattice positions (in distance units).
-    * :math:`k_q` - rotational spring constant.
-    * :math:`q_{o}` - lattice orientations (quaternion)
-
-    Once initialized, the compute provides the following log quantities that can be logged via analyze.log:
-
-    * **lattice_energy** -- total lattice energy
-    * **lattice_energy_pp_avg** -- average lattice energy per particle multiplied by the spring constant
-    * **lattice_energy_pp_sigma** -- standard deviation of the lattice energy per particle multiplied by the spring constant
-    * **lattice_translational_spring_constant** -- translational spring constant
-    * **lattice_rotational_spring_constant** -- rotational spring constant
-    * **lattice_num_samples** -- number of samples used to compute the average and standard deviation
-
-    .. warning::
-        The lattice energies and standard deviations logged by this class are multiplied by the spring constant.
-
-    Example::
-
-        mc = hpmc.integrate.sphere(seed=415236);
-        hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
-        log = analyze.log(quantities=['lattice_energy'], period=100, filename='log.dat', overwrite=True);
+        The factor of 1/2 is not included in the formulas; specify your spring
+        constants accordingly.
 
     """
 
-    def __init__(self, position, orientation, k_translational, k_rotational,
-                 symmetries):
+    def __init__(self, reference_positions, reference_orientations,
+            k_translational, k_rotational, symmetries):
         param_dict = ParameterDict(
             reference_positions=NDArrayValidator(dtype=np.float32,
                                                  shape=(None, 3)),

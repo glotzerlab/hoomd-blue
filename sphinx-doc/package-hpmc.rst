@@ -13,6 +13,7 @@ hoomd.hpmc
     :maxdepth: 3
 
     module-hpmc-compute
+    module-hpmc-field
     module-hpmc-integrate
     module-hpmc-tune
     module-hpmc-update

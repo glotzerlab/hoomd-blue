@@ -9,8 +9,8 @@ import pytest
 import numpy as np
 
 valid_constructor_args = [
-    dict(position=[[0, 0, 0]],
-         orientation=[[1, 0, 0, 0]],
+    dict(reference_positions=[[0, 0, 0]],
+         reference_orientations=[[1, 0, 0, 0]],
          k_translational=1.0,
          k_rotational=1.0,
          symmetries=[[1, 0, 0, 0]]),
@@ -24,10 +24,6 @@ def test_valid_construction_latticefield(device, constructor_args):
     field = hoomd.hpmc.field.LatticeField(**constructor_args)
 
     # validate the params were set properly
-    translator = {
-        'position': 'reference_positions',
-        'orientation': 'reference_orientations'
-    }
     for attr, value in constructor_args.items():
         assert np.all(getattr(field, translator.get(attr, attr)) == value)
 
@@ -43,8 +39,8 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
 
     # create lattice field
     lattice = hoomd.hpmc.field.LatticeField(
-        position=sim.state.get_snapshot().particles.position,
-        orientation=sim.state.get_snapshot().particles.orientation,
+        reference_positions=sim.state.get_snapshot().particles.position,
+        reference_orientations=sim.state.get_snapshot().particles.orientation,
         k_translational=1.0,
         k_rotational=1.0,
         symmetries=[[1, 0, 0, 0]])
@@ -69,8 +65,8 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
 
     # create lattice field
     lattice = hoomd.hpmc.field.LatticeField(
-        position=sim.state.get_snapshot().particles.position,
-        orientation=sim.state.get_snapshot().particles.orientation,
+        reference_positions=sim.state.get_snapshot().particles.position,
+        reference_orientations=sim.state.get_snapshot().particles.orientation,
         k_translational=1.0,
         k_rotational=1.0,
         symmetries=[[1, 0, 0, 0]])
@@ -99,8 +95,8 @@ def test_lattice_displacement(device, simulation_factory,
     # create lattice field
     k_trans = 1.0
     lattice = hoomd.hpmc.field.LatticeField(
-        position=sim.state.get_snapshot().particles.position,
-        orientation=sim.state.get_snapshot().particles.orientation,
+        reference_positions=sim.state.get_snapshot().particles.position,
+        reference_orientations=sim.state.get_snapshot().particles.orientation,
         k_translational=k_trans,
         k_rotational=1.0,
         symmetries=[[1, 0, 0, 0]])
