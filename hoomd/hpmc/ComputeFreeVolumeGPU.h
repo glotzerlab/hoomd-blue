@@ -152,10 +152,7 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
         || (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z
             && npd.z <= nominal_width * 2))
         {
-        this->m_exec_conf->msg->error() << "Simulation box too small for compute.free_volume() on "
-                                           "GPU - increase it so the minimum image convention works"
-                                        << std::endl;
-        throw std::runtime_error("Error performing HPMC update");
+        throw std::runtime_error("Simulation box too small");
         }
 
     // compute cell list

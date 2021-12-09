@@ -60,9 +60,9 @@ class CPPExternalPotential(_HOOMDBaseObject):
         Your code *must* return a value.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.10/hoomd/VectorMath.h
+            v3.0.0-beta.11/hoomd/VectorMath.h
     .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.10/hoomd/BoxDim.h
+            v3.0.0-beta.11/hoomd/BoxDim.h
 
     Example:
         .. code-block:: python

@@ -40,14 +40,12 @@ TableAngleForceCompute::TableAngleForceCompute(std::shared_ptr<SystemDefinition>
     // check for some silly errors a user could make
     if (m_angle_data->getNTypes() == 0)
         {
-        m_exec_conf->msg->error() << "angle.table: No angle types specified" << endl;
-        throw runtime_error("Error initializing TableAngleForceCompute");
+        throw runtime_error("No angle types defined.");
         }
 
     if (table_width == 0)
         {
-        m_exec_conf->msg->error() << "angle.table: Table width of 0 is invalid" << endl;
-        throw runtime_error("Error initializing TableAngleForceCompute");
+        throw runtime_error("Angle table must have width greater than 0.");
         }
 
     // allocate storage for the tables and parameters
@@ -77,8 +75,7 @@ void TableAngleForceCompute::setTable(unsigned int type,
     // make sure the type is valid
     if (type >= m_angle_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "angle.table: Invalid angle type specified" << endl << endl;
-        throw runtime_error("Error setting parameters in TableAngleForceCompute");
+        throw runtime_error("Invalid angle type.");
         }
 
     // access the arrays

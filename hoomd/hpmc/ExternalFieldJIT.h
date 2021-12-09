@@ -52,8 +52,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
 
         if (!m_eval)
             {
-            exec_conf->msg->error() << factory->getError() << std::endl;
-            throw std::runtime_error("Error compiling JIT code.");
+            throw std::runtime_error("Error compiling JIT code.\n" + factory->getError());
             }
         m_factory = std::shared_ptr<ExternalFieldEvalFactory>(factory);
         }
