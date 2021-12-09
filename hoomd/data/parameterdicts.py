@@ -513,6 +513,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
         for key in self:
             self._dict[key] = self._single_getitem(key)
         self._cpp_obj = None
+        self._type_keys = None
 
     def _read(self, obj):
         if not self._attached:
@@ -534,6 +535,16 @@ class TypeParameterDict(_ValidatedDefaultDict):
         returns a convenient form for debugging.
         """
         return f"TypeParameterDict{self.to_dict()}"
+
+    def __getstate__(self):
+        """Get object state for deepcopying and pickling."""
+        return {
+            "_len_keys": self._len_keys,
+            "_default": self._default,
+            "_type_converter": self._type_converter,
+            "_dict": self._dict,
+            "_cpp_obj": None
+        }
 
 
 class ParameterDict(MutableMapping):
