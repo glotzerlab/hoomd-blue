@@ -310,7 +310,7 @@ def test_ghost_data_access(force_cls, two_particle_snapshot_factory,
     custom_force = force_cls(sim.device.communicator.num_ranks)
 
     # make LJ force so there is a ghost width on each rank
-    nlist = md.nlist.Cell()
+    nlist = md.nlist.Cell(buffer=0.2)
     lj_force = md.pair.LJ(nlist, default_r_cut=2.0)
     lj_force.params[('A', 'A')] = dict(sigma=1, epsilon=1)
     nvt = md.methods.NPT(hoomd.filter.All(),
