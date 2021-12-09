@@ -13,7 +13,7 @@ import numpy as np
 
 from hoomd.data.collections import (_HOOMDSyncedCollection, _to_hoomd_data,
                                     _to_base)
-from hoomd.error import MutabilityError
+from hoomd.error import MutabilityError, TypeConversionError
 from hoomd.util import _to_camel_case, _is_iterable
 from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
                                       TypeConverterMapping, OnlyIf, Either)
@@ -137,7 +137,8 @@ class _ValidatedDefaultDict(MutableMapping):
         try:
             validated_value = self._validate_values(item)
         except ValueError as err:
-            raise err.__class__(f"For types {list(keys)} {str(err)}.") from err
+            raise TypeConversionError(
+                f"For types {list(keys)} {str(err)}.") from err
         for key in keys:
             self._single_setitem(key, validated_value)
 
@@ -390,12 +391,10 @@ class TypeParameterDict(_ValidatedDefaultDict):
         validated_cpp_value = self._validate_values(
             getattr(self._cpp_obj, self._getter)(key))
         if isinstance(self._dict[key], _HOOMDSyncedCollection):
-            try:
-                self._dict[key]._update(validated_cpp_value)
-            except ValueError:
-                self._dict[key]._isolate()
-            else:
+            if self._dict[key]._update(validated_cpp_value):
                 return self._dict[key]
+            else:
+                self._dict[key]._isolate()
         self._dict[key] = _to_hoomd_data(root=self,
                                          schema=self._type_converter,
                                          data=validated_cpp_value,
@@ -521,10 +520,6 @@ class TypeParameterDict(_ValidatedDefaultDict):
         key = obj._identity
         new_value = getattr(self._cpp_obj, self._getter)(key)
         obj._parent._update(new_value)
-        if obj._isolated:
-            raise ValueError(
-                "collection is no longer associated with the attribute. "
-                "Access the attribute directly to modify.")
 
     def _write(self, obj):
         if not self._attached:

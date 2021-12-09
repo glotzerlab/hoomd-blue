@@ -2,8 +2,10 @@
 
 from abc import abstractmethod
 from collections import abc
+import warnings
 
 import hoomd.data.typeconverter as _typeconverter
+import hoomd.error
 
 
 class _ReadAndWrite:
@@ -28,22 +30,18 @@ class _Buffer:
     def __enter__(self):
         if self.read:
             self._collection._buffer_read = True
-            for child in self._collection._children:
-                child._buffer_read = True
+            self._collection._children.buffer_read = True
         if self.write:
             self._collection._buffer_write = True
-            for child in self._collection._children:
-                child._buffer_write = True
+            self._collection._children.buffer_write = True
 
     def __exit__(self, exec_type, exec_value, exec_traceback):
         if self.read:
             self._collection._buffer_read = False
-            for child in self._collection._children:
-                child._buffer_read = False
+            self._collection._children.buffer_read = False
         if self.write:
             self._collection._buffer_write = False
-            for child in self._collection._children:
-                child._buffer_write = False
+            self._collection._children.buffer_write = False
 
 
 def _find_structural_validator(schema, type_):
@@ -63,15 +61,26 @@ class _ChildRegistry(abc.MutableSet):
 
     def __init__(self):
         self._registry = {}
+        self._buffer_read = False
+        self._buffer_write = False
+        self._isolated = False
 
     def add(self, a):
+        if self._isolated:
+            return
         if isinstance(a, _HOOMDSyncedCollection):
             self._registry.setdefault(id(a), a)
+            a._buffer_read = self._buffer_read
+            a._buffer_write = self._buffer_write
 
     def discard(self, a):
+        if self._isolated:
+            return
         item = self._registry.pop(id(a), None)
         if item is not None:
             item._isolate()
+            item._buffer_read = False
+            item._buffer_write = False
 
     def __contains__(self, obj):
         return id(obj) in self._registry
@@ -87,19 +96,43 @@ class _ChildRegistry(abc.MutableSet):
             self.add(item)
             yield item
 
+    @property
+    def buffer_read(self):
+        return self._buffer_read
+
+    @buffer_read.setter
+    def buffer_read(self, value):
+        self._buffer_read = value
+        for item in self:
+            item._buffer_read = value
+
+    @property
+    def buffer_write(self):
+        return self._buffer_write
+
+    @buffer_write.setter
+    def buffer_write(self, value):
+        self._buffer_write = value
+        for item in self:
+            item._buffer_write = value
+
 
 class _HOOMDSyncedCollection(abc.Collection):
 
     def __init__(self, root, schema, parent=None, identity=None):
+        if parent is None:
+            parent = self
         self._root = getattr(root, "_root", root)
         self._parent = parent
         self._schema = schema
         self._children = _ChildRegistry()
         if identity is None:
-            self._identity = getattr(root, "_identity", None)
+            self._identity = getattr(parent, "_identity", None)
         else:
             self._identity = identity
         self._isolated = False
+        self._buffer_read = False
+        self._buffer_write = False
 
     def __contains__(self, obj):
         self._read()
@@ -117,9 +150,6 @@ class _HOOMDSyncedCollection(abc.Collection):
         if isinstance(other, _HOOMDSyncedCollection):
             return self.to_base() == other.to_base()
         return self.to_base() == other
-
-    def _sync(self, obj):
-        self._root._sync(self)
 
     def to_base(self):
         return _to_base(self)
@@ -142,20 +172,16 @@ class _HOOMDSyncedCollection(abc.Collection):
 
     def _read(self):
         if self._isolated:
-            raise ValueError(
-                "The collection is no longer connected to its original data "
-                "source. The likely cause is the attribute being set to a "
-                "different type. To use this data call obj.to_base().")
+            warnings.warn(hoomd.error.IsolationWarning())
+            return
         if self._buffer_read:
             return
         self._root._read(self)
 
     def _write(self):
         if self._isolated:
-            raise ValueError(
-                "The collection is no longer connected to its original data "
-                "source. The likely cause is the attribute being set to a "
-                "different type.")
+            warnings.warn(hoomd.error.IsolationWarning())
+            return
         if self._buffer_write:
             return
         self._root._write(self)
@@ -166,6 +192,10 @@ class _HOOMDSyncedCollection(abc.Collection):
 
     def _isolate(self):
         self._children.clear()
+        self._children._isolate = True
+        self._parent = None
+        self._root = None
+        self._identity = None
         self._isolated = True
 
     def __repr__(self):
@@ -179,19 +209,16 @@ class _PopIndicator:
 class _HOOMDDict(_HOOMDSyncedCollection, abc.MutableMapping):
 
     def __init__(self, root, schema, parent=None, identity=None, data=None):
-        if parent is None:
-            parent = self
         super().__init__(root, schema, parent, identity)
+        self._data = {}
         if data is None:
-            self._data = {}
-        else:
-            with self._suspend_read_and_write:
-                self._data = {
-                    key: _to_hoomd_data(self, schema[key], data[key], parent)
-                    for key in data
-                }
-                for value in self._data.values():
-                    self._children.add(value)
+            return
+        with self._suspend_read_and_write:
+            for key in data:
+                self._data[key] = _to_hoomd_data(self, schema[key],
+                                                 self._parent, identity,
+                                                 data[key])
+                self._children.add(self._data[key])
 
     def __setitem__(self, key, value):
         if key not in self._schema:
@@ -215,31 +242,31 @@ class _HOOMDDict(_HOOMDSyncedCollection, abc.MutableMapping):
     def _validate(self, key, value):
         return _to_hoomd_data(root=self,
                               schema=self._schema[key],
-                              data=self._schema[key](value),
-                              parent=self._parent)
+                              parent=self._parent,
+                              identity=self._identity,
+                              data=self._schema[key](value))
 
     def _update(self, new_value):
         if not isinstance(new_value, abc.Mapping):
-            raise ValueError(
-                "Mapping is no longer valid. The attribute has been set to a "
-                "different type elsewhere in the program.")
-            new_data = {}
+            self._isolate()
+            warnings.warn(hoomd.error.IsolationWarning())
+            return False
+        new_data = {}
+        with self._suspend_read_and_write:
             for key, value in new_value.items():
                 if key in self:
                     old_value = self._data.get(key)
                     if isinstance(old_value, _HOOMDSyncedCollection):
-                        try:
-                            old_value._update(value)
-                        except ValueError:
-                            self._children.discard(old_value)
-                        else:
+                        if old_value._update(value):
                             new_data[key] = old_value
                             continue
-                new_value = _to_hoomd_data(self, self._schema[key], value,
-                                           self._parent)
-                self._children.add(new_value)
-                new_data[key] = new_value
-            self._data = new_data
+                        else:
+                            self._children.discard(old_value)
+                validated_value = self._validate(key, value)
+                self._children.add(validated_value)
+                new_data[key] = validated_value
+        self._data = new_data
+        return True
 
     def update(self, other, **kwargs):
         with self._read_and_write:
@@ -290,18 +317,15 @@ class _HOOMDDict(_HOOMDSyncedCollection, abc.MutableMapping):
 class _HOOMDList(_HOOMDSyncedCollection, abc.MutableSequence):
 
     def __init__(self, root, schema, parent=None, identity=None, data=None):
-        if parent is None:
-            parent = self
         super().__init__(root, schema, parent, identity)
+        self._data = []
         if data is None:
-            self._data = []
-        else:
-            with self._suspend_read_and_write:
-                self._data = [
-                    _to_hoomd_data(self, schema, item, parent) for item in data
-                ]
-                for item in self._data:
-                    self._children.add(item)
+            return
+        with self._suspend_read_and_write:
+            for item in data:
+                self._data.append(
+                    _to_hoomd_data(self, schema, self._parent, identity, item))
+                self._children.add(self._data[-1])
 
     def __setitem__(self, index, value):
         validated_value = self._validate(value)
@@ -351,6 +375,17 @@ class _HOOMDList(_HOOMDSyncedCollection, abc.MutableSequence):
             return self.to_base() > other.to_base()
         return self.to_base() > other
 
+    def __radd__(self, other):
+        try:
+            return other + self.to_base()
+        except AttributeError:
+            raise TypeError(f"Cannot add list to object of type {type(other)}.")
+
+    def __add__(self, other):
+        if isinstance(other, _HOOMDSyncedCollection):
+            return self.to_base() + other.to_base()
+        return self.to_base() + other
+
     def insert(self, index, value):
         value = self._validate(value)
         self._children.add(value)
@@ -358,7 +393,7 @@ class _HOOMDList(_HOOMDSyncedCollection, abc.MutableSequence):
             self._data.insert(index, value)
 
     def extend(self, other_seq):
-        with self._read_and_write:
+        with self._read_and_write, self._suspend_read_and_write:
             for value in other_seq:
                 value = self._validate(value)
                 self._children.add(value)
@@ -389,48 +424,53 @@ class _HOOMDList(_HOOMDSyncedCollection, abc.MutableSequence):
         return self._data.count(obj)
 
     def _validate(self, value):
-        return _to_hoomd_data(root=self,
-                              schema=self._schema,
-                              data=self._schema(value),
-                              parent=self._parent)
+        validated_value = _to_hoomd_data(root=self._root,
+                                         schema=self._schema,
+                                         parent=self._parent,
+                                         identity=self._identity,
+                                         data=self._schema(value))
+
+        if isinstance(validated_value, _HOOMDSyncedCollection):
+            if self._isolated:
+                validated_value._isolate()
+        return validated_value
 
     def _update(self, new_value):
         if not isinstance(new_value, abc.Sequence):
-            raise ValueError(
-                "Sequence is no longer valid. The attribute has been set to a "
-                "different type elsewhere in the program.")
-            new_data = []
+            self._isolate()
+            warnings.warn(hoomd.error.IsolationWarning())
+            return False
+        new_data = []
+        with self._suspend_read_and_write:
             for index, value in enumerate(new_value):
                 if index < len(self):
                     old_value = self[index]
                     if isinstance(old_value, _HOOMDSyncedCollection):
-                        try:
-                            old_value._update(value)
-                        except ValueError:
-                            self._children.discard(old_value)
-                        else:
+                        if old_value._update(value):
                             new_data.append(old_value)
                             continue
-                new_value = _to_hoomd_data(self, self._schema, value,
-                                           self._parent)
+                        else:
+                            self._children.discard(old_value)
+                new_value = self._validate(value)
                 self._children.add(new_value)
                 new_data.append(new_value)
-            self._data = new_data
+        self._data = new_data
+        return True
 
 
 class _HOOMDTuple(_HOOMDSyncedCollection, abc.Sequence):
 
     def __init__(self, root, schema, parent=None, identity=None, data=()):
-        if parent is None:
-            parent = self
         super().__init__(root, schema, parent, identity)
+        self._data = []
+        if data is None:
+            return
         with self._suspend_read_and_write:
-            self._data = [
-                _to_hoomd_data(self, converter, item, parent, identity)
-                for converter, item in zip(schema, data)
-            ]
-            for item in self._data:
-                self._children.add(item)
+            for converter, item in zip(schema, data):
+                self._data.append(
+                    _to_hoomd_data(self, converter, self._parent, identity,
+                                   item))
+                self._children.add(self._data[-1])
 
     def __getitem__(self, index):
         self._read()
@@ -446,31 +486,32 @@ class _HOOMDTuple(_HOOMDSyncedCollection, abc.Sequence):
 
     def _update(self, new_value):
         if not isinstance(new_value, abc.Sequence):
-            raise ValueError(
-                "Sequence is no longer valid. The attribute has been set to a "
-                "different type elsewhere in the program.")
+            self._isolate()
+            warnings.warn(hoomd.error.IsolationWarning())
+            return False
         if len(new_value) != len(self._data):
             self._children.clear()
             raise ValueError("Immutable sequence cannot change length.")
         new_data = []
-        for index, value in enumerate(new_value):
-            old_value = self._data[index]
-            if isinstance(old_value, _HOOMDSyncedCollection):
-                try:
-                    old_value._update(value)
-                except ValueError:
-                    self._children.discard(old_value)
-                else:
-                    new_data.append(old_value)
-                    continue
-            new_value = _to_hoomd_data(self, self._schema[index], value,
-                                       self._parent)
-            self._children.add(new_value)
-            new_data.append(new_value)
+        with self._suspend_read_and_write:
+            for index, value in enumerate(new_value):
+                old_value = self._data[index]
+                if isinstance(old_value, _HOOMDSyncedCollection):
+                    if old_value._update(value):
+                        new_data.append(old_value)
+                        continue
+                    else:
+                        self._children.discard(old_value)
+                new_value = _to_hoomd_data(self, self._schema[index],
+                                           self._parent, self._identity,
+                                           self._schema[index](value))
+                self._children.add(new_value)
+                new_data.append(new_value)
         self._data = tuple(new_data)
+        return True
 
 
-def _to_hoomd_data(root, schema, data, parent=None, identity=None):
+def _to_hoomd_data(root, schema, parent=None, identity=None, data=None):
     if isinstance(data, abc.MutableMapping):
         spec = _find_structural_validator(schema,
                                           _typeconverter.TypeConverterMapping)

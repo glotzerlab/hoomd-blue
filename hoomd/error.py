@@ -42,3 +42,13 @@ class IncompleteSpecificationError(ValueError):
 class SimulationDefinitionError(RuntimeError):
     """Error in definition of simulation internal state."""
     pass
+
+
+class IsolationWarning(UserWarning):
+    """Warn about data structure removal from original data source."""
+
+    def __str__(self):
+        """Returns the error message."""
+        return ("The data structure is removed from its original data source, "
+                "and updates will no longer modify the previously composing "
+                "object. Call obj.to_base() to remove this warning.")
