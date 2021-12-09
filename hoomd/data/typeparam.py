@@ -5,7 +5,6 @@
 """Implement TypeParameter."""
 
 from collections.abc import MutableMapping
-import copy
 
 
 # This class serves as a shim class between TypeParameterDict and the user. This
@@ -131,7 +130,7 @@ class TypeParameter(MutableMapping):
     def __getattr__(self, attr):
         """Access parameter attributes."""
         if attr in self.__slots__:
-            return super().__getattr__(attr)
+            return object.__getattr__(self, attr)
         try:
             return getattr(self.param_dict, attr)
         except AttributeError:
@@ -218,15 +217,9 @@ class TypeParameter(MutableMapping):
 
     def __getstate__(self):
         """Prepare data for pickling."""
-        param_dict = copy.copy(self.param_dict)
-        param_dict._detach()
-        return {
-            'name': self.name,
-            'type_kind': self.type_kind,
-            'param_dict': param_dict
-        }
+        return {k: getattr(self, k) for k in self.__slots__}
 
     def __setstate__(self, state):
-        """Load pickled data."""
+        """Appropriately reset state."""
         for attr, value in state.items():
             setattr(self, attr, value)
