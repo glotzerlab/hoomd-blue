@@ -121,7 +121,7 @@ def test_apply_param_dict(full_op):
 @fixture(scope='function')
 def attached(full_op):
     cp = deepcopy(full_op)
-    op = test_apply_param_dict(test_apply_typeparam_dict(cp))
+    op = test_apply_param_dict(cp)
     op._add(1)
     return op
 

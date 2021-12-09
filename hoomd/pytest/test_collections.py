@@ -2,6 +2,7 @@ import pytest
 
 from hoomd.conftest import BaseListTest, BaseMappingTest, BaseSequenceTest
 from hoomd.data import collections, typeconverter
+from hoomd.error import IsolationWarning
 
 
 class MockRoot:
@@ -9,27 +10,24 @@ class MockRoot:
     def __init__(self, schema, data):
         self._data = data
         validator = typeconverter.to_type_converter(schema)
-        self._sync_data = {
-            key: collections._to_hoomd_data(
-                self,
-                validator[key],
+        self._sync_data = {}
+        for key in data:
+            self._sync_data[key] = collections._to_hoomd_data(
+                root=self,
+                schema=validator[key],
+                parent=None,
                 identity=key,
                 data=data[key],
-            ) for key in data
-        }
+            )
 
     def _write(self, obj):
-        self._data[obj._identity] = obj._parent.to_base()
-        pass
+        with obj._parent._suspend_read:
+            self._data[obj._identity] = obj._parent.to_base()
 
     def _read(self, obj):
         key = obj._identity
         new_value = self._data[key]
         obj._parent._update(new_value)
-        if obj._isolated:
-            raise ValueError(
-                "collection is no longer associated with the attribute. "
-                "Access the attribute directly to modify.")
 
 
 def random_strings(rng, n):
@@ -95,7 +93,8 @@ class TestHoomdList(BaseListTest):
                 "strs": []
             }},
         )
-        return self._data._sync_data["lists"][self._current_list]
+        with self._data._sync_data["lists"]._suspend_read_and_write:
+            return self._data._sync_data["lists"][self._current_list]
 
     def test_isolation(self, populated_collection, generate_plain_collection):
         if self._current_list != "strs":
@@ -219,34 +218,34 @@ class TestHoomdDict(BaseMappingTest):
             # Check list of tuples of (int, [str])
             assert obj._isolated
             assert len(obj._children) == 0
-            with pytest.raises(ValueError):
+            with pytest.warns(IsolationWarning):
                 _ = obj[0]
 
-            with pytest.raises(ValueError):
+            with pytest.warns(IsolationWarning):
                 list(obj)
 
-            with pytest.raises(ValueError):
+            with pytest.warns(IsolationWarning):
                 obj[0] = obj._data[0]
 
             # Check tuples of (int, [str])
             assert all(item._isolated for item in obj._data)
             assert all(len(item._children) == 0 for item in obj._data)
-            with pytest.raises(ValueError):
+            with pytest.warns(IsolationWarning):
                 obj._data[0][1]
 
-            with pytest.raises(ValueError):
+            with pytest.warns(IsolationWarning):
                 list(obj._data[0])
 
             # Check list of str
             assert all(item._data[1]._isolated for item in obj._data)
             assert all(len(item._data[1]._children) == 0 for item in obj._data)
-            with pytest.raises(ValueError):
+            with pytest.warns(IsolationWarning):
                 _ = obj._data[0][1][0]
 
-            with pytest.raises(ValueError):
+            with pytest.warns(IsolationWarning):
                 list(obj._data[0][1])
 
-            with pytest.raises(ValueError):
+            with pytest.warns(IsolationWarning):
                 obj._data[0][1][0] = obj._data[0][1]._data[0]
 
         test_mapping, _ = populated_collection

@@ -63,17 +63,13 @@ class TestSyncedList(BaseListTest):
 
             return generate
 
-    @pytest.fixture(scope="function")
+    @pytest.fixture
     def empty_collection(self, item_cls, attached, attach_items):
         list_ = SyncedList(validation=_PartialIsInstance(item_cls),
                            attach_members=attach_items)
         if attached:
             list_._sync(DummySimulation(), [])
         return list_
-
-    @pytest.fixture(scope="function")
-    def plain_collection(self, generate_plain_collection, n):
-        return generate_plain_collection(n)
 
     def is_equal(self, a, b):
         if isinstance(a, DummyOperation):
