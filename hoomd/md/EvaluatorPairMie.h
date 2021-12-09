@@ -67,6 +67,8 @@ class EvaluatorPairMie
         Scalar m2;
         Scalar m3;
         Scalar m4;
+        Scalar sigma;
+        Scalar epsilon;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -78,15 +80,15 @@ class EvaluatorPairMie
 #endif
 
 #ifndef __HIPCC__
-        param_type() : m1(0), m2(0), m3(0), m4(0) { }
+        param_type() : m1(0), m2(0), m3(0), m4(0), sigma(0), epsilon(0) { }
 
         param_type(pybind11::dict v, bool managed = false)
             {
             m3 = v["n"].cast<Scalar>();
             m4 = v["m"].cast<Scalar>();
 
-            Scalar epsilon = v["epsilon"].cast<Scalar>();
-            Scalar sigma = v["sigma"].cast<Scalar>();
+            epsilon = v["epsilon"].cast<Scalar>();
+            sigma = v["sigma"].cast<Scalar>();
 
             Scalar outFront = (m3 / (m3 - m4)) * fast::pow(m3 / m4, m4 / (m3 - m4));
             m1 = outFront * epsilon * fast::pow(sigma, m3);
@@ -98,10 +100,6 @@ class EvaluatorPairMie
             pybind11::dict v;
             v["n"] = m3;
             v["m"] = m4;
-
-            Scalar sigma = fast::pow(m1 / m2, 1 / (m3 - m4));
-            Scalar epsilon
-                = m1 / fast::pow(sigma, m3) * (m3 - m4) / m3 * fast::pow(m3 / m4, m4 / (m4 - m3));
 
             v["epsilon"] = epsilon;
             v["sigma"] = sigma;
