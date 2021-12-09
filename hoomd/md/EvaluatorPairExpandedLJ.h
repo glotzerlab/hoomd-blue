@@ -118,7 +118,7 @@ class EvaluatorPairExpandedLJ
             return v;
             }
 #endif
-    };
+        };
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
@@ -127,7 +127,7 @@ class EvaluatorPairExpandedLJ
     */
     DEVICE EvaluatorPairExpandedLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
         : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
-        lj2(_params.epsilon_x_4 * _params.sigma_6), delta(_params.delta)
+          lj2(_params.epsilon_x_4 * _params.sigma_6), delta(_params.delta)
         {
         }
 
