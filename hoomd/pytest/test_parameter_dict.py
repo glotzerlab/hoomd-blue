@@ -1,0 +1,161 @@
+import pytest
+
+import hoomd
+from hoomd.conftest import BaseMappingTest, pickling_check
+from hoomd.data.parameterdicts import ParameterDict
+
+
+def identity(x):
+    return x
+
+
+class DummyCppObj:
+
+    def __init__(self):
+        self._dict = dict()
+
+    def __getattr__(self, attr):
+        return self._dict[attr]
+
+    def __setattr__(self, attr, value):
+        if attr == "_dict":
+            super().__setattr__(attr, value)
+            return
+        self._dict[attr] = value
+
+    def notifyDetach(self):  # noqa: N802
+        pass
+
+    def __getstate__(self):
+        raise RuntimeError("Mimic lack of pickling for C++ objects.")
+
+
+class TestParameterDict(BaseMappingTest):
+    _has_default = False
+
+    @pytest.fixture(params=(1, 2, 3), ids=lambda x: f"n={x}")
+    def n(self, request):
+        return request.param
+
+    @pytest.fixture(autouse=True)
+    def spec(self, n):
+        if n == 1:
+            spec = {
+                "int": int,
+                "list[int]": [int],
+                "(float, str)": (float, str)
+            }
+        elif n == 2:
+            spec = {"dict": {"str": str}, "filter": hoomd.filter.ParticleFilter}
+        else:
+            spec = {
+                "(float, float, float)": (float, float, float),
+                "list[dict[str, int]]": [{
+                    "foo": int,
+                    "bar": int
+                }],
+                "(float, str)": (float, str)
+            }
+        self._spec = spec
+        return spec
+
+    def _int(self):
+        return self.rng.integers(100_000)
+
+    def _float(self):
+        return 1e6 * (self.rng.random() - 0.5)
+
+    def _str(self):
+        return next(super().random_keys())
+
+    def _filter(self):
+        return self.rng.choice([
+            hoomd.filter.All(),
+            hoomd.filter.Type(("A", "B")),
+            hoomd.filter.Tags([1, 2, 25])
+        ])
+
+    def _generate_value(self):
+        # n == 1
+        if "int" in self._spec:
+            return {
+                "int": self._int(),
+                "list[int]": [
+                    self._int() for _ in range(self.rng.integers(10))
+                ],
+                "(float, str)": (self._float(), self._str())
+            }
+        # n == 2
+        elif "dict" in self._spec:
+            return {"dict": {"str": self._str()}, "filter": self._filter()}
+        # n == 3
+        else:
+            return {
+                "(float, float, float)": tuple(self._float() for _ in range(3)),
+                "list[dict[str, int]]": [{
+                    k: self._int() for k in ("bar", "foo")
+                } for _ in range(self.rng.integers(10))],
+                "(float, str)": (self._float(), self._str())
+            }
+
+    @pytest.fixture
+    def generate_plain_collection(self):
+
+        def generate(n):
+            return self._generate_value()
+
+        return generate
+
+    def is_equal(self, test_param, mapping):
+        """Assert that the keys in mapping have equivalent values in type param.
+
+        This is looking at the keys of the ParameterDict, and they should be
+        equivalent.
+        """
+        return test_param == mapping
+
+    @pytest.fixture
+    def empty_collection(self, spec):
+        """Return an empty type parameter."""
+        return ParameterDict(**spec)
+
+    def check_equivalent(self, test_mapping, other):
+        assert set(test_mapping) == other.keys()
+        for key, value in other.items():
+            assert test_mapping[key] == value
+
+    @pytest.fixture(params=(True, False),
+                    ids=lambda x: "in_map" if x else "out_map")
+    def setitem_key_value(self, n, request):
+        value = self._generate_value()
+        keys = list(value)
+        if request.param:
+            key = self.rng.choice(keys)
+            return key, value[key]
+        key = next(filter(lambda x: x not in keys, self.random_keys()))
+        return key, value
+
+    @pytest.fixture
+    def setdefault_key_value(self, setitem_key_value):
+        return setitem_key_value
+
+    def test_pickling(self, populated_collection):
+        pickling_check(populated_collection[0])
+
+
+class TestParameterDictAttached(TestParameterDict):
+    _allow_new_keys = False
+    _deletion_error = RuntimeError
+
+    @pytest.fixture
+    def populated_collection(self, empty_collection, plain_collection, n):
+        empty_collection.update(plain_collection)
+        empty_collection._attach(DummyCppObj())
+        return empty_collection, plain_collection
+
+    def test_detach(self, populated_collection):
+        test_mapping, plain_mapping = populated_collection
+        test_mapping._detach()
+        assert not test_mapping._attached
+        assert test_mapping._cpp_obj is None
+        self.check_equivalent(test_mapping, plain_mapping)
