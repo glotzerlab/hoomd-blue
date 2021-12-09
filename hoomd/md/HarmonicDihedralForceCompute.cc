@@ -12,9 +12,6 @@
 
 using namespace std;
 
-// SMALL a relatively small number
-#define SMALL Scalar(0.001)
-
 /*! \file HarmonicDihedralForceCompute.cc
     \brief Contains code for the HarmonicDihedralForceCompute class
 */
