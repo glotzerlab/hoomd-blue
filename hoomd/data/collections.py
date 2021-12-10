@@ -9,6 +9,7 @@ import hoomd.error
 
 
 class _ReadAndWrite:
+    """Context manager that reads on enter and writes on exit."""
 
     def __init__(self, collection):
         self._collection = collection
@@ -21,6 +22,7 @@ class _ReadAndWrite:
 
 
 class _Buffer:
+    """Context manager that suspends read and/or write call when active."""
 
     def __init__(self, collection, read=False, write=False):
         self._collection = collection
@@ -58,6 +60,10 @@ def _find_structural_validator(schema, type_):
 
 
 class _ChildRegistry(abc.MutableSet):
+    """Keeps a record of and isolates children data structures.
+
+    Also, helps handling of buffering for `_HOOMDSyncedCollection` subclasses.
+    """
 
     def __init__(self):
         self._registry = {}
@@ -118,6 +124,24 @@ class _ChildRegistry(abc.MutableSet):
 
 
 class _HOOMDSyncedCollection(abc.Collection):
+    """Base class for data classes used to support a read-modify-write model.
+
+    Implements features and requirements general to all collections.
+
+    Attributes:
+        _root: Either a `ParameterDict` or `TypeParameterDict`. Enables reading
+            and writing to C++.
+        _schema: Type converter/validator for the element of the data class.
+        _parent (_HOOMDSyncedCollection): The top level _HOOMDSyncedCollection
+            subclass instance for the
+        given root key.
+        _identity (str): A string of other identity given by the object's root.
+        _isolated (bool): Whether the object is still connected to a root.
+        _buffer_read (bool): Whether the object is actively buffering reads.
+        _buffer_write (bool): Whether the object is actively buffering writes.
+        _children (_ChildRegistry): A record of children data objects for use in
+            isolating and buffering nested data.
+    """
 
     def __init__(self, root, schema, parent=None, identity=None):
         self._root = getattr(root, "_root", root)
@@ -152,25 +176,38 @@ class _HOOMDSyncedCollection(abc.Collection):
         return self.to_base() == other
 
     def to_base(self):
+        """Return a base data object (e.g. list, dict, or tuple).
+
+        Acts recursively.
+        """
         return _to_base(self)
 
     @property
     def _read_and_write(self):
+        """Context manager for read-modify-write."""
         return _ReadAndWrite(self)
 
     @property
     def _suspend_read(self):
+        """Context manager for buffering reads."""
         return _Buffer(self, True)
 
     @property
     def _suspend_write(self):
+        """Context manager for buffering writes."""
         return _Buffer(self, False, True)
 
     @property
     def _suspend_read_and_write(self):
+        """Context manager for buffering reads and writes."""
+        return _Buffer(self, False, True)
         return _Buffer(self, True, True)
 
     def _read(self):
+        """Update data if possible else isolate.
+
+        Relies on root ``_read`` method. Generally updates parent.
+        """
         if self._buffer_read:
             return
         if self._isolated:
@@ -179,6 +216,10 @@ class _HOOMDSyncedCollection(abc.Collection):
         self._root._read(self)
 
     def _write(self):
+        """Write data to C++.
+
+        Relies on root ``_write`` method. Generally sets parent.
+        """
         if self._buffer_write:
             return
         if self._isolated:
@@ -187,10 +228,16 @@ class _HOOMDSyncedCollection(abc.Collection):
         self._root._write(self)
 
     @abstractmethod
-    def _update(self):
+    def _update(self, new_value):
+        """Given a ``new_value`` update internal data isolating if failing.
+
+        Returns:
+            succeeded (bool): Whether the instance managed to update data.
+        """
         pass
 
     def _isolate(self):
+        """Remove link to root, parent, and children."""
         self._children.clear()
         self._children._isolated = True
         self._parent = None
@@ -211,6 +258,7 @@ class _HOOMDSyncedCollection(abc.Collection):
         return validated_value
 
     def _validate(self, schema, data):
+        """Validate and convert to _HOOMDSyncedCollection if applicable."""
         return self._to_hoomd_data(schema, schema(data))
 
     def __repr__(self):
@@ -222,6 +270,7 @@ class _PopIndicator:
 
 
 class _HOOMDDict(_HOOMDSyncedCollection, abc.MutableMapping):
+    """Mimic the behavior of a dict."""
 
     def __init__(self, root, schema, parent=None, identity=None, data=None):
         super().__init__(root, schema, parent, identity)
@@ -319,6 +368,7 @@ class _HOOMDDict(_HOOMDSyncedCollection, abc.MutableMapping):
 
 
 class _HOOMDList(_HOOMDSyncedCollection, abc.MutableSequence):
+    """Mimic the behavior of a list."""
 
     def __init__(self, root, schema, parent=None, identity=None, data=None):
         super().__init__(root, schema, parent, identity)
@@ -453,6 +503,7 @@ class _HOOMDList(_HOOMDSyncedCollection, abc.MutableSequence):
 
 
 class _HOOMDTuple(_HOOMDSyncedCollection, abc.Sequence):
+    """Mimic the behavior of a tuple."""
 
     def __init__(self, root, schema, parent=None, identity=None, data=()):
         super().__init__(root, schema, parent, identity)
