@@ -154,7 +154,7 @@ class Cell(NList):
     """
 
     def __init__(self,
-                 buffer=0.4,
+                 buffer,
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  diameter_shift=False,
@@ -233,7 +233,7 @@ class Stencil(NList):
 
     def __init__(self,
                  cell_width,
-                 buffer=0.4,
+                 buffer,
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  diameter_shift=False,
@@ -296,7 +296,7 @@ class Tree(NList):
     """
 
     def __init__(self,
-                 buffer=0.4,
+                 buffer,
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  diameter_shift=False,

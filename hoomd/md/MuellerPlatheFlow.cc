@@ -172,9 +172,10 @@ void MuellerPlatheFlow::setMinSlab(const unsigned int min_slab)
     {
     if (min_slab >= m_N_slabs)
         {
-        m_exec_conf->msg->error() << "MuellerPlatheFlow is initialized with invalid min_slab: "
-                                  << min_slab << "/" << m_N_slabs << endl;
-        throw runtime_error("ERROR: Invalid min_slab.\n");
+        ostringstream s;
+        s << "MuellerPlatheFlow is initialized with invalid min_slab: " << min_slab << "/"
+          << m_N_slabs << ".";
+        throw runtime_error(s.str());
         }
     if (min_slab != m_min_slab)
         this->updateDomainDecomposition();
@@ -184,9 +185,10 @@ void MuellerPlatheFlow::setMaxSlab(const unsigned int max_slab)
     {
     if (max_slab >= m_N_slabs)
         {
-        m_exec_conf->msg->error() << "MuellerPlatheFlow is initialized with invalid max_slab: "
-                                  << max_slab << "/" << m_N_slabs << endl;
-        throw runtime_error("ERROR: Invalid max_slab.\n");
+        ostringstream s;
+        s << "MuellerPlatheFlow is initialized with invalid max_slab: " << max_slab << "/"
+          << m_N_slabs << ".";
+        throw runtime_error(s.str());
         }
     if (max_slab != m_max_slab)
         this->updateDomainDecomposition();
@@ -374,9 +376,7 @@ void MuellerPlatheFlow::verifyOrthorhombicBox(void)
 
     if (not valid)
         {
-        m_exec_conf->msg->error() << " MuellerPlatheFlow can only be used with orthorhombic boxes. "
-                                  << endl;
-        throw runtime_error("MuellerPlatheFlow non orthorhombic box.");
+        throw runtime_error("MuellerPlatheFlow can only be used with orthorhombic boxes.");
         }
     // Disable check for the next update call.
     m_needs_orthorhombic_check = false;

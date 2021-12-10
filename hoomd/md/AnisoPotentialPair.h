@@ -502,9 +502,9 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
                                       access_location::host,
                                       access_mode::read);
-    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
-                                          access_location::host,
-                                          access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+                                    access_location::host,
+                                    access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
@@ -572,7 +572,7 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
             Scalar virialzzi = 0.0;
 
             // loop over all of the neighbors of this particle
-            const unsigned int myHead = h_head_list.data[i];
+            const size_t myHead = h_head_list.data[i];
             const unsigned int size = (unsigned int)h_n_neigh.data[i];
             for (unsigned int k = 0; k < size; k++)
                 {

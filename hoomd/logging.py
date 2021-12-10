@@ -563,7 +563,7 @@ class Logger(_SafeNamespaceDict):
         available to specify logged quantities, see
         `hoomd.logging.LoggerCategories`.  To integrate with `hoomd.Operations`
         the back end should be a subclass of `hoomd.custom.Action` and used with
-        `hoomd.writer.CustomWriter`.
+        `hoomd.write.CustomWriter`.
 
     Note:
         When logging multiple instances of the same class `Logger.add` provides

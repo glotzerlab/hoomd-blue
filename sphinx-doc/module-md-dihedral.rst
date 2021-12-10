@@ -16,8 +16,7 @@ md.dihedral
 
 .. automodule:: hoomd.md.dihedral
     :synopsis: Dihedral potentials.
+    :show-inheritance:
     :members: Dihedral,
               Harmonic,
               OPLS
-    :no-inherited-members:
-    :show-inheritance:

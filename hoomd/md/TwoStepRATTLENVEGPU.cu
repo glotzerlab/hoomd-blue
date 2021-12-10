@@ -210,9 +210,9 @@ __global__ void gpu_rattle_nve_angular_step_one_kernel(Scalar4* d_orientation,
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x < Scalar(EPSILON));
-        y_zero = (I.y < Scalar(EPSILON));
-        z_zero = (I.z < Scalar(EPSILON));
+        x_zero = (I.x == 0);
+        y_zero = (I.y == 0);
+        z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
         if (x_zero)
@@ -396,9 +396,9 @@ __global__ void gpu_rattle_nve_angular_step_two_kernel(const Scalar4* d_orientat
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x < Scalar(EPSILON));
-        y_zero = (I.y < Scalar(EPSILON));
-        z_zero = (I.z < Scalar(EPSILON));
+        x_zero = (I.x == 0);
+        y_zero = (I.y == 0);
+        z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
         if (x_zero)

@@ -45,11 +45,11 @@ class Operations(Collection):
     The types of operations which can be added to an `Operations` object are
     tuners, updaters, integrators, writers, and computes. An `Operations` can
     only ever hold one integrator at a time. On the other hand, an `Operations`
-    object can hold any number of tuners, updaters, writers, or computes. To
-    see examples of these types of operations see `hoomd.tune` (tuners),
+    object can hold any number of tuners, updaters, writers, or computes. To see
+    examples of these types of operations see `hoomd.tune` (tuners),
     `hoomd.update` (updaters), `hoomd.hpmc.integrate` or `hoomd.md.Integrator`
-    (integrators), `hoomd.write` (writers), and `hoomd.md.thermo`
-    (computes).
+    (integrators), `hoomd.write` (writers), and
+    `hoomd.md.compute.ThermodynamicQuantities` (computes).
 
     A given instance of an operation class can only be added to a single
     `Operations` container. Likewise, a single instance cannot be added to the

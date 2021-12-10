@@ -106,8 +106,7 @@ void TwoStepNPTMTK::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
-        m_exec_conf->msg->error() << "integrate.npt(): Integration group empty." << std::endl;
-        throw std::runtime_error("Error during NPT integration.");
+        throw std::runtime_error("Invalid NPT coupling mode.");
         }
 
     // update box dimensions
@@ -305,9 +304,9 @@ void TwoStepNPTMTK::integrateStepOne(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -519,9 +518,9 @@ void TwoStepNPTMTK::integrateStepTwo(uint64_t timestep)
 
                 // check for zero moment of inertia
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 // ignore torque component along an axis for which the moment of inertia zero
                 if (x_zero)
@@ -773,9 +772,7 @@ void TwoStepNPTMTK::advanceBarostat(uint64_t timestep)
         }
     else
         {
-        m_exec_conf->msg->error() << "integrate.npt: Invalid coupling mode." << std::endl
-                                  << std::endl;
-        throw std::runtime_error("Error in NPT integration");
+        throw std::runtime_error("Invalid NPT coupling mode.");
         }
 
     // update barostat matrix
@@ -1089,9 +1086,7 @@ void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(uint64_t timestep)
             nuxx = nuyy = nuzz;
             break;
         default:
-            m_exec_conf->msg->error() << "integrate.npt: Invalid coupling mode." << std::endl
-                                      << std::endl;
-            throw std::runtime_error("Error in NPT integration");
+            throw std::runtime_error("Invalid NPT coupling mode.");
             }
         }
 

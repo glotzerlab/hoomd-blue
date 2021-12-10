@@ -49,7 +49,7 @@ pytest_ may be run outside the build directory by:
 
 .. note::
 
-    ``python3 -m pytest --pyargs hoomd`` tests the hoomd installation it finds by `import hoomd`,
+    ``python3 -m pytest --pyargs hoomd`` tests the hoomd installation it finds by ``import hoomd``,
     which may not be the one you just built. You must also change to a directory outside the
     source, otherwise ``import hoomd`` attempts to import the uncompiled source.
 

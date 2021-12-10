@@ -303,7 +303,7 @@ void NeighborListTree::traverseTree()
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
 
     // neighborlist data
-    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_conditions(m_conditions,
                                            access_location::host,
@@ -322,7 +322,7 @@ void NeighborListTree::traverseTree()
         const Scalar diam_i = h_diameter.data[i];
 
         const unsigned int Nmax_i = h_Nmax.data[type_i];
-        const unsigned int nlist_head_i = h_head_list.data[i];
+        const size_t nlist_head_i = h_head_list.data[i];
 
         unsigned int n_neigh_i = 0;
         for (unsigned int cur_pair_type = 0; cur_pair_type < m_pdata->getNTypes();

@@ -130,18 +130,18 @@ Scalar IntegrationMethodTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup>
             {
             if (dimension == 3)
                 {
-                if (fabs(h_moment_inertia.data[j].x) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].x) > 0)
                     query_group_dof++;
 
-                if (fabs(h_moment_inertia.data[j].y) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].y) > 0)
                     query_group_dof++;
 
-                if (fabs(h_moment_inertia.data[j].z) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].z) > 0)
                     query_group_dof++;
                 }
             else
                 {
-                if (fabs(h_moment_inertia.data[j].z) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].z) > 0)
                     query_group_dof++;
                 }
             }
