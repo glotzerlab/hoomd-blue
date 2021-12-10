@@ -68,7 +68,8 @@ class TestSyncedList(BaseListTest):
         list_ = SyncedList(validation=_PartialIsInstance(item_cls),
                            attach_members=attach_items)
         if attached:
-            list_._sync(DummySimulation(), [])
+            self._synced_list = []
+            list_._sync(DummySimulation(), self._synced_list)
         return list_
 
     def is_equal(self, a, b):
@@ -83,6 +84,9 @@ class TestSyncedList(BaseListTest):
             else:
                 assert not any(
                     getattr(item, "_attached", False) for item in test_list)
+            for item, synced_item in zip(test_list, self._synced_list):
+                assert self.is_equal(item, synced_item)
+            assert self._synced_list is test_list._synced_list
         if test_list._attach_members:
             assert all(item._added for item in test_list)
         else:
