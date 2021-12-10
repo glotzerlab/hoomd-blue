@@ -656,9 +656,9 @@ class BaseCollectionsTest:
         """Fixture that controls tested collection sizes.
 
         Note:
-            This can also be used to control the number of examples each test gets,
-            making this function is useful even when data structure size does not
-            change.
+            This can also be used to control the number of examples each test
+            gets, making this function is useful even when data structure size
+            does not change.
         """
         return request.param
 
