@@ -208,6 +208,10 @@ class TestHoomdDict(BaseMappingTest):
             with pytest.warns(IsolationWarning):
                 obj[0] = obj._data[0]
 
+            with pytest.warns(None) as warning_record:
+                obj.to_base()
+            assert len(warning_record) == 0
+
             # Check tuples of (int, [str])
             assert all(item._isolated for item in obj._data)
             assert all(len(item._children) == 0 for item in obj._data)
@@ -216,6 +220,10 @@ class TestHoomdDict(BaseMappingTest):
 
             with pytest.warns(IsolationWarning):
                 list(obj._data[0])
+
+            with pytest.warns(None) as warning_record:
+                obj._data[0].to_base()
+            assert len(warning_record) == 0
 
             # Check list of str
             assert all(item._data[1]._isolated for item in obj._data)
@@ -229,6 +237,10 @@ class TestHoomdDict(BaseMappingTest):
             with pytest.warns(IsolationWarning):
                 obj._data[0][1][0] = obj._data[0][1]._data[0]
 
+            with pytest.warns(None) as warning_record:
+                obj._data[0][1][0].to_base()
+            assert len(warning_record) == 0
+
         test_mapping, _ = populated_collection
         item = test_mapping.pop("notes")
         check_isolation(item)
@@ -239,4 +251,4 @@ class TestHoomdDict(BaseMappingTest):
         test_mapping["notes"] = generate_plain_collection(None)["notes"]
         item = test_mapping["notes"]
         test_mapping.clear()
-        assert item._isolated
+        check_isolation(item)
