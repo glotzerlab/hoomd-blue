@@ -163,7 +163,7 @@ class SyncedList(MutableSequence):
         value = self._validate_or_error(value)
         self._attach_value(value)
         # Wrap index like normal but allow for inserting a new element to the
-        # end of the list.
+        # beginning or end of the list for out of bounds index values.
         if index <= -len(self):
             index = 0
         elif index >= len(self):
@@ -216,7 +216,15 @@ class SyncedList(MutableSequence):
             value._attach()
 
     def _detach_value(self, value, remove=True):
-        """Detaches and/or removes value to simulation if attached."""
+        """Detaches and/or removes value to simulation if attached.
+
+        Args:
+            value (``any``): The member of the synced list to dissociate from
+                its current simulation.
+            remove (bool, optional): Whether to add back to the `SyncedList`'s
+                current simulation or id. This defaults to ``True`` which is
+                desired when the object is removed completely from the list.
+        """
         if not self._attach_members:
             return
         if self._synced:
