@@ -89,7 +89,7 @@ class EvaluatorPairExpandedLJ
             {
             auto sigma(v["sigma"].cast<Scalar>());
             auto epsilon(v["epsilon"].cast<Scalar>());
-            auto delta(v["delta"].cast<Scalar>());
+            delta = v["delta"].cast<Scalar>();
 
             sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
             epsilon_x_4 = Scalar(4.0) * epsilon;
