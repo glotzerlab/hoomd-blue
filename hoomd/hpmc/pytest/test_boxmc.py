@@ -5,8 +5,9 @@
 """Test hoomd.hpmc.update.BoxMC."""
 
 import hoomd
-from hoomd.conftest import operation_pickling_check
+from hoomd.conftest import operation_pickling_check, logging_check
 from hoomd.data.collections import _HOOMDSyncedCollection
+from hoomd.logging import LoggerCategories
 import pytest
 import numpy as np
 
@@ -291,3 +292,21 @@ def test_pickling(box_move, simulation_factory, two_particle_snapshot_factory):
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
     operation_pickling_check(boxmc, sim)
+
+
+def test_logging():
+    logging_check(
+        hoomd.hpmc.update.BoxMC, ('hpmc', 'update'), {
+            'aspect_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'shear_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'volume_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
+        })

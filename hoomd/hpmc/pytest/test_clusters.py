@@ -5,7 +5,8 @@
 """Test hoomd.hpmc.update.Clusters."""
 
 import hoomd
-from hoomd.conftest import operation_pickling_check
+from hoomd.conftest import operation_pickling_check, logging_check
+from hoomd.logging import LoggerCategories
 import pytest
 import hoomd.hpmc.pytest.conftest
 
@@ -165,3 +166,12 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
                                     pivot_move_probability=0.1)
     operation_pickling_check(cl, sim)
+
+
+def test_logging():
+    logging_check(hoomd.hpmc.update.Clusters, ('hpmc', 'update'), {
+        'avg_cluster_size': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

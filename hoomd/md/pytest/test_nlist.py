@@ -1,10 +1,11 @@
 import copy as cp
 import hoomd
+from hoomd.logging import LoggerCategories
 import numpy as np
 import pytest
 import random
 from hoomd.md.nlist import Cell, Stencil, Tree
-from hoomd.conftest import pickling_check
+from hoomd.conftest import logging_check, pickling_check
 
 
 def _nlist_params():
@@ -145,3 +146,12 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
     sim.run(0)
     pickling_check(nlist)
+
+
+def test_logging():
+    logging_check(hoomd.md.nlist.NList, ('md', 'nlist'), {
+        'shortest_rebuild': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })
