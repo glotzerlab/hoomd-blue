@@ -616,7 +616,7 @@ class QuickCompress(Updater):
     of the largest particle type.
 
     Tip:
-        Use the `hoomd.hpmc.tune.MoveSizeTuner` in conjunction with
+        Use the `hoomd.hpmc.tune.MoveSize` in conjunction with
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
 

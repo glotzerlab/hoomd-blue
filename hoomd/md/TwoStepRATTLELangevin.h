@@ -250,9 +250,9 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepOne(
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -557,9 +557,9 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(
 
                 // check for degenerate moment of inertia
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 bf_torque.x = rand_x - gamma_r.x * (s.x / I.x);
                 bf_torque.y = rand_y - gamma_r.y * (s.y / I.y);
@@ -600,9 +600,9 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)

@@ -95,10 +95,7 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
-        this->m_exec_conf->msg->error() << "Creating a ActiveForceConstraintComputeGPU with no GPU "
-                                           "in the execution configuration"
-                                        << std::endl;
-        throw std::runtime_error("Error initializing ActiveForceConstraintComputeGPU");
+        throw std::runtime_error("ActiveForceConstraintComputeGPU requires a GPU device.");
         }
 
     // initialize autotuner

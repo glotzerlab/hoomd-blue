@@ -187,7 +187,7 @@ class Integrator(_DynamicIntegrator):
 
     - `hoomd.md.angle`
     - `hoomd.md.bond`
-    - `hoomd.md.charge`
+    - `hoomd.md.long_range.pppm`
     - `hoomd.md.dihedral`
     - `hoomd.md.external.field`
     - `hoomd.md.force`

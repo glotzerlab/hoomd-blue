@@ -63,9 +63,7 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
     {
     if (m_storage_mode != full)
         {
-        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU"
-                                  << std::endl;
-        throw std::runtime_error("Error computing neighbor list");
+        throw std::runtime_error("GPU neighbor lists require a full storage mode.");
         }
 
     // update the cell list size if needed
@@ -127,7 +125,7 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
                                                            access_location::device,
                                                            access_mode::read);
 
-    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
+    ArrayHandle<size_t> d_head_list(m_head_list, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_conditions(m_conditions,
                                            access_location::device,

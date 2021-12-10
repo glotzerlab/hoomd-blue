@@ -13,11 +13,6 @@ sys.path.insert(0, os.path.abspath('..'))
 
 os.environ['SPHINX'] = '1'
 
-# TEMPORARY
-# TODO: remove this when 3.0 is closer to completion
-# stop warning about invalid references
-suppress_warnings = ['ref.any']
-
 extensions = [
     'nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary',
     'sphinx.ext.napoleon', 'sphinx.ext.intersphinx', 'sphinx.ext.mathjax',

@@ -473,6 +473,7 @@ functionality.
 - ``COPY_HEADERS`` *CMake* option.
 - Many other python modules have been removed or re-implemented with new names.
   See the migration guide and new API documentation for a complete list.
+- Support for NVIDIA GPUS with compute capability < 6.0.
 
 v2.x
 ----
@@ -483,7 +484,7 @@ v2.9.7 (2021-08-03)
 *Bug fixes*
 
 * Support CUDA 11.5. A bug in CUDA 11.4 may result in the error
-  `__global__ function call is not configure` when running HOOMD.
+  ``__global__ function call is not configured`` when running HOOMD.
 
 v2.9.6 (2021-03-16)
 ^^^^^^^^^^^^^^^^^^^

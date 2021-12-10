@@ -68,7 +68,8 @@ def hoomd_snapshot(lattice_snapshot_factory):
 
 def lj_integrator():
     integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), default_r_cut=2.5)
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(buffer=0.4),
+                          default_r_cut=2.5)
     lj.params.default = {'sigma': 1, 'epsilon': 1}
     integrator.forces.append(lj)
     langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
