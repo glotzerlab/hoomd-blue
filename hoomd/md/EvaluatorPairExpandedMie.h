@@ -88,7 +88,10 @@ class EvaluatorPairExpandedMie
 #endif
 
 #ifndef __HIPCC__
-        param_type() : repulsive(0), attractive(0), n_pow(0), m_pow(0), delta(0), sigma(0), epsilon(0) { }
+        param_type()
+            : repulsive(0), attractive(0), n_pow(0), m_pow(0), delta(0), sigma(0), epsilon(0)
+            {
+            }
 
         param_type(const pybind11::dict v, bool managed = false)
             {

@@ -92,7 +92,7 @@ class EvaluatorSpecialPairLJ
     */
     DEVICE EvaluatorSpecialPairLJ(Scalar _rsq, const param_type& _params)
         : rsq(_rsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
-        lj2(_params.epsilon_x_4 * _params.sigma_6), rcutsq(_params.r_cutsq)
+          lj2(_params.epsilon_x_4 * _params.sigma_6), rcutsq(_params.r_cutsq)
         {
         }
 

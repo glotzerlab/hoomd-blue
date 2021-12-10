@@ -173,7 +173,7 @@ class EvaluatorPairLJ
     */
     DEVICE EvaluatorPairLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
         : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
-        lj2(_params.epsilon_x_4 * _params.sigma_6)
+          lj2(_params.epsilon_x_4 * _params.sigma_6)
         {
         }
 

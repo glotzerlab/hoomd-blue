@@ -87,8 +87,9 @@ class EvaluatorBondFENE
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorBondFENE(Scalar _rsq, const param_type& _params)
-        : rsq(_rsq), K(_params.k), r_0(_params.r_0), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
-        lj2(_params.epsilon_x_4 * _params.sigma_6)
+        : rsq(_rsq), K(_params.k), r_0(_params.r_0),
+          lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
+          lj2(_params.epsilon_x_4 * _params.sigma_6)
         {
         }
 
