@@ -138,7 +138,7 @@ class _ValidatedDefaultDict(MutableMapping):
             validated_value = self._validate_values(item)
         except ValueError as err:
             raise TypeConversionError(
-                f"For types {list(keys)} {str(err)}.") from err
+                f"For types {list(keys)}: {str(err)}.") from err
         for key in keys:
             self._single_setitem(key, validated_value)
 
@@ -637,7 +637,6 @@ class ParameterDict(MutableMapping):
     def __iter__(self):
         """Iterate over keys."""
         for key in self._type_converter:
-            # We use getitem to ensure that data is updated.
             if key in self._dict:
                 yield key
 
