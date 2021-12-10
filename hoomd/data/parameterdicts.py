@@ -438,11 +438,11 @@ class TypeParameterDict(_ValidatedDefaultDict):
             return len(self._type_keys)
         return len(self._dict)
 
-    def to_dict(self):
+    def to_base(self):
         """Convert to a `dict`."""
         if not self._attached:
-            return self._dict
-        return {key: getattr(self._cpp_obj, self._getter)(key) for key in self}
+            return {k: _to_base(v) for k, v in self._dict.items()}
+        return {key: self[key] for key in self}
 
     def _validated_keys(self, key):
         """Includes key check for existing simulation keys.
@@ -538,7 +538,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
         As no single command could give the same object with ``eval``, this just
         returns a convenient form for debugging.
         """
-        return f"TypeParameterDict{self.to_dict()}"
+        return f"TypeParameterDict{self.to_base()}"
 
     def __getstate__(self):
         """Get object state for deepcopying and pickling."""
@@ -585,9 +585,9 @@ class ParameterDict(MutableMapping):
             return
         if isinstance(value, _HOOMDSyncedCollection):
             with value._suspend_read_and_write:
-                setattr(self._cpp_obj, key, self._to_base(value))
+                setattr(self._cpp_obj, key, _to_base(value))
             return
-        setattr(self._cpp_obj, key, self._to_base(value))
+        setattr(self._cpp_obj, key, _to_base(value))
 
     def __setitem__(self, key, value):
         """Set parameter by key."""
@@ -705,17 +705,14 @@ class ParameterDict(MutableMapping):
         if self._attached:
             obj._parent._update(getattr(self._cpp_obj, obj._identity))
 
-    def _to_base(self, obj):
-        if hasattr(obj, "to_base"):
-            return obj.to_base()
-        return obj
-
     def to_base(self):
         """Return a plain dictionary with equivalent data.
 
         This recursively convert internal data to base HOOMD types.
         """
-        return {key: self._to_base(value) for key, value in self.items()}
+        # Using _dict prevents unnecessary _read calls for
+        # _HOOMDSyncedCollection objects.
+        return {key: _to_base(value) for key, value in self._dict.items()}
 
     def __getstate__(self):
         """Get object state for deepcopying and pickling."""
