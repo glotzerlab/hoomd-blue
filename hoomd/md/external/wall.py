@@ -223,7 +223,7 @@ class WallPotential(force.Force):
 
     @property
     def walls(self):
-        """`list`[ `hoomd.wall.WallGeometry`]: \
+        """`list` [`hoomd.wall.WallGeometry`]: \
             The walls associated with this wall potential."""
         return self._walls
 
