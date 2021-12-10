@@ -554,7 +554,32 @@ class TypeParameterDict(_ValidatedDefaultDict):
 
 
 class ParameterDict(MutableMapping):
-    """Parameter dictionary."""
+    """Per-key validated mapping for syncing per-instance attributes to C++.
+
+    This class uses the `hoomd.data.collections._HOOMDSyncedCollection`
+    subclasses for supporting nested editing of data structures while
+    maintaining synced status in C++. This class is used by
+    `hoomd.operation._HOOMDGetSetAttrBase` for per-instance level variables.
+    Instances must be _attached_ for syncing with a C++ object. The class
+    expects that the pybind11 C++ object passed have properties corresponding to
+    this instances keys.
+
+    Attributes:
+        _cpp_obj (pybind11 object): None when not attatched otherwise a pybind11
+            created C++ object in Python.
+        _dict (dict[str, any]): Python local mapping where data is stored. It is
+            the only source of data when not attached.
+        _type_converter (TypeConverterMapping): The validator for each key.
+        _getters (dict[str, callable[ParameterDict]):
+            A dictionary of instance keys with special getters. This is used to
+            provide special logic for retreiving values from the `ParameterDict`
+            when attached. The instance is passed to the callable.
+        _setters (dict[str, callable[ParameterDict, any]):
+            A dictionary of instance keys with special setters. This is used to
+            provide special logic for setting values in C++ from the
+            `ParameterDict` when attached. The instance and new value is passed
+            to the callable.
+    """
 
     def __init__(self, _defaults=_NoDefault, **kwargs):
         self._cpp_obj = None
@@ -578,6 +603,10 @@ class ParameterDict(MutableMapping):
         self._setters[attr] = func
 
     def _cpp_setting(self, key, value):
+        """Handles setting a new value to C++.
+
+        Assumes value is completely updated and validated.
+        """
         setter = self._setters.get(key)
         if setter is not None:
             setter(self, key, value)
