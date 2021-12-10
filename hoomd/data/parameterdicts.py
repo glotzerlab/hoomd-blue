@@ -151,8 +151,12 @@ class _ValidatedDefaultDict(MutableMapping):
         except KeyError:
             return False
         if self._attached:
-            return len(keys) == 1 and keys[0] in self._type_keys
-        return len(keys) == 1 and key in self._dict
+            if len(keys) == 1:
+                return keys[0] in self._type_keys
+            return [key in self._type_keys for key in keys]
+        if len(keys) == 1:
+            return keys[0] in self._dict
+        return [key in self._dict for key in keys]
 
     def get(self, keys, default=None):
         """Get values for keys with undefined keys returning default.
