@@ -514,7 +514,7 @@ def _valid_params(particle_types=['A', 'B']):
     expanded_lj_arg_dict = {
         'sigma': [0.5, 1.0, 1.5],
         'epsilon': [0.0005, 0.001, 0.0015],
-        'delta': [0.0, 0.5, 1.2]
+        'delta': [1.0, 0.5, 0.0]
     }
     expanded_lj_valid_param_dicts = _make_valid_param_dicts(
         expanded_lj_arg_dict)
