@@ -530,7 +530,9 @@ class TypeParameterDict(_ValidatedDefaultDict):
         if not self._attached:
             return
         # the _dict attribute is the store for the Python copy of the data.
-        self._single_setitem(obj._identity, obj._parent)
+        parent = obj._parent
+        with parent._suspend_read:
+            self._single_setitem(obj._identity, _to_base(obj._parent))
 
     def __repr__(self):
         """A string representation of the TypeParameterDict.
@@ -699,7 +701,7 @@ class ParameterDict(MutableMapping):
 
     def _write(self, obj):
         if self._attached:
-            self._cpp_setting(obj._identity, obj)
+            self._cpp_setting(obj._identity, obj._parent)
 
     def _read(self, obj):
         if self._attached:
