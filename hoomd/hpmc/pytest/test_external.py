@@ -25,7 +25,7 @@ def test_valid_construction_latticefield(device, constructor_args):
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        assert np.all(getattr(field, translator.get(attr, attr)) == value)
+        assert np.all(getattr(field, attr) == value)
 
 
 @pytest.mark.cpu
