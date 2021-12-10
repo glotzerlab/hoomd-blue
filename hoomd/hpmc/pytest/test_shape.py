@@ -684,9 +684,22 @@ def test_logging():
                 'default': True
             }
         })
-    logging_check(
-        hoomd.hpmc.integrate.ConvexPolyhedron, ('hpmc', 'integrate'),
-        {'type_shapes': {
+
+    integrators = (hoomd.hpmc.integrate.Sphere,
+                   hoomd.hpmc.integrate.ConvexPolygon,
+                   hoomd.hpmc.integrate.ConvexSpheropolygon,
+                   hoomd.hpmc.integrate.Polyhedron,
+                   hoomd.hpmc.integrate.ConvexPolyhedron,
+                   hoomd.hpmc.integrate.ConvexSpheropolyhedron,
+                   hoomd.hpmc.integrate.Ellipsoid,
+                   hoomd.hpmc.integrate.SphereUnion)
+
+    type_shapes_check = {
+        'type_shapes': {
             'category': LoggerCategories.object,
             'default': True
-        }})
+        }
+    }
+
+    for integrator in integrators:
+        logging_check(integrator, ('hpmc', 'integrate'), type_shapes_check)
