@@ -1,6 +1,8 @@
 import hoomd
 import pytest
 from itertools import permutations
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check
 
 _directions = list(permutations(['x', 'y', 'z'], 2))
 
@@ -76,3 +78,13 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
         mpf.summed_exchanged_momentum = 1.5
 
     sim.run(10)
+
+
+def test_logging():
+    logging_check(
+        hoomd.md.update.ReversePerturbationFlow, ('md', 'update'), {
+            'summed_exchanged_momentum': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })

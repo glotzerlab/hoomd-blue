@@ -2,6 +2,8 @@ import hoomd
 import pytest
 import numpy as np
 from hoomd.error import DataAccessError
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check
 
 
 def test_before_attaching():
@@ -70,3 +72,12 @@ def test_validation_systems(simulation_factory, two_particle_snapshot_factory,
     np.testing.assert_allclose(free_volume,
                                free_volume_compute.free_volume,
                                rtol=2e-2)
+
+
+def test_logging():
+    logging_check(
+        hoomd.hpmc.compute.FreeVolume, ('hpmc', 'compute'),
+        {'free_volume': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }})

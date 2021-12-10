@@ -3,6 +3,8 @@ import numpy as np
 import pytest
 from copy import deepcopy
 from hoomd.error import MutabilityError
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check
 try:
     import gsd.hoomd
     skip_gsd = False
@@ -405,3 +407,29 @@ def test_mutability_error(simulation_factory, two_particle_snapshot_factory,
 
     with pytest.raises(MutabilityError):
         GSD_dump.filter = filt
+
+
+def test_logging():
+    logging_check(
+        hoomd.Simulation, (), {
+            'final_timestep': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'seed': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'timestep': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'tps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'walltime': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })

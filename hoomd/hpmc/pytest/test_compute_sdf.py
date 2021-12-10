@@ -4,6 +4,8 @@ import hoomd
 import pytest
 import numpy as np
 import hoomd.hpmc.pytest.conftest
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check
 
 
 def test_before_attaching():
@@ -194,3 +196,17 @@ def test_values(simulation_factory, lattice_snapshot_factory):
         v = np.mean(sdf_data[1:, :], axis=0)
         invalid = np.abs(_avg - v) > (8 * _err)
         assert np.sum(invalid) == 0
+
+
+def test_logging():
+    logging_check(
+        hoomd.hpmc.compute.SDF, ('hpmc', 'compute'), {
+            'betaP': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'sdf': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
+        })

@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 
 import hoomd
-from hoomd.conftest import operation_pickling_check
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import operation_pickling_check, logging_check
 from hoomd import md
 
 
@@ -185,3 +186,17 @@ def test_validate_methods(lattice_snapshot_factory, simulation_factory):
     for method, should_error in methods:
         sim = simulation_factory(snap)
         _try_add_to_fire(sim, method, should_error)
+
+
+def test_logging():
+    logging_check(
+        hoomd.md.minimize.FIRE, ('md', 'minimize', 'fire'), {
+            'converged': {
+                'category': LoggerCategories.scalar,
+                'default': False
+            },
+            'energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })
