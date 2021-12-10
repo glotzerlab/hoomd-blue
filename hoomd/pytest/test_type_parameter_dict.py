@@ -14,7 +14,6 @@ def identity(x):
 
 
 class TestTypeParameterDict(BaseMappingTest):
-    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     _deletion_error = NotImplementedError
     _has_default = True
 
@@ -43,22 +42,19 @@ class TestTypeParameterDict(BaseMappingTest):
 
     def _generate_value(self):
         if self._spec == "int":
-            return self.rng.integers(100_000)
+            return self.int()
         value = {}
         for key in ("foo", "bar", "baz"):
             if self.rng.random() > 0.5:
                 continue
             if key == "foo":
-                value["foo"] = self.rng.integers(100_000).item()
+                value["foo"] = self.rng.int()
             elif key == "bar":
-                value["bar"] = self.rng.choice([
-                    self.rng.integers(100_000).item(),
-                    None,
-                    next(super(TestTypeParameterDict, self).random_keys()),
-                ])
+                value["bar"] = self.rng.choice(
+                    [self.int(), None,
+                     self.float(), self.str()])
             else:
-                value["baz"] = next(
-                    super(TestTypeParameterDict, self).random_keys())
+                value["baz"] = self.str()
         return value
 
     @pytest.fixture
@@ -111,8 +107,7 @@ class TestTypeParameterDict(BaseMappingTest):
         keys = list(self._generate_keys(n))
         value = self._generate_value()
         if request.param:
-            index = self.rng.choice(len(keys))
-            return keys[index], value
+            return self.rng.choice(keys), value
         key = next(filter(lambda x: x not in keys, self.random_keys()))
         return key, value
 
@@ -238,21 +233,18 @@ class TestTypeParameterDictAttached(TestTypeParameterDict):
 
     def _generate_value(self):
         if self._spec == "int":
-            return self.rng.integers(100_000)
+            return self.int()
         value = {}
         for key in ("foo", "baz"):
             if self.rng.random() > 0.5:
                 continue
             if key == "foo":
-                value["foo"] = self.rng.integers(100_000).item()
+                value["foo"] = self.int()
             else:
-                value["baz"] = next(
-                    super(TestTypeParameterDict, self).random_keys())
-        value["bar"] = self.rng.choice([
-            self.rng.integers(100_000).item(),
-            None,
-            next(super(TestTypeParameterDict, self).random_keys()),
-        ])
+                value["baz"] = self.str()
+        value["bar"] = self.rng.choice(
+            [self.int(), None, self.str(),
+             self.float()])
         return value
 
     def test_detach(self, populated_collection):

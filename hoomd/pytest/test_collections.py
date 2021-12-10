@@ -30,16 +30,6 @@ class MockRoot:
         obj._parent._update(new_value)
 
 
-def random_strings(rng, n):
-    items = "abcdefghijklmnopqrstuvwxyz"
-    list_ = []
-    for _ in range(n):
-        length = rng.integers(10) + 1
-        indices = rng.choice(len(items), length)
-        list_.append("".join(items[i] for i in indices))
-    return list_
-
-
 class TestHoomdList(BaseListTest):
 
     @pytest.fixture(autouse=True, params=("ints", "floats", "strs"))
@@ -49,19 +39,13 @@ class TestHoomdList(BaseListTest):
     @pytest.fixture
     def generate_plain_collection(self):
         if self._current_list == "ints":
-
-            def generate_one():
-                return self.rng.integers(100_000_000)
-
+            generate_one = self.int
         elif self._current_list == "floats":
-
-            def generate_one():
-                return 1e6 * self.rng.random()
-
+            generate_one = self.float
         elif self._current_list == "strs":
 
             def generate_one():
-                return random_strings(self.rng, 3 + self.rng.integers(10))
+                return [self.str() for _ in range(3 + self.int(10))]
 
         def generate(n):
             return [generate_one() for _ in range(n)]
@@ -119,10 +103,8 @@ class TestHoomdTuple(BaseSequenceTest):
     def generate_plain_collection(self):
 
         def generate(n):
-            integer = self.rng.integers(100_000_000).item()
-            strings = random_strings(self.rng, self.rng.integers(10))
-            float_ = 1e5 * (self.rng.random() - 0.5)
-            return (integer, strings, float_)
+            strings = [self.str() for _ in range(self.int(10))]
+            return (self.int(), strings, self.float())
 
         return generate
 
@@ -152,16 +134,15 @@ class TestHoomdDict(BaseMappingTest):
     def generate_plain_collection(self):
 
         def generate(n):
+            tuples = [(self.int(),
+                       [self.str()
+                        for _ in range(3 + self.int(10))])
+                      for _ in range(self.int(10) + 3)]
             data = {
-                "sigma": 1e6 * self.rng.random(),
-                "epsilon": 1e6 * self.rng.random(),
-                "notes": []
+                "sigma": self.float(),
+                "epsilon": self.float(),
+                "notes": tuples
             }
-            num_tuples = self.rng.integers(10) + 3
-            for _ in range(num_tuples):
-                data["notes"].append(
-                    (self.rng.integers(100_000),
-                     random_strings(self.rng, 3 + self.rng.integers(10))))
             return data
 
         return generate

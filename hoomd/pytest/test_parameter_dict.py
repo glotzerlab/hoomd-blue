@@ -59,16 +59,7 @@ class TestParameterDict(BaseMappingTest):
         self._spec = spec
         return spec
 
-    def _int(self):
-        return self.rng.integers(100_000)
-
-    def _float(self):
-        return 1e6 * (self.rng.random() - 0.5)
-
-    def _str(self):
-        return next(super().random_keys())
-
-    def _filter(self):
+    def filter(self):
         return self.rng.choice([
             hoomd.filter.All(),
             hoomd.filter.Type(("A", "B")),
@@ -79,22 +70,20 @@ class TestParameterDict(BaseMappingTest):
         # n == 1
         if "int" in self._spec:
             return {
-                "int": self._int(),
-                "list[int]": [
-                    self._int() for _ in range(self.rng.integers(10))
-                ],
-                "(float, str)": (self._float(), self._str())
+                "int": self.int(),
+                "list[int]": [self.int() for _ in range(self.int(10))],
+                "(float, str)": (self.float(), self.str())
             }
         # n == 2
         elif "dict" in self._spec:
-            return {"dict": {"str": self._str()}, "filter": self._filter()}
+            return {"dict": {"str": self.str()}, "filter": self.filter()}
         # n == 3
         else:
             return {
                 "(float, float, float)": tuple(self._float() for _ in range(3)),
                 "list[dict[str, int]]": [{
                     k: self._int() for k in ("bar", "foo")
-                } for _ in range(self.rng.integers(10))],
+                } for _ in range(self.int(10))],
                 "(float, str)": (self._float(), self._str())
             }
 

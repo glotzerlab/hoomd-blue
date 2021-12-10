@@ -566,6 +566,8 @@ class BaseCollectionsTest:
         test classes inherit from `abc.ABC`
     """
 
+    alphabet = [char for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]
+
     def to_base(self, obj):
         """Use to convert an item removed from a data structure.
 
@@ -634,6 +636,20 @@ class BaseCollectionsTest:
         reproducible this should have a constant seed.
         """
         return self._rng
+
+    def int(self, max_=100_000_000):
+        """Return a random integer."""
+        return self.rng.integer(max_).item()
+
+    def float(self, max_=1e9):
+        """Return a random float."""
+        return max_ * (self.rng.random() - 0.5)
+
+    def str(self, max_length=20):
+        """Return a random string."""
+        length = self.int(max_length) + 1
+        characters = [self.rng.choice(self.alphabet) for _ in range(length)]
+        return "".join(characters)
 
     @pytest.fixture(autouse=True, params=(5, 10, 20))
     def n(self, request):
