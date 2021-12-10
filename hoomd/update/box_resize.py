@@ -73,8 +73,7 @@ class BoxResize(Updater):
         params['trigger'] = trigger
         params['filter'] = filter
         for attr in ("box1", "box2"):
-            params._set_special_getter(attr, _box_getter)
-            params._set_special_setter(attr, _box_setter)
+            params._set_special_getset(attr, _box_getter, _box_setter)
         self._param_dict.update(params)
         super().__init__(trigger)
 

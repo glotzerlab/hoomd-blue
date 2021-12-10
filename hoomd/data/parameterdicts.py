@@ -596,11 +596,15 @@ class ParameterDict(MutableMapping):
         else:
             self._type_converter = {}
 
-    def _set_special_getter(self, attr, func):
-        self._getters[attr] = func
+    def _set_special_getset(self, attr, getter=None, setter=None):
+        """Set special setter and/or getter for a given key.
 
-    def _set_special_setter(self, attr, func):
-        self._setters[attr] = func
+        See documentation on `_getters` and `_setters`.
+        """
+        if getter is not None:
+            self._getters[attr] = getter
+        if setter is not None:
+            self._setters[attr] = setter
 
     def _cpp_setting(self, key, value):
         """Handles setting a new value to C++.

@@ -665,8 +665,7 @@ class QuickCompress(Updater):
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
-        param_dict._set_special_getter("target_box", _box_getter)
-        param_dict._set_special_setter("target_box", _box_setter)
+        param_dict._set_special_getset("target_box", _box_getter, _box_setter)
 
         self._param_dict.update(param_dict)
 
