@@ -11,9 +11,10 @@ hoomd.wall
     Cylinder
     Plane
     Sphere
+    WallGeometry
 
 .. rubric:: Details
 
 .. automodule:: hoomd.wall
     :synopsis: Wall data classes that specify wall geometries for use in other hoomd submodules.
-    :members: Cylinder, Plane, Sphere
+    :members: Cylinder, Plane, Sphere, WallGeometry

@@ -193,7 +193,7 @@ class Integrator(_DynamicIntegrator):
     - `hoomd.md.force`
     - `hoomd.md.improper`
     - `hoomd.md.pair`
-    - `hoomd.md.extern.wall`
+    - `hoomd.md.external.wall`
     - `hoomd.md.special_pair`
 
     The classes of the following module can be used as elements in `constraints`
