@@ -746,7 +746,8 @@ class BaseListTest(BaseSequenceTest):
         """Determines the indices used for test_delitem.
 
         Note:
-            At least one index should be out of range to test proper behavior.
+            At least one index should be out of range and one negative to test
+            proper behavior.
         """
         return request.param
 
@@ -774,9 +775,9 @@ class BaseListTest(BaseSequenceTest):
 
     def test_append(self, empty_collection, plain_collection):
         """Test append."""
-        for i, item in enumerate(plain_collection):
+        for i, item in enumerate(plain_collection, start=1):
             empty_collection.append(item)
-            assert len(empty_collection) == i + 1
+            assert len(empty_collection) == i
             assert self.is_equal(item, empty_collection[-1])
         self.check_equivalent(empty_collection, plain_collection)
         self.final_check(empty_collection)
@@ -787,7 +788,7 @@ class BaseListTest(BaseSequenceTest):
 
         Note:
             At least one index should be greater than the list size to test
-            proper performance.
+            proper performance. At least one should be negative too.
         """
         return request.param
 
@@ -833,8 +834,8 @@ class BaseListTest(BaseSequenceTest):
         """Determines the indices used for test_setitem.
 
         Note:
-            At least one index should be larger than the list size to test
-            proper behavior.
+            At least one index should be larger than the list size and another
+            negatiev to test proper behavior.
         """
         return request.param
 
@@ -859,8 +860,8 @@ class BaseListTest(BaseSequenceTest):
         """Determines the indices used for test_pop.
 
         Note:
-            At least one index should be larger than the list size to test
-            proper behavior.
+            At least one index should be larger than the list size and another
+            negative to test proper behavior.
         """
         return request.param
 
@@ -878,14 +879,10 @@ class BaseListTest(BaseSequenceTest):
         self.check_equivalent(test_list, plain_list)
         self.final_check(test_list)
 
-    @pytest.fixture
-    def remove_index(self, n):
-        """Determines the indices used for test_remove."""
-        return self.rng.integers(n)
-
-    def test_remove(self, remove_index, populated_collection):
+    def test_remove(self, populated_collection):
         """Test remove."""
         test_list, plain_list = populated_collection
+        remove_index = self.int(len(plain_list))
         test_list.remove(plain_list[remove_index])
         assert plain_list[remove_index] not in test_list
         plain_list.remove(plain_list[remove_index])
@@ -925,24 +922,23 @@ class BaseMappingTest(BaseCollectionsTest):
         Warning:
             This is an infinite generator.
         """
-        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         while True:
-            length = self.rng.integers(10) + 1
-            characters = []
-            for _ in range(length):
-                characters.append(alphabet[self.rng.choice(len(alphabet))])
-            yield "".join(characters)
+            yield self.str()
 
     def choose_random_key(self, mapping):
         """Pick a random existing key from mapping.
 
         Fails on an empty mapping.
         """
-        return list(mapping)[self.rng.choice(len(mapping))]
+        return self.rng.choice([key for key in mapping])
 
     def test_iter(self, populated_collection):
         """Test __iter__."""
         test_mapping, plain_mapping = populated_collection
+        cnt = 0
+        for _ in test_mapping:
+            cnt += 1
+        assert cnt == len(plain_mapping)
         assert set(test_mapping) == plain_mapping.keys()
 
     def test_contains(self, populated_collection):
@@ -983,6 +979,12 @@ class BaseMappingTest(BaseCollectionsTest):
     def test_delitem(self, populated_collection):
         """Test __delitem__."""
         test_mapping, plain_mapping = populated_collection
+        # Test that non-existent keys error appropriately.
+        with pytest.raises(KeyError):
+            for key in self.random_keys():
+                if key not in test_mapping:
+                    del test_mapping[key]
+        # base test
         key = self.choose_random_key(test_mapping)
         if self._deletion_error is not None:
             with pytest.raises(self._deletion_error):
@@ -993,11 +995,6 @@ class BaseMappingTest(BaseCollectionsTest):
         del plain_mapping[key]
         self.check_equivalent(test_mapping, plain_mapping)
         assert key not in test_mapping
-        # Test that non-existent keys error appropriately.
-        with pytest.raises(KeyError):
-            for key in self.random_keys():
-                if key not in test_mapping:
-                    del test_mapping[key]
         self.final_check(test_mapping)
 
     def test_clear(self, populated_collection):
@@ -1043,6 +1040,13 @@ class BaseMappingTest(BaseCollectionsTest):
     def test_pop(self, populated_collection):
         """Test pop."""
         test_mapping, plain_mapping = populated_collection
+        # Test for error with non-existent keys.
+        with pytest.raises(KeyError):
+            for key in self.random_keys():
+                if key not in test_mapping:
+                    test_mapping.pop(key)
+                    break
+        # base test
         key = self.choose_random_key(test_mapping)
         if self._deletion_error is not None:
             with pytest.raises(self._deletion_error):
@@ -1054,12 +1058,6 @@ class BaseMappingTest(BaseCollectionsTest):
         plain_mapping.pop(key)
         self.check_equivalent(test_mapping, plain_mapping)
         self.final_check(test_mapping)
-        # Test for error with non-existent keys.
-        with pytest.raises(KeyError):
-            for key in self.random_keys():
-                if key not in test_mapping:
-                    test_mapping.pop(key)
-                    break
         test_mapping.pop(key, None)
 
     def test_keys(self, populated_collection):
@@ -1130,8 +1128,7 @@ class BaseMappingTest(BaseCollectionsTest):
                 test_mapping.popitem()
             return
 
-        N = len(test_mapping)
-        for length in range(N - 1, -1, -1):
+        for length in range(len(test_mapping) - 1, -1, -1):
             key, item = test_mapping.popitem()
             assert key not in test_mapping
             assert len(test_mapping) == length
