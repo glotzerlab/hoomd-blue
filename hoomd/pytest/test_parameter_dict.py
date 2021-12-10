@@ -2,6 +2,7 @@ import pytest
 
 import hoomd
 from hoomd.conftest import BaseMappingTest, pickling_check
+from hoomd.data.collections import _HOOMDSyncedCollection
 from hoomd.data.parameterdicts import ParameterDict
 
 
@@ -136,6 +137,10 @@ class TestParameterDictAttached(TestParameterDict):
     _allow_new_keys = False
     _deletion_error = RuntimeError
 
+    def final_check(self, test_mapping):
+        for attr, value in test_mapping.items():
+            assert self.is_equal(value, getattr(test_mapping._cpp_obj, attr))
+
     @pytest.fixture
     def populated_collection(self, empty_collection, plain_collection, n):
         empty_collection.update(plain_collection)
@@ -148,3 +153,14 @@ class TestParameterDictAttached(TestParameterDict):
         assert not test_mapping._attached
         assert test_mapping._cpp_obj is None
         self.check_equivalent(test_mapping, plain_mapping)
+
+    def test_introspection(self, populated_collection, n):
+        test_mapping, _ = populated_collection
+        cpp_obj = test_mapping._cpp_obj
+        new_value = self._generate_value()
+        for k, v in new_value.keys():
+            old_v = test_mapping[k]
+            setattr(cpp_obj, k, v)
+            assert test_mapping[k] == v
+            if isinstance(old_v, _HOOMDSyncedCollection):
+                assert old_v._isolated

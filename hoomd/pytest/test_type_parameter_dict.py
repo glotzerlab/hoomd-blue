@@ -5,6 +5,7 @@ import pytest
 from hoomd.conftest import BaseMappingTest, pickling_check
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.pytest.dummy import DummyCppObj
+from hoomd.data.collections import _HOOMDSyncedCollection
 from hoomd.data.typeconverter import RequiredArg
 from hoomd.error import TypeConversionError, IncompleteSpecificationError
 
@@ -281,3 +282,15 @@ class TestTypeParameterDictAttached(TestTypeParameterDict):
             yield [(invalid_types[-1], t) for t in invalid_types[:2]]
 
         return yield_invalid_key
+
+    def test_introspection(self, populated_collection):
+        test_mapping, _ = populated_collection
+        cpp_obj = test_mapping._cpp_obj
+        key = self.choose_random_key(test_mapping)
+        for _ in range(3):
+            old_v = test_mapping[key]
+            v = self._generate_value()
+            cpp_obj._dict[key] = v
+            assert test_mapping[key] == v
+            if isinstance(old_v, _HOOMDSyncedCollection):
+                assert old_v._isolated
