@@ -87,6 +87,8 @@ class TestTypeParameterDict(BaseMappingTest):
         return TypeParameterDict(validator, len_keys=len_keys)
 
     def check_equivalent(self, test_mapping, other):
+        # We overwrite check_equivalent to enable us to check exact equality
+        # using the default.
         assert set(test_mapping) == other.keys()
         default = test_mapping.default
         for key, value in other.items():
