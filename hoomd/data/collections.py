@@ -171,18 +171,18 @@ class _HOOMDSyncedCollection(abc.Collection):
         return _Buffer(self, True, True)
 
     def _read(self):
+        if self._buffer_read:
+            return
         if self._isolated:
             warnings.warn(hoomd.error.IsolationWarning())
-            return
-        if self._buffer_read:
             return
         self._root._read(self)
 
     def _write(self):
+        if self._buffer_write:
+            return
         if self._isolated:
             warnings.warn(hoomd.error.IsolationWarning())
-            return
-        if self._buffer_write:
             return
         self._root._write(self)
 
@@ -531,6 +531,7 @@ def _to_base(collection):
     if isinstance(collection, _HOOMDSyncedCollection):
         if not collection._isolated:
             collection._read()
+        # Suspending reading and writing will also prevent isolation warnings.
         with collection._suspend_read_and_write:
             if isinstance(collection, _HOOMDDict):
                 return {
