@@ -473,9 +473,8 @@ class ExpandedLJ(Pair):
         V_{\mathrm{ExpandedLJ}}(r)  = & 4 \varepsilon \left[ \left(
                                 \frac{\sigma}{r - \Delta} \right)^{12} -
                                 \left( \frac{\sigma}{r - \Delta}
-                                \right)^{6} \right]; & r < (r_{\mathrm{cut}}
-                                + \Delta) \\
-                             = & 0; & r \ge (r_{\mathrm{cut}} + \Delta) \\
+                                \right)^{6} \right]; & r < (r_{\mathrm{cut}}) \\
+                             = & 0; & r \ge (r_{\mathrm{cut}}) \\
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the
@@ -487,7 +486,7 @@ class ExpandedLJ(Pair):
 
     Set the ``max_diameter`` property of the neighbor list object to the largest
     particle diameter in the system (where **diameter** is a per-particle
-    property of the same name in `hoomd.State`). TODO: fix this warning
+    property of the same name in `hoomd.State`). TODO: check if needed this warning
 
     Warning:
         Failure to set ``max_diameter`` will result in missing pair
