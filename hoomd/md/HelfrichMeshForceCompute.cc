@@ -242,6 +242,14 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar rsqbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
         Scalar rbd = sqrt(rsqbd);
 
+
+	Scalar3 nab;
+	nab = dab/rab;
+	nac = dac/rac;
+	nad = dad/rad;
+	nbc = dbc/rbc;
+	nbd = dbd/rbd;
+
         Scalar c_accb = dac.x * dbc.x + dac.y * dbc.y + dac.z * dbc.z;
         c_accb /= rac * rbc;
 
@@ -255,7 +263,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             s_accb = SMALL;
         s_accb = 1.0 / s_accb;
 
-	Scalar cot_accb = c_accb/s_accb;
 
         Scalar c_addb = dad.x * dbd.x + dad.y * dbd.y + dad.z * dbd.z;
         c_addb /= rad * rbd;
@@ -270,12 +277,105 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             s_addb = SMALL;
         s_addb = 1.0 / s_addb;
 
+        Scalar c_abbc = -dab.x * dbc.x - dab.y * dbc.y - dab.z * dbc.z;
+        c_abbc /= rab * rbc;
+
+        if (c_abbc > 1.0)
+            c_abbc = 1.0;
+        if (c_abbc < -1.0)
+            c_abbc = -1.0;
+
+        Scalar s_abbc = sqrt(1.0 - c_abbc * c_abbc);
+        if (s_abbc < SMALL)
+            s_abbc = SMALL;
+        s_abbc = 1.0 / s_abbc;
+
+        Scalar c_abbd = -dab.x * dbd.x - dab.y * dbd.y - dab.z * dbd.z;
+        c_abbd /= rab * rbd;
+
+        if (c_abbd > 1.0)
+            c_abbd = 1.0;
+        if (c_abbd < -1.0)
+            c_abbd = -1.0;
+
+        Scalar s_abbd = sqrt(1.0 - c_abbd * c_abbd);
+        if (s_abbd < SMALL)
+            s_abbd = SMALL;
+        s_abbd = 1.0 / s_abbd;
+
+        Scalar c_baac = dab.x * dac.x + dab.y * dac.y + dab.z * dac.z;
+        c_baac /= rab * rac;
+
+        if (c_baac > 1.0)
+            c_baac = 1.0;
+        if (c_baac < -1.0)
+            c_baac = -1.0;
+
+        Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
+        if (s_baac < SMALL)
+            s_baac = SMALL;
+        s_baac = 1.0 / s_baac;
+
+        Scalar c_baad = dab.x * dad.x + dab.y * dad.y + dab.z * dad.z;
+        c_baad /= rab * rad;
+
+        if (c_baad > 1.0)
+            c_baad = 1.0;
+        if (c_baad < -1.0)
+            c_baad = -1.0;
+
+        Scalar s_baad = sqrt(1.0 - c_baad * c_baad);
+        if (s_baad < SMALL)
+            s_baad = SMALL;
+        s_baad = 1.0 / s_baad;
+
+
+	Scalar cot_accb = c_accb/s_accb;
 	Scalar cot_addb = c_addb/s_addb;
+	Scalar cot_abbc = c_abbc/s_abbc;
+	Scalar cot_abbd = c_abbd/s_abbd;
+	Scalar cot_baac = c_baac/s_baac;
+	Scalar cot_baad = c_baad/s_baad;
 
 
-	Scalar sigma_hat = (cot_accb + cot_addb)/2;
+	Scalar sigma_hat_ab = (cot_accb + cot_addb)/2;
 
+	Scalar sigma_hat_a; //precomputed
+	Scalar sigma_hat_b; //precomputed
 
+	Scalar sigma_a; //precomputed
+	Scalar sigma_b; //precomputed
+
+	Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
+	dc_abbc = -nbc/rab + c_abbc/rab*nab;
+	dc_abbd = -nbd/rab + c_abbd/rab*nab;
+	dc_baac = nac/rab - c_baac/rab*nab;
+	dc_baad = nad/rab - c_baad/rab*nab;
+
+	Scalar3 dsigma_hat_ac, dsigma_hat_ad, dsigma_hat_bc, dsigma_hat_bd;
+	dsigma_hat_ac = s_abbc*s_abbc*s_abbc*dc_abbc/2;
+	dsigma_hat_ad = s_abbd*s_abbd*s_abbd*dc_abbd/2;
+	dsigma_hat_bc = s_baac*s_baac*s_baac*dc_baac/2;
+	dsigma_hat_bd = s_baad*s_baad*s_baad*dc_baad/2;
+
+	Scalar3 dsigma_a, dsigma_b, dsigma_c, dsigma_d;
+	dsigma_a = (dsigma_hat_ac*rsqac + dsigma_hat_ad*rsqad + 2*sigma_hat_ab*dab)/4;
+	dsigma_b = (dsigma_hat_bc*rsqbc + dsigma_hat_bd*rsqbd + 2*sigma_hat_ab*dab)/4;
+	dsigma_c = (dsigma_hat_ac*rsqac + dsigma_hat_bc*rsqbc)/4;
+	dsigma_d = (dsigma_hat_ad*rsqad + dsigma_hat_bd*rsqbd)/4;
+
+	Scalar dsigma_hat_a = dot(dsigma_hat_ac,dac) + dot(dsigma_hat_ad,dad) + sigma_hat_ab;
+	Scalar dsigma_hat_b = dot(dsigma_hat_bc,dbc) + dot(dsigma_hat_bd,dbd) - sigma_hat_ab;
+	Scalar dsigma_hat_c = -dot(dsigma_hat_ac,dac) - dot(dsigma_hat_bc,dbc);
+	Scalar dsigma_hat_d = -dot(dsigma_hat_ad,dad) - dot(dsigma_hat_bd,dbd);
+
+	Scalar3 Fa, Fb;
+	Fa = kappa*(dsigma_hat_a/sigma_a*sigma_hat_a -dot(sigma_hat_a,sigma_hat_a)/(2*sigma_a*sigma_a)*dsigma_a);
+	Fa += kappa*(dsigma_hat_b/sigma_b*sigma_hat_b -dot(sigma_hat_b,sigma_hat_b)/(2*sigma_b*sigma_b)*dsigma_b);
+	Fa += kappa*(dsigma_hat_c/sigma_c*sigma_hat_c -dot(sigma_hat_c,sigma_hat_c)/(2*sigma_c*sigma_c)*dsigma_c);
+	Fa += kappa*(dsigma_hat_d/sigma_d*sigma_hat_d -dot(sigma_hat_d,sigma_hat_d)/(2*sigma_d*sigma_d)*dsigma_d);
+
+	Fb = -Fa;
 
 
 
