@@ -95,8 +95,8 @@ class LatticeField(ExternalField):
         )
         param_dict['k_translational'] = k_translational
         param_dict['k_rotational'] = k_rotational
-        param_dict['reference_positions'] = position
-        param_dict['reference_orientations'] = orientation
+        param_dict['reference_positions'] = reference_positions
+        param_dict['reference_orientations'] = reference_orientations
         param_dict['symmetries'] = symmetries
         self._param_dict.update(param_dict)
 
