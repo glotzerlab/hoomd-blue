@@ -200,7 +200,6 @@ class _HOOMDSyncedCollection(abc.Collection):
     @property
     def _suspend_read_and_write(self):
         """Context manager for buffering reads and writes."""
-        return _Buffer(self, False, True)
         return _Buffer(self, True, True)
 
     def _read(self):
@@ -360,7 +359,7 @@ class _HOOMDDict(_HOOMDSyncedCollection, abc.MutableMapping):
 
     def setdefault(self, key, default):
         self._read()
-        if key not in self._data:
+        if key in self._data:
             return
         with self._suspend_read_and_write:
             self[key] = default
