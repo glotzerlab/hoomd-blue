@@ -459,7 +459,8 @@ class ExpandedLJ(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
-        delta (float): The horizontal shift of pair's interaction :math:`[\mathrm{length}]`.
+        delta (float): The horizontal shift of pair's interaction
+        :math:`[\mathrm{length}]`.
         mode (str): Energy shifting mode.
 
     `ExpandedLJ` specifies that a radially shifted Lennard-Jones
@@ -481,12 +482,12 @@ class ExpandedLJ(Pair):
     available energy shifting and smoothing modes.
 
     Attention:
-        Due to the way that `ExpandedLJ` modifies the cutoff criteria, a smoothing mode
-        of *xplor* is not supported.
+        Due to the way that `ExpandedLJ` modifies the cutoff criteria, a smoothing
+        mode of *xplor* is not supported.
 
     Set the ``max_diameter`` property of the neighbor list object to the largest
     particle diameter in the system (where **diameter** is a per-particle
-    property of the same name in `hoomd.State`). TODO: check if needed this warning
+    property of the same name in `hoomd.State`).
 
     Warning:
         Failure to set ``max_diameter`` will result in missing pair
