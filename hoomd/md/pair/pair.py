@@ -459,8 +459,6 @@ class ExpandedLJ(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
-        delta (float): The horizontal shift of pair's interaction
-        :math:`[\mathrm{length}]`.
         mode (str): Energy shifting mode.
 
     `ExpandedLJ` specifies that a radially shifted Lennard-Jones
