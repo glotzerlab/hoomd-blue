@@ -203,9 +203,12 @@ class TypeParameter(MutableMapping):
         self.param_dict._detach()
         return self
 
-    def to_dict(self):
+    def to_base(self):
         """Convert to a Python `dict`."""
-        return self.param_dict.to_dict()
+        return self.param_dict.to_base()
+
+    def to_dict(self):
+        """Alias for `to_base`."""
 
     def __iter__(self):
         """Get the keys in the dictionaty."""

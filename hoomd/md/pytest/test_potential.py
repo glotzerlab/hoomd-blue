@@ -70,9 +70,9 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
 
     lj.r_cut[('A', 'A')] = 2.5
-    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_base())
     sim.run(0)
-    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_base())
 
 
 def test_invalid_mode():
@@ -113,15 +113,15 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
     integrator.methods.append(
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
     sim.operations.integrator = integrator
-    assert lj.r_on.to_dict() == {}
+    assert lj.r_on.to_base() == {}
 
     lj.r_on[('A', 'A')] = 1.5
-    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_base())
     sim.run(0)
-    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_base())
 
     lj.r_on[('A', 'A')] = 1.0
-    assert _equivalent_data_structures({('A', 'A'): 1.0}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.0}, lj.r_on.to_base())
 
 
 def _make_invalid_param_dict(valid_dict):
@@ -640,7 +640,7 @@ def test_valid_params(valid_params):
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     assert _equivalent_data_structures(valid_params.pair_potential_params,
-                                       pot.params.to_dict())
+                                       pot.params.to_base())
 
 
 def _update_snap(pair_potential, snap):
@@ -688,7 +688,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
     assert _equivalent_data_structures(valid_params.pair_potential_params,
-                                       pot.params.to_dict())
+                                       pot.params.to_base())
 
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
