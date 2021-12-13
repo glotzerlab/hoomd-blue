@@ -462,7 +462,7 @@ class ExpandedLJ(Pair):
         delta (float): The horizontal shift of pair's interaction :math:`[\mathrm{length}]`.
         mode (str): Energy shifting mode.
 
-    `ExpandedLJ` specifies that a horizontally shifted Lennard-Jones
+    `ExpandedLJ` specifies that a radially shifted Lennard-Jones
     type pair potential should be applied between every non-excluded
     particle pair in the simulation.
 
@@ -500,7 +500,7 @@ class ExpandedLJ(Pair):
           :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
           :math:`[\mathrm{length}]`
-        * ``delta`` (`float`, **required**) - horizontal shift
+        * ``delta`` (`float`, **required**) - radial shift
           :math:`\Delta` :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
