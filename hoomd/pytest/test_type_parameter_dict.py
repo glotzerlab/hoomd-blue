@@ -288,9 +288,20 @@ class TestTypeParameterDictAttached(TestTypeParameterDict):
         cpp_obj = test_mapping._cpp_obj
         key = self.choose_random_key(test_mapping)
         for _ in range(3):
-            old_v = test_mapping[key]
             v = self._generate_value()
             cpp_obj._dict[key] = v
             assert test_mapping[key] == v
+
+    def test_isolation(self, populated_collection):
+        test_mapping, _ = populated_collection
+        key = self.choose_random_key(test_mapping)
+        for _ in range(3):
+            old_v = test_mapping[key]
+            v = self._generate_value()
+            test_mapping[key] = v
+            if self._spec == "int":
+                assert test_mapping[key] == v
+            else:
+                assert test_mapping[key] == test_mapping.default | v
             if isinstance(old_v, _HOOMDSyncedCollection):
                 assert old_v._isolated

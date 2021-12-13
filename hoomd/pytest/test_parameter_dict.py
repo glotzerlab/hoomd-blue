@@ -158,9 +158,19 @@ class TestParameterDictAttached(TestParameterDict):
         test_mapping, _ = populated_collection
         cpp_obj = test_mapping._cpp_obj
         new_value = self._generate_value()
-        for k, v in new_value.keys():
-            old_v = test_mapping[k]
+        for k, v in new_value.items():
+            # setting through C++ object allows for data to update and not
+            # isolate.
             setattr(cpp_obj, k, v)
+            assert test_mapping[k] == v
+
+    def test_isolation(self, populated_collection, n):
+        test_mapping, _ = populated_collection
+        new_value = self._generate_value()
+        for k, v in new_value.items():
+            # setting through ParameterDict isolates composed objects
+            old_v = test_mapping[k]
+            test_mapping[k] = v
             assert test_mapping[k] == v
             if isinstance(old_v, _HOOMDSyncedCollection):
                 assert old_v._isolated
