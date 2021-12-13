@@ -94,7 +94,7 @@ class TestTypeParameterDict(BaseMappingTest):
         default = test_mapping.default
         for key, value in other.items():
             if self._spec == "dict":
-                value = default | value
+                value = {**default, **value}
             assert test_mapping[key] == value
 
     def random_keys(self):
@@ -209,7 +209,7 @@ class TestTypeParameterDict(BaseMappingTest):
         yield {"foo": None}
         yield {"baz": 10}
         valid_value = self._generate_value()
-        yield valid_value | {"nonexistent": 10.0}
+        yield {**valid_value, "nonexistent": 10.0}
 
     def test_invalid_setting(self, populated_collection):
         test_mapping, _ = populated_collection
@@ -302,6 +302,6 @@ class TestTypeParameterDictAttached(TestTypeParameterDict):
             if self._spec == "int":
                 assert test_mapping[key] == v
             else:
-                assert test_mapping[key] == test_mapping.default | v
+                assert test_mapping[key] == {**test_mapping.default, **v}
             if isinstance(old_v, _HOOMDSyncedCollection):
                 assert old_v._isolated
