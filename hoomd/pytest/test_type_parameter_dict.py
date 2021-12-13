@@ -49,7 +49,7 @@ class TestTypeParameterDict(BaseMappingTest):
             if self.rng.random() > 0.5:
                 continue
             if key == "foo":
-                value["foo"] = self.rng.int()
+                value["foo"] = self.int()
             elif key == "bar":
                 value["bar"] = self.rng.choice(
                     [self.int(), None,
@@ -110,7 +110,7 @@ class TestTypeParameterDict(BaseMappingTest):
         keys = list(self._generate_keys(n))
         value = self._generate_value()
         if request.param:
-            return self.rng.choice(keys), value
+            return keys[self.int(len(keys))], value
         key = next(filter(lambda x: x not in keys, self.random_keys()))
         return key, value
 

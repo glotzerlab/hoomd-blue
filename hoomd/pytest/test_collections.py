@@ -238,7 +238,7 @@ class TestHoomdDict(BaseMappingTest):
                 obj._data[0][1][0] = obj._data[0][1]._data[0]
 
             with pytest.warns(None) as warning_record:
-                obj._data[0][1][0].to_base()
+                obj._data[0]._data[1].to_base()
             assert len(warning_record) == 0
 
         test_mapping, _ = populated_collection

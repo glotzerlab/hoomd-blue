@@ -131,7 +131,7 @@ def test_auto_detach_simulation(simulation_factory,
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
-    nlist = Cell()
+    nlist = Cell(0.4)
     pickling_check(nlist)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
     lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)

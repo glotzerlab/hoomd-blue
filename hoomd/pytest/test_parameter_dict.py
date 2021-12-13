@@ -81,11 +81,11 @@ class TestParameterDict(BaseMappingTest):
         # n == 3
         else:
             return {
-                "(float, float, float)": tuple(self._float() for _ in range(3)),
+                "(float, float, float)": tuple(self.float() for _ in range(3)),
                 "list[dict[str, int]]": [{
-                    k: self._int() for k in ("bar", "foo")
+                    k: self.int() for k in ("bar", "foo")
                 } for _ in range(self.int(10))],
-                "(float, str)": (self._float(), self._str())
+                "(float, str)": (self.float(), self.str())
             }
 
     @pytest.fixture

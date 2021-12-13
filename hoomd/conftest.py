@@ -639,7 +639,7 @@ class BaseCollectionsTest:
 
     def int(self, max_=100_000_000):
         """Return a random integer."""
-        return self.rng.integer(max_).item()
+        return self.rng.integers(max_).item()
 
     def float(self, max_=1e9):
         """Return a random float."""
@@ -930,7 +930,7 @@ class BaseMappingTest(BaseCollectionsTest):
 
         Fails on an empty mapping.
         """
-        return self.rng.choice([key for key in mapping])
+        return list(mapping)[self.int(len(mapping))]
 
     def test_iter(self, populated_collection):
         """Test __iter__."""
@@ -980,7 +980,10 @@ class BaseMappingTest(BaseCollectionsTest):
         """Test __delitem__."""
         test_mapping, plain_mapping = populated_collection
         # Test that non-existent keys error appropriately.
-        with pytest.raises(KeyError):
+        expected_error = (KeyError,)
+        if self._deletion_error is not None:
+            expected_error = expected_error + (self._deletion_error,)
+        with pytest.raises(expected_error):
             for key in self.random_keys():
                 if key not in test_mapping:
                     del test_mapping[key]
@@ -1041,7 +1044,10 @@ class BaseMappingTest(BaseCollectionsTest):
         """Test pop."""
         test_mapping, plain_mapping = populated_collection
         # Test for error with non-existent keys.
-        with pytest.raises(KeyError):
+        expected_error = (KeyError,)
+        if self._deletion_error is not None:
+            expected_error = expected_error + (self._deletion_error,)
+        with pytest.raises(expected_error):
             for key in self.random_keys():
                 if key not in test_mapping:
                     test_mapping.pop(key)
