@@ -135,7 +135,7 @@ def test_lattice_displacement_energy(device, simulation_factory,
 
 @pytest.mark.cpu
 def test_lattice_displacement(device, simulation_factory,
-                                     two_particle_snapshot_factory):
+                              two_particle_snapshot_factory):
     """Ensure particles remain close to lattice sites."""
     mc = hoomd.hpmc.integrate.Sphere()
     particle_diameter = 0.5
@@ -168,4 +168,4 @@ def test_lattice_displacement(device, simulation_factory,
     if device.communicator.rank == 0:
         new_positions = snapshot.particles.position
         dx = np.linalg.norm(new_positions - reference_positions, axis=1)
-        assert np.all(np.less(dx, particle_diameter/2))
+        assert np.all(np.less(dx, particle_diameter / 2))
