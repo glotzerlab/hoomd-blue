@@ -98,26 +98,29 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
     //! Set reference orientations from a (N_particles, 4) numpy array
     void setReferenceOrientations(const pybind11::array_t<double> ref_ors)
         {
-        if (ref_ors.ndim() != 2)
-            {
-            throw std::runtime_error("The array must be of shape (N_particles, 4).");
-            }
-
-        const size_t N_particles = ref_ors.shape(0);
-        const size_t dim = ref_ors.shape(1);
-        if (N_particles != this->m_pdata->getNGlobal() || dim != 4)
-            {
-            throw std::runtime_error("The array must be of shape (N_particles, 4).");
-            }
-        const double* rawdata = static_cast<const double*>(ref_ors.data());
         m_lattice_orientations.resize(m_pdata->getNGlobal());
-        for (size_t i = 0; i < N_particles; i++)
+        if (m_exec_conf->getRank() == 0)
             {
-            const size_t array_index = i * 4;
-            this->m_lattice_orientations[i] = quat<Scalar>(rawdata[array_index],
-                                                           vec3<Scalar>(rawdata[array_index + 1],
-                                                                        rawdata[array_index + 2],
-                                                                        rawdata[array_index + 3]));
+            if (ref_ors.ndim() != 2)
+                {
+                throw std::runtime_error("The array must be of shape (N_particles, 4).");
+                }
+
+            const size_t N_particles = ref_ors.shape(0);
+            const size_t dim = ref_ors.shape(1);
+            if (N_particles != this->m_pdata->getNGlobal() || dim != 4)
+                {
+                throw std::runtime_error("The array must be of shape (N_particles, 4).");
+                }
+            const double* rawdata = static_cast<const double*>(ref_ors.data());
+            for (size_t i = 0; i < N_particles; i++)
+                {
+                const size_t array_index = i * 4;
+                this->m_lattice_orientations[i] = quat<Scalar>(rawdata[array_index],
+                                                               vec3<Scalar>(rawdata[array_index + 1],
+                                                                            rawdata[array_index + 2],
+                                                                            rawdata[array_index + 3]));
+                }
             }
 
 #ifdef ENABLE_MPI
