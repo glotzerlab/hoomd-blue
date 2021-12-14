@@ -8,7 +8,7 @@ hpmc.field
 .. autosummary::
     :nosignatures:
 
-    LatticeField
+    Harmonic
 
 .. rubric:: Details
 
