@@ -97,7 +97,7 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
 
 @pytest.mark.cpu
 def test_harmonic_displacement_energy(device, simulation_factory,
-                                     two_particle_snapshot_factory):
+                                      two_particle_snapshot_factory):
     """Ensure harmonic displacements result in expected energy."""
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
@@ -135,7 +135,7 @@ def test_harmonic_displacement_energy(device, simulation_factory,
 
 @pytest.mark.cpu
 def test_harmonic_displacement(device, simulation_factory,
-                                     two_particle_snapshot_factory):
+                               two_particle_snapshot_factory):
     """Ensure particles remain close to reference positions."""
     mc = hoomd.hpmc.integrate.Sphere()
     particle_diameter = 0.5
