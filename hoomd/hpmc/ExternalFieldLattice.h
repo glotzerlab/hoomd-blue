@@ -73,7 +73,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
 
             const size_t N_particles = ref_pos.shape(0);
             const size_t dim = ref_pos.shape(1);
-            if (N_particles != this->m_pdata->getNGlobal() || dim != 3)
+            if (N_particles != m_pdata->getNGlobal() || dim != 3)
                 {
                 throw std::runtime_error("The array must be of shape (N_particles, 3).");
                 }
