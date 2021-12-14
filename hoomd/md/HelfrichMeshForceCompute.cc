@@ -35,29 +35,29 @@ HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinit
     m_K = new Scalar[m_pdata->getNTypes()];
 
     // allocate memory for the per-type normal verctors
-    GlobalVector<Scalar4> tmp_normalVec(m_pdata->getNTypes(), m_exec_conf);
+    GlobalVector<Scalar3> tmp_sigma_hat(m_pdata->getNTypes(), m_exec_conf);
 
-    m_normalVec.swap(tmp_normalVec);
-    TAG_ALLOCATION(m_normalVec);
-
-    computeNormals();
+    m_sigma_hat.swap(tmp_sigma_hat);
+    TAG_ALLOCATION(m_sigma_hat);
 
     // allocate memory for the per-type normal verctors
-    GlobalVector<Scalar4> tmp_sigmas(m_pdata->getNTypes(), m_exec_conf);
+    GlobalVector<Scalar> tmp_sigma(m_pdata->getNTypes(), m_exec_conf);
 
-    m_sigmas.swap(tmp_sigmas);
-    TAG_ALLOCATION(m_sigmas);
-
-    computeSigmas();
+    m_sigmas.swap(tmp_sigma);
+    TAG_ALLOCATION(m_sigma);
 
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
-        cudaMemAdvise(m_normalVec.get(),
-                      sizeof(Scalar4) * m_normal.getNumElements(),
+        cudaMemAdvise(m_sigma_hat.get(),
+                      sizeof(Scalar3) * m_sigma_hat.getNumElements(),
                       cudaMemAdviseSetReadMostly,
                       0);
 
+        cudaMemAdvise(m_sigma.get(),
+                      sizeof(Scalar) * m_sigma.getNumElements(),
+                      cudaMemAdviseSetReadMostly,
+                      0);
         }
 #endif
     }
@@ -148,8 +148,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
     computeSigma(h_pos, h_rtag, h_bonds, h_triangles);
 
-    computeNormal();//has to be implemented
-
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
@@ -243,15 +241,14 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar rbd = sqrt(rsqbd);
 
 
-	Scalar3 nab;
+	Scalar3 nab, nac, nad, nbc, nbd;
 	nab = dab/rab;
 	nac = dac/rac;
 	nad = dad/rad;
 	nbc = dbc/rbc;
 	nbd = dbd/rbd;
 
-        Scalar c_accb = dac.x * dbc.x + dac.y * dbc.y + dac.z * dbc.z;
-        c_accb /= rac * rbc;
+        Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
 
         if (c_accb > 1.0)
             c_accb = 1.0;
@@ -264,8 +261,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         s_accb = 1.0 / s_accb;
 
 
-        Scalar c_addb = dad.x * dbd.x + dad.y * dbd.y + dad.z * dbd.z;
-        c_addb /= rad * rbd;
+        Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
 
         if (c_addb > 1.0)
             c_addb = 1.0;
@@ -277,8 +273,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             s_addb = SMALL;
         s_addb = 1.0 / s_addb;
 
-        Scalar c_abbc = -dab.x * dbc.x - dab.y * dbc.y - dab.z * dbc.z;
-        c_abbc /= rab * rbc;
+        Scalar c_abbc = -nab.x * nbc.x - nab.y * nbc.y - nab.z * nbc.z;
 
         if (c_abbc > 1.0)
             c_abbc = 1.0;
@@ -290,8 +285,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             s_abbc = SMALL;
         s_abbc = 1.0 / s_abbc;
 
-        Scalar c_abbd = -dab.x * dbd.x - dab.y * dbd.y - dab.z * dbd.z;
-        c_abbd /= rab * rbd;
+        Scalar c_abbd = -nab.x * nbd.x - nab.y * nbd.y - nab.z * nbd.z;
 
         if (c_abbd > 1.0)
             c_abbd = 1.0;
@@ -303,8 +297,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             s_abbd = SMALL;
         s_abbd = 1.0 / s_abbd;
 
-        Scalar c_baac = dab.x * dac.x + dab.y * dac.y + dab.z * dac.z;
-        c_baac /= rab * rac;
+        Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
 
         if (c_baac > 1.0)
             c_baac = 1.0;
@@ -316,8 +309,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             s_baac = SMALL;
         s_baac = 1.0 / s_baac;
 
-        Scalar c_baad = dab.x * dad.x + dab.y * dad.y + dab.z * dad.z;
-        c_baad /= rab * rad;
+        Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
 
         if (c_baad > 1.0)
             c_baad = 1.0;
@@ -329,7 +321,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             s_baad = SMALL;
         s_baad = 1.0 / s_baad;
 
-
 	Scalar cot_accb = c_accb/s_accb;
 	Scalar cot_addb = c_addb/s_addb;
 	Scalar cot_abbc = c_abbc/s_abbc;
@@ -337,14 +328,17 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar cot_baac = c_baac/s_baac;
 	Scalar cot_baad = c_baad/s_baad;
 
-
 	Scalar sigma_hat_ab = (cot_accb + cot_addb)/2;
 
 	Scalar sigma_hat_a; //precomputed
 	Scalar sigma_hat_b; //precomputed
+	Scalar sigma_hat_c; //precomputed
+	Scalar sigma_hat_d; //precomputed
 
 	Scalar sigma_a; //precomputed
 	Scalar sigma_b; //precomputed
+	Scalar sigma_c; //precomputed
+	Scalar sigma_d; //precomputed
 
 	Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
 	dc_abbc = -nbc/rab + c_abbc/rab*nab;
@@ -369,7 +363,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar dsigma_hat_c = -dot(dsigma_hat_ac,dac) - dot(dsigma_hat_bc,dbc);
 	Scalar dsigma_hat_d = -dot(dsigma_hat_ad,dad) - dot(dsigma_hat_bd,dbd);
 
-	Scalar3 Fa, Fb;
+	Scalar3 Fa;
 	Fa = kappa*(dsigma_hat_a/sigma_a*sigma_hat_a -dot(sigma_hat_a,sigma_hat_a)/(2*sigma_a*sigma_a)*dsigma_a);
 	Fa += kappa*(dsigma_hat_b/sigma_b*sigma_hat_b -dot(sigma_hat_b,sigma_hat_b)/(2*sigma_b*sigma_b)*dsigma_b);
 	Fa += kappa*(dsigma_hat_c/sigma_c*sigma_hat_c -dot(sigma_hat_c,sigma_hat_c)/(2*sigma_c*sigma_c)*dsigma_c);
@@ -455,6 +449,12 @@ void HelfrichMeshForceCompute::computeSigma(ArrayHandle<Scalar4> h_pos, ArrayHan
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
+    ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::redwrite);
+    ArrayHandle<Scalar3> h_sigma_hat(m_sigma_hat, access_location::host, access_mode::redwrite);
+
+    memset((void*)h_sigma.data, 0, sizeof(Scalar) * m_sigma.getNumElements());
+    memset((void*)h_sigma_hat.data, 0, sizeof(Scalar3) * m_sigma_hat.getNumElements());
+
 
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
@@ -536,20 +536,25 @@ void HelfrichMeshForceCompute::computeSigma(ArrayHandle<Scalar4> h_pos, ArrayHan
         // FLOPS: 14 / MEM TRANSFER: 2 Scalars
 
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
-        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-        Scalar rab = sqrt(rsqab);
-        Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-        Scalar rac = sqrt(rsqac);
-        Scalar rsqad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
-        Scalar rad = sqrt(rsqad);
+        Sbalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+        Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+        rac = sqrt(rac);
+        Scalar rad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
+        rad = sqrt(rad);
 
-        Scalar rsqbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
-        Scalar rbc = sqrt(rsqbc);
-        Scalar rsqbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
-        Scalar rbd = sqrt(rsqbd);
+        Scalar rbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
+        rbc = sqrt(rbc);
+        Scalar rbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
+        rbd = sqrt(rbd);
 
-        Scalar c_accb = dac.x * dbc.x + dac.y * dbc.y + dac.z * dbc.z;
-        c_accb /= rac * rbc;
+
+	Scalar3 nac, nad, nbc, nbd;
+	nac = dac/rac;
+	nad = dad/rad;
+	nbc = dbc/rbc;
+	nbd = dbd/rbd;
+
+        Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
 
         if (c_accb > 1.0)
             c_accb = 1.0;
@@ -561,10 +566,7 @@ void HelfrichMeshForceCompute::computeSigma(ArrayHandle<Scalar4> h_pos, ArrayHan
             s_accb = SMALL;
         s_accb = 1.0 / s_accb;
 
-	Scalar cot_accb = c_accb/s_accb;
-
-        Scalar c_addb = dad.x * dbd.x + dad.y * dbd.y + dad.z * dbd.z;
-        c_addb /= rad * rbd;
+        Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
 
         if (c_addb > 1.0)
             c_addb = 1.0;
@@ -576,14 +578,24 @@ void HelfrichMeshForceCompute::computeSigma(ArrayHandle<Scalar4> h_pos, ArrayHan
             s_addb = SMALL;
         s_addb = 1.0 / s_addb;
 
+	Scalar cot_accb = c_accb/s_accb;
 	Scalar cot_addb = c_addb/s_addb;
 
+	Scalar sigma_hat_ab = (cot_accb + cot_addb)/2;
 
-	Scalar sigma_hat = (cot_accb + cot_addb)/2;
+	Scalar sigma_a = sigma_hat_ab*rsqab*0.25;
 
+	h_sigma[idx_a] += sigma_a;
+	h_sigma[idx_b] += sigma_b;
 
-	m_sigmas[idx_a] += sigma_hat*rsqab*0.25;
-	m_sigmas[idx_b] += sigma_hat*rsqab*0.25;
+	h_sigma_hat[idx_a].x += sigma_hat_ab*dab.x;
+	h_sigma_hat[idx_a].y += sigma_hat_ab*dab.y;
+	h_sigma_hat[idx_a].z += sigma_hat_ab*dab.z;
+
+	h_sigma_hat[idx_b].x -= sigma_hat_ab*dab.x;
+	h_sigma_hat[idx_b].y -= sigma_hat_ab*dab.y;
+	h_sigma_hat[idx_b].z -= sigma_hat_ab*dab.z;
+
 	}
 
     }
