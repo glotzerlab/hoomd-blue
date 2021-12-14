@@ -14,4 +14,4 @@ hpmc.field
 
 .. automodule:: hoomd.hpmc.field
     :synopsis: External fields.
-    :members: LatticeField
+    :members: Harmonic
