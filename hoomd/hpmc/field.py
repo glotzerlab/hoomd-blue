@@ -78,7 +78,7 @@ class LatticeField(ExternalField):
     where :math:`k_{trans}` and :math:`k_{rot}` correspond to the arguments
     ``k_translational`` and ``k_rotational``, respectively, :math:`r_i` and
     :math:`q_i` are the position and orientation of particle :math:`i`, and the
-    :math:`0` subscripts lattice quantities.
+    :math:`0` subscripts denote the given reference quantities.
 
     Note:
         The factor of 1/2 is not included in the formulas; specify your spring
