@@ -73,7 +73,7 @@ class EvaluatorPairLJ0804
             sigma_4 = sigma * sigma * sigma * sigma;
             epsilon_x_4 = Scalar(4.0) * epsilon;
 
-            // previous paramters
+            // paramters used by the evaluator
             // lj1 = 4.0 * epsilon * fast::pow(sigma, Scalar(8.0));
             // - > lj1 = epsilon_x_4 * sigma_4 * sigma_4
 
