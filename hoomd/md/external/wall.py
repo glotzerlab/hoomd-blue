@@ -65,10 +65,11 @@ class WallPotential(force.Force):
     The force :math:`\vec{F}` is in the direction of :math:`\vec{r}`, the vector
     pointing from the particle to closest point on the wall's surface and
     :math:`V_{\mathrm{pair}}(r)` is the pair potential specified by subclasses
-    of `WallPotential`.  Walls are two-sided surfaces with positive signed distances
-    to points on the active side of the wall and negative signed distances to points
-    on the inactive side. Additionally, the wall's mode controls how forces and energies
-    are computed for particles on or near the inactive side. The `inside` flag determines
+    of `WallPotential`.  Walls are two-sided surfaces with positive signed
+    distances to points on the active side of the wall and negative signed
+    distances to points on the inactive side. Additionally, the wall's mode
+    controls how forces and energies are computed for particles on or near the
+    inactive side. The `inside` flag determines
     which side of the surface is active.
 
     .. rubric:: Standard Mode.
@@ -118,8 +119,9 @@ class WallPotential(force.Force):
     .. rubric: Extrapolated Mode:
 
     The wall potential can be linearly extrapolated starting at
-     :math:`r = r_{\mathrm{extrap}}` on the active side and continuing to the inactive side. This can
-    be useful to move particles from the inactive side to the active side.
+    :math:`r = r_{\mathrm{extrap}}` on the active side and continuing to the
+    inactive side. This can be useful to move particles from the inactive side
+    to the active side.
 
     The extrapolated potential has the following form:
 
@@ -170,9 +172,9 @@ class WallPotential(force.Force):
     Note:
         - The virial due to walls is computed, but the pressure and reported by
           ``hoomd.md.compute.ThermodynamicQuantities`` is not well defined. The
-          volume (or area) of the box enters into the pressure computation, which
-          is not correct in a confined system. It may not even be possible to
-          define an appropriate volume with soft walls.
+          volume (or area) of the box enters into the pressure computation,
+          which is not correct in a confined system. It may not even be possible
+          to define an appropriate volume with soft walls.
         - An effective use of wall forces **requires** considering the geometry
           of the system. Each wall is only evaluated in one simulation box and
           thus is not periodic. Forces will be evaluated and added to all
