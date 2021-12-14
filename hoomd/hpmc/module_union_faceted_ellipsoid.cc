@@ -12,7 +12,7 @@
 
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
@@ -49,9 +49,9 @@ void export_union_faceted_ellipsoid(pybind11::module& m)
     export_ExternalFieldInterface<ShapeUnion<ShapeFacetedEllipsoid>>(
         m,
         "ExternalFieldFacetedEllipsoidUnion");
-    export_LatticeField<ShapeUnion<ShapeFacetedEllipsoid>>(
+    export_HarmonicField<ShapeUnion<ShapeFacetedEllipsoid>>(
         m,
-        "ExternalFieldLatticeFacetedEllipsoidUnion");
+        "ExternalFieldHarmonicFacetedEllipsoidUnion");
     export_ExternalFieldComposite<ShapeUnion<ShapeFacetedEllipsoid>>(
         m,
         "ExternalFieldCompositeFacetedEllipsoidUnion");

@@ -12,7 +12,7 @@
 
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
@@ -51,9 +51,9 @@ void export_union_convex_polyhedron(pybind11::module& m)
     export_ExternalFieldInterface<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
         "ExternalFieldConvexPolyhedronUnion");
-    export_LatticeField<ShapeUnion<ShapeSpheropolyhedron>>(
+    export_HarmonicField<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
-        "ExternalFieldLatticeConvexPolyhedronUnion");
+        "ExternalFieldHarmonicConvexPolyhedronUnion");
     export_ExternalFieldComposite<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
         "ExternalFieldCompositeConvexPolyhedronUnion");

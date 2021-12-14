@@ -49,7 +49,7 @@ set(_hpmc_headers
     ComputeSDF.h
     ExternalFieldComposite.h
     ExternalField.h
-    ExternalFieldLattice.h
+    ExternalFieldHarmonic.h
     ExternalFieldWall.h
     GSDHPMCSchema.h
     GPUHelpers.cuh

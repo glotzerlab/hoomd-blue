@@ -13,7 +13,7 @@
 #include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
@@ -42,7 +42,7 @@ void export_simple_polygon(pybind11::module& m)
     export_UpdaterClusters<ShapeSimplePolygon>(m, "UpdaterClustersSimplePolygon");
 
     export_ExternalFieldInterface<ShapeSimplePolygon>(m, "ExternalFieldSimplePolygon");
-    export_LatticeField<ShapeSimplePolygon>(m, "ExternalFieldLatticeSimplePolygon");
+    export_HarmonicField<ShapeSimplePolygon>(m, "ExternalFieldHarmonicSimplePolygon");
     export_ExternalFieldComposite<ShapeSimplePolygon>(m, "ExternalFieldCompositeSimplePolygon");
     // export_ExternalFieldWall<ShapeSimplePolygon>(m, "WallSimplePolygon");
     // export_UpdaterExternalFieldWall<ShapeSimplePolygon>(m,

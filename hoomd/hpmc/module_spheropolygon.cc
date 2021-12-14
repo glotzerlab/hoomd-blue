@@ -13,7 +13,7 @@
 #include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
@@ -42,7 +42,7 @@ void export_spheropolygon(pybind11::module& m)
     export_UpdaterClusters<ShapeSpheropolygon>(m, "UpdaterClustersConvexSpheropolygon");
 
     export_ExternalFieldInterface<ShapeSpheropolygon>(m, "ExternalFieldSpheropolygon");
-    export_LatticeField<ShapeSpheropolygon>(m, "ExternalFieldLatticeSpheropolygon");
+    export_HarmonicField<ShapeSpheropolygon>(m, "ExternalFieldHarmonicSpheropolygon");
     export_ExternalFieldComposite<ShapeSpheropolygon>(m, "ExternalFieldCompositeSpheropolygon");
     // export_ExternalFieldWall<ShapeSpheropolygon>(m, "WallSpheropolygon");
     // export_UpdaterExternalFieldWall<ShapeSpheropolygon>(m,

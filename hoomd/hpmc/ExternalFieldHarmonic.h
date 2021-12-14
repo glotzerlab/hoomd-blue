@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#ifndef _EXTERNAL_FIELD_LATTICE_H_
-#define _EXTERNAL_FIELD_LATTICE_H_
+#ifndef _EXTERNAL_FIELD_HARMONIC_H_
+#define _EXTERNAL_FIELD_HARMONIC_H_
 
-/*! \file ExternalField.h
-    \brief Declaration of ExternalField base class
+/*! \file ExternalFieldHarmonic.h
+    \brief Declaration and implementation of ExternalFieldHarmonic class
 */
 
 #include "hoomd/Compute.h"
@@ -23,7 +23,7 @@ namespace hoomd
 namespace hpmc
     {
 
-template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shape>
+template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Shape>
     {
     using ExternalFieldMono<Shape>::m_pdata;
     using ExternalFieldMono<Shape>::m_exec_conf;
@@ -31,7 +31,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
 
     public:
     //! Constructor
-    ExternalFieldLattice(std::shared_ptr<SystemDefinition> sysdef,
+    ExternalFieldHarmonic(std::shared_ptr<SystemDefinition> sysdef,
                          pybind11::array_t<double> r0,
                          Scalar k,
                          pybind11::array_t<double> q0,
@@ -45,25 +45,25 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
 
         // connect updateMemberTags() method to maximum particle number change signal
         m_pdata->getGlobalParticleNumberChangeSignal()
-            .template connect<ExternalFieldLattice,
-                              &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
+            .template connect<ExternalFieldHarmonic,
+                              &ExternalFieldHarmonic::slotGlobalParticleNumChange>(this);
         } // end constructor
 
     //! Destructor
-    ~ExternalFieldLattice()
+    ~ExternalFieldHarmonic()
         {
         if (m_pdata)
             {
             m_pdata->getGlobalParticleNumberChangeSignal()
-                .template disconnect<ExternalFieldLattice,
-                                     &ExternalFieldLattice::slotGlobalParticleNumChange>(this);
+                .template disconnect<ExternalFieldHarmonic,
+                                     &ExternalFieldHarmonic::slotGlobalParticleNumChange>(this);
             }
         } // end destructor
 
     //! Set reference positions from a (N_particles, 3) numpy array
     void setReferencePositions(const pybind11::array_t<double> ref_pos)
         {
-        m_lattice_positions.resize(m_pdata->getNGlobal());
+        m_reference_positions.resize(m_pdata->getNGlobal());
         if (m_exec_conf->getRank() == 0)
             {
             if (ref_pos.ndim() != 2)
@@ -81,7 +81,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             for (size_t i = 0; i < std::min<unsigned long>(N_particles, m_pdata->getNGlobal()); i++)
                 {
                 const size_t array_index = i * 3;
-                this->m_lattice_positions[i] = vec3<Scalar>(rawdata[array_index],
+                this->m_reference_positions[i] = vec3<Scalar>(rawdata[array_index],
                                                             rawdata[array_index + 1],
                                                             rawdata[array_index + 2]);
                 }
@@ -90,7 +90,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
 #ifdef ENABLE_MPI
         if (this->m_sysdef->isDomainDecomposed())
             {
-            bcast(m_lattice_positions, 0, m_exec_conf->getMPICommunicator());
+            bcast(m_reference_positions, 0, m_exec_conf->getMPICommunicator());
             }
 #endif
         } // end setReferencePositions
@@ -98,7 +98,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
     //! Set reference orientations from a (N_particles, 4) numpy array
     void setReferenceOrientations(const pybind11::array_t<double> ref_ors)
         {
-        m_lattice_orientations.resize(m_pdata->getNGlobal());
+        m_reference_orientations.resize(m_pdata->getNGlobal());
         if (m_exec_conf->getRank() == 0)
             {
             if (ref_ors.ndim() != 2)
@@ -116,7 +116,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             for (size_t i = 0; i < N_particles; i++)
                 {
                 const size_t array_index = i * 4;
-                this->m_lattice_orientations[i]
+                this->m_reference_orientations[i]
                     = quat<Scalar>(rawdata[array_index],
                                    vec3<Scalar>(rawdata[array_index + 1],
                                                 rawdata[array_index + 2],
@@ -127,7 +127,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
 #ifdef ENABLE_MPI
         if (this->m_sysdef->isDomainDecomposed())
             {
-            bcast(m_lattice_orientations, 0, m_exec_conf->getMPICommunicator());
+            bcast(m_reference_orientations, 0, m_exec_conf->getMPICommunicator());
             }
 #endif
         } // end setReferenceOrientations
@@ -166,36 +166,36 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
 #endif
         } // end setSymmetricallyEquivalentOrientations
 
-    //! Get lattice positions as a (N_particles, 3) numpy array
+    //! Get reference positions as a (N_particles, 3) numpy array
     pybind11::array_t<Scalar> getReferencePositions() const
         {
         std::vector<size_t> dims(2);
-        dims[0] = this->m_lattice_positions.size();
+        dims[0] = this->m_reference_positions.size();
         dims[1] = 3;
         // the cast from vec3<Scalar>* to Scalar* is safe since vec3 is tightly packed without any
         // padding. This also makes a copy so, modifications of this array do not effect the
         // original reference positions.
         const auto reference_array = pybind11::array_t<Scalar>(
             dims,
-            reinterpret_cast<const Scalar*>(this->m_lattice_positions.data()));
+            reinterpret_cast<const Scalar*>(this->m_reference_positions.data()));
         // This is necessary to expose the array in a read only fashion through C++
         reinterpret_cast<pybind11::detail::PyArray_Proxy*>(reference_array.ptr())->flags
             &= ~pybind11::detail::npy_api::NPY_ARRAY_WRITEABLE_;
         return reference_array;
         }
 
-    //! Get lattice orientations as a (N_particles, 4) numpy array
+    //! Get reference orientations as a (N_particles, 4) numpy array
     pybind11::array_t<Scalar> getReferenceOrientations() const
         {
         std::vector<size_t> dims(2);
-        dims[0] = this->m_lattice_orientations.size();
+        dims[0] = this->m_reference_orientations.size();
         dims[1] = 4;
         // the cast from vec3<Scalar>* to Scalar* is safe since vec3 is tightly packed without any
         // padding. This also makes a copy so, modifications of this array do not effect the
         // original reference positions.
         const auto reference_array = pybind11::array_t<Scalar>(
             dims,
-            reinterpret_cast<const Scalar*>(this->m_lattice_orientations.data()));
+            reinterpret_cast<const Scalar*>(this->m_reference_orientations.data()));
         // This is necessary to expose the array in a read only fashion through C++
         reinterpret_cast<pybind11::detail::PyArray_Proxy*>(reference_array.ptr())->flags
             &= ~pybind11::detail::npy_api::NPY_ARRAY_WRITEABLE_;
@@ -247,11 +247,11 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
     //! Helper function to be called when particles are added/removed
     void slotGlobalParticleNumChange()
         {
-        if (m_lattice_positions.size() != this->m_pdata->getNGlobal()
-            || m_lattice_orientations.size() != this->m_pdata->getNGlobal())
+        if (m_reference_positions.size() != this->m_pdata->getNGlobal()
+            || m_reference_orientations.size() != this->m_pdata->getNGlobal())
             {
-            throw std::runtime_error("Number of particles no longer equals number of lattice "
-                                     "points in ExternalFieldLattice.");
+            throw std::runtime_error("Number of particles no longer equals number of reference "
+                                     "points in ExternalFieldHarmonic.");
             }
         }
 
@@ -365,7 +365,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         int3 dummy = make_int3(0, 0, 0);
         vec3<Scalar> origin(m_pdata->getOrigin());
         const BoxDim& box = this->m_pdata->getGlobalBox();
-        vec3<Scalar> r0 = m_lattice_positions[h_tags.data[index]];
+        vec3<Scalar> r0 = m_reference_positions[h_tags.data[index]];
         Scalar3 t = vec_to_scalar3(position - origin);
         box.wrap(t, dummy);
         vec3<Scalar> shifted_pos(t);
@@ -381,7 +381,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         ArrayHandle<unsigned int> h_tags(m_pdata->getTags(),
                                          access_location::host,
                                          access_mode::read);
-        quat<Scalar> q0 = m_lattice_orientations[h_tags.data[index]];
+        quat<Scalar> q0 = m_reference_orientations[h_tags.data[index]];
         Scalar dqmin = 0.0;
         for (size_t i = 0; i < m_symmetry.size(); i++)
             {
@@ -421,20 +421,20 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         }
 
     private:
-    std::vector<vec3<Scalar>> m_lattice_positions;    // reference positions
-    std::vector<quat<Scalar>> m_lattice_orientations; // reference orientations
-    std::vector<quat<Scalar>> m_symmetry;             // symmetry-equivalent orientations
-    Scalar m_k_translational;                         // translational spring constant
-    Scalar m_k_rotational;                            // rotational spring constant
+    std::vector<vec3<Scalar>> m_reference_positions;     // reference positions
+    std::vector<quat<Scalar>> m_reference_orientations;  // reference orientations
+    std::vector<quat<Scalar>> m_symmetry;               // symmetry-equivalent orientations
+    Scalar m_k_translational;                           // translational spring constant
+    Scalar m_k_rotational;                              // rotational spring constant
     };
 
 namespace detail
     {
-template<class Shape> void export_LatticeField(pybind11::module& m, std::string name)
+template<class Shape> void export_HarmonicField(pybind11::module& m, std::string name)
     {
-    pybind11::class_<ExternalFieldLattice<Shape>,
+    pybind11::class_<ExternalFieldHarmonic<Shape>,
                      ExternalFieldMono<Shape>,
-                     std::shared_ptr<ExternalFieldLattice<Shape>>>(m, name.c_str())
+                     std::shared_ptr<ExternalFieldHarmonic<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             pybind11::array_t<double>,
                             Scalar,
@@ -442,27 +442,27 @@ template<class Shape> void export_LatticeField(pybind11::module& m, std::string 
                             Scalar,
                             pybind11::array_t<double>>())
         .def_property("reference_positions",
-                      &ExternalFieldLattice<Shape>::getReferencePositions,
-                      &ExternalFieldLattice<Shape>::setReferencePositions)
+                      &ExternalFieldHarmonic<Shape>::getReferencePositions,
+                      &ExternalFieldHarmonic<Shape>::setReferencePositions)
         .def_property("reference_orientations",
-                      &ExternalFieldLattice<Shape>::getReferenceOrientations,
-                      &ExternalFieldLattice<Shape>::setReferenceOrientations)
+                      &ExternalFieldHarmonic<Shape>::getReferenceOrientations,
+                      &ExternalFieldHarmonic<Shape>::setReferenceOrientations)
         .def_property("k_translational",
-                      &ExternalFieldLattice<Shape>::getKTranslational,
-                      &ExternalFieldLattice<Shape>::setKTranslational)
+                      &ExternalFieldHarmonic<Shape>::getKTranslational,
+                      &ExternalFieldHarmonic<Shape>::setKTranslational)
         .def_property("k_rotational",
-                      &ExternalFieldLattice<Shape>::getKRotational,
-                      &ExternalFieldLattice<Shape>::setKRotational)
+                      &ExternalFieldHarmonic<Shape>::getKRotational,
+                      &ExternalFieldHarmonic<Shape>::setKRotational)
         .def_property("symmetries",
-                      &ExternalFieldLattice<Shape>::getSymmetricallyEquivalentOrientations,
-                      &ExternalFieldLattice<Shape>::setSymmetricallyEquivalentOrientations)
-        .def("getEnergy", &ExternalFieldLattice<Shape>::getEnergy);
+                      &ExternalFieldHarmonic<Shape>::getSymmetricallyEquivalentOrientations,
+                      &ExternalFieldHarmonic<Shape>::setSymmetricallyEquivalentOrientations)
+        .def("getEnergy", &ExternalFieldHarmonic<Shape>::getEnergy);
     }
 
-void export_LatticeFields(pybind11::module& m);
+void export_HarmonicFields(pybind11::module& m);
 
     } // end namespace detail
     } // namespace hpmc
     } // end namespace hoomd
 
-#endif // _EXTERNAL_FIELD_LATTICE_H_
+#endif // _EXTERNAL_FIELD_HARMONIC_H_

@@ -19,9 +19,9 @@ valid_constructor_args = [
 
 @pytest.mark.cpu
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-def test_valid_construction_latticefield(device, constructor_args):
-    """Test that LatticeField can be constructed with valid arguments."""
-    field = hoomd.hpmc.field.LatticeField(**constructor_args)
+def test_valid_construction_harmonicfield(device, constructor_args):
+    """Test that HarmonicField can be constructed with valid arguments."""
+    field = hoomd.hpmc.field.Harmonic(**constructor_args)
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
@@ -37,7 +37,7 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
 
-    # create lattice field
+    # create field
     snapshot = sim.state.get_snapshot()
     if device.communicator.rank == 0:
         reference_positions = snapshot.particles.position
@@ -45,7 +45,7 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
     else:
         reference_positions = [[0, 0, 0], [0, 0, 0]]
         reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-    lattice = hoomd.hpmc.field.LatticeField(
+    lattice = hoomd.hpmc.field.Harmonic(
         reference_positions=reference_positions,
         reference_orientations=reference_orientations,
         k_translational=1.0,
@@ -70,7 +70,7 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
 
-    # create lattice field
+    # create harmonic field
     snapshot = sim.state.get_snapshot()
     if device.communicator.rank == 0:
         reference_positions = snapshot.particles.position
@@ -78,7 +78,7 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
     else:
         reference_positions = [[0, 0, 0], [0, 0, 0]]
         reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-    lattice = hoomd.hpmc.field.LatticeField(
+    lattice = hoomd.hpmc.field.Harmonic(
         reference_positions=reference_positions,
         reference_orientations=reference_orientations,
         k_translational=1.0,
@@ -96,9 +96,9 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
 
 
 @pytest.mark.cpu
-def test_lattice_displacement_energy(device, simulation_factory,
+def test_harmonic_displacement_energy(device, simulation_factory,
                                      two_particle_snapshot_factory):
-    """Ensure lattice displacements result in expected energy."""
+    """Ensure harmonic displacements result in expected energy."""
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
 
@@ -106,7 +106,7 @@ def test_lattice_displacement_energy(device, simulation_factory,
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = mc
 
-    # create lattice field
+    # create harmonic field
     k_trans = 1.0
     snapshot = sim.state.get_snapshot()
     if device.communicator.rank == 0:
@@ -115,7 +115,7 @@ def test_lattice_displacement_energy(device, simulation_factory,
     else:
         reference_positions = [[0, 0, 0], [0, 0, 0]]
         reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-    lattice = hoomd.hpmc.field.LatticeField(
+    lattice = hoomd.hpmc.field.Harmonic(
         reference_positions=reference_positions,
         reference_orientations=reference_orientations,
         k_translational=k_trans,
@@ -134,9 +134,9 @@ def test_lattice_displacement_energy(device, simulation_factory,
 
 
 @pytest.mark.cpu
-def test_lattice_displacement(device, simulation_factory,
+def test_harmonic_displacement(device, simulation_factory,
                                      two_particle_snapshot_factory):
-    """Ensure particles remain close to lattice sites."""
+    """Ensure particles remain close to reference positions."""
     mc = hoomd.hpmc.integrate.Sphere()
     particle_diameter = 0.5
     mc.shape['A'] = dict(diameter=particle_diameter)
@@ -154,7 +154,7 @@ def test_lattice_displacement(device, simulation_factory,
     else:
         reference_positions = [[0, 0, 0], [0, 0, 0]]
         reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-    lattice = hoomd.hpmc.field.LatticeField(
+    lattice = hoomd.hpmc.field.Harmonic(
         reference_positions=reference_positions,
         reference_orientations=reference_orientations,
         k_translational=k_trans,

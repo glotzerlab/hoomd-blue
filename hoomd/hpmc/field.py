@@ -48,16 +48,16 @@ class ExternalField(_HOOMDBaseObject):
     """
 
 
-class LatticeField(ExternalField):
-    r"""Restrain particles on a lattice
+class Harmonic(ExternalField):
+    r"""Restrain particle positions and orientations with harmonic springs
 
     Args:
         reference_positions ((*N_particles*, 3) `numpy.ndarray` of
-            `float`): the reference positions of the
-            lattice :math:`[\mathrm{length}]`.
+            `float`): the reference positions, to which particles are restrained
+            :math:`[\mathrm{length}]`.
         reference_orientations ((*N_particles*, 4) `numpy.ndarray` of
-            `float`): the reference orientations of the lattice
-            :math:`[\mathrm{dimensionless}]`.
+            `float`): the reference orientations, to which particles are
+            restrained :math:`[\mathrm{dimensionless}]`.
         k_translational (`float`): translational spring constant
             :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
         k_rotational (`float`): rotational spring constant
@@ -67,7 +67,7 @@ class LatticeField(ExternalField):
             i.e., the rotation quaternions that leave the particles unchanged
             :math:`[\mathrm{dimensionless}]`.
 
-    :py:class:`LatticeField` specifies that harmonic springs are used to
+    :py:class:`Harmonic` specifies that harmonic springs are used to
     restrain the position and orientation of every particle:
 
     .. math::
@@ -122,37 +122,37 @@ class LatticeField(ExternalField):
 
         if not isinstance(device, hoomd.device.GPU):
             if isinstance(integrator, integrate.Sphere):
-                cls = _hpmc.ExternalFieldLatticeSphere
+                cls = _hpmc.ExternalFieldHarmonicSphere
             elif isinstance(integrator, integrate.ConvexPolygon):
-                cls = _hpmc.ExternalFieldLatticeConvexPolygon
+                cls = _hpmc.ExternalFieldHarmonicConvexPolygon
             elif isinstance(integrator, integrate.SimplePolygon):
-                cls = _hpmc.ExternalFieldLatticeSimplePolygon
+                cls = _hpmc.ExternalFieldHarmonicSimplePolygon
             elif isinstance(integrator, integrate.ConvexPolyhedron):
-                cls = _hpmc.ExternalFieldLatticeConvexPolyhedron
+                cls = _hpmc.ExternalFieldHarmonicConvexPolyhedron
             elif isinstance(integrator, integrate.ConvexSpheropolyhedron):
-                cls = _hpmc.ExternalFieldLatticeSpheropolyhedron
+                cls = _hpmc.ExternalFieldHarmonicSpheropolyhedron
             elif isinstance(integrator, integrate.Ellipsoid):
-                cls = _hpmc.ExternalFieldLatticeEllipsoid
+                cls = _hpmc.ExternalFieldHarmonicEllipsoid
             elif isinstance(integrator, integrate.ConvexSpheropolygon):
-                cls = _hpmc.ExternalFieldLatticeSpheropolygon
+                cls = _hpmc.ExternalFieldHarmonicSpheropolygon
             elif isinstance(integrator, integrate.FacetedEllipsoid):
-                cls = _hpmc.ExternalFieldLatticeFacetedEllipsoid
+                cls = _hpmc.ExternalFieldHarmonicFacetedEllipsoid
             elif isinstance(integrator, integrate.Polyhedron):
-                cls = _hpmc.ExternalFieldLatticePolyhedron
+                cls = _hpmc.ExternalFieldHarmonicPolyhedron
             elif isinstance(integrator, integrate.Sphinx):
-                cls = _hpmc.ExternalFieldLatticeSphinx
+                cls = _hpmc.ExternalFieldHarmonicSphinx
             elif isinstance(integrator, integrate.SphereUnion):
-                cls = _hpmc.ExternalFieldLatticeSphereUnion
+                cls = _hpmc.ExternalFieldHarmonicSphereUnion
             elif isinstance(integrator, integrate.FacetedEllipsoidUnion):
-                cls = _hpmc.ExternalFieldlatticeFacetedEllipsoidUnion
+                cls = _hpmc.ExternalFieldHarmonicFacetedEllipsoidUnion
             elif isinstance(integrator, integrate.ConvexSpheropolyhedronUnion):
-                cls = _hpmc.ExternalFieldLatticeConvexPolyhedronUnion
+                cls = _hpmc.ExternalFieldHarmonicConvexPolyhedronUnion
             else:
-                msg = 'Error initializing hoomd.hpmc.field.LatticeField: '
+                msg = 'Error initializing hoomd.hpmc.field.Harmonic: '
                 msg += 'unsupported integrator'
                 raise RuntimeError(msg)
         else:
-            msg = 'Error initializing hoomd.hpmc.field.LatticeField: '
+            msg = 'Error initializing hoomd.hpmc.field.Harmonic: '
             msg += 'GPU not supported.'
             raise RuntimeError(msg)
 
@@ -168,7 +168,7 @@ class LatticeField(ExternalField):
 
     @log(requires_run=True)
     def energy(self):
-        """float: The energy of the lattice field :math:`[\\mathrm{energy}]`.
+        """float: The energy of the harmonic field :math:`[\\mathrm{energy}]`.
 
         """
         timestep = self._simulation.timestep

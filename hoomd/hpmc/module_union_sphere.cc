@@ -12,7 +12,7 @@
 #include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
@@ -41,7 +41,7 @@ void export_union_sphere(pybind11::module& m)
     export_UpdaterClusters<ShapeUnion<ShapeSphere>>(m, "UpdaterClustersSphereUnion");
 
     export_ExternalFieldInterface<ShapeUnion<ShapeSphere>>(m, "ExternalFieldSphereUnion");
-    export_LatticeField<ShapeUnion<ShapeSphere>>(m, "ExternalFieldLatticeSphereUnion");
+    export_HarmonicField<ShapeUnion<ShapeSphere>>(m, "ExternalFieldHarmonicSphereUnion");
     export_ExternalFieldComposite<ShapeUnion<ShapeSphere>>(m, "ExternalFieldCompositeSphereUnion");
     export_ExternalFieldWall<ShapeUnion<ShapeSphere>>(m, "WallSphereUnion");
     export_UpdaterExternalFieldWall<ShapeUnion<ShapeSphere>>(m,
