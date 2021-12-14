@@ -87,6 +87,7 @@ class LatticeField(ExternalField):
     value in this list, :math:`\mathrm{min}(\mathbb{V})`.
 
     """
+
     def __init__(self, reference_positions, reference_orientations,
                  k_translational, k_rotational, symmetries):
         param_dict = ParameterDict(

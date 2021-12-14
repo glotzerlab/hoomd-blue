@@ -116,10 +116,11 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             for (size_t i = 0; i < N_particles; i++)
                 {
                 const size_t array_index = i * 4;
-                this->m_lattice_orientations[i] = quat<Scalar>(rawdata[array_index],
-                                                               vec3<Scalar>(rawdata[array_index + 1],
-                                                                            rawdata[array_index + 2],
-                                                                            rawdata[array_index + 3]));
+                this->m_lattice_orientations[i]
+                    = quat<Scalar>(rawdata[array_index],
+                                   vec3<Scalar>(rawdata[array_index + 1],
+                                                rawdata[array_index + 2],
+                                                rawdata[array_index + 3]));
                 }
             }
 
@@ -272,7 +273,8 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
                                       access_location::host,
                                       access_mode::readwrite);
         const Scalar4* const position_new = h_pos.data; // current positions from system definition
-        const Scalar4* const orientation_new = h_orient.data; // current orientations from system definition
+        const Scalar4* const orientation_new
+            = h_orient.data; // current orientations from system definition
         const Scalar4 *position_old = position_old_arg, *orientation_old = orientation_old_arg;
         if (!position_old)
             position_old = position_new;
@@ -355,8 +357,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
     protected:
     //! Calculate the energy associated with the deviation of a single particle from its reference
     //! position
-    Scalar
-    calcE_trans(const unsigned int& index, const vec3<Scalar>& position)
+    Scalar calcE_trans(const unsigned int& index, const vec3<Scalar>& position)
         {
         ArrayHandle<unsigned int> h_tags(m_pdata->getTags(),
                                          access_location::host,
@@ -405,9 +406,8 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
      * This function _should_ only be used for logging purposes and not for calculating move
      * acceptance criteria, since it's the energy difference that matters for the latter.
      */
-    Scalar calcE(const unsigned int& index,
-                 const vec3<Scalar>& position,
-                 const quat<Scalar>& orientation)
+    Scalar
+    calcE(const unsigned int& index, const vec3<Scalar>& position, const quat<Scalar>& orientation)
         {
         Scalar energy = 0.0;
         energy += calcE_trans(index, position);
@@ -415,9 +415,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         return energy;
         }
 
-    Scalar calcE(const unsigned int& index,
-                 const vec3<Scalar>& position,
-                 const Shape& shape)
+    Scalar calcE(const unsigned int& index, const vec3<Scalar>& position, const Shape& shape)
         {
         return calcE(index, position, shape.orientation);
         }

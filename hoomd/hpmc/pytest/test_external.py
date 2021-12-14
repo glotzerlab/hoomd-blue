@@ -42,8 +42,8 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
         reference_positions = sim.state.get_snapshot().particles.position
         reference_orientations = sim.state.get_snapshot().particles.orientation
     else:
-        reference_positions = [[0, 0, 0], [0,0,0]]
-        reference_orientations = [[1, 0, 0, 0], [1,0,0,0]]
+        reference_positions = [[0, 0, 0], [0, 0, 0]]
+        reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
     lattice = hoomd.hpmc.field.LatticeField(
         reference_positions=reference_positions,
         reference_orientations=reference_orientations,
@@ -74,7 +74,7 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
         reference_positions = sim.state.get_snapshot().particles.position
         reference_orientations = sim.state.get_snapshot().particles.orientation
     else:
-        reference_positions = np.zeros((1,3))
+        reference_positions = np.zeros((1, 3))
         reference_orientations = np.zeros((1, 4))
     lattice = hoomd.hpmc.field.LatticeField(
         reference_positions=reference_positions,
@@ -95,7 +95,7 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
 
 @pytest.mark.cpu
 def test_lattice_displacement_energy(device, simulation_factory,
-                              two_particle_snapshot_factory):
+                                     two_particle_snapshot_factory):
     """Ensure lattice displacements result in expected energy."""
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
@@ -110,7 +110,7 @@ def test_lattice_displacement_energy(device, simulation_factory,
         reference_positions = sim.state.get_snapshot().particles.position
         reference_orientations = sim.state.get_snapshot().particles.orientation
     else:
-        reference_positions = np.zeros((1,3))
+        reference_positions = np.zeros((1, 3))
         reference_orientations = np.zeros((1, 4))
     lattice = hoomd.hpmc.field.LatticeField(
         reference_positions=reference_positions,
@@ -126,7 +126,5 @@ def test_lattice_displacement_energy(device, simulation_factory,
 
     # create C++ mirror classes and set parameters
     sim.run(0)
-    assert np.allclose(
-            lattice.energy,
-            0.5 * dx**2 * k_trans * sim.state.N_particles
-            )
+    assert np.allclose(lattice.energy,
+                       0.5 * dx**2 * k_trans * sim.state.N_particles)
