@@ -78,7 +78,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
                 throw std::runtime_error("The array must be of shape (N_particles, 3).");
                 }
             const double* rawdata = static_cast<const double*>(ref_pos.data());
-            for (size_t i = 0; i < min(N_particles, m_pdata->getNGlobal()); i++)
+            for (size_t i = 0; i < std::min<unsigned long>(N_particles, m_pdata->getNGlobal()); i++)
                 {
                 const size_t array_index = i * 3;
                 this->m_lattice_positions[i] = vec3<Scalar>(rawdata[array_index],
@@ -88,7 +88,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
 
 #ifdef ENABLE_MPI
-        if (this->m_pdata->isDomainDecomposed())
+        if (this->m_sysdef->isDomainDecomposed())
             {
             bcast(m_lattice_positions, 0, m_exec_conf->getMPICommunicator());
             }
@@ -124,7 +124,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
 
 #ifdef ENABLE_MPI
-        if (this->m_pdata->isDomainDecomposed())
+        if (this->m_sysdef->isDomainDecomposed())
             {
             bcast(m_lattice_orientations, 0, m_exec_conf->getMPICommunicator());
             }
@@ -158,7 +158,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
 
 #ifdef ENABLE_MPI
-        if (this->m_pdata->isDomainDecomposed())
+        if (this->m_sysdef->isDomainDecomposed())
             {
             bcast(m_symmetry, 0, m_exec_conf->getMPICommunicator());
             }
@@ -290,7 +290,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
 
 #ifdef ENABLE_MPI
-        if (this->m_pdata->isDomainDecomposed())
+        if (this->m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &dE,
@@ -326,7 +326,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
 
 #ifdef ENABLE_MPI
-        if (this->m_pdata->isDomainDecomposed())
+        if (this->m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &energy,
