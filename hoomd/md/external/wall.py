@@ -59,20 +59,22 @@ class WallPotential(force.Force):
         provides features and documentation common to all standard wall
         potentials.
 
-    All wall potential commands specify that a given potential energy and
-    force be computed on all particles in the system within a cutoff
-    distance, :math:`r_{\mathrm{cut}}`, from each wall.
+    All wall potential classes specify that a given potential energy and
+    force be computed on all particles in the system when the signed cutoff
+    distance is near the wall surface: :math:`r < r_{\mathrm{cut}}`.
     The force :math:`\vec{F}` is in the direction of :math:`\vec{r}`, the vector
-    pointing from the particle to the wall or half-space boundary and
+    pointing from the particle to closest point on the wall's surface and
     :math:`V_{\mathrm{pair}}(r)` is the pair potential specified by subclasses
-    of `WallPotential`.  Wall forces are implemented with the concept of
-    half-spaces in mind. There are two modes which are allowed currently in wall
-    potentials: standard and extrapolated.
+    of `WallPotential`.  Walls are two-sided surfaces with positive signed distances
+    to points on the active side of the wall and negative signed distances to points
+    on the inactive side. Additionally, the wall's mode controls how forces and energies
+    are computed for particles on or near the inactive side. The `inside` flag determines
+    which side of the surface is active.
 
     .. rubric:: Standard Mode.
 
     In the standard mode, when :math:`r_{\mathrm{extrap}} \le 0`, the potential
-    energy is only applied to the half-space specified by each wall.
+    energy is only computed on the active side.
     :math:`V(r)` is evaluated in the same manner as when the mode is shift for
     the analogous :py:mod:`pair <hoomd.md.pair>` potentials within the
     boundaries of the half-space.
@@ -115,15 +117,9 @@ class WallPotential(force.Force):
 
     .. rubric: Extrapolated Mode:
 
-    The wall potential can be linearly extrapolated beyond a minimum separation
-    from the wall :math:`r_{\mathrm{extrap}}` in the active half-space. This can
-    be useful for bringing particles outside the half-space into the active
-    half-space. It can also be useful for typical wall force usages by
-    effectively limiting the maximum force experienced by the particle due to
-    the wall. The potential is extrapolated into **both** half-spaces and the
-    cutoff :math:`r_{\mathrm{cut}}` only applies in the active half-space. The
-    user should then be careful using this mode with multiple nested walls. It
-    is intended to be used primarily for initialization.
+    The wall potential can be linearly extrapolated starting at
+     :math:`r = r_{\mathrm{extrap}}` on the active side and continuing to the inactive side. This can
+    be useful to move particles from the inactive side to the active side.
 
     The extrapolated potential has the following form:
 
@@ -137,7 +133,7 @@ class WallPotential(force.Force):
                 \cdot \vec{n}&, r \le r_{\rm extrap}
         \end{eqnarray*}
 
-    where :math:`\vec{n}` is the normal into the active half-space.
+    where :math:`\vec{n}` is the normal pointing toward the active side.
     This gives an effective force on the particle due to the wall:
 
     .. math::
@@ -158,9 +154,7 @@ class WallPotential(force.Force):
                            =& 0 &, r \ge r_{\mathrm{cut}}
         \end{eqnarray*}
 
-    In other words, if :math:`r_{\rm extrap}` is chosen so that the pair force
-    would point into the active half-space, the extrapolated potential will push
-    all particles into the active half-space. Below is an examle of
+    Below is an example of
     extrapolation with ``r_extrap=1.1`` for a LJ potential with
     :math:`\epsilon=1, \sigma=1`.
 
@@ -176,7 +170,7 @@ class WallPotential(force.Force):
     Note:
         - The virial due to walls is computed, but the pressure and reported by
           ``hoomd.md.compute.ThermodynamicQuantities`` is not well defined. The
-          volume (area) of the box enters into the pressure computation, which
+          volume (or area) of the box enters into the pressure computation, which
           is not correct in a confined system. It may not even be possible to
           define an appropriate volume with soft walls.
         - An effective use of wall forces **requires** considering the geometry

@@ -108,7 +108,7 @@ class Cylinder(WallGeometry):
     Args:
         radius (`float`):
             The radius of the circle faces of the cylinder.
-        axis (`tuple` [`float`,`float`,`float`]):
+        axis (`tuple` [`float`, `float`, `float`]):
             A vector perpendicular to the circular faces.
         origin (`tuple` [`float`,`float`,`float`], optional):
             The origin of the cylinder defined as the center of the bisecting
@@ -177,7 +177,7 @@ class Cylinder(WallGeometry):
 class Plane(WallGeometry):
     """Define a Plane in 3D Euclidean space.
 
-    The normal points to the active half space.
+    The normal points away from the active half side.
 
     Note:
         `Plane` objects are immutable.
