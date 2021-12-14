@@ -32,11 +32,11 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
     public:
     //! Constructor
     ExternalFieldHarmonic(std::shared_ptr<SystemDefinition> sysdef,
-                         pybind11::array_t<double> r0,
-                         Scalar k,
-                         pybind11::array_t<double> q0,
-                         Scalar q,
-                         pybind11::array_t<double> symRotations)
+                          pybind11::array_t<double> r0,
+                          Scalar k,
+                          pybind11::array_t<double> q0,
+                          Scalar q,
+                          pybind11::array_t<double> symRotations)
         : ExternalFieldMono<Shape>(sysdef), m_k_translational(k), m_k_rotational(q)
         {
         setReferencePositions(r0);
@@ -82,8 +82,8 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
                 {
                 const size_t array_index = i * 3;
                 this->m_reference_positions[i] = vec3<Scalar>(rawdata[array_index],
-                                                            rawdata[array_index + 1],
-                                                            rawdata[array_index + 2]);
+                                                              rawdata[array_index + 1],
+                                                              rawdata[array_index + 2]);
                 }
             }
 
@@ -421,8 +421,8 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         }
 
     private:
-    std::vector<vec3<Scalar>> m_reference_positions;     // reference positions
-    std::vector<quat<Scalar>> m_reference_orientations;  // reference orientations
+    std::vector<vec3<Scalar>> m_reference_positions;    // reference positions
+    std::vector<quat<Scalar>> m_reference_orientations; // reference orientations
     std::vector<quat<Scalar>> m_symmetry;               // symmetry-equivalent orientations
     Scalar m_k_translational;                           // translational spring constant
     Scalar m_k_rotational;                              // rotational spring constant
