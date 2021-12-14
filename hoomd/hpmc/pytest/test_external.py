@@ -70,9 +70,15 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = mc
 
     # create lattice field
+    if device.communicator.rank == 0:
+        reference_positions = sim.state.get_snapshot().particles.position
+        reference_orientations = sim.state.get_snapshot().particles.orientation
+    else:
+        reference_positions = []
+        reference_orientations = []
     lattice = hoomd.hpmc.field.LatticeField(
-        reference_positions=sim.state.get_snapshot().particles.position,
-        reference_orientations=sim.state.get_snapshot().particles.orientation,
+        reference_positions=reference_positions,
+        reference_orientations=reference_orientations,
         k_translational=1.0,
         k_rotational=1.0,
         symmetries=[[1, 0, 0, 0]])
@@ -88,7 +94,7 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
 
 
 @pytest.mark.cpu
-def test_lattice_displacement(device, simulation_factory,
+def test_lattice_displacement_energy(device, simulation_factory,
                               two_particle_snapshot_factory):
     """Ensure lattice displacements result in expected energy."""
     mc = hoomd.hpmc.integrate.Sphere()
@@ -100,9 +106,15 @@ def test_lattice_displacement(device, simulation_factory,
 
     # create lattice field
     k_trans = 1.0
+    if device.communicator.rank == 0:
+        reference_positions = sim.state.get_snapshot().particles.position
+        reference_orientations = sim.state.get_snapshot().particles.orientation
+    else:
+        reference_positions = []
+        reference_orientations = []
     lattice = hoomd.hpmc.field.LatticeField(
-        reference_positions=sim.state.get_snapshot().particles.position,
-        reference_orientations=sim.state.get_snapshot().particles.orientation,
+        reference_positions=reference_positions,
+        reference_orientations=reference_orientations,
         k_translational=k_trans,
         k_rotational=1.0,
         symmetries=[[1, 0, 0, 0]])
