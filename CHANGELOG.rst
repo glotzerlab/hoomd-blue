@@ -4,7 +4,7 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.12 (2021-12-15)
+v3.0.0-beta.12 (2021-12-14)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
@@ -14,7 +14,7 @@ v3.0.0-beta.12 (2021-12-15)
 
 *Changed*
 
-* Report full error message in the exception reasons.
+* Report full error details in the exception message.
 * Improved documentation.
 * [breaking]: ``buffer`` is now a required argument when constructing a neighbor list.
 * [breaking]: ``force_tol``, ``angmom_tol``, and ``energy_tol`` are now required arguments to
