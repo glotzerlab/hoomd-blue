@@ -63,29 +63,32 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
     //! Set reference positions from a (N_particles, 3) numpy array
     void setReferencePositions(const pybind11::array_t<double> ref_pos)
         {
-        if (ref_pos.ndim() != 2)
-            {
-            throw std::runtime_error("The array must be of shape (N_particles, 3).");
-            }
-
-        const size_t N_particles = ref_pos.shape(0);
-        const size_t dim = ref_pos.shape(1);
-        if (N_particles != this->m_pdata->getNGlobal() || dim != 3)
-            {
-            throw std::runtime_error("The array must be of shape (N_particles, 3).");
-            }
-        const double* rawdata = static_cast<const double*>(ref_pos.data());
         m_lattice_positions.resize(m_pdata->getNGlobal());
-        for (size_t i = 0; i < N_particles; i++)
+        if (m_exec_conf->getRank() == 0)
             {
-            const size_t array_index = i * 3;
-            this->m_lattice_positions[i] = vec3<Scalar>(rawdata[array_index],
-                                                        rawdata[array_index + 1],
-                                                        rawdata[array_index + 2]);
+            if (ref_pos.ndim() != 2)
+                {
+                throw std::runtime_error("The array must be of shape (N_particles, 3).");
+                }
+
+            const size_t N_particles = ref_pos.shape(0);
+            const size_t dim = ref_pos.shape(1);
+            if (N_particles != this->m_pdata->getNGlobal() || dim != 3)
+                {
+                throw std::runtime_error("The array must be of shape (N_particles, 3).");
+                }
+            const double* rawdata = static_cast<const double*>(ref_pos.data());
+            for (size_t i = 0; i < min(N_particles, m_pdata->getNGlobal()); i++)
+                {
+                const size_t array_index = i * 3;
+                this->m_lattice_positions[i] = vec3<Scalar>(rawdata[array_index],
+                                                            rawdata[array_index + 1],
+                                                            rawdata[array_index + 2]);
+                }
             }
 
 #ifdef ENABLE_MPI
-        if (this->m_pdata->getDomainDecomposition())
+        if (this->m_pdata->isDomainDecomposed())
             {
             bcast(m_lattice_positions, 0, m_exec_conf->getMPICommunicator());
             }
@@ -118,7 +121,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
 
 #ifdef ENABLE_MPI
-        if (this->m_pdata->getDomainDecomposition())
+        if (this->m_pdata->isDomainDecomposed())
             {
             bcast(m_lattice_orientations, 0, m_exec_conf->getMPICommunicator());
             }
@@ -152,7 +155,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
 
 #ifdef ENABLE_MPI
-        if (this->m_pdata->getDomainDecomposition())
+        if (this->m_pdata->isDomainDecomposed())
             {
             bcast(m_symmetry, 0, m_exec_conf->getMPICommunicator());
             }
@@ -298,7 +301,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
 
 #ifdef ENABLE_MPI
-        if (this->m_pdata->getDomainDecomposition())
+        if (this->m_pdata->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &dE,
@@ -334,7 +337,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             }
 
 #ifdef ENABLE_MPI
-        if (this->m_pdata->getDomainDecomposition())
+        if (this->m_pdata->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &energy,
