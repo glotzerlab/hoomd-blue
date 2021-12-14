@@ -67,8 +67,8 @@ class LatticeField(ExternalField):
             i.e., the rotation quaternions that leave the particles unchanged
             :math:`[\mathrm{dimensionless}]`.
 
-    :py:class:`LatticeField` specifies that a harmonic spring is added to every
-    particle:
+    :py:class:`LatticeField` specifies that harmonic springs are used to
+    restrain the position and orientation of every particle:
 
     .. math::
 
