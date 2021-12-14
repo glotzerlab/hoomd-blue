@@ -32,7 +32,7 @@ class WallGeometry(ABC, _HOOMDGetSetAttrBase):
 
 
 class Sphere(WallGeometry):
-    """Define a circle/sphere in 2D/3D Euclidean space.
+    r"""Define a circle/sphere in 2D/3D Euclidean space.
 
     Whether the wall is interpreted as a sphere or circle is dependent on the
     dimension of the system the wall is applied to. For 2D systems the
@@ -43,9 +43,10 @@ class Sphere(WallGeometry):
 
     Args:
         radius (`float`):
-            The radius of the sphere.
+            The radius of the sphere :math:`[\mathrm{length}]`.
         origin (`tuple` [`float`,`float`,`float`], optional):
-            The origin of the sphere, defaults to ``(0, 0, 0)``.
+            The origin of the sphere, defaults to ``(0, 0, 0)``
+            :math:`[\mathrm{length}]`.
         inside (`bool`, optional):
             Whether particles are restricted to the space inside or outside the
             sphere, defaults to ``True``.
@@ -55,9 +56,9 @@ class Sphere(WallGeometry):
 
     Attributes:
         radius (float):
-            The radius of the sphere.
+            The radius of the sphere :math:`[\mathrm{length}]`.
         origin (`tuple` [`float`,`float`,`float`]):
-            The origin of the sphere.
+            The origin of the sphere :math:`[\mathrm{length}]`.
         inside (bool):
             Whether particles are restricted to the space inside or outside the
             sphere.
@@ -97,7 +98,7 @@ class Sphere(WallGeometry):
 
 
 class Cylinder(WallGeometry):
-    """Define a cylinder in 3D Euclidean space.
+    r"""Define a cylinder in 3D Euclidean space.
 
     Cylinder's in HOOMD span the simulation box in the direction given by the
     ``axis`` attribute.
@@ -107,12 +108,14 @@ class Cylinder(WallGeometry):
 
     Args:
         radius (`float`):
-            The radius of the circle faces of the cylinder.
+            The radius of the circle faces of the cylinder
+            :math:`[\mathrm{length}]`.
         axis (`tuple` [`float`, `float`, `float`]):
-            A vector perpendicular to the circular faces.
-        origin (`tuple` [`float`,`float`,`float`], optional):
+            A vector perpendicular to the circular faces. The magnitude of this
+            vector doesn't matter.
+        origin (`tuple` [`float`, `float`, `float`], optional):
             The origin of the cylinder defined as the center of the bisecting
-            circle along the cylinder's axis.
+            circle along the cylinder's axis :math:`[\mathrm{length}]`.
         inside (`bool`, optional):
             Whether particles are restricted to the space inside or outside the
             cylinder.
@@ -122,11 +125,12 @@ class Cylinder(WallGeometry):
 
     Attributes:
         radius (float):
-            The radius of the circle faces of the cylinder.
-        origin (`tuple` [`float`,`float`,`float`]):
+            The radius of the circle faces of the cylinder
+            :math:`[\mathrm{length}]`.
+        origin (`tuple` [`float`, `float`, `float`]):
             The origin of the cylinder defined as the center of the bisecting
-            circle along the cylinder's axis.
-        axis (`tuple` [`float`,`float`,`float`]):
+            circle along the cylinder's axis :math:`[\mathrm{length}]`.
+        axis (`tuple` [`float`, `float`, `float`]):
             A vector perpendicular to the circular faces.
         inside (bool):
             Whether particles are restricted to the space inside or outside the
@@ -175,7 +179,7 @@ class Cylinder(WallGeometry):
 
 
 class Plane(WallGeometry):
-    """Define a Plane in 3D Euclidean space.
+    r"""Define a Plane in 3D Euclidean space.
 
     The normal points away from the active half side.
 
@@ -185,9 +189,10 @@ class Plane(WallGeometry):
     Args:
         origin (`tuple` [`float`,`float`,`float`]):
             A point that lies on the plane used with ``normal`` to fully specify
-            the plane.
+            the plane :math:`[\mathrm{length}]`.
         normal (`tuple` [`float`,`float`,`float`]):
-            The normal vector to the plane.
+            The normal vector to the plane. The vector will be converted to an
+            unit vector.
         open (`bool`, optional):
             Whether to include the surface of the plane in the space. ``True``
             means do not include the surface, defaults to ``True``.
@@ -195,9 +200,10 @@ class Plane(WallGeometry):
     Attributes:
         origin (`tuple` [`float`,`float`,`float`]):
             A point that lies on the plane used with ``normal`` to fully specify
-            the plane.
+            the plane :math:`[\mathrm{length}]`.
         normal (`tuple` [`float`,`float`,`float`]):
-            The normal vector to the plane.
+            The normal vector to the plane. The vector will be converted to an
+            unit vector.
         open (bool):
             Whether to include the surface of the plane in the space. ``True``
             means do not include the surface.
