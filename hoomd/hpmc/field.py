@@ -78,7 +78,13 @@ class LatticeField(ExternalField):
     where :math:`k_{trans}` and :math:`k_{rot}` correspond to the arguments
     ``k_translational`` and ``k_rotational``, respectively, :math:`r_i` and
     :math:`q_i` are the position and orientation of particle :math:`i`, and the
-    :math:`0` subscripts denote the given reference quantities.
+    :math:`0` subscripts denote the given reference quantities. When multiple
+    orientations are passed to ``symmetries``, the rotational energy for each
+    particle is computed for not only the orientation of the particle at its
+    current orietation, but also at the orientation resulting from the rotation
+    represented by each quaternion in ``symmetries`` yielding a list of
+    energies :math:`\mathbb{V}`; the contribution to the energy is the minimum
+    value in this list, :math:`\mathrm{min}(\mathbb{V})`.
 
     Note:
         The factor of 1/2 is not included in the formulas; specify your spring
