@@ -168,4 +168,4 @@ def test_harmonic_displacement(device, simulation_factory,
     if device.communicator.rank == 0:
         new_positions = snapshot.particles.position
         dx = np.linalg.norm(new_positions - reference_positions, axis=1)
-        assert np.all(np.less(dx, particle_diameter/2))
+        assert np.all(np.less(dx, particle_diameter / 2))
