@@ -38,9 +38,10 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = mc
 
     # create lattice field
+    snapshot = sim.state.get_snapshot()
     if device.communicator.rank == 0:
-        reference_positions = sim.state.get_snapshot().particles.position
-        reference_orientations = sim.state.get_snapshot().particles.orientation
+        reference_positions = snapshot.particles.position
+        reference_orientations = snapshot.particles.orientation
     else:
         reference_positions = [[0, 0, 0], [0, 0, 0]]
         reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
@@ -70,12 +71,13 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = mc
 
     # create lattice field
+    snapshot = sim.state.get_snapshot()
     if device.communicator.rank == 0:
-        reference_positions = sim.state.get_snapshot().particles.position
-        reference_orientations = sim.state.get_snapshot().particles.orientation
+        reference_positions = snapshot.particles.position
+        reference_orientations = snapshot.particles.orientation
     else:
-        reference_positions = np.zeros((1, 3))
-        reference_orientations = np.zeros((1, 4))
+        reference_positions = [[0, 0, 0], [0, 0, 0]]
+        reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
     lattice = hoomd.hpmc.field.LatticeField(
         reference_positions=reference_positions,
         reference_orientations=reference_orientations,
@@ -106,12 +108,13 @@ def test_lattice_displacement_energy(device, simulation_factory,
 
     # create lattice field
     k_trans = 1.0
+    snapshot = sim.state.get_snapshot()
     if device.communicator.rank == 0:
-        reference_positions = sim.state.get_snapshot().particles.position
-        reference_orientations = sim.state.get_snapshot().particles.orientation
+        reference_positions = snapshot.particles.position
+        reference_orientations = snapshot.particles.orientation
     else:
-        reference_positions = np.zeros((1, 3))
-        reference_orientations = np.zeros((1, 4))
+        reference_positions = [[0, 0, 0], [0, 0, 0]]
+        reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
     lattice = hoomd.hpmc.field.LatticeField(
         reference_positions=reference_positions,
         reference_orientations=reference_orientations,
