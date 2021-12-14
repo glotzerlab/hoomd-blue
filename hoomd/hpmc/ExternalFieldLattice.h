@@ -384,7 +384,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         box.wrap(t, dummy);
         vec3<Scalar> shifted_pos(t);
         vec3<Scalar> dr = vec3<Scalar>(box.minImage(vec_to_scalar3(r0 - position + origin)));
-        return m_k_translational * dot(dr, dr);
+        return Scalar(0.5) * m_k_translational * dot(dr, dr);
         }
 
     //! Calculate the energy associated with the deviation of a single particle from its reference
@@ -403,7 +403,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
             quat<Scalar> dq = q0 - equiv_orientation;
             dqmin = (i == 0) ? norm2(dq) : fmin(dqmin, norm2(dq));
             }
-        return m_k_rotational * dqmin;
+        return Scalar(0.5) * m_k_rotational * dqmin;
         }
 
     Scalar calcE_rot(const unsigned int& index, const Shape& shape)

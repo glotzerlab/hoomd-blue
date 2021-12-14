@@ -126,4 +126,7 @@ def test_lattice_displacement_energy(device, simulation_factory,
 
     # create C++ mirror classes and set parameters
     sim.run(0)
-    assert np.allclose(lattice.energy, dx**2 * k_trans * sim.state.N_particles)
+    assert np.allclose(
+            lattice.energy,
+            0.5 * dx**2 * k_trans * sim.state.N_particles
+            )

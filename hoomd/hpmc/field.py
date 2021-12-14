@@ -72,8 +72,8 @@ class LatticeField(ExternalField):
 
     .. math::
 
-        V_{i}(r_i)  = k_{trans} \cdot (r_i-r_{0,i})^2 \\
-        V_{i}(q_i)  = k_{rot} \cdot (q_i-q_{0,i})^2
+        V_{i}(r_i)  = \frac{1}{2} k_{trans} \cdot (r_i-r_{0,i})^2 \\
+        V_{i}(q_i)  = \frac{1}{2} k_{rot} \cdot (q_i-q_{0,i})^2
 
     where :math:`k_{trans}` and :math:`k_{rot}` correspond to the arguments
     ``k_translational`` and ``k_rotational``, respectively, :math:`r_i` and
@@ -86,12 +86,7 @@ class LatticeField(ExternalField):
     energies :math:`\mathbb{V}`; the contribution to the energy is the minimum
     value in this list, :math:`\mathrm{min}(\mathbb{V})`.
 
-    Note:
-        The factor of 1/2 is not included in the formulas; specify your spring
-        constants accordingly.
-
     """
-
     def __init__(self, reference_positions, reference_orientations,
                  k_translational, k_rotational, symmetries):
         param_dict = ParameterDict(
