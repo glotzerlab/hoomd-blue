@@ -4,7 +4,6 @@ set(TEST_LIST
     test_berendsen_integrator
     test_bondtable_bond_force
     test_external_periodic
-    test_fenebond_force
     test_fire_energy_minimizer
     test_cosinesq_angle_force
     test_harmonic_angle_force
