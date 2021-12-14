@@ -40,7 +40,7 @@ class _external(Compute):
 class ExternalField(_HOOMDBaseObject):
     """Base class external field.
 
-    Provides common methods for all subclasses.
+    Provides common methods for all external field subclasses.
 
     Note:
         Users should use the subclasses and not instantiate `ExternalField`
@@ -49,19 +49,23 @@ class ExternalField(_HOOMDBaseObject):
 
 
 class LatticeField(ExternalField):
-    R"""Restrain particles on a lattice
+    r"""Restrain particles on a lattice
 
     Args:
         reference_positions ((*N_particles*, 3) `numpy.ndarray` of
             `float`): the reference positions of the
             lattice :math:`[\mathrm{length}]`.
         reference_orientations ((*N_particles*, 4) `numpy.ndarray` of
-            `float`): the reference orientations of the lattice.
-        k_translational (`float`): translational spring constant.
-        k_rotational (`float`): rotational spring constant.
+            `float`): the reference orientations of the lattice
+            :math:`[\mathrm{dimensionless}]`.
+        k_translational (`float`): translational spring constant
+            :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
+        k_rotational (`float`): rotational spring constant
+            :math:`[\mathrm{energy}]`.
         symmetries ((*N_sym*, 4) `numpy.ndarray` of
             `float`): the orientations that are equivalent through symmetry,
-            i.e., the rotation quaternions that leave the particles unchanged.
+            i.e., the rotation quaternions that leave the particles unchanged
+            :math:`[\mathrm{dimensionless}]`.
 
     :py:class:`LatticeField` specifies that a harmonic spring is added to every
     particle:
