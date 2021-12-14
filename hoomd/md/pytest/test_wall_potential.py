@@ -245,6 +245,8 @@ def test_r_extrap(simulation, cls, params):
     simulation.state.set_snapshot(snap)
 
     simulation.run(0)
+    energies = wall_pot.energy
+    forces = wall_pot.forces
     if simulation.device.communicator.rank == 0:
-        assert np.all(wall_pot.energy != 0)
-        assert np.all(np.any(wall_pot.forces != 0, axis=1))
+        assert np.all(energies != 0)
+        assert np.all(np.any(forces != 0, axis=1))
