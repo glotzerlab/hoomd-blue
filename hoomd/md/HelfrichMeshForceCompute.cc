@@ -35,22 +35,22 @@ HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinit
     m_K = new Scalar[m_pdata->getNTypes()];
 
     // allocate memory for the per-type normal verctors
-    GlobalVector<Scalar3> tmp_sigma_hat(m_pdata->getNTypes(), m_exec_conf);
+    GlobalVector<Scalar3> tmp_sigma_dash(m_pdata->getNTypes(), m_exec_conf);
 
-    m_sigma_hat.swap(tmp_sigma_hat);
-    TAG_ALLOCATION(m_sigma_hat);
+    m_sigma_dash.swap(tmp_sigma_dash);
+    TAG_ALLOCATION(m_sigma_dash);
 
     // allocate memory for the per-type normal verctors
     GlobalVector<Scalar> tmp_sigma(m_pdata->getNTypes(), m_exec_conf);
 
-    m_sigmas.swap(tmp_sigma);
+    m_sigma.swap(tmp_sigma);
     TAG_ALLOCATION(m_sigma);
 
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
-        cudaMemAdvise(m_sigma_hat.get(),
-                      sizeof(Scalar3) * m_sigma_hat.getNumElements(),
+        cudaMemAdvise(m_sigma_dash.get(),
+                      sizeof(Scalar3) * m_sigma_dash.getNumElements(),
                       cudaMemAdviseSetReadMostly,
                       0);
 
@@ -85,25 +85,25 @@ void HelfrichMeshForceCompute::setParams(unsigned int type, Scalar K)
         m_exec_conf->msg->warning() << "helfrich: specified K <= 0" << endl;
     }
 
-//void HelfrichMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
-//    {
-//    auto typ = m_angle_data->getTypeByName(type);
-//    auto _params = angle_harmonic_params(params);
-//    setParams(typ, _params.k, _params.t_0);
-//    }
+void HelfrichMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
+    {
+    auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
+    auto _params = helfrich_params(params);
+    setParams(typ, _params.k);
+    }
 
-//pybind11::dict HelfrichMeshForceCompute::getParams(std::string type)
-//    {
-//    auto typ = m_angle_data->getTypeByName(type);
-//    if (typ >= m_angle_data->getNTypes())
-//        {
-//        m_exec_conf->msg->error() << "angle.harmonic: Invalid angle type specified" << endl;
-//        throw runtime_error("Error setting parameters in HelfrichMeshForceCompute");
-//        }
-//    pybind11::dict params;
-//    params["k"] = m_K[typ];
-//    return params;
-//    }
+pybind11::dict HelfrichMeshForceCompute::getParams(std::string type)
+    {
+    auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
+    if (typ >= m_mesh_data->getMeshBondData()->getNTypes())
+        {
+        m_exec_conf->msg->error() << "mesh.helfrich: Invalid mesh type specified" << endl;
+        throw runtime_error("Error setting parameters in HelfrichMeshForceCompute");
+        }
+    pybind11::dict params;
+    params["k"] = m_K[typ];
+    return params;
+    }
 
 /*! Actually perform the force computation
     \param timestep Current time step
@@ -133,7 +133,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
                                                    access_mode::read);
 
     ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::read);
-    ArrayHandle<Scalar3> h_sigma_hat(m_sigma_hat, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::read);
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -143,7 +143,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     assert(h_bonds.data);
     assert(h_triangles.data);
     assert(h_sigma.data);
-    assert(h_sigma_hat.data);
+    assert(h_sigma_dash.data);
 
     // Zero data for force calculation.
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
@@ -334,22 +334,18 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
 	Scalar cot_accb = c_accb/s_accb;
 	Scalar cot_addb = c_addb/s_addb;
-	Scalar cot_abbc = c_abbc/s_abbc;
-	Scalar cot_abbd = c_abbd/s_abbd;
-	Scalar cot_baac = c_baac/s_baac;
-	Scalar cot_baad = c_baad/s_baad;
 
 	Scalar sigma_hat_ab = (cot_accb + cot_addb)/2;
 
-	Scalar3 sigma_hat_a = h_sigma_hat[idx_a]; //precomputed
-	Scalar3 sigma_hat_b = h_sigma_hat[idx_b]; //precomputed
-	Scalar3 sigma_hat_c = h_sigma_hat[idx_c]; //precomputed
-	Scalar3 sigma_hat_d = h_sigma_hat[idx_d]; //precomputed
+	Scalar3 sigma_dash_a = h_sigma_dash.data[idx_a]; //precomputed
+	Scalar3 sigma_dash_b = h_sigma_dash.data[idx_b]; //precomputed
+	Scalar3 sigma_dash_c = h_sigma_dash.data[idx_c]; //precomputed
+	Scalar3 sigma_dash_d = h_sigma_dash.data[idx_d]; //precomputed
 
-	Scalar sigma_a = h_sigma[idx_a]; //precomputed
-	Scalar sigma_b = h_sigma[idx_b]; //precomputed
-	Scalar sigma_c = h_sigma[idx_c]; //precomputed
-	Scalar sigma_d = h_sigma[idx_d]; //precomputed
+	Scalar sigma_a = h_sigma.data[idx_a]; //precomputed
+	Scalar sigma_b = h_sigma.data[idx_b]; //precomputed
+	Scalar sigma_c = h_sigma.data[idx_c]; //precomputed
+	Scalar sigma_d = h_sigma.data[idx_d]; //precomputed
 
 	Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
 	dc_abbc = -nbc/rab + c_abbc/rab*nab;
@@ -369,18 +365,16 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 	dsigma_c = (dsigma_hat_ac*rsqac + dsigma_hat_bc*rsqbc)/4;
 	dsigma_d = (dsigma_hat_ad*rsqad + dsigma_hat_bd*rsqbd)/4;
 
-	Scalar dsigma_hat_a = dot(dsigma_hat_ac,dac) + dot(dsigma_hat_ad,dad) + sigma_hat_ab;
-	Scalar dsigma_hat_b = dot(dsigma_hat_bc,dbc) + dot(dsigma_hat_bd,dbd) - sigma_hat_ab;
-	Scalar dsigma_hat_c = -dot(dsigma_hat_ac,dac) - dot(dsigma_hat_bc,dbc);
-	Scalar dsigma_hat_d = -dot(dsigma_hat_ad,dad) - dot(dsigma_hat_bd,dbd);
+	Scalar dsigma_dash_a = dot(dsigma_hat_ac,dac) + dot(dsigma_hat_ad,dad) + sigma_hat_ab;
+	Scalar dsigma_dash_b = dot(dsigma_hat_bc,dbc) + dot(dsigma_hat_bd,dbd) - sigma_hat_ab;
+	Scalar dsigma_dash_c = -dot(dsigma_hat_ac,dac) - dot(dsigma_hat_bc,dbc);
+	Scalar dsigma_dash_d = -dot(dsigma_hat_ad,dad) - dot(dsigma_hat_bd,dbd);
 
 	Scalar3 Fa;
-	Fa = m_K[0]*(dsigma_hat_a/sigma_a*sigma_hat_a -dot(sigma_hat_a,sigma_hat_a)/(2*sigma_a*sigma_a)*dsigma_a);
-	Fa += m_K[0]*(dsigma_hat_b/sigma_b*sigma_hat_b -dot(sigma_hat_b,sigma_hat_b)/(2*sigma_b*sigma_b)*dsigma_b);
-	Fa += m_K[0]*(dsigma_hat_c/sigma_c*sigma_hat_c -dot(sigma_hat_c,sigma_hat_c)/(2*sigma_c*sigma_c)*dsigma_c);
-	Fa += m_K[0]*(dsigma_hat_d/sigma_d*sigma_hat_d -dot(sigma_hat_d,sigma_hat_d)/(2*sigma_d*sigma_d)*dsigma_d);
-
-        Scalar angle_eng = (tk * dth) * Scalar(1.0 / 4.0);
+	Fa = m_K[0]*(dsigma_dash_a/sigma_a*sigma_dash_a -dot(sigma_dash_a,sigma_dash_a)/(2*sigma_a*sigma_a)*dsigma_a);
+	Fa += m_K[0]*(dsigma_dash_b/sigma_b*sigma_dash_b -dot(sigma_dash_b,sigma_dash_b)/(2*sigma_b*sigma_b)*dsigma_b);
+	Fa += m_K[0]*(dsigma_dash_c/sigma_c*sigma_dash_c -dot(sigma_dash_c,sigma_dash_c)/(2*sigma_c*sigma_c)*dsigma_c);
+	Fa += m_K[0]*(dsigma_dash_d/sigma_d*sigma_dash_d -dot(sigma_dash_d,sigma_dash_d)/(2*sigma_d*sigma_d)*dsigma_d);
 
         if (compute_virial)
             {
@@ -392,8 +386,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             helfrich_virial[5] = Scalar(1. / 2.) * dab.z * Fa.z;// zz
             }
 
-
-
         // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
         // do not update ghost particles
         if (idx_a < m_pdata->getN())
@@ -401,7 +393,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w = m_K[0]/2.0*dot(sigma_hat_a,sigma_hat_a)/simga_a;
+            h_force.data[idx_a].w = m_K[0]/2.0*dot(sigma_dash_a,sigma_dash_a)/sigma_a;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
             }
@@ -411,7 +403,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fa.x;
             h_force.data[idx_b].y -= Fa.y;
             h_force.data[idx_b].z -= Fa.z;
-            h_force.data[idx_b].w = m_K[0]/2.0*dot(sigma_hat_a,sigma_hat_a)/simga_a;
+            h_force.data[idx_b].w = m_K[0]/2.0*dot(sigma_dash_b,sigma_dash_b)/sigma_b;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
@@ -439,11 +431,10 @@ void HelfrichMeshForceCompute::computeSigma()
     const BoxDim& box = m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_sigma_hat(m_sigma_hat, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::readwrite);
 
     memset((void*)h_sigma.data, 0, sizeof(Scalar) * m_sigma.getNumElements());
-    memset((void*)h_sigma_hat.data, 0, sizeof(Scalar3) * m_sigma_hat.getNumElements());
-
+    memset((void*)h_sigma_dash.data, 0, sizeof(Scalar3) * m_sigma_dash.getNumElements());
 
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
@@ -525,7 +516,7 @@ void HelfrichMeshForceCompute::computeSigma()
         // FLOPS: 14 / MEM TRANSFER: 2 Scalars
 
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
-        Sbalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
         rac = sqrt(rac);
         Scalar rad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
@@ -535,7 +526,6 @@ void HelfrichMeshForceCompute::computeSigma()
         rbc = sqrt(rbc);
         Scalar rbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
         rbd = sqrt(rbd);
-
 
 	Scalar3 nac, nad, nbc, nbd;
 	nac = dac/rac;
@@ -574,16 +564,16 @@ void HelfrichMeshForceCompute::computeSigma()
 
 	Scalar sigma_a = sigma_hat_ab*rsqab*0.25;
 
-	h_sigma[idx_a] += sigma_a;
-	h_sigma[idx_b] += sigma_b;
+	h_sigma.data[idx_a] += sigma_a;
+	h_sigma.data[idx_b] += sigma_a;
 
-	h_sigma_hat[idx_a].x += sigma_hat_ab*dab.x;
-	h_sigma_hat[idx_a].y += sigma_hat_ab*dab.y;
-	h_sigma_hat[idx_a].z += sigma_hat_ab*dab.z;
+	h_sigma_dash.data[idx_a].x += sigma_hat_ab*dab.x;
+	h_sigma_dash.data[idx_a].y += sigma_hat_ab*dab.y;
+	h_sigma_dash.data[idx_a].z += sigma_hat_ab*dab.z;
 
-	h_sigma_hat[idx_b].x -= sigma_hat_ab*dab.x;
-	h_sigma_hat[idx_b].y -= sigma_hat_ab*dab.y;
-	h_sigma_hat[idx_b].z -= sigma_hat_ab*dab.z;
+	h_sigma_dash.data[idx_b].x -= sigma_hat_ab*dab.x;
+	h_sigma_dash.data[idx_b].y -= sigma_hat_ab*dab.y;
+	h_sigma_dash.data[idx_b].z -= sigma_hat_ab*dab.z;
 
 	}
 
@@ -596,7 +586,7 @@ void export_HelfrichMeshForceCompute(pybind11::module& m)
     pybind11::class_<HelfrichMeshForceCompute,
                      ForceCompute,
                      std::shared_ptr<HelfrichMeshForceCompute>>(m, "HelfrichMeshForceCompute")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<MeshDefinition>>())
         .def("setParams", &HelfrichMeshForceCompute::setParamsPython)
         .def("getParams", &HelfrichMeshForceCompute::getParams);
     }

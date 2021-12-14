@@ -26,6 +26,7 @@
 #include "HarmonicAngleForceCompute.h"
 #include "HarmonicDihedralForceCompute.h"
 #include "HarmonicImproperForceCompute.h"
+#include "HelfrichMeshForceCompute.h"
 #include "IntegrationMethodTwoStep.h"
 #include "IntegratorTwoStep.h"
 #include "ManifoldDiamond.h"
@@ -302,6 +303,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialMeshBond<PotentialMeshBondTether>(m, "PotentialMeshBondTether");
     export_PotentialSpecialPair<PotentialSpecialPairLJ>(m, "PotentialSpecialPairLJ");
     export_PotentialSpecialPair<PotentialSpecialPairCoulomb>(m, "PotentialSpecialPairCoulomb");
+
+    export_HelfrichMeshForceCompute(m);
     export_NeighborList(m);
     export_NeighborListBinned(m);
     export_NeighborListStencil(m);

@@ -26,14 +26,14 @@ namespace hoomd
     {
 namespace md
     {
-struct mesh_helfrich_params
+struct helfrich_params
     {
     Scalar k;
 
 #ifndef __HIPCC__
-    mesh_helfrich_params() : k(0) { }
+    helfrich_params() : k(0) { }
 
-    mesh_helfrich_params(pybind11::dict params)
+    helfrich_params(pybind11::dict params)
         : k(params["k"].cast<Scalar>())
         {
         }
@@ -92,7 +92,7 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public ForceCompute
 
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
 
-    GlobalVector<Scalar3> m_sigma_hat; //! sum of the distances weighted by the bending angle over all neighbors
+    GlobalVector<Scalar3> m_sigma_dash; //! sum of the distances weighted by the bending angle over all neighbors
 
     GlobalVector<Scalar> m_sigma; //! sum of the vectors weighted by the bending angle over all neighbors
 
@@ -100,7 +100,7 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
 
     //! compute normals
-    virtual void computeSigmas();
+    virtual void computeSigma();
     };
 
 namespace detail

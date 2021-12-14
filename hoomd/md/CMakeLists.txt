@@ -14,6 +14,7 @@ set(_md_sources module-md.cc
                    HarmonicAngleForceCompute.cc
                    HarmonicDihedralForceCompute.cc
                    HarmonicImproperForceCompute.cc
+                   HelfrichMeshForceCompute.cc
                    IntegrationMethodTwoStep.cc
                    IntegratorTwoStep.cc
                    ManifoldZCylinder.cc
@@ -116,6 +117,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicDihedralForceCompute.h
                 HarmonicImproperForceComputeGPU.h
                 HarmonicImproperForceCompute.h
+		HelfrichMeshForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
                 ManifoldZCylinder.h
