@@ -272,34 +272,20 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
                                       access_location::host,
                                       access_mode::readwrite);
         const Scalar4* const position_new = h_pos.data; // current positions from system definition
-        const Scalar4* const orientation_new
-            = h_orient.data; // current orientations from system definition
-        // const BoxDim* const box_new = &m_pdata->getGlobalBox();
+        const Scalar4* const orientation_new = h_orient.data; // current orientations from system definition
         const Scalar4 *position_old = position_old_arg, *orientation_old = orientation_old_arg;
-        // const BoxDim* box_old = box_old_arg;
         if (!position_old)
             position_old = position_new;
         if (!orientation_old)
             orientation_old = orientation_new;
-        /*if (!box_old)
-            box_old = box_new;
-
-        Scalar curVolume = m_pdata->getBox().getVolume();
-        Scalar newVolume = box_new->getVolume();
-        Scalar oldVolume = box_old->getVolume();
-        Scalar scaleOld = pow((oldVolume / curVolume), Scalar(1.0 / 3.0));
-        Scalar scaleNew = pow((newVolume / curVolume), Scalar(1.0 / 3.0));
-        */
 
         double dE = 0.0;
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
             Scalar old_E
                 = calcE(i, vec3<Scalar>(*(position_old + i)), quat<Scalar>(*(orientation_old + i)));
-            // scaleOld);
             Scalar new_E
                 = calcE(i, vec3<Scalar>(*(position_new + i)), quat<Scalar>(*(orientation_new + i)));
-            // scaleNew);
             dE += new_E - old_E;
             }
 
@@ -370,7 +356,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
     //! Calculate the energy associated with the deviation of a single particle from its reference
     //! position
     Scalar
-    calcE_trans(const unsigned int& index, const vec3<Scalar>& position, const Scalar& scale = 1.0)
+    calcE_trans(const unsigned int& index, const vec3<Scalar>& position)
         {
         ArrayHandle<unsigned int> h_tags(m_pdata->getTags(),
                                          access_location::host,
@@ -379,7 +365,6 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
         vec3<Scalar> origin(m_pdata->getOrigin());
         const BoxDim& box = this->m_pdata->getGlobalBox();
         vec3<Scalar> r0 = m_lattice_positions[h_tags.data[index]];
-        r0 *= scale;
         Scalar3 t = vec_to_scalar3(position - origin);
         box.wrap(t, dummy);
         vec3<Scalar> shifted_pos(t);
@@ -422,21 +407,19 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
      */
     Scalar calcE(const unsigned int& index,
                  const vec3<Scalar>& position,
-                 const quat<Scalar>& orientation,
-                 const Scalar& scale = 1.0)
+                 const quat<Scalar>& orientation)
         {
         Scalar energy = 0.0;
-        energy += calcE_trans(index, position, scale);
+        energy += calcE_trans(index, position);
         energy += calcE_rot(index, orientation);
         return energy;
         }
 
     Scalar calcE(const unsigned int& index,
                  const vec3<Scalar>& position,
-                 const Shape& shape,
-                 const Scalar& scale = 1.0)
+                 const Shape& shape)
         {
-        return calcE(index, position, shape.orientation, scale);
+        return calcE(index, position, shape.orientation);
         }
 
     private:
