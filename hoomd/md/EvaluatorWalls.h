@@ -82,6 +82,28 @@ struct HOOMD_PYBIND11_EXPORT wall_type
         }
     };
 
+/// Function for getting the force direction for particle on the wall with r_extrap
+DEVICE inline Scalar3 onWallForceDirection(const vec3<Scalar>& position, const SphereWall& wall)
+    {
+    // We need a direction for the force and since r == 0 then the distance from
+    // the origin is the Sphere's radius.
+    return vec_to_scalar3(wall.origin - position) / wall.r;
+    }
+
+/// Function for getting the force direction for particle on the wall with r_extrap
+DEVICE inline Scalar3 onWallForceDirection(const vec3<Scalar>& position, const CylinderWall& wall)
+    {
+    auto s = rotate(wall.quatAxisToZRot, wall.origin - position);
+    s.z = 0.0;
+    return vec_to_scalar3(rotate(conj(wall.quatAxisToZRot), s) / wall.r);
+    }
+
+/// Function for getting the force direction for particle on the wall with r_extrap
+DEVICE inline Scalar3 onWallForceDirection(const PlaneWall& wall)
+    {
+    return vec_to_scalar3(-wall.normal);
+    }
+
 //! Applys a wall force from all walls in the field parameter
 /*! \ingroup computes
  */
@@ -155,10 +177,9 @@ template<class evaluator> class EvaluatorWalls
         qi = charge;
         }
 
-    DEVICE inline void callEvaluator(Scalar3& F, Scalar& energy, const vec3<Scalar> drv)
+    DEVICE inline void callEvaluator(Scalar3& F, Scalar& energy, const Scalar3 drv)
         {
-        Scalar3 dr = -vec_to_scalar3(drv);
-        Scalar rsq = dot(dr, dr);
+        Scalar rsq = dot(drv, drv);
 
         // compute the force and potential energy
         Scalar force_divr = Scalar(0.0);
@@ -184,7 +205,7 @@ template<class evaluator> class EvaluatorWalls
                 pair_eng = Scalar(0.0);
                 }
             // add the force and potential energy to the particle i
-            F += dr * force_divr;
+            F += drv * force_divr;
             energy += pair_eng; // removing half since the other "particle" won't be represented *
                                 // Scalar(0.5);
             }
@@ -192,11 +213,10 @@ template<class evaluator> class EvaluatorWalls
 
     DEVICE inline void extrapEvaluator(Scalar3& F,
                                        Scalar& energy,
-                                       const vec3<Scalar> drv,
+                                       const Scalar3 drv,
                                        const Scalar rextrapsq,
                                        const Scalar r)
         {
-        Scalar3 dr = -vec_to_scalar3(drv);
         // compute the force and potential energy
         Scalar force_divr = Scalar(0.0);
         Scalar pair_eng = Scalar(0.0);
@@ -223,7 +243,7 @@ template<class evaluator> class EvaluatorWalls
                 force_divr = Scalar(0.0);
                 pair_eng = Scalar(0.0);
                 }
-            F += dr * force_divr;
+            F += drv * force_divr;
             energy += pair_eng;
             }
         }
@@ -241,7 +261,7 @@ template<class evaluator> class EvaluatorWalls
 
         // convert type as little as possible
         vec3<Scalar> position = vec3<Scalar>(m_pos);
-        vec3<Scalar> drv;
+        Scalar3 drv;
         bool in_active_space = false;
         if (m_params.rextrap > 0.0) // extrapolated mode
             {
@@ -249,32 +269,36 @@ template<class evaluator> class EvaluatorWalls
             Scalar rsq;
             for (unsigned int k = 0; k < m_field.numSpheres; k++)
                 {
-                drv = vecPtToWall(m_field.Spheres[k], position, in_active_space);
+                drv = distVectorWallToPoint(m_field.Spheres[k], position, in_active_space);
                 rsq = dot(drv, drv);
                 if (in_active_space && rsq >= rextrapsq)
                     {
                     callEvaluator(F, energy, drv);
                     }
+                // Need to use extrapolated potential
                 else
                     {
                     Scalar r = fast::sqrt(rsq);
+                    // Normalize distance vectors
                     if (rsq == 0.0)
                         {
                         in_active_space = true; // just in case
-                        drv = (position - m_field.Spheres[k].origin) / m_field.Spheres[k].r;
+                        drv = onWallForceDirection(position, m_field.Spheres[k]);
                         }
                     else
                         {
                         drv *= 1 / r;
                         }
+                    // Recompute r and distance vector in terms of r_extrap
                     r = in_active_space ? m_params.rextrap - r : m_params.rextrap + r;
                     drv *= in_active_space ? r : -r;
                     extrapEvaluator(F, energy, drv, rextrapsq, r);
                     }
                 }
+            vec3<Scalar> intermediate_distance_vector;
             for (unsigned int k = 0; k < m_field.numCylinders; k++)
                 {
-                drv = vecPtToWall(m_field.Cylinders[k], position, in_active_space);
+                drv = distVectorWallToPoint(m_field.Cylinders[k], position, in_active_space);
                 rsq = dot(drv, drv);
                 if (in_active_space && rsq >= rextrapsq)
                     {
@@ -286,11 +310,7 @@ template<class evaluator> class EvaluatorWalls
                     if (rsq == 0.0)
                         {
                         in_active_space = true; // just in case
-                        drv = rotate(m_field.Cylinders[k].quatAxisToZRot,
-                                     position - m_field.Cylinders[k].origin);
-                        drv.z = 0.0;
-                        drv = rotate(conj(m_field.Cylinders[k].quatAxisToZRot), drv)
-                              / m_field.Cylinders[k].r;
+                        drv = onWallForceDirection(position, m_field.Cylinders[k]);
                         }
                     else
                         {
@@ -303,7 +323,7 @@ template<class evaluator> class EvaluatorWalls
                 }
             for (unsigned int k = 0; k < m_field.numPlanes; k++)
                 {
-                drv = vecPtToWall(m_field.Planes[k], position, in_active_space);
+                drv = distVectorWallToPoint(m_field.Planes[k], position, in_active_space);
                 rsq = dot(drv, drv);
                 if (in_active_space && rsq >= rextrapsq)
                     {
@@ -315,7 +335,7 @@ template<class evaluator> class EvaluatorWalls
                     if (rsq == 0.0)
                         {
                         in_active_space = true; // just in case
-                        drv = m_field.Planes[k].normal;
+                        drv = onWallForceDirection(m_field.Planes[k]);
                         }
                     else
                         {
@@ -331,7 +351,7 @@ template<class evaluator> class EvaluatorWalls
             {
             for (unsigned int k = 0; k < m_field.numSpheres; k++)
                 {
-                drv = vecPtToWall(m_field.Spheres[k], position, in_active_space);
+                drv = distVectorWallToPoint(m_field.Spheres[k], position, in_active_space);
                 if (in_active_space)
                     {
                     callEvaluator(F, energy, drv);
@@ -339,7 +359,7 @@ template<class evaluator> class EvaluatorWalls
                 }
             for (unsigned int k = 0; k < m_field.numCylinders; k++)
                 {
-                drv = vecPtToWall(m_field.Cylinders[k], position, in_active_space);
+                drv = distVectorWallToPoint(m_field.Cylinders[k], position, in_active_space);
                 if (in_active_space)
                     {
                     callEvaluator(F, energy, drv);
@@ -347,7 +367,7 @@ template<class evaluator> class EvaluatorWalls
                 }
             for (unsigned int k = 0; k < m_field.numPlanes; k++)
                 {
-                drv = vecPtToWall(m_field.Planes[k], position, in_active_space);
+                drv = distVectorWallToPoint(m_field.Planes[k], position, in_active_space);
                 if (in_active_space)
                     {
                     callEvaluator(F, energy, drv);

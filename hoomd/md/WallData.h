@@ -128,26 +128,26 @@ struct __attribute__((visibility("default"))) PlaneWall
 //! Point to wall vector for a sphere wall geometry
 /* Returns 0 vector when all normal directions are equal
  */
-DEVICE inline vec3<Scalar>
-vecPtToWall(const SphereWall& wall, const vec3<Scalar>& position, bool& in_active_space)
+DEVICE inline Scalar3
+distVectorWallToPoint(const SphereWall& wall, const vec3<Scalar>& position, bool& in_active_space)
     {
     const vec3<Scalar> dist_from_origin = position - wall.origin;
     const Scalar euclidean_dist = sqrt(dot(dist_from_origin, dist_from_origin));
     if (euclidean_dist == 0.0)
         {
         in_active_space = wall.open;
-        return vec3<Scalar>(0.0, 0.0, 0.0);
+        return make_scalar3(0.0, 0.0, 0.0);
         }
     in_active_space
         = ((euclidean_dist < wall.r) && wall.inside) || ((euclidean_dist > wall.r) && !wall.inside);
-    return ((wall.r / euclidean_dist) - 1) * dist_from_origin;
+    return vec_to_scalar3((1 - (wall.r / euclidean_dist)) * dist_from_origin);
     };
 
 //! Point to wall vector for a cylinder wall geometry
 /* Returns 0 vector when all normal directions are equal
  */
-DEVICE inline vec3<Scalar>
-vecPtToWall(const CylinderWall& wall, const vec3<Scalar>& position, bool& in_active_space)
+DEVICE inline Scalar3
+distVectorWallToPoint(const CylinderWall& wall, const vec3<Scalar>& position, bool& in_active_space)
     {
     const vec3<Scalar> dist_from_origin = position - wall.origin;
     vec3<Scalar> rotated_distance = rotate(wall.quatAxisToZRot, dist_from_origin);
@@ -156,27 +156,27 @@ vecPtToWall(const CylinderWall& wall, const vec3<Scalar>& position, bool& in_act
     if (euclidean_dist == 0.0)
         {
         in_active_space = wall.open;
-        return vec3<Scalar>(0.0, 0.0, 0.0);
+        return make_scalar3(0.0, 0.0, 0.0);
         }
     in_active_space = ((euclidean_dist < wall.r) && wall.inside)
                       || ((euclidean_dist > wall.r) && !(wall.inside));
-    const vec3<Scalar> dx = ((wall.r / euclidean_dist) - 1) * rotated_distance;
-    return rotate(conj(wall.quatAxisToZRot), dx);
+    const vec3<Scalar> dx = (1 - (wall.r / euclidean_dist)) * rotated_distance;
+    return vec_to_scalar3(rotate(conj(wall.quatAxisToZRot), dx));
     };
 
 //! Point to wall vector for a plane wall geometry
-DEVICE inline vec3<Scalar>
-vecPtToWall(const PlaneWall& wall, const vec3<Scalar>& position, bool& in_active_space)
+DEVICE inline Scalar3
+distVectorWallToPoint(const PlaneWall& wall, const vec3<Scalar>& position, bool& in_active_space)
     {
     vec3<Scalar> t = position;
     Scalar distance = dot(wall.normal, t) - dot(wall.normal, wall.origin);
     if (distance == 0)
         {
         in_active_space = wall.open;
-        return vec3<Scalar>(0.0, 0.0, 0.0);
+        return make_scalar3(0.0, 0.0, 0.0);
         }
     in_active_space = distance > 0.0;
-    return -distance * wall.normal;
+    return vec_to_scalar3(distance * wall.normal);
     };
 
 //! Distance of point to inside sphere wall geometry, not really distance, +- based on if it's
