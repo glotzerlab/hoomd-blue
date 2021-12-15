@@ -51,8 +51,8 @@ project = 'HOOMD-blue'
 copyright = '2009-2021 The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.0.0-beta.11'
-release = '3.0.0-beta.11'
+version = '3.0.0-beta.12'
+release = '3.0.0-beta.12'
 
 language = None
 
