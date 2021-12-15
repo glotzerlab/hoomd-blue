@@ -8,13 +8,13 @@ Wall potentials add forces to any particles within a certain distance,
 :math:`r_{\mathrm{cut}}`, of each wall. In the extrapolated mode, all particles
 outside of the wall boundary are included as well.
 
-Wall geometries (`hoomd.wall`) are used to specify half-spaces. There are two
-half spaces for each of the possible geometries included and each can be
-selected using the inside parameter. In order to fully specify space, it is
-necessary that one half space be closed and one open. Setting *inside=True* for
-closed half-spaces and *inside=False* for open ones. See `hoomd.wall` for more
+Wall geometries (`hoomd.wall`) are used to partition space. There are two
+spaces for each of the possible geometries included and each can be
+selected using the inside parameter. In addition to fully specify a partition,
+it is necessary that one space be closed and one open. Setting ``open=True`` for
+closed spaces and ``open=False`` for open ones. See `hoomd.wall` for more
 information on wall geometries and `WallPotential` for information about forces
-and half-spaces.
+and spaces.
 
 .. attention::
     The current wall force implementation does not support NPT integrators.
@@ -69,33 +69,21 @@ class WallPotential(force.Force):
     distances to points on the active side of the wall and negative signed
     distances to points on the inactive side. Additionally, the wall's mode
     controls how forces and energies are computed for particles on or near the
-    inactive side. The `inside` flag determines
-    which side of the surface is active.
+    inactive side. The `inside` flag determines which side of the surface is
+    active.
 
     .. rubric:: Standard Mode.
 
     In the standard mode, when :math:`r_{\mathrm{extrap}} \le 0`, the potential
-    energy is only computed on the active side.
-    :math:`V(r)` is evaluated in the same manner as when the mode is shift for
-    the analogous :py:mod:`pair <hoomd.md.pair>` potentials within the
-    boundaries of the half-space.
+    energy is only computed on the active side. :math:`V(r)` is evaluated in the
+    same manner as when the mode is shift for the analogous :py:mod:`pair
+    <hoomd.md.pair>` potentials within the boundaries of the active space.
 
     .. math::
 
         V(r)  = V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}})
 
-    For ``inside=True`` (closed) half-spaces:
-
-    .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        \vec{F}  = & -\nabla V(r) & 0 \le r < r_{\mathrm{cut}} \\
-                 = & 0 & r \ge r_{\mathrm{cut}} \\
-                 = & 0 & r < 0
-        \end{eqnarray*}
-
-    For ``inside=False`` (open) half-spaces:
+    For ``open=True`` spaces:
 
     .. math::
         :nowrap:
@@ -104,6 +92,17 @@ class WallPotential(force.Force):
         \vec{F}  = & -\nabla V(r) & 0 < r < r_{\mathrm{cut}} \\
                  = & 0 & r \ge r_{\mathrm{cut}} \\
                  = & 0 & r \le 0
+        \end{eqnarray*}
+
+    For ``open=False`` (closed) spaces:
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        \vec{F}  = & -\nabla V(r) & 0 \le r < r_{\mathrm{cut}} \\
+                 = & 0 & r \ge r_{\mathrm{cut}} \\
+                 = & 0 & r < 0
         \end{eqnarray*}
 
     Below we show the potential for a `hoomd.wall.Sphere` with radius 5 in 2D,
@@ -135,8 +134,10 @@ class WallPotential(force.Force):
                 \cdot \vec{n}&, r \le r_{\rm extrap}
         \end{eqnarray*}
 
-    where :math:`\vec{n}` is the normal pointing toward the active side.
-    This gives an effective force on the particle due to the wall:
+    where :math:`\vec{n}` is such that the force towards the active space for
+    most potentials unless ``r_extrap`` is chosen such that the potential is
+    decreasing at that point. This gives an effective force on the particle due
+    to the wall:
 
     .. math::
         :nowrap:
@@ -156,9 +157,8 @@ class WallPotential(force.Force):
                            =& 0 &, r \ge r_{\mathrm{cut}}
         \end{eqnarray*}
 
-    Below is an example of
-    extrapolation with ``r_extrap=1.1`` for a LJ potential with
-    :math:`\epsilon=1, \sigma=1`.
+    Below is an example of extrapolation with ``r_extrap=1.1`` for a LJ
+    potential with :math:`\epsilon=1, \sigma=1`.
 
     .. image:: md-wall-extrapolate.svg
 
