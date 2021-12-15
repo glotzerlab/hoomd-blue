@@ -43,36 +43,6 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
         m_callback = py_callback;
         }
 
-    const GlobalArray<Scalar4>& getForceArray() const
-        {
-        return m_force;
-        }
-
-    const GlobalArray<Scalar>& getVirialArray() const
-        {
-        return m_virial;
-        }
-
-    const GlobalArray<Scalar4>& getTorqueArray() const
-        {
-        return m_torque;
-        }
-
-    unsigned int getN() const
-        {
-        return m_pdata->getN();
-        }
-
-    unsigned int getNGhosts() const
-        {
-        return m_pdata->getNGhosts();
-        }
-
-    const GlobalArray<unsigned int>& getRTags() const
-        {
-        return m_pdata->getRTags();
-        }
-
     protected:
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -86,27 +56,21 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
  *
  * */
 template<class Output>
-class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, CustomForceCompute>
+class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, ForceCompute>
     {
     public:
-    LocalForceComputeData(CustomForceCompute& data)
-        : LocalDataAccess<Output, CustomForceCompute>(data), m_force_handle(), m_torque_handle(),
+    LocalForceComputeData(ForceCompute& data)
+        : LocalDataAccess<Output, ForceCompute>(data), m_force_handle(), m_torque_handle(),
           m_virial_handle(), m_virial_pitch(data.getVirialArray().getPitch())
         {
         }
 
     virtual ~LocalForceComputeData() = default;
 
-    Output getRTags()
-        {
-        return this->template getGlobalBuffer<unsigned int>(m_rtag_handle,
-                                                            &CustomForceCompute::getRTags);
-        }
-
     Output getForce(GhostDataFlag flag)
         {
         return this->template getBuffer<Scalar4, Scalar>(m_force_handle,
-                                                         &CustomForceCompute::getForceArray,
+                                                         &ForceCompute::getForceArray,
                                                          flag,
                                                          3);
         }
@@ -114,7 +78,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
     Output getPotentialEnergy(GhostDataFlag flag)
         {
         return this->template getBuffer<Scalar4, Scalar>(m_force_handle,
-                                                         &CustomForceCompute::getForceArray,
+                                                         &ForceCompute::getForceArray,
                                                          flag,
                                                          0,
                                                          3 * sizeof(Scalar));
@@ -123,7 +87,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
     Output getTorque(GhostDataFlag flag)
         {
         return this->template getBuffer<Scalar4, Scalar>(m_torque_handle,
-                                                         &CustomForceCompute::getTorqueArray,
+                                                         &ForceCompute::getTorqueArray,
                                                          flag,
                                                          3);
         }
@@ -135,7 +99,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, Cus
         // shape (6, m_virial_pitch)
         return this->template getBuffer<Scalar, Scalar>(
             m_virial_handle,
-            &CustomForceCompute::getVirialArray,
+            &ForceCompute::getVirialArray,
             flag,
             6,
             0,
@@ -170,7 +134,7 @@ template<class Output> void export_LocalForceComputeData(pybind11::module& m, st
     pybind11::class_<LocalForceComputeData<Output>, std::shared_ptr<LocalForceComputeData<Output>>>(
         m,
         name.c_str())
-        .def(pybind11::init<CustomForceCompute&>())
+        .def(pybind11::init<ForceCompute&>())
         .def("getForce", &LocalForceComputeData<Output>::getForce)
         .def("getPotentialEnergy", &LocalForceComputeData<Output>::getPotentialEnergy)
         .def("getTorque", &LocalForceComputeData<Output>::getTorque)

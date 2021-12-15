@@ -145,6 +145,22 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         return m_torque;
         }
 
+    const GlobalArray<Scalar4>& getForceArray() const
+        {
+        return m_force;
+        }
+
+    const GlobalArray<Scalar>& getVirialArray() const
+        {
+        return m_virial;
+        }
+
+    const GlobalArray<Scalar4>& getTorqueArray() const
+        {
+        return m_torque;
+        }
+
+
     //! Get the contribution to the external virial
     Scalar getExternalVirial(unsigned int dir)
         {
@@ -176,6 +192,17 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         // by default, only translational degrees of freedom are integrated
         return false;
         }
+
+    unsigned int getN() const
+        {
+        return m_pdata->getN();
+        }
+
+    unsigned int getNGhosts() const
+        {
+        return m_pdata->getNGhosts();
+        }
+
 
     protected:
     bool m_particles_sorted; //!< Flag set to true when particles are resorted in memory
