@@ -69,8 +69,8 @@ class WallPotential(force.Force):
     distances to points on the active side of the wall and negative signed
     distances to points on the inactive side. Additionally, the wall's mode
     controls how forces and energies are computed for particles on or near the
-    inactive side. The `inside` flag determines which side of the surface is
-    active.
+    inactive side. The ``inside`` flag (or ``normal`` in the case of
+    `hoomd.wall.Plane`) determines which side of the surface is active.
 
     .. rubric:: Standard Mode.
 

@@ -44,7 +44,7 @@ class Sphere(WallGeometry):
     Args:
         radius (`float`):
             The radius of the sphere :math:`[\mathrm{length}]`.
-        origin (`tuple` [`float`,`float`,`float`], optional):
+        origin (`tuple` [`float`, `float`, `float`], optional):
             The origin of the sphere, defaults to ``(0, 0, 0)``
             :math:`[\mathrm{length}]`.
         inside (`bool`, optional):
@@ -57,7 +57,7 @@ class Sphere(WallGeometry):
     Attributes:
         radius (float):
             The radius of the sphere :math:`[\mathrm{length}]`.
-        origin (`tuple` [`float`,`float`,`float`]):
+        origin (`tuple` [`float`, `float`, `float`]):
             The origin of the sphere :math:`[\mathrm{length}]`.
         inside (bool):
             Whether particles are restricted to the space inside or outside the
@@ -88,7 +88,11 @@ class Sphere(WallGeometry):
         f"inside={self.inside}, open={self.open})"
 
     def to_dict(self):
-        """Return a dictionary specifying the sphere."""
+        """Convert the wall geometry to a dictionary defining the sphere.
+
+        Returns:
+            dict: The geometry in a Python dictionary.
+        """
         return {
             "radius": self.radius,
             "origin": self.origin,
@@ -168,7 +172,11 @@ class Cylinder(WallGeometry):
         f"axis={self.axis}, inside={self.inside}, open={self.open})"
 
     def to_dict(self):
-        """Return a dictionary specifying the cylinder."""
+        """Convert the wall geometry to a dictionary defining the cylinder.
+
+        Returns:
+            dict: The geometry in a Python dictionary.
+        """
         return {
             "radius": self.radius,
             "origin": self.origin,
@@ -187,10 +195,10 @@ class Plane(WallGeometry):
         `Plane` objects are immutable.
 
     Args:
-        origin (`tuple` [`float`,`float`,`float`]):
+        origin (`tuple` [`float`, `float`, `float`]):
             A point that lies on the plane used with ``normal`` to fully specify
             the plane :math:`[\mathrm{length}]`.
-        normal (`tuple` [`float`,`float`,`float`]):
+        normal (`tuple` [`float`, `float`, `float`]):
             The normal vector to the plane. The vector will be converted to an
             unit vector.
         open (`bool`, optional):
@@ -198,10 +206,10 @@ class Plane(WallGeometry):
             means do not include the surface, defaults to ``True``.
 
     Attributes:
-        origin (`tuple` [`float`,`float`,`float`]):
+        origin (`tuple` [`float`, `float`, `float`]):
             A point that lies on the plane used with ``normal`` to fully specify
             the plane :math:`[\mathrm{length}]`.
-        normal (`tuple` [`float`,`float`,`float`]):
+        normal (`tuple` [`float`, `float`, `float`]):
             The normal vector to the plane. The vector will be converted to an
             unit vector.
         open (bool):
@@ -228,7 +236,11 @@ class Plane(WallGeometry):
         f"open={self.open})"
 
     def to_dict(self):
-        """Return a dictionary specifying the plane."""
+        """Convert the wall geometry to a dictionary defining the plane.
+
+        Returns:
+            dict: The geometry in a Python dictionary.
+        """
         return {"origin": self.origin, "normal": self.axis, "open": self.open}
 
 
