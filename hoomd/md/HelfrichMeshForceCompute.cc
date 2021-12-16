@@ -35,13 +35,13 @@ HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinit
     m_K = new Scalar[m_pdata->getNTypes()];
 
     // allocate memory for the per-type normal verctors
-    GlobalVector<Scalar3> tmp_sigma_dash(m_pdata->getNTypes(), m_exec_conf);
+    GlobalVector<Scalar3> tmp_sigma_dash(m_pdata->getN(), m_exec_conf);
 
     m_sigma_dash.swap(tmp_sigma_dash);
     TAG_ALLOCATION(m_sigma_dash);
 
     // allocate memory for the per-type normal verctors
-    GlobalVector<Scalar> tmp_sigma(m_pdata->getNTypes(), m_exec_conf);
+    GlobalVector<Scalar> tmp_sigma(m_pdata->getN(), m_exec_conf);
 
     m_sigma.swap(tmp_sigma);
     TAG_ALLOCATION(m_sigma);
@@ -115,6 +115,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
     computeSigma();// precompute sigmas
 
+
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -163,6 +164,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
+
         // lookup the tag of each of the particles participating in the bond
         const typename MeshBond::members_t& bond = h_bonds.data[i];
         assert(bond.tag[0] < m_pdata->getMaximumTag() + 1);
@@ -175,6 +177,10 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
         unsigned int tr_idx1 = bond.tag[2];
         unsigned int tr_idx2 = bond.tag[3];
+
+	if( tr_idx1 == tr_idx2)
+		continue;
+
 
         const typename MeshTriangle::members_t& triangle1 = h_triangles.data[tr_idx1];
         const typename MeshTriangle::members_t& triangle2 = h_triangles.data[tr_idx2];
@@ -196,6 +202,9 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 		idx_d = h_rtag.data[triangle2.tag[iterator]];
 		iterator++;
 		}
+
+	//std::cout << i << ": " << idx_a << " " << idx_b << " " << idx_c << " " << idx_d << std::endl;
+
 
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
@@ -332,8 +341,8 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             s_baad = SMALL;
         s_baad = 1.0 / s_baad;
 
-	Scalar cot_accb = c_accb/s_accb;
-	Scalar cot_addb = c_addb/s_addb;
+	Scalar cot_accb = c_accb*s_accb;
+	Scalar cot_addb = c_addb*s_addb;
 
 	Scalar sigma_hat_ab = (cot_accb + cot_addb)/2;
 
@@ -347,9 +356,12 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar sigma_c = h_sigma.data[idx_c]; //precomputed
 	Scalar sigma_d = h_sigma.data[idx_d]; //precomputed
 
+	//if(idx_a==2)
+		//std::cout << sigma_a << " " << sigma_dash_a.x << " " << sigma_dash_a.y << " " << sigma_dash_a.z << " " << idx_a << std::endl;
+
 	Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
-	dc_abbc = -nbc/rab + c_abbc/rab*nab;
-	dc_abbd = -nbd/rab + c_abbd/rab*nab;
+	dc_abbc = -nbc/rab - c_abbc/rab*nab;
+	dc_abbd = -nbd/rab - c_abbd/rab*nab;
 	dc_baac = nac/rab - c_baac/rab*nab;
 	dc_baad = nad/rab - c_baad/rab*nab;
 
@@ -371,10 +383,12 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar dsigma_dash_d = -dot(dsigma_hat_ad,dad) - dot(dsigma_hat_bd,dbd);
 
 	Scalar3 Fa;
-	Fa = m_K[0]*(dsigma_dash_a/sigma_a*sigma_dash_a -dot(sigma_dash_a,sigma_dash_a)/(2*sigma_a*sigma_a)*dsigma_a);
-	Fa += m_K[0]*(dsigma_dash_b/sigma_b*sigma_dash_b -dot(sigma_dash_b,sigma_dash_b)/(2*sigma_b*sigma_b)*dsigma_b);
-	Fa += m_K[0]*(dsigma_dash_c/sigma_c*sigma_dash_c -dot(sigma_dash_c,sigma_dash_c)/(2*sigma_c*sigma_c)*dsigma_c);
-	Fa += m_K[0]*(dsigma_dash_d/sigma_d*sigma_dash_d -dot(sigma_dash_d,sigma_dash_d)/(2*sigma_d*sigma_d)*dsigma_d);
+	Fa = -m_K[0]*(dsigma_dash_a/sigma_a*sigma_dash_a -dot(sigma_dash_a,sigma_dash_a)/(2*sigma_a*sigma_a)*dsigma_a);
+	Fa -= m_K[0]*(dsigma_dash_b/sigma_b*sigma_dash_b -dot(sigma_dash_b,sigma_dash_b)/(2*sigma_b*sigma_b)*dsigma_b);
+	Fa -= m_K[0]*(dsigma_dash_c/sigma_c*sigma_dash_c -dot(sigma_dash_c,sigma_dash_c)/(2*sigma_c*sigma_c)*dsigma_c);
+	Fa -= m_K[0]*(dsigma_dash_d/sigma_d*sigma_dash_d -dot(sigma_dash_d,sigma_dash_d)/(2*sigma_d*sigma_d)*dsigma_d);
+
+        //std::cout << i << " " << idx_c << ": " << Fa.x << " " << Fa.y << " " << Fa.z << std::endl;
 
         if (compute_virial)
             {
@@ -409,6 +423,8 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             }
         }
 
+    //std::cout <<  "END" << std::endl;
+
     if (m_prof)
         m_prof->pop();
     }
@@ -430,12 +446,13 @@ void HelfrichMeshForceCompute::computeSigma()
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
-    ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::overwrite);
 
     memset((void*)h_sigma.data, 0, sizeof(Scalar) * m_sigma.getNumElements());
     memset((void*)h_sigma_dash.data, 0, sizeof(Scalar3) * m_sigma_dash.getNumElements());
 
+    //std::cout <<  h_sigma.data[2] << " " << h_sigma_dash.data[2].x << " " << h_sigma_dash.data[2].y << " " << h_sigma_dash.data[2].z << " " << m_sigma_dash.getNumElements() << std::endl;
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
@@ -452,6 +469,9 @@ void HelfrichMeshForceCompute::computeSigma()
 
         unsigned int tr_idx1 = bond.tag[2];
         unsigned int tr_idx2 = bond.tag[3];
+
+	if( tr_idx1 == tr_idx2)
+		continue;
 
         const typename MeshTriangle::members_t& triangle1 = h_triangles.data[tr_idx1];
         const typename MeshTriangle::members_t& triangle2 = h_triangles.data[tr_idx2];
@@ -557,10 +577,11 @@ void HelfrichMeshForceCompute::computeSigma()
             s_addb = SMALL;
         s_addb = 1.0 / s_addb;
 
-	Scalar cot_accb = c_accb/s_accb;
-	Scalar cot_addb = c_addb/s_addb;
+	Scalar cot_accb = c_accb*s_accb;
+	Scalar cot_addb = c_addb*s_addb;
 
 	Scalar sigma_hat_ab = (cot_accb + cot_addb)/2;
+
 
 	Scalar sigma_a = sigma_hat_ab*rsqab*0.25;
 
@@ -575,7 +596,16 @@ void HelfrichMeshForceCompute::computeSigma()
 	h_sigma_dash.data[idx_b].y -= sigma_hat_ab*dab.y;
 	h_sigma_dash.data[idx_b].z -= sigma_hat_ab*dab.z;
 
+	//if(idx_a == 2)
+		//std::cout <<  sigma_a << " " << sigma_hat_ab*dab.x << " " << sigma_hat_ab*dab.y << " " << sigma_hat_ab*dab.z << " " << idx_a << std::endl;
+
+	//if(idx_b == 2)
+		//std::cout <<  sigma_a << " " << sigma_hat_ab*dab.x << " " << sigma_hat_ab*dab.y << " " << sigma_hat_ab*dab.z << " " << idx_b << std::endl;
+
+
 	}
+    //std::cout <<  h_sigma.data[2] << " " << h_sigma_dash.data[2].x << " " << h_sigma_dash.data[2].y << " " << h_sigma_dash.data[2].z << std::endl;
+    //std::cout << "ËND" << std::endl;
 
     }
 
