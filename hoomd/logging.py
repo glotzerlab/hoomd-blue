@@ -48,8 +48,6 @@ class LoggerCategories(Flag):
 
         particle: per-particle quantity
 
-        state: internal category for specifying object's internal state
-
         ALL: a combination of all other categories
 
         NONE: represents no category
@@ -67,7 +65,6 @@ class LoggerCategories(Flag):
     improper = auto()
     pair = auto()
     particle = auto()
-    state = auto()
 
     @classmethod
     def any(cls, categories=None):
