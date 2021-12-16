@@ -59,9 +59,9 @@ class HPMCIntegrator(BaseIntegrator):
     between specific particle types. `interaction_matrix` is a particle types
     by particle types matrix allowing for non-additive systems.
 
-    The `fugacity` parameter enables implicit depletants when non-zero.
-    TODO: Describe implicit depletants algorithm. No need to write this now,
-    as Jens is rewriting the implementation.
+    The `depletant_fugacity` parameter enables implicit depletants when
+    non-zero. TODO: Describe implicit depletants algorithm. No need to write
+    this now, as Jens is rewriting the implementation.
 
     .. rubric:: Writing type_shapes to GSD files.
 
@@ -77,11 +77,11 @@ class HPMCIntegrator(BaseIntegrator):
     .. rubric:: Parameters
 
     Attributes:
-        default_a (`TypeParameter` [``particle type``, `float`]):
+        a (`TypeParameter` [``particle type``, `float`]):
             Maximum size of rotation trial moves
             :math:`[\\mathrm{dimensionless}]`.
 
-        default_d (`TypeParameter` [``particle type``, `float`]):
+        d (`TypeParameter` [``particle type``, `float`]):
             Maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
@@ -91,7 +91,7 @@ class HPMCIntegrator(BaseIntegrator):
             Depletant fugacity
             :math:`[\\mathrm{volume}^{-1}]` (**default:** ``0``)
 
-            Allows setting the fugacity per particle type, e.g. `('A','A')`
+            Allows setting the fugacity per particle type, e.g. ``('A','A')``
             refers to a depletant of type **A**. The option to set a type pair
             is temporary and will be removed in the release version.
 
@@ -217,14 +217,6 @@ class HPMCIntegrator(BaseIntegrator):
         super()._remove()
 
     # TODO need to validate somewhere that quaternions are normalized
-
-    @property
-    def type_shapes(self):
-        """list[dict]: Description of shapes in ``type_shapes`` format."""
-        raise NotImplementedError(
-            "You are using a shape type that is not implemented! "
-            "If you want it, please modify the "
-            "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
         type_shapes = self._cpp_obj.getTypeShapesPy()
@@ -1654,7 +1646,7 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
             * ``positions`` (`list` [`tuple` [`float`, `float`, `float`]],
               **required**) - Position of each spheropolyhedron in the union.
               :math:`[\\mathrm{length}]`
-            * ``orientations`` (`list[ `tuple[`float`, `float`, `float`,\
+            * ``orientations`` (`list` [ `tuple` [`float`, `float`, `float`,\
               `float`]], **default:** None) - Orientation of each
               spheropolyhedron in the union. When not `None`,
               ``orientations`` must have a length equal to that of
@@ -1790,7 +1782,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``shapes`` (`list`[ `dict`], **required**) -
+            * ``shapes`` (`list` [ `dict`], **required**) -
               Shape parameters for each faceted ellipsoid in the union. See
               `FacetedEllipsoid.shape` for the accepted parameters.
             * ``positions`` (`list` [`tuple` [`float`, `float`, `float`]],

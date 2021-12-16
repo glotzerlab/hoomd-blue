@@ -89,9 +89,9 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(),
                                       access_location::device,
                                       access_mode::read);
-    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(),
-                                          access_location::device,
-                                          access_mode::read);
+    ArrayHandle<size_t> d_head_list(this->m_nlist->getHeadList(),
+                                    access_location::device,
+                                    access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);

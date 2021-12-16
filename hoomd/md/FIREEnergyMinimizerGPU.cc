@@ -26,8 +26,7 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a FIREEnergyMinimizer with CUDA disabled" << endl;
-        throw std::runtime_error("Error initializing FIREEnergyMinimizer");
+        throw std::runtime_error("FIREEnergyMinimizerGPU requires a GPU device.");
         }
 
     // allocate the sum arrays
@@ -355,14 +354,14 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
         m_prof->push(m_exec_conf, "FIRE update velocities");
 
     Scalar factor_t;
-    if (fabs(fnorm) > EPSILON)
+    if (fabs(fnorm) > 0)
         factor_t = m_alpha * vnorm / fnorm;
     else
         factor_t = 1.0;
 
     Scalar factor_r = 0.0;
 
-    if (fabs(tnorm) > EPSILON)
+    if (fabs(tnorm) > 0)
         factor_r = m_alpha * wnorm / tnorm;
     else
         factor_r = 1.0;

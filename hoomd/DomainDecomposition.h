@@ -129,7 +129,6 @@ class PYBIND11_EXPORT DomainDecomposition
             }
         else
             {
-            m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
             throw std::runtime_error("comm: requested direction does not exist");
             }
         }
@@ -149,7 +148,6 @@ class PYBIND11_EXPORT DomainDecomposition
             return m_cumulative_frac_z;
         else
             {
-            m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
             throw std::runtime_error("comm: requested direction does not exist");
             }
         }

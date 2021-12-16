@@ -159,7 +159,7 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
     const Index2D& stencil_idx = m_cls->getStencilIndexer();
 
     // access the neighbor list data
-    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_conditions(m_conditions,
                                            access_location::host,
@@ -184,7 +184,7 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
         const Scalar diam_i = h_diameter.data[i];
 
         const unsigned int Nmax_i = h_Nmax.data[type_i];
-        const unsigned int head_idx_i = h_head_list.data[i];
+        const size_t head_idx_i = h_head_list.data[i];
 
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(my_pos, ghost_width);

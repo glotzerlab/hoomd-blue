@@ -510,7 +510,7 @@ void NeighborListGPUTree::traverseTree()
     ArrayHandle<unsigned int> d_conditions(m_conditions,
                                            access_location::device,
                                            access_mode::readwrite);
-    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
+    ArrayHandle<size_t> d_head_list(m_head_list, access_location::device, access_mode::read);
 
     ArrayHandle<unsigned int> h_type_first(m_type_first, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_type_last(m_type_last, access_location::host, access_mode::read);

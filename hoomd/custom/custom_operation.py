@@ -18,7 +18,7 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
     """User defined operation.
 
     This is the parent class for `hoomd.tune.CustomTuner`,
-    `hoomd.update.CustomUpdater`. and `hoomd.analyze.CustomWriter`.  These
+    `hoomd.update.CustomUpdater`. and `hoomd.write.CustomWriter`.  These
     classes wrap Python objects that inherit from `hoomd.custom.Action`
     so they can be added to the simulation operations.
 

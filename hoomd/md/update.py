@@ -93,8 +93,8 @@ class ReversePerturbationFlow(Updater):
             for. If set < 0 the value is set to its default 0.
 
     Attention:
-        * This updater uses `hoomd.trigger.Periodic(1)` as a trigger, meaning it
-          is applied every timestep.
+        * This updater uses ``hoomd.trigger.Periodic(1)`` as a trigger, meaning
+          it is applied every timestep.
         * This updater works currently only with orthorhombic boxes.
 
 

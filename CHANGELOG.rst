@@ -4,6 +4,27 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.12 (2021-12-14)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support simulations with arbitrarily large or small scales (within the limits of the floating
+  point representation).
+
+*Changed*
+
+* Report full error details in the exception message.
+* Improved documentation.
+* [breaking]: ``buffer`` is now a required argument when constructing a neighbor list.
+* [breaking]: ``force_tol``, ``angmom_tol``, and ``energy_tol`` are now required arguments to
+  ``md.minimize.FIRE``
+
+*Fixed*
+
+* Allow neighbor lists to store more than ``2**32-1`` total neighbors.
+* Return expected parameter values instead of ``NaN`` when potential parameters are set to 0.
+
 v3.0.0-beta.11 (2021-11-18)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -484,7 +505,7 @@ v2.9.7 (2021-08-03)
 *Bug fixes*
 
 * Support CUDA 11.5. A bug in CUDA 11.4 may result in the error
-  `__global__ function call is not configure` when running HOOMD.
+  ``__global__ function call is not configured`` when running HOOMD.
 
 v2.9.6 (2021-03-16)
 ^^^^^^^^^^^^^^^^^^^

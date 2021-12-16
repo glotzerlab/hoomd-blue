@@ -37,8 +37,7 @@ HarmonicImproperForceCompute::HarmonicImproperForceCompute(std::shared_ptr<Syste
     // check for some silly errors a user could make
     if (m_improper_data->getNTypes() == 0)
         {
-        m_exec_conf->msg->error() << "improper.harmonic: No improper types specified" << endl;
-        throw runtime_error("Error initializing HarmonicImproperForceCompute");
+        throw runtime_error("No improper types in the system.");
         }
 
     // allocate the parameters
@@ -67,8 +66,7 @@ void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar
     // make sure the type is valid
     if (type >= m_improper_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "improper.harmonic: Invalid improper type specified" << endl;
-        throw runtime_error("Error setting parameters in HarmonicImproperForceCompute");
+        throw runtime_error("Invalid improper type.");
         }
 
     m_K[type] = K;

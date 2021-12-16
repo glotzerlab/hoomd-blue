@@ -602,9 +602,9 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
                                       access_location::host,
                                       access_mode::read);
     //     Index2D nli = m_nlist->getNListIndexer();
-    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
-                                          access_location::host,
-                                          access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+                                    access_location::host,
+                                    access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
@@ -656,7 +656,7 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
         Scalar virialzzi = 0.0;
 
         // loop over all of the neighbors of this particle
-        const unsigned int myHead = h_head_list.data[i];
+        const size_t myHead = h_head_list.data[i];
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
             {

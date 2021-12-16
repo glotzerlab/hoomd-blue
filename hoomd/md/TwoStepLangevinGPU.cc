@@ -26,8 +26,7 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepLangevinGPU while CUDA is disabled" << endl;
-        throw std::runtime_error("Error initializing TwoStepLangevinGPU");
+        throw std::runtime_error("Cannot create TwoStepLangevinGPU on a CPU device.");
         }
 
     // allocate the sum arrays

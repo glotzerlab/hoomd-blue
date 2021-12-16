@@ -3,7 +3,7 @@ import numpy
 
 
 def test_per_particle_virial(simulation_factory, lattice_snapshot_factory):
-    cell = hoomd.md.nlist.Cell()
+    cell = hoomd.md.nlist.Cell(buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist=cell)
     lj.params[('A', 'A')] = dict(sigma=1.0, epsilon=1.0)
     lj.r_cut[('A', 'A')] = 2.5

@@ -1,9 +1,11 @@
 import copy as cp
 import hoomd
+from hoomd.logging import LoggerCategories
 import numpy as np
 import pytest
 import random
 from hoomd.md.nlist import Cell, Stencil, Tree
+from hoomd.conftest import logging_check
 
 
 def _nlist_params():
@@ -30,7 +32,7 @@ def _assert_nlist_params(nlist, param_dict):
 
 def test_common_params(nlist_params):
     nlist_cls, required_args = nlist_params
-    nlist = nlist_cls(**required_args)
+    nlist = nlist_cls(**required_args, buffer=0.4)
     default_params_dict = {
         "buffer": 0.4,
         "exclusions": ('bond',),
@@ -63,7 +65,7 @@ def test_common_params(nlist_params):
 
 
 def test_cell_specific_params():
-    nlist = Cell()
+    nlist = Cell(buffer=0.4)
     _assert_nlist_params(nlist, dict(deterministic=False))
     nlist.deterministic = True
     _assert_nlist_params(nlist, dict(deterministic=True))
@@ -71,7 +73,7 @@ def test_cell_specific_params():
 
 def test_stencil_specific_params():
     cell_width = np.random.uniform(12.1)
-    nlist = Stencil(cell_width)
+    nlist = Stencil(cell_width=cell_width, buffer=0.4)
     _assert_nlist_params(nlist, dict(deterministic=False,
                                      cell_width=cell_width))
     nlist.deterministic = True
@@ -83,7 +85,7 @@ def test_stencil_specific_params():
 def test_simple_simulation(nlist_params, simulation_factory,
                            lattice_snapshot_factory):
     nlist_cls, required_args = nlist_params
-    nlist = nlist_cls(**required_args)
+    nlist = nlist_cls(**required_args, buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
     lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
     lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
@@ -100,7 +102,7 @@ def test_simple_simulation(nlist_params, simulation_factory,
 
 def test_auto_detach_simulation(simulation_factory,
                                 two_particle_snapshot_factory):
-    nlist = Cell()
+    nlist = Cell(buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
     lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
     lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
@@ -120,3 +122,12 @@ def test_auto_detach_simulation(simulation_factory,
     del integrator.forces[0]
     assert not nlist._attached
     assert nlist._cpp_obj is None
+
+
+def test_logging():
+    logging_check(hoomd.md.nlist.NList, ('md', 'nlist'), {
+        'shortest_rebuild': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

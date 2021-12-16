@@ -116,7 +116,7 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
     integrator.methods.append(nve)
     integrator.constraints.append(d)
 
-    cell = hoomd.md.nlist.Cell()
+    cell = hoomd.md.nlist.Cell(buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist=cell)
     lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
     lj.r_cut[('A', 'A')] = 2**(1 / 6)

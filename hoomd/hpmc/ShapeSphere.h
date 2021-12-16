@@ -27,8 +27,6 @@
 #include <pybind11/pybind11.h>
 #endif
 
-#define SMALL 1e-5
-
 namespace hoomd
     {
 namespace hpmc

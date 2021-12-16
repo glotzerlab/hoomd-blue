@@ -34,8 +34,7 @@ BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
 
     if (table_width == 0)
         {
-        m_exec_conf->msg->error() << "bond.table: Table width of 0 is invalid" << endl;
-        throw runtime_error("Error initializing BondTablePotential");
+        throw runtime_error("Bond table width must be greater than 0.");
         }
 
     // allocate storage for the tables and parameters
@@ -72,8 +71,7 @@ void BondTablePotential::setTable(unsigned int type,
     // make sure the type is valid
     if (type >= m_bond_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "Invalid bond type specified" << endl;
-        throw runtime_error("Error setting parameters in PotentialBond");
+        throw runtime_error("Invalid bond type.");
         }
 
     // access the arrays
@@ -83,16 +81,14 @@ void BondTablePotential::setTable(unsigned int type,
     // range check on the parameters
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
-        m_exec_conf->msg->error() << "bond.table: rmin, rmax (" << rmin << "," << rmax
-                                  << ") is invalid." << endl;
-        throw runtime_error("Error initializing BondTablePotential");
+        std::ostringstream s;
+        s << "Bond rmin, rmax (" << rmin << "," << rmax << ") is invalid.";
+        throw runtime_error(s.str());
         }
 
     if (V.size() != m_table_width || F.size() != m_table_width)
         {
-        m_exec_conf->msg->error()
-            << "bond.table: table provided to setTable is not of the correct size" << endl;
-        throw runtime_error("Error initializing BondTablePotential");
+        throw runtime_error("Bond table is not the correct size.");
         }
 
     // fill out the parameters
@@ -158,10 +154,9 @@ void BondTablePotential::computeForces(uint64_t timestep)
         // throw an error if this bond is incomplete
         if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
             {
-            this->m_exec_conf->msg->error() << "bond.table: bond " << bond.tag[0] << " "
-                                            << bond.tag[1] << " incomplete." << endl
-                                            << endl;
-            throw std::runtime_error("Error in bond calculation");
+            std::ostringstream s;
+            s << "bond.table: bond " << bond.tag[0] << " " << bond.tag[1] << " incomplete.";
+            throw std::runtime_error(s.str());
             }
         assert(idx_a <= m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_b <= m_pdata->getN() + m_pdata->getNGhosts());

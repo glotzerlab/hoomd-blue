@@ -18,7 +18,7 @@ Attributes:
     cxx_compiler (str): Name and version of the C++ compiler used to build
         HOOMD.
 
-    dem_built (bool): ``True`` when the `dem` component is built.
+    dem_built (bool): ``True`` when the ``dem`` component is built.
 
     git_branch (str):  Name of the git branch used when compiling this build.
 
@@ -31,18 +31,18 @@ Attributes:
     gpu_platform (str): Name of the GPU platform this build was compiled
         against.
 
-    hpmc_built (bool): ``True`` when the `hpmc` component is built.
+    hpmc_built (bool): ``True`` when the ``hpmc`` component is built.
 
     install_dir (str): The installation directory.
 
     llvm_enabled (bool): ``True`` when this build supports LLVM run time
         compilation.
 
-    metal_built (bool): ``True`` when the `metal` component is built.
+    metal_built (bool): ``True`` when the ``metal`` component is built.
 
     md_built (bool): ``True`` when the `md` component is built.
 
-    mpcd_built (bool): ``True`` when the `mpcd` component is built.
+    mpcd_built (bool): ``True`` when the ``mpcd`` component is built.
 
     mpi_enabled (bool): ``True`` when this build supports MPI parallel runs.
 

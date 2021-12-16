@@ -187,13 +187,13 @@ class Integrator(_DynamicIntegrator):
 
     - `hoomd.md.angle`
     - `hoomd.md.bond`
-    - `hoomd.md.charge`
+    - `hoomd.md.long_range.pppm`
     - `hoomd.md.dihedral`
     - `hoomd.md.external.field`
     - `hoomd.md.force`
     - `hoomd.md.improper`
     - `hoomd.md.pair`
-    - `hoomd.md.wall`
+    - ``hoomd.md.wall`` - TODO: Convert back to link once implemented.
     - `hoomd.md.special_pair`
 
     The classes of the following module can be used as elements in `constraints`

@@ -118,9 +118,7 @@ void ForceDistanceConstraint::computeForces(uint64_t timestep)
 
     if (m_cdata->getNGlobal() == 0)
         {
-        m_exec_conf->msg->error() << "constrain.distance() called with no constraints defined!\n"
-                                  << std::endl;
-        throw std::runtime_error("Error computing constraints.\n");
+        throw std::runtime_error("No constraints in the system.");
         }
 
     // reallocate through amortized resizin

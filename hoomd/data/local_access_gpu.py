@@ -117,7 +117,7 @@ with ``ghost_`` to grab the ghost particles in a read only manner. Likewise,
 suffixing with ``_with_ghost`` will grab all data on the rank (regular and
 ghost particles) in a read only array.
 
-All array-like properties return a `hoomd.array.HOOMDGPUArray` object which
+All array-like properties return a `hoomd.data.array.HOOMDGPUArray` object which
 prevents invalid memory accesses.
 """
 

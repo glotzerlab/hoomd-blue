@@ -31,7 +31,7 @@ To build the documentation from source (optional):
 
 .. note::
 
-   `nbsphinx` requires `pandoc>=1.12.1`, which you may need to install separately.
+   ``nbsphinx`` requires ``pandoc>=1.12.1``, which you may need to install separately.
 
 2. `Build the documentation`_::
 
@@ -106,7 +106,7 @@ Install prerequisites
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
    1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-   2. The `mpcd` component is disabled on AMD GPUs.
+   2. The ``mpcd`` component is disabled on AMD GPUs.
    3. Multi-GPU execution via unified memory is not available.
 
 **For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):

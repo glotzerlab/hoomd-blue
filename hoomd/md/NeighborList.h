@@ -307,7 +307,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         }
 
     //! Get the head list
-    const GlobalArray<unsigned int>& getHeadList()
+    const GlobalArray<size_t>& getHeadList()
         {
         return m_head_list;
         }
@@ -515,7 +515,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
     Scalar3 m_last_L;                    //!< Box lengths at last update
     Scalar3 m_last_L_local;              //!< Local Box lengths at last update
 
-    GlobalArray<unsigned int> m_head_list; //!< Indexes for particles to read from the neighbor list
+    GlobalArray<size_t> m_head_list; //!< Indexes for particles to read from the neighbor list
     GlobalArray<unsigned int>
         m_Nmax; //!< Holds the maximum number of neighbors for each particle type
     GlobalArray<unsigned int>

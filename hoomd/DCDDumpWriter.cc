@@ -114,8 +114,7 @@ void DCDDumpWriter::initFileIO(uint64_t timestep)
         // check for errors
         if (!m_file.good())
             {
-            m_exec_conf->msg->error() << "DCD: I/O error while reading DCD header data" << endl;
-            throw runtime_error("Error appending to DCD file");
+            throw runtime_error("DCD: I/O error while reading DCD header data");
             }
 
         m_appending = true;
@@ -277,8 +276,7 @@ void DCDDumpWriter::write_file_header(std::fstream& file)
     // check for errors
     if (!file.good())
         {
-        m_exec_conf->msg->error() << "DCD: I/O error when writing DCD header" << endl;
-        throw runtime_error("Error writing DCD file");
+        throw runtime_error("DCD: I/O error when writing DCD header.");
         }
     }
 
@@ -317,8 +315,7 @@ void DCDDumpWriter::write_frame_header(std::fstream& file)
     // check for errors
     if (!file.good())
         {
-        m_exec_conf->msg->error() << "DCD: I/O error while writing DCD frame header" << endl;
-        throw runtime_error("Error writing DCD file");
+        throw runtime_error("DCD: I/O error while writing DCD frame header.");
         }
     }
 
@@ -408,8 +405,7 @@ void DCDDumpWriter::write_frame_data(std::fstream& file,
     // check for errors
     if (!file.good())
         {
-        m_exec_conf->msg->error() << "I/O error while writing DCD frame data" << endl;
-        throw runtime_error("Error writing DCD file");
+        throw runtime_error("I/O error while writing DCD frame data.");
         }
     }
 
