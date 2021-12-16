@@ -125,7 +125,7 @@ struct __attribute__((visibility("default"))) PlaneWall
     bool open;
     } __attribute__((aligned(ALIGN_SCALAR))); // align according to first member of vec3<Scalar>
 
-//! Point to wall vector for a sphere wall geometry
+//! Wall vector to point for a sphere wall geometry
 /* Returns 0 vector when all normal directions are equal
  */
 DEVICE inline Scalar3
@@ -143,7 +143,7 @@ distVectorWallToPoint(const SphereWall& wall, const vec3<Scalar>& position, bool
     return vec_to_scalar3((1 - (wall.r / euclidean_dist)) * dist_from_origin);
     };
 
-//! Point to wall vector for a cylinder wall geometry
+//! Wall vector to point for a cylinder wall geometry
 /* Returns 0 vector when all normal directions are equal
  */
 DEVICE inline Scalar3
@@ -164,12 +164,11 @@ distVectorWallToPoint(const CylinderWall& wall, const vec3<Scalar>& position, bo
     return vec_to_scalar3(rotate(conj(wall.quatAxisToZRot), dx));
     };
 
-//! Point to wall vector for a plane wall geometry
+//! Wall vector to point for a plane wall geometry
 DEVICE inline Scalar3
 distVectorWallToPoint(const PlaneWall& wall, const vec3<Scalar>& position, bool& in_active_space)
     {
-    vec3<Scalar> t = position;
-    Scalar distance = dot(wall.normal, t) - dot(wall.normal, wall.origin);
+    Scalar distance = dot(wall.normal, position) - dot(wall.normal, wall.origin);
     if (distance == 0)
         {
         in_active_space = wall.open;
