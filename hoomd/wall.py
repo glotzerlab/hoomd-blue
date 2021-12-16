@@ -41,6 +41,16 @@ class Sphere(WallGeometry):
     Note:
         `Sphere` objects are immutable.
 
+    The signed distance from the wall is computed as
+
+    .. math::
+
+        d = r \left( ||r - r_o || - R \right) \dot \frac{r - r_o}{||r - r_o||},
+
+    for ``inside=True`` and the opposite when false, where :math:`r` is the
+    particle position, :math:`r_o` is the origin of the sphere, and :math:`R` is
+    the sphere's radius.
+
     Args:
         radius (`float`):
             The radius of the sphere :math:`[\mathrm{length}]`.
@@ -109,6 +119,11 @@ class Cylinder(WallGeometry):
 
     Note:
         `Cylinder` objects are immutable.
+
+    The signed distance from the wall is computed by first rotating the particle
+    position vector to be perpendicular to the cylinder's axis, then the
+    equation for distance from a sphere is used before the distance is rotated
+    back into the original frame.
 
     Args:
         radius (`float`):
@@ -193,6 +208,16 @@ class Plane(WallGeometry):
 
     Note:
         `Plane` objects are immutable.
+
+    The signed distance from the wall is computed as
+
+    .. math::
+
+        d = n \dot r n \dot r_o
+
+    for ``inside=True`` and the opposite when false, where :math:`r` is the
+    particle position, :math:`r_o` is the origin of the plane, and :math:`n` is
+    the plane's normal.
 
     Args:
         origin (`tuple` [`float`, `float`, `float`]):
