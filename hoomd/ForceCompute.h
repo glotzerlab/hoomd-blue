@@ -145,7 +145,6 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         return m_torque;
         }
 
-
     //! Get the contribution to the external virial
     Scalar getExternalVirial(unsigned int dir)
         {
@@ -187,7 +186,6 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         {
         return m_pdata->getNGhosts();
         }
-
 
     protected:
     bool m_particles_sorted; //!< Flag set to true when particles are resorted in memory

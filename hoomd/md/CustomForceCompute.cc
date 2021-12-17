@@ -21,7 +21,7 @@ namespace md
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 CustomForceCompute::CustomForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-        pybind11::object py_setForces)
+                                       pybind11::object py_setForces)
     : ForceCompute(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing ConstForceCompute" << endl;
