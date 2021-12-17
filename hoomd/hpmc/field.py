@@ -88,6 +88,27 @@ class Harmonic(ExternalField):
     :math:`q_{\mathrm{symmetry}}` is the given set of symmetric orientations
     from the ``symmetries`` argument.
 
+    Attributes:
+
+        reference_positions (np.ndarray, shape=(*N_particles*, 3), dtype=`float`)
+            The reference positions, to which particles are restrained
+            :math:`[\mathrm{length}]`.
+
+        reference_orientations (np.ndarray, shape=(*N_particles*, 4), dtype=`float`)
+            The reference orientations, to which particles are
+            restrained :math:`[\mathrm{dimensionless}]`.
+
+        k_translational (`float`): The translational spring constant
+            :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
+
+        k_rotational (`float`): The rotational spring constant
+            :math:`[\mathrm{energy}]`.
+
+        symmetries (np.ndarray, shape=(*N_particles*, 4), dtype=`float`)
+            The orientations that are equivalent through symmetry,
+            i.e., the rotation quaternions that leave the particles unchanged
+            :math:`[\mathrm{dimensionless}]`.
+
     """
 
     def __init__(self, reference_positions, reference_orientations,
