@@ -1083,6 +1083,14 @@ def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
                 'category': LoggerCategories.particle,
                 'default': True
             },
+            'additional_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'additional_virial': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
         })))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)

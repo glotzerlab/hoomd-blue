@@ -1,9 +1,11 @@
 import copy as cp
 import hoomd
+from hoomd.logging import LoggerCategories
 import numpy as np
 import pytest
 import random
 from hoomd.md.nlist import Cell, Stencil, Tree
+from hoomd.conftest import logging_check
 
 
 def _nlist_params():
@@ -120,3 +122,12 @@ def test_auto_detach_simulation(simulation_factory,
     del integrator.forces[0]
     assert not nlist._attached
     assert nlist._cpp_obj is None
+
+
+def test_logging():
+    logging_check(hoomd.md.nlist.NList, ('md', 'nlist'), {
+        'shortest_rebuild': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

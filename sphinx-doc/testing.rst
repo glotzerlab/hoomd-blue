@@ -44,6 +44,7 @@ Change to the build directory and execute the following commands to run the test
 * ``python3 -m pytest hoomd``
 
 pytest_ may be run outside the build directory by:
+
 * Passing a full path to the build: ``python3 -m pytest <build-directory>/hoomd``
 * After installing to an environment: ``python3 -m pytest --pyargs hoomd``
 
