@@ -7,6 +7,7 @@
 #include "GlobalArray.h"
 #include "Index1D.h"
 #include "ParticleGroup.h"
+#include "PythonLocalDataAccess.h"
 
 #ifdef ENABLE_HIP
 #include "ParticleData.cuh"
