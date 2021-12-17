@@ -92,7 +92,7 @@ class EvaluatorPairExpandedLJ
             sigma_6 = sigma_3 * sigma_3;
             epsilon_x_4 = Scalar(4.0) * epsilon;
 
-            // previous parameters
+            // parameters used by the evaluator
             // lj1 = 4.0 * epsilon * pow(sigma, 12.0);
             // - > lj1 = epsilon_x_4 * sigma_6 * sigma_6
 
