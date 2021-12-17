@@ -67,24 +67,26 @@ class Harmonic(ExternalField):
             i.e., the rotation quaternions that leave the particles unchanged
             :math:`[\mathrm{dimensionless}]`.
 
+    Note:
+        The ``symmetries`` argument requires at least one quaternion. For almost
+        all use cases, the identity quaternion (``[1, 0, 0, 0]``) is a minimum
+        requirement.
+
     :py:class:`Harmonic` specifies that harmonic springs are used to
     restrain the position and orientation of every particle:
 
     .. math::
 
         V_{i}(r_i)  = \frac{1}{2} k_{trans} \cdot (r_i-r_{0,i})^2 \\
-        V_{i}(q_i)  = \frac{1}{2} k_{rot} \cdot (q_i-q_{0,i})^2
+        V_{i}(q_i)  = \frac{1}{2} k_{rot} \cdot \min_j \left[ (q_i-q_{0,i} \cdot
+            q_{\mathrm{symmetry},j})^2 \right]
 
     where :math:`k_{trans}` and :math:`k_{rot}` correspond to the arguments
     ``k_translational`` and ``k_rotational``, respectively, :math:`r_i` and
-    :math:`q_i` are the position and orientation of particle :math:`i`, and the
-    :math:`0` subscripts denote the given reference quantities. When multiple
-    orientations are passed to ``symmetries``, the rotational energy for each
-    particle is computed for not only the orientation of the particle at its
-    current orietation, but also at the orientation resulting from the rotation
-    represented by each quaternion in ``symmetries`` yielding a list of
-    energies :math:`\mathbb{V}`; the contribution to the energy is the minimum
-    value in this list, :math:`\mathrm{min}(\mathbb{V})`.
+    :math:`q_i` are the position and orientation of particle :math:`i`, the
+    :math:`0` subscripts denote the given reference quantities, and
+    :math:`q_{\mathrm{symmetry}}` is the given set of symmetric orientations
+    from the ``symmetries`` argument.
 
     """
 
