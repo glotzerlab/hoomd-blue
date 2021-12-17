@@ -21,10 +21,6 @@ class ForceLocalAccess(_ForceLocalAccessBase):
             Local torque data. :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`
         virial ((N_particles, 6) `hoomd.data.array` of ``float``):
             Local virial data. :math:`[\\mathrm{energy}]`
-        rtag ((N_particles_global) `hoomd.data.array` of ``int``):
-            The reverse tag of a particle. This means that the value
-            ``force_data.rtag[0]`` represents the current index accessing data
-            for the particle with tag 0.
     """
 
     _cpp_cls = _md.LocalForceComputeDataHost
