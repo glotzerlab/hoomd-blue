@@ -53,7 +53,8 @@ gpu_compute_gauss_forces(const pair_args_t& pair_args,
 
 //! Compute slj pair forces on the GPU with PairEvaluatorSLJ
 hipError_t __attribute__((visibility("default")))
-gpu_compute_slj_forces(const pair_args_t& pair_args, const EvaluatorPairSLJ::param_type* d_params);
+gpu_compute_slj_forces(const pair_args_t& pair_args,
+                       const EvaluatorPairSLJ::param_type* d_params);
 
 //! Compute expanded lj pair forces on the GPU with PairEvaluatorExpandedLJ
 hipError_t __attribute__((visibility("default")))

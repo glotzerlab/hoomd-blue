@@ -461,7 +461,7 @@ class ExpandedLJ(Pair):
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting mode.
 
-    `ExpandedLJ` specifies that a radially shifted Lennard-Jones
+    `ExpandedLJ` specifies that a radially-shifted Lennard-Jones
     type pair potential should be applied between every non-excluded
     particle pair in the simulation.
 
@@ -484,7 +484,8 @@ class ExpandedLJ(Pair):
         interactions.
 
     Note:
-        To replicate the behavior of the SLJ potential in HOOMD v2, set `r_cut` to `r_cut_unshifted + delta`.
+        To replicate the behavior of the SLJ potential in HOOMD v2, set
+        `r_cut` to `r_cut_unshifted + delta`.
 
     .. py:attribute:: params
 
