@@ -156,8 +156,8 @@ class MyPeriodicFieldGPU(MyPeriodicFieldCPU):
         with self._state.gpu_local_snapshot as snap, \
                 self.gpu_local_force_arrays as arrays:
             forces, potential = self._evaluate_periodic(snap)
-            arrays.force[:] = cupy.array(forces)
-            arrays.potential_energy[:] = cupy.array(potential)
+            arrays.force[:] = forces
+            arrays.potential_energy[:] = potential
 
 
 @pytest.mark.parametrize("force_cls", [MyPeriodicFieldCPU, MyPeriodicFieldGPU],
