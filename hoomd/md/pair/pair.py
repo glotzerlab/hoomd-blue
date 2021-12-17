@@ -479,9 +479,6 @@ class ExpandedLJ(Pair):
     See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.
 
-    Attention:
-        Due to the way that `ExpandedLJ` modifies the cutoff criteria, a smoothing
-        mode of *xplor* is not supported.
 
     Set the ``max_diameter`` property of the neighbor list object to the largest
     particle diameter in the system (where **diameter** is a per-particle
@@ -517,10 +514,6 @@ class ExpandedLJ(Pair):
     _cpp_class_name = 'PotentialPairExpandedLJ'
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
-        if mode == 'xplor':
-            raise ValueError(
-                "xplor is not a valid mode for ExpandedLJ potential")
-
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
@@ -529,11 +522,6 @@ class ExpandedLJ(Pair):
                               delta=float,
                               len_keys=2))
         self._add_typeparam(params)
-
-        # mode not allowed to be xplor, so re-do param dict entry without that
-        # option
-        param_dict = ParameterDict(mode=OnlyFrom(['none', 'shift']))
-        self._param_dict.update(param_dict)
         self.mode = mode
 
         # this potential needs diameter shifting on

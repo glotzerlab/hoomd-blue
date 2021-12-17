@@ -57,8 +57,6 @@ namespace md
     - \a lj2 = 4.0 * epsilon * pow(sigma,6.0);
     - \a delta = delta
 
-    Due to the way that ExpandedLJ modifies the cutoff condition, it will not function properly with
-   the xplor shifting mode.
 */
 class EvaluatorPairExpandedLJ
     {
