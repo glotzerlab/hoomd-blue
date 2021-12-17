@@ -183,15 +183,15 @@ void ComputeThermo::computeProperties()
 
                 // only if the moment of inertia along one principal axis is non-zero, that axis
                 // carries angular momentum
-                if (I.x >= EPSILON)
+                if (I.x > 0)
                     {
                     ke_rot_total += s.v.x * s.v.x / I.x;
                     }
-                if (I.y >= EPSILON)
+                if (I.y > 0)
                     {
                     ke_rot_total += s.v.y * s.v.y / I.y;
                     }
-                if (I.z >= EPSILON)
+                if (I.z > 0)
                     {
                     ke_rot_total += s.v.z * s.v.z / I.z;
                     }

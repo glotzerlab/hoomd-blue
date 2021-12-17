@@ -14,9 +14,6 @@
 #define __scalar2int_rn __double2int_rn
 #endif
 
-// SMALL a relatively small number
-#define SMALL Scalar(0.001)
-
 /*! \file HarmonicDihedralForceGPU.cu
     \brief Defines GPU kernel code for calculating the harmonic dihedral forces. Used by
    HarmonicDihedralForceComputeGPU.

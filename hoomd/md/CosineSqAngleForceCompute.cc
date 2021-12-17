@@ -10,9 +10,6 @@
 
 using namespace std;
 
-// SMALL a relatively small number
-#define SMALL Scalar(0.001)
-
 /*! \file CosineSqAngleForceCompute.cc
     \brief Contains code for the CosineSqAngleForceCompute class
 */

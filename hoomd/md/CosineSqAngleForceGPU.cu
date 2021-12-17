@@ -7,9 +7,6 @@
 
 #include <assert.h>
 
-// SMALL a relatively small number
-#define SMALL Scalar(0.001)
-
 /*! \file CosineSqAngleForceGPU.cu
     \brief Defines GPU kernel code for calculating the cosine squared angle forces. Used by
     CosineSqAngleForceComputeGPU.
