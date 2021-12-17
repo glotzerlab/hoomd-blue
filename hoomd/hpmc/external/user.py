@@ -92,7 +92,7 @@ class CPPExternalPotential(_HOOMDBaseObject):
 
     def _getattr_param(self, attr):
         if attr == 'code':
-            return self._param_dict[attr]
+            return self._param_dict._dict[attr]
         return super()._getattr_param(attr)
 
     def _wrap_cpu_code(self, code):
