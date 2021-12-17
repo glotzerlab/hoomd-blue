@@ -19,10 +19,10 @@ class MyForceCPU(md.force.Custom):
 
     def set_forces(self, timestep):
         with self.cpu_local_force_arrays as arrays:
-            arrays.force = -5
-            arrays.potential_energy = 37
-            arrays.torque = 23
-            arrays.virial = np.arange(6)[None, :]
+            arrays.force[:] = -5
+            arrays.potential_energy[:] = 37
+            arrays.torque[:] = 23
+            arrays.virial[:] = np.arange(6)[None, :]
 
 
 class MyForceGPU(md.force.Custom):
@@ -32,9 +32,9 @@ class MyForceGPU(md.force.Custom):
 
     def set_forces(self, timestep):
         with self.gpu_local_force_arrays as arrays:
-            arrays.force = -5
-            arrays.potential_energy = 37
-            arrays.torque = 23
+            arrays.force[:] = -5
+            arrays.potential_energy[:] = 37
+            arrays.torque[:] = 23
             # cupy won't let me use two indices on arrays of length 0
             if len(arrays.virial) > 0:
                 for i in range(6):
