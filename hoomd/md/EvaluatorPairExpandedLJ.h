@@ -10,7 +10,6 @@
 #include <string>
 #endif
 
-#include "EvaluatorPairExpandedLJ.h"
 #include "hoomd/HOOMDMath.h"
 
 /*! \file EvaluatorPairExpandedLJ.h
