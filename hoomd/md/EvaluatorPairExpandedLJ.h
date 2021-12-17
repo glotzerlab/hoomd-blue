@@ -43,19 +43,18 @@ namespace md
     \f{eqnarray*}
     V_{\mathrm{SLJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} -
                            \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] & r <
-   (r_{\mathrm{cut}}) \\
+    (r_{\mathrm{cut}}) \\
                          = & 0 & r \ge (r_{\mathrm{cut}}) \\
     \f}
 
-    The ExpandedLJ potential does not need charge or diameter. Three parameters are specified and
-   stored in a Scalar3. \a lj1 is placed in \a params.x, \a lj2 is in \a params.y, and \a delta
-   is in params.z.
+    The ExpandedLJ potential does not need diameter or charge. Three parameters are specified and stored in
+    the parameter structure. It stores precomputed 4 * epsilon and sigma**6 which can be converted back to
+    epsilon and sigma for the user.
 
 
-    These are related to the standard lj parameters sigma and epsilon by:
+    The force computation later precomputes:
     - \a lj1 = 4.0 * epsilon * pow(sigma,12.0);
     - \a lj2 = 4.0 * epsilon * pow(sigma,6.0);
-    - \a delta = delta
 
 */
 class EvaluatorPairExpandedLJ
