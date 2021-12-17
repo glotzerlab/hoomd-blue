@@ -171,7 +171,6 @@ set(files   compute.py
             __init__.py
             integrate.py
             update.py
-            field.py
     )
 
 install(FILES ${files}

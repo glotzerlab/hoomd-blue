@@ -2,7 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Test hoomd.hpmc.field."""
+"""Test hoomd.hpmc.external.field."""
 
 import hoomd
 import pytest
@@ -21,7 +21,7 @@ valid_constructor_args = [
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_harmonicfield(device, constructor_args):
     """Test that HarmonicField can be constructed with valid arguments."""
-    field = hoomd.hpmc.field.Harmonic(**constructor_args)
+    field = hoomd.hpmc.external.field.Harmonic(**constructor_args)
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
@@ -45,7 +45,7 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
     else:
         reference_positions = [[0, 0, 0], [0, 0, 0]]
         reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-    lattice = hoomd.hpmc.field.Harmonic(
+    lattice = hoomd.hpmc.external.field.Harmonic(
         reference_positions=reference_positions,
         reference_orientations=reference_orientations,
         k_translational=1.0,
@@ -78,7 +78,7 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
     else:
         reference_positions = [[0, 0, 0], [0, 0, 0]]
         reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-    lattice = hoomd.hpmc.field.Harmonic(
+    lattice = hoomd.hpmc.external.field.Harmonic(
         reference_positions=reference_positions,
         reference_orientations=reference_orientations,
         k_translational=1.0,
@@ -115,7 +115,7 @@ def test_harmonic_displacement_energy(device, simulation_factory,
     else:
         reference_positions = [[0, 0, 0], [0, 0, 0]]
         reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-    lattice = hoomd.hpmc.field.Harmonic(
+    lattice = hoomd.hpmc.external.field.Harmonic(
         reference_positions=reference_positions,
         reference_orientations=reference_orientations,
         k_translational=k_trans,
@@ -154,7 +154,7 @@ def test_harmonic_displacement(device, simulation_factory,
     else:
         reference_positions = [[0, 0, 0], [0, 0, 0]]
         reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-    lattice = hoomd.hpmc.field.Harmonic(
+    lattice = hoomd.hpmc.external.field.Harmonic(
         reference_positions=reference_positions,
         reference_orientations=reference_orientations,
         k_translational=k_trans,

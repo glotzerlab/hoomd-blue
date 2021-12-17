@@ -375,9 +375,9 @@ class HPMCIntegrator(BaseIntegrator):
     @external_potential.setter
     def external_potential(self, new_external_potential):
         if not isinstance(new_external_potential,
-                          hoomd.hpmc.field.ExternalField):
+                          hoomd.hpmc.external.field.ExternalField):
             msg = 'External potentials should be an instance of '
-            msg += 'hoomd.hpmc.field.ExternalField.'
+            msg += 'hoomd.hpmc.field.external.ExternalField.'
             raise TypeError(msg)
         if self._added:
             new_external_potential._add(self._simulation)

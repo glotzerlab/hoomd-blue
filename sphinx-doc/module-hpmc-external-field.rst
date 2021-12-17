@@ -1,9 +1,9 @@
-hpmc.field
-------------
+hpmc.external.field
+-------------------
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd.hpmc.field
+.. py:currentmodule:: hoomd.hpmc.external.field
 
 .. autosummary::
     :nosignatures:
@@ -12,6 +12,6 @@ hpmc.field
 
 .. rubric:: Details
 
-.. automodule:: hoomd.hpmc.field
+.. automodule:: hoomd.hpmc.external.field
     :synopsis: External fields.
     :members: Harmonic
