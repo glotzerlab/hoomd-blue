@@ -121,18 +121,17 @@ class Force(_HOOMDBaseObject):
 class Custom(Force):
     """Custom forces implemented in python.
 
-    Derive a custom force class from `Custom`, and override the `set_forces` method to  compute forces on particles. Use have direct, zero-copy access to the C++ managed buffers via either the
-    `cpu_local_force_arrays` or `gpu_local_force_arrays` property. Choose the
-    property that corresponds to the device you wish to alter the data on. In
-    addition to zero-copy access to force buffers, custom forces have access to
-    the local snapshot API via the ``_state.cpu_local_snapshot`` or the
-    ``_state.gpu_local_snapshot`` property. 
-    
-    See Also:
-      See the documentation in `hoomd.State` for more information on the local snapshot API.
+    Derive a custom force class from `Custom`, and override the `set_forces`
+    method to  compute forces on particles. Use have direct, zero-copy access to
+    the C++ managed buffers via either the `cpu_local_force_arrays` or
+    `gpu_local_force_arrays` property. Choose the property that corresponds to
+    the device you wish to alter the data on. In addition to zero-copy access to
+    force buffers, custom forces have access to the local snapshot API via the
+    ``_state.cpu_local_snapshot`` or the ``_state.gpu_local_snapshot`` property.
 
-    When accessing the local force arrays, the force, potential energy, torque,
-    and virial of any particle can be set to any value.
+    See Also:
+      See the documentation in `hoomd.State` for more information on the local
+      snapshot API.
 
     Examples::
 
