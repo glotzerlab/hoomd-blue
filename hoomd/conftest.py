@@ -71,7 +71,7 @@ def simulation_factory(device):
                 sim.create_state_from_snapshot(snapshot)
             else:
                 sim.create_state_from_snapshot(snapshot, domain_decomposition)
-        sim.seed = numpy.random.randint(100_000)
+        sim.seed = 22765
         return sim
 
     return make_simulation
