@@ -37,9 +37,6 @@ namespace md
             \left( 8 \cdot 4 \varepsilon \sigma^{8} \cdot r^{-4} - 4 \cdot 4 \varepsilon \sigma^{4}
    \right) \f]
 
-    The LJ potential does not need diameter or charge. \a lj1 is
-    placed in \a params.x and \a lj2 is in \a params.y.
-
     These are related to the standard lj parameters sigma and epsilon by:
     - \a lj1 = 4.0 * epsilon * pow(sigma,8.0)
     - \a lj2 = 4.0 * epsilon * pow(sigma,4.0);
@@ -51,8 +48,8 @@ class EvaluatorPairLJ0804
     //! Define the parameter type used by this pair potential evaluator
     struct param_type
         {
-        Scalar lj1;
-        Scalar lj2;
+        Scalar sigma_4;
+        Scalar epsilon_x_4;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -67,22 +64,28 @@ class EvaluatorPairLJ0804
 #endif
 
 #ifndef __HIPCC__
-        param_type() : lj1(0), lj2(0) { }
+        param_type() : sigma_4(0), epsilon_x_4(0) { }
 
         param_type(pybind11::dict v, bool managed = false)
             {
             auto sigma(v["sigma"].cast<Scalar>());
             auto epsilon(v["epsilon"].cast<Scalar>());
-            lj1 = 4.0 * epsilon * fast::pow(sigma, Scalar(8.0));
-            lj2 = 4.0 * epsilon * fast::pow(sigma, Scalar(4.0));
+            sigma_4 = sigma * sigma * sigma * sigma;
+            epsilon_x_4 = Scalar(4.0) * epsilon;
+
+            // paramters used by the evaluator
+            // lj1 = 4.0 * epsilon * fast::pow(sigma, Scalar(8.0));
+            // - > lj1 = epsilon_x_4 * sigma_4 * sigma_4
+
+            // lj2 = 4.0 * epsilon * fast::pow(sigma, Scalar(4.0));
+            // - > lj2 = epsilon_x_4 * sigma_4
             }
 
         pybind11::dict asDict()
             {
             pybind11::dict v;
-            auto sigma4 = lj1 / lj2;
-            v["sigma"] = fast::rsqrt(fast::rsqrt(sigma4));
-            v["epsilon"] = lj2 / (sigma4 * 4);
+            v["sigma"] = pow(sigma_4, 1. / 4.);
+            v["epsilon"] = epsilon_x_4 / 4.0;
             return v;
             }
 #endif
@@ -99,7 +102,8 @@ class EvaluatorPairLJ0804
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairLJ0804(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
+        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_4 * _params.sigma_4),
+          lj2(_params.epsilon_x_4 * _params.sigma_4)
         {
         }
 

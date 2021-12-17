@@ -203,9 +203,6 @@ void export_hoomd_math_functions(pybind11::module& m);
 #endif
 #endif
 
-//! Small epsilon value
-const Scalar EPSILON = 1.0e-6;
-
 //! Fastmath routines
 /*! Routines in the fast namespace map to fast math routines on the CPU and GPU. Where possible,
    these use the less accurate intrinsics on the GPU (i.e. __sinf). The routines are provide

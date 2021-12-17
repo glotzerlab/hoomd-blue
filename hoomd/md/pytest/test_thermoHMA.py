@@ -47,25 +47,7 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory):
         thermoHMA.pressure
 
 
-def test_logging(simulation_factory, two_particle_snapshot_factory):
-    filt = hoomd.filter.All()
-    T = 1.0
-    thermoHMA = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(
-        filt, T)
-    snap = two_particle_snapshot_factory()
-    if snap.communicator.rank == 0:
-        snap.particles.velocity[:] = [[-2, 0, 0], [2, 0, 0]]
-    sim = simulation_factory(snap)
-    sim.always_compute_pressure = True
-    sim.operations.add(thermoHMA)
-
-    integrator = hoomd.md.Integrator(dt=0.0001)
-    integrator.methods.append(hoomd.md.methods.NVT(filt, tau=1, kT=T))
-    sim.operations.integrator = integrator
-
-    log = hoomd.logging.Logger()
-    log += thermoHMA
-    sim.run(5)
+def test_logging():
     logging_check(
         hoomd.md.compute.HarmonicAveragedThermodynamicQuantities,
         ('md', 'compute'), {
