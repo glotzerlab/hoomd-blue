@@ -47,9 +47,9 @@ namespace md
                          = & 0 & r \ge (r_{\mathrm{cut}}) \\
     \f}
 
-    The ExpandedLJ potential does not need diameter or charge. Three parameters are specified and stored in
-    the parameter structure. It stores precomputed 4 * epsilon and sigma**6 which can be converted back to
-    epsilon and sigma for the user.
+    The ExpandedLJ potential does not need diameter or charge. Three parameters are specified and
+   stored in the parameter structure. It stores precomputed 4 * epsilon and sigma**6 which can be
+   converted back to epsilon and sigma for the user.
 
 
     The force computation later precomputes:
@@ -117,7 +117,7 @@ class EvaluatorPairExpandedLJ
             return v;
             }
 #endif
-        }__attribute__((aligned(16)));
+        } __attribute__((aligned(16)));
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
