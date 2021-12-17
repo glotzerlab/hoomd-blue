@@ -128,33 +128,18 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     Scalar getEnergy(unsigned int tag);
 
     //! Get the array of computed forces
-    GlobalArray<Scalar4>& getForceArray()
-        {
-        return m_force;
-        }
-
-    //! Get the array of computed virials
-    GlobalArray<Scalar>& getVirialArray()
-        {
-        return m_virial;
-        }
-
-    //! Get the array of computed torques
-    GlobalArray<Scalar4>& getTorqueArray()
-        {
-        return m_torque;
-        }
-
     const GlobalArray<Scalar4>& getForceArray() const
         {
         return m_force;
         }
 
+    //! Get the array of computed virials
     const GlobalArray<Scalar>& getVirialArray() const
         {
         return m_virial;
         }
 
+    //! Get the array of computed torques
     const GlobalArray<Scalar4>& getTorqueArray() const
         {
         return m_torque;

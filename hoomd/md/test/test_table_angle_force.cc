@@ -77,8 +77,8 @@ void angle_force_basic_tests(angleforce_creator tf_creator,
     fc_3->compute(0);
 
         {
-        GlobalArray<Scalar4>& force_array_1 = fc_3->getForceArray();
-        GlobalArray<Scalar>& virial_array_1 = fc_3->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_1 = fc_3->getForceArray();
+        const GlobalArray<Scalar>& virial_array_1 = fc_3->getVirialArray();
         size_t pitch = 0;
         ArrayHandle<Scalar4> h_force_1(force_array_1, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_1(virial_array_1, access_location::host, access_mode::read);
@@ -104,8 +104,8 @@ void angle_force_basic_tests(angleforce_creator tf_creator,
     Scalar rough_tol = 0.1;
         {
         // this time there should be a force
-        GlobalArray<Scalar4>& force_array_2 = fc_3->getForceArray();
-        GlobalArray<Scalar>& virial_array_2 = fc_3->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_2 = fc_3->getForceArray();
+        const GlobalArray<Scalar>& virial_array_2 = fc_3->getVirialArray();
         size_t pitch = virial_array_2.getPitch();
         ArrayHandle<Scalar4> h_force_2(force_array_2, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_2(virial_array_2, access_location::host, access_mode::read);
@@ -142,8 +142,8 @@ void angle_force_basic_tests(angleforce_creator tf_creator,
     fc_3->compute(1);
 
         {
-        GlobalArray<Scalar4>& force_array_3 = fc_3->getForceArray();
-        GlobalArray<Scalar>& virial_array_3 = fc_3->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_3 = fc_3->getForceArray();
+        const GlobalArray<Scalar>& virial_array_3 = fc_3->getVirialArray();
         size_t pitch = virial_array_3.getPitch();
         ArrayHandle<Scalar4> h_force_3(force_array_3, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_3(virial_array_3, access_location::host, access_mode::read);
@@ -185,8 +185,8 @@ void angle_force_basic_tests(angleforce_creator tf_creator,
 
     fc_3->compute(2);
         {
-        GlobalArray<Scalar4>& force_array_3 = fc_3->getForceArray();
-        GlobalArray<Scalar>& virial_array_3 = fc_3->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_3 = fc_3->getForceArray();
+        const GlobalArray<Scalar>& virial_array_3 = fc_3->getVirialArray();
         size_t pitch = virial_array_3.getPitch();
         ArrayHandle<Scalar4> h_force_3(force_array_3, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_3(virial_array_3, access_location::host, access_mode::read);
