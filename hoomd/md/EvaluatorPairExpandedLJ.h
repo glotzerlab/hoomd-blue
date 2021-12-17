@@ -63,7 +63,6 @@ class EvaluatorPairExpandedLJ
     //! Define the parameter type used by this pair potential evaluator
     struct param_type
         {
-        Scalar sigma_3;
         Scalar sigma_6;
         Scalar epsilon_x_4;
         Scalar delta;
@@ -89,7 +88,7 @@ class EvaluatorPairExpandedLJ
             auto epsilon(v["epsilon"].cast<Scalar>());
             delta = v["delta"].cast<Scalar>();
 
-            sigma_3 = sigma * sigma * sigma;
+            Scalar sigma_3 = sigma * sigma * sigma;
             sigma_6 = sigma_3 * sigma_3;
             epsilon_x_4 = Scalar(4.0) * epsilon;
 
@@ -104,7 +103,7 @@ class EvaluatorPairExpandedLJ
         // this constructor facilitates unit testing
         param_type(Scalar sigma, Scalar epsilon, Scalar delta, bool managed = false)
             {
-            sigma_3 = sigma * sigma * sigma;
+            Scalar sigma_3 = sigma * sigma * sigma;
             sigma_6 = sigma_3 * sigma_3;
             epsilon_x_4 = Scalar(4.0) * epsilon;
             }
