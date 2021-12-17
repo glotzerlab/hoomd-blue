@@ -265,6 +265,8 @@ PYBIND11_MODULE(_hoomd, m)
     export_CellList(m);
     export_CellListStencil(m);
     export_ForceCompute(m);
+    export_LocalForceComputeData<HOOMDHostBuffer>(m, "LocalForceComputeDataHost");
+    export_LocalForceComputeData<HOOMDDeviceBuffer>(m, "LocalForceComputeDataDevice");
     export_ForceConstraint(m);
 
 #ifdef ENABLE_HIP

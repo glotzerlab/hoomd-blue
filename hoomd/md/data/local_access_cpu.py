@@ -6,7 +6,7 @@
 
 from hoomd.md.data.local_access import _ForceLocalAccessBase
 from hoomd.data.array import HOOMDArray
-from hoomd.md import _md
+from hoomd import _hoomd
 
 
 class ForceLocalAccess(_ForceLocalAccessBase):
@@ -23,7 +23,7 @@ class ForceLocalAccess(_ForceLocalAccessBase):
             Local virial data. :math:`[\\mathrm{energy}]`
     """
 
-    _cpp_cls = _md.LocalForceComputeDataHost
+    _cpp_cls = _hoomd.LocalForceComputeDataHost
     _array_cls = HOOMDArray
 
     def __init__(self, force_obj):

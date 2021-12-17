@@ -5,7 +5,7 @@
 """Implement local access classes for the GPU."""
 
 import hoomd
-from hoomd.md import _md
+from hoomd import _hoomd
 from hoomd.data.array import HOOMDGPUArray
 from hoomd.md.data.local_access import _ForceLocalAccessBase
 
@@ -13,7 +13,7 @@ if hoomd.version.gpu_enabled:
 
     class ForceLocalAccessGPU(_ForceLocalAccessBase):
         """Access force array data on the GPU."""
-        _cpp_cls = _md.LocalForceComputeDataDevice
+        _cpp_cls = _hoomd.LocalForceComputeDataDevice
         _array_cls = HOOMDGPUArray
 
 else:
