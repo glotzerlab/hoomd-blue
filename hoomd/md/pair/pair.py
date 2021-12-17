@@ -479,14 +479,12 @@ class ExpandedLJ(Pair):
     See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.
 
-
-    Set the ``max_diameter`` property of the neighbor list object to the largest
-    particle diameter in the system (where **diameter** is a per-particle
-    property of the same name in `hoomd.State`).
-
     Warning:
         Failure to set ``max_diameter`` will result in missing pair
         interactions.
+
+    Note:
+        To replicate the behavior of the SLJ potential in HOOMD v2, set `r_cut` to `r_cut_unshifted + delta`.
 
     .. py:attribute:: params
 
@@ -523,9 +521,6 @@ class ExpandedLJ(Pair):
                               len_keys=2))
         self._add_typeparam(params)
         self.mode = mode
-
-        # this potential needs diameter shifting on
-        self._nlist.diameter_shift = True
 
 
 class Yukawa(Pair):
