@@ -20,10 +20,12 @@ namespace md
     {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
-CustomForceCompute::CustomForceCompute(std::shared_ptr<SystemDefinition> sysdef)
+CustomForceCompute::CustomForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+        pybind11::object py_setForces)
     : ForceCompute(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing ConstForceCompute" << endl;
+    m_setForces = py_setForces;
     }
 
 CustomForceCompute::~CustomForceCompute()
@@ -37,10 +39,7 @@ CustomForceCompute::~CustomForceCompute()
 void CustomForceCompute::computeForces(uint64_t timestep)
     {
     // execute python callback to update the forces, if present
-    if (m_callback && !m_callback.is(py::none()))
-        {
-        m_callback(timestep);
-        }
+    m_setForces(timestep);
     }
 
 namespace detail
@@ -50,8 +49,7 @@ void export_CustomForceCompute(py::module& m)
     py::class_<CustomForceCompute, ForceCompute, std::shared_ptr<CustomForceCompute>>(
         m,
         "CustomForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
-        .def("setCallback", &CustomForceCompute::setCallback);
+        .def(py::init<std::shared_ptr<SystemDefinition>, pybind11::object>());
     }
 
     } // end namespace detail

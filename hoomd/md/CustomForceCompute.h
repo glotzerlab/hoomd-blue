@@ -32,16 +32,11 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
     {
     public:
     //! Constructs the compute
-    CustomForceCompute(std::shared_ptr<hoomd::SystemDefinition> sysdef);
+    CustomForceCompute(std::shared_ptr<hoomd::SystemDefinition> sysdef,
+                       pybind11::object py_setForces);
 
     //! Destructor
     ~CustomForceCompute();
-
-    //! Set the python callback
-    void setCallback(pybind11::object py_callback)
-        {
-        m_callback = py_callback;
-        }
 
     protected:
     //! Actually compute the forces
@@ -49,7 +44,7 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
 
     private:
     //! A python callback when the force is updated
-    pybind11::object m_callback;
+    pybind11::object m_setForces;
     };
 
 /** Make the local particle data available to python via zero-copy access

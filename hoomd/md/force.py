@@ -189,8 +189,8 @@ class Custom(Force):
 
     def _attach(self):
         self._state = self._simulation.state
-        self._cpp_obj = _md.CustomForceCompute(self._state._cpp_sys_def)
-        self._cpp_obj.setCallback(self.set_forces)
+        self._cpp_obj = _md.CustomForceCompute(self._state._cpp_sys_def,
+                                               self.set_forces)
         super()._attach()
 
     @property
