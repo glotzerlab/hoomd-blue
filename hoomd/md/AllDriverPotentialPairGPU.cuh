@@ -28,6 +28,7 @@
 #include "EvaluatorPairMorse.h"
 #include "EvaluatorPairOPP.h"
 #include "EvaluatorPairReactionField.h"
+#include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairTWF.h"
 #include "EvaluatorPairTable.h"
 #include "EvaluatorPairYukawa.h"
