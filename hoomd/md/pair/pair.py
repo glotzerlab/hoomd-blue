@@ -479,13 +479,9 @@ class ExpandedLJ(Pair):
     See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.
 
-    Warning:
-        Failure to set ``max_diameter`` will result in missing pair
-        interactions.
-
     Note:
         To replicate the behavior of the SLJ potential in HOOMD v2, set
-        `r_cut` to `r_cut_unshifted + delta`.
+        `hoomd.md.pair.Pair.r_cut` to ``r_cut_unshifted + delta``.
 
     .. py:attribute:: params
 
