@@ -497,10 +497,10 @@ class ExpandedLJ(Pair):
     Example::
 
         nl = nlist.Cell()
-        nl.max_diameter = 2.0
-        slj = pair.SLJ(default_r_cut=3.0, nlist=nl)
-        slj.params[('A', 'B')] = dict(epsilon=2.0, r_cut=3.0)
-        slj.r_cut[('B', 'B')] = 2**(1.0/6.0)
+        expanded_lj = pair.ExpandedLJ(default_r_cut=3.0, nlist=nl)
+        expanded_lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, delta=1.0)
+        expanded_lj.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, delta=0.75)
+        expanded_lj.params[('B', 'B')] = dict(epsilon=1.0, sigma=1.0, delta=0.5)
 
     """
     _cpp_class_name = 'PotentialPairExpandedLJ'
