@@ -448,9 +448,6 @@ class SLJ(Pair):
         # this potential needs diameter shifting on
         self._nlist.diameter_shift = True
 
-        # NOTE do we need something to automatically set the max_diameter
-        # correctly?
-
 
 class ExpandedLJ(Pair):
     r"""Expanded Lennard-Jones pair potential.
