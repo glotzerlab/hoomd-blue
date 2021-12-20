@@ -306,11 +306,12 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         return dE;
         }
 
-    /** This function gets called during the update step in the MC integrator
+    /** This function gets exported to python to act as a property
      *
-     * What purpose does this function serve?
+     * The include_translational and include_rotational arguments allow the purely rotational
+     * or purely orientational energies to be calculated separately
      */
-    Scalar getEnergy(uint64_t timestep)
+    Scalar getEnergy(uint64_t timestep, bool include_translational, bool include_rotational)
         {
         Scalar energy = Scalar(0.0);
         // access particle data and system box
@@ -324,7 +325,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
             {
             vec3<Scalar> position(h_postype.data[i]);
             quat<Scalar> orientation(h_orient.data[i]);
-            energy += calcE(i, position, orientation);
+            energy += calcE(i, position, orientation, include_translational, include_rotational);
             }
 
 #ifdef ENABLE_MPI
@@ -349,8 +350,8 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
                       const vec3<Scalar>& position_new,
                       const Shape& shape_new)
         {
-        double old_U = calcE(index, position_old, shape_old),
-               new_U = calcE(index, position_new, shape_new);
+        double old_U = calcE(index, position_old, shape_old, true, true),
+               new_U = calcE(index, position_new, shape_new, true, true);
         return new_U - old_U;
         }
 
@@ -407,17 +408,25 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
      * acceptance criteria, since it's the energy difference that matters for the latter.
      */
     Scalar
-    calcE(const unsigned int& index, const vec3<Scalar>& position, const quat<Scalar>& orientation)
+    calcE(const unsigned int& index, const vec3<Scalar>& position, const quat<Scalar>& orientation,
+            bool include_translational=true, bool include_rotational=true)
         {
         Scalar energy = 0.0;
-        energy += calcE_trans(index, position);
-        energy += calcE_rot(index, orientation);
+        if (include_translational)
+            {
+            energy += calcE_trans(index, position);
+            }
+        if (include_rotational)
+            {
+            energy += calcE_rot(index, orientation);
+            }
         return energy;
         }
 
-    Scalar calcE(const unsigned int& index, const vec3<Scalar>& position, const Shape& shape)
+    Scalar calcE(const unsigned int& index, const vec3<Scalar>& position, const Shape& shape,
+            bool include_translational=true, bool include_rotational=true)
         {
-        return calcE(index, position, shape.orientation);
+        return calcE(index, position, shape.orientation, include_translational, include_rotational);
         }
 
     private:

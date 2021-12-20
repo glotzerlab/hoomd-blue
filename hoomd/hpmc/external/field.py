@@ -193,10 +193,29 @@ class Harmonic(ExternalField):
     def energy(self):
         """float: The energy of the harmonic field :math:`[\\mathrm{energy}]`.
 
+
+
         """
         timestep = self._simulation.timestep
-        return self._cpp_obj.getEnergy(timestep)
+        return self._cpp_obj.getEnergy(timestep, True, True)
 
+    @log(requires_run=True)
+    def energy_translational(self):
+        """float: The energy associated with positional fluctuations \
+            :math:`[\\mathrm{energy}]`.
+
+        """
+        timestep = self._simulation.timestep
+        return self._cpp_obj.getEnergy(timestep, True, False)
+
+    @log(requires_run=True)
+    def energy_rotational(self):
+        """float: The energy associated with rotational fluctuations \
+            :math:`[\\mathrm{energy}]`.
+
+        """
+        timestep = self._simulation.timestep
+        return self._cpp_obj.getEnergy(timestep, False, True)
 
 class external_field_composite(_external):
     R""" Manage multiple external fields.
