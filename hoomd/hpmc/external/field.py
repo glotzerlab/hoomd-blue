@@ -217,6 +217,7 @@ class Harmonic(ExternalField):
         timestep = self._simulation.timestep
         return self._cpp_obj.getEnergy(timestep, False, True)
 
+
 class external_field_composite(_external):
     R""" Manage multiple external fields.
 
