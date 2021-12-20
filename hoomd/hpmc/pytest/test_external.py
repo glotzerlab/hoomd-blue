@@ -100,7 +100,7 @@ def test_harmonic_displacement_energy(device, simulation_factory,
                                       two_particle_snapshot_factory):
     """Ensure harmonic displacements result in expected energy."""
     mc = hoomd.hpmc.integrate.Sphere()
-    mc.shape['A'] = dict(diameter=0)
+    mc.shape['A'] = dict(diameter=0, orientable=True)
 
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -131,6 +131,25 @@ def test_harmonic_displacement_energy(device, simulation_factory,
     sim.run(0)
     assert np.allclose(lattice.energy,
                        0.5 * dx**2 * k_trans * sim.state.N_particles)
+
+    # make some moves and make sure the different energies are not zero
+    sim.run(10)
+    assert lattice.energy_rotational != 0.0
+    assert lattice.energy_translational != 0.0
+    assert np.allclose(
+            lattice.energy,
+            lattice.energy_translational + lattice.energy_rotational
+            )
+
+    # set k_rotational to zero and ensure the rotational energy is zero
+    lattice.k_rotational = 0
+    sim.run(0)
+    assert lattice.energy_rotational == 0.0
+
+    # set k_translational to zero and ensure the translational energy is zero
+    lattice.k_translational = 0
+    sim.run(0)
+    assert lattice.energy_translational == 0.0
 
 
 @pytest.mark.cpu
