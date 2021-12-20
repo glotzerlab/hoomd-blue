@@ -471,8 +471,7 @@ class wall(_External):  # noqa: name will change in v3
         else:
             hoomd.context.current.device.cpp_msg.error(
                 "compute.wall.get_sphere_wall_param: Parameter type is not \
-                        valid. Choose from rsq, origin, inside."
-            )
+                        valid. Choose from rsq, origin, inside.")
             raise RuntimeError("Error: compute.wall")
 
     def remove_sphere_wall(self, index):
@@ -586,8 +585,7 @@ class wall(_External):  # noqa: name will change in v3
         else:
             hoomd.context.current.device.cpp_msg.error(
                 "compute.wall.get_cylinder_wall_param: Parameter type is not \
-                        valid. Choose from rsq, origin, orientation, inside."
-            )
+                        valid. Choose from rsq, origin, orientation, inside.")
             raise RuntimeError("Error: compute.wall")
 
     def remove_cylinder_wall(self, index):
@@ -686,8 +684,7 @@ class wall(_External):  # noqa: name will change in v3
         else:
             hoomd.context.current.device.cpp_msg.error(
                 "compute.wall.get_plane_wall_param: Parameter type is not \
-                        valid. Choose from normal, origin."
-            )
+                        valid. Choose from normal, origin.")
             raise RuntimeError("Error: compute.wall")
 
     def remove_plane_wall(self, index):
@@ -810,12 +807,11 @@ class wall(_External):  # noqa: name will change in v3
 
         """
         # much of this is from hoomd's update.py box_resize class
-        if all((Lx is None, Ly is None, Lz is None,
-                xy is None, xz is None, yz is None)):
+        if all((Lx is None, Ly is None, Lz is None, xy is None, xz is None,
+                yz is None)):
             hoomd.context.current.device.cpp_msg.warning(
                 "compute.wall.set_curr_box: Ignoring request to set the wall's \
-                        box without parameters\n"
-            )
+                        box without parameters\n")
             return
 
         # setup arguments
@@ -898,13 +894,12 @@ class frenkel_ladd_energy(Compute):  # noqa: class to be removed
         self.trans_spring_const = math.exp(ln_gamma)
         self.rotat_spring_const = self.q_factor * self.trans_spring_const
         self.lattice = hoomd.hpmc.external.field.Harmonic(
-                self.mc,
-                position=self.lattice_positions,
-                orientation=self.lattice_orientations,
-                k=self.trans_spring_const,
-                q=self.rotat_spring_const,
-                symmetry=symmetry
-        )
+            self.mc,
+            position=self.lattice_positions,
+            orientation=self.lattice_orientations,
+            k=self.trans_spring_const,
+            q=self.rotat_spring_const,
+            symmetry=symmetry)
         self.remove_drift = hoomd.hpmc.update.remove_drift(self.mc,
                                                            self.lattice,
                                                            period=drift_period)
