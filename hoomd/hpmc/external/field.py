@@ -1,10 +1,9 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-""" Apply external fields to HPMC simulations.
-"""
+"""Apply external fields to HPMC simulations."""
 
-from hoomd import _hoomd
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import NDArrayValidator
 from hoomd.hpmc import _hpmc
@@ -16,23 +15,23 @@ import hoomd
 import numpy as np
 
 
-## \internal
+# \internal
 # \brief Base class for external fields
 #
-# An external in hoomd reflects an ExternalField in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd
-# writers. 1) The instance of the c++ external itself is tracked optionally passed
-# to the hpmc integrator. While external fields are Compute types and are added
-# to the System they will not be enforced unless they are added to the integrator.
-# Only one external field can be held by the integrator so if multiple fields are
-# required use the external_field_composite class to manage them.
-class _external(Compute):
-    ## \internal
+# An external in hoomd reflects an ExternalField in c++. It is responsible for
+# all high-level management that happens behind the scenes for hoomd writers. 1)
+# The instance of the c++ external itself is tracked optionally passed to the
+# hpmc integrator. While external fields are Compute types and are added to the
+# System they will not be enforced unless they are added to the integrator.
+# Only one external field can be held by the integrator so if multiple fields
+# are required use the external_field_composite class to manage them.
+class _External(Compute):
+    # \internal
     # \brief Initialize an empty external.
     #
     # \post nothing is done here yet.
     def __init__(self):
-        _compute.__init__(self)
+        # _compute.__init__(self)
         self.cpp_compute = None
         # nothing else to do.
 
@@ -49,7 +48,7 @@ class ExternalField(_HOOMDBaseObject):
 
 
 class Harmonic(ExternalField):
-    r"""Restrain particle positions and orientations with harmonic springs
+    r"""Restrain particle positions and orientations with harmonic springs.  # noqa: E501,D415,W505
 
     Args:
         reference_positions ((*N_particles*, 3) `numpy.ndarray` of
@@ -89,7 +88,6 @@ class Harmonic(ExternalField):
     from the ``symmetries`` argument.
 
     Attributes:
-
         reference_positions (np.ndarray, shape=(*N_particles*, 3), dtype=`float`)
             The reference positions, to which particles are restrained
             :math:`[\mathrm{length}]`.
@@ -191,9 +189,7 @@ class Harmonic(ExternalField):
 
     @log(requires_run=True)
     def energy(self):
-        """float: The energy of the harmonic field :math:`[\\mathrm{energy}]`.
-
-
+        """float: The energy of the harmonic field :math:`[\\mathrm{energy}]`.  # noqa
 
         """
         timestep = self._simulation.timestep
@@ -202,7 +198,7 @@ class Harmonic(ExternalField):
     @log(requires_run=True)
     def energy_translational(self):
         """float: The energy associated with positional fluctuations \
-            :math:`[\\mathrm{energy}]`.
+            :math:`[\\mathrm{energy}]`.  # noqa
 
         """
         timestep = self._simulation.timestep
@@ -213,13 +209,15 @@ class Harmonic(ExternalField):
         """float: The energy associated with rotational fluctuations \
             :math:`[\\mathrm{energy}]`.
 
+        This function will always return 0 for a non-orientable shape.
+
         """
         timestep = self._simulation.timestep
         return self._cpp_obj.getEnergy(timestep, False, True)
 
 
-class external_field_composite(_external):
-    R""" Manage multiple external fields.
+class external_field_composite(_External):  # noqa
+    R"""Manage multiple external fields.  # noqa: this will change in v3
 
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator (don't specify a new integrator later, external_field_composite will continue to use the old one)
@@ -241,7 +239,7 @@ class external_field_composite(_external):
     """
 
     def __init__(self, mc, fields=None):
-        _external.__init__(self)
+        _External.__init__(self)
         cls = None
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
@@ -287,11 +285,11 @@ class external_field_composite(_external):
 
         mc.set_external(self)
 
-        if not fields is None:
+        if fields is not None:
             self.add_field(fields=fields)
 
     def add_field(self, fields):
-        R""" Add an external field to the ensemble.
+        R"""Add an external field to the ensemble.
 
         Args:
             fields (list): list of fields to add
@@ -311,8 +309,8 @@ class external_field_composite(_external):
             self.cpp_compute.addExternal(field.cpp_compute)
 
 
-class wall(_external):
-    R""" Manage walls (an external field type).
+class wall(_External):  # noqa: name will change in v3
+    R"""Manage walls (an external field type).  # noqa
 
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`):MC integrator.
@@ -354,7 +352,7 @@ class wall(_external):
     index = 0
 
     def __init__(self, mc, composite=False):
-        _external.__init__(self)
+        _External.__init__(self)
         # create the c++ mirror class
         cls = None
         self.compute_name = "wall-" + str(wall.index)
@@ -383,7 +381,7 @@ class wall(_external):
             mc.set_external(self)
 
     def count_overlaps(self, exit_early=False):
-        R""" Count the overlaps associated with the walls.
+        R"""Count the overlaps associated with the walls.  # noqa
 
         Args:
             exit_early (bool): When True, stop counting overlaps after the first one is found.
@@ -406,7 +404,7 @@ class wall(_external):
             hoomd.context.current.system.getCurrentTimeStep(), exit_early)
 
     def add_sphere_wall(self, radius, origin, inside=True):
-        R""" Add a spherical wall to the simulation.
+        R"""Add a spherical wall to the simulation.  # noqa
 
         Args:
             radius (float): radius of spherical wall
@@ -425,7 +423,7 @@ class wall(_external):
             _hpmc.make_sphere_wall(radius, origin, inside))
 
     def set_sphere_wall(self, index, radius, origin, inside=True):
-        R""" Change the parameters associated with a particular sphere wall.
+        R"""Change the parameters associated with a particular sphere wall.  # noqa
 
         Args:
             index (int): index of the sphere wall to be modified. indices begin at 0 in the order the sphere walls were added to the system.
@@ -446,7 +444,7 @@ class wall(_external):
             index, _hpmc.make_sphere_wall(radius, origin, inside))
 
     def get_sphere_wall_param(self, index, param):
-        R""" Access a parameter associated with a particular sphere wall.
+        R"""Access a parameter associated with a particular sphere wall.  # noqa
 
         Args:
             index (int): index of the sphere wall to be accessed. indices begin at 0 in the order the sphere walls were added to the system.
@@ -472,12 +470,13 @@ class wall(_external):
             return t[2]
         else:
             hoomd.context.current.device.cpp_msg.error(
-                "compute.wall.get_sphere_wall_param: Parameter type is not valid. Choose from rsq, origin, inside."
+                "compute.wall.get_sphere_wall_param: Parameter type is not \
+                        valid. Choose from rsq, origin, inside."
             )
             raise RuntimeError("Error: compute.wall")
 
     def remove_sphere_wall(self, index):
-        R""" Remove a particular sphere wall from the simulation.
+        R"""Remove a particular sphere wall from the simulation.  # noqa
 
         Args:
             index (int): index of the sphere wall to be removed. indices begin at 0 in the order the sphere walls were added to the system.
@@ -493,7 +492,7 @@ class wall(_external):
         self.cpp_compute.RemoveSphereWall(index)
 
     def get_num_sphere_walls(self):
-        R""" Get the current number of sphere walls in the simulation.
+        R"""Get the current number of sphere walls in the simulation.  # noqa
 
         Returns: the current number of sphere walls in the simulation
 
@@ -508,7 +507,7 @@ class wall(_external):
         return self.cpp_compute.getNumSphereWalls()
 
     def add_cylinder_wall(self, radius, origin, orientation, inside=True):
-        R""" Add a cylindrical wall to the simulation.
+        R"""Add a cylindrical wall to the simulation.  # noqa
 
         Args:
             radius (float): radius of cylindrical wall
@@ -534,7 +533,7 @@ class wall(_external):
                           origin,
                           orientation,
                           inside=True):
-        R""" Change the parameters associated with a particular cylinder wall.
+        R"""Change the parameters associated with a particular cylinder wall.  # noqa
 
         Args:
             index (int): index of the cylinder wall to be modified. indices begin at 0 in the order the cylinder walls were added to the system.
@@ -557,7 +556,7 @@ class wall(_external):
         self.cpp_compute.SetCylinderWallParameter(index, param)
 
     def get_cylinder_wall_param(self, index, param):
-        R""" Access a parameter associated with a particular cylinder wall.
+        R"""Access a parameter associated with a particular cylinder wall.  # noqa
 
         Args:
             index (int): index of the cylinder wall to be accessed. indices begin at 0 in the order the cylinder walls were added to the system.
@@ -586,12 +585,13 @@ class wall(_external):
             return t[3]
         else:
             hoomd.context.current.device.cpp_msg.error(
-                "compute.wall.get_cylinder_wall_param: Parameter type is not valid. Choose from rsq, origin, orientation, inside."
+                "compute.wall.get_cylinder_wall_param: Parameter type is not \
+                        valid. Choose from rsq, origin, orientation, inside."
             )
             raise RuntimeError("Error: compute.wall")
 
     def remove_cylinder_wall(self, index):
-        R""" Remove a particular cylinder wall from the simulation.
+        R"""Remove a particular cylinder wall from the simulation.  # noqa
 
         Args:
             index (int): index of the cylinder wall to be removed. indices begin at 0 in the order the cylinder walls were added to the system.
@@ -607,7 +607,7 @@ class wall(_external):
         self.cpp_compute.RemoveCylinderWall(index)
 
     def get_num_cylinder_walls(self):
-        R""" Get the current number of cylinder walls in the simulation.
+        R"""Get the current number of cylinder walls in the simulation.  # noqa
 
         Returns:
             The current number of cylinder walls in the simulation.
@@ -623,7 +623,7 @@ class wall(_external):
         return self.cpp_compute.getNumCylinderWalls()
 
     def add_plane_wall(self, normal, origin):
-        R""" Add a plane wall to the simulation.
+        R"""Add a plane wall to the simulation.  # noqa
 
         Args:
             normal (tuple): vector normal to the plane. this, in combination with a point on the plane, defines the plane entirely. It will be normalized automatically by hpmc.
@@ -641,7 +641,7 @@ class wall(_external):
             _hpmc.make_plane_wall(normal, origin, True))
 
     def set_plane_wall(self, index, normal, origin):
-        R""" Change the parameters associated with a particular plane wall.
+        R"""Change the parameters associated with a particular plane wall.  # noqa
 
         Args:
             index (int): index of the plane wall to be modified. indices begin at 0 in the order the plane walls were added to the system.
@@ -661,7 +661,7 @@ class wall(_external):
             index, _hpmc.make_plane_wall(normal, origin, True))
 
     def get_plane_wall_param(self, index, param):
-        R""" Access a parameter associated with a particular plane wall.
+        R"""Access a parameter associated with a particular plane wall.  # noqa
 
         Args:
             index (int): index of the plane wall to be accessed. indices begin at 0 in the order the plane walls were added to the system.
@@ -685,12 +685,13 @@ class wall(_external):
             return t[1]
         else:
             hoomd.context.current.device.cpp_msg.error(
-                "compute.wall.get_plane_wall_param: Parameter type is not valid. Choose from normal, origin."
+                "compute.wall.get_plane_wall_param: Parameter type is not \
+                        valid. Choose from normal, origin."
             )
             raise RuntimeError("Error: compute.wall")
 
     def remove_plane_wall(self, index):
-        R""" Remove a particular plane wall from the simulation.
+        R"""Remove a particular plane wall from the simulation.  # noqa
 
         Args:
             index (int): index of the plane wall to be removed. indices begin at 0 in the order the plane walls were added to the system.
@@ -706,7 +707,7 @@ class wall(_external):
         self.cpp_compute.RemovePlaneWall(index)
 
     def get_num_plane_walls(self):
-        R""" Get the current number of plane walls in the simulation.
+        R"""Get the current number of plane walls in the simulation.  # noqa
 
         Returns:
             The current number of plane walls in the simulation.
@@ -722,7 +723,7 @@ class wall(_external):
         return self.cpp_compute.getNumPlaneWalls()
 
     def set_volume(self, volume):
-        R""" Set the volume associated with the intersection of all walls in the system.
+        R"""Set the volume associated with the intersection of all walls in the system.  # noqa
 
         This number will subsequently change when the box is resized and walls are scaled appropriately.
 
@@ -737,7 +738,7 @@ class wall(_external):
         self.cpp_compute.setVolume(volume)
 
     def get_volume(self):
-        R""" Get the current volume associated with the intersection of all walls in the system.
+        R"""Get the current volume associated with the intersection of all walls in the system.  # noqa
 
         If this quantity has not previously been set by the user, this returns a meaningless value.
 
@@ -757,7 +758,7 @@ class wall(_external):
         return self.cpp_compute.getVolume()
 
     def get_curr_box(self):
-        R""" Get the simulation box that the wall class is currently storing.
+        R"""Get the simulation box that the wall class is currently storing.  # noqa
 
         Returns:
             The boxdim object that the wall class is currently storing.
@@ -786,7 +787,7 @@ class wall(_external):
                      xy=None,
                      xz=None,
                      yz=None):
-        R""" Set the simulation box that the wall class is currently storing.
+        R"""Set the simulation box that the wall class is currently storing.  # noqa
 
         You may want to set this independently so that you can cleverly control whether or not the walls actually scale in case you manually resize your simulation box.
         The walls scale automatically when they get the signal that the global box, associated with the system definition, has scaled. They do so, however, with a scale factor associated with
@@ -809,9 +810,11 @@ class wall(_external):
 
         """
         # much of this is from hoomd's update.py box_resize class
-        if Lx is None and Ly is None and Lz is None and xy is None and xz is None and yz is None:
+        if all((Lx is None, Ly is None, Lz is None,
+                xy is None, xz is None, yz is None)):
             hoomd.context.current.device.cpp_msg.warning(
-                "compute.wall.set_curr_box: Ignoring request to set the wall's box without parameters\n"
+                "compute.wall.set_curr_box: Ignoring request to set the wall's \
+                        box without parameters\n"
             )
             return
 
@@ -833,8 +836,8 @@ class wall(_external):
         self.cpp_compute.SetCurrBox(Lx, Ly, Lz, xy, xz, yz)
 
 
-class frenkel_ladd_energy(Compute):
-    R""" Compute the Frenkel-Ladd Energy of a crystal.
+class frenkel_ladd_energy(Compute):  # noqa: class to be removed
+    R"""Compute the Frenkel-Ladd Energy of a crystal.  # noqa
 
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
@@ -878,7 +881,7 @@ class frenkel_ladd_energy(Compute):
         import math
         import numpy
         # initialize base class
-        _compute.__init__(self)
+        _compute.__init__(self)  # noqa
 
         if type(r0) == numpy.ndarray:
             self.lattice_positions = r0.tolist()
@@ -894,18 +897,20 @@ class frenkel_ladd_energy(Compute):
         self.q_factor = q_factor
         self.trans_spring_const = math.exp(ln_gamma)
         self.rotat_spring_const = self.q_factor * self.trans_spring_const
-        self.lattice = lattice_field(self.mc,
-                                     position=self.lattice_positions,
-                                     orientation=self.lattice_orientations,
-                                     k=self.trans_spring_const,
-                                     q=self.rotat_spring_const,
-                                     symmetry=symmetry)
+        self.lattice = hoomd.hpmc.external.field.Harmonic(
+                self.mc,
+                position=self.lattice_positions,
+                orientation=self.lattice_orientations,
+                k=self.trans_spring_const,
+                q=self.rotat_spring_const,
+                symmetry=symmetry
+        )
         self.remove_drift = hoomd.hpmc.update.remove_drift(self.mc,
                                                            self.lattice,
                                                            period=drift_period)
 
     def reset_statistics(self):
-        R""" Reset the statistics counters.
+        R"""Reset the statistics counters.  # noqa
 
         Example::
 
@@ -921,7 +926,7 @@ class frenkel_ladd_energy(Compute):
         self.lattice.reset(0)
 
     def set_params(self, ln_gamma=None, q_factor=None):
-        R""" Set the Frenkel-Ladd parameters.
+        R"""Set the Frenkel-Ladd parameters.  # noqa
 
         Args:
             ln_gamma (float): log of the translational spring constant
@@ -939,17 +944,17 @@ class frenkel_ladd_energy(Compute):
 
         """
         import math
-        if not q_factor is None:
+        if q_factor is not None:
             self.q_factor = q_factor
-        if not ln_gamma is None:
+        if ln_gamma is not None:
             self.trans_spring_const = math.exp(ln_gamma)
         self.rotat_spring_const = self.q_factor * self.trans_spring_const
         self.lattice.set_params(self.trans_spring_const,
                                 self.rotat_spring_const)
 
 
-class callback(_external):
-    R""" Use a python-defined energy function in MC integration
+class callback(_External):  # noqa: class likely to be removed
+    R"""Use a python-defined energy function in MC integration  # noqa
 
     Args:
 
@@ -974,7 +979,7 @@ class callback(_external):
     """
 
     def __init__(self, mc, energy_function, composite=False):
-        _external.__init__(self)
+        _External.__init__(self)
         cls = None
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
