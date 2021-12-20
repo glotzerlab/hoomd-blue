@@ -499,7 +499,10 @@ class ExpandedLJ(Pair):
         nl = nlist.Cell()
         expanded_lj = pair.ExpandedLJ(default_r_cut=3.0, nlist=nl)
         expanded_lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, delta=1.0)
-        expanded_lj.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, delta=0.75)
+        expanded_lj.params[('A', 'B')] = dict(
+                                             epsilon=2.0,
+                                             sigma=1.0,
+                                             delta=0.75)
         expanded_lj.params[('B', 'B')] = dict(epsilon=1.0, sigma=1.0, delta=0.5)
 
     """
