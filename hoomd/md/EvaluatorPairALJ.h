@@ -599,9 +599,8 @@ template<unsigned int ndim> class EvaluatorPairALJ
             Scalar four_scaled_epsilon = four_epsilon;
             if (_params.alpha % 2 == 0)
                 {
-                    four_scaled_epsilon = four_epsilon * scale_factor;
+                four_scaled_epsilon = four_epsilon * scale_factor;
                 }
-
 
             // We must compute the central LJ force if we are including the
             // attractive component. For pure repulsive (WCA), we only need
@@ -1086,152 +1085,168 @@ HOSTDEVICE inline void edgeEdgeDistance(const vec3<Scalar>& e00,
  * (overwritten by references).
  */
 template<unsigned int ndim>
-HOSTDEVICE inline void findSimplex(const vec3<Scalar> &vector,
+HOSTDEVICE inline void findSimplex(const vec3<Scalar>& vector,
                                    const Scalar (&mat)[3][3],
                                    vec3<Scalar> (&unique_vectors)[ndim],
                                    const typename EvaluatorPairALJ<ndim>::shape_type* shape)
     {
-        if (ndim == 3)
+    if (ndim == 3)
         {
-            // Declare arrays and variables.
-            Scalar mat_inverse[3][3];
-            vec3<Scalar> norm_vector = vector / sqrt(dot(vector, vector));
+        // Declare arrays and variables.
+        Scalar mat_inverse[3][3];
+        vec3<Scalar> norm_vector = vector / sqrt(dot(vector, vector));
 
-            vec3<Scalar> rot_vector;
-            vec3<Scalar> plane_normal_vector;
+        vec3<Scalar> rot_vector;
+        vec3<Scalar> plane_normal_vector;
 
-            //Scalar norm_of_rot_vector;
-            Scalar rot_vec_scale;
-            Scalar rot_vec_scale_prev;
-            Scalar rot_vec_proj_to_normal_vector;
-            Scalar angle;
-            Scalar angles[ndim];
-            for (unsigned int i = 0; i < ndim; ++i)
-                angles[i] = Scalar(M_PI);
+        // Scalar norm_of_rot_vector;
+        Scalar rot_vec_scale;
+        Scalar rot_vec_scale_prev;
+        Scalar rot_vec_proj_to_normal_vector;
+        Scalar angle;
+        Scalar angles[ndim];
+        for (unsigned int i = 0; i < ndim; ++i)
+            angles[i] = Scalar(M_PI);
 
-            unsigned int near_face_idx;
+        unsigned int near_face_idx;
 
-            // Prepare inverse of rotation matrix, "mat_inverse".
-            // Inverse of rotation matrix is same as transpose of the rotation matrix.
-            for (unsigned int i = 0; i < 3; ++i)
+        // Prepare inverse of rotation matrix, "mat_inverse".
+        // Inverse of rotation matrix is same as transpose of the rotation matrix.
+        for (unsigned int i = 0; i < 3; ++i)
+            {
+            for (unsigned int j = 0; j < 3; ++j)
                 {
-                    for (unsigned int j = 0; j < 3; ++j)
-                        {
-                            mat_inverse[i][j] = mat[j][i];
-                        }
+                mat_inverse[i][j] = mat[j][i];
                 }
+            }
 
-            // Prepare a vector prepared by rotating "vector" with a matrix "mat_inverse" (passive rotation). This vector will be denoted as "rot_vector".
-            rot_vector = rotate(mat_inverse, vector);
-            //norm_of_rot_vector = sqrt(dot(rot_vector, rot_vector)); // norm of the "rot_vector";
-            /// Go through each face and check "rot_vec_scale". 
-            /// Here, "rot_vec_scale" * "rot_vector corresponds" to the intersection point between a plane defined by a "face" and a line defined by "rot_vector".
-            /// We would like to find the face where "rot_vec_scale" is positive and is minimum.
+        // Prepare a vector prepared by rotating "vector" with a matrix "mat_inverse" (passive
+        // rotation). This vector will be denoted as "rot_vector".
+        rot_vector = rotate(mat_inverse, vector);
+        // norm_of_rot_vector = sqrt(dot(rot_vector, rot_vector)); // norm of the "rot_vector";
+        /// Go through each face and check "rot_vec_scale".
+        /// Here, "rot_vec_scale" * "rot_vector corresponds" to the intersection point between a
+        /// plane defined by a "face" and a line defined by "rot_vector". We would like to find the
+        /// face where "rot_vec_scale" is positive and is minimum.
 
-            unsigned int num_faces = shape->face_offsets.size();
+        unsigned int num_faces = shape->face_offsets.size();
 
-            // First check the face 0.
-            near_face_idx = 0;
-            plane_normal_vector = cross(shape->verts[shape->faces[shape->face_offsets[0]]] - shape->verts[shape->faces[shape->face_offsets[0]+1]], shape->verts[shape->faces[shape->face_offsets[0]]] - shape->verts[shape->faces[shape->face_offsets[0]+2]]);
+        // First check the face 0.
+        near_face_idx = 0;
+        plane_normal_vector = cross(shape->verts[shape->faces[shape->face_offsets[0]]]
+                                        - shape->verts[shape->faces[shape->face_offsets[0] + 1]],
+                                    shape->verts[shape->faces[shape->face_offsets[0]]]
+                                        - shape->verts[shape->faces[shape->face_offsets[0] + 2]]);
+        rot_vec_proj_to_normal_vector = dot(plane_normal_vector, rot_vector);
+        rot_vec_scale = dot(plane_normal_vector, shape->verts[shape->faces[shape->face_offsets[0]]])
+                        / rot_vec_proj_to_normal_vector;
+        rot_vec_scale_prev = rot_vec_scale;
+
+        // Now go through each face using for loop.
+
+        for (unsigned int i = 1; i < num_faces; ++i)
+            {
+            plane_normal_vector
+                = cross(shape->verts[shape->faces[shape->face_offsets[i]]]
+                            - shape->verts[shape->faces[shape->face_offsets[i] + 1]],
+                        shape->verts[shape->faces[shape->face_offsets[i]]]
+                            - shape->verts[shape->faces[shape->face_offsets[i] + 2]]);
             rot_vec_proj_to_normal_vector = dot(plane_normal_vector, rot_vector);
-            rot_vec_scale = dot(plane_normal_vector, shape->verts[shape->faces[shape->face_offsets[0]]]) / rot_vec_proj_to_normal_vector;
-            rot_vec_scale_prev = rot_vec_scale;
+            rot_vec_scale
+                = dot(plane_normal_vector, shape->verts[shape->faces[shape->face_offsets[i]]])
+                  / rot_vec_proj_to_normal_vector;
 
-            // Now go through each face using for loop.
-
-            for (unsigned int i = 1; i < num_faces; ++i)
+            if (rot_vec_scale > 0.0)
                 {
-                    plane_normal_vector = cross(shape->verts[shape->faces[shape->face_offsets[i]]] - shape->verts[shape->faces[shape->face_offsets[i]+1]], shape->verts[shape->faces[shape->face_offsets[i]]] - shape->verts[shape->faces[shape->face_offsets[i]+2]]);
-                    rot_vec_proj_to_normal_vector = dot(plane_normal_vector, rot_vector);
-                    rot_vec_scale = dot(plane_normal_vector, shape->verts[shape->faces[shape->face_offsets[i]]]) / rot_vec_proj_to_normal_vector;
-
-                    if (rot_vec_scale > 0.0)
+                if (rot_vec_scale_prev > 0.0)
+                    {
+                    if (rot_vec_scale < rot_vec_scale_prev)
                         {
-                        if (rot_vec_scale_prev > 0.0)
-                            {
-                                if (rot_vec_scale < rot_vec_scale_prev)
-                                    {
-                                        near_face_idx = i;
-                                        rot_vec_scale_prev = rot_vec_scale;
-                                    }
-                            }
-                        else
-                            {
-                                near_face_idx = i;
-                                rot_vec_scale_prev = rot_vec_scale;
-                            }
+                        near_face_idx = i;
+                        rot_vec_scale_prev = rot_vec_scale;
                         }
-               }
-            // Now find the simplex.
-            unsigned int last_idx = (near_face_idx == num_faces-1) ? shape->faces.size() : shape->face_offsets[near_face_idx+1];
-            unsigned int i = shape->face_offsets[near_face_idx];
-
-            vec3<Scalar> rot_shift_vec = rotate(mat, shape->verts[shape->faces[i]]);
-            vec3<Scalar> norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
-            unique_vectors[0] = rot_shift_vec;
-            angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
-
-            for (unsigned int i = shape->face_offsets[near_face_idx] + 1; i < last_idx; ++i)
-                {
-                    rot_shift_vec = rotate(mat, shape->verts[shape->faces[i]]);
-                    norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
-                    angle = acos(dot(norm_rot_shift_vector, norm_vector));
-
-                    unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2 ));
-                    if (ndim == 3 && angle >= angles[2])
-                        {
-                        insertion_index = 3;
-                        }
-
-                    if (insertion_index < ndim)
-                        {
-                        for (unsigned int j = (ndim-1); j > insertion_index; --j)
-                            {
-                            unique_vectors[j] = unique_vectors[j-1];
-                            angles[j] = angles[j-1];
-                            }
-                        unique_vectors[insertion_index] = rot_shift_vec;
-                        angles[insertion_index] = angle;
-                        }
+                    }
+                else
+                    {
+                    near_face_idx = i;
+                    rot_vec_scale_prev = rot_vec_scale;
+                    }
                 }
+            }
+        // Now find the simplex.
+        unsigned int last_idx = (near_face_idx == num_faces - 1)
+                                    ? shape->faces.size()
+                                    : shape->face_offsets[near_face_idx + 1];
+        unsigned int i = shape->face_offsets[near_face_idx];
+
+        vec3<Scalar> rot_shift_vec = rotate(mat, shape->verts[shape->faces[i]]);
+        vec3<Scalar> norm_rot_shift_vector
+            = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+        unique_vectors[0] = rot_shift_vec;
+        angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
+
+        for (unsigned int i = shape->face_offsets[near_face_idx] + 1; i < last_idx; ++i)
+            {
+            rot_shift_vec = rotate(mat, shape->verts[shape->faces[i]]);
+            norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+            angle = acos(dot(norm_rot_shift_vector, norm_vector));
+
+            unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2));
+            if (ndim == 3 && angle >= angles[2])
+                {
+                insertion_index = 3;
+                }
+
+            if (insertion_index < ndim)
+                {
+                for (unsigned int j = (ndim - 1); j > insertion_index; --j)
+                    {
+                    unique_vectors[j] = unique_vectors[j - 1];
+                    angles[j] = angles[j - 1];
+                    }
+                unique_vectors[insertion_index] = rot_shift_vec;
+                angles[insertion_index] = angle;
+                }
+            }
         }
 
-        else
+    else
         {
-            Scalar angles[ndim];
-            for (unsigned int i = 0; i < ndim; ++i)
-                angles[i] = Scalar(M_PI);
+        Scalar angles[ndim];
+        for (unsigned int i = 0; i < ndim; ++i)
+            angles[i] = Scalar(M_PI);
 
-            vec3<Scalar> norm_vector = vector / sqrt(dot(vector, vector));
+        vec3<Scalar> norm_vector = vector / sqrt(dot(vector, vector));
 
-            vec3<Scalar> rot_shift_vec = rotate(mat, shape->verts[0]);
-            vec3<Scalar> norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
-            unique_vectors[0] = rot_shift_vec;
-            angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
+        vec3<Scalar> rot_shift_vec = rotate(mat, shape->verts[0]);
+        vec3<Scalar> norm_rot_shift_vector
+            = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+        unique_vectors[0] = rot_shift_vec;
+        angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
 
-            for (unsigned int i = 1; i < shape->verts.size(); ++i)
+        for (unsigned int i = 1; i < shape->verts.size(); ++i)
+            {
+            rot_shift_vec = rotate(mat, shape->verts[i]);
+            norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+            Scalar angle = acos(dot(norm_rot_shift_vector, norm_vector));
+
+            unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2));
+            if (ndim == 3 && angle >= angles[2])
                 {
-                rot_shift_vec = rotate(mat, shape->verts[i]);
-                norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
-                Scalar angle = acos(dot(norm_rot_shift_vector, norm_vector));
-
-                unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2 ));
-                if (ndim == 3 && angle >= angles[2])
-                    {
-                    insertion_index = 3;
-                    }
-
-                if (insertion_index < ndim)
-                    {
-                    for (unsigned int j = (ndim-1); j > insertion_index; --j)
-                        {
-                        unique_vectors[j] = unique_vectors[j-1];
-                        angles[j] = angles[j-1];
-                        }
-                    unique_vectors[insertion_index] = rot_shift_vec;
-                    angles[insertion_index] = angle;
-                    }
+                insertion_index = 3;
                 }
+
+            if (insertion_index < ndim)
+                {
+                for (unsigned int j = (ndim - 1); j > insertion_index; --j)
+                    {
+                    unique_vectors[j] = unique_vectors[j - 1];
+                    angles[j] = angles[j - 1];
+                    }
+                unique_vectors[insertion_index] = rot_shift_vec;
+                angles[insertion_index] = angle;
+                }
+            }
         }
     }
 
@@ -1258,78 +1273,87 @@ HOSTDEVICE inline void findFace(const vec3<Scalar>& vector,
                                 const Scalar (&mat)[3][3],
                                 unsigned int& face,
                                 const typename EvaluatorPairALJ<ndim>::shape_type* shape)
-   {
-
-
+    {
     if (ndim == 3)
         {
-            // Declare arrays and variables.
-            Scalar mat_inverse[3][3];
-            vec3<Scalar> rot_vector;
-            vec3<Scalar> plane_normal_vector;
+        // Declare arrays and variables.
+        Scalar mat_inverse[3][3];
+        vec3<Scalar> rot_vector;
+        vec3<Scalar> plane_normal_vector;
 
-            //Scalar norm_of_rot_vector;
-            Scalar rot_vec_scale;
-            Scalar rot_vec_scale_prev;
-            Scalar rot_vec_proj_to_normal_vector;
-            unsigned int near_face_idx;
+        // Scalar norm_of_rot_vector;
+        Scalar rot_vec_scale;
+        Scalar rot_vec_scale_prev;
+        Scalar rot_vec_proj_to_normal_vector;
+        unsigned int near_face_idx;
 
-            // Prepare inverse of rotation matrix, "mat_inverse".
-            // Inverse of rotation matrix is same as transpose of the rotation matrix.
-            for (unsigned int i = 0; i < 3; ++i)
+        // Prepare inverse of rotation matrix, "mat_inverse".
+        // Inverse of rotation matrix is same as transpose of the rotation matrix.
+        for (unsigned int i = 0; i < 3; ++i)
+            {
+            for (unsigned int j = 0; j < 3; ++j)
                 {
-                    for (unsigned int j = 0; j < 3; ++j)
-                        {
-                            mat_inverse[i][j] = mat[j][i];
-                        }
+                mat_inverse[i][j] = mat[j][i];
                 }
+            }
 
-            // Prepare a vector prepared by rotating "vector" with a matrix "mat_inverse" (passive rotation). This vector will be denoted as "rot_vector".
-            rot_vector = rotate(mat_inverse, vector);
-            //norm_of_rot_vector = sqrt(dot(rot_vector, rot_vector)); // norm of the "rot_vector";
+        // Prepare a vector prepared by rotating "vector" with a matrix "mat_inverse" (passive
+        // rotation). This vector will be denoted as "rot_vector".
+        rot_vector = rotate(mat_inverse, vector);
+        // norm_of_rot_vector = sqrt(dot(rot_vector, rot_vector)); // norm of the "rot_vector";
 
-            /// Go through each face and check "rot_vec_scale". 
-            /// Here, "rot_vec_scale" * "rot_vector corresponds" to the intersection point between a plane defined by a "face" and a line defined by "rot_vector".
-            /// We would like to find the face where "rot_vec_scale" is positive and is minimum.
+        /// Go through each face and check "rot_vec_scale".
+        /// Here, "rot_vec_scale" * "rot_vector corresponds" to the intersection point between a
+        /// plane defined by a "face" and a line defined by "rot_vector". We would like to find the
+        /// face where "rot_vec_scale" is positive and is minimum.
 
-            unsigned int num_faces = shape->face_offsets.size();
+        unsigned int num_faces = shape->face_offsets.size();
 
-            // First check the face 0.
-            near_face_idx = 0;
-            plane_normal_vector = cross(shape->verts[shape->faces[shape->face_offsets[0]]] - shape->verts[shape->faces[shape->face_offsets[0]+1]], shape->verts[shape->faces[shape->face_offsets[0]]] - shape->verts[shape->faces[shape->face_offsets[0]+2]]);
+        // First check the face 0.
+        near_face_idx = 0;
+        plane_normal_vector = cross(shape->verts[shape->faces[shape->face_offsets[0]]]
+                                        - shape->verts[shape->faces[shape->face_offsets[0] + 1]],
+                                    shape->verts[shape->faces[shape->face_offsets[0]]]
+                                        - shape->verts[shape->faces[shape->face_offsets[0] + 2]]);
+        rot_vec_proj_to_normal_vector = dot(plane_normal_vector, rot_vector);
+        rot_vec_scale = dot(plane_normal_vector, shape->verts[shape->faces[shape->face_offsets[0]]])
+                        / rot_vec_proj_to_normal_vector;
+        rot_vec_scale_prev = rot_vec_scale;
+
+        // Now go through each face using for loop.
+
+        for (unsigned int i = 1; i < num_faces; ++i)
+            {
+            plane_normal_vector
+                = cross(shape->verts[shape->faces[shape->face_offsets[i]]]
+                            - shape->verts[shape->faces[shape->face_offsets[i] + 1]],
+                        shape->verts[shape->faces[shape->face_offsets[i]]]
+                            - shape->verts[shape->faces[shape->face_offsets[i] + 2]]);
             rot_vec_proj_to_normal_vector = dot(plane_normal_vector, rot_vector);
-            rot_vec_scale = dot(plane_normal_vector, shape->verts[shape->faces[shape->face_offsets[0]]]) / rot_vec_proj_to_normal_vector;
-            rot_vec_scale_prev = rot_vec_scale;
+            rot_vec_scale
+                = dot(plane_normal_vector, shape->verts[shape->faces[shape->face_offsets[i]]])
+                  / rot_vec_proj_to_normal_vector;
 
-            // Now go through each face using for loop.
-
-            for (unsigned int i = 1; i < num_faces; ++i)
+            if (rot_vec_scale > 0.0)
                 {
-                    plane_normal_vector = cross(shape->verts[shape->faces[shape->face_offsets[i]]] - shape->verts[shape->faces[shape->face_offsets[i]+1]], shape->verts[shape->faces[shape->face_offsets[i]]] - shape->verts[shape->faces[shape->face_offsets[i]+2]]);
-                    rot_vec_proj_to_normal_vector = dot(plane_normal_vector, rot_vector);
-                    rot_vec_scale = dot(plane_normal_vector, shape->verts[shape->faces[shape->face_offsets[i]]]) / rot_vec_proj_to_normal_vector;
-
-                    if (rot_vec_scale > 0.0)
+                if (rot_vec_scale_prev > 0.0)
+                    {
+                    if (rot_vec_scale < rot_vec_scale_prev)
                         {
-                        if (rot_vec_scale_prev > 0.0)
-                            {
-                                if (rot_vec_scale < rot_vec_scale_prev)
-                                    {
-                                        near_face_idx = i;
-                                        rot_vec_scale_prev = rot_vec_scale;
-                                    }
-                            }
-                        else
-                            {
-                                near_face_idx = i;
-                                rot_vec_scale_prev = rot_vec_scale;
-
-                            }
+                        near_face_idx = i;
+                        rot_vec_scale_prev = rot_vec_scale;
                         }
-               }
-            face = near_face_idx;
+                    }
+                else
+                    {
+                    near_face_idx = i;
+                    rot_vec_scale_prev = rot_vec_scale;
+                    }
+                }
+            }
+        face = near_face_idx;
         }
-    
+
     else
         {
         // First identify the closest points
@@ -1341,7 +1365,8 @@ HOSTDEVICE inline void findFace(const vec3<Scalar>& vector,
         vec3<Scalar> norm_vector = vector / sqrt(dot(vector, vector));
 
         vec3<Scalar> rot_shift_vec = rotate(mat, shape->verts[0]);
-        vec3<Scalar> norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+        vec3<Scalar> norm_rot_shift_vector
+            = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
         unique_vectors[0] = 0;
         angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
 
@@ -1351,7 +1376,7 @@ HOSTDEVICE inline void findFace(const vec3<Scalar>& vector,
             norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
             Scalar angle = acos(dot(norm_rot_shift_vector, norm_vector));
 
-            unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2 ));
+            unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2));
             if (ndim == 3 && angle >= angles[2])
                 {
                 insertion_index = 3;
@@ -1359,10 +1384,10 @@ HOSTDEVICE inline void findFace(const vec3<Scalar>& vector,
 
             if (insertion_index < ndim)
                 {
-                for (unsigned int j = (ndim-1); j > insertion_index; --j)
+                for (unsigned int j = (ndim - 1); j > insertion_index; --j)
                     {
-                    unique_vectors[j] = unique_vectors[j-1];
-                    angles[j] = angles[j-1];
+                    unique_vectors[j] = unique_vectors[j - 1];
+                    angles[j] = angles[j - 1];
                     }
                 unique_vectors[insertion_index] = i;
                 angles[insertion_index] = angle;
@@ -1373,12 +1398,13 @@ HOSTDEVICE inline void findFace(const vec3<Scalar>& vector,
         unsigned int num_faces = shape->face_offsets.size();
         for (face = 0; face < num_faces; ++face)
             {
-                unsigned int last_idx = (face == num_faces-1) ? shape->faces.size() : shape->face_offsets[face+1];
-                bool found0 = false, found1 = false, found2 = false;
-                for (unsigned int j = shape->face_offsets[face]; j < last_idx; ++j)
+            unsigned int last_idx
+                = (face == num_faces - 1) ? shape->faces.size() : shape->face_offsets[face + 1];
+            bool found0 = false, found1 = false, found2 = false;
+            for (unsigned int j = shape->face_offsets[face]; j < last_idx; ++j)
                 {
                 if (shape->faces[j] == unique_vectors[0])
-                found0 = true;
+                    found0 = true;
                 if (shape->faces[j] == unique_vectors[1])
                     found1 = true;
                 if (shape->faces[j] == unique_vectors[2])
@@ -1386,8 +1412,7 @@ HOSTDEVICE inline void findFace(const vec3<Scalar>& vector,
                 }
             if (found0 && found1 && found2)
                 break;
-        }
-
+            }
         }
     }
 
@@ -1406,8 +1431,8 @@ EvaluatorPairALJ<2>::computeSimplexInteractions(const vec3<Scalar>& a,
                                                 Scalar3& torque_j)
     {
     vec3<Scalar> support_vectors1[2], support_vectors2[2];
-    findSimplex(b, mati, support_vectors1,shape_i);
-    findSimplex(dr+a, matj, support_vectors2,shape_j);
+    findSimplex(b, mati, support_vectors1, shape_i);
+    findSimplex(dr + a, matj, support_vectors2, shape_j);
     // Since simplex finding is based on angles, we need to compute dot
     // products in the local frame of the second particle and then shift
     // the final result back into the global frame (the body frame of
