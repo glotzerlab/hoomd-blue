@@ -191,10 +191,9 @@ class TypeParameter(MutableMapping):
     def default(self, value):
         self.param_dict.default = value
 
-    def _attach(self, cpp_obj, simstate):
+    def _attach(self, cpp_obj, state):
         self.param_dict = AttachedTypeParameterDict(
-            cpp_obj, self.name, getattr(simstate, self.type_kind),
-            self.param_dict)
+            cpp_obj, self.name, getattr(state, self.type_kind), self.param_dict)
         return self
 
     def _detach(self):

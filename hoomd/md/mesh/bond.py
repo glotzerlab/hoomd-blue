@@ -98,7 +98,8 @@ class MeshBond(Force):
     @mesh.setter
     def mesh(self, value):
         if self._attached:
-            raise RuntimeError("mesh cannot be set after scheduling.")
+            raise RuntimeError(
+                "mesh cannot be set after calling Simulation.run().")
         mesh = validate_mesh(value)
         if self._added:
             if mesh._added and self._simulation != mesh._simulation:

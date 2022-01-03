@@ -414,13 +414,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
 
                     if (idx == NOT_LOCAL)
                         {
-                        // incomplete group
-                        std::ostringstream oss;
-                        oss << name << ".*: " << name << " ";
-                        for (unsigned int k = 0; k < group_size_half; ++k)
-                            oss << g.tag[k] << ((k != group_size_half - 1) ? ", " : " ");
-                        oss << "incomplete!" << std::endl;
-                        this->m_exec_conf->msg->error() << oss.str();
                         throw std::runtime_error("Error building GPU group table.");
                         }
 
@@ -572,12 +565,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
             unsigned int group_idx = flag - this->m_next_flag - 1;
             members_t g = this->m_groups[group_idx];
 
-            std::ostringstream oss;
-            oss << name << ".*: " << name << " ";
-            for (unsigned int k = 0; k < group_size_half; ++k)
-                oss << g.tag[k] << ((k != group_size_half - 1) ? ", " : " ");
-            oss << "incomplete!" << std::endl;
-            this->m_exec_conf->msg->error() << oss.str();
             throw std::runtime_error("Error building GPU group table.");
             }
 
@@ -727,11 +714,9 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
             rtag_it = rtag_map.find(group_tag);
             if (rtag_it == rtag_map.end())
                 {
-                this->m_exec_conf->msg->error() << endl
-                                                << "Could not find " << name << " " << group_tag
-                                                << ". Possible internal error?" << endl
-                                                << endl;
-                throw std::runtime_error("Error gathering " + std::string(name) + "s");
+                throw std::runtime_error("Could not find " + std::string(name) + " "
+                                         + std::to_string(group_tag) + ". Error gathering "
+                                         + std::string(name) + "s");
                 }
 
             // store tag in index
@@ -755,7 +740,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
 
 namespace detail
     {
-template<class T, typename Group>
+template<class T, class Group>
 void export_MeshGroupData(pybind11::module& m,
                           std::string name,
                           std::string snapshot_name,
