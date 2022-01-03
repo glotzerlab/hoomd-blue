@@ -160,6 +160,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     for (unsigned int i = 0; i < 6; i++)
         helfrich_virial[i] = Scalar(0.0);
 
+
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
@@ -203,7 +204,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 		iterator++;
 		}
 
-	//std::cout << i << ": " << idx_a << " " << idx_b << " " << idx_c << " " << idx_d << std::endl;
 
 
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
@@ -341,6 +341,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             s_baad = SMALL;
         s_baad = 1.0 / s_baad;
 
+
 	Scalar cot_accb = c_accb*s_accb;
 	Scalar cot_addb = c_addb*s_addb;
 
@@ -355,9 +356,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar sigma_b = h_sigma.data[idx_b]; //precomputed
 	Scalar sigma_c = h_sigma.data[idx_c]; //precomputed
 	Scalar sigma_d = h_sigma.data[idx_d]; //precomputed
-
-	//if(idx_a==2)
-		//std::cout << sigma_a << " " << sigma_dash_a.x << " " << sigma_dash_a.y << " " << sigma_dash_a.z << " " << idx_a << std::endl;
 
 	Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
 	dc_abbc = -nbc/rab - c_abbc/rab*nab;
@@ -382,13 +380,13 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 	Scalar dsigma_dash_c = -dot(dsigma_hat_ac,dac) - dot(dsigma_hat_bc,dbc);
 	Scalar dsigma_dash_d = -dot(dsigma_hat_ad,dad) - dot(dsigma_hat_bd,dbd);
 
-	Scalar3 Fa;
-	Fa = -m_K[0]*(dsigma_dash_a/sigma_a*sigma_dash_a -dot(sigma_dash_a,sigma_dash_a)/(2*sigma_a*sigma_a)*dsigma_a);
-	Fa -= m_K[0]*(dsigma_dash_b/sigma_b*sigma_dash_b -dot(sigma_dash_b,sigma_dash_b)/(2*sigma_b*sigma_b)*dsigma_b);
-	Fa -= m_K[0]*(dsigma_dash_c/sigma_c*sigma_dash_c -dot(sigma_dash_c,sigma_dash_c)/(2*sigma_c*sigma_c)*dsigma_c);
-	Fa -= m_K[0]*(dsigma_dash_d/sigma_d*sigma_dash_d -dot(sigma_dash_d,sigma_dash_d)/(2*sigma_d*sigma_d)*dsigma_d);
 
-        //std::cout << i << " " << idx_c << ": " << Fa.x << " " << Fa.y << " " << Fa.z << std::endl;
+	Scalar3 Fa;
+	Fa = m_K[0]*(dsigma_dash_a*sigma_dash_a/sigma_a - dot(sigma_dash_a,sigma_dash_a)/(2*sigma_a*sigma_a)*dsigma_a);
+	Fa += m_K[0]*(dsigma_dash_b*sigma_dash_b/sigma_b -dot(sigma_dash_b,sigma_dash_b)/(2*sigma_b*sigma_b)*dsigma_b);
+	Fa += m_K[0]*(dsigma_dash_c*sigma_dash_c/sigma_c -dot(sigma_dash_c,sigma_dash_c)/(2*sigma_c*sigma_c)*dsigma_c);
+	Fa += m_K[0]*(dsigma_dash_d*sigma_dash_d/sigma_d -dot(sigma_dash_d,sigma_dash_d)/(2*sigma_d*sigma_d)*dsigma_d);
+
 
         if (compute_virial)
             {
@@ -421,9 +419,8 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
-        }
 
-    //std::cout <<  "END" << std::endl;
+        }
 
     if (m_prof)
         m_prof->pop();
@@ -452,7 +449,6 @@ void HelfrichMeshForceCompute::computeSigma()
     memset((void*)h_sigma.data, 0, sizeof(Scalar) * m_sigma.getNumElements());
     memset((void*)h_sigma_dash.data, 0, sizeof(Scalar3) * m_sigma_dash.getNumElements());
 
-    //std::cout <<  h_sigma.data[2] << " " << h_sigma_dash.data[2].x << " " << h_sigma_dash.data[2].y << " " << h_sigma_dash.data[2].z << " " << m_sigma_dash.getNumElements() << std::endl;
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
@@ -596,17 +592,7 @@ void HelfrichMeshForceCompute::computeSigma()
 	h_sigma_dash.data[idx_b].y -= sigma_hat_ab*dab.y;
 	h_sigma_dash.data[idx_b].z -= sigma_hat_ab*dab.z;
 
-	//if(idx_a == 2)
-		//std::cout <<  sigma_a << " " << sigma_hat_ab*dab.x << " " << sigma_hat_ab*dab.y << " " << sigma_hat_ab*dab.z << " " << idx_a << std::endl;
-
-	//if(idx_b == 2)
-		//std::cout <<  sigma_a << " " << sigma_hat_ab*dab.x << " " << sigma_hat_ab*dab.y << " " << sigma_hat_ab*dab.z << " " << idx_b << std::endl;
-
-
 	}
-    //std::cout <<  h_sigma.data[2] << " " << h_sigma_dash.data[2].x << " " << h_sigma_dash.data[2].y << " " << h_sigma_dash.data[2].z << std::endl;
-    //std::cout << "ËND" << std::endl;
-
     }
 
 namespace detail
