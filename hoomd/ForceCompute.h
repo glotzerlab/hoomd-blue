@@ -188,6 +188,11 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         return m_pdata->getNGhosts();
         }
 
+    bool getBuffersWriteable() const
+        {
+        return m_buffers_writeable;
+        }
+
     protected:
     bool m_particles_sorted; //!< Flag set to true when particles are resorted in memory
 
@@ -229,6 +234,9 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     /// Store the particle data flags used during the last computation
     PDataFlags m_computed_flags;
 
+    // whether the local force buffers exposed by this class should be read-only
+    bool m_buffers_writeable;
+
     //! Actually perform the computation of the forces
     /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
         the base class compute() when the forces need to be computed.
@@ -246,7 +254,8 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, For
     public:
     LocalForceComputeData(ForceCompute& data)
         : LocalDataAccess<Output, ForceCompute>(data), m_force_handle(), m_torque_handle(),
-          m_virial_handle(), m_virial_pitch(data.getVirialArray().getPitch())
+          m_virial_handle(), m_virial_pitch(data.getVirialArray().getPitch()),
+          m_buffers_writeable(data.getBuffersWriteable())
         {
         }
 
@@ -257,6 +266,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, For
         return this->template getBuffer<Scalar4, Scalar>(m_force_handle,
                                                          &ForceCompute::getForceArray,
                                                          flag,
+                                                         m_buffers_writeable,
                                                          3);
         }
 
@@ -265,6 +275,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, For
         return this->template getBuffer<Scalar4, Scalar>(m_force_handle,
                                                          &ForceCompute::getForceArray,
                                                          flag,
+                                                         m_buffers_writeable,
                                                          0,
                                                          3 * sizeof(Scalar));
         }
@@ -274,6 +285,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, For
         return this->template getBuffer<Scalar4, Scalar>(m_torque_handle,
                                                          &ForceCompute::getTorqueArray,
                                                          flag,
+                                                         m_buffers_writeable,
                                                          3);
         }
 
@@ -286,6 +298,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, For
             m_virial_handle,
             &ForceCompute::getVirialArray,
             flag,
+            m_buffers_writeable,
             6,
             0,
             std::vector<ssize_t>(
@@ -307,6 +320,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, For
     std::unique_ptr<ArrayHandle<Scalar>> m_virial_handle;
     std::unique_ptr<ArrayHandle<unsigned int>> m_rtag_handle;
     size_t m_virial_pitch;
+    bool m_buffers_writeable;
     };
 
 namespace detail

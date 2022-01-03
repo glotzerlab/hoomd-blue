@@ -25,6 +25,3 @@ class ForceLocalAccess(_ForceLocalAccessBase):
 
     _cpp_cls = _hoomd.LocalForceComputeDataHost
     _array_cls = HOOMDArray
-
-    def __init__(self, force_obj):
-        super().__init__(force_obj)

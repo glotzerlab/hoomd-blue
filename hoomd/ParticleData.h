@@ -1449,6 +1449,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_position_handle,
                                                          &ParticleData::getPositions,
                                                          flag,
+                                                         true,
                                                          3);
         }
 
@@ -1457,6 +1458,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, int>(m_position_handle,
                                                       &ParticleData::getPositions,
                                                       flag,
+                                                      true,
                                                       0,
                                                       3 * sizeof(Scalar));
         }
@@ -1466,6 +1468,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_velocities_handle,
                                                          &ParticleData::getVelocities,
                                                          flag,
+                                                         true,
                                                          3);
         }
 
@@ -1474,6 +1477,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar3, Scalar>(m_acceleration_handle,
                                                          &ParticleData::getAccelerations,
                                                          flag,
+                                                         true,
                                                          3);
         }
 
@@ -1482,6 +1486,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_velocities_handle,
                                                          &ParticleData::getVelocities,
                                                          flag,
+                                                         true,
                                                          0,
                                                          3 * sizeof(Scalar));
         }
@@ -1491,6 +1496,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_orientation_handle,
                                                          &ParticleData::getOrientationArray,
                                                          flag,
+                                                         true,
                                                          4);
         }
 
@@ -1499,6 +1505,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_angular_momentum_handle,
                                                          &ParticleData::getAngularMomentumArray,
                                                          flag,
+                                                         true,
                                                          4);
         }
 
@@ -1507,6 +1514,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar3, Scalar>(m_inertia_handle,
                                                          &ParticleData::getMomentsOfInertiaArray,
                                                          flag,
+                                                         true,
                                                          3);
         }
 
@@ -1514,14 +1522,16 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         {
         return this->template getBuffer<Scalar, Scalar>(m_charge_handle,
                                                         &ParticleData::getCharges,
-                                                        flag);
+                                                        flag,
+                                                        true);
         }
 
     Output getDiameter(GhostDataFlag flag)
         {
         return this->template getBuffer<Scalar, Scalar>(m_diameter_handle,
                                                         &ParticleData::getDiameters,
-                                                        flag);
+                                                        flag,
+                                                        true);
         }
 
     Output getImages(GhostDataFlag flag)
@@ -1529,6 +1539,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<int3, int>(m_image_handle,
                                                    &ParticleData::getImages,
                                                    flag,
+                                                   true,
                                                    3);
         }
 
@@ -1536,7 +1547,8 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         {
         return this->template getBuffer<unsigned int, unsigned int>(m_tag_handle,
                                                                     &ParticleData::getTags,
-                                                                    flag);
+                                                                    flag,
+                                                                    true);
         }
 
     Output getRTags()
@@ -1548,7 +1560,8 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         {
         return this->template getBuffer<unsigned int, unsigned int>(m_rigid_body_ids_handle,
                                                                     &ParticleData::getBodies,
-                                                                    flag);
+                                                                    flag,
+                                                                    true);
         }
 
     Output getNetForce(GhostDataFlag flag)
@@ -1556,6 +1569,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_net_force_handle,
                                                          &ParticleData::getNetForce,
                                                          flag,
+                                                         true,
                                                          3);
         }
 
@@ -1564,6 +1578,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_net_torque_handle,
                                                          &ParticleData::getNetTorqueArray,
                                                          flag,
+                                                         true,
                                                          3);
         }
 
@@ -1573,6 +1588,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
             m_net_virial_handle,
             &ParticleData::getNetVirial,
             flag,
+            true,
             6,
             0,
             std::vector<ssize_t>({6 * sizeof(Scalar), sizeof(Scalar)}));
@@ -1583,6 +1599,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_net_force_handle,
                                                          &ParticleData::getNetForce,
                                                          flag,
+                                                         true,
                                                          0,
                                                          3 * sizeof(Scalar));
         }

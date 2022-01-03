@@ -28,7 +28,7 @@ namespace hoomd
     \post All forces are initialized to 0
 */
 ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-    : Compute(sysdef), m_particles_sorted(false)
+    : Compute(sysdef), m_particles_sorted(false), m_buffers_writeable(false)
     {
     assert(m_pdata);
     assert(m_pdata->getMaxN() > 0);
