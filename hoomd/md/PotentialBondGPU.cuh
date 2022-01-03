@@ -171,7 +171,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
         group_storage<group_size> cur_bond = blist[blist_idx(idx, bond_idx)];
 
         int cur_bond_idx = cur_bond.idx[0];
-        int cur_bond_type = cur_bond.idx[1];
+        int cur_bond_type = cur_bond.idx[group_size-1];
 
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
         Scalar4 neigh_postypej = __ldg(d_pos + cur_bond_idx);
