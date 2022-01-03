@@ -148,6 +148,10 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
+    mesh1 = hoomd.mesh.Mesh()
+    with pytest.raises(RuntimeError):
+        mesh_bond_potential.mesh = mesh1
+
 
 @pytest.mark.parametrize("mesh_bond_cls, potential_kwargs, force, energy",
                          get_mesh_bond_args_forces_and_energies())
