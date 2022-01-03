@@ -3,7 +3,7 @@ import hoomd
 from hoomd.mesh import Mesh
 import numpy
 import pytest
-from hoomd.error import DataAccessError
+from hoomd.error import DataAccessError, MutabilityError, TypeConversionError
 
 
 @pytest.fixture(scope='session')
@@ -42,6 +42,7 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
     mesh = Mesh()
 
     assert mesh.size == 0
+    assert mesh.types == ["mesh"]
     assert len(mesh.triangles) == 0
     with pytest.raises(DataAccessError):
         mesh.bonds == 0
@@ -50,14 +51,24 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
     mesh._attach()
 
     assert mesh.size == 0
+    assert mesh.types == ["mesh"]
     assert len(mesh.triangles) == 0
     assert len(mesh.bonds) == 0
 
 
 def test_mesh_setter():
-    mesh = Mesh()
+    mesh = Mesh(name=["vesicle"])
 
-    mesh.size = 2
+    mesh.size = 1
+    assert mesh.size == 1
+
+    with pytest.raises(TypeConversionError):
+        mesh.types = "mesh"
+    with pytest.raises(TypeConversionError):
+        mesh.types = ["me", "sh"]
+    mesh.types = ["mesh"]
+    assert mesh.types == ["mesh"]
+
     mesh.triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
 
     assert mesh.size == 2
@@ -71,7 +82,12 @@ def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
 
     mesh._add(sim)
     mesh._attach()
-    mesh.size = 2
+
+    with pytest.raises(MutabilityError):
+        mesh.types = ["vesicle"]
+    with pytest.raises(MutabilityError):
+        mesh.size = 3
+
     mesh.triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
 
     assert mesh.size == 2

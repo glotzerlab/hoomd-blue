@@ -77,6 +77,16 @@ class PYBIND11_EXPORT MeshDefinition
         return m_meshbond_data;
         }
 
+    pybind11::list getTypes() const
+        {
+        return m_meshtriangle_data->getTypesPy();
+        }
+
+    unsigned int getSize() const
+        {
+        return m_meshtriangle_data->getN();
+        }
+
     BondData::Snapshot getBondData();
 
     Scalar getEnergy()
