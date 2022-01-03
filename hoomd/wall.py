@@ -45,7 +45,7 @@ class Sphere(WallGeometry):
 
     .. math::
 
-        d = r \left( ||r - r_o || - R \right) \dot \frac{r - r_o}{||r - r_o||},
+        d = \left( R - ||r - r_o || \right),
 
     for ``inside=True`` and the opposite when false, where :math:`r` is the
     particle position, :math:`r_o` is the origin of the sphere, and :math:`R` is
@@ -213,7 +213,7 @@ class Plane(WallGeometry):
 
     .. math::
 
-        d = n \dot r n \dot r_o
+        d = n \cdot r - n \cdot r_o
 
     for ``inside=True`` and the opposite when false, where :math:`r` is the
     particle position, :math:`r_o` is the origin of the plane, and :math:`n` is
