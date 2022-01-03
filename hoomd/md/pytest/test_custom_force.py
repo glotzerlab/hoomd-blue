@@ -8,6 +8,7 @@ try:
 except ImportError:
     CUPY_IMPORTED = False
 
+# mpi4py is needed for the ghost data test
 try:
     from mpi4py import MPI
     MPI4PY_IMPORTED = True
@@ -273,32 +274,21 @@ class GhostForceAccessCPU(md.force.Custom):
         super().__init__()
         self._num_particles_global = num_particles_global
         self._array_buffers = ['force', 'torque', 'potential_energy', 'virial']
-        #for buffer in ['force', 'torque', 'potential_energy', 'virial']:
-        #    self._array_buffers.append(buffer)
-        #    self._array_buffers.append(buffer + '_with_ghost')
-        #    self._array_buffers.append('ghost_' + buffer)
 
     def _check_buffer_lengths(self, arrays):
         """Ensure the lengths of the accessed buffers are right."""
         for buffer_name in self._array_buffers:
-            print(buffer_name)
             buffer = getattr(arrays, buffer_name)
             ghost_buffer = getattr(arrays, 'ghost_' + buffer_name)
             buffer_with_ghost = getattr(arrays, buffer_name + '_with_ghost')
+
+            # make sure particle numbers add up wihtin the rank
             assert len(buffer) + len(ghost_buffer) == len(buffer_with_ghost)
-            print(len(buffer))
-            print(len(ghost_buffer))
-            print(len(buffer_with_ghost))
-            if MPI4PY_IMPORTED:
-                mpi_comm = MPI.COMM_WORLD
-                N_global = mpi_comm.allreduce(len(buffer), op=MPI.SUM)
-                assert N_global == self._num_particles_global
-            #if buffer_name.startswith('ghost_') and self._num_ranks == 1:
-            #    assert len(buffer) == 0
-            #elif buffer_name.endswith('_with_ghost') or self._num_ranks == 1:
-            #    assert len(buffer) == 2
-            #else:
-            #    assert len(buffer) == 1
+
+            # make sure all particles are accounted for across ranks
+            mpi_comm = MPI.COMM_WORLD
+            N_global = mpi_comm.allreduce(len(buffer), op=MPI.SUM)
+            assert N_global == self._num_particles_global
 
     def set_forces(self, timestep):
         with self.cpu_local_force_arrays as arrays:
@@ -320,12 +310,21 @@ class GhostForceAccessGPU(GhostForceAccessCPU):
                          ids=lambda x: x.__name__)
 def test_ghost_data_access(force_cls, two_particle_snapshot_factory,
                            simulation_factory):
+    # skip this test if mpi4py not imported
+    if not MPI4PY_IMPORTED:
+        pytest.skip("This test needs mpi4py to run.")
+
     snap = two_particle_snapshot_factory()
 
-    # split simulation so there is 1 particle in rank
+    # split simulation so there is 1 particle in each rank
     sim = simulation_factory(snap, (2, 1, 1))
-    print(sim.device.communicator.num_ranks)
-    custom_force = force_cls(snap.particles.N)
+    if sim.device.communicator.rank == 0:
+        global_N = snap.particles.N
+    else:
+        global_N = None
+    mpi_comm = MPI.COMM_WORLD
+    global_N = mpi_comm.bcast(global_N, root=0)
+    custom_force = force_cls(global_N)
 
     # make LJ force so there is a ghost width on each rank
     nlist = md.nlist.Cell(buffer=0.2)
