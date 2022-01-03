@@ -1,3 +1,4 @@
+import copy as cp
 import hoomd
 import pytest
 import numpy as np
@@ -188,3 +189,56 @@ def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
         np.testing.assert_allclose(sim_forces[0], force1, rtol=1e-2, atol=1e-5)
         np.testing.assert_allclose(sim_forces[1], force2, rtol=1e-2, atol=1e-5)
         np.testing.assert_allclose(sim_forces[2], force3, rtol=1e-2, atol=1e-5)
+
+
+@pytest.fixture(scope='session')
+def mesh_snapshot_factory(device):
+
+    def make_snapshot(d=1.0, phi_deg=45, particle_types=['A'], L=20):
+        phi_rad = phi_deg * (np.pi / 180)
+        # the central particles are along the x-axis, so phi is determined from
+        # the angle in the yz plane.
+
+        s = hoomd.Snapshot(device.communicator)
+        N = 4
+        if s.communicator.rank == 0:
+            box = [L, L, L, 0, 0, 0]
+            s.configuration.box = box
+            s.particles.N = N
+            s.particles.types = particle_types
+            # shift particle positions slightly in z so MPI tests pass
+            s.particles.position[:] = [
+                [0.0, d * np.cos(phi_rad / 2), d * np.sin(phi_rad / 2) + 0.1],
+                [0.0, 0.0, 0.1], [d, 0.0, 0.1],
+                [d, d * np.cos(phi_rad / 2), -d * np.sin(phi_rad / 2) + 0.1]
+            ]
+
+        return s
+
+    return make_snapshot
+
+
+def test_auto_detach_simulation(simulation_factory, mesh_snapshot_factory):
+    sim = simulation_factory(mesh_snapshot_factory(d=0.969, L=5))
+    mesh = hoomd.mesh.Mesh()
+    mesh.triangles = [[0, 1, 2], [0, 2, 3]]
+
+    harmonic = hoomd.md.mesh.bond.Harmonic(mesh)
+    harmonic.parameter = dict(k=1, r0=1)
+
+    harmonic_2 = cp.deepcopy(harmonic)
+    harmonic_2.mesh = mesh
+
+    integrator = hoomd.md.Integrator(dt=0.005, forces=[harmonic, harmonic_2])
+
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All()))
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+    del integrator.forces[1]
+    assert mesh._attached
+    assert hasattr(mesh, "_cpp_obj")
+    del integrator.forces[0]
+    assert not mesh._attached
+    assert mesh._cpp_obj is None
