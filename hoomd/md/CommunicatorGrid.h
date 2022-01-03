@@ -13,6 +13,10 @@
 
 #ifdef ENABLE_MPI
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Class to communicate the boundary layer of a regular grid
  */
 template<typename T> class CommunicatorGrid
@@ -52,6 +56,9 @@ template<typename T> class CommunicatorGrid
     //! Initialize grid communication
     virtual void initGridComm();
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI
 #endif // __COMMUNICATOR_GRID_H__

@@ -32,6 +32,8 @@
 /*! @}
  */
 
+namespace hoomd
+    {
 //! Performs updates of performance critical parameters and data storage.
 /*! Operations that do work to improve simulation performance like particle
  * sorters and GPU autotuners are system Tuners.
@@ -61,7 +63,13 @@ class PYBIND11_EXPORT Tuner : public Updater
     std::shared_ptr<Trigger> m_trigger;
     };
 
+namespace detail
+    {
 //! Export the Updater class to python
 void export_Tuner(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

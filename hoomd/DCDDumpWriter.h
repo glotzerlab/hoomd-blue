@@ -34,6 +34,8 @@
 //             University of Illinois at Urbana-Champaign
 //            http://www.ks.uiuc.edu/
 
+namespace hoomd
+    {
 //! Analyzer for writing out DCD dump files
 /*! DCDDumpWriter writes out the current position of all particles to a DCD file
     every time analyze() is called. Use it to create a DCD trajectory for loading
@@ -134,7 +136,11 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
     void initFileIO(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the DCDDumpWriter class to python
 void export_DCDDumpWriter(pybind11::module& m);
+    } // end namespace detail
 
+    } // end namespace hoomd
 #endif

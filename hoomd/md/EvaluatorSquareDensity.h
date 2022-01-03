@@ -25,6 +25,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the SquareDensity three-body potential
 class EvaluatorSquareDensity
     {
@@ -61,9 +65,9 @@ class EvaluatorSquareDensity
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the evaluator
@@ -216,5 +220,8 @@ class EvaluatorSquareDensity
     Scalar A;      //!< center of harmonic potential
     Scalar B;      //!< repulsion parameter
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

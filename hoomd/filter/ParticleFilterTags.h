@@ -4,6 +4,8 @@
 #include "ParticleFilter.h"
 #include <pybind11/numpy.h>
 
+namespace hoomd
+    {
 /// Select particles based on their tag
 class PYBIND11_EXPORT ParticleFilterTags : public ParticleFilter
     {
@@ -41,4 +43,6 @@ class PYBIND11_EXPORT ParticleFilterTags : public ParticleFilter
     protected:
     std::vector<unsigned int> m_tags; //< Tags to use for filter
     };
+
+    } // end namespace hoomd
 #endif

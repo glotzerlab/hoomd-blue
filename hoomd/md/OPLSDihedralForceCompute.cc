@@ -5,8 +5,6 @@
 
 #include "OPLSDihedralForceCompute.h"
 
-namespace py = pybind11;
-
 #include <cmath>
 #include <iostream>
 #include <sstream>
@@ -18,6 +16,10 @@ using namespace std;
     \brief Contains code for the OPLSDihedralForceCompute class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
@@ -32,8 +34,7 @@ OPLSDihedralForceCompute::OPLSDihedralForceCompute(std::shared_ptr<SystemDefinit
     // check for some silly errors a user could make
     if (m_dihedral_data->getNTypes() == 0)
         {
-        m_exec_conf->msg->error() << "dihedral.opls: No dihedral types specified" << endl;
-        throw runtime_error("Error initializing OPLSDihedralForceCompute");
+        throw runtime_error("No dihedral types in the system.");
         }
 
     // allocate the parameters
@@ -64,8 +65,7 @@ void OPLSDihedralForceCompute::setParams(unsigned int type,
     // make sure the type is valid
     if (type >= m_dihedral_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "dihedral.opls: Invalid dihedral type specified" << endl;
-        throw runtime_error("Error setting parameters in OPLSDihedralForceCompute");
+        throw runtime_error("Invalid dihedral type.");
         }
 
     // set parameters in m_params
@@ -86,8 +86,7 @@ pybind11::dict OPLSDihedralForceCompute::getParams(std::string type)
     // make sure the type is valid
     if (typ >= m_dihedral_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "dihedral.opls: Invalid dihedral type specified" << endl;
-        throw runtime_error("Error setting parameters in OPLSDihedralForceCompute");
+        throw runtime_error("Invalid dihedral type.");
         }
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
     auto val = h_params.data[typ];
@@ -364,12 +363,18 @@ void OPLSDihedralForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-void export_OPLSDihedralForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<OPLSDihedralForceCompute, ForceCompute, std::shared_ptr<OPLSDihedralForceCompute>>(
-        m,
-        "OPLSDihedralForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_OPLSDihedralForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<OPLSDihedralForceCompute,
+                     ForceCompute,
+                     std::shared_ptr<OPLSDihedralForceCompute>>(m, "OPLSDihedralForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &OPLSDihedralForceCompute::setParamsPython)
         .def("getParams", &OPLSDihedralForceCompute::getParams);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

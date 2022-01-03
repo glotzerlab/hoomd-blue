@@ -25,24 +25,24 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 struct fene_params
     {
     Scalar k;
     Scalar r_0;
-    Scalar lj1;
-    Scalar lj2;
+    Scalar epsilon_x_4;
+    Scalar sigma_6;
 
 #ifndef __HIPCC__
     fene_params()
         {
         k = 0;
         r_0 = 0;
-        lj1 = 0;
-        lj2 = 0;
-        }
-
-    fene_params(Scalar k, Scalar r_0, Scalar lj1, Scalar lj2) : k(k), r_0(r_0), lj1(lj1), lj2(lj2)
-        {
+        epsilon_x_4 = 0;
+        sigma_6 = 0;
         }
 
     fene_params(pybind11::dict v)
@@ -51,8 +51,8 @@ struct fene_params
         r_0 = v["r0"].cast<Scalar>();
         Scalar epsilon = v["epsilon"].cast<Scalar>();
         Scalar sigma = v["sigma"].cast<Scalar>();
-        lj1 = 4.0 * epsilon * std::pow(sigma, 12.0);
-        lj2 = 4.0 * epsilon * std::pow(sigma, 6.0);
+        sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
+        epsilon_x_4 = Scalar(4.0) * epsilon;
         }
 
     pybind11::dict asDict()
@@ -60,9 +60,8 @@ struct fene_params
         pybind11::dict v;
         v["k"] = k;
         v["r0"] = r_0;
-        Scalar sigma = std::pow(lj1 / lj2, 1.0 / 6.0);
-        v["sigma"] = sigma;
-        v["epsilon"] = lj1 / 4.0 / std::pow(sigma, 12.0);
+        v["sigma"] = pow(sigma_6, 1. / 6.);
+        v["epsilon"] = epsilon_x_4 / 4.0;
         return v;
         }
 #endif
@@ -88,7 +87,9 @@ class EvaluatorBondFENE
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorBondFENE(Scalar _rsq, const param_type& _params)
-        : rsq(_rsq), K(_params.k), r_0(_params.r_0), lj1(_params.lj1), lj2(_params.lj2)
+        : rsq(_rsq), K(_params.k), r_0(_params.r_0),
+          lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
+          lj2(_params.epsilon_x_4 * _params.sigma_6)
         {
         }
 
@@ -189,5 +190,8 @@ class EvaluatorBondFENE
     Scalar diameter_a; //!< diameter of particle A
     Scalar diameter_b; //!< diameter of particle B
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_FENE_H__

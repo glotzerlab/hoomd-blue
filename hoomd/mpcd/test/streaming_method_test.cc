@@ -14,6 +14,8 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 //! Test for basic setup and functionality of the streaming method
 template<class SM>
 void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)

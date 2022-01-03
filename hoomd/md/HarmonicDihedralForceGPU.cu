@@ -14,14 +14,17 @@
 #define __scalar2int_rn __double2int_rn
 #endif
 
-// SMALL a relatively small number
-#define SMALL Scalar(0.001)
-
 /*! \file HarmonicDihedralForceGPU.cu
     \brief Defines GPU kernel code for calculating the harmonic dihedral forces. Used by
    HarmonicDihedralForceComputeGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel for calculating harmonic dihedral forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -35,18 +38,17 @@
     \param pitch Pitch of 2D dihedral list
     \param n_dihedrals_list List of numbers of dihedrals per atom
 */
-extern "C" __global__ void
-gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
-                                            Scalar* d_virial,
-                                            const size_t virial_pitch,
-                                            const unsigned int N,
-                                            const Scalar4* d_pos,
-                                            const Scalar4* d_params,
-                                            BoxDim box,
-                                            const group_storage<4>* tlist,
-                                            const unsigned int* dihedral_ABCD,
-                                            const unsigned int pitch,
-                                            const unsigned int* n_dihedrals_list)
+__global__ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
+                                                            Scalar* d_virial,
+                                                            const size_t virial_pitch,
+                                                            const unsigned int N,
+                                                            const Scalar4* d_pos,
+                                                            const Scalar4* d_params,
+                                                            BoxDim box,
+                                                            const group_storage<4>* tlist,
+                                                            const unsigned int* dihedral_ABCD,
+                                                            const unsigned int pitch,
+                                                            const unsigned int* n_dihedrals_list)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -340,16 +342,13 @@ hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
     {
     assert(d_params);
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_compute_harmonic_dihedral_forces_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        if (max_block_size % warp_size)
-            // handle non-sensical return values from hipFuncGetAttributes
-            max_block_size = (max_block_size / warp_size - 1) * warp_size;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_compute_harmonic_dihedral_forces_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
+    if (max_block_size % warp_size)
+        // handle non-sensical return values from hipFuncGetAttributes
+        max_block_size = (max_block_size / warp_size - 1) * warp_size;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -377,3 +376,7 @@ hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

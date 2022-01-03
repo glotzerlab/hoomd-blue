@@ -26,15 +26,14 @@
 #include "UpdaterClustersGPU.h"
 #endif
 
-namespace py = pybind11;
-using namespace hpmc;
-
-using namespace hpmc::detail;
-
+namespace hoomd
+    {
 namespace hpmc
     {
+namespace detail
+    {
 //! Export the base HPMCMono integrators
-void export_polyhedron(py::module& m)
+void export_polyhedron(pybind11::module& m)
     {
     export_IntegratorHPMCMono<ShapePolyhedron>(m, "IntegratorHPMCMonoPolyhedron");
     export_ComputeFreeVolume<ShapePolyhedron>(m, "ComputeFreeVolumePolyhedron");
@@ -56,4 +55,6 @@ void export_polyhedron(py::module& m)
 #endif
     }
 
+    } // namespace detail
     } // namespace hpmc
+    } // namespace hoomd

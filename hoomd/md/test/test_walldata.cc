@@ -14,6 +14,9 @@ HOOMD_UP_MAIN();
 #include <memory>
 #include <vector>
 
+using namespace hoomd;
+using namespace hoomd::md;
+
 UP_TEST(construction)
     {
     // test each geometry definition structure constructors

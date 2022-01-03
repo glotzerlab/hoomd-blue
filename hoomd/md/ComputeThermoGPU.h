@@ -18,6 +18,10 @@
 #ifndef __COMPUTE_THERMO_GPU_H__
 #define __COMPUTE_THERMO_GPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes thermodynamic properties of a group of particles on the GPU
 /*! ComputeThermoGPU is a GPU accelerated implementation of ComputeThermo
     \ingroup computes
@@ -43,7 +47,13 @@ class PYBIND11_EXPORT ComputeThermoGPU : public ComputeThermo
     virtual void computeProperties();
     };
 
+namespace detail
+    {
 //! Exports the ComputeThermoGPU class to python
 void export_ComputeThermoGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

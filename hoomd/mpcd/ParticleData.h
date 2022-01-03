@@ -38,6 +38,8 @@
 // pybind11
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Stores MPCD particle data
@@ -505,6 +507,6 @@ namespace detail
 void export_ParticleData(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_PARTICLE_DATA_H_

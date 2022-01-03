@@ -16,6 +16,12 @@
 #ifndef __HARMONICDIHEDRALFORCEGPU_CUH__
 #define __HARMONICDIHEDRALFORCEGPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver that computes harmonic dihedral forces for HarmonicDihedralForceComputeGPU
 hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                 Scalar* d_virial,
@@ -31,5 +37,9 @@ hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                 unsigned int n_dihedral_types,
                                                 int block_size,
                                                 int warp_size);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

@@ -20,6 +20,10 @@
 #ifndef __HARMONICIMPROPERFORCECOMPUTEGPU_H__
 #define __HARMONICIMPROPERFORCECOMPUTEGPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Implements the harmonic improper force calculation on the GPU
 /*! HarmonicImproperForceComputeGPU implements the same calculations as
    HarmonicImproperForceCompute, but executing on the GPU.
@@ -62,7 +66,13 @@ class PYBIND11_EXPORT HarmonicImproperForceComputeGPU : public HarmonicImproperF
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Export the ImproperForceComputeGPU class to python
 void export_HarmonicImproperForceComputeGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

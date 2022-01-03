@@ -22,6 +22,10 @@
 #ifndef __HARMONICANGLEFORCECOMPUTE_H__
 #define __HARMONICANGLEFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 struct angle_harmonic_params
     {
     Scalar k;
@@ -45,9 +49,9 @@ struct angle_harmonic_params
 #endif
     }
 #ifdef SINGLE_PRECISION
-__attribute__((aligned(8)));
+    __attribute__((aligned(8)));
 #else
-__attribute__((aligned(16)));
+    __attribute__((aligned(16)));
 #endif
 
 //! Computes harmonic angle forces on each particle
@@ -96,7 +100,13 @@ class PYBIND11_EXPORT HarmonicAngleForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the AngleForceCompute class to python
 void export_HarmonicAngleForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

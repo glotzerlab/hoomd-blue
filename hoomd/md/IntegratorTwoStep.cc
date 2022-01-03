@@ -3,21 +3,31 @@
 
 #include "IntegratorTwoStep.h"
 
-namespace py = pybind11;
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
 
 #include <pybind11/stl_bind.h>
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<IntegrationMethodTwoStep>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::md::IntegrationMethodTwoStep>>);
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false), m_aniso_mode(Automatic)
+    : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        m_comm->getComputeCallbackSignal()
+            .connect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
+        }
+#endif
     }
 
 IntegratorTwoStep::~IntegratorTwoStep()
@@ -25,7 +35,7 @@ IntegratorTwoStep::~IntegratorTwoStep()
     m_exec_conf->msg->notice(5) << "Destroying IntegratorTwoStep" << endl;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         m_comm->getComputeCallbackSignal()
             .disconnect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
@@ -52,12 +62,11 @@ void IntegratorTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
 void IntegratorTwoStep::update(uint64_t timestep)
     {
     Integrator::update(timestep);
+
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0)
         {
-        m_exec_conf->msg->warning()
-            << "integrate.mode_standard: No integration methods are set, continuing anyways."
-            << endl;
+        m_exec_conf->msg->warning() << "MD Integrator has no integration methods." << endl;
         m_gave_warning = true;
         }
 
@@ -72,6 +81,7 @@ void IntegratorTwoStep::update(uint64_t timestep)
         {
         // deltaT should probably be passed as an argument, but that would require modifying many
         // files. Work around this by calling setDeltaT every timestep.
+        method->setAnisotropic(m_integrate_rotational_dof);
         method->setDeltaT(m_deltaT);
         method->integrateStepOne(timestep);
         }
@@ -80,7 +90,7 @@ void IntegratorTwoStep::update(uint64_t timestep)
         m_prof->pop();
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // perform all necessary communication steps. This ensures
         // a) that particles have migrated to the correct domains
@@ -220,31 +230,10 @@ Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
     {
     double res = 0;
 
-    bool aniso = false;
-
-    // This is called before prepRun, so we need to determine the anisotropic modes independently
-    // here. It cannot be done earlier, as the integration methods were not in place. set
-    // (an-)isotropic integration mode
-    switch (m_aniso_mode)
+    if (m_integrate_rotational_dof)
         {
-    case Anisotropic:
-        aniso = true;
-        break;
-    case Automatic:
-    default:
-        aniso = getAnisotropic();
-        break;
-        }
-
-    m_exec_conf->msg->notice(8) << "IntegratorTwoStep: Setting anisotropic mode = " << aniso
-                                << std::endl;
-
-    if (aniso)
-        {
-        // loop through all methods
         for (auto& method : m_methods)
             {
-            // dd them all together
             res += method->getRotationalDOF(group);
             }
         }
@@ -252,47 +241,16 @@ Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
     return res;
     }
 
-/*!  \param mode Anisotropic integration mode to set
-     Set the anisotropic integration mode
-*/
-void IntegratorTwoStep::setAnisotropicMode(const std::string& mode)
+/*!  \param integrate_rotational_dofs true to integrate orientations, false to not
+ */
+void IntegratorTwoStep::setIntegrateRotationalDOF(bool integrate_rotational_dof)
     {
-    if (mode == "true")
-        {
-        m_aniso_mode = AnisotropicMode::Anisotropic;
-        }
-    else if (mode == "false")
-        {
-        m_aniso_mode = AnisotropicMode::Isotropic;
-        }
-    else if (mode == "auto")
-        {
-        m_aniso_mode = AnisotropicMode::Automatic;
-        }
-    else
-        {
-        throw std::invalid_argument("Invalid mode string");
-        }
+    m_integrate_rotational_dof = integrate_rotational_dof;
     }
 
-const std::string IntegratorTwoStep::getAnisotropicMode()
+const bool IntegratorTwoStep::getIntegrateRotationalDOF()
     {
-    if (m_aniso_mode == AnisotropicMode::Anisotropic)
-        {
-        return "true";
-        }
-    else if (m_aniso_mode == AnisotropicMode::Isotropic)
-        {
-        return "false";
-        }
-    else if (m_aniso_mode == AnisotropicMode::Automatic)
-        {
-        return "auto";
-        }
-    else
-        {
-        throw std::runtime_error("Invalid anisotropic mode");
-        }
+    return m_integrate_rotational_dof;
     }
 
 /*! Compute accelerations if needed for the first step.
@@ -301,35 +259,25 @@ const std::string IntegratorTwoStep::getAnisotropicMode()
 */
 void IntegratorTwoStep::prepRun(uint64_t timestep)
     {
-    bool aniso = false;
-
-    // set (an-)isotropic integration mode
-    switch (m_aniso_mode)
+    Integrator::prepRun(timestep);
+    if (m_integrate_rotational_dof && !areForcesAnisotropic())
         {
-    case Anisotropic:
-        aniso = true;
-        if (!getAnisotropic())
-            m_exec_conf->msg->warning() << "Forcing anisotropic integration mode"
-                                           " with no forces coupling to orientation"
-                                        << endl;
-        break;
-    case Isotropic:
-        if (getAnisotropic())
-            m_exec_conf->msg->warning() << "Forcing isotropic integration mode"
-                                           " with anisotropic forces defined"
-                                        << endl;
-        break;
-    case Automatic:
-    default:
-        aniso = getAnisotropic();
-        break;
+        m_exec_conf->msg->warning() << "Requested integration of orientations, but no forces"
+                                       " provide torques."
+                                    << endl;
+        }
+    if (!m_integrate_rotational_dof && areForcesAnisotropic())
+        {
+        m_exec_conf->msg->warning() << "Forces provide torques, but integrate_rotational_dof is"
+                                       "false."
+                                    << endl;
         }
 
     for (auto& method : m_methods)
-        method->setAnisotropic(aniso);
+        method->setAnisotropic(m_integrate_rotational_dof);
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // force particle migration and ghost exchange
         m_comm->forceMigrate();
@@ -381,25 +329,6 @@ PDataFlags IntegratorTwoStep::getRequestedPDataFlags()
 
     return flags;
     }
-
-#ifdef ENABLE_MPI
-//! Set the communicator to use
-void IntegratorTwoStep::setCommunicator(std::shared_ptr<Communicator> comm)
-    {
-    // set Communicator in all methods
-    for (auto& method : m_methods)
-        method->setCommunicator(comm);
-
-    if (comm && !m_comm)
-        {
-        // on the first time setting the Communicator, connect our compute callback
-        comm->getComputeCallbackSignal()
-            .connect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
-        }
-
-    Integrator::setCommunicator(comm);
-    }
-#endif
 
 //! Updates the rigid body constituent particles
 void IntegratorTwoStep::updateRigidBodies(uint64_t timestep)
@@ -468,9 +397,9 @@ CommFlags IntegratorTwoStep::determineFlags(uint64_t timestep)
 #endif
 
 /// Check if any forces introduce anisotropic degrees of freedom
-bool IntegratorTwoStep::getAnisotropic()
+bool IntegratorTwoStep::areForcesAnisotropic()
     {
-    auto is_anisotropic = Integrator::getAnisotropic();
+    auto is_anisotropic = Integrator::areForcesAnisotropic();
     if (m_rigid_bodies)
         {
         is_anisotropic |= m_rigid_bodies->isAnisotropic();
@@ -478,19 +407,25 @@ bool IntegratorTwoStep::getAnisotropic()
     return is_anisotropic;
     }
 
-void export_IntegratorTwoStep(py::module& m)
+namespace detail
     {
-    py::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
+void export_IntegratorTwoStep(pybind11::module& m)
+    {
+    pybind11::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
         m,
         "IntegrationMethodList");
 
-    py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
+    pybind11::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
         m,
         "IntegratorTwoStep")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
         .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
-        .def_property("aniso",
-                      &IntegratorTwoStep::getAnisotropicMode,
-                      &IntegratorTwoStep::setAnisotropicMode);
+        .def_property("integrate_rotational_dof",
+                      &IntegratorTwoStep::getIntegrateRotationalDOF,
+                      &IntegratorTwoStep::setIntegrateRotationalDOF);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

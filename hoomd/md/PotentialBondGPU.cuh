@@ -20,6 +20,12 @@
 #ifndef __POTENTIAL_BOND_GPU_CUH__
 #define __POTENTIAL_BOND_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Wraps arguments to gpu_cgbf
 struct bond_args_t
     {
@@ -229,7 +235,6 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
         d_virial[i * virial_pitch + idx] = virial[i];
     }
 
-#include <iostream>
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
 /*! \param bond_args Other arguments to pass onto the kernel
     \param d_params Parameters for the potential, stored per bond type
@@ -239,7 +244,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     This is just a driver function for gpu_compute_bond_forces_kernel(), see it for details.
 */
 template<class evaluator>
-hipError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
+hipError_t gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
                                    const typename evaluator::param_type* d_params,
                                    unsigned int* d_flags)
     {
@@ -249,15 +254,11 @@ hipError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     // check that block_size is valid
     assert(bond_args.block_size != 0);
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(
-            &attr,
-            reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator>));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr,
+                         reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator>));
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(bond_args.block_size, max_block_size);
 
@@ -291,5 +292,9 @@ hipError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     return hipSuccess;
     }
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_BOND_GPU_CUH__

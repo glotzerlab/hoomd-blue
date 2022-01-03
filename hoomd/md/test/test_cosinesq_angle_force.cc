@@ -21,6 +21,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
@@ -76,8 +78,8 @@ void angle_force_basic_tests(angleforce_creator af_creator,
     sysdef_3->getAngleData()->addBondedGroup(Angle(0, 0, 1, 2));
     fc_3->compute(1);
 
-    // this time there should be a force, but it should be 0 because the angle
-    // is equal to the equilibrium angle
+        // this time there should be a force, but it should be 0 because the angle
+        // is equal to the equilibrium angle
         {
         GlobalArray<Scalar4>& force_array_2 = fc_3->getForceArray();
         GlobalArray<Scalar>& virial_array_2 = fc_3->getVirialArray();
@@ -133,7 +135,7 @@ void angle_force_basic_tests(angleforce_creator af_creator,
                        tol);
         }
 
-    // rearrange the two particles in memory and see if they are properly updated
+        // rearrange the two particles in memory and see if they are properly updated
         {
         // first move particles back to their original positions, and reset angle params
         pdata_3->setPosition(0, make_scalar3(0.0, 0.0, 0.0));

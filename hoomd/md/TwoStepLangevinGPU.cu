@@ -16,6 +16,12 @@ using namespace hoomd;
     \brief Defines GPU kernel code for Langevin integration on the GPU. Used by TwoStepLangevinGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Takes the second half-step forward in the Langevin integration on a group of particles with
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
@@ -311,9 +317,9 @@ __global__ void gpu_langevin_angular_step_two_kernel(const Scalar4* d_pos,
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < Scalar(EPSILON));
-            y_zero = (I.y < Scalar(EPSILON));
-            z_zero = (I.z < Scalar(EPSILON));
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             bf_torque.x = rand_x - gamma_r.x * (s.x / I.x);
             bf_torque.y = rand_y - gamma_r.y * (s.y / I.y);
@@ -352,9 +358,9 @@ __global__ void gpu_langevin_angular_step_two_kernel(const Scalar4* d_pos,
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x < Scalar(EPSILON));
-        y_zero = (I.y < Scalar(EPSILON));
-        z_zero = (I.z < Scalar(EPSILON));
+        x_zero = (I.x == 0);
+        y_zero = (I.y == 0);
+        z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
         if (x_zero)
@@ -509,3 +515,7 @@ hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

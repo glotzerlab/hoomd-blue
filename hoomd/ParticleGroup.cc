@@ -17,8 +17,9 @@
 #include <algorithm>
 #include <iostream>
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 /*! \param sysdef System the particles are to be selected from
     \param rigid true selects particles that are in bodies, false selects particles that are not
    part of a body
@@ -754,16 +755,19 @@ void ParticleGroup::rebuildIndexListGPU() const
     // reset membership properties
     if (m_member_tags.getNumElements() > 0)
         {
-        gpu_rebuild_index_list(m_pdata->getN(), d_is_member_tag.data, d_is_member.data, d_tag.data);
+        kernel::gpu_rebuild_index_list(m_pdata->getN(),
+                                       d_is_member_tag.data,
+                                       d_is_member.data,
+                                       d_tag.data);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
-        gpu_compact_index_list(m_pdata->getN(),
-                               d_is_member.data,
-                               d_member_idx.data,
-                               m_num_local_members,
-                               d_tmp.data,
-                               m_pdata->getExecConf()->getCachedAllocator());
+        kernel::gpu_compact_index_list(m_pdata->getN(),
+                                       d_is_member.data,
+                                       d_member_idx.data,
+                                       m_num_local_members,
+                                       d_tmp.data,
+                                       m_pdata->getExecConf()->getCachedAllocator());
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
@@ -889,13 +893,16 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         }
     }
 
-void export_ParticleGroup(py::module& m)
+namespace detail
     {
-    py::class_<ParticleGroup, std::shared_ptr<ParticleGroup>>(m, "ParticleGroup")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>, bool>())
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>>())
-        .def(py::init<std::shared_ptr<SystemDefinition>, const std::vector<unsigned int>&>())
-        .def(py::init<>())
+void export_ParticleGroup(pybind11::module& m)
+    {
+    pybind11::class_<ParticleGroup, std::shared_ptr<ParticleGroup>>(m, "ParticleGroup")
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>, bool>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, const std::vector<unsigned int>&>())
+        .def(pybind11::init<>())
         .def("getNumMembersGlobal", &ParticleGroup::getNumMembersGlobal)
         .def("getMemberTag", &ParticleGroup::getMemberTag)
         .def("getTotalMass", &ParticleGroup::getTotalMass)
@@ -911,3 +918,7 @@ void export_ParticleGroup(py::module& m)
         .def("thermalizeParticleMomenta", &ParticleGroup::thermalizeParticleMomenta)
         .def_property_readonly("member_tags", &ParticleGroup::getMemberTags);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

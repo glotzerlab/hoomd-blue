@@ -13,12 +13,15 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
 
 /*! \file TwoStepNVTMTK.h
     \brief Contains code for the TwoStepNVTMTK class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param thermo compute for thermodynamic quantities
@@ -63,8 +66,7 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
-        m_exec_conf->msg->error() << "integrate.nvt(): Integration group empty." << std::endl;
-        throw std::runtime_error("Error during NVT integration.");
+        throw std::runtime_error("Empty integration group.");
         }
 
     unsigned int group_size = m_group->getNumMembers();
@@ -75,7 +77,7 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
         m_prof->push("NVT step 1");
         }
 
-    // scope array handles for proper releasing before calling the thermo compute
+        // scope array handles for proper releasing before calling the thermo compute
         {
         ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                    access_location::host,
@@ -166,9 +168,9 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -355,9 +357,9 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -406,7 +408,7 @@ void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)
     m_exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * xi * m_deltaT);
 
 #ifdef ENABLE_MPI
-    if (m_comm && broadcast)
+    if (m_sysdef->isDomainDecomposed() && broadcast)
         {
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
@@ -434,7 +436,7 @@ void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)
         eta_rot += xi_prime_rot * m_deltaT;
 
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             // broadcast integrator variables from rank 0 to other processors
             MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
@@ -473,7 +475,7 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
         }
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
@@ -492,7 +494,7 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
             }
 
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             // broadcast integrator variables from rank 0 to other processors
             MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
@@ -587,16 +589,18 @@ Scalar TwoStepNVTMTK::getThermostatEnergy(uint64_t timestep)
     return thermostat_energy;
     }
 
-void export_TwoStepNVTMTK(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK>>(
+void export_TwoStepNVTMTK(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK>>(
         m,
         "TwoStepNVTMTK")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<ComputeThermo>,
-                      Scalar,
-                      std::shared_ptr<Variant>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            std::shared_ptr<Variant>>())
         .def("setT", &TwoStepNVTMTK::setT)
         .def("setTau", &TwoStepNVTMTK::setTau)
         .def_property("kT", &TwoStepNVTMTK::getT, &TwoStepNVTMTK::setT)
@@ -610,3 +614,7 @@ void export_TwoStepNVTMTK(py::module& m)
                       &TwoStepNVTMTK::setRotationalThermostatDOF)
         .def("getThermostatEnergy", &TwoStepNVTMTK::getThermostatEnergy);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

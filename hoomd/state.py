@@ -474,6 +474,11 @@ class State:
             else:
                 group = _hoomd.ParticleGroup(self._cpp_sys_def, filter_)
             self._groups[cls][filter_] = group
+
+            integrator = self._simulation.operations.integrator
+            if integrator is not None and integrator._attached:
+                integrator._cpp_obj.updateGroupDOF(group)
+
             return group
 
     def update_group_dof(self):
@@ -514,10 +519,10 @@ class State:
         local snapshot interface is similar to that of `hoomd.Snapshot`.
 
         The `hoomd.data.LocalSnapshot` data access is mediated through
-        `hoomd.array.HOOMDArray` objects. This lets us ensure memory safety when
-        directly accessing HOOMD-blue's data. The interface provides zero-copy
-        access (zero-copy is guaranteed on CPU, access may be zero-copy if
-        running on GPU).
+        `hoomd.data.array.HOOMDArray` objects. This lets us ensure memory safety
+        when directly accessing HOOMD-blue's data. The interface provides
+        zero-copy access (zero-copy is guaranteed on CPU, access may be
+        zero-copy if running on GPU).
 
         Changing the data in the buffers exposed by the local snapshot will
         change the data across the HOOMD-blue simulation. For a trivial example,
@@ -556,7 +561,7 @@ class State:
         local snapshot interface is similar to that of `hoomd.Snapshot`.
 
         The `hoomd.data.LocalSnapshotGPU` data access is mediated through
-        `hoomd.array.HOOMDGPUArray` objects. This helps us maintain memory
+        `hoomd.data.array.HOOMDGPUArray` objects. This helps us maintain memory
         safety when directly accessing HOOMD-blue's data. The interface provides
         zero-copy access on the GPU (assuming data was last accessed on the
         GPU).

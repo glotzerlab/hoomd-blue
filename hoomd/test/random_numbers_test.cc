@@ -10,6 +10,8 @@
 #include <vector>
 
 #include "hoomd/test/upp11_config.h"
+using namespace hoomd;
+
 HOOMD_UP_MAIN()
 
 //! Test case for SpherePointGenerator

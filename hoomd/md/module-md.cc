@@ -105,53 +105,58 @@
 #endif
 
 #include <pybind11/pybind11.h>
-namespace py = pybind11;
+
+using namespace hoomd;
+using namespace hoomd::md;
+using namespace hoomd::md::detail;
 
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
 //! Helper function for converting python wall group structure to wall_type
-wall_type make_wall_field_params(py::object walls,
+wall_type make_wall_field_params(pybind11::object walls,
                                  std::shared_ptr<const ExecutionConfiguration> m_exec_conf)
     {
     wall_type w;
-    py::list walls_spheres = walls.attr("spheres").cast<py::list>();
-    py::list walls_cylinders = walls.attr("cylinders").cast<py::list>();
-    py::list walls_planes = walls.attr("planes").cast<py::list>();
-    w.numSpheres = (unsigned int)py::len(walls_spheres);
-    w.numCylinders = (unsigned int)py::len(walls_cylinders);
-    w.numPlanes = (unsigned int)py::len(walls_planes);
+    pybind11::list walls_spheres = walls.attr("spheres").cast<pybind11::list>();
+    pybind11::list walls_cylinders = walls.attr("cylinders").cast<pybind11::list>();
+    pybind11::list walls_planes = walls.attr("planes").cast<pybind11::list>();
+    w.numSpheres = (unsigned int)pybind11::len(walls_spheres);
+    w.numCylinders = (unsigned int)pybind11::len(walls_cylinders);
+    w.numPlanes = (unsigned int)pybind11::len(walls_planes);
 
     if (w.numSpheres > MAX_N_SWALLS || w.numCylinders > MAX_N_CWALLS || w.numPlanes > MAX_N_PWALLS)
         {
-        m_exec_conf->msg->error() << "A number of walls greater than the maximum number allowed "
-                                     "was specified in a wall force."
-                                  << std::endl;
-        throw std::runtime_error("Error loading wall group.");
+        throw std::runtime_error("Too many walls.");
         }
     else
         {
         for (unsigned int i = 0; i < w.numSpheres; i++)
             {
-            Scalar r = py::cast<Scalar>(py::object(walls_spheres[i]).attr("r"));
-            Scalar3 origin = py::cast<Scalar3>(py::object(walls_spheres[i]).attr("_origin"));
-            bool inside = py::cast<bool>(py::object(walls_spheres[i]).attr("inside"));
+            Scalar r = pybind11::cast<Scalar>(pybind11::object(walls_spheres[i]).attr("r"));
+            Scalar3 origin
+                = pybind11::cast<Scalar3>(pybind11::object(walls_spheres[i]).attr("_origin"));
+            bool inside = pybind11::cast<bool>(pybind11::object(walls_spheres[i]).attr("inside"));
             w.Spheres[i] = SphereWall(r, origin, inside);
             }
         for (unsigned int i = 0; i < w.numCylinders; i++)
             {
-            Scalar r = py::cast<Scalar>(py::object(walls_cylinders[i]).attr("r"));
-            Scalar3 origin = py::cast<Scalar3>(py::object(walls_cylinders[i]).attr("_origin"));
-            Scalar3 axis = py::cast<Scalar3>(py::object(walls_cylinders[i]).attr("_axis"));
-            bool inside = py::cast<bool>(py::object(walls_cylinders[i]).attr("inside"));
+            Scalar r = pybind11::cast<Scalar>(pybind11::object(walls_cylinders[i]).attr("r"));
+            Scalar3 origin
+                = pybind11::cast<Scalar3>(pybind11::object(walls_cylinders[i]).attr("_origin"));
+            Scalar3 axis
+                = pybind11::cast<Scalar3>(pybind11::object(walls_cylinders[i]).attr("_axis"));
+            bool inside = pybind11::cast<bool>(pybind11::object(walls_cylinders[i]).attr("inside"));
             w.Cylinders[i] = CylinderWall(r, origin, axis, inside);
             }
         for (unsigned int i = 0; i < w.numPlanes; i++)
             {
-            Scalar3 origin = py::cast<Scalar3>(py::object(walls_planes[i]).attr("_origin"));
-            Scalar3 normal = py::cast<Scalar3>(py::object(walls_planes[i]).attr("_normal"));
-            bool inside = py::cast<bool>(py::object(walls_planes[i]).attr("inside"));
+            Scalar3 origin
+                = pybind11::cast<Scalar3>(pybind11::object(walls_planes[i]).attr("_origin"));
+            Scalar3 normal
+                = pybind11::cast<Scalar3>(pybind11::object(walls_planes[i]).attr("_normal"));
+            bool inside = pybind11::cast<bool>(pybind11::object(walls_planes[i]).attr("inside"));
             w.Planes[i] = PlaneWall(origin, normal, inside);
             }
         return w;
@@ -159,13 +164,13 @@ wall_type make_wall_field_params(py::object walls,
     }
 
 //! Exports helper function for parameters based on standard evaluators
-template<class evaluator> void export_wall_params_helpers(py::module& m)
+template<class evaluator> void export_wall_params_helpers(pybind11::module& m)
     {
-    py::class_<typename EvaluatorWalls<evaluator>::param_type,
-               std::shared_ptr<typename EvaluatorWalls<evaluator>::param_type>>(
+    pybind11::class_<typename EvaluatorWalls<evaluator>::param_type,
+                     std::shared_ptr<typename EvaluatorWalls<evaluator>::param_type>>(
         m,
         (EvaluatorWalls<evaluator>::getName() + "_params").c_str())
-        .def(py::init<>())
+        .def(pybind11::init<>())
         .def_readwrite("params", &EvaluatorWalls<evaluator>::param_type::params)
         .def_readwrite("rextrap", &EvaluatorWalls<evaluator>::param_type::rextrap)
         .def_readwrite("rcutsq", &EvaluatorWalls<evaluator>::param_type::rcutsq);
@@ -174,7 +179,8 @@ template<class evaluator> void export_wall_params_helpers(py::module& m)
     }
 
 //! Combines exports of evaluators and parameter helper functions
-template<class evaluator> void export_PotentialExternalWall(py::module& m, const std::string& name)
+template<class evaluator>
+void export_PotentialExternalWall(pybind11::module& m, const std::string& name)
     {
     export_PotentialExternal<PotentialExternal<EvaluatorWalls<evaluator>>>(m, name);
     export_wall_params_helpers<evaluator>(m);
@@ -185,8 +191,8 @@ template<class evaluator> void export_PotentialExternalWall(py::module& m, const
 // when the default behavior exposes setting and getting the shape through
 // 'shape'.
 template<>
-void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
-                                                         const std::string& name)
+void hoomd::md::detail::export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
+                                                                            const std::string& name)
     {
     pybind11::
         class_<AnisoPotentialPairDipole, ForceCompute, std::shared_ptr<AnisoPotentialPairDipole>>
@@ -211,8 +217,9 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
 // Electric field only has one parameter, so we can get its parameter from
 // python with by a name other than getParams and setParams
 template<>
-void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& m,
-                                                              const std::string& name)
+void hoomd::md::detail::export_PotentialExternal<PotentialExternalElectricField>(
+    pybind11::module& m,
+    const std::string& name)
     {
     pybind11::class_<PotentialExternalElectricField,
                      ForceCompute,
@@ -299,7 +306,7 @@ PYBIND11_MODULE(_md, m)
     export_ForceDistanceConstraint(m);
     export_ForceComposite(m);
     export_PPPMForceCompute(m);
-    py::class_<wall_type, std::shared_ptr<wall_type>>(m, "wall_type").def(py::init<>());
+    pybind11::class_<wall_type, std::shared_ptr<wall_type>>(m, "wall_type").def(pybind11::init<>());
     m.def("make_wall_field_params", &make_wall_field_params);
     export_PotentialExternal<PotentialExternalPeriodic>(m, "PotentialExternalPeriodic");
     export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");

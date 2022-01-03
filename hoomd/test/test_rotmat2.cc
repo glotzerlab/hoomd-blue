@@ -17,6 +17,8 @@ HOOMD_UP_MAIN();
 
 #include "hoomd/VectorMath.h"
 
+using namespace hoomd;
+
 UP_TEST(construction)
     {
     // test each constructor separately

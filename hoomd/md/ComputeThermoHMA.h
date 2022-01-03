@@ -24,6 +24,10 @@
 #ifndef __COMPUTE_THERMO_HMA_H__
 #define __COMPUTE_THERMO_HMA_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes thermodynamic properties of a group of particles
 /*! ComputeThermoHMA calculates instantaneous thermodynamic properties and provides them for Python.
     All computed values are stored in a GPUArray so that they can be accessed on the GPU without
@@ -154,9 +158,15 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
     GlobalArray<Scalar3> m_lattice_site;
     };
 
+namespace detail
+    {
 //! Exports the ComputeThermoHMA class to python
 #ifndef NVCC
 void export_ComputeThermoHMA(pybind11::module& m);
 #endif
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

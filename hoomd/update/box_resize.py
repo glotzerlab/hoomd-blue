@@ -108,6 +108,4 @@ class BoxResize(Updater):
         group = state._get_group(filter)
         updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def, state.box, box,
                                           Constant(1), group)
-        if state._simulation._system_communicator is not None:
-            updater.setCommunicator(state._simulation._system_communicator)
         updater.update(state._simulation.timestep)

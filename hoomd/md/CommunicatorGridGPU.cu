@@ -17,6 +17,12 @@ __device__ inline hipfftComplex operator+(hipfftComplex& lhs, const hipfftComple
     return res;
     }
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 template<typename T>
 __global__ void gpu_gridcomm_scatter_send_cells_kernel(unsigned int n_send_cells,
                                                        unsigned int* d_send_idx,
@@ -176,3 +182,7 @@ gpu_gridcomm_scatter_add_recv_cells<unsigned int>(unsigned int n_unique_recv_cel
                                                   const unsigned int* d_cell_recv_end,
                                                   const unsigned int* d_recv_idx,
                                                   bool add_outer);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

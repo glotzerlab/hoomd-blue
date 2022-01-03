@@ -17,11 +17,6 @@
 #ifndef __SYSTEM_H__
 #define __SYSTEM_H__
 
-#ifdef ENABLE_MPI
-//! Forward declarations
-class Communicator;
-#endif
-
 /*! \file System.h
     \brief Declares the System class and associated helper classes
 */
@@ -31,6 +26,13 @@ class Communicator;
 #endif
 
 #include <pybind11/pybind11.h>
+
+namespace hoomd
+    {
+#ifdef ENABLE_MPI
+//! Forward declarations
+class Communicator;
+#endif
 
 //! Ties Analyzers, Updaters, and Computes together to run a full MD simulation
 /*! The System class is responsible for making all the time steps in an MD simulation.
@@ -78,12 +80,6 @@ class PYBIND11_EXPORT System
 
     //! Sets the communicator
     void setCommunicator(std::shared_ptr<Communicator> comm);
-
-    //! Returns the communicator
-    std::shared_ptr<Communicator> getCommunicator()
-        {
-        return m_comm;
-        }
 #endif
 
     // -------------- Methods for running the simulation
@@ -187,8 +183,10 @@ class PYBIND11_EXPORT System
     std::shared_ptr<Profiler> m_profiler;       //!< Profiler to profile runs
 
 #ifdef ENABLE_MPI
-    std::shared_ptr<Communicator> m_comm; //!< Communicator to use
+    /// The system's communicator.
+    std::shared_ptr<Communicator> m_comm;
 #endif
+
     uint64_t m_start_tstep; //!< Initial time step of the current run
     uint64_t m_end_tstep;   //!< Final time step of the current run
     uint64_t m_cur_tstep;   //!< Current time step
@@ -226,7 +224,13 @@ class PYBIND11_EXPORT System
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
+namespace detail
+    {
 //! Exports the System class to python
 void export_System(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

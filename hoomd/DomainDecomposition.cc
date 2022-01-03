@@ -21,8 +21,9 @@
 #include <numeric>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 //! Constructor
 /*! The constructor performs a spatial domain decomposition of the simulation box of processor with
  * rank \b exec_conf->getMPIroot(). The domain dimensions are distributed on the other processors.
@@ -713,21 +714,28 @@ void DomainDecomposition::initializeTwoLevel()
         }
     }
 
-//! Export DomainDecomposition class to python
-void export_DomainDecomposition(py::module& m)
+namespace detail
     {
-    py::class_<DomainDecomposition, std::shared_ptr<DomainDecomposition>>(m, "DomainDecomposition")
-        .def(py::init<std::shared_ptr<ExecutionConfiguration>,
-                      Scalar3,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      bool>())
-        .def(py::init<std::shared_ptr<ExecutionConfiguration>,
-                      Scalar3,
-                      const std::vector<Scalar>&,
-                      const std::vector<Scalar>&,
-                      const std::vector<Scalar>&>())
+//! Export DomainDecomposition class to python
+void export_DomainDecomposition(pybind11::module& m)
+    {
+    pybind11::class_<DomainDecomposition, std::shared_ptr<DomainDecomposition>>(
+        m,
+        "DomainDecomposition")
+        .def(pybind11::init<std::shared_ptr<ExecutionConfiguration>,
+                            Scalar3,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            bool>())
+        .def(pybind11::init<std::shared_ptr<ExecutionConfiguration>,
+                            Scalar3,
+                            const std::vector<Scalar>&,
+                            const std::vector<Scalar>&,
+                            const std::vector<Scalar>&>())
         .def("getCumulativeFractions", &DomainDecomposition::getCumulativeFractions);
     }
+    } // end namespace detail
+
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

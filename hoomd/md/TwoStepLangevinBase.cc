@@ -7,9 +7,12 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /** @param sysdef SystemDefinition this method will act on. Must not be NULL.
     @param group The group of particles this integration method is to work on
     @param T Temperature set point as a function of time
@@ -141,14 +144,16 @@ pybind11::object TwoStepLangevinBase::getAlpha()
     return result;
     }
 
-void export_TwoStepLangevinBase(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepLangevinBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepLangevinBase>>(
-        m,
-        "TwoStepLangevinBase")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>>())
+void export_TwoStepLangevinBase(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepLangevinBase,
+                     IntegrationMethodTwoStep,
+                     std::shared_ptr<TwoStepLangevinBase>>(m, "TwoStepLangevinBase")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>>())
         .def_property("kT", &TwoStepLangevinBase::getT, &TwoStepLangevinBase::setT)
         .def("setGamma", &TwoStepLangevinBase::setGamma)
         .def("getGamma", &TwoStepLangevinBase::getGamma)
@@ -156,3 +161,6 @@ void export_TwoStepLangevinBase(py::module& m)
         .def("getGammaR", &TwoStepLangevinBase::getGammaR)
         .def_property("alpha", &TwoStepLangevinBase::getAlpha, &TwoStepLangevinBase::setAlpha);
     }
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

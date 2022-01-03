@@ -36,6 +36,8 @@
             }                                                                \
         }
 
+namespace hoomd
+    {
 //! CachedAllocator: a simple allocator for caching allocation requests
 class __attribute__((visibility("default"))) CachedAllocator
     {
@@ -245,6 +247,8 @@ template<typename T> ScopedAllocation<T>::~ScopedAllocation()
     {
     m_alloc.deallocate((char*)data);
     }
+
+    } // end namespace hoomd
 
 #undef CHECK_CUDA
 #endif // ENABLE_HIP

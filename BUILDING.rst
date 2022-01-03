@@ -31,7 +31,7 @@ To build the documentation from source (optional):
 
 .. note::
 
-   `nbsphinx` requires `pandoc>=1.12.1`, which you may need to install separately.
+   ``nbsphinx`` requires ``pandoc>=1.12.1``, which you may need to install separately.
 
 2. `Build the documentation`_::
 
@@ -45,7 +45,7 @@ Install prerequisites
 ---------------------
 
 **HOOMD-blue** requires a number of tools and libraries to build. The options ``ENABLE_MPI``,
-``ENABLE_GPU``, ``ENABLE_TBB``, and ``BUILD_JIT`` each require additional libraries when enabled.
+``ENABLE_GPU``, ``ENABLE_TBB``, and ``ENABLE_LLVM`` each require additional libraries when enabled.
 
 .. note::
 
@@ -74,7 +74,7 @@ Install prerequisites
 
 **General requirements:**
 
-- C++14 capable compiler (tested with ``gcc`` 7, 8, 9, 10, 11 / ``clang`` 6, 7, 8, 9, 10, 11)
+- C++14 capable compiler (tested with ``gcc`` 7, 8, 9, 10, 11 / ``clang`` 6, 7, 8, 9, 10, 11, 12, 13)
 - Python >= 3.6
 - NumPy >= 1.7
 - pybind11 >= 2.2
@@ -106,16 +106,16 @@ Install prerequisites
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
    1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-   2. The `mpcd` component is disabled on AMD GPUs.
+   2. The ``mpcd`` component is disabled on AMD GPUs.
    3. Multi-GPU execution via unified memory is not available.
 
 **For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):
 
 - Intel Threading Building Blocks >= 4.3
 
-**For runtime code generation** (required when ``BUILD_JIT=on``):
+**For runtime code generation** (required when ``ENABLE_LLVM=on``):
 
-- LLVM >= 6.0
+- LLVM >= 10.0, < 13
 
 **To build the documentation:**
 

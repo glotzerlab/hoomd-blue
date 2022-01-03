@@ -30,6 +30,12 @@ const int gpu_aniso_pair_force_max_tpp = 32;
 const int gpu_aniso_pair_force_max_tpp = 64;
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Wraps arguments to gpu_cgpf
 struct a_pair_args_t
     {
@@ -48,7 +54,7 @@ struct a_pair_args_t
                   const BoxDim& _box,
                   const unsigned int* _d_n_neigh,
                   const unsigned int* _d_nlist,
-                  const unsigned int* _d_head_list,
+                  const size_t* _d_head_list,
                   const Scalar* _d_rcutsq,
                   const unsigned int _ntypes,
                   const unsigned int _block_size,
@@ -81,12 +87,11 @@ struct a_pair_args_t
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
-    const unsigned int*
-        d_head_list;               //!< Device array listing beginning of each particle's neighbors
-    const Scalar* d_rcutsq;        //!< Device array listing r_cut squared per particle type pair
-    const unsigned int ntypes;     //!< Number of particle types in the simulation
-    const unsigned int block_size; //!< Block size to execute
-    const unsigned int shift_mode; //!< The potential energy shift mode
+    const size_t* d_head_list;   //!< Device array listing beginning of each particle's neighbors
+    const Scalar* d_rcutsq;      //!< Device array listing r_cut squared per particle type pair
+    const unsigned int ntypes;   //!< Number of particle types in the simulation
+    const unsigned int block_size;           //!< Block size to execute
+    const unsigned int shift_mode;           //!< The potential energy shift mode
     const unsigned int compute_virial;       //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads to launch per particle
     const GPUPartition& gpu_partition; //!< The load balancing partition of particles between GPUs
@@ -152,7 +157,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                                      const BoxDim box,
                                      const unsigned int* d_n_neigh,
                                      const unsigned int* d_nlist,
-                                     const unsigned int* d_head_list,
+                                     const size_t* d_head_list,
                                      const typename evaluator::param_type* d_params,
                                      const typename evaluator::shape_type* d_shape_params,
                                      const Scalar* d_rcutsq,
@@ -252,7 +257,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
         if (evaluator::needsCharge())
             qi = __ldg(d_charge + idx);
 
-        unsigned int my_head = d_head_list[idx];
+        size_t my_head = d_head_list[idx];
         unsigned int cur_j = 0;
 
         unsigned int next_j(0);
@@ -432,46 +437,36 @@ struct AnisoPairForceComputeKernel
                                       * typpair_idx.getNumElements()
                                   + sizeof(typename evaluator::shape_type) * pair_args.ntypes;
 
-            static unsigned int max_block_size = UINT_MAX;
+            unsigned int max_block_size;
             hipFuncAttributes attr;
-            if (max_block_size == UINT_MAX)
-                {
-                hipFuncGetAttributes(&attr,
-                                     reinterpret_cast<const void*>(
-                                         &gpu_compute_pair_aniso_forces_kernel<evaluator,
-                                                                               shift_mode,
-                                                                               compute_virial,
-                                                                               tpp>));
-                int max_threads = attr.maxThreadsPerBlock;
-                // number of threads has to be multiple of warp size
-                max_block_size = max_threads - max_threads % gpu_aniso_pair_force_max_tpp;
-                }
+            hipFuncGetAttributes(
+                &attr,
+                reinterpret_cast<const void*>(&gpu_compute_pair_aniso_forces_kernel<evaluator,
+                                                                                    shift_mode,
+                                                                                    compute_virial,
+                                                                                    tpp>));
+            int max_threads = attr.maxThreadsPerBlock;
+            // number of threads has to be multiple of warp size
+            max_block_size = max_threads - max_threads % gpu_aniso_pair_force_max_tpp;
 
-            static unsigned int base_shared_bytes = UINT_MAX;
-            bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
+            unsigned int base_shared_bytes;
             base_shared_bytes = (unsigned int)(shared_bytes + attr.sharedSizeBytes);
 
             unsigned int max_extra_bytes
                 = (unsigned int)(pair_args.devprop.sharedMemPerBlock - base_shared_bytes);
-            static unsigned int extra_bytes = UINT_MAX;
-            if (extra_bytes == UINT_MAX || pair_args.update_shape_param || shared_bytes_changed)
+            unsigned int extra_bytes;
+            // determine dynamically requested shared memory
+            char* ptr = (char*)nullptr;
+            unsigned int available_bytes = max_extra_bytes;
+            for (unsigned int i = 0; i < typpair_idx.getNumElements(); ++i)
                 {
-                // required for memory coherency
-                hipDeviceSynchronize();
-
-                // determine dynamically requested shared memory
-                char* ptr = (char*)nullptr;
-                unsigned int available_bytes = max_extra_bytes;
-                for (unsigned int i = 0; i < typpair_idx.getNumElements(); ++i)
-                    {
-                    params[i].allocate_shared(ptr, available_bytes);
-                    }
-                for (unsigned int i = 0; i < pair_args.ntypes; ++i)
-                    {
-                    shape_params[i].allocate_shared(ptr, available_bytes);
-                    }
-                extra_bytes = max_extra_bytes - available_bytes;
+                params[i].load_shared(ptr, available_bytes);
                 }
+            for (unsigned int i = 0; i < pair_args.ntypes; ++i)
+                {
+                shape_params[i].load_shared(ptr, available_bytes);
+                }
+            extra_bytes = max_extra_bytes - available_bytes;
 
             shared_bytes += extra_bytes;
 
@@ -606,5 +601,9 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
     return hipSuccess;
     }
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __ANISO_POTENTIAL_PAIR_GPU_CUH__

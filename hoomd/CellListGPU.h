@@ -19,6 +19,8 @@
 #ifndef __CELLLISTGPU_H__
 #define __CELLLISTGPU_H__
 
+namespace hoomd
+    {
 //! Computes a cell list from the particles in the system on the GPU
 /*! Calls GPU functions in CellListGPU.cuh and CellListGPU.cu
     \sa CellList
@@ -96,7 +98,11 @@ class PYBIND11_EXPORT CellListGPU : public CellList
         m_tuner_combine; //!< Autotuner for block size of combine cell lists kernel
     };
 
+namespace detail
+    {
 //! Exports CellListGPU to python
 void export_CellListGPU(pybind11::module& m);
+    } // end namespace detail
 
+    } // end namespace hoomd
 #endif

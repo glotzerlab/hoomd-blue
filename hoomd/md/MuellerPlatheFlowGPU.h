@@ -24,6 +24,10 @@
 #ifndef __MUELLER_PLATHE_FLOW_GPU_H__
 #define __MUELLER_PLATHE_FLOW_GPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! By exchanging velocities based on their spatial position a flow is created. GPU accelerated
 /*! \ingroup computes
  */
@@ -69,8 +73,14 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     virtual void updateMinMaxVelocity(void);
     };
 
+namespace detail
+    {
 //! Exports the MuellerPlatheFlow class to python
 void export_MuellerPlatheFlowGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __HIPCC__
 #endif //__MUELLER_PLATHE_FLOW_GPU_H__

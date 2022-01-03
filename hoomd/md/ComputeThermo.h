@@ -24,6 +24,10 @@
 #ifndef __COMPUTE_THERMO_H__
 #define __COMPUTE_THERMO_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes thermodynamic properties of a group of particles
 /*! ComputeThermo calculates instantaneous thermodynamic properties and provides them in Python.
     All computed values are stored in a GlobalArray so that they can be accessed on the GPU without
@@ -345,9 +349,15 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
 #endif
     };
 
+namespace detail
+    {
 //! Exports the ComputeThermo class to python
 #ifndef __HIPCC__
 void export_ComputeThermo(pybind11::module& m);
 #endif
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

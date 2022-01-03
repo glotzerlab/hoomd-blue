@@ -23,6 +23,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file pppm_force_test.cc
     \brief Implements unit tests for PPPMForceCompute and PPPMForceComputeGPU and descendants

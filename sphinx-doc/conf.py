@@ -13,11 +13,6 @@ sys.path.insert(0, os.path.abspath('..'))
 
 os.environ['SPHINX'] = '1'
 
-# TEMPORARY
-# TODO: remove this when 3.0 is closer to completion
-# stop warning about invalid references
-suppress_warnings = ['ref.any']
-
 extensions = [
     'nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary',
     'sphinx.ext.napoleon', 'sphinx.ext.intersphinx', 'sphinx.ext.mathjax',
@@ -41,7 +36,7 @@ autodoc_mock_imports = [
     'hoomd.mpcd._mpcd',
     'hoomd.dem._dem',
     'hoomd.minimize._minimize',
-    'hoomd.jit._jit',
+    'hoomd.hpmc._jit',
     'hoomd.hpmc._hpmc',
 ]
 
@@ -56,8 +51,8 @@ project = 'HOOMD-blue'
 copyright = '2009-2021 The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.0.0-beta.9'
-release = '3.0.0-beta.9'
+version = '3.0.0-beta.12'
+release = '3.0.0-beta.12'
 
 language = None
 

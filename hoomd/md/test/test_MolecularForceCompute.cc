@@ -11,6 +11,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file test_MolecularForceCompute.cc
     \brief Implements unit tests for MolecularForceCompute on CPU and GPU

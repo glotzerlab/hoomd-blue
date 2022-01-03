@@ -7,6 +7,12 @@
 
 #include "ManifoldSphere.h"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 template hipError_t
 gpu_rattle_brownian_step_one<ManifoldSphere>(Scalar4* d_pos,
                                              int3* d_image,
@@ -87,3 +93,7 @@ template hipError_t gpu_include_rattle_force_nve<ManifoldSphere>(const Scalar4* 
                                                                  Scalar deltaT,
                                                                  bool zero_force,
                                                                  unsigned int block_size);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

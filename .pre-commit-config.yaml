@@ -1,6 +1,5 @@
 ci:
   autoupdate_schedule: quarterly
-  skip: [clang-format]
 
 exclude: (?:^hoomd/extern/)
 
@@ -45,20 +44,16 @@ repos:
       (?x)(
         ^hoomd/md/wall.py|
         ^hoomd/md/impropers.py|
-        ^hoomd/hpmc/analyze.py|
-        ^hoomd/hpmc/field.py|
         ^hoomd/extern/|
         ^hoomd/mpcd/|
         ^hoomd/dem/|
-        ^hoomd/jit/|
-        ^hoomd/metal/|
-        ^doc/dev/
+        ^hoomd/metal/
       )
-- repo: https://github.com/glotzerlab/pre-commit-clang-format
-  rev: v1.1.0
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  rev: v13.0.0
   hooks:
   - id: clang-format
-    stages: [manual]
+    types_or: [c, c++, cuda, inc]
     exclude: |
       (?x)(
         ^CMake/|

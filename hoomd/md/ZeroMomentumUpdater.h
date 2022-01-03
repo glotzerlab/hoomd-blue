@@ -20,6 +20,10 @@
 #ifndef __ZEROMOMENTUMUPDATER_H__
 #define __ZEROMOMENTUMUPDATER_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Updates particle velocities to zero the momentum
 /*! This simple updater just calculate the linear momentum of the system and subtracts it from every
    particle to zero it.
@@ -37,7 +41,13 @@ class PYBIND11_EXPORT ZeroMomentumUpdater : public Updater
     virtual void update(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Export the ZeroMomentumUpdater to python
 void export_ZeroMomentumUpdater(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

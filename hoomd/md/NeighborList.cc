@@ -10,8 +10,6 @@
 #include "NeighborList.h"
 #include "hoomd/BondedGroupData.h"
 
-namespace py = pybind11;
-
 #include <iostream>
 #include <stdexcept>
 
@@ -21,6 +19,10 @@ using namespace std;
     \brief Defines the NeighborList class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System the neighborlist is to compute neighbors for
     \param _r_cut Cutoff radius for all pairs under which particles are considered neighbors
     \param r_buff Buffer radius around \a r_cut in which neighbors will be included
@@ -41,8 +43,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     // r_buff must be non-negative or it is not physical
     if (m_r_buff < 0.0)
         {
-        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
-        throw runtime_error("Error initializing NeighborList");
+        throw runtime_error("Requested buffer radius is less than zero.");
         }
 
     // initialize values
@@ -118,7 +119,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     TAG_ALLOCATION(m_nlist);
 
     // allocate head list indexer
-    GlobalArray<unsigned int> head_list(m_pdata->getMaxN(), m_exec_conf);
+    GlobalArray<size_t> head_list(m_pdata->getMaxN(), m_exec_conf);
     m_head_list.swap(head_list);
     TAG_ALLOCATION(m_head_list);
 
@@ -127,7 +128,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_Nmax.swap(Nmax);
     TAG_ALLOCATION(m_Nmax);
 
-    // flood Nmax with 4s initially
+        // flood Nmax with 4s initially
         {
         ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::overwrite);
         for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
@@ -249,6 +250,21 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     if (m_exec_conf->isCUDAEnabled())
         m_last_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
 #endif
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+
+        m_comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
+        m_comm->getCommFlagsRequestSignal()
+            .connect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
+        m_comm->getGhostLayerWidthRequestSignal()
+            .connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
+        }
+#endif
     }
 
 void NeighborList::reallocate()
@@ -314,7 +330,7 @@ NeighborList::~NeighborList()
         .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         m_comm->getMigrateSignal().disconnect<NeighborList, &NeighborList::peekUpdate>(this);
         m_comm->getCommFlagsRequestSignal()
@@ -448,8 +464,7 @@ void NeighborList::setRBuff(Scalar r_buff)
     m_r_buff = r_buff;
     if (m_r_buff < 0.0)
         {
-        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
-        throw runtime_error("Error changing NeighborList parameters");
+        throw runtime_error("Requested buffer radius is less than zero.");
         }
     notifyRCutMatrixChange();
     forceUpdate();
@@ -1086,20 +1101,17 @@ void NeighborList::addOneThreeExclusionsFromTopology()
 
         if (nBondsA >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagA << ".";
+            s << "Compile time maximum set to: " << MAXNBONDS - 1 << endl;
+            throw runtime_error(s.str());
             }
 
         if (nBondsB >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagB << ".";
+            throw runtime_error(s.str());
             }
 
         localBondList[tagA * MAXNBONDS + nBondsA] = tagB;
@@ -1170,20 +1182,16 @@ void NeighborList::addOneFourExclusionsFromTopology()
 
         if (nBondsA >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagA << ".";
+            throw runtime_error(s.str());
             }
 
         if (nBondsB >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagB << ".";
+            throw runtime_error(s.str());
             }
 
         localBondList[tagA * MAXNBONDS + nBondsA] = tagB;
@@ -1468,8 +1476,7 @@ unsigned int NeighborList::getSmallestRebuild()
  */
 void NeighborList::buildNlist(uint64_t timestep)
     {
-    m_exec_conf->msg->error() << "nlist: O(N^2) neighbor lists are no longer supported." << endl;
-    throw runtime_error("Error updating neighborlist bins");
+    throw runtime_error("Not implemented.");
     }
 
 /*! Translates the exclusions set in \c m_n_ex_tag and \c m_ex_list_tag to indices in \c m_n_ex_idx
@@ -1528,7 +1535,7 @@ void NeighborList::filterNlist()
         m_prof->push("filter");
 
     // access data
-    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_ex_list_idx(m_ex_list_idx,
                                             access_location::host,
@@ -1539,7 +1546,7 @@ void NeighborList::filterNlist()
     // for each particle's neighbor list
     for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
         {
-        unsigned int myHead = h_head_list.data[idx];
+        size_t myHead = h_head_list.data[idx];
         unsigned int n_neigh = h_n_neigh.data[idx];
         unsigned int n_ex = h_n_ex_idx.data[idx];
         unsigned int new_n_neigh = 0;
@@ -1588,11 +1595,9 @@ void NeighborList::buildHeadList()
     if (m_prof)
         m_prof->push("head-list");
 
-    unsigned int headAddress = 0;
+    size_t headAddress = 0;
         {
-        ArrayHandle<unsigned int> h_head_list(m_head_list,
-                                              access_location::host,
-                                              access_mode::overwrite);
+        ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::read);
@@ -1690,23 +1695,6 @@ void NeighborList::growExclusionList()
     }
 
 #ifdef ENABLE_MPI
-//! Set the communicator to use
-void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
-    {
-    if (!m_comm)
-        {
-        // only add the migrate request on the first call
-        assert(comm);
-        comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
-        comm->getCommFlagsRequestSignal()
-            .connect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
-        comm->getGhostLayerWidthRequestSignal()
-            .connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
-        }
-
-    Compute::setCommunicator(comm);
-    }
-
 //! Returns true if the particle migration criterion is fulfilled
 /*! \note The criterion for when to request particle migration is the same as the one for neighbor
    list rebuilds, which is implemented in needsUpdating().
@@ -1739,17 +1727,15 @@ void NeighborList::updateMemoryMapping()
         // stash this partition for the future, so we can unset hints again
         m_last_gpu_partition = gpu_partition;
 
-        // split preferred location of neighbor list across GPUs
+            // split preferred location of neighbor list across GPUs
             {
-            ArrayHandle<unsigned int> h_head_list(m_head_list,
-                                                  access_location::host,
-                                                  access_mode::read);
+            ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
 
             for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
                 {
                 auto range = gpu_partition.getRange(idev);
 
-                unsigned int start = h_head_list.data[range.first];
+                size_t start = h_head_list.data[range.first];
                 unsigned int end = (range.second == m_pdata->getN())
                                        ? m_nlist.getNumElements()
                                        : h_head_list.data[range.second];
@@ -1774,7 +1760,7 @@ void NeighborList::updateMemoryMapping()
                 continue;
 
             cudaMemAdvise(m_head_list.get() + range.first,
-                          sizeof(unsigned int) * nelem,
+                          sizeof(size_t) * nelem,
                           cudaMemAdviseSetPreferredLocation,
                           gpu_map[idev]);
             cudaMemAdvise(m_n_neigh.get() + range.first,
@@ -1788,7 +1774,7 @@ void NeighborList::updateMemoryMapping()
 
             // pin to that device by prefetching
             cudaMemPrefetchAsync(m_head_list.get() + range.first,
-                                 sizeof(unsigned int) * nelem,
+                                 sizeof(size_t) * nelem,
                                  gpu_map[idev]);
             cudaMemPrefetchAsync(m_n_neigh.get() + range.first,
                                  sizeof(unsigned int) * nelem,
@@ -1803,10 +1789,12 @@ void NeighborList::updateMemoryMapping()
     }
 #endif
 
-void export_NeighborList(py::module& m)
+namespace detail
     {
-    py::class_<NeighborList, Compute, std::shared_ptr<NeighborList>> nlist(m, "NeighborList");
-    nlist.def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+void export_NeighborList(pybind11::module& m)
+    {
+    pybind11::class_<NeighborList, Compute, std::shared_ptr<NeighborList>> nlist(m, "NeighborList");
+    nlist.def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property("buffer", &NeighborList::getRBuff, &NeighborList::setRBuff)
         .def_property("rebuild_check_delay",
                       &NeighborList::getRebuildCheckDelay,
@@ -1828,14 +1816,14 @@ void export_NeighborList(py::module& m)
         .def("estimateNNeigh", &NeighborList::estimateNNeigh)
         .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
-        .def("getNumExclusions", &NeighborList::getNumExclusions)
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &NeighborList::setCommunicator)
-#endif
-        ;
+        .def("getNumExclusions", &NeighborList::getNumExclusions);
 
-    py::enum_<NeighborList::storageMode>(nlist, "storageMode")
+    pybind11::enum_<NeighborList::storageMode>(nlist, "storageMode")
         .value("half", NeighborList::storageMode::half)
         .value("full", NeighborList::storageMode::full)
         .export_values();
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

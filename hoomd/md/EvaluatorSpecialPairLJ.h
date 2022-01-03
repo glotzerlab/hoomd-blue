@@ -30,10 +30,14 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 struct special_lj_params
     {
-    Scalar lj1;
-    Scalar lj2;
+    Scalar sigma_6;
+    Scalar epsilon_x_4;
     Scalar r_cutsq;
 
 #ifdef ENABLE_HIP
@@ -45,31 +49,32 @@ struct special_lj_params
 #endif
 
 #ifndef __HIPCC__
-    special_lj_params() : lj1(0.), lj2(0.), r_cutsq(0.) { }
+    special_lj_params() : sigma_6(0.), epsilon_x_4(0.), r_cutsq(0.) { }
 
     special_lj_params(pybind11::dict v)
         {
         auto sigma(v["sigma"].cast<Scalar>());
         auto epsilon(v["epsilon"].cast<Scalar>());
-        lj1 = 4.0 * epsilon * pow(sigma, 12.0);
-        lj2 = 4.0 * epsilon * pow(sigma, 6.0);
+        sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
+        epsilon_x_4 = Scalar(4.0) * epsilon;
+
+        // r_cutsq is set later in PotentialSpecialPair<evaluator>::setRCut
         r_cutsq = 0.;
         }
 
     pybind11::dict asDict()
         {
         pybind11::dict v;
-        auto sigma6 = lj1 / lj2;
-        v["sigma"] = pow(sigma6, 1. / 6.);
-        v["epsilon"] = lj2 / (sigma6 * 4);
+        v["sigma"] = pow(sigma_6, 1. / 6.);
+        v["epsilon"] = epsilon_x_4 / 4.0;
         return v;
         }
 #endif
     }
 #ifdef SINGLE_PRECISION
-__attribute__((aligned(16)));
+    __attribute__((aligned(16)));
 #else
-__attribute__((aligned(32)));
+    __attribute__((aligned(32)));
 #endif
 
 //! Class for evaluating the LJ bond potential
@@ -86,7 +91,8 @@ class EvaluatorSpecialPairLJ
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorSpecialPairLJ(Scalar _rsq, const param_type& _params)
-        : rsq(_rsq), lj1(_params.lj1), lj2(_params.lj2), rcutsq(_params.r_cutsq)
+        : rsq(_rsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
+          lj2(_params.epsilon_x_4 * _params.sigma_6), rcutsq(_params.r_cutsq)
         {
         }
 
@@ -151,5 +157,8 @@ class EvaluatorSpecialPairLJ
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     Scalar rcutsq; //!< Stored rcutsq from the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_LJ_H__

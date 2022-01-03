@@ -19,6 +19,8 @@
 
 #include "SphinxOverlap.h"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -227,9 +229,9 @@ struct ShapeSphinx
         }
 
     /// Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, getCircumsphereDiameter() / Scalar(2.0));
+        return hoomd::detail::AABB(pos, getCircumsphereDiameter() / Scalar(2.0));
         }
 
     /// Return a tight fitting OBB around the shape
@@ -1189,7 +1191,8 @@ initVolume(bool disjoint,
 
     } // namespace detail
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

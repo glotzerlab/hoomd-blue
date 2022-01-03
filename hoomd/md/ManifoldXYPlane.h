@@ -23,6 +23,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for constructing the XYPlane surface
 /*! <b>General Overview</b>
 
@@ -97,7 +101,13 @@ class ManifoldXYPlane
     Scalar shift;
     };
 
+namespace detail
+    {
 //! Exports the XYPlane manifold class to python
 void export_ManifoldXYPlane(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_XY_PLANE_H__

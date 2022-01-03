@@ -14,6 +14,12 @@
 #include "PotentialExternalGPU.cuh"
 #include "WallData.h"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 // Instantiate external evaluator templates
 //! Evaluator for External Periodic potentials.
 template hipError_t __attribute__((visibility("default")))
@@ -67,3 +73,7 @@ gpu_cpef<EvaluatorWalls<EvaluatorPairMie>>(
     const external_potential_args_t& external_potential_args,
     const typename EvaluatorWalls<EvaluatorPairMie>::param_type* d_params,
     const typename EvaluatorWalls<EvaluatorPairMie>::field_type* d_field);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

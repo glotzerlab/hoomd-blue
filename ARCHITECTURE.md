@@ -11,6 +11,15 @@ our [API documentation][hoomd_documentation] on readthedocs.
 
 [hoomd_documentation]: https://hoomd-blue.readthedocs.io/en/latest/
 
+## Hardware and software support
+
+Each minor and major release of HOOMD-blue at a minimum supports:
+
+* x86_64 CPUs released in the four prior years.
+* NVIDIA GPUs released in the four prior years.
+* Compilers and software dependencies available on the oldest maintained Ubuntu LTS release.
+* The two most recent major **CUDA** toolkit versions
+
 ## Testing
 
 ### Continuous integration
@@ -18,11 +27,7 @@ our [API documentation][hoomd_documentation] on readthedocs.
 [Github Actions] performs continuous integration testing on HOOMD-blue. GitHub
 Actions compiles HOOMD-blue, runs the unit and validation, and and reports the
 status to GitHub pull requests. A number of parallel builds test a variety of
-compiler and build configurations, including:
-
-* The 2 most recent **CUDA** toolkit versions
-* **gcc** and **clang** versions including the most recent releases back to the
-  defaults provided by the oldest maintained Ubuntu LTS release.
+compiler and build configurations as defined above.
 
 Visit the [workflows] page to find recent builds. The pipeline configuration
 files are in [.github/workflows/] which are built from Jinja templates in

@@ -11,6 +11,8 @@
 #include "hoomd/hpmc/HPMCCounters.h"
 #include <hip/hip_runtime.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -207,3 +209,4 @@ void hpmc_check_convergence(const unsigned int* d_trial_move_type,
     } // end namespace gpu
 
     } // end namespace hpmc
+    } // end namespace hoomd

@@ -8,6 +8,8 @@
 
 #include "IntegratorHPMCMonoGPUDepletants.cuh"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -113,3 +115,4 @@ void get_max_num_depletants_ntrial(const unsigned int ntrial,
     } // end namespace gpu
 
     } // end namespace hpmc
+    } // end namespace hoomd

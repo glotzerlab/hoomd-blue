@@ -19,6 +19,9 @@ HOOMD_UP_MAIN()
 
 #include <algorithm>
 
+using namespace hoomd;
+using namespace hoomd::md;
+
 // first test, to ensure that all the ghost cells are updated from the correct neighbors
 template<class CG_uint>
 void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_conf)

@@ -12,6 +12,8 @@
 #include "BounceBackNVEGPU.cuh"
 #include "StreamingGeometry.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -91,13 +93,10 @@ cudaError_t nve_bounce_step_two(Scalar4* d_vel,
                                 const unsigned int N,
                                 const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)kernel::nve_bounce_step_two);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)kernel::nve_bounce_step_two);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N / run_block_size + 1);
@@ -113,3 +112,4 @@ cudaError_t nve_bounce_step_two(Scalar4* d_vel,
 
     } // end namespace gpu
     } // end namespace mpcd
+    } // end namespace hoomd

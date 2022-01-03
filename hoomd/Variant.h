@@ -9,6 +9,8 @@
 
 #include "HOOMDMath.h"
 
+namespace hoomd
+    {
 /** Defines quantities that vary with time steps.
 
     Variant provides an interface to define quanties (such as kT) that vary over time. The base
@@ -591,5 +593,11 @@ class PYBIND11_EXPORT VariantPower : public Variant
     double m_inv_end;
     };
 
+namespace detail
+    {
 /// Export Variant classes to Python
 void export_Variant(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd

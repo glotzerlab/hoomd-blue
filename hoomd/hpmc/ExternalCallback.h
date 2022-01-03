@@ -18,6 +18,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 template<class Shape>
@@ -145,6 +147,8 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
     pybind11::object callback; //! The python callback
     };
 
+namespace detail
+    {
 template<class Shape> void export_ExternalCallback(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ExternalCallback<Shape>,
@@ -153,6 +157,7 @@ template<class Shape> void export_ExternalCallback(pybind11::module& m, const st
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, pybind11::object>());
     }
 
-    } // namespace hpmc
-
+    }  // end namespace detail
+    }  // namespace hpmc
+    }  // end namespace hoomd
 #endif // _EXTERNAL_FIELD_LATTICE_H_

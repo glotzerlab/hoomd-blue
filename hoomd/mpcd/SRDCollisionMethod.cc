@@ -12,6 +12,8 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+namespace hoomd
+    {
 mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
                                              unsigned int cur_timestep,
                                              unsigned int period,
@@ -257,17 +259,18 @@ void mpcd::SRDCollisionMethod::rotate(uint64_t timestep)
  */
 void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::SRDCollisionMethod,
-               mpcd::CollisionMethod,
-               std::shared_ptr<mpcd::SRDCollisionMethod>>(m, "SRDCollisionMethod")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
-                      unsigned int,
-                      unsigned int,
-                      int,
-                      unsigned int,
-                      std::shared_ptr<mpcd::CellThermoCompute>>())
+    pybind11::class_<mpcd::SRDCollisionMethod,
+                     mpcd::CollisionMethod,
+                     std::shared_ptr<mpcd::SRDCollisionMethod>>(m, "SRDCollisionMethod")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+                            unsigned int,
+                            unsigned int,
+                            int,
+                            unsigned int,
+                            std::shared_ptr<mpcd::CellThermoCompute>>())
         .def("setRotationAngle", &mpcd::SRDCollisionMethod::setRotationAngle)
         .def("setTemperature", &mpcd::SRDCollisionMethod::setTemperature)
         .def("unsetTemperature", &mpcd::SRDCollisionMethod::unsetTemperature);
     }
+
+    } // end namespace hoomd

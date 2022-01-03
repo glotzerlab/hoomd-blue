@@ -4,6 +4,8 @@
 #include "ParticleFilter.h"
 #include <algorithm>
 
+namespace hoomd
+    {
 /// Takes the set difference of two other filters
 class PYBIND11_EXPORT ParticleFilterSetDifference : public ParticleFilter
     {
@@ -50,4 +52,6 @@ class PYBIND11_EXPORT ParticleFilterSetDifference : public ParticleFilter
     std::shared_ptr<ParticleFilter> m_f;
     std::shared_ptr<ParticleFilter> m_g;
     };
+
+    } // end namespace hoomd
 #endif

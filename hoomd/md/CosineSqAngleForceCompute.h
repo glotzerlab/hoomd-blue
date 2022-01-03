@@ -20,6 +20,10 @@
 #ifndef __COSINESQANGLEFORCECOMPUTE_H__
 #define __COSINESQANGLEFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 struct cosinesq_params
     {
     Scalar k;
@@ -43,9 +47,9 @@ struct cosinesq_params
 #endif
     }
 #ifdef SINGLE_PRECISION
-__attribute__((aligned(8)));
+    __attribute__((aligned(8)));
 #else
-__attribute__((aligned(16)));
+    __attribute__((aligned(16)));
 #endif
 
 //! Computes cosine squared angle forces on each particle
@@ -94,7 +98,13 @@ class PYBIND11_EXPORT CosineSqAngleForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the AngleForceCompute class to python
 void export_CosineSqAngleForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

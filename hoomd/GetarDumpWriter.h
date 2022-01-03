@@ -19,6 +19,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 namespace getardump
     {
 typedef SnapshotSystemData<Scalar> SystemSnapshot;
@@ -322,5 +324,6 @@ class PYBIND11_EXPORT GetarDumpWriter : public Analyzer
 void export_GetarDumpWriter(pybind11::module& m);
 
     } // namespace getardump
+    } // end namespace hoomd
 
 #endif

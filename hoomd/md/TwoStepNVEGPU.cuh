@@ -14,6 +14,12 @@
 #ifndef __TWO_STEP_NVE_GPU_CUH__
 #define __TWO_STEP_NVE_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver for the first part of the NVE update called by TwoStepNVEGPU
 hipError_t gpu_nve_step_one(Scalar4* d_pos,
                             Scalar4* d_vel,
@@ -61,5 +67,9 @@ hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
                                     Scalar deltaT,
                                     Scalar scale,
                                     const unsigned int block_size);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__TWO_STEP_NVE_GPU_CUH__

@@ -13,8 +13,9 @@
 #include <sstream>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 /*! A newly constructed ClockSource should read ~0 when getTime() is called. There is no other way
  * to reset the clock*/
 ClockSource::ClockSource() : m_start_time(0)
@@ -42,8 +43,12 @@ std::string ClockSource::formatHMS(int64_t t)
     }
 
 #ifndef __HIP_DEVICE_COMPILE__
-void export_ClockSource(py::module& m)
+namespace detail
     {
-    py::class_<ClockSource>(m, "ClockSource").def("getTime", &ClockSource::getTime);
+void export_ClockSource(pybind11::module& m)
+    {
+    pybind11::class_<ClockSource>(m, "ClockSource").def("getTime", &ClockSource::getTime);
     }
+    } // namespace detail
 #endif
+    } // namespace hoomd

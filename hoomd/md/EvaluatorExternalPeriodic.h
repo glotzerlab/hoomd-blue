@@ -27,6 +27,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating sphere constraints
 /*! <b>General Overview</b>
     EvaluatorExternalPeriodic is an evaluator to induce a periodic modulation on the concentration
@@ -197,5 +201,8 @@ class EvaluatorExternalPeriodic
     Scalar m_interfaceWidth;    //!< width of interface between lamellae (relative to box length)
     unsigned int m_periodicity; //!< number of lamellae of each type
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__

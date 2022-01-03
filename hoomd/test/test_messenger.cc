@@ -11,14 +11,16 @@
 
 #include "hoomd/Messenger.h"
 
-using namespace std;
-
 /*! \file test_messenger.cc
     \brief Unit test for Messenger
     \ingroup unit_tests
 */
 
 #include "upp11_config.h"
+
+using namespace std;
+using namespace hoomd;
+
 HOOMD_UP_MAIN();
 
 UP_TEST(Messenger_basic)
@@ -120,7 +122,7 @@ UP_TEST(Messenger_prefix)
 
 UP_TEST(Messenger_file)
     {
-    // scope the messengers so that the file is closed and written
+        // scope the messengers so that the file is closed and written
         {
         Messenger msg;
 

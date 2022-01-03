@@ -22,6 +22,8 @@
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
 
+using namespace hoomd;
+
 void test_external_field(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                          std::shared_ptr<hoomd::GPUPolymorph<mpcd::ExternalField>> field,
                          const std::vector<Scalar3>& ref_pos,

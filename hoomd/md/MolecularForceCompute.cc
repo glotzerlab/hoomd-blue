@@ -15,12 +15,14 @@
 #include <map>
 #include <string.h>
 
-namespace py = pybind11;
-
 /*! \file MolecularForceCompute.cc
     \brief Contains code for the MolecularForceCompute class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> sysdef)
@@ -121,26 +123,26 @@ void MolecularForceCompute::initMoleculesGPU()
             m_exec_conf->getCachedAllocator(),
             m_molecule_tag.getNumElements());
 
-        gpu_sort_by_molecule(nptl_local,
-                             d_tag.data,
-                             d_molecule_tag.data,
-                             d_local_molecule_tags.data,
-                             d_local_molecules_lowest_idx.data,
-                             d_local_unique_molecule_tags.data,
-                             d_molecule_idx.data,
-                             d_sorted_by_tag.data,
-                             d_idx_sorted_by_tag.data,
-                             d_idx_sorted_by_molecule_and_tag.data,
-                             d_lowest_idx.data,
-                             d_lowest_idx_sort.data,
-                             d_lowest_idx_in_molecules.data,
-                             d_lowest_idx_by_molecule_tag.data,
-                             d_molecule_length.data,
-                             n_local_molecules,
-                             nmax,
-                             n_local_ptls_in_molecules,
-                             m_exec_conf->getCachedAllocator(),
-                             m_exec_conf->isCUDAErrorCheckingEnabled());
+        kernel::gpu_sort_by_molecule(nptl_local,
+                                     d_tag.data,
+                                     d_molecule_tag.data,
+                                     d_local_molecule_tags.data,
+                                     d_local_molecules_lowest_idx.data,
+                                     d_local_unique_molecule_tags.data,
+                                     d_molecule_idx.data,
+                                     d_sorted_by_tag.data,
+                                     d_idx_sorted_by_tag.data,
+                                     d_idx_sorted_by_molecule_and_tag.data,
+                                     d_lowest_idx.data,
+                                     d_lowest_idx_sort.data,
+                                     d_lowest_idx_in_molecules.data,
+                                     d_lowest_idx_by_molecule_tag.data,
+                                     d_molecule_length.data,
+                                     n_local_molecules,
+                                     nmax,
+                                     n_local_ptls_in_molecules,
+                                     m_exec_conf->getCachedAllocator(),
+                                     m_exec_conf->isCUDAErrorCheckingEnabled());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -174,16 +176,16 @@ void MolecularForceCompute::initMoleculesGPU()
         m_tuner_fill->begin();
         unsigned int block_size = m_tuner_fill->getParam();
 
-        gpu_fill_molecule_table(nptl_local,
-                                n_local_ptls_in_molecules,
-                                m_molecule_indexer,
-                                d_molecule_idx.data,
-                                d_local_molecules_lowest_idx.data,
-                                d_idx_sorted_by_tag.data,
-                                d_molecule_list.data,
-                                d_molecule_order.data,
-                                block_size,
-                                m_exec_conf->getCachedAllocator());
+        kernel::gpu_fill_molecule_table(nptl_local,
+                                        n_local_ptls_in_molecules,
+                                        m_molecule_indexer,
+                                        d_molecule_idx.data,
+                                        d_local_molecules_lowest_idx.data,
+                                        d_idx_sorted_by_tag.data,
+                                        d_molecule_list.data,
+                                        d_molecule_order.data,
+                                        block_size,
+                                        m_exec_conf->getCachedAllocator());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -436,10 +438,16 @@ void MolecularForceCompute::initMolecules()
         m_prof->pop(m_exec_conf);
     }
 
-void export_MolecularForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<MolecularForceCompute, ForceConstraint, std::shared_ptr<MolecularForceCompute>>(
-        m,
-        "MolecularForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+void export_MolecularForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<MolecularForceCompute,
+                     ForceConstraint,
+                     std::shared_ptr<MolecularForceCompute>>(m, "MolecularForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

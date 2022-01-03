@@ -4,6 +4,12 @@
 #include "ActiveForceConstraintComputeGPU.cuh"
 #include "ManifoldGyroid.h"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 template hipError_t
 gpu_compute_active_force_set_constraints<ManifoldGyroid>(const unsigned int group_size,
                                                          unsigned int* d_index_array,
@@ -25,3 +31,7 @@ template hipError_t gpu_compute_active_force_constraint_rotational_diffusion<Man
     const uint64_t timestep,
     const uint16_t seed,
     unsigned int block_size);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

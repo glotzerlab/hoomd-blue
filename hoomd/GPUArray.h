@@ -11,8 +11,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __GPUARRAY_H__
-#define __GPUARRAY_H__
+#pragma once
 
 // 4 GB is considered a large allocation for a single GPU buffer, and user should be warned
 #define LARGEALLOCBYTES 0xffffffff
@@ -33,6 +32,8 @@
 #include <cxxabi.h>
 #include <sstream>
 
+namespace hoomd
+    {
 //! Specifies where to acquire the data
 struct access_location
     {
@@ -74,8 +75,6 @@ struct access_mode
 
 template<class T> class GPUArray;
 
-namespace hoomd
-    {
 namespace detail
     {
 template<class T> class device_deleter
@@ -174,8 +173,6 @@ template<class T> class host_deleter
     size_t m_N;                                                //!< Number of elements in array
     };
     } // end namespace detail
-
-    } // end namespace hoomd
 
 //! Forward declarations
 template<class T> class ArrayHandleDispatch;
@@ -1193,9 +1190,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                 m_data_location = data_location::host;
             else
                 {
-                if (m_exec_conf)
-                    m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
-                throw std::runtime_error("Error acquiring data");
+                throw std::runtime_error("Invalid access mode requested.");
                 }
 
             return GPUArrayDispatch<T>(h_data.get(), *this);
@@ -1225,9 +1220,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                 }
             else
                 {
-                if (m_exec_conf)
-                    m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
-                throw std::runtime_error("Error acquiring data");
+                throw std::runtime_error("Invalid access mode requested.");
                 }
 
             return GPUArrayDispatch<T>(h_data.get(), *this);
@@ -1235,9 +1228,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
 #endif
         else
             {
-            if (m_exec_conf)
-                m_exec_conf->msg->error() << "Invalid data location state" << std::endl;
-            throw std::runtime_error("Error acquiring data");
+            throw std::runtime_error("Invalid data location state.");
             return ArrayHandleDispatch<T>(nullptr);
             }
         }
@@ -1284,8 +1275,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                 }
             else
                 {
-                m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
-                throw std::runtime_error("Error acquiring data");
+                throw std::runtime_error("Invalid access mode requested.");
                 }
 
             return GPUArrayDispatch<T>(d_data.get(), *this);
@@ -1301,8 +1291,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                 m_data_location = data_location::device;
             else
                 {
-                m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
-                throw std::runtime_error("Error acquiring data");
+                throw std::runtime_error("Invalid access mode requested.");
                 }
             return GPUArrayDispatch<T>(d_data.get(), *this);
             }
@@ -1313,17 +1302,14 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
             }
         else
             {
-            m_exec_conf->msg->error() << "Invalid data_location state" << std::endl;
-            throw std::runtime_error("Error acquiring data");
+            throw std::runtime_error("Invalid data_location state.");
             return ArrayHandleDispatch<T>(nullptr);
             }
         }
 #endif
     else
         {
-        if (m_exec_conf)
-            m_exec_conf->msg->error() << "Invalid location requested" << std::endl;
-        throw std::runtime_error("Error acquiring data");
+        throw std::runtime_error("Invalid location requested.");
         return ArrayHandleDispatch<T>(nullptr);
         }
     }
@@ -1655,4 +1641,5 @@ template<class T> void GPUArray<T>::resize(size_t width, size_t height)
     m_pitch = new_pitch;
     m_num_elements = m_pitch * m_height;
     }
-#endif
+
+    } // end namespace hoomd

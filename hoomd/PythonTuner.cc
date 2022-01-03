@@ -3,6 +3,8 @@
 #include <exception>
 #include <string>
 
+namespace hoomd
+    {
 PythonTuner::PythonTuner(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<Trigger> trigger,
                          pybind11::object tuner)
@@ -33,6 +35,8 @@ PDataFlags PythonTuner::getRequestedPDataFlags()
     return m_flags;
     }
 
+namespace detail
+    {
 void export_PythonTuner(pybind11::module& m)
     {
     pybind11::class_<PythonTuner, Tuner, std::shared_ptr<PythonTuner>>(m, "PythonTuner")
@@ -40,3 +44,7 @@ void export_PythonTuner(pybind11::module& m)
                             std::shared_ptr<Trigger>,
                             pybind11::object>());
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

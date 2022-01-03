@@ -19,6 +19,8 @@
 #include "hoomd/Autotuner.h"
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Adds virtual particles to the MPCD particle data for SlitGeometry using the GPU
@@ -29,7 +31,7 @@ class PYBIND11_EXPORT SlitGeometryFillerGPU : public mpcd::SlitGeometryFiller
     SlitGeometryFillerGPU(std::shared_ptr<mpcd::SystemData> sysdata,
                           Scalar density,
                           unsigned int type,
-                          std::shared_ptr<::Variant> T,
+                          std::shared_ptr<Variant> T,
                           std::shared_ptr<const mpcd::detail::SlitGeometry> geom);
 
     //! Set autotuner parameters
@@ -50,13 +52,14 @@ class PYBIND11_EXPORT SlitGeometryFillerGPU : public mpcd::SlitGeometryFiller
     virtual void drawParticles(uint64_t timestep);
 
     private:
-    std::unique_ptr<::Autotuner> m_tuner; //!< Autotuner for drawing particles
+    std::unique_ptr<hoomd::Autotuner> m_tuner; //!< Autotuner for drawing particles
     };
 
 namespace detail
     {
 //! Export SlitGeometryFillerGPU to python
 void export_SlitGeometryFillerGPU(pybind11::module& m);
-    }      // end namespace detail
-    }      // end namespace mpcd
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_SLIT_GEOMETRY_FILLER_GPU_H_

@@ -19,6 +19,8 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 #ifdef SINGLE_PRECISION
@@ -69,8 +71,8 @@ make_overlapreal4(OverlapReal x, OverlapReal y, OverlapReal z, OverlapReal w)
     return result;
     }
 
-    }; // end namespace hpmc
-
+    } // end namespace hpmc
+    } // end namespace hoomd
 #undef DEVICE
 
 #endif //__HPMC_PRECISION_SETUP_H__

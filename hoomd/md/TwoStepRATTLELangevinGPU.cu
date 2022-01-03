@@ -12,6 +12,12 @@ using namespace hoomd;
 
 #include <assert.h>
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! NO_SQUISH angular part of the second half step
 /*!
     \param d_pos array of particle positions (4th dimension is particle type)
@@ -99,9 +105,9 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(const Scalar4* d_pos
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < Scalar(EPSILON));
-            y_zero = (I.y < Scalar(EPSILON));
-            z_zero = (I.z < Scalar(EPSILON));
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // first calculate in the body frame random and damping torque imposed by the dynamics
             vec3<Scalar> bf_torque;
@@ -141,9 +147,9 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(const Scalar4* d_pos
         t = rotate(conj(q), t);
 
         // check for zero moment of inertia
-        bool x_zero = (I.x < Scalar(EPSILON));
-        bool y_zero = (I.y < Scalar(EPSILON));
-        bool z_zero = (I.z < Scalar(EPSILON));
+        bool x_zero = (I.x == 0);
+        bool y_zero = (I.y == 0);
+        bool z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
         if (x_zero)
@@ -268,3 +274,6 @@ __global__ void gpu_rattle_bdtally_reduce_partial_sum_kernel(Scalar* d_sum,
     if (threadIdx.x == 0)
         *d_sum = sum;
     }
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

@@ -23,6 +23,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 //! Template class for a free volume integration analyzer
@@ -66,17 +68,6 @@ template<class Shape> class ComputeFreeVolume : public Compute
         unsigned int type_int = m_sysdef->getParticleData()->getTypeByName(type);
         m_type = type_int;
         }
-
-#ifdef ENABLE_MPI
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method
-        Compute::setCommunicator(comm);
-
-        // set the communicator on the internal cell list
-        m_cl->setCommunicator(comm);
-        }
-#endif
 
     //! Analyze the current configuration
     virtual void compute(uint64_t timestep);
@@ -138,7 +129,7 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
     this->m_exec_conf->msg->notice(5) << "HPMC computing free volume " << timestep << std::endl;
 
     // update AABB tree
-    const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
+    const hoomd::detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
 
     // update the image list
     std::vector<vec3<Scalar>> image_list = this->m_mc->updateImageList();
@@ -162,7 +153,7 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
 
         // access parameters and interaction matrix
         const std::vector<typename Shape::param_type,
-                          managed_allocator<typename Shape::param_type>>& params
+                          hoomd::detail::managed_allocator<typename Shape::param_type>>& params
             = m_mc->getParams();
 
         ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(),
@@ -199,14 +190,14 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
 
             // check for overlaps with neighboring particle's positions
             bool overlap = false;
-            detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
+            hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
 
             // All image boxes (including the primary)
             const unsigned int n_images = (unsigned int)image_list.size();
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
-                detail::AABB aabb = aabb_i_local;
+                hoomd::detail::AABB aabb = aabb_i_local;
                 aabb.translate(pos_i_image);
 
                 // stackless search
@@ -270,7 +261,7 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
         } // end lexical scope
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
                       &overlap_count,
@@ -315,6 +306,8 @@ template<class Shape> Scalar ComputeFreeVolume<Shape>::getFreeVolume()
     return V_free;
     }
 
+namespace detail
+    {
 //! Export this hpmc analyzer to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of ComputeFreeVolume<Shape> will be exported
@@ -336,6 +329,8 @@ template<class Shape> void export_ComputeFreeVolume(pybind11::module& m, const s
         .def_property_readonly("free_volume", &ComputeFreeVolume<Shape>::getFreeVolume);
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // __COMPUTE_FREE_VOLUME__H__

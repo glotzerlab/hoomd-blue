@@ -15,6 +15,12 @@
 #ifndef __EAMTexInterForceGPU_CUH__
 #define __EAMTexInterForceGPU_CUH__
 
+namespace hoomd
+    {
+namespace metal
+    {
+namespace kernel
+    {
 //! Collection of parameters for EAM force GPU kernels
 struct EAMTexInterData
     {
@@ -38,7 +44,7 @@ hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
                                             const BoxDim& box,
                                             const unsigned int* d_n_neigh,
                                             const unsigned int* d_nlist,
-                                            const unsigned int* d_head_list,
+                                            const size_t* d_head_list,
                                             const size_t size_nlist,
                                             const EAMTexInterData* d_eam_data,
                                             Scalar* d_dFdP,
@@ -49,5 +55,9 @@ hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
                                             const Scalar4* d_drho,
                                             const Scalar4* d_drphi,
                                             const unsigned int block_size);
+
+    } // end namespace kernel
+    } // end namespace metal
+    } // end namespace hoomd
 
 #endif

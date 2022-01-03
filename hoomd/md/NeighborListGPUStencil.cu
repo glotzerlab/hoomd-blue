@@ -14,6 +14,12 @@
    stencils
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel call for generating neighbor list on the GPU using multiple stencils (Kepler optimized
 //! version)
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
@@ -50,7 +56,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
                                                  Scalar4* d_last_updated_pos,
                                                  unsigned int* d_conditions,
                                                  const unsigned int* d_Nmax,
-                                                 const unsigned int* d_head_list,
+                                                 const size_t* d_head_list,
                                                  const unsigned int* d_pid_map,
                                                  const Scalar4* d_pos,
                                                  const unsigned int* d_body,
@@ -119,7 +125,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
     unsigned int my_type = __scalar_as_int(my_postype.w);
     unsigned int my_body = d_body[my_pidx];
     Scalar my_diam = d_diameter[my_pidx];
-    unsigned int my_head = d_head_list[my_pidx];
+    size_t my_head = d_head_list[my_pidx];
 
     Scalar3 f = box.makeFraction(my_pos, ghost_width);
 
@@ -320,7 +326,7 @@ inline void stencil_launcher(unsigned int* d_nlist,
                              Scalar4* d_last_updated_pos,
                              unsigned int* d_conditions,
                              const unsigned int* d_Nmax,
-                             const unsigned int* d_head_list,
+                             const size_t* d_head_list,
                              const unsigned int* d_pid_map,
                              const Scalar4* d_pos,
                              const unsigned int* d_body,
@@ -353,10 +359,9 @@ inline void stencil_launcher(unsigned int* d_nlist,
         {
         if (!diameter_shift && !filter_body)
             {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size
-                    = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<0, cur_tpp>);
+            unsigned int max_block_size;
+            max_block_size
+                = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<0, cur_tpp>);
 
             unsigned int run_block_size
                 = (block_size < max_block_size) ? block_size : max_block_size;
@@ -393,10 +398,9 @@ inline void stencil_launcher(unsigned int* d_nlist,
             }
         else if (!diameter_shift && filter_body)
             {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size
-                    = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<1, cur_tpp>);
+            unsigned int max_block_size;
+            max_block_size
+                = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<1, cur_tpp>);
 
             unsigned int run_block_size
                 = (block_size < max_block_size) ? block_size : max_block_size;
@@ -433,10 +437,9 @@ inline void stencil_launcher(unsigned int* d_nlist,
             }
         else if (diameter_shift && !filter_body)
             {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size
-                    = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<2, cur_tpp>);
+            unsigned int max_block_size;
+            max_block_size
+                = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<2, cur_tpp>);
 
             unsigned int run_block_size
                 = (block_size < max_block_size) ? block_size : max_block_size;
@@ -473,10 +476,9 @@ inline void stencil_launcher(unsigned int* d_nlist,
             }
         else if (diameter_shift && filter_body)
             {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size
-                    = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<3, cur_tpp>);
+            unsigned int max_block_size;
+            max_block_size
+                = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<3, cur_tpp>);
 
             unsigned int run_block_size
                 = (block_size < max_block_size) ? block_size : max_block_size;
@@ -552,7 +554,7 @@ inline void stencil_launcher<min_threads_per_particle / 2>(unsigned int* d_nlist
                                                            Scalar4* d_last_updated_pos,
                                                            unsigned int* d_conditions,
                                                            const unsigned int* d_Nmax,
-                                                           const unsigned int* d_head_list,
+                                                           const size_t* d_head_list,
                                                            const unsigned int* d_pid_map,
                                                            const Scalar4* d_pos,
                                                            const unsigned int* d_body,
@@ -583,7 +585,7 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                      Scalar4* d_last_updated_pos,
                                      unsigned int* d_conditions,
                                      const unsigned int* d_Nmax,
-                                     const unsigned int* d_head_list,
+                                     const size_t* d_head_list,
                                      const unsigned int* d_pid_map,
                                      const Scalar4* d_pos,
                                      const unsigned int* d_body,
@@ -720,3 +722,7 @@ void gpu_compute_nlist_stencil_sort_types(unsigned int* d_pids,
         swap = (d_vals.selector == 1);
         }
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

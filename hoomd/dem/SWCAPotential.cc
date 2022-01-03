@@ -12,6 +12,10 @@
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace dem
+    {
 /*! evaluate the potential between two points */
 // rij: vector from particle i's COM to particle j's
 // r0: vector from particle i's COM to the interaction point on particle i
@@ -58,5 +62,8 @@ DEVICE inline void SWCAPotential<Real, Real4, FrictionModel>::evaluate(const Vec
         torque_j += cross(rjPrime, -force);
         }
     }
+
+    } // end namespace dem
+    } // end namespace hoomd
 
 #endif

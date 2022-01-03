@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+namespace hoomd
+    {
 //! Updates domain decompositions to balance the load
 /*!
  * Adjusts the boundaries of the processor domains to distribute the load close to evenly between
@@ -96,8 +98,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
             m_enable_z = enable;
         else
             {
-            m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
-            throw std::runtime_error("comm: requested direction does not exist");
+            throw std::runtime_error("LoadBalancer: requested direction does not exist");
             }
         }
 
@@ -149,6 +150,9 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
 
 #ifdef ENABLE_MPI
     const MPI_Comm m_mpi_comm; //!< MPI communicator for all ranks
+
+    /// The systems's communicator.
+    std::shared_ptr<Communicator> m_comm;
 
     //! Computes the maximum imbalance factor
     Scalar getMaxImbalance();
@@ -219,5 +223,11 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
     uint64_t m_n_rebalances;      //!< The actual number of rebalances (migrations) performed
     };
 
+namespace detail
+    {
 //! Export the LoadBalancer to python
 void export_LoadBalancer(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd

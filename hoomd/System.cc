@@ -19,19 +19,18 @@
 #include <stdexcept>
 #include <time.h>
 
-// the typedef works around an issue with older versions of the preprocessor
-typedef std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>> _analyzer_pair;
-PYBIND11_MAKE_OPAQUE(std::vector<_analyzer_pair>)
-typedef std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>> _updater_pair;
-PYBIND11_MAKE_OPAQUE(std::vector<_updater_pair>)
-
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<Tuner>>)
-
 using namespace std;
-namespace py = pybind11;
 
-PyObject* walltimeLimitExceptionTypeObj = 0;
+// the typedef works around an issue with older versions of the preprocessor
+// specifically, gcc8
+typedef std::pair<std::shared_ptr<hoomd::Analyzer>, std::shared_ptr<hoomd::Trigger>> _analyzer_pair;
+PYBIND11_MAKE_OPAQUE(std::vector<_analyzer_pair>)
+typedef std::pair<std::shared_ptr<hoomd::Updater>, std::shared_ptr<hoomd::Trigger>> _updater_pair;
+PYBIND11_MAKE_OPAQUE(std::vector<_updater_pair>)
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::Tuner>>)
 
+namespace hoomd
+    {
 /*! \param sysdef SystemDefinition for the system to be simulated
     \param initial_tstep Initial time step of the simulation
 
@@ -100,7 +99,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
     resetStats();
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // make sure we start off with a migration substep
         m_comm->forceMigrate();
@@ -165,13 +164,13 @@ void System::run(uint64_t nsteps, bool write_at_start)
         // propagate Python exceptions related to signals
         if (PyErr_CheckSignals() != 0)
             {
-            throw py::error_already_set();
+            throw pybind11::error_already_set();
             }
         }
 
 #ifdef ENABLE_MPI
     // make sure all ranks return the same TPS after the run completes
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
         bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
@@ -216,7 +215,7 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
         compute->setAutotunerParams(enabled, period);
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         m_comm->setAutotunerParams(enabled, period);
 #endif
     }
@@ -259,7 +258,7 @@ void System::setupProfiling()
 
 #ifdef ENABLE_MPI
     // communicator
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         m_comm->setProfiler(m_profiler);
 #endif
     }
@@ -314,19 +313,23 @@ PDataFlags System::determineFlags(uint64_t tstep)
     return flags;
     }
 
-void export_System(py::module& m)
+namespace detail
     {
-    py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>>(
+void export_System(pybind11::module& m)
+    {
+    pybind11::bind_vector<
+        std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>>(
         m,
         "AnalyzerTriggerList");
-    py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>>>>(
+    pybind11::bind_vector<
+        std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>>>>(
         m,
         "UpdaterTriggerList");
-    py::bind_vector<std::vector<std::shared_ptr<Tuner>>>(m, "TunerList");
-    py::bind_vector<std::vector<std::shared_ptr<Compute>>>(m, "ComputeList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<Tuner>>>(m, "TunerList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<Compute>>>(m, "ComputeList");
 
-    py::class_<System, std::shared_ptr<System>>(m, "System")
-        .def(py::init<std::shared_ptr<SystemDefinition>, uint64_t>())
+    pybind11::class_<System, std::shared_ptr<System>>(m, "System")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, uint64_t>())
 
         .def("setIntegrator", &System::setIntegrator)
         .def("getIntegrator", &System::getIntegrator)
@@ -347,7 +350,10 @@ void export_System(py::module& m)
         .def_property_readonly("computes", &System::getComputes)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &System::setCommunicator)
-        .def("getCommunicator", &System::getCommunicator)
 #endif
         ;
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

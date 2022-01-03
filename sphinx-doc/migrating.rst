@@ -64,6 +64,10 @@ Here is a module level overview of features that have been moved or removed:
      - *Removed.*
    * - ``hoomd.md.update.constraint_ellipsoid``
      - `hoomd.md.manifold.Ellipsoid`
+   * - ``hoomd.jit.patch``
+     - ``hoomd.hpmc.pair.user``
+   * - ``hoomd.jit.external``
+     - ``hoomd.hpmc.external.user``
 
 Removed functionality
 ---------------------
@@ -81,6 +85,8 @@ Commands and features deprecated in v2.x are removed in v3.0.
      - Replace with
    * - Python 2.7
      - Python >= 3.6
+   * - Compute < 6.0 GPUs
+     - Compute >= 6.0 GPUs
    * - ``static`` parameter in ``hoomd.dump.gsd``
      - ``dynamic`` parameter
    * - ``set_params`` and other ``set_*`` methods
@@ -188,6 +194,7 @@ Compiling
   not explicitly set by the user).
 * **cereal**, **eigen**, and **pybind11** headers must be provided to build
   HOOMD. See :doc:`installation` for details.
+* ``BUILD_JIT`` is replaced with ``ENABLE_LLVM``.
 
 Components
 ----------

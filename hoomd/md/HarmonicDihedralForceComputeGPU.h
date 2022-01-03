@@ -16,6 +16,10 @@
 #ifndef __HARMONICDIHEDRALFORCECOMPUTEGPU_H__
 #define __HARMONICDIHEDRALFORCECOMPUTEGPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Implements the harmonic dihedral force calculation on the GPU
 /*! HarmonicDihedralForceComputeGPU implements the same calculations as
    HarmonicDihedralForceCompute, but executing on the GPU.
@@ -59,7 +63,13 @@ class PYBIND11_EXPORT HarmonicDihedralForceComputeGPU : public HarmonicDihedralF
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Export the DihedralForceComputeGPU class to python
 void export_HarmonicDihedralForceComputeGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

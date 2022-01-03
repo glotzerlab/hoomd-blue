@@ -18,10 +18,10 @@ using namespace std;
 
 #include <pybind11/numpy.h>
 
-namespace py = pybind11;
-
 #include <memory>
 
+namespace hoomd
+    {
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated
     \post \c force and \c virial GPUarrays are initialized
@@ -214,7 +214,7 @@ Scalar ForceCompute::calcEnergySum()
         pe_total += (double)h_force.data[i].w;
         }
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // reduce potential energy on all processors
         MPI_Allreduce(MPI_IN_PLACE,
@@ -245,7 +245,7 @@ Scalar ForceCompute::calcEnergyGroup(std::shared_ptr<ParticleGroup> group)
         pe_total += (double)h_force.data[j].w;
         }
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // reduce potential energy on all processors
         MPI_Allreduce(MPI_IN_PLACE,
@@ -275,7 +275,7 @@ vec3<double> ForceCompute::calcForceGroup(std::shared_ptr<ParticleGroup> group)
         f_total += (vec3<double>)h_force.data[j];
         }
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // reduce potential energy on all processors
         MPI_Allreduce(MPI_IN_PLACE,
@@ -307,7 +307,7 @@ std::vector<Scalar> ForceCompute::calcVirialGroup(std::shared_ptr<ParticleGroup>
             total_virial[i] += h_virial.data[m_virial_pitch * i + j];
         }
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // reduce potential energy on all processors
         MPI_Allreduce(MPI_IN_PLACE,
@@ -660,10 +660,12 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
     return result;
     }
 
-void export_ForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<ForceCompute, Compute, std::shared_ptr<ForceCompute>>(m, "ForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_ForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<ForceCompute, Compute, std::shared_ptr<ForceCompute>>(m, "ForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("getForce", &ForceCompute::getForce)
         .def("getTorque", &ForceCompute::getTorque)
         .def("getVirial", &ForceCompute::getVirial)
@@ -676,3 +678,6 @@ void export_ForceCompute(py::module& m)
         .def("getTorques", &ForceCompute::getTorquesPython)
         .def("getVirials", &ForceCompute::getVirialsPython);
     }
+    } // end namespace detail
+
+    } // end namespace hoomd

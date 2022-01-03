@@ -21,6 +21,10 @@
 #ifndef __NEIGHBORLISTGPUTREE_H__
 #define __NEIGHBORLISTGPUTREE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Efficient neighbor list build on the GPU using BVH trees
 /*!
  * GPU methods mostly make use of the neighbor library to do the traversal.
@@ -101,8 +105,8 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     GPUArray<unsigned int> m_type_last;  //!< Last index of each particle type in sorted list
 
     GPUFlags<unsigned int> m_lbvh_errors; //!< Error flags during particle marking (e.g., off rank)
-    std::vector<std::unique_ptr<LBVHWrapper>> m_lbvhs; //!< Array of LBVHs per-type
-    std::vector<std::unique_ptr<LBVHTraverserWrapper>>
+    std::vector<std::unique_ptr<kernel::LBVHWrapper>> m_lbvhs; //!< Array of LBVHs per-type
+    std::vector<std::unique_ptr<kernel::LBVHTraverserWrapper>>
         m_traversers;                   //!< Array of LBVH traverers per-type
     std::vector<hipStream_t> m_streams; //!< Array of CUDA streams per-type
 
@@ -127,7 +131,7 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         // ghost layer padding
         Scalar ghost_layer_width(0.0);
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             ghost_layer_width = m_comm->getGhostLayerMaxWidth();
 #endif
 
@@ -166,6 +170,13 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     // @}
     };
 
+namespace detail
+    {
 //! Exports NeighborListGPUTree to python
 void export_NeighborListGPUTree(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif //__NEIGHBORLISTGPUTREE_H__

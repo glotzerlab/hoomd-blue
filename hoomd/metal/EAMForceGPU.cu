@@ -13,6 +13,12 @@
  \brief Defines GPU kernel code for calculating the EAM forces. Used by EAMForceComputeGPU.
  */
 
+namespace hoomd
+    {
+namespace metal
+    {
+namespace kernel
+    {
 //! Kernel for computing EAM forces on the GPU
 __global__ void gpu_kernel_1(Scalar4* d_force,
                              Scalar* d_virial,
@@ -22,7 +28,7 @@ __global__ void gpu_kernel_1(Scalar4* d_force,
                              BoxDim box,
                              const unsigned int* d_n_neigh,
                              const unsigned int* d_nlist,
-                             const unsigned int* d_head_list,
+                             const size_t* d_head_list,
                              const Scalar4* d_F,
                              const Scalar4* d_rho,
                              const Scalar4* d_rphi,
@@ -55,7 +61,7 @@ __global__ void gpu_kernel_1(Scalar4* d_force,
 
     // load in the length of the list
     int n_neigh = d_n_neigh[idx];
-    const unsigned int head_idx = d_head_list[idx];
+    const size_t head_idx = d_head_list[idx];
 
     // read in the position of our particle.
     Scalar4 postype = __ldg(d_pos + idx);
@@ -149,7 +155,7 @@ __global__ void gpu_kernel_2(Scalar4* d_force,
                              BoxDim box,
                              const unsigned int* d_n_neigh,
                              const unsigned int* d_nlist,
-                             const unsigned int* d_head_list,
+                             const size_t* d_head_list,
                              const Scalar4* d_F,
                              const Scalar4* d_rho,
                              const Scalar4* d_rphi,
@@ -182,7 +188,7 @@ __global__ void gpu_kernel_2(Scalar4* d_force,
 
     // load in the length of the list
     int n_neigh = d_n_neigh[idx];
-    const unsigned int head_idx = d_head_list[idx];
+    const size_t head_idx = d_head_list[idx];
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads
     Scalar4 postype = __ldg(d_pos + idx);
@@ -312,7 +318,7 @@ hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
                                             const BoxDim& box,
                                             const unsigned int* d_n_neigh,
                                             const unsigned int* d_nlist,
-                                            const unsigned int* d_head_list,
+                                            const size_t* d_head_list,
                                             const size_t size_nlist,
                                             const EAMTexInterData* d_eam_data,
                                             Scalar* d_dFdP,
@@ -324,8 +330,8 @@ hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
                                             const Scalar4* d_drphi,
                                             const unsigned int block_size)
     {
-    static unsigned int max_block_size_1 = UINT_MAX;
-    static unsigned int max_block_size_2 = UINT_MAX;
+    unsigned int max_block_size_1;
+    unsigned int max_block_size_2;
 
     hipFuncAttributes attr1;
     hipFuncGetAttributes(&attr1, reinterpret_cast<const void*>(gpu_kernel_1));
@@ -394,3 +400,7 @@ hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace metal
+    } // end namespace hoomd

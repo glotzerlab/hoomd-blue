@@ -18,6 +18,10 @@
 
 #pragma once
 
+namespace hoomd
+    {
+namespace md
+    {
 /// Updates particle's orientations based on a given diffusion constant.
 /** The updater accepts a variant rotational diffusion and updates the particle orientations of the
  * associated ActiveForceCompute's group (by calling m_active_force.rotationalDiffusion).
@@ -62,5 +66,11 @@ class PYBIND11_EXPORT ActiveRotationalDiffusionUpdater : public Updater
         m_active_force; //!< Active force to call rotationalDiffusion on
     };
 
+namespace detail
+    {
 /// Export the ActiveRotationalDiffusionUpdater to python
 void export_ActiveRotationalDiffusionUpdater(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

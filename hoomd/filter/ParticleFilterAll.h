@@ -3,6 +3,8 @@
 
 #include "ParticleFilter.h"
 
+namespace hoomd
+    {
 //! Select all particles
 class PYBIND11_EXPORT ParticleFilterAll : public ParticleFilter
     {
@@ -34,4 +36,6 @@ class PYBIND11_EXPORT ParticleFilterAll : public ParticleFilter
         return member_tags;
         }
     };
+
+    } // end namespace hoomd
 #endif

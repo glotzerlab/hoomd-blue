@@ -20,6 +20,10 @@
 #ifndef __NEIGHBORLISTSTENCIL_H__
 #define __NEIGHBORLISTSTENCIL_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Efficient neighbor list build on the CPU with multiple bin stencils
 /*! Implements the O(N) neighbor list build on the CPU using a cell list with multiple bin stencils.
 
@@ -66,20 +70,6 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
         return m_cl->getNominalWidth();
         }
 
-#ifdef ENABLE_MPI
-
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method
-        NeighborList::setCommunicator(comm);
-
-        // set the communicator on the internal cell lists
-        m_cl->setCommunicator(comm);
-        m_cls->setCommunicator(comm);
-        }
-
-#endif
-
     protected:
     //! Builds the neighbor list
     virtual void buildNlist(uint64_t timestep);
@@ -98,7 +88,13 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
     void updateRStencil();
     };
 
+namespace detail
+    {
 //! Exports NeighborListStencil to python
 void export_NeighborListStencil(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __NEIGHBORLISTSTENCIL_H__

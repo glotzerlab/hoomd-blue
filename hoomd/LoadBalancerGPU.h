@@ -23,6 +23,8 @@
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 //! GPU implementation of dynamic load balancing
 class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
     {
@@ -64,7 +66,13 @@ class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
     GPUArray<unsigned int> m_off_ranks; //!< Array to hold the ranks of particles that have moved
     };
 
+namespace detail
+    {
 //! Export the LoadBalancerGPU to python
 void export_LoadBalancerGPU(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP

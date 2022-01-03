@@ -24,6 +24,8 @@
 
 #include <cassert>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -378,18 +380,15 @@ void narrow_phase_launcher(const hpmc_args_t& args,
     if (max_threads == cur_launch_bounds * MIN_BLOCK_SIZE)
         {
         // determine the maximum block size and clamp the input block size down
-        static int max_block_size = -1;
-        static hipFuncAttributes attr;
+        int max_block_size;
+        hipFuncAttributes attr;
         constexpr unsigned int launch_bounds_nonzero
             = cur_launch_bounds > 0 ? cur_launch_bounds : 1;
-        if (max_block_size == -1)
-            {
-            hipFuncGetAttributes(
-                &attr,
-                reinterpret_cast<const void*>(
-                    kernel::hpmc_narrow_phase<Shape, launch_bounds_nonzero * MIN_BLOCK_SIZE>));
-            max_block_size = attr.maxThreadsPerBlock;
-            }
+        hipFuncGetAttributes(
+            &attr,
+            reinterpret_cast<const void*>(
+                kernel::hpmc_narrow_phase<Shape, launch_bounds_nonzero * MIN_BLOCK_SIZE>));
+        max_block_size = attr.maxThreadsPerBlock;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
         // dynamic shared memory usage
@@ -544,6 +543,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
 #undef MAX_BLOCK_SIZE
 #undef MIN_BLOCK_SIZE
 
-    } // end namespace gpu
+    } // namespace gpu
+    } // namespace hpmc
 
-    } // end namespace hpmc
+    } // namespace hoomd

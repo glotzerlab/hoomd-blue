@@ -14,6 +14,12 @@
    update equations. Used by TwoStepNPTMTKGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel to propagate the positions and velocities, first half of NPT update
 __global__ void gpu_npt_mtk_step_one_kernel(Scalar4* d_pos,
                                             Scalar4* d_vel,
@@ -120,13 +126,10 @@ hipError_t gpu_npt_mtk_step_one(Scalar4* d_pos,
                                 bool rescale_all,
                                 const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_step_one_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_step_one_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -186,11 +189,11 @@ hipError_t gpu_npt_mtk_step_one(Scalar4* d_pos,
 
     Wrap particle positions for all particles in the box
 */
-extern "C" __global__ void gpu_npt_mtk_wrap_kernel(const unsigned int nwork,
-                                                   const unsigned int offset,
-                                                   Scalar4* d_pos,
-                                                   int3* d_image,
-                                                   BoxDim box)
+__global__ void gpu_npt_mtk_wrap_kernel(const unsigned int nwork,
+                                        const unsigned int offset,
+                                        Scalar4* d_pos,
+                                        int3* d_image,
+                                        BoxDim box)
     {
     // determine which particle this thread works on
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -229,13 +232,10 @@ hipError_t gpu_npt_mtk_wrap(const GPUPartition& gpu_partition,
                             const BoxDim& box,
                             const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_wrap_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_wrap_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -341,13 +341,10 @@ hipError_t gpu_npt_mtk_step_two(Scalar4* d_vel,
                                 Scalar exp_thermo_fac,
                                 const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_step_two_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_step_two_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -424,13 +421,10 @@ void gpu_npt_mtk_rescale(const GPUPartition& gpu_partition,
                          Scalar mat_exp_r_zz,
                          const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_rescale_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_rescale_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -461,3 +455,6 @@ void gpu_npt_mtk_rescale(const GPUPartition& gpu_partition,
                            mat_exp_r_zz);
         }
     }
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

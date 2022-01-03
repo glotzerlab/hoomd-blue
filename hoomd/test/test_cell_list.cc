@@ -21,6 +21,7 @@
 #include "upp11_config.h"
 
 using namespace std;
+using namespace hoomd;
 
 /*! \file test_cell_list.cc
     \brief Implements unit tests for CellList and descendants
@@ -183,8 +184,8 @@ template<class CL> void celllist_adj_test(std::shared_ptr<ExecutionConfiguration
     CHECK_EQUAL_UINT(adji.getNumElements(), 3 * 3 * 3 * 27);
     CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 3 * 3 * 3 * 27);
 
-    // verify all the cell adj values
-    // note that in a 3x3x3 box, ALL cells should have adj from 0-26
+        // verify all the cell adj values
+        // note that in a 3x3x3 box, ALL cells should have adj from 0-26
         {
         ArrayHandle<unsigned int> h_cell_adj(cl->getCellAdjArray(),
                                              access_location::host,
@@ -215,8 +216,8 @@ template<class CL> void celllist_adj_test(std::shared_ptr<ExecutionConfiguration
     CHECK_EQUAL_UINT(adji.getNumElements(), 5 * 5 * 5 * 125);
     CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 5 * 5 * 5 * 125);
 
-    // verify all the cell adj values
-    // note that in a 5x5x5 box, ALL cells should have adj from 0-124
+        // verify all the cell adj values
+        // note that in a 5x5x5 box, ALL cells should have adj from 0-124
         {
         ArrayHandle<unsigned int> h_cell_adj(cl->getCellAdjArray(),
                                              access_location::host,
@@ -313,7 +314,7 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
     CHECK_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 3 * 5 * 7 * cl->getNmax());
     CHECK_EQUAL_UINT(cl->getTDBArray().getNumElements(), 0);
 
-    // verify the cell contents
+        // verify the cell contents
         {
         Scalar4 val;
 

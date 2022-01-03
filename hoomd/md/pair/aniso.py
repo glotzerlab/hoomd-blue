@@ -30,7 +30,7 @@ class AnisotropicPair(Pair):
     :math:`q_j`, of the particles.
 
     `AnisotropicPair` is similar to `hoomd.md.pair.Pair` except it does not
-    support the `xplor` shifting mode or `r_on`.
+    support the ``'xplor'`` shifting mode or `r_on`.
 
     Args:
         nlist (hoomd.md.nlist.NList) : The neighbor list.

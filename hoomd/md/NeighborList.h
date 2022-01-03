@@ -31,6 +31,10 @@
 #include "hoomd/Communicator.h"
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes a Neighborlist from the particles
 /*! \b Overview:
 
@@ -303,7 +307,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         }
 
     //! Get the head list
-    const GlobalArray<unsigned int>& getHeadList()
+    const GlobalArray<size_t>& getHeadList()
         {
         return m_head_list;
         }
@@ -461,11 +465,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
         }
 
 #ifdef ENABLE_MPI
-    //! Set the communicator to use
-    /*! \param comm MPI communication class
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm);
-
     //! Returns true if the particle migration criterion is fulfilled
     /*! \param timestep The current timestep
      */
@@ -516,7 +515,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
     Scalar3 m_last_L;                    //!< Box lengths at last update
     Scalar3 m_last_L_local;              //!< Local Box lengths at last update
 
-    GlobalArray<unsigned int> m_head_list; //!< Indexes for particles to read from the neighbor list
+    GlobalArray<size_t> m_head_list; //!< Indexes for particles to read from the neighbor list
     GlobalArray<unsigned int>
         m_Nmax; //!< Holds the maximum number of neighbors for each particle type
     GlobalArray<unsigned int>
@@ -535,6 +534,11 @@ class PYBIND11_EXPORT NeighborList : public Compute
 
     /// True if the number of bonds/angles/dihedrals/impropers/pairs has changed.
     bool m_topology_changed = false;
+
+#ifdef ENABLE_MPI
+    /// The system's communicator.
+    std::shared_ptr<Communicator> m_comm;
+#endif
 
     //! Return true if we are supposed to do a distance check in this time step
     bool shouldCheckDistance(uint64_t timestep);
@@ -675,7 +679,13 @@ class PYBIND11_EXPORT NeighborList : public Compute
 #endif
     };
 
+namespace detail
+    {
 //! Exports NeighborList to python
 void export_NeighborList(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

@@ -25,15 +25,14 @@
 #include "UpdaterClustersGPU.h"
 #endif
 
-namespace py = pybind11;
-using namespace hpmc;
-
-using namespace hpmc::detail;
-
+namespace hoomd
+    {
 namespace hpmc
     {
+namespace detail
+    {
 //! Export the base HPMCMono integrators
-void export_faceted_ellipsoid(py::module& m)
+void export_faceted_ellipsoid(pybind11::module& m)
     {
     export_IntegratorHPMCMono<ShapeFacetedEllipsoid>(m, "IntegratorHPMCMonoFacetedEllipsoid");
     export_ComputeFreeVolume<ShapeFacetedEllipsoid>(m, "ComputeFreeVolumeFacetedEllipsoid");
@@ -58,4 +57,6 @@ void export_faceted_ellipsoid(py::module& m)
 #endif
     }
 
+    } // namespace detail
     } // namespace hpmc
+    } // namespace hoomd

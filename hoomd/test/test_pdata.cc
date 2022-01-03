@@ -15,9 +15,10 @@
 #include "hoomd/ParticleData.h"
 #include "hoomd/SnapshotSystemData.h"
 
-using namespace std;
-
 #include "upp11_config.h"
+
+using namespace std;
+using namespace hoomd;
 
 HOOMD_UP_MAIN();
 
@@ -445,7 +446,7 @@ UP_TEST(ParticleData_test)
     // make sure that getN is working
     UP_ASSERT(a.getN() == 1);
 
-    // Test the ability to acquire data
+        // Test the ability to acquire data
         {
         ArrayHandle<Scalar4> h_pos(a.getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_vel(a.getVelocities(),
@@ -518,7 +519,7 @@ UP_TEST(ParticleData_test)
         h_body.data[0] = 0;
         }
 
-    // make sure when the data is re-acquired, the values read properly
+        // make sure when the data is re-acquired, the values read properly
         {
         ArrayHandle<Scalar4> h_pos(a.getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(a.getVelocities(), access_location::host, access_mode::read);

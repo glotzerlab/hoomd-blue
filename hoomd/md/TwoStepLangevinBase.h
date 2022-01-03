@@ -12,6 +12,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 /** Base class for Langevin equation based integration method
 
     HOOMD implements Langevin dynamics and Brownian dynamics. Both are based on the same equation of
@@ -89,5 +93,11 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
     GlobalVector<Scalar3> m_gamma_r;
     };
 
+namespace detail
+    {
 //! Exports the TwoStepLangevinBase class to python
 void export_TwoStepLangevinBase(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

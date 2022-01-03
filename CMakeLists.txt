@@ -14,7 +14,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "3.0.0-beta.9")
+set(HOOMD_VERSION_RAW "3.0.0-beta.12")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -83,6 +83,7 @@ endif()
 option(SINGLE_PRECISION "Use single precision math" OFF)
 OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
 SET(ENABLE_HIP ${ENABLE_GPU})
+option(ENABLE_LLVM "Link to the LLVM library for run time code generation" off)
 
 option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
 
@@ -95,7 +96,6 @@ option(BUILD_HPMC "Build the hpmc package" off)
 endif()
 option(BUILD_METAL "Build the metal package" on)
 option(BUILD_DEM "Build the dem package" on)
-option(BUILD_JIT "Build the jit package" off)
 
 # Optionally use TBB for threading
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)

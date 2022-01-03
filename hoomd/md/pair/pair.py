@@ -100,16 +100,18 @@ class Pair(force.Force):
 
     .. py:attribute:: r_cut
 
-        *r_cut* :math:`[\mathrm{length}]`, *optional*: defaults to the
-            value ``default_r_cut`` specified on construction.
+        Cuttoff radius beyond which the energy and force are 0
+        :math:`[\mathrm{length}]`. *Optional*: defaults to the value
+        ``default_r_cut`` specified on construction.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `float`])
 
     .. py:attribute:: r_on
 
-        *r_on* :math:`[\mathrm{length}]`,  *optional*: defaults to the
-         value ``default_r_on`` specified on construction.
+        Radius at which the smoothing modification to the potential starts
+        :math:`[\mathrm{length}]`.  *Optional*: defaults to the value
+        ``default_r_on`` specified on construction.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `float`])
@@ -591,8 +593,8 @@ class Table(Pair):
         \\begin{eqnarray*}
         \\vec{F}(\\vec{r}) = & 0; & r < r_{\\mathrm{min}} \\\\
                            = & F(r)\\hat{r};
-                             & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
-                           = & 0; & r \\ge r_{\\mathrm{max}} \\\\
+                             & r_{\\mathrm{min}} \\le r < r_{\\mathrm{cut}} \\\\
+                           = & 0; & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
     and the potential :math:`V(r)` is:
@@ -603,12 +605,13 @@ class Table(Pair):
         \\begin{eqnarray*}
         V(r) = & 0; & r < r_{\\mathrm{min}} \\\\
              = & V(r);
-               & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
-             = & 0; & r \\ge r_{\\mathrm{max}} \\\\
+               & r_{\\mathrm{min}} \\le r < r_{\\mathrm{cut}} \\\\
+             = & 0; & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
     where :math:`\\vec{r}` is the vector pointing from one particle to the other
-    in the pair.
+    in the pair, ``r_min`` is defined in `params`, and ``r_cut`` is defined in
+    `Pair.r_cut`.
 
     Provide :math:`F(r)` and :math:`V(r)` on an evenly space set of grid points
     points between :math:`r_{\\mathrm{min}}` and :math:`r_{\\mathrm{cut}}`.
@@ -637,9 +640,17 @@ class Table(Pair):
             same length as ``V``.
 
     Note:
-
         The implicitly defined :math:`r` values are those that would be returned
         by ``numpy.linspace(r_min, r_cut, len(V), endpoint=False)``.
+
+    Tip:
+        Define non-interacting potentials with::
+
+            table.params[(type1, type2)] = dict(r_min=0, V=[0], F=[0])
+            table.r_cut[(type1, type2)] = 0
+
+        There must be at least one element in V and F, but the ``r_cut`` value
+        of 0 disables the interaction entirely.
     """
     _cpp_class_name = "PotentialPairTable"
     _accepted_modes = ("none",)

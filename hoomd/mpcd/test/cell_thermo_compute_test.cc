@@ -16,6 +16,8 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 //! Test for correct calculation of cell thermo properties for MPCD particles
 template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {

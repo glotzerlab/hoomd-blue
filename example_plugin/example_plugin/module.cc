@@ -6,6 +6,8 @@
 
 #include <pybind11/pybind11.h>
 
+using namespace hoomd::detail;
+
 // specify the python module. Note that the name must explicitly match the PROJECT() name provided
 // in CMakeLists (with an underscore in front)
 PYBIND11_MODULE(_example_plugin, m)

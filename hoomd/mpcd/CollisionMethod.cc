@@ -12,6 +12,8 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+namespace hoomd
+    {
 /*!
  * \param sysdata MPCD system data
  * \param cur_timestep Current system timestep
@@ -169,9 +171,10 @@ void mpcd::CollisionMethod::drawGridShift(uint64_t timestep)
  */
 void mpcd::detail::export_CollisionMethod(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::CollisionMethod, std::shared_ptr<mpcd::CollisionMethod>>(m, "CollisionMethod")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>, uint64_t, uint64_t, int>())
+    pybind11::class_<mpcd::CollisionMethod, std::shared_ptr<mpcd::CollisionMethod>>(
+        m,
+        "CollisionMethod")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, uint64_t, uint64_t, int>())
         .def("enableGridShifting", &mpcd::CollisionMethod::enableGridShifting)
         .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup)
         .def("setPeriod", &mpcd::CollisionMethod::setPeriod)
@@ -179,3 +182,5 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
                       &mpcd::CollisionMethod::getInstance,
                       &mpcd::CollisionMethod::setInstance);
     }
+
+    } // end namespace hoomd

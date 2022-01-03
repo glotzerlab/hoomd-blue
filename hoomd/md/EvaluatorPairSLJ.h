@@ -28,6 +28,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Gaussian pair potential
 /*! <b>General Overview</b>
 
@@ -75,7 +79,8 @@ class EvaluatorPairSLJ
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairSLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
+        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
+          lj2(_params.epsilon_x_4 * _params.sigma_6)
         {
         }
 
@@ -167,5 +172,8 @@ class EvaluatorPairSLJ
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     Scalar delta;  //!< Delta parameter extracted from the call to setDiameter
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_SLJ_H__

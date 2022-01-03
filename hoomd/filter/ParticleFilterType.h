@@ -6,6 +6,8 @@
 #include <string>
 #include <unordered_set>
 
+namespace hoomd
+    {
 //! Select particles based on their type
 class PYBIND11_EXPORT ParticleFilterType : public ParticleFilter
     {
@@ -67,4 +69,6 @@ class PYBIND11_EXPORT ParticleFilterType : public ParticleFilter
     protected:
     std::unordered_set<std::string> m_types; ///< Set of types to select
     };
+
+    } // end namespace hoomd
 #endif

@@ -11,6 +11,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Implements Brownian dynamics on the GPU
 /*! GPU accelerated version of TwoStepBD
 
@@ -38,5 +42,11 @@ class PYBIND11_EXPORT TwoStepBDGPU : public TwoStepBD
     unsigned int m_block_size; //!< block size
     };
 
+namespace detail
+    {
 //! Exports the TwoStepBDGPU class to python
 void export_TwoStepBDGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

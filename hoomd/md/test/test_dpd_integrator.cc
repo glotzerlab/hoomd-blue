@@ -21,6 +21,8 @@
 #include <math.h>
 
 using namespace std;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file dpd_integrator_test.cc
     \brief Implements unit tests for PotentialPairDPDThermo

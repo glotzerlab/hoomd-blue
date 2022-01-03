@@ -21,6 +21,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
@@ -118,7 +120,7 @@ void angle_force_basic_tests(angleforce_creator tf_creator,
                        rough_tol);
         }
 
-    // rearrange the two particles in memory and see if they are properly updated
+        // rearrange the two particles in memory and see if they are properly updated
         {
         ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(),
                                    access_location::host,

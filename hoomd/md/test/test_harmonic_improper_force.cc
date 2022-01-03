@@ -21,6 +21,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
@@ -101,14 +103,14 @@ void improper_force_basic_tests(improperforce_creator tf_creator,
     sysdef_4->getImproperData()->addBondedGroup(
         Dihedral(0, 0, 1, 2, 3)); // add type 0 improper between atoms 0-1-2-3
     fc_4->compute(1);
-    /*
-     FORCE 1: fx = 0.024609  fy = -0.178418  fz = -0.221484
-     FORCE 2: fx = 0.108934  fy = 0.109425  fz = 0.047247
-     FORCE 3: fx = -0.092712  fy = 0.068413  fz = 0.144409
-     FORCE 4: fx = -0.040832  fy = 0.000579  fz = 0.029827
-     Energy: 1 = 0.158927  2 = 0.158927  3 = 0.158927 4 = 0.158927
+        /*
+         FORCE 1: fx = 0.024609  fy = -0.178418  fz = -0.221484
+         FORCE 2: fx = 0.108934  fy = 0.109425  fz = 0.047247
+         FORCE 3: fx = -0.092712  fy = 0.068413  fz = 0.144409
+         FORCE 4: fx = -0.040832  fy = 0.000579  fz = 0.029827
+         Energy: 1 = 0.158927  2 = 0.158927  3 = 0.158927 4 = 0.158927
 
-    */
+        */
 
         {
         // this time there should be a force
@@ -150,7 +152,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator,
                        tol);
         }
 
-    // rearrange the two particles in memory and see if they are properly updated
+        // rearrange the two particles in memory and see if they are properly updated
         {
         ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(),
                                    access_location::host,

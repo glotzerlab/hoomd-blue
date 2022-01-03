@@ -18,6 +18,12 @@
 #ifndef __ACTIVE_FORCE_CONSTRAINT_COMPUTE_GPU_CUH__
 #define __ACTIVE_FORCE_CONSTRAINT_COMPUTE_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 template<class Manifold>
 hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
                                                     unsigned int* d_index_array,
@@ -215,4 +221,9 @@ hipError_t gpu_compute_active_force_constraint_rotational_diffusion(const unsign
     }
 
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif

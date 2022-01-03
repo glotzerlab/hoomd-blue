@@ -34,6 +34,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing pair potentials
 /*! <b>Overview:</b>
     AnisoPotentialPair computes standard pair potentials (and forces) between all particle pairs in
@@ -242,7 +246,7 @@ void AnisoPotentialPair<aniso_evaluator>::connectGSDShapeSpec(std::shared_ptr<GS
 template<class aniso_evaluator>
 int AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
     {
-    GSDShapeSpecWriter shapespec(m_exec_conf);
+    hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
     m_exec_conf->msg->notice(10) << "AnisoPotentialPair writing to GSD File to name: "
                                  << shapespec.getName() << std::endl;
     int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params, m_shape_params));
@@ -495,9 +499,9 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
                                       access_location::host,
                                       access_mode::read);
-    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
-                                          access_location::host,
-                                          access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+                                    access_location::host,
+                                    access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
@@ -560,7 +564,7 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
             Scalar virialzzi = 0.0;
 
             // loop over all of the neighbors of this particle
-            const unsigned int myHead = h_head_list.data[i];
+            const size_t myHead = h_head_list.data[i];
             const unsigned int size = (unsigned int)h_n_neigh.data[i];
             for (unsigned int k = 0; k < size; k++)
                 {
@@ -717,6 +721,8 @@ CommFlags AnisoPotentialPair<aniso_evaluator>::getRequestedCommFlags(uint64_t ti
     }
 #endif
 
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated AnisoPotentialPair class template.
@@ -737,5 +743,9 @@ template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std:
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
         .def("getTypeShapesPy", &T::getTypeShapesPy);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __ANISO_POTENTIAL_PAIR_H__

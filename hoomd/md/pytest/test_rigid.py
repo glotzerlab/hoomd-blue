@@ -227,7 +227,7 @@ def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
-    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(), mode="shift")
+    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), mode="shift")
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}
@@ -253,7 +253,7 @@ def test_running_without_body_definition(simulation_factory,
                                          two_particle_snapshot_factory):
     rigid = md.constrain.Rigid()
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
-    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(), mode="shift")
+    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), mode="shift")
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}
@@ -277,7 +277,7 @@ def test_setting_body_after_attaching(simulation_factory,
                                       valid_body_definition):
     rigid = md.constrain.Rigid()
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
-    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(), mode="shift")
+    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), mode="shift")
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}

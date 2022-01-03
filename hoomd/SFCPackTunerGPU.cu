@@ -19,6 +19,10 @@
 
 #include "SFCPackTunerGPU.cuh"
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! Kernel to bin particles
 template<bool twod>
 __global__ void gpu_sfc_bin_particles_kernel(unsigned int N,
@@ -291,3 +295,7 @@ void gpu_apply_sorted_order(unsigned int N,
                        d_net_torque_alt,
                        d_rtag);
     }
+
+    } // end namespace kernel
+
+    } // end namespace hoomd

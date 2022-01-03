@@ -10,10 +10,10 @@
 #include "CellListGPU.h"
 #include "CellListGPU.cuh"
 
-namespace py = pybind11;
-
 using namespace std;
 
+namespace hoomd
+    {
 /*! \param sysdef system to compute the cell list of
  */
 CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
@@ -469,8 +469,14 @@ void CellListGPU::initializeMemory()
         m_prof->pop();
     }
 
-void export_CellListGPU(py::module& m)
+namespace detail
     {
-    py::class_<CellListGPU, CellList, std::shared_ptr<CellListGPU>>(m, "CellListGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+void export_CellListGPU(pybind11::module& m)
+    {
+    pybind11::class_<CellListGPU, CellList, std::shared_ptr<CellListGPU>>(m, "CellListGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

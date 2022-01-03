@@ -15,6 +15,12 @@
    ComputeThermoGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Perform partial sums of the thermo properties on the GPU
 /*! \param d_scratch Scratch space to hold partial sums. One element is written per block
     \param d_net_force Net force / pe array from ParticleData
@@ -260,15 +266,15 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar* d_scratch,
 
             Scalar ke_rot(0.0);
 
-            if (I.x >= EPSILON)
+            if (I.x > 0)
                 {
                 ke_rot += s.v.x * s.v.x / I.x;
                 }
-            if (I.y >= EPSILON)
+            if (I.y > 0)
                 {
                 ke_rot += s.v.y * s.v.y / I.y;
                 }
-            if (I.z >= EPSILON)
+            if (I.z > 0)
                 {
                 ke_rot += s.v.z * s.v.z / I.z;
                 }
@@ -724,3 +730,7 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

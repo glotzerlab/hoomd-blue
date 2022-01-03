@@ -59,7 +59,7 @@ namespace detail
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 /* Test for GCC < 5.0 */
 #if GCC_VERSION < 50000
-// work around GCC missing feature
+    // work around GCC missing feature
 
 #define NO_STD_ALIGN
 // https://stackoverflow.com/questions/27064791/stdalign-not-supported-by-g4-9
@@ -207,8 +207,6 @@ class event_deleter
 #endif
 
     } // end namespace detail
-
-    } // end namespace hoomd
 
 //! Forward declarations
 template<class T> class GlobalArrayDispatch;
@@ -943,3 +941,4 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
 
     return GlobalArrayDispatch<T>(m_data.get(), *this);
     }
+    } // end namespace hoomd

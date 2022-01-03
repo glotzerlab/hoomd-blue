@@ -9,6 +9,8 @@
  *        for mpcd::CellThermoComputeGPU.
  */
 
+#include <hipcub/hipcub.hpp>
+
 #include "CellThermoComputeGPU.cuh"
 #include "CellThermoTypes.h"
 
@@ -17,6 +19,8 @@
 
 #include "hoomd/WarpTools.cuh"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -409,15 +413,11 @@ inline void launch_begin_cell_thermo(const mpcd::detail::thermo_args_t& args,
         {
         if (args.need_energy)
             {
-            static unsigned int max_block_size_energy = UINT_MAX;
-            if (max_block_size_energy == UINT_MAX)
-                {
-                cudaFuncAttributes attr;
-                cudaFuncGetAttributes(
-                    &attr,
-                    (const void*)mpcd::gpu::kernel::begin_cell_thermo<true, cur_tpp>);
-                max_block_size_energy = attr.maxThreadsPerBlock;
-                }
+            unsigned int max_block_size_energy;
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr,
+                                  (const void*)mpcd::gpu::kernel::begin_cell_thermo<true, cur_tpp>);
+            max_block_size_energy = attr.maxThreadsPerBlock;
 
             unsigned int run_block_size = min(block_size, max_block_size_energy);
             dim3 grid(cur_tpp * num_cells / run_block_size + 1);
@@ -437,15 +437,12 @@ inline void launch_begin_cell_thermo(const mpcd::detail::thermo_args_t& args,
             }
         else
             {
-            static unsigned int max_block_size_noenergy = UINT_MAX;
-            if (max_block_size_noenergy == UINT_MAX)
-                {
-                cudaFuncAttributes attr;
-                cudaFuncGetAttributes(
-                    &attr,
-                    (const void*)mpcd::gpu::kernel::begin_cell_thermo<false, cur_tpp>);
-                max_block_size_noenergy = attr.maxThreadsPerBlock;
-                }
+            unsigned int max_block_size_noenergy;
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(
+                &attr,
+                (const void*)mpcd::gpu::kernel::begin_cell_thermo<false, cur_tpp>);
+            max_block_size_noenergy = attr.maxThreadsPerBlock;
 
             unsigned int run_block_size = min(block_size, max_block_size_noenergy);
             dim3 grid(cur_tpp * num_cells / run_block_size + 1);
@@ -529,13 +526,10 @@ cudaError_t end_cell_thermo(double4* d_cell_vel,
 
     if (need_energy)
         {
-        static unsigned int max_block_size_energy = UINT_MAX;
-        if (max_block_size_energy == UINT_MAX)
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::end_cell_thermo<true>);
-            max_block_size_energy = attr.maxThreadsPerBlock;
-            }
+        unsigned int max_block_size_energy;
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::end_cell_thermo<true>);
+        max_block_size_energy = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = min(block_size, max_block_size_energy);
         dim3 grid(Ncell / run_block_size + 1);
@@ -544,13 +538,10 @@ cudaError_t end_cell_thermo(double4* d_cell_vel,
         }
     else
         {
-        static unsigned int max_block_size_noenergy = UINT_MAX;
-        if (max_block_size_noenergy == UINT_MAX)
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::end_cell_thermo<true>);
-            max_block_size_noenergy = attr.maxThreadsPerBlock;
-            }
+        unsigned int max_block_size_noenergy;
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::end_cell_thermo<true>);
+        max_block_size_noenergy = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = min(block_size, max_block_size_noenergy);
         dim3 grid(Ncell / run_block_size + 1);
@@ -593,15 +584,11 @@ inline void launch_inner_cell_thermo(const mpcd::detail::thermo_args_t& args,
         {
         if (args.need_energy)
             {
-            static unsigned int max_block_size_energy = UINT_MAX;
-            if (max_block_size_energy == UINT_MAX)
-                {
-                cudaFuncAttributes attr;
-                cudaFuncGetAttributes(
-                    &attr,
-                    (const void*)mpcd::gpu::kernel::inner_cell_thermo<true, cur_tpp>);
-                max_block_size_energy = attr.maxThreadsPerBlock;
-                }
+            unsigned int max_block_size_energy;
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr,
+                                  (const void*)mpcd::gpu::kernel::inner_cell_thermo<true, cur_tpp>);
+            max_block_size_energy = attr.maxThreadsPerBlock;
 
             unsigned int run_block_size = min(block_size, max_block_size_energy);
             dim3 grid(cur_tpp * ci.getNumElements() / run_block_size + 1);
@@ -623,15 +610,12 @@ inline void launch_inner_cell_thermo(const mpcd::detail::thermo_args_t& args,
             }
         else
             {
-            static unsigned int max_block_size_noenergy = UINT_MAX;
-            if (max_block_size_noenergy == UINT_MAX)
-                {
-                cudaFuncAttributes attr;
-                cudaFuncGetAttributes(
-                    &attr,
-                    (const void*)mpcd::gpu::kernel::inner_cell_thermo<false, cur_tpp>);
-                max_block_size_noenergy = attr.maxThreadsPerBlock;
-                }
+            unsigned int max_block_size_noenergy;
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(
+                &attr,
+                (const void*)mpcd::gpu::kernel::inner_cell_thermo<false, cur_tpp>);
+            max_block_size_noenergy = attr.maxThreadsPerBlock;
 
             unsigned int run_block_size = min(block_size, max_block_size_noenergy);
             dim3 grid(cur_tpp * ci.getNumElements() / run_block_size + 1);
@@ -728,14 +712,10 @@ cudaError_t stage_net_cell_thermo(mpcd::detail::cell_thermo_element* d_tmp_therm
     {
     if (need_energy)
         {
-        static unsigned int max_block_size_energy = UINT_MAX;
-        if (max_block_size_energy == UINT_MAX)
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr,
-                                  (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<true>);
-            max_block_size_energy = attr.maxThreadsPerBlock;
-            }
+        unsigned int max_block_size_energy;
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<true>);
+        max_block_size_energy = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = min(block_size, max_block_size_energy);
         dim3 grid(tmp_ci.getNumElements() / run_block_size + 1);
@@ -744,14 +724,10 @@ cudaError_t stage_net_cell_thermo(mpcd::detail::cell_thermo_element* d_tmp_therm
         }
     else
         {
-        static unsigned int max_block_size_noenergy = UINT_MAX;
-        if (max_block_size_noenergy == UINT_MAX)
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr,
-                                  (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<false>);
-            max_block_size_noenergy = attr.maxThreadsPerBlock;
-            }
+        unsigned int max_block_size_noenergy;
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<false>);
+        max_block_size_noenergy = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = min(block_size, max_block_size_noenergy);
         dim3 grid(tmp_ci.getNumElements() / run_block_size + 1);
@@ -831,3 +807,4 @@ unpack_cell_buffer(double3* d_props,
 
     } // end namespace gpu
     } // end namespace mpcd
+    } // end namespace hoomd

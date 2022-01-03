@@ -27,6 +27,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Yukawa pair potential
 /*! <b>General Overview</b>
 
@@ -96,9 +100,9 @@ class EvaluatorPairYukawa
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -189,5 +193,8 @@ class EvaluatorPairYukawa
     Scalar epsilon; //!< epsilon parameter extracted from the params passed to the constructor
     Scalar kappa;   //!< kappa parameter extracted from the params passed to the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_YUKAWA_H__

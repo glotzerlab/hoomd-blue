@@ -23,6 +23,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for constructing the Gyroid minimal surface
 /*! <b>General Overview</b>
 
@@ -127,7 +131,13 @@ class ManifoldGyroid
     Scalar epsilon;
     };
 
+namespace detail
+    {
 //! Exports the Gyroid manifold class to python
 void export_ManifoldGyroid(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_GYROID_H__

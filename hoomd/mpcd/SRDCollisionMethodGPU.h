@@ -18,6 +18,8 @@
 #include "SRDCollisionMethod.h"
 #include "hoomd/Autotuner.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
@@ -64,6 +66,6 @@ namespace detail
 void export_SRDCollisionMethodGPU(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_SRD_COLLISION_METHOD_GPU_H_

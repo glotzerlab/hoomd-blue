@@ -5,8 +5,6 @@
 
 #include "TableDihedralForceComputeGPU.h"
 
-namespace py = pybind11;
-
 #include <stdexcept>
 
 /*! \file TableDihedralForceComputeGPU.cc
@@ -15,6 +13,10 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -76,20 +78,20 @@ void TableDihedralForceComputeGPU::computeForces(uint64_t timestep)
 
         // run the kernel on all GPUs in parallel
         m_tuner->begin();
-        gpu_compute_table_dihedral_forces(d_force.data,
-                                          d_virial.data,
-                                          m_virial.getPitch(),
-                                          m_pdata->getN(),
-                                          d_pos.data,
-                                          box,
-                                          d_gpu_dihedrallist.data,
-                                          d_dihedrals_ABCD.data,
-                                          m_dihedral_data->getGPUTableIndexer().getW(),
-                                          d_gpu_n_dihedrals.data,
-                                          d_tables.data,
-                                          m_table_width,
-                                          m_table_value,
-                                          m_tuner->getParam());
+        kernel::gpu_compute_table_dihedral_forces(d_force.data,
+                                                  d_virial.data,
+                                                  m_virial.getPitch(),
+                                                  m_pdata->getN(),
+                                                  d_pos.data,
+                                                  box,
+                                                  d_gpu_dihedrallist.data,
+                                                  d_dihedrals_ABCD.data,
+                                                  m_dihedral_data->getGPUTableIndexer().getW(),
+                                                  d_gpu_n_dihedrals.data,
+                                                  d_tables.data,
+                                                  m_table_width,
+                                                  m_table_value,
+                                                  m_tuner->getParam());
         }
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -103,10 +105,17 @@ void TableDihedralForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_TableDihedralForceComputeGPU(py::module& m)
+namespace detail
     {
-    py::class_<TableDihedralForceComputeGPU,
-               TableDihedralForceCompute,
-               std::shared_ptr<TableDihedralForceComputeGPU>>(m, "TableDihedralForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>());
+void export_TableDihedralForceComputeGPU(pybind11::module& m)
+    {
+    pybind11::class_<TableDihedralForceComputeGPU,
+                     TableDihedralForceCompute,
+                     std::shared_ptr<TableDihedralForceComputeGPU>>(m,
+                                                                    "TableDihedralForceComputeGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

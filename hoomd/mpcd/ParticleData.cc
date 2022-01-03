@@ -22,6 +22,8 @@
 #include <random>
 using namespace std;
 
+namespace hoomd
+    {
 // 9/8 factor for amortized growth
 const float mpcd::ParticleData::resize_factor = 9. / 8.;
 
@@ -1093,7 +1095,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         return;
         }
 
-    // flag particles that have left
+        // flag particles that have left
         {
         ArrayHandle<unsigned char> d_remove_flags(m_remove_flags,
                                                   access_location::device,
@@ -1113,7 +1115,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
             CHECK_CUDA_ERROR();
         }
 
-    // use cub to partition the particle indexes and count the number to remove
+        // use cub to partition the particle indexes and count the number to remove
         {
         ArrayHandle<unsigned char> d_remove_flags(m_remove_flags,
                                                   access_location::device,
@@ -1153,7 +1155,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
     const unsigned int n_keep = m_N - n_remove;
     out.resize(n_remove);
 
-    // remove the particles and compact down the current array
+        // remove the particles and compact down the current array
         {
         // access output array
         ArrayHandle<mpcd::detail::pdata_element> d_out(out,
@@ -1300,3 +1302,5 @@ void mpcd::detail::export_ParticleData(pybind11::module& m)
         .def("getTypeByName", &mpcd::ParticleData::getTypeByName)
         .def_property("mass", &mpcd::ParticleData::getMass, &mpcd::ParticleData::setMass);
     }
+
+    } // end namespace hoomd

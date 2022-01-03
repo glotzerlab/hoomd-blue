@@ -9,9 +9,12 @@
 
 #include "HarmonicImproperForceComputeGPU.h"
 
-namespace py = pybind11;
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute improper forces on
  */
 HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(
@@ -91,20 +94,20 @@ void HarmonicImproperForceComputeGPU::computeForces(uint64_t timestep)
 
     // run the kernel in parallel on all GPUs
     m_tuner->begin();
-    gpu_compute_harmonic_improper_forces(d_force.data,
-                                         d_virial.data,
-                                         m_virial.getPitch(),
-                                         m_pdata->getN(),
-                                         d_pos.data,
-                                         box,
-                                         d_gpu_dihedral_list.data,
-                                         d_dihedrals_ABCD.data,
-                                         m_improper_data->getGPUTableIndexer().getW(),
-                                         d_n_dihedrals.data,
-                                         d_params.data,
-                                         m_improper_data->getNTypes(),
-                                         m_tuner->getParam(),
-                                         m_exec_conf->dev_prop.warpSize);
+    kernel::gpu_compute_harmonic_improper_forces(d_force.data,
+                                                 d_virial.data,
+                                                 m_virial.getPitch(),
+                                                 m_pdata->getN(),
+                                                 d_pos.data,
+                                                 box,
+                                                 d_gpu_dihedral_list.data,
+                                                 d_dihedrals_ABCD.data,
+                                                 m_improper_data->getGPUTableIndexer().getW(),
+                                                 d_n_dihedrals.data,
+                                                 d_params.data,
+                                                 m_improper_data->getNTypes(),
+                                                 m_tuner->getParam(),
+                                                 m_exec_conf->dev_prop.warpSize);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
@@ -113,11 +116,18 @@ void HarmonicImproperForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_HarmonicImproperForceComputeGPU(py::module& m)
+namespace detail
     {
-    py::class_<HarmonicImproperForceComputeGPU,
-               HarmonicImproperForceCompute,
-               std::shared_ptr<HarmonicImproperForceComputeGPU>>(m,
-                                                                 "HarmonicImproperForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+void export_HarmonicImproperForceComputeGPU(pybind11::module& m)
+    {
+    pybind11::class_<HarmonicImproperForceComputeGPU,
+                     HarmonicImproperForceCompute,
+                     std::shared_ptr<HarmonicImproperForceComputeGPU>>(
+        m,
+        "HarmonicImproperForceComputeGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

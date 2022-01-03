@@ -18,6 +18,10 @@
 #ifndef __TABLEANGLEFORCECOMPUTEGPU_H__
 #define __TABLEANGLEFORCECOMPUTEGPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Compute table based bond potentials on the GPU
 /*! Calculates exactly the same thing as TableAngleForceCompute, but on the GPU
 
@@ -52,7 +56,13 @@ class PYBIND11_EXPORT TableAngleForceComputeGPU : public TableAngleForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the TableAngleForceComputeGPU class to python
 void export_TableAngleForceComputeGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

@@ -10,6 +10,12 @@
    GPU
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_compute_pair_aniso_forces_gb(const a_pair_args_t& pair_args,
                                             const EvaluatorPairGB::param_type* d_param,
                                             const EvaluatorPairGB::shape_type* d_shape_param)
@@ -40,3 +46,6 @@ gpu_compute_pair_aniso_forces_ALJ_3D(const a_pair_args_t& pair_args,
     {
     return gpu_compute_pair_aniso_forces<EvaluatorPairALJ<3>>(pair_args, d_param, d_shape_param);
     }
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

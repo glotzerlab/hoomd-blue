@@ -13,10 +13,10 @@ import hoomd
 
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data import syncedlist
-from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, positive_real
+from hoomd.data.typeconverter import OnlyTypes, positive_real
 from hoomd.logging import log
 from hoomd.md import _md
-from hoomd.md.integrate import _DynamicIntegrator, _preprocess_aniso
+from hoomd.md.integrate import _DynamicIntegrator
 
 
 class FIRE(_DynamicIntegrator):
@@ -27,10 +27,8 @@ class FIRE(_DynamicIntegrator):
             This is the maximum step size the minimizer is permitted to use
             :math:`[\\mathrm{time}]`. Consider the stability of the system when
             setting.
-        aniso (str or bool):
-            Whether to integrate rotational degrees of freedom (bool), default
-            'auto' (autodetect if there is anisotropic factor from any defined
-            active or constraint forces).
+        integrate_rotational_dof (bool): When True, integrate rotational degrees
+            of freedom.
         forces (Sequence[hoomd.md.force.Force]):
             Sequence of forces applied to the particles in the system. All the
             forces are summed together. The default value of ``None``
@@ -118,9 +116,10 @@ class FIRE(_DynamicIntegrator):
 
     Examples::
 
-        fire = md.minimize.FIRE(dt=0.05)
-        fire.force_tol = 1e-2
-        fire.energy_tol = 1e-7
+        fire = md.minimize.FIRE(dt=0.05,
+                                force_tol=1e-2,
+                                angmom_tol=1e-2,
+                                energy_tol=1e-7)
         fire.methods.append(md.methods.NVE(hoomd.filter.All()))
         sim.operations.integrator = fire
         while not(fire.converged):
@@ -134,9 +133,8 @@ class FIRE(_DynamicIntegrator):
            sim.run(100)
 
     Note:
-        The `minimire.FIRE` class should be used as the integrator for
-        simulations, just as the standard `md.Integrator` class is (see
-        examples).
+        `FIRE` should be used as the integrator for simulations, just as the
+        standard `md.Integrator` class is (see examples).
 
     Note:
         The algorithm requires an integration method to update the particle
@@ -156,10 +154,16 @@ class FIRE(_DynamicIntegrator):
             This is the maximum step size the minimizer is permitted to use
             :math:`[\\mathrm{time}]`. Consider the stability of the system when
             setting.
-        aniso (str or bool):
-            Whether to integrate rotational degrees of freedom (bool), default
-            'auto' (autodetect if there is anisotropic factor from any defined
-            active or constraint forces).
+        force_tol (float):
+            Force convergence criteria
+            :math:`[\\mathrm{force} / \\mathrm{mass}]`.
+        angmom_tol (float):
+            Angular momentum convergence criteria
+            :math:`[\\mathrm{energy} * \\mathrm{time}]`.
+        energy_tol (float):
+            Energy convergence criteria :math:`[\\mathrm{energy}]`.
+        integrate_rotational_dof (bool): When True, integrate rotational degrees
+            of freedom.
         forces (Sequence[hoomd.md.force.Force]):
             Sequence of forces applied to the particles in the system. All the
             forces are summed together. The default value of ``None``
@@ -190,14 +194,6 @@ class FIRE(_DynamicIntegrator):
         fdec_alpha (float):
             Factor to decrease :math:`\\alpha t` by
             :math:`[\\mathrm{dimensionless}]`.
-        force_tol (float):
-            Force convergence criteria
-            :math:`[\\mathrm{force} / \\mathrm{mass}]`.
-        angmom_tol (float):
-            Angular momentum convergence criteria
-            :math:`[\\mathrm{energy} * \\mathrm{time}]`.
-        energy_tol (float):
-            Energy convergence criteria :math:`[\\mathrm{energy}]`.
         min_steps_conv (int):
             A minimum number of attempts before convergence criteria are
             considered.
@@ -207,7 +203,10 @@ class FIRE(_DynamicIntegrator):
 
     def __init__(self,
                  dt,
-                 aniso='auto',
+                 force_tol,
+                 angmom_tol,
+                 energy_tol,
+                 integrate_rotational_dof=False,
                  forces=None,
                  constraints=None,
                  methods=None,
@@ -217,17 +216,13 @@ class FIRE(_DynamicIntegrator):
                  fdec_dt=0.5,
                  alpha_start=0.1,
                  fdec_alpha=0.99,
-                 force_tol=0.1,
-                 angmom_tol=0.1,
-                 energy_tol=1e-5,
                  min_steps_conv=10):
 
         super().__init__(forces, constraints, methods, rigid)
 
         pdict = ParameterDict(
             dt=float(dt),
-            aniso=OnlyFrom(['true', 'false', 'auto'],
-                           preprocess=_preprocess_aniso),
+            integrate_rotational_dof=bool(integrate_rotational_dof),
             min_steps_adapt=OnlyTypes(int, preprocess=positive_real),
             finc_dt=float(finc_dt),
             fdec_dt=float(fdec_dt),
@@ -238,7 +233,6 @@ class FIRE(_DynamicIntegrator):
             energy_tol=float(energy_tol),
             min_steps_conv=OnlyTypes(int, preprocess=positive_real),
             _defaults={
-                'aniso': 'auto',
                 'min_steps_adapt': 5,
                 'min_steps_conv': 10
             })
@@ -246,7 +240,6 @@ class FIRE(_DynamicIntegrator):
         self._param_dict.update(pdict)
 
         # set these values explicitly so they can be validated
-        self.aniso = aniso
         self.min_steps_adapt = min_steps_adapt
         self.min_steps_conv = min_steps_conv
 

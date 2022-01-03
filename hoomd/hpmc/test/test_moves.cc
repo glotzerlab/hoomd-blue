@@ -18,9 +18,10 @@ HOOMD_UP_MAIN();
 #include <memory>
 #include <pybind11/pybind11.h>
 
+using namespace hoomd;
 using namespace std;
-using namespace hpmc;
-using namespace hpmc::detail;
+using namespace hoomd::hpmc;
+using namespace hoomd::hpmc::detail;
 
 struct ShapeDummy
     {

@@ -1,5 +1,6 @@
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check, logging_check
+from hoomd.logging import LoggerCategories
 import pytest
 from copy import deepcopy
 from collections import namedtuple
@@ -477,9 +478,8 @@ def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
 
     sim = simulation_factory(snap)
 
-    sim.operations.integrator = hoomd.md.Integrator(0.005,
-                                                    methods=[npt],
-                                                    aniso=True)
+    sim.operations.integrator = hoomd.md.Integrator(
+        0.005, methods=[npt], integrate_rotational_dof=True)
     sim.run(0)
 
     npt.thermalize_thermostat_and_barostat_dof()
@@ -583,9 +583,8 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
         snap.particles.moment_inertia[:] = [[1, 1, 1], [2, 0, 0]]
 
     sim = simulation_factory(snap)
-    sim.operations.integrator = hoomd.md.Integrator(0.005,
-                                                    methods=[nvt],
-                                                    aniso=True)
+    sim.operations.integrator = hoomd.md.Integrator(
+        0.005, methods=[nvt], integrate_rotational_dof=True)
     sim.run(0)
 
     nvt.thermalize_thermostat_dof()
@@ -613,3 +612,29 @@ def test_pickling(method_base_params, simulation_factory,
     sim.operations.integrator = integrator
     sim.run(0)
     pickling_check(method)
+
+
+def test_logging():
+    logging_check(hoomd.md.methods.NPH, ('md', 'methods'), {
+        'barostat_energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })
+    logging_check(
+        hoomd.md.methods.NPT, ('md', 'methods'), {
+            'barostat_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'thermostat_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })
+    logging_check(hoomd.md.methods.NVT, ('md', 'methods'), {
+        'thermostat_energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

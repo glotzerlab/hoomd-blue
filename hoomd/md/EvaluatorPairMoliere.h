@@ -23,6 +23,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Moliere pair potential.
 /*! EvaluatorPairMoliere evaluates the function
     \f[ V_{\mathrm{Moliere}}(r) = \frac{Z_i Z_j e^2}{4 \pi \varepsilon_0 r_{ij}} \left[ 0.35 \exp
@@ -175,5 +179,8 @@ class EvaluatorPairMoliere
     Scalar Zsq;    //!< Zsq parameter extracted from the params passed to the constructor
     Scalar aF;     //!< aF parameter extracted from the params passed to the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_MOLIERE__

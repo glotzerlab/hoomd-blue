@@ -19,21 +19,16 @@
 #include <iterator>
 #include <pybind11/pybind11.h>
 
-void export_params(pybind11::module& m);
-
+namespace hoomd
+    {
+namespace dem
+    {
+namespace detail
+    {
 void export_NF_WCA_2D(pybind11::module& m);
 void export_NF_WCA_3D(pybind11::module& m);
 void export_NF_SWCA_3D(pybind11::module& m);
 void export_NF_SWCA_2D(pybind11::module& m);
-
-PYBIND11_MODULE(_dem, m)
-    {
-    export_params(m);
-    export_NF_WCA_2D(m);
-    export_NF_WCA_3D(m);
-    export_NF_SWCA_2D(m);
-    export_NF_SWCA_3D(m);
-    }
 
 // Export all of the parameter wrapper objects to the python interface
 void export_params(pybind11::module& m)
@@ -45,4 +40,17 @@ void export_params(pybind11::module& m)
 
     pybind11::class_<WCA>(m, "WCAPotential").def(pybind11::init<Scalar, NoFriction<Scalar>>());
     pybind11::class_<SWCA>(m, "SWCAPotential").def(pybind11::init<Scalar, NoFriction<Scalar>>());
+    }
+
+    } // end namespace detail
+    } // end namespace dem
+    } // end namespace hoomd
+
+PYBIND11_MODULE(_dem, m)
+    {
+    hoomd::dem::detail::export_params(m);
+    hoomd::dem::detail::export_NF_WCA_2D(m);
+    hoomd::dem::detail::export_NF_WCA_3D(m);
+    hoomd::dem::detail::export_NF_SWCA_2D(m);
+    hoomd::dem::detail::export_NF_SWCA_3D(m);
     }

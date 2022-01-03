@@ -10,12 +10,14 @@
 #include "NeighborListGPUTree.h"
 #include "NeighborListGPUTree.cuh"
 
-namespace py = pybind11;
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 /*!
  * \param sysdef System definition.
  * \param r_cut The default cutoff.
@@ -126,8 +128,8 @@ void NeighborListGPUTree::buildNlist(uint64_t timestep)
             m_streams.resize(m_pdata->getNTypes());
             for (unsigned int i = m_max_types; i < m_pdata->getNTypes(); ++i)
                 {
-                m_lbvhs[i].reset(new LBVHWrapper());
-                m_traversers[i].reset(new LBVHTraverserWrapper());
+                m_lbvhs[i].reset(new kernel::LBVHWrapper());
+                m_traversers[i].reset(new kernel::LBVHTraverserWrapper());
                 hipStreamCreate(&m_streams[i]);
                 }
 
@@ -217,13 +219,13 @@ void NeighborListGPUTree::buildNlist(uint64_t timestep)
  */
 void NeighborListGPUTree::buildTree()
     {
-    // set the data by type
+        // set the data by type
         {
         // also, check particles to filter out ghosts that lie outside the current box
         const BoxDim& box = m_pdata->getBox();
         Scalar ghost_layer_width(0.0);
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             ghost_layer_width = m_comm->getGhostLayerMaxWidth();
 #endif
         Scalar3 ghost_width = make_scalar3(0.0, 0.0, 0.0);
@@ -252,16 +254,16 @@ void NeighborListGPUTree::buildTree()
                                        access_mode::read);
 
             m_mark_tuner->begin();
-            gpu_nlist_mark_types(d_types.data,
-                                 d_indexes.data,
-                                 m_lbvh_errors.getDeviceFlags(),
-                                 d_last_pos.data,
-                                 d_pos.data,
-                                 m_pdata->getN(),
-                                 m_pdata->getNGhosts(),
-                                 box,
-                                 ghost_width,
-                                 m_mark_tuner->getParam());
+            kernel::gpu_nlist_mark_types(d_types.data,
+                                         d_indexes.data,
+                                         m_lbvh_errors.getDeviceFlags(),
+                                         d_last_pos.data,
+                                         d_pos.data,
+                                         m_pdata->getN(),
+                                         m_pdata->getNGhosts(),
+                                         box,
+                                         ghost_width,
+                                         m_mark_tuner->getParam());
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             m_mark_tuner->end();
@@ -310,14 +312,14 @@ void NeighborListGPUTree::buildTree()
 
             void* d_tmp = NULL;
             size_t tmp_bytes = 0;
-            gpu_nlist_sort_types(d_tmp,
-                                 tmp_bytes,
-                                 d_types.data,
-                                 d_sorted_types.data,
-                                 d_indexes.data,
-                                 d_sorted_indexes.data,
-                                 m_pdata->getN() + m_pdata->getNGhosts(),
-                                 m_type_bits);
+            kernel::gpu_nlist_sort_types(d_tmp,
+                                         tmp_bytes,
+                                         d_types.data,
+                                         d_sorted_types.data,
+                                         d_indexes.data,
+                                         d_sorted_indexes.data,
+                                         m_pdata->getN() + m_pdata->getNGhosts(),
+                                         m_type_bits);
 
             // make requested temporary allocation (1 char = 1B)
             size_t alloc_size = (tmp_bytes > 0) ? tmp_bytes : 4;
@@ -325,14 +327,14 @@ void NeighborListGPUTree::buildTree()
             d_tmp = (void*)d_alloc();
 
             // perform the sort
-            swap = gpu_nlist_sort_types(d_tmp,
-                                        tmp_bytes,
-                                        d_types.data,
-                                        d_sorted_types.data,
-                                        d_indexes.data,
-                                        d_sorted_indexes.data,
-                                        m_pdata->getN() + m_pdata->getNGhosts(),
-                                        m_type_bits);
+            swap = kernel::gpu_nlist_sort_types(d_tmp,
+                                                tmp_bytes,
+                                                d_types.data,
+                                                d_sorted_types.data,
+                                                d_indexes.data,
+                                                d_sorted_indexes.data,
+                                                m_pdata->getN() + m_pdata->getNGhosts(),
+                                                m_type_bits);
             }
         if (swap.x)
             m_sorted_types.swap(m_types);
@@ -345,7 +347,7 @@ void NeighborListGPUTree::buildTree()
         m_sorted_indexes.swap(m_indexes);
         }
 
-    // count the number of each type
+        // count the number of each type
         {
         ArrayHandle<unsigned int> d_type_first(m_type_first,
                                                access_location::device,
@@ -358,18 +360,18 @@ void NeighborListGPUTree::buildTree()
                                                  access_mode::read);
 
         m_count_tuner->begin();
-        gpu_nlist_count_types(d_type_first.data,
-                              d_type_last.data,
-                              d_sorted_types.data,
-                              m_pdata->getNTypes(),
-                              m_pdata->getN() + m_pdata->getNGhosts(),
-                              m_count_tuner->getParam());
+        kernel::gpu_nlist_count_types(d_type_first.data,
+                                      d_type_last.data,
+                                      d_sorted_types.data,
+                                      m_pdata->getNTypes(),
+                                      m_pdata->getN() + m_pdata->getNGhosts(),
+                                      m_count_tuner->getParam());
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_count_tuner->end();
         }
 
-    // build a lbvh for each type
+        // build a lbvh for each type
         {
         ArrayHandle<unsigned int> h_type_first(m_type_first,
                                                access_location::host,
@@ -392,7 +394,7 @@ void NeighborListGPUTree::buildTree()
             {
             const unsigned int first = h_type_first.data[i];
             const unsigned int last = h_type_last.data[i];
-            if (first != NeighborListTypeSentinel)
+            if (first != kernel::NeighborListTypeSentinel)
                 {
                 m_lbvhs[i]->setup(d_pos.data,
                                   d_sorted_indexes.data + first,
@@ -416,7 +418,7 @@ void NeighborListGPUTree::buildTree()
             const unsigned int first = h_type_first.data[i];
             const unsigned int last = h_type_last.data[i];
 
-            if (first != NeighborListTypeSentinel)
+            if (first != kernel::NeighborListTypeSentinel)
                 {
                 m_lbvhs[i]->build(d_pos.data,
                                   d_sorted_indexes.data + first,
@@ -443,8 +445,8 @@ void NeighborListGPUTree::buildTree()
         hipDeviceSynchronize();
         }
 
-    // put particles in primitive order for traversal and compress the lbvhs so that the data is
-    // ready for traversal
+        // put particles in primitive order for traversal and compress the lbvhs so that the data is
+        // ready for traversal
         {
         ArrayHandle<unsigned int> h_type_first(m_type_first,
                                                access_location::host,
@@ -464,11 +466,11 @@ void NeighborListGPUTree::buildTree()
                 const unsigned int first = h_type_first.data[i];
                 auto d_primitives = m_lbvhs[i]->getPrimitives();
                 m_copy_tuner->begin();
-                gpu_nlist_copy_primitives(d_traverse_order.data + first,
-                                          d_sorted_indexes.data + first,
-                                          d_primitives,
-                                          Ni,
-                                          m_copy_tuner->getParam());
+                kernel::gpu_nlist_copy_primitives(d_traverse_order.data + first,
+                                                  d_sorted_indexes.data + first,
+                                                  d_primitives,
+                                                  Ni,
+                                                  m_copy_tuner->getParam());
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 m_copy_tuner->end();
@@ -508,7 +510,7 @@ void NeighborListGPUTree::traverseTree()
     ArrayHandle<unsigned int> d_conditions(m_conditions,
                                            access_location::device,
                                            access_mode::readwrite);
-    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
+    ArrayHandle<size_t> d_head_list(m_head_list, access_location::device, access_mode::read);
 
     ArrayHandle<unsigned int> h_type_first(m_type_first, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_type_last(m_type_last, access_location::host, access_mode::read);
@@ -543,7 +545,7 @@ void NeighborListGPUTree::traverseTree()
         {
         // skip this type if there are no particles
         const unsigned int first = h_type_first.data[i];
-        if (first == NeighborListTypeSentinel)
+        if (first == kernel::NeighborListTypeSentinel)
             continue;
         const unsigned int Ni = h_type_last.data[i] - first;
 
@@ -572,7 +574,7 @@ void NeighborListGPUTree::traverseTree()
                 }
 
             // pack args to the traverser
-            LBVHTraverserWrapper::TraverserArgs args;
+            kernel::LBVHTraverserWrapper::TraverserArgs args;
 
             // the transform operator is for the particles in this LBVH (j)
             args.map = d_sorted_indexes.data + h_type_first.data[j];
@@ -671,10 +673,16 @@ void NeighborListGPUTree::updateImageVectors()
         }
     }
 
-void export_NeighborListGPUTree(py::module& m)
+namespace detail
     {
-    py::class_<NeighborListGPUTree, NeighborListGPU, std::shared_ptr<NeighborListGPUTree>>(
+void export_NeighborListGPUTree(pybind11::module& m)
+    {
+    pybind11::class_<NeighborListGPUTree, NeighborListGPU, std::shared_ptr<NeighborListGPUTree>>(
         m,
         "NeighborListGPUTree")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

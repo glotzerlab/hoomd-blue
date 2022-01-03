@@ -138,8 +138,9 @@ class Simulation(metaclass=Loggable):
                     cpp_communicator = _hoomd.CommunicatorGPU(
                         self.state._cpp_sys_def, decomposition)
 
-                # set Communicator in C++ System
+                # set Communicator in C++ System and SystemDefinition
                 self._cpp_sys.setCommunicator(cpp_communicator)
+                self.state._cpp_sys_def.setCommunicator(cpp_communicator)
                 self._system_communicator = cpp_communicator
             else:
                 self._system_communicator = None

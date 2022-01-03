@@ -18,6 +18,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Implements the Berendsen thermostat on the GPU
  */
 class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen
@@ -41,7 +45,13 @@ class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen
     unsigned int m_block_size; //!< Block size to launch on the GPU
     };
 
+namespace detail
+    {
 //! Export the Berendsen GPU class to python
 void export_BerendsenGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BERENDSEN_GPU_H__

@@ -190,7 +190,7 @@ int dfft_create_execution_flow(dfft_plan *plan)
             /* create multidimensional forward and backward plans */
             #ifdef ENABLE_HIP
             int howmany = 1;
-                        
+
             if (plan->device)
                 {
                 int res;
@@ -241,10 +241,10 @@ int dfft_create_execution_flow(dfft_plan *plan)
             }
         #endif
 
+        #ifdef ENABLE_HIP
         int size = plan->size_in;
         for (i = 0; i < plan->ndim; ++i)
             {
-            #ifdef ENABLE_HIP
             int s = size/plan->inembed[i] *(plan->gdim[i]/plan->pdim[i]);
             int dim = plan->k0[i];
             int howmany = s/(plan->k0[i]);
@@ -260,12 +260,12 @@ int dfft_create_execution_flow(dfft_plan *plan)
             res = dfft_cuda_create_1d_plan(&plan->cuda_plans_final_bw[i],
                 dim, howmany, istride, idist, ostride, odist, 1);
             CHECK_PLAN_CREATE(res);
-            #endif
 
             /* this time, we change to the output embedding */
             size /= plan->inembed[i];
             size *= plan->oembed[i];
             }
+        #endif
         }
     else
         {
@@ -288,7 +288,7 @@ int dfft_create_execution_flow(dfft_plan *plan)
         /* create multidimensional forward and backward plans */
         #ifdef ENABLE_HIP
         int howmany = 1;
-                
+
         if (plan->device)
             {
             int res;

@@ -8,12 +8,14 @@
 
 #include "ForceCompositeGPU.cuh"
 
-namespace py = pybind11;
-
 /*! \file ForceCompositeGPU.cc
     \brief Contains code for the ForceCompositeGPU class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
@@ -202,31 +204,31 @@ void ForceCompositeGPU::computeForces(uint64_t timestep)
         unsigned int n_bodies_per_block = param / 10000;
 
         // launch GPU kernel
-        gpu_rigid_force(d_force.data,
-                        d_torque.data,
-                        d_molecule_length.data,
-                        d_molecule_list.data,
-                        d_molecule_idx.data,
-                        d_rigid_center.data,
-                        molecule_indexer,
-                        d_postype.data,
-                        d_orientation.data,
-                        m_body_idx,
-                        d_body_pos.data,
-                        d_body_orientation.data,
-                        d_body_len.data,
-                        d_body.data,
-                        d_tag.data,
-                        d_flag.data,
-                        d_net_force.data,
-                        d_net_torque.data,
-                        nmol,
-                        m_pdata->getN(),
-                        n_bodies_per_block,
-                        block_size,
-                        m_exec_conf->dev_prop,
-                        !compute_virial,
-                        m_gpu_partition);
+        kernel::gpu_rigid_force(d_force.data,
+                                d_torque.data,
+                                d_molecule_length.data,
+                                d_molecule_list.data,
+                                d_molecule_idx.data,
+                                d_rigid_center.data,
+                                molecule_indexer,
+                                d_postype.data,
+                                d_orientation.data,
+                                m_body_idx,
+                                d_body_pos.data,
+                                d_body_orientation.data,
+                                d_body_len.data,
+                                d_body.data,
+                                d_tag.data,
+                                d_flag.data,
+                                d_net_force.data,
+                                d_net_torque.data,
+                                nmol,
+                                m_pdata->getN(),
+                                n_bodies_per_block,
+                                block_size,
+                                m_exec_conf->dev_prop,
+                                !compute_virial,
+                                m_gpu_partition);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -283,29 +285,29 @@ void ForceCompositeGPU::computeForces(uint64_t timestep)
         unsigned int n_bodies_per_block = param / 10000;
 
         // launch GPU kernel
-        gpu_rigid_virial(d_virial.data,
-                         d_molecule_length.data,
-                         d_molecule_list.data,
-                         d_molecule_idx.data,
-                         d_rigid_center.data,
-                         molecule_indexer,
-                         d_postype.data,
-                         d_orientation.data,
-                         m_body_idx,
-                         d_body_pos.data,
-                         d_body_orientation.data,
-                         d_net_force.data,
-                         d_net_virial.data,
-                         d_body.data,
-                         d_tag.data,
-                         nmol,
-                         m_pdata->getN(),
-                         n_bodies_per_block,
-                         m_pdata->getNetVirial().getPitch(),
-                         m_virial_pitch,
-                         block_size,
-                         m_exec_conf->dev_prop,
-                         m_gpu_partition);
+        kernel::gpu_rigid_virial(d_virial.data,
+                                 d_molecule_length.data,
+                                 d_molecule_list.data,
+                                 d_molecule_idx.data,
+                                 d_rigid_center.data,
+                                 molecule_indexer,
+                                 d_postype.data,
+                                 d_orientation.data,
+                                 m_body_idx,
+                                 d_body_pos.data,
+                                 d_body_orientation.data,
+                                 d_net_force.data,
+                                 d_net_virial.data,
+                                 d_body.data,
+                                 d_tag.data,
+                                 nmol,
+                                 m_pdata->getN(),
+                                 n_bodies_per_block,
+                                 m_pdata->getNetVirial().getPitch(),
+                                 m_virial_pitch,
+                                 block_size,
+                                 m_exec_conf->dev_prop,
+                                 m_gpu_partition);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -378,24 +380,24 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
         m_tuner_update->begin();
         unsigned int block_size = m_tuner_update->getParam();
 
-        gpu_update_composite(m_pdata->getN(),
-                             m_pdata->getNGhosts(),
-                             d_postype.data,
-                             d_orientation.data,
-                             m_body_idx,
-                             d_lookup_center.data,
-                             d_body_pos.data,
-                             d_body_orientation.data,
-                             d_body_len.data,
-                             d_molecule_order.data,
-                             d_molecule_len.data,
-                             d_molecule_idx.data,
-                             d_image.data,
-                             m_pdata->getBox(),
-                             m_pdata->getGlobalBox(),
-                             block_size,
-                             d_flag.data,
-                             m_pdata->getGPUPartition());
+        kernel::gpu_update_composite(m_pdata->getN(),
+                                     m_pdata->getNGhosts(),
+                                     d_postype.data,
+                                     d_orientation.data,
+                                     m_body_idx,
+                                     d_lookup_center.data,
+                                     d_body_pos.data,
+                                     d_body_orientation.data,
+                                     d_body_len.data,
+                                     d_molecule_order.data,
+                                     d_molecule_len.data,
+                                     d_molecule_idx.data,
+                                     d_image.data,
+                                     m_pdata->getBox(),
+                                     m_pdata->getGlobalBox(),
+                                     block_size,
+                                     d_flag.data,
+                                     m_pdata->getGPUPartition());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -488,24 +490,30 @@ void ForceCompositeGPU::findRigidCenters()
                                               access_mode::overwrite);
 
     unsigned int n_rigid = 0;
-    gpu_find_rigid_centers(d_body.data,
-                           d_tag.data,
-                           d_rtag.data,
-                           m_pdata->getN(),
-                           m_pdata->getNGhosts(),
-                           d_rigid_center.data,
-                           d_lookup_center.data,
-                           n_rigid);
+    kernel::gpu_find_rigid_centers(d_body.data,
+                                   d_tag.data,
+                                   d_rtag.data,
+                                   m_pdata->getN(),
+                                   m_pdata->getNGhosts(),
+                                   d_rigid_center.data,
+                                   d_lookup_center.data,
+                                   n_rigid);
 
     // distribute rigid body centers over GPUs
     m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     m_gpu_partition.setN(n_rigid);
     }
 
-void export_ForceCompositeGPU(py::module& m)
+namespace detail
     {
-    py::class_<ForceCompositeGPU, ForceComposite, std::shared_ptr<ForceCompositeGPU>>(
+void export_ForceCompositeGPU(pybind11::module& m)
+    {
+    pybind11::class_<ForceCompositeGPU, ForceComposite, std::shared_ptr<ForceCompositeGPU>>(
         m,
         "ForceCompositeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

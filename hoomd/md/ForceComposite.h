@@ -42,6 +42,10 @@
 #ifndef __ForceComposite_H__
 #define __ForceComposite_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     {
     public:
@@ -208,6 +212,11 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     std::vector<Scalar> m_body_max_diameter; //!< List of diameters for all body types
     Scalar m_global_max_d;                   //!< Maximum over all body diameters
 
+#ifdef ENABLE_MPI
+    /// The system's communicator.
+    std::shared_ptr<Communicator> m_comm;
+#endif
+
     //! Method to be called when particles are added or removed
     void slotPtlsAddedRemoved()
         {
@@ -244,23 +253,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     //! Return the requested minimum ghost layer width
     virtual Scalar requestExtraGhostLayerWidth(unsigned int type);
 
-#ifdef ENABLE_MPI
-    //! Set the communicator object
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method to set m_comm
-        MolecularForceCompute::setCommunicator(comm);
-
-        if (!m_comm_ghost_layer_connected)
-            {
-            // register this class with the communicator
-            m_comm->getExtraGhostLayerWidthRequestSignal()
-                .connect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
-            m_comm_ghost_layer_connected = true;
-            }
-        }
-#endif
-
     //! Compute the forces and torques on the central particle
     virtual void computeForces(uint64_t timestep);
 
@@ -268,14 +260,16 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     Scalar getBodyDiameter(unsigned int body_type);
 
     private:
-#ifdef ENABLE_MPI
-    bool m_comm_ghost_layer_connected; //!< Track if we have already connected ghost layer width
-                                       //!< requests
-#endif
     bool m_global_max_d_changed; //!< True if we updated any rigid body
     };
 
+namespace detail
+    {
 //! Exports the ForceComposite to python
 void export_ForceComposite(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

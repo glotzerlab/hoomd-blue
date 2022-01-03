@@ -11,6 +11,8 @@
 #include "CellThermoComputeGPU.h"
 #include "ReductionOperators.h"
 
+namespace hoomd
+    {
 /*!
  * \param sysdef System definition
  * \param cl MPCD cell list
@@ -249,7 +251,7 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
         m_prof->push(m_exec_conf, "MPCD thermo");
         }
 
-    // first reduce the properties on the rank
+        // first reduce the properties on the rank
         {
         const Index3D& ci = m_cl->getCellIndexer();
         uint3 upper = make_uint3(ci.getW(), ci.getH(), ci.getD());
@@ -367,10 +369,10 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
 
 void mpcd::detail::export_CellThermoComputeGPU(pybind11::module& m)
     {
-    namespace py = pybind11;
-
-    py::class_<mpcd::CellThermoComputeGPU,
-               mpcd::CellThermoCompute,
-               std::shared_ptr<mpcd::CellThermoComputeGPU>>(m, "CellThermoComputeGPU")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>>());
+    pybind11::class_<mpcd::CellThermoComputeGPU,
+                     mpcd::CellThermoCompute,
+                     std::shared_ptr<mpcd::CellThermoComputeGPU>>(m, "CellThermoComputeGPU")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>());
     }
+
+    } // end namespace hoomd

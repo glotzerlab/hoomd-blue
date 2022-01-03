@@ -21,6 +21,8 @@
 #include <math.h>
 
 using namespace std;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file test_berendsen_updater.cc
     \brief Implements unit tests for TwoStepBerendsen and descendants

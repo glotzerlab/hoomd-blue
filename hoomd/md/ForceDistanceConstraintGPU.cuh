@@ -8,9 +8,19 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 
+#ifdef CUSOLVER_AVAILABLE
+#include <cusparse.h>
+#endif
+
 #ifndef __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
 #define __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                                   unsigned int nptl_local,
                                   double* d_matrix,
@@ -33,7 +43,6 @@ hipError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                                   unsigned int block_size);
 
 #ifdef CUSOLVER_AVAILABLE
-#include <cusparse.h>
 
 hipError_t gpu_count_nnz(unsigned int n_constraint,
                          double* d_matrix,
@@ -65,3 +74,7 @@ hipError_t gpu_compute_constraint_forces(const Scalar4* d_pos,
                                          unsigned int block_size,
                                          double* d_lagrange);
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

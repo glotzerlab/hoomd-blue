@@ -26,6 +26,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Expanded Mie pair potential
 /*! <b>General Overview</b>
 
@@ -71,6 +75,8 @@ class EvaluatorPairExpandedMie
         Scalar n_pow;      //!< Higher exponent for potential
         Scalar m_pow;      //!< Lower exponent for potential
         Scalar delta;      //!< shift in radial distance for use in Mie potential
+        Scalar sigma;
+        Scalar epsilon;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -82,15 +88,18 @@ class EvaluatorPairExpandedMie
 #endif
 
 #ifndef __HIPCC__
-        param_type() : repulsive(0), attractive(0), n_pow(0), m_pow(0), delta(0) { }
+        param_type()
+            : repulsive(0), attractive(0), n_pow(0), m_pow(0), delta(0), sigma(0), epsilon(0)
+            {
+            }
 
         param_type(const pybind11::dict v, bool managed = false)
             {
             n_pow = v["n"].cast<Scalar>();
             m_pow = v["m"].cast<Scalar>();
 
-            auto sigma(v["sigma"].cast<Scalar>());
-            auto epsilon(v["epsilon"].cast<Scalar>());
+            sigma = v["sigma"].cast<Scalar>();
+            epsilon = v["epsilon"].cast<Scalar>();
 
             Scalar prefactor
                 = (n_pow / (n_pow - m_pow)) * fast::pow(n_pow / m_pow, m_pow / (n_pow - m_pow));
@@ -105,10 +114,6 @@ class EvaluatorPairExpandedMie
             pybind11::dict v;
             v["n"] = n_pow;
             v["m"] = m_pow;
-
-            Scalar sigma = fast::pow(repulsive / attractive, 1 / (n_pow - m_pow));
-            Scalar epsilon = repulsive / fast::pow(sigma, n_pow) * (n_pow - m_pow) / n_pow
-                             * fast::pow(n_pow / m_pow, m_pow / (m_pow - n_pow));
 
             v["epsilon"] = epsilon;
             v["sigma"] = sigma;
@@ -221,5 +226,8 @@ class EvaluatorPairExpandedMie
     Scalar m_pow;      //!< Lower exponent for potential
     Scalar delta;      //!< shift in radial distance for use in Mie potential
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EXPANDEDMIE_H__

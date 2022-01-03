@@ -12,6 +12,12 @@
 #ifndef __MUELLER_PLATHE_FLOW_GPU_CUH__
 #define __MUELLER_PLATHE_FLOW_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_search_min_max_velocity(const unsigned int group_size,
                                        const Scalar4* const d_vel,
                                        const Scalar4* const d_pos,
@@ -36,4 +42,9 @@ hipError_t gpu_update_min_max_velocity(const unsigned int* const d_rtag,
                                        const Scalar3 last_max_vel,
                                        const Scalar3 last_min_vel,
                                        const flow_enum::Direction flow_direction);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif //__MUELLER_PLATHE_FLOW_GPU_CUH__

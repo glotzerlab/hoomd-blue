@@ -2,6 +2,8 @@
 
 #include "ParticleFilter.h"
 
+namespace hoomd
+    {
 //! Select all particles
 class PYBIND11_EXPORT ParticleFilterNull : public ParticleFilter
     {
@@ -23,3 +25,5 @@ class PYBIND11_EXPORT ParticleFilterNull : public ParticleFilter
         return member_tags;
         }
     };
+
+    } // end namespace hoomd

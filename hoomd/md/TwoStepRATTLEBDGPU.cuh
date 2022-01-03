@@ -20,7 +20,6 @@
 
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
-using namespace hoomd;
 
 #include <assert.h>
 #include <type_traits>
@@ -28,6 +27,12 @@ using namespace hoomd;
 #ifndef __TWO_STEP_RATTLE_BD_GPU_CUH__
 #define __TWO_STEP_RATTLE_BD_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Temporary holder struct to limit the number of arguments passed to gpu_rattle_bd_step_one()
 struct rattle_bd_step_one_args
     {
@@ -271,9 +276,9 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
 
                 // check if the shape is degenerate
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0) * gamma_r.x * T / deltaT),
                                                fast::sqrt(Scalar(2.0) * gamma_r.y * T / deltaT),
@@ -667,4 +672,8 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
     }
 
 #endif
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif //__TWO_STEP_RATTLE_BD_GPU_CUH__

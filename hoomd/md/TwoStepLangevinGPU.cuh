@@ -14,6 +14,12 @@
 #ifndef __TWO_STEP_LANGEVIN_GPU_CUH__
 #define __TWO_STEP_LANGEVIN_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Temporary holder struct to limit the number of arguments passed to gpu_langevin_step_two()
 struct langevin_step_two_args
     {
@@ -61,5 +67,9 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
                                          Scalar deltaT,
                                          unsigned int D,
                                          Scalar scale);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__TWO_STEP_LANGEVIN_GPU_CUH__

@@ -12,7 +12,12 @@
 /*! \file TwoStepNVEGPU.cu
     \brief Defines GPU kernel code for NVE integration on the GPU. Used by TwoStepNVEGPU.
 */
-
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Takes the first half-step forward in the velocity-verlet NVE integration on a group of particles
 /*! \param d_pos array of particle positions
     \param d_vel array of particle velocities
@@ -37,18 +42,18 @@
    sorts the index list the writes will be as contiguous as possible leading to fewer memory
    transactions on compute 1.3 hardware and more cache hits on Fermi.
 */
-extern "C" __global__ void gpu_nve_step_one_kernel(Scalar4* d_pos,
-                                                   Scalar4* d_vel,
-                                                   const Scalar3* d_accel,
-                                                   int3* d_image,
-                                                   unsigned int* d_group_members,
-                                                   const unsigned int nwork,
-                                                   const unsigned int offset,
-                                                   BoxDim box,
-                                                   Scalar deltaT,
-                                                   bool limit,
-                                                   Scalar limit_val,
-                                                   bool zero_force)
+__global__ void gpu_nve_step_one_kernel(Scalar4* d_pos,
+                                        Scalar4* d_vel,
+                                        const Scalar3* d_accel,
+                                        int3* d_image,
+                                        unsigned int* d_group_members,
+                                        const unsigned int nwork,
+                                        const unsigned int offset,
+                                        BoxDim box,
+                                        Scalar deltaT,
+                                        bool limit,
+                                        Scalar limit_val,
+                                        bool zero_force)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -132,13 +137,10 @@ hipError_t gpu_nve_step_one(Scalar4* d_pos,
                             bool zero_force,
                             unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_nve_step_one_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_nve_step_one_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -214,9 +216,9 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4* d_orientation,
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x < Scalar(EPSILON));
-        y_zero = (I.y < Scalar(EPSILON));
-        z_zero = (I.z < Scalar(EPSILON));
+        x_zero = (I.x == 0);
+        y_zero = (I.y == 0);
+        z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
         if (x_zero)
@@ -323,13 +325,10 @@ hipError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
                                     Scalar scale,
                                     const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_nve_angular_step_one_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_nve_angular_step_one_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -380,16 +379,16 @@ hipError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for
    design details.
 */
-extern "C" __global__ void gpu_nve_step_two_kernel(Scalar4* d_vel,
-                                                   Scalar3* d_accel,
-                                                   unsigned int* d_group_members,
-                                                   const unsigned int nwork,
-                                                   const unsigned int offset,
-                                                   Scalar4* d_net_force,
-                                                   Scalar deltaT,
-                                                   bool limit,
-                                                   Scalar limit_val,
-                                                   bool zero_force)
+__global__ void gpu_nve_step_two_kernel(Scalar4* d_vel,
+                                        Scalar3* d_accel,
+                                        unsigned int* d_group_members,
+                                        const unsigned int nwork,
+                                        const unsigned int offset,
+                                        Scalar4* d_net_force,
+                                        Scalar deltaT,
+                                        bool limit,
+                                        Scalar limit_val,
+                                        bool zero_force)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -465,13 +464,10 @@ hipError_t gpu_nve_step_two(Scalar4* d_vel,
                             bool zero_force,
                             unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_nve_step_two_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_nve_step_two_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -544,9 +540,9 @@ __global__ void gpu_nve_angular_step_two_kernel(const Scalar4* d_orientation,
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x < Scalar(EPSILON));
-        y_zero = (I.y < Scalar(EPSILON));
-        z_zero = (I.z < Scalar(EPSILON));
+        x_zero = (I.x == 0);
+        y_zero = (I.y == 0);
+        z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
         if (x_zero)
@@ -584,13 +580,10 @@ hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
                                     Scalar scale,
                                     const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_nve_angular_step_two_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_nve_angular_step_two_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -624,3 +617,7 @@ hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

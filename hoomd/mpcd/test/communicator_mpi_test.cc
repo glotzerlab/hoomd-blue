@@ -17,6 +17,7 @@
 #include <functional>
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
 typedef std::function<std::shared_ptr<mpcd::Communicator>(
@@ -108,7 +109,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
     UP_ASSERT_EQUAL(pdata->getN(), 1);
     const unsigned int my_rank = exec_conf->getRank();
 
-    // verify all particles were initialized correctly
+        // verify all particles were initialized correctly
         {
         const unsigned int tag = pdata->getTag(0);
         const Scalar3 pos = DEST_TO_REF(pdata->getPosition(0));
@@ -294,7 +295,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             };
         }
 
-    // move particles to new ranks
+        // move particles to new ranks
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
@@ -435,7 +436,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             };
         }
 
-    // move particles through the global boundary
+        // move particles through the global boundary
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
@@ -748,7 +749,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
     UP_ASSERT_EQUAL(pdata->getN(), 1);
     UP_ASSERT_EQUAL(pdata->getTag(0), exec_conf->getRank());
 
-    // move particles to new ranks
+        // move particles to new ranks
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
@@ -839,7 +840,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
         UP_ASSERT_EQUAL(pdata->getN(), 0);
         }
 
-    // now send multiple particles out from each rank in different directions
+        // now send multiple particles out from each rank in different directions
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
@@ -986,7 +987,7 @@ UP_TEST(mpcd_communicator_migrate_ortho_test)
 
 UP_TEST(mpcd_communicator_overdecompose_test)
     {
-    // two ranks in any direction
+        // two ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
                                                                   std::vector<int>(),
@@ -997,7 +998,7 @@ UP_TEST(mpcd_communicator_overdecompose_test)
         test_communicator_overdecompose(exec_conf, 1, 2, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 1, 2, false);
         }
-    // four ranks in any direction
+        // four ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
                                                                   std::vector<int>(),
@@ -1008,7 +1009,7 @@ UP_TEST(mpcd_communicator_overdecompose_test)
         test_communicator_overdecompose(exec_conf, 1, 4, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 1, 4, false);
         }
-    // eight ranks in any direction
+        // eight ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
                                                                   std::vector<int>(),

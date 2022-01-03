@@ -23,6 +23,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 // (if you really don't want to include the whole hoomd.h, you can include individual files IF AND
 // ONLY IF hoomd_config.h is included first) For example: #include <hoomd/Updater.h>
 
@@ -42,8 +44,12 @@ class ExampleUpdater : public Updater
     virtual void update(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Export the ExampleUpdater class to python
 void export_ExampleUpdater(pybind11::module& m);
+
+    } // end namespace detail
 
 // Third, this class offers a GPU accelerated method in order to demonstrate how to include CUDA
 // code in pluins we need to declare a separate class for that (but only if ENABLE_HIP is set)
@@ -65,9 +71,15 @@ class ExampleUpdaterGPU : public ExampleUpdater
     virtual void update(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Export the ExampleUpdaterGPU class to python
 void export_ExampleUpdaterGPU(pybind11::module& m);
 
+    } // end namespace detail
+
 #endif // ENABLE_HIP
+
+    } // end namespace hoomd
 
 #endif // _EXAMPLE_UPDATER_H_

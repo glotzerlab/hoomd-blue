@@ -19,6 +19,10 @@
 #ifndef __TABLEPOTENTIAL_H__
 #define __TABLEPOTENTIAL_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes the result of a tabulated pair potential
 /*! The potential and force values are provided the tables V(r) and F(r) at N_table discreet \a r
     values between \a rmin and \a rcut. Evaluations are performed by simple linear interpolation.
@@ -77,7 +81,12 @@ class EvaluatorPairTable
 
             if (V_py.size() != F_py.size())
                 {
-                throw std::runtime_error("The length of V and F arrays must be equal");
+                throw std::runtime_error("The length of V and F arrays must be equal.");
+                }
+
+            if (V_py.size() == 0)
+                {
+                throw std::runtime_error("The length of V and F must not be zero.");
                 }
 
             size_t width = V_py.size();
@@ -101,9 +110,9 @@ class EvaluatorPairTable
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -217,5 +226,8 @@ class EvaluatorPairTable
     ManagedArray<Scalar> V_table; //!< the tabulated energy
     ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

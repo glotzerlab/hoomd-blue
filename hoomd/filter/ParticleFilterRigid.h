@@ -13,6 +13,8 @@
     Filters particles based on them being rigid body centers or not.
 */
 
+namespace hoomd
+    {
 enum class RigidBodySelection
     {
     NONE = 0,
@@ -117,4 +119,6 @@ class PYBIND11_EXPORT ParticleFilterRigid : public ParticleFilter
     /// and free bodies.
     RigidBodySelection m_current_selection;
     };
+
+    } // end namespace hoomd
 #endif

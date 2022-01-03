@@ -18,6 +18,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 template<class Shape> class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
@@ -78,6 +80,8 @@ template<class Shape> class ExternalFieldMonoComposite : public ExternalFieldMon
     std::vector<std::shared_ptr<ExternalFieldMono<Shape>>> m_externals;
     };
 
+namespace detail
+    {
 template<class Shape> void export_ExternalFieldComposite(pybind11::module& m, std::string name)
     {
     pybind11::class_<ExternalFieldMonoComposite<Shape>,
@@ -87,5 +91,7 @@ template<class Shape> void export_ExternalFieldComposite(pybind11::module& m, st
         .def("addExternal", &ExternalFieldMonoComposite<Shape>::addExternal);
     }
 
-    }      // namespace hpmc
+    }  // end namespace detail
+    }  // namespace hpmc
+    }  // end namespace hoomd
 #endif // inclusion guard

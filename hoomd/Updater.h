@@ -37,6 +37,8 @@
 /*! @}
  */
 
+namespace hoomd
+    {
 //! Performs updates of ParticleData structures
 /*! The Updater is an abstract concept that takes a particle data structure and changes it in some
    way. For example, an updater may make a verlet step and update the particle positions to the next
@@ -65,17 +67,7 @@ class PYBIND11_EXPORT Updater
     /*! Derived classes will implement this method to perform their specific update
         \param timestep Current time step of the simulation
     */
-    virtual void update(uint64_t timestep)
-        {
-#ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition() && !m_comm)
-            {
-            throw std::runtime_error(
-                "Bug: m_comm not set for a system with a domain decomposition in "
-                + std::string(typeid(*this).name()));
-            }
-#endif
-        };
+    virtual void update(uint64_t timestep) {};
 
     //! Sets the profiler for the compute to use
     virtual void setProfiler(std::shared_ptr<Profiler> prof);
@@ -103,16 +95,6 @@ class PYBIND11_EXPORT Updater
         {
         return PDataFlags(0);
         }
-
-#ifdef ENABLE_MPI
-    //! Set the communicator to use
-    /*! \param comm The Communicator
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        m_comm = comm;
-        }
-#endif
 
     std::shared_ptr<const ExecutionConfiguration> getExecConf()
         {
@@ -150,16 +132,19 @@ class PYBIND11_EXPORT Updater
     const std::shared_ptr<ParticleData>
         m_pdata;                      //!< The particle data this compute is associated with
     std::shared_ptr<Profiler> m_prof; //!< The profiler this compute is to use
-#ifdef ENABLE_MPI
-    std::shared_ptr<Communicator> m_comm; //!< The communicator this updater is to use
-#endif
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>
         m_slots; //!< Stored shared ptr to the system signals
     };
 
+namespace detail
+    {
 //! Export the Updater class to python
 void export_Updater(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

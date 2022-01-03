@@ -8,8 +8,6 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
-namespace py = pybind11;
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
@@ -20,6 +18,10 @@ using namespace std;
     \brief Contains code for the IntegrationMethodTwoStep class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \post The method is constructed with the given particle data and a NULL profiler.
@@ -128,18 +130,18 @@ Scalar IntegrationMethodTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup>
             {
             if (dimension == 3)
                 {
-                if (fabs(h_moment_inertia.data[j].x) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].x) > 0)
                     query_group_dof++;
 
-                if (fabs(h_moment_inertia.data[j].y) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].y) > 0)
                     query_group_dof++;
 
-                if (fabs(h_moment_inertia.data[j].z) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].z) > 0)
                     query_group_dof++;
                 }
             else
                 {
-                if (fabs(h_moment_inertia.data[j].z) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].z) > 0)
                     query_group_dof++;
                 }
             }
@@ -194,18 +196,20 @@ void IntegrationMethodTwoStep::validateGroup()
         }
     }
 
-void export_IntegrationMethodTwoStep(py::module& m)
+namespace detail
     {
-    py::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>>(
+void export_IntegrationMethodTwoStep(pybind11::module& m)
+    {
+    pybind11::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>>(
         m,
         "IntegrationMethodTwoStep")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
         .def_property_readonly("filter",
                                [](const std::shared_ptr<IntegrationMethodTwoStep> method)
-                               { return method->getGroup()->getFilter(); })
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)
-#endif
-        ;
+                               { return method->getGroup()->getFilter(); });
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

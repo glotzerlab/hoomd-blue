@@ -22,6 +22,10 @@
 #ifndef __ACTIVEFORCECOMPUTE_H__
 #define __ACTIVEFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 // Forward declaration is necessary to avoid circular includes between this and
 // ActiveRotationalDiffusionUpdater.h while making ActiveRotationalDiffusionUpdater a friend class
 // of ActiveForceCompute.
@@ -87,6 +91,12 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     friend class ActiveRotationalDiffusionUpdater;
     };
 
+namespace detail
+    {
 //! Exports the ActiveForceComputeClass to python
 void export_ActiveForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 #endif

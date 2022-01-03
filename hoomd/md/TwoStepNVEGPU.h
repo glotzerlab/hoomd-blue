@@ -20,6 +20,10 @@
 
 #include "hoomd/Autotuner.h"
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps in the NVE ensemble on the GPU
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface, runs
    on the GPU
@@ -65,7 +69,13 @@ class PYBIND11_EXPORT TwoStepNVEGPU : public TwoStepNVE
         m_tuner_angular_two; //!< Autotuner for block size (angular step two kernel)
     };
 
+namespace detail
+    {
 //! Exports the TwoStepNVEGPU class to python
 void export_TwoStepNVEGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NVE_GPU_H__

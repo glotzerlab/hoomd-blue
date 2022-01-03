@@ -28,6 +28,8 @@
 /*! \ingroup communication
  */
 
+namespace hoomd
+    {
 //! Class that handles MPI communication (GPU version)
 /*! CommunicatorGPU is the GPU implementation of the base communication class.
  */
@@ -164,9 +166,9 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     std::vector<int> m_stages;             //!< Communication stage per unique neighbor
 
     /* Particle migration */
-    GlobalVector<pdata_element> m_gpu_sendbuf; //!< Send buffer for particle data
-    GlobalVector<pdata_element> m_gpu_recvbuf; //!< Receive buffer for particle data
-    GlobalVector<unsigned int> m_comm_flags;   //!< Output buffer for communication flags
+    GlobalVector<detail::pdata_element> m_gpu_sendbuf; //!< Send buffer for particle data
+    GlobalVector<detail::pdata_element> m_gpu_recvbuf; //!< Receive buffer for particle data
+    GlobalVector<unsigned int> m_comm_flags;           //!< Output buffer for communication flags
 
     GlobalVector<unsigned int> m_send_keys; //!< Destination rank for particles
 
@@ -257,8 +259,13 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     void initializeCommunicationStages();
     };
 
+namespace detail
+    {
 //! Export CommunicatorGPU class to python
 void export_CommunicatorGPU(pybind11::module& m);
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI

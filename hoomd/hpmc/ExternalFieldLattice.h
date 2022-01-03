@@ -18,6 +18,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 /*
@@ -123,9 +125,7 @@ template<class ScalarType> class LatticeReferenceList
 
         if (!exec_conf || !pdata || pdata->getNGlobal() != numPoints)
             {
-            if (exec_conf)
-                exec_conf->msg->error() << "Check pointers and initialization list" << std::endl;
-            throw std::runtime_error("Error setting LatticeReferenceList");
+            throw std::runtime_error("There must be one lattice point per particle.");
             }
         m_N = (unsigned int)numPoints;
         GPUArray<ScalarType> temp(numPoints, exec_conf);
@@ -613,6 +613,8 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
     BoxDim m_box; //!< Save the last known box;
     };
 
+namespace detail
+    {
 template<class Shape> void export_LatticeField(pybind11::module& m, std::string name)
     {
     pybind11::class_<ExternalFieldLattice<Shape>,
@@ -636,6 +638,8 @@ template<class Shape> void export_LatticeField(pybind11::module& m, std::string 
 
 void export_LatticeFields(pybind11::module& m);
 
+    } // end namespace detail
     } // namespace hpmc
+    } // end namespace hoomd
 
 #endif // _EXTERNAL_FIELD_LATTICE_H_

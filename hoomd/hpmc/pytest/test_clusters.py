@@ -5,7 +5,8 @@
 """Test hoomd.hpmc.update.Clusters."""
 
 import hoomd
-from hoomd.conftest import operation_pickling_check
+from hoomd.conftest import operation_pickling_check, logging_check
+from hoomd.logging import LoggerCategories
 import pytest
 import hoomd.hpmc.pytest.conftest
 
@@ -13,16 +14,16 @@ import hoomd.hpmc.pytest.conftest
 # here that require preprocessing
 valid_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
-         pivot_move_ratio=0.1,
+         pivot_move_probability=0.1,
          flip_probability=0.8),
     dict(trigger=hoomd.trigger.After(100),
-         pivot_move_ratio=0.7,
+         pivot_move_probability=0.7,
          flip_probability=1),
     dict(trigger=hoomd.trigger.Before(100),
-         pivot_move_ratio=0.7,
+         pivot_move_probability=0.7,
          flip_probability=1),
     dict(trigger=hoomd.trigger.Periodic(1000),
-         pivot_move_ratio=0.7,
+         pivot_move_probability=0.7,
          flip_probability=1),
 ]
 
@@ -30,8 +31,8 @@ valid_attrs = [('trigger', hoomd.trigger.Periodic(10000)),
                ('trigger', hoomd.trigger.After(100)),
                ('trigger', hoomd.trigger.Before(12345)),
                ('flip_probability', 0.2), ('flip_probability', 0.5),
-               ('flip_probability', 0.8), ('pivot_move_ratio', 0.2),
-               ('pivot_move_ratio', 0.5), ('pivot_move_ratio', 0.8)]
+               ('flip_probability', 0.8), ('pivot_move_probability', 0.2),
+               ('pivot_move_probability', 0.5), ('pivot_move_probability', 0.8)]
 
 
 @pytest.mark.serial
@@ -145,7 +146,7 @@ def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
     sim.operations.integrator = mc
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
-                                    pivot_move_ratio=0.5)
+                                    pivot_move_probability=0.5)
     sim.operations.updaters.append(cl)
 
     sim.run(100)
@@ -163,5 +164,14 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = mc
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
-                                    pivot_move_ratio=0.1)
+                                    pivot_move_probability=0.1)
     operation_pickling_check(cl, sim)
+
+
+def test_logging():
+    logging_check(hoomd.hpmc.update.Clusters, ('hpmc', 'update'), {
+        'avg_cluster_size': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

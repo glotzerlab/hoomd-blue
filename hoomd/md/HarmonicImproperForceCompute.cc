@@ -11,7 +11,6 @@
 #include <stdexcept>
 
 using namespace std;
-namespace py = pybind11;
 
 // SMALL a relatively small number
 #define SMALL Scalar(0.001)
@@ -20,6 +19,10 @@ namespace py = pybind11;
     \brief Contains code for the HarmonicImproperForceCompute class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
@@ -34,8 +37,7 @@ HarmonicImproperForceCompute::HarmonicImproperForceCompute(std::shared_ptr<Syste
     // check for some silly errors a user could make
     if (m_improper_data->getNTypes() == 0)
         {
-        m_exec_conf->msg->error() << "improper.harmonic: No improper types specified" << endl;
-        throw runtime_error("Error initializing HarmonicImproperForceCompute");
+        throw runtime_error("No improper types in the system.");
         }
 
     // allocate the parameters
@@ -64,8 +66,7 @@ void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar
     // make sure the type is valid
     if (type >= m_improper_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "improper.harmonic: Invalid improper type specified" << endl;
-        throw runtime_error("Error setting parameters in HarmonicImproperForceCompute");
+        throw runtime_error("Invalid improper type.");
         }
 
     m_K[type] = K;
@@ -294,11 +295,18 @@ void HarmonicImproperForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-void export_HarmonicImproperForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<HarmonicImproperForceCompute,
-               ForceCompute,
-               std::shared_ptr<HarmonicImproperForceCompute>>(m, "HarmonicImproperForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_HarmonicImproperForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<HarmonicImproperForceCompute,
+                     ForceCompute,
+                     std::shared_ptr<HarmonicImproperForceCompute>>(m,
+                                                                    "HarmonicImproperForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &HarmonicImproperForceCompute::setParams);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

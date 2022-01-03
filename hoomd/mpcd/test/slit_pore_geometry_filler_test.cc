@@ -13,6 +13,8 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
@@ -39,7 +41,7 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
                                                                  8.0,
                                                                  mpcd::detail::boundary::no_slip);
     // fill density 2, temperature 1.5
-    std::shared_ptr<::Variant> kT = std::make_shared<::VariantConstant>(1.5);
+    std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.5);
     std::shared_ptr<mpcd::SlitPoreGeometryFiller> filler
         = std::make_shared<F>(mpcd_sys, 2.0, 1, kT, 42, slit);
 
@@ -52,7 +54,7 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
      */
     filler->fill(0);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * 2 * (1 * 3 + 2 * 16 + 1 * 3) * 20);
-    // count that particles have been placed on the right sides, and in right spaces
+        // count that particles have been placed on the right sides, and in right spaces
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
@@ -97,7 +99,7 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
     filler->setDensity(4.0);
     filler->fill(1);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 6 * 2 * (1 * 3 + 2 * 16 + 1 * 3) * 20);
-    // count that particles have been placed on the right sides
+        // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
@@ -134,7 +136,7 @@ template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfig
     filler->fill(2);
     UP_ASSERT_EQUAL(pdata->getNVirtual(),
                     (unsigned int)(4 * 2 * (0.5 * 4.5 + 0.5 * 16 + 0.5 * 4.5) * 20));
-    // count that particles have been placed on the right sides
+        // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         unsigned int N_lo(0), N_hi(0);

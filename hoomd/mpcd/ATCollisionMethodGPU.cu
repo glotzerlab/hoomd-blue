@@ -13,6 +13,8 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -139,13 +141,10 @@ cudaError_t at_draw_velocity(Scalar4* d_alt_vel,
                              const unsigned int N_tot,
                              const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::at_draw_velocity);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::at_draw_velocity);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -178,13 +177,10 @@ cudaError_t at_apply_velocity(Scalar4* d_vel,
                               const unsigned int N_tot,
                               const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::at_apply_velocity);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::at_apply_velocity);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -205,3 +201,4 @@ cudaError_t at_apply_velocity(Scalar4* d_vel,
 
     } // end namespace gpu
     } // end namespace mpcd
+    } // end namespace hoomd

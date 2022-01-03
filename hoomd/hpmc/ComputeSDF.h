@@ -27,6 +27,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -141,14 +143,6 @@ template<class Shape> class ComputeSDF : public Compute
         m_dx = dx;
         }
 
-#ifdef ENABLE_MPI
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method
-        Compute::setCommunicator(comm);
-        }
-#endif
-
     //! Analyze the current configuration
     virtual void compute(uint64_t timestep);
 
@@ -235,7 +229,7 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
 
 // in MPI, total up all of the histogram bins from all nodes to the root node
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         MPI_Reduce(m_hist.data(),
                    hist_total.data(),
@@ -292,7 +286,7 @@ template<class Shape> void ComputeSDF<Shape>::zeroHistogram()
 template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     {
     // update the aabb tree
-    const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+    const hoomd::detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
     // update the image list
     const std::vector<vec3<Scalar>>& image_list = m_mc->updateImageList();
 
@@ -306,7 +300,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                        access_location::host,
                                        access_mode::read);
 
-    const std::vector<param_type, managed_allocator<param_type>>& params = m_mc->getParams();
+    const std::vector<param_type, hoomd::detail::managed_allocator<param_type>>& params
+        = m_mc->getParams();
 
     // loop through N particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -321,14 +316,15 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
-        detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0),
-                                  shape_i.getCircumsphereDiameter() / Scalar(2) + extra_width);
+        hoomd::detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0),
+                                         shape_i.getCircumsphereDiameter() / Scalar(2)
+                                             + extra_width);
 
         size_t n_images = image_list.size();
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
             vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
-            detail::AABB aabb = aabb_i_local;
+            hoomd::detail::AABB aabb = aabb_i_local;
             aabb.translate(pos_i_image);
 
             // stackless search
@@ -444,6 +440,8 @@ size_t ComputeSDF<Shape>::computeBin(const vec3<Scalar>& r_ij,
     return L;
     }
 
+namespace detail
+    {
 //! Export this hpmc compute to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of ComputeSDFe<Shape> will be exported
@@ -461,6 +459,9 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
         .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF);
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+
+    } // end namespace hoomd
 
 #endif // __COMPUTE_SDF__H__

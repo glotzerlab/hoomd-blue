@@ -15,6 +15,8 @@
  * \brief Definition of mpcd::CellList
  */
 
+namespace hoomd
+    {
 mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
     : Compute(sysdef), m_mpcd_pdata(mpcd_pdata), m_cell_size(1.0), m_cell_np_max(4),
@@ -39,6 +41,13 @@ mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
     m_decomposition = m_pdata->getDomainDecomposition();
     m_num_extra = 0;
     m_cover_box = m_pdata->getBox();
+
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+        }
 #endif // ENABLE_MPI
 
     m_mpcd_pdata->getSortSignal().connect<mpcd::CellList, &mpcd::CellList::sort>(this);
@@ -89,7 +98,7 @@ void mpcd::CellList::compute(uint64_t timestep)
             m_prof->pop(m_exec_conf);
 
         // exchange embedded particles if necessary
-        if (m_comm && needsEmbedMigrate(timestep))
+        if (m_sysdef->isDomainDecomposed() && needsEmbedMigrate(timestep))
             {
             m_comm->forceMigrate();
             m_comm->communicate(timestep);
@@ -935,11 +944,12 @@ const int3 mpcd::CellList::wrapGlobalCell(const int3& cell) const
 
 void mpcd::detail::export_CellList(pybind11::module& m)
     {
-    namespace py = pybind11;
-
-    py::class_<mpcd::CellList, Compute, std::shared_ptr<mpcd::CellList>>(m, "CellList")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData>>())
+    pybind11::class_<mpcd::CellList, Compute, std::shared_ptr<mpcd::CellList>>(m, "CellList")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<mpcd::ParticleData>>())
         .def_property("cell_size", &mpcd::CellList::getCellSize, &mpcd::CellList::setCellSize)
         .def("setEmbeddedGroup", &mpcd::CellList::setEmbeddedGroup)
         .def("removeEmbeddedGroup", &mpcd::CellList::removeEmbeddedGroup);
     }
+
+    } // end namespace hoomd

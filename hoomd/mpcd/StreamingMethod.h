@@ -21,6 +21,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! MPCD streaming method
@@ -97,7 +99,7 @@ class PYBIND11_EXPORT StreamingMethod
     protected:
     std::shared_ptr<mpcd::SystemData> m_mpcd_sys;              //!< MPCD system data
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
-    std::shared_ptr<::ParticleData> m_pdata;                   //!< HOOMD particle data
+    std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     std::shared_ptr<Profiler> m_prof;                          //!< System profiler
@@ -116,6 +118,7 @@ namespace detail
     {
 //! Export mpcd::StreamingMethod to python
 void export_StreamingMethod(pybind11::module& m);
-    }      // end namespace detail
-    }      // end namespace mpcd
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_STREAMING_METHOD_H_

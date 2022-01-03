@@ -18,6 +18,10 @@
     \brief Contains GPU kernel code used by ParticleGroup
 */
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! GPU kernel to translate between global and local membership lookup table
 __global__ void gpu_rebuild_index_list_kernel(unsigned int N,
                                               unsigned int* d_tag,
@@ -134,3 +138,7 @@ hipError_t gpu_compact_index_list(unsigned int N,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+
+    } // end namespace hoomd

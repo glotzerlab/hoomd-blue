@@ -10,7 +10,8 @@ import numpy as np
 import pytest
 
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check, logging_check
+from hoomd.logging import LoggerCategories
 from hoomd import md
 from hoomd.error import TypeConversionError
 
@@ -45,7 +46,7 @@ def assert_equivalent_data_structures(struct_1, struct_2):
 
 
 def make_langevin_integrator(force):
-    integrator = md.Integrator(dt=0.005)
+    integrator = md.Integrator(dt=0.005, integrate_rotational_dof=True)
     integrator.forces.append(force)
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(), kT=1))
     return integrator
@@ -75,7 +76,7 @@ def make_two_particle_simulation(two_particle_snapshot_factory,
 @pytest.mark.parametrize("mode", [('none', 'shift'), ('shift', 'none')])
 def test_mode(make_two_particle_simulation, mode):
     """Test that all modes are correctly set on construction."""
-    cell = md.nlist.Cell()
+    cell = md.nlist.Cell(buffer=0.4)
     # Test setting on construction
     gay_berne = md.pair.aniso.GayBerne(nlist=cell,
                                        default_r_cut=2.5,
@@ -98,10 +99,11 @@ def test_mode_invalid(mode):
     """Test mode validation on construction and setting."""
     # Test errors on construction
     with pytest.raises(TypeConversionError):
-        gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(),
+        gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(buffer=0.4),
                                            default_r_cut=2.5,
                                            mode=mode)
-    gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(), default_r_cut=2.5)
+    gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(buffer=0.4),
+                                       default_r_cut=2.5)
     gay_berne.params[('A', 'A')] = {'epsilon': 1, 'lpar': 0.5, 'lperp': 1.0}
     # Test errors on setting
     with pytest.raises(TypeConversionError):
@@ -111,7 +113,7 @@ def test_mode_invalid(mode):
 @pytest.mark.parametrize("r_cut", [2.5, 4.0, 1.0, 0.01])
 def test_rcut(make_two_particle_simulation, r_cut):
     """Test that r_cut is correctly set and settable."""
-    cell = md.nlist.Cell()
+    cell = md.nlist.Cell(buffer=0.4)
     # Test construction
     gay_berne = md.pair.aniso.GayBerne(nlist=cell, default_r_cut=r_cut)
     assert gay_berne.r_cut.default == r_cut
@@ -135,7 +137,7 @@ def test_rcut(make_two_particle_simulation, r_cut):
 @pytest.mark.parametrize("r_cut", [-1., 'foo', None])
 def test_rcut_invalid(r_cut):
     """Test r_cut validation logic."""
-    cell = md.nlist.Cell()
+    cell = md.nlist.Cell(buffer=0.4)
     # Test construction error
     if r_cut is not None:
         with pytest.raises(TypeConversionError):
@@ -308,7 +310,7 @@ class PotentialId:
                          ids=PotentialId())
 def test_setting_params_and_shape(make_two_particle_simulation,
                                   pair_potential_spec):
-    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(),
+    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(buffer=0.4),
                                              default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
@@ -360,7 +362,8 @@ def _aniso_forces_and_energies():
 @pytest.fixture(scope="function", params=_valid_params(), ids=PotentialId())
 def pair_potential(request):
     spec = request.param
-    pair_potential = spec.cls(nlist=md.nlist.Cell(), default_r_cut=2.5)
+    pair_potential = spec.cls(nlist=md.nlist.Cell(buffer=0.4),
+                              default_r_cut=2.5)
     for key, value in spec.type_parameters.items():
         setattr(pair_potential, key, value)
     return pair_potential
@@ -376,7 +379,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
                                                      len(snap.particles.types),
                                                      snap.particles.N)
     sim = simulation_factory(snap)
-    integrator = md.Integrator(dt=0.005)
+    integrator = md.Integrator(dt=0.005, integrate_rotational_dof=True)
     integrator.forces.append(pair_potential)
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(), kT=1))
     sim.operations.integrator = integrator
@@ -409,9 +412,8 @@ def test_aniso_force_computes(make_two_particle_simulation,
         \theta_1 = (1, 0, 0, 0) \ \theta_2 = (0.70738827, 0, 0, 0.70682518) \\
 
     """
-    pot = aniso_forces_and_energies.pair_potential(nlist=md.nlist.Cell(),
-                                                   default_r_cut=2.5,
-                                                   mode='none')
+    pot = aniso_forces_and_energies.pair_potential(
+        nlist=md.nlist.Cell(buffer=0.4), default_r_cut=2.5, mode='none')
     for param, value in aniso_forces_and_energies.pair_potential_params.items():
         getattr(pot, param)[('A', 'A')] = value
     sim = make_two_particle_simulation(types=['A'], d=0.75, force=pot)
@@ -446,7 +448,7 @@ def test_aniso_force_computes(make_two_particle_simulation,
                          _valid_params(),
                          ids=PotentialId())
 def test_pickling(make_two_particle_simulation, pair_potential_spec):
-    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(),
+    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(buffer=0.4),
                                              default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
@@ -461,39 +463,43 @@ def test_pickling(make_two_particle_simulation, pair_potential_spec):
     pickling_check(pair_potential)
 
 
-_base_expected_loggable = {
-    "forces": {
-        "category": hoomd.logging.LoggerCategories["particle"],
-        "default": True
-    },
-    "torques": {
-        "category": hoomd.logging.LoggerCategories["particle"],
-        "default": True
-    },
-    "virials": {
-        "category": hoomd.logging.LoggerCategories["particle"],
-        "default": True
-    },
-    "energies": {
-        "category": hoomd.logging.LoggerCategories["particle"],
-        "default": True
-    },
-    "energy": {
-        "category": hoomd.logging.LoggerCategories["scalar"],
-        "default": True
+def _base_expected_loggable(include_type_shapes=False):
+    base = {
+        "forces": {
+            "category": hoomd.logging.LoggerCategories["particle"],
+            "default": True
+        },
+        "torques": {
+            "category": hoomd.logging.LoggerCategories["particle"],
+            "default": True
+        },
+        "virials": {
+            "category": hoomd.logging.LoggerCategories["particle"],
+            "default": True
+        },
+        "energies": {
+            "category": hoomd.logging.LoggerCategories["particle"],
+            "default": True
+        },
+        "energy": {
+            "category": hoomd.logging.LoggerCategories["scalar"],
+            "default": True
+        }
     }
-}
+    if include_type_shapes:
+        base["type_shapes"] = {
+            'category': LoggerCategories.object,
+            'default': True
+        }
+    return base
 
 
 @pytest.mark.parametrize(
     "cls,log_check_params",
     ((cls, log_check_params) for cls, log_check_params in zip((
         md.pair.aniso.GayBerne, md.pair.aniso.Dipole,
-        md.pair.aniso.ALJ), (_base_expected_loggable, _base_expected_loggable, {
-            **_base_expected_loggable, "type_shapes": {
-                "category": hoomd.logging.LoggerCategories["object"],
-                "default": True
-            }
-        }))))
+        md.pair.aniso.ALJ), (_base_expected_loggable(True),
+                             _base_expected_loggable(),
+                             _base_expected_loggable(True)))))
 def test_logging(cls, log_check_params):
-    hoomd.conftest.logging_check(cls, ("md", "pair", "aniso"), log_check_params)
+    logging_check(cls, ('md', 'pair', 'aniso'), log_check_params)

@@ -472,8 +472,8 @@ class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
 
     Args:
-        pivot_move_ratio (float): Set the ratio between pivot and reflection
-          moves.
+        pivot_move_probability (float): Set the probability for attempting a
+                                        pivot move.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
         trigger (Trigger): Select the timesteps on which to perform cluster
@@ -503,8 +503,8 @@ class Clusters(Updater):
     The `Clusters` updater support threaded execution on multiple CPU cores.
 
     Attributes:
-        pivot_move_ratio (float): Set the ratio between pivot and reflection
-          moves.
+        pivot_move_probability (float): Set the probability for attempting a
+                                        pivot move.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
         trigger (Trigger): Select the timesteps on which to perform cluster
@@ -513,11 +513,15 @@ class Clusters(Updater):
     _remove_for_pickling = Updater._remove_for_pickling + ('_cpp_cell',)
     _skip_for_equality = Updater._skip_for_equality | {'_cpp_cell'}
 
-    def __init__(self, pivot_move_ratio=0.5, flip_probability=0.5, trigger=1):
+    def __init__(self,
+                 pivot_move_probability=0.5,
+                 flip_probability=0.5,
+                 trigger=1):
         super().__init__(trigger)
 
-        param_dict = ParameterDict(pivot_move_ratio=float(pivot_move_ratio),
-                                   flip_probability=float(flip_probability))
+        param_dict = ParameterDict(
+            pivot_move_probability=float(pivot_move_probability),
+            flip_probability=float(flip_probability))
 
         self._param_dict.update(param_dict)
         self.instance = 0
@@ -612,7 +616,7 @@ class QuickCompress(Updater):
     of the largest particle type.
 
     Tip:
-        Use the `hoomd.hpmc.tune.MoveSizeTuner` in conjunction with
+        Use the `hoomd.hpmc.tune.MoveSize` in conjunction with
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
 

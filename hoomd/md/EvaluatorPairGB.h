@@ -34,6 +34,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 /*!
  * Gay-Berne potential as formulated by Allen and Germano,
  * with shape-independent energy parameter, for identical uniaxial particles.
@@ -93,9 +97,9 @@ class EvaluatorPairGB
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     // Nullary structure required by AnisoPotentialPair.
@@ -311,6 +315,9 @@ class EvaluatorPairGB
     Scalar lpar;
     // const param_type &params;  //!< The pair potential parameters
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #undef HOOMD_GB_MIN
 #undef HOOMD_GB_MAX

@@ -3,6 +3,12 @@
 
 #include "../DEM3DForceGPU.cu"
 
+namespace hoomd
+    {
+namespace dem
+    {
+namespace kernel
+    {
 typedef DEMEvaluator<Scalar, Scalar4, WCAPotential<Scalar, Scalar4, NoFriction<Scalar>>> WCADEM;
 
 template hipError_t
@@ -31,7 +37,7 @@ gpu_compute_dem3d_forces<Scalar, Scalar4, WCADEM>(Scalar4* d_force,
                                                   const BoxDim& box,
                                                   const unsigned int* d_n_neigh,
                                                   const unsigned int* d_nlist,
-                                                  const unsigned int* d_head_list,
+                                                  const size_t* d_head_list,
                                                   const WCADEM evaluator,
                                                   const Scalar r_cutsq,
                                                   const unsigned int particlesPerBlock,
@@ -42,3 +48,7 @@ gpu_compute_dem3d_forces<Scalar, Scalar4, WCADEM>(Scalar4* d_force,
                                                   const unsigned int* d_numTypeFaces,
                                                   const unsigned int* d_vertexConnectivity,
                                                   const unsigned int* d_edges);
+
+    } // end namespace kernel
+    } // end namespace dem
+    } // end namespace hoomd

@@ -32,6 +32,10 @@
 #include <immintrin.h>
 #endif
 
+namespace hoomd
+    {
+namespace detail
+    {
 #if defined(__SSE__) && !defined(__HIPCC__)
 inline __m128 sse_load_vec3_float(const vec3<float>& value)
     {
@@ -69,14 +73,6 @@ inline vec3<double> sse_unload_vec3_double(const __m256d& v)
     return vec3<double>(out[0], out[1], out[2]);
     }
 #endif
-
-namespace hpmc
-    {
-namespace detail
-    {
-/*! \addtogroup overlap
-    @{
-*/
 
 //! Axis aligned bounding box
 /*! An AABB represents a bounding volume defined by an axis-aligned bounding box. It is stored as
@@ -273,7 +269,12 @@ struct
 
 #endif
         }
-    } __attribute__((aligned(32)));
+    }
+#ifndef HOOMD_LLVMJIT_BUILD
+    __attribute__((aligned(32)));
+#else
+    ;
+#endif
 
 //! Check if two AABBs overlap
 /*! \param a First AABB
@@ -359,7 +360,7 @@ DEVICE inline AABB merge(const AABB& a, const AABB& b)
 
     }; // end namespace detail
 
-    }; // end namespace hpmc
+    }; // end namespace hoomd
 
 #undef DEVICE
 #endif //__AABB_H__

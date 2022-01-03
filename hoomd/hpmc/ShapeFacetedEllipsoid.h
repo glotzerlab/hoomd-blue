@@ -21,6 +21,8 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -166,6 +168,7 @@ struct FacetedEllipsoidParams : ShapeParams
     /// Generate the intersections points of polyhedron edges with the sphere
     DEVICE void initializeVertices(bool managed = false)
         {
+        const Scalar tolerance = 1e-5;
         additional_verts = detail::PolyhedronVertices(2 * N * N, managed);
         additional_verts.diameter = OverlapReal(2.0); // for unit sphere
         additional_verts.N = 0;
@@ -240,7 +243,7 @@ struct FacetedEllipsoidParams : ShapeParams
                         }
                     }
 
-                if (allowed && dot(v1, v1) <= OverlapReal(1.0 + SMALL))
+                if (allowed && dot(v1, v1) <= OverlapReal(1.0 + tolerance))
                     {
                     additional_verts.x[additional_verts.N] = v1.x;
                     additional_verts.y[additional_verts.N] = v1.y;
@@ -271,7 +274,7 @@ struct FacetedEllipsoidParams : ShapeParams
                         }
                     }
 
-                if (allowed && dot(v2, v2) <= (OverlapReal(1.0 + SMALL)))
+                if (allowed && dot(v2, v2) <= (OverlapReal(1.0 + tolerance)))
                     {
                     additional_verts.x[additional_verts.N] = v2.x;
                     additional_verts.y[additional_verts.N] = v2.y;
@@ -379,6 +382,8 @@ class SupportFuncFacetedEllipsoid
     */
     DEVICE vec3<OverlapReal> operator()(const vec3<OverlapReal>& n_in) const
         {
+        const Scalar tolerance = 1e-5;
+
         // transform support direction into coordinate system of the unit sphere
         vec3<OverlapReal> n(n_in);
         n.x *= params.a;
@@ -418,7 +423,7 @@ class SupportFuncFacetedEllipsoid
             OverlapReal alpha = dot(n_sphere, n_p);
             OverlapReal arg = (OverlapReal(1.0) - alpha * alpha / np_sq);
             vec3<OverlapReal> v;
-            if (arg >= OverlapReal(SMALL))
+            if (arg >= OverlapReal(tolerance))
                 {
                 OverlapReal arg2 = OverlapReal(1.0) - b * b / np_sq;
                 OverlapReal invgamma = fast::sqrt(arg2 / arg);
@@ -542,7 +547,7 @@ struct ShapeFacetedEllipsoid
         }
 
     /// Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // use support function of the ellipsoid to determine the furthest extent in each direction
         detail::SupportFuncFacetedEllipsoid sfunc(params);
@@ -568,7 +573,7 @@ struct ShapeFacetedEllipsoid
         vec3<Scalar> upper(pos.x + s_x_plus.x, pos.y + s_y_plus.y, pos.z + s_z_plus.z);
         vec3<Scalar> lower(pos.x + s_x_minus.x, pos.y + s_y_minus.y, pos.z + s_z_minus.z);
 
-        return detail::AABB(lower, upper);
+        return hoomd::detail::AABB(lower, upper);
         }
 
     /// Return a tight fitting OBB around the shape
@@ -645,7 +650,8 @@ test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(const vec3<Scalar>& r
         err);
     }
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

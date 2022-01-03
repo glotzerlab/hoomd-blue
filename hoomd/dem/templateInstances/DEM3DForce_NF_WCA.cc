@@ -13,18 +13,23 @@
 #include "../WCAPotential.h"
 
 #include <pybind11/pybind11.h>
-namespace py = pybind11;
 
-void export_NF_WCA_3D(py::module& m)
+namespace hoomd
+    {
+namespace dem
+    {
+namespace detail
+    {
+void export_NF_WCA_3D(pybind11::module& m)
     {
     typedef WCAPotential<Scalar, Scalar4, NoFriction<Scalar>> WCA;
     typedef DEM3DForceCompute<Scalar, Scalar4, WCA> WCA_DEM_3D;
 
-    py::class_<WCA_DEM_3D, ForceCompute, std::shared_ptr<WCA_DEM_3D>>(m, "WCADEM3D")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<NeighborList>,
-                      Scalar,
-                      WCA>())
+    pybind11::class_<WCA_DEM_3D, ForceCompute, std::shared_ptr<WCA_DEM_3D>>(m, "WCADEM3D")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<md::NeighborList>,
+                            Scalar,
+                            WCA>())
         .def("setParams", &WCA_DEM_3D::setParams)
         .def("setRcut", &WCA_DEM_3D::setRcut)
         .def("connectDEMGSDShapeSpec", &WCA_DEM_3D::connectDEMGSDShapeSpec)
@@ -34,13 +39,17 @@ void export_NF_WCA_3D(py::module& m)
 #ifdef ENABLE_HIP
     typedef DEM3DForceComputeGPU<Scalar, Scalar4, WCA> WCA_DEM_3D_GPU;
 
-    py::class_<WCA_DEM_3D_GPU, WCA_DEM_3D, std::shared_ptr<WCA_DEM_3D_GPU>>(m, "WCADEM3DGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<NeighborList>,
-                      Scalar,
-                      WCA>())
+    pybind11::class_<WCA_DEM_3D_GPU, WCA_DEM_3D, std::shared_ptr<WCA_DEM_3D_GPU>>(m, "WCADEM3DGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<md::NeighborList>,
+                            Scalar,
+                            WCA>())
         .def("setParams", &WCA_DEM_3D_GPU::setParams)
         .def("setRcut", &WCA_DEM_3D_GPU::setRcut)
         .def("setAutotunerParams", &WCA_DEM_3D_GPU::setAutotunerParams);
 #endif
     }
+
+    } // end namespace detail
+    } // end namespace dem
+    } // end namespace hoomd

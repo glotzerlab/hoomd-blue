@@ -16,6 +16,8 @@
 #include <thrust/execution_policy.h>
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -148,13 +150,10 @@ cudaError_t sort_apply(Scalar4* d_pos_alt,
     if (N == 0)
         return cudaSuccess;
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::sort_apply);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::sort_apply);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N / run_block_size + 1);
@@ -188,13 +187,10 @@ cudaError_t sort_set_sentinel(unsigned int* d_cell_list,
                               const unsigned int sentinel,
                               const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::sort_set_sentinel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::sort_set_sentinel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     const unsigned int N_cli = cli.getNumElements();
 
@@ -282,13 +278,10 @@ cudaError_t sort_gen_reverse(unsigned int* d_rorder,
     if (N == 0)
         return cudaSuccess;
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::sort_gen_reverse);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::sort_gen_reverse);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N / run_block_size + 1);
@@ -298,3 +291,5 @@ cudaError_t sort_gen_reverse(unsigned int* d_rorder,
     }
     } // end namespace gpu
     } // end namespace mpcd
+
+    } // end namespace hoomd

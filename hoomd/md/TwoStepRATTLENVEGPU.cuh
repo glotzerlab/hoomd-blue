@@ -26,6 +26,12 @@
 #ifndef __TWO_STEP_RATTLE_NVE_GPU_CUH__
 #define __TWO_STEP_RATTLE_NVE_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_rattle_nve_step_one(Scalar4* d_pos,
                                    Scalar4* d_vel,
                                    const Scalar3* d_accel,
@@ -249,13 +255,10 @@ hipError_t gpu_rattle_nve_step_two(Scalar4* d_pos,
                                    bool zero_force,
                                    unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_step_two_kernel<Manifold>);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_step_two_kernel<Manifold>);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -419,13 +422,10 @@ hipError_t gpu_include_rattle_force_nve(const Scalar4* d_pos,
                                         bool zero_force,
                                         unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_include_rattle_force_nve_kernel<Manifold>);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_include_rattle_force_nve_kernel<Manifold>);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
@@ -465,5 +465,9 @@ hipError_t gpu_include_rattle_force_nve(const Scalar4* d_pos,
     }
 
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__TWO_STEP_RATTLE_NVE_GPU_CUH__

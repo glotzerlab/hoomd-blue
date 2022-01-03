@@ -25,6 +25,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 struct harmonic_params
     {
     Scalar k;
@@ -55,9 +59,9 @@ struct harmonic_params
 #endif
     }
 #ifdef SINGLE_PRECISION
-__attribute__((aligned(8)));
+    __attribute__((aligned(8)));
 #else
-__attribute__((aligned(16)));
+    __attribute__((aligned(16)));
 #endif
 
 //! Class for evaluating the harmonic bond potential
@@ -147,5 +151,8 @@ class EvaluatorBondHarmonic
     Scalar K;   //!< K parameter
     Scalar r_0; //!< r_0 parameter
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_HARMONIC_H__

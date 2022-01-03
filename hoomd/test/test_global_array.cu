@@ -10,6 +10,10 @@
     \ingroup unit_tests
 */
 
+namespace hoomd
+    {
+namespace test
+    {
 /*! \param d_data Device pointer to the array where the data is held
     \param num Number of elements in the array
 
@@ -28,7 +32,7 @@ __global__ void gpu_add_one_kernel(int* d_data, size_t num)
 
     gpu_add_one is just a driver for gpu_add_one_kernel()
 */
-extern "C" hipError_t gpu_add_one(int* d_data, size_t num)
+hipError_t gpu_add_one(int* d_data, size_t num)
     {
     unsigned int block_size = 256;
 
@@ -60,7 +64,7 @@ __global__ void gpu_fill_test_pattern_kernel(int* d_data, size_t num)
 
     gpu_fill_test_pattern is just a driver for gpu_fill_test_pattern_kernel()
 */
-extern "C" hipError_t gpu_fill_test_pattern(int* d_data, size_t num)
+hipError_t gpu_fill_test_pattern(int* d_data, size_t num)
     {
     unsigned int block_size = 256;
 
@@ -79,3 +83,6 @@ extern "C" hipError_t gpu_fill_test_pattern(int* d_data, size_t num)
     hipDeviceSynchronize();
     return hipGetLastError();
     }
+
+    } // end namespace test
+    } // end namespace hoomd

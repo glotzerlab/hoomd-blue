@@ -18,6 +18,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing dpd thermostat and LJ pair potential
 /*! <b>Overview:</b>
     TODO - Revise Documentation Below
@@ -117,9 +121,9 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
     ArrayHandle<unsigned int> h_nlist(this->m_nlist->getNListArray(),
                                       access_location::host,
                                       access_mode::read);
-    ArrayHandle<unsigned int> h_head_list(this->m_nlist->getHeadList(),
-                                          access_location::host,
-                                          access_mode::read);
+    ArrayHandle<size_t> h_head_list(this->m_nlist->getHeadList(),
+                                    access_location::host,
+                                    access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(),
                                access_location::host,
@@ -153,7 +157,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
         Scalar3 vi = make_scalar3(h_vel.data[i].x, h_vel.data[i].y, h_vel.data[i].z);
 
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-        const unsigned int head_i = h_head_list.data[i];
+        const size_t head_i = h_head_list.data[i];
 
         // sanity check
         assert(typei < this->m_pdata->getNTypes());
@@ -291,6 +295,8 @@ CommFlags PotentialPairDPDThermo<evaluator>::getRequestedCommFlags(uint64_t time
     }
 #endif
 
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPairDPDThermo class
@@ -304,5 +310,9 @@ void export_PotentialPairDPDThermo(pybind11::module& m, const std::string& name)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def_property("kT", &T::getT, &T::setT);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_H__

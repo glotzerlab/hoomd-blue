@@ -27,6 +27,8 @@
 #define HOSTDEVICE inline __attribute__((always_inline))
 #endif
 
+namespace hoomd
+    {
 //! Stores box dimensions
 /*! All particles in the ParticleData structure are inside of a box. This struct defines
     that box. For cubic boxes, inside is defined as x >= m_lo.x && x < m_hi.x, and similarly for y
@@ -640,6 +642,8 @@ struct
     Scalar m_yz;       //!< yz tilt factor
     uchar3 m_periodic; //!< 0/1 in each direction to tell if the box is periodic in that direction
     };
+
+    } // end namespace hoomd
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE
