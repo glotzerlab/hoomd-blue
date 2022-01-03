@@ -487,8 +487,6 @@ class _LoggerEntry:
         except DataAccessError:
             attr = None
 
-        if self.category is LoggerCategories.state:
-            return attr
         if callable(attr):
             return (attr(), self.category.name)
         else:
