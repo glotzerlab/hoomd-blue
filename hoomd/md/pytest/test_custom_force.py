@@ -8,6 +8,12 @@ try:
 except ImportError:
     CUPY_IMPORTED = False
 
+try:
+    from mpi4py import MPI
+    MPI4PY_IMPORTED = True
+except ImportError:
+    MPI4PY_IMPORTED = False
+
 import hoomd
 from hoomd import md
 
@@ -263,25 +269,36 @@ def test_nested_context_managers(force_cls, two_particle_snapshot_factory,
 
 class GhostForceAccessCPU(md.force.Custom):
 
-    def __init__(self, num_ranks):
+    def __init__(self, num_particles_global):
         super().__init__()
-        self._num_ranks = num_ranks
-        self._array_buffers = []
-        for buffer in ['force', 'torque', 'potential_energy', 'virial']:
-            self._array_buffers.append(buffer)
-            self._array_buffers.append(buffer + '_with_ghost')
-            self._array_buffers.append('ghost_' + buffer)
+        self._num_particles_global = num_particles_global
+        self._array_buffers = ['force', 'torque', 'potential_energy', 'virial']
+        #for buffer in ['force', 'torque', 'potential_energy', 'virial']:
+        #    self._array_buffers.append(buffer)
+        #    self._array_buffers.append(buffer + '_with_ghost')
+        #    self._array_buffers.append('ghost_' + buffer)
 
     def _check_buffer_lengths(self, arrays):
         """Ensure the lengths of the accessed buffers are right."""
         for buffer_name in self._array_buffers:
+            print(buffer_name)
             buffer = getattr(arrays, buffer_name)
-            if buffer_name.startswith('ghost_') and self._num_ranks == 1:
-                assert len(buffer) == 0
-            elif buffer_name.endswith('_with_ghost') or self._num_ranks == 1:
-                assert len(buffer) == 2
-            else:
-                assert len(buffer) == 1
+            ghost_buffer = getattr(arrays, 'ghost_' + buffer_name)
+            buffer_with_ghost = getattr(arrays, buffer_name + '_with_ghost')
+            assert len(buffer) + len(ghost_buffer) == len(buffer_with_ghost)
+            print(len(buffer))
+            print(len(ghost_buffer))
+            print(len(buffer_with_ghost))
+            if MPI4PY_IMPORTED:
+                mpi_comm = MPI.COMM_WORLD
+                N_global = mpi_comm.allreduce(len(buffer), op=MPI.SUM)
+                assert N_global == self._num_particles_global
+            #if buffer_name.startswith('ghost_') and self._num_ranks == 1:
+            #    assert len(buffer) == 0
+            #elif buffer_name.endswith('_with_ghost') or self._num_ranks == 1:
+            #    assert len(buffer) == 2
+            #else:
+            #    assert len(buffer) == 1
 
     def set_forces(self, timestep):
         with self.cpu_local_force_arrays as arrays:
@@ -307,7 +324,8 @@ def test_ghost_data_access(force_cls, two_particle_snapshot_factory,
 
     # split simulation so there is 1 particle in rank
     sim = simulation_factory(snap, (2, 1, 1))
-    custom_force = force_cls(sim.device.communicator.num_ranks)
+    print(sim.device.communicator.num_ranks)
+    custom_force = force_cls(snap.particles.N)
 
     # make LJ force so there is a ghost width on each rank
     nlist = md.nlist.Cell(buffer=0.2)
