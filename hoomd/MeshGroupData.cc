@@ -561,10 +561,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
 
         if (flag >= this->m_next_flag + 1)
             {
-            // incomplete group detected
-            unsigned int group_idx = flag - this->m_next_flag - 1;
-            members_t g = this->m_groups[group_idx];
-
             throw std::runtime_error("Error building GPU group table.");
             }
 
