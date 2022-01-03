@@ -19,6 +19,10 @@ class Mesh(_HOOMDBaseObject):
     The mesh is defined by an array of triangles tht make up a
     triangulated surface.
 
+    Args:
+        name ([`str`]): name of the mesh that also acts as a
+        type name. Only one type per mesh can be defined!
+
     Examples::
 
         mesh = mesh.Mesh()

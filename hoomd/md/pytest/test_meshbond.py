@@ -105,11 +105,11 @@ def triplet_snapshot_factory(device):
 def test_before_attaching(mesh_bond_cls, potential_kwargs):
     mesh = hoomd.mesh.Mesh()
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.parameter = potential_kwargs
+    mesh_bond_potential.params["mesh"] = potential_kwargs
 
     assert mesh is mesh_bond_potential.mesh
     for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.parameter[key],
+        np.testing.assert_allclose(mesh_bond_potential.params["mesh"][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
@@ -125,12 +125,12 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
     snap = triplet_snapshot_factory(d=0.969, L=5)
     sim = simulation_factory(snap)
 
-    mesh = hoomd.mesh.Mesh()
+    mesh = hoomd.mesh.Mesh(name=["triags"])
     mesh.size = 1
     mesh.triangles = [[0, 1, 2]]
 
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.parameter = potential_kwargs
+    mesh_bond_potential.params["triags"] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -144,7 +144,7 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
 
     sim.run(0)
     for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.parameter[key],
+        np.testing.assert_allclose(mesh_bond_potential.params["triags"][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
@@ -165,7 +165,7 @@ def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
     mesh.triangles = [[0, 1, 2]]
 
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.parameter = potential_kwargs
+    mesh_bond_potential.params["mesh"] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -222,7 +222,7 @@ def test_auto_detach_simulation(simulation_factory, mesh_snapshot_factory):
     mesh.triangles = [[0, 1, 2], [0, 2, 3]]
 
     harmonic = hoomd.md.mesh.bond.Harmonic(mesh)
-    harmonic.parameter = dict(k=1, r0=1)
+    harmonic.params["mesh"] = dict(k=1, r0=1)
 
     harmonic_2 = cp.deepcopy(harmonic)
     harmonic_2.mesh = mesh
