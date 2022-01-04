@@ -716,20 +716,23 @@ class BaseCollectionsTest:
 
 class BaseSequenceTest(BaseCollectionsTest):
     """Basic extensible test suite for tuple-like classes."""
+    _allow_slices = True
 
     def test_getitem(self, populated_collection):
         """Test __getitem__."""
         test_collection, plain_collection = populated_collection
+        with pytest.raises(IndexError):
+            _ = test_collection[len(test_collection)]
         for i, p_item in enumerate(plain_collection):
             assert self.is_equal(test_collection[i], p_item)
+        if not self._allow_slices:
+            return
         assert all(
             self.is_equal(t, p)
             for t, p in zip(test_collection[:], plain_collection))
         assert all(
             self.is_equal(t, p)
             for t, p in zip(test_collection[1:], plain_collection[1:]))
-        with pytest.raises(IndexError):
-            _ = test_collection[len(test_collection)]
 
 
 class BaseListTest(BaseSequenceTest):
@@ -766,6 +769,8 @@ class BaseListTest(BaseSequenceTest):
         self.check_equivalent(test_list, plain_list)
         assert self.to_base(old_item) not in test_list
         # test slice deletion
+        if not self._allow_slices:
+            return
         old_items = test_list[1:]
         del test_list[1:]
         assert len(test_list) == 1
