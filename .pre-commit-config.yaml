@@ -16,6 +16,12 @@ repos:
     pass_filenames: false
     always_run: true
     additional_dependencies: [jinja2==3.0.1, pyyaml==5.4.1]
+  - id: check-maintainer
+    name: Check for maintainer comments
+    description: 'Enforce that `maintainer` comments are removed.'
+    entry: '(# Maintainer:|\/\/ Maintainer:)'
+    language: pygrep
+    types_or: [python, c, c++, cuda, inc]
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: 'v4.1.0'
   hooks:
