@@ -56,6 +56,10 @@ repos:
     - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
     - --keep-after=.. include
     - --comment-prefix=..
+- repo: https://github.com/kynan/nbstripout
+  rev: 0.5.0
+  hooks:
+    - id: nbstripout
 - repo: https://github.com/google/yapf
   rev: 'v0.32.0'
   hooks:
