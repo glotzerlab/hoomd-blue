@@ -4,6 +4,25 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.13 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``md.pair.ExpandedLJ`` - A Lennard-Jones potential where ``r`` is replaced with ``r-delta``.
+
+*Changed*
+
+*Fixed*
+
+*Deprecated*
+
+* ``md.pair.SLJ`` - Replaced with ``md.pair.ExpandedLJ``.
+
+*Removed*
+
+* Leftover ``state`` logging category.
+
 v3.0.0-beta.12 (2021-12-14)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -153,6 +153,8 @@ Commands and features deprecated in v2.x are removed in v3.0.
      - n/a
    * - ``f_list`` and ``t_list`` parameters to ``md.force.active``
      - Per-type ``active_force`` and ``active_torque``
+   * - ``md.pair.SLJ``
+     - ``md.pair.ExpandedLJ``
 
 ``hoomd.cgcmm``:
 
