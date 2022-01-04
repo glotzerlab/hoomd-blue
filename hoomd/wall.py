@@ -34,23 +34,6 @@ class WallGeometry(ABC, _HOOMDGetSetAttrBase):
 class Sphere(WallGeometry):
     r"""Define a circle/sphere in 2D/3D Euclidean space.
 
-    Whether the wall is interpreted as a sphere or circle is dependent on the
-    dimension of the system the wall is applied to. For 2D systems the
-    z-component of the origin should be zero.
-
-    Note:
-        `Sphere` objects are immutable.
-
-    The signed distance from the wall is computed as
-
-    .. math::
-
-        d = \left( R - ||r - r_o || \right),
-
-    for ``inside=True`` and the opposite when false, where :math:`r` is the
-    particle position, :math:`r_o` is the origin of the sphere, and :math:`R` is
-    the sphere's radius.
-
     Args:
         radius (`float`):
             The radius of the sphere :math:`[\mathrm{length}]`.
@@ -63,6 +46,23 @@ class Sphere(WallGeometry):
         open (`bool`, optional):
             Whether to include the surface of the sphere in the space. ``True``
             means do not include the surface, defaults to ``True``.
+
+    Whether the wall is interpreted as a sphere or circle is dependent on the
+    dimension of the system the wall is applied to. For 2D systems the
+    z-component of the origin should be zero.
+
+    Note:
+        `Sphere` objects are immutable.
+
+    The signed distance from the wall is
+
+    .. math::
+
+        d = \left( R - \lvert \vec{r} - \vec{r}_0 \rvert \right)
+
+    for ``inside=True``, where :math:`r` is the particle position, :math:`r_0`
+    is the origin of the sphere, and :math:`R` is the sphere's radius. The
+    distance is negated when ``inside=False``.
 
     Attributes:
         radius (float):
@@ -114,17 +114,6 @@ class Sphere(WallGeometry):
 class Cylinder(WallGeometry):
     r"""Define a cylinder in 3D Euclidean space.
 
-    Cylinder's in HOOMD span the simulation box in the direction given by the
-    ``axis`` attribute.
-
-    Note:
-        `Cylinder` objects are immutable.
-
-    The signed distance from the wall is computed by first rotating the particle
-    position vector to be perpendicular to the cylinder's axis, then the
-    equation for distance from a sphere is used before the distance is rotated
-    back into the original frame.
-
     Args:
         radius (`float`):
             The radius of the circle faces of the cylinder
@@ -141,6 +130,25 @@ class Cylinder(WallGeometry):
         open (`bool`, optional):
             Whether to include the surface of the cylinder in the space.
             ``True`` means do not include the surface, defaults to ``True``.
+
+    Cylinder in HOOMD span the simulation box in the direction given by the
+    ``axis`` attribute.
+
+    Note:
+        `Cylinder` objects are immutable.
+
+    The signed distance from the wall is
+
+    .. math::
+
+        d = \left( R - \lvert \left( \vec{r} - \vec{r}_0 \right)
+            - \left( \left( \vec{r} - \vec{r}_0 \right) \cdot \hat{n}
+            \right) \hat{n} \rvert \right)
+
+    for ``inside=True``, where :math:`r` is the particle position,
+    :math:`\vec{r}_0` is the origin of the cylinder, :math:`\hat{n}` is the
+    cylinder's unit axis, and :math:`R` is the cylinder's radius. The distance
+    is negated when ``inside=False``.
 
     Attributes:
         radius (float):
@@ -204,21 +212,6 @@ class Cylinder(WallGeometry):
 class Plane(WallGeometry):
     r"""Define a Plane in 3D Euclidean space.
 
-    The normal points away from the active half side.
-
-    Note:
-        `Plane` objects are immutable.
-
-    The signed distance from the wall is computed as
-
-    .. math::
-
-        d = n \cdot r - n \cdot r_o
-
-    for ``inside=True`` and the opposite when false, where :math:`r` is the
-    particle position, :math:`r_o` is the origin of the plane, and :math:`n` is
-    the plane's normal.
-
     Args:
         origin (`tuple` [`float`, `float`, `float`]):
             A point that lies on the plane used with ``normal`` to fully specify
@@ -229,6 +222,20 @@ class Plane(WallGeometry):
         open (`bool`, optional):
             Whether to include the surface of the plane in the space. ``True``
             means do not include the surface, defaults to ``True``.
+
+    The normal points away from the active half side.
+
+    Note:
+        `Plane` objects are immutable.
+
+    The signed distance from the wall is
+
+    .. math::
+
+        d = \hat{n} \cdot \left( \vec{r} - \vec{r}_0 \right)
+
+    where :math:`\vec{r}` is the particle position, :math:`\vec{r}_0` is the
+    origin of the plane, and :math:`\hat{n}` is the plane's unit normal.
 
     Attributes:
         origin (`tuple` [`float`, `float`, `float`]):
@@ -352,13 +359,13 @@ class _WallsMetaList(MutableSequence):
         old_type = old_backend_index.type
         # If the old type at index matches the new wall type then we just swap
         # on the backend. Also this is a necessary short-circuit as
-        # _get_obj_backend_index would incorrectly increment all later indices
+        # _get_0bj_backend_index would incorrectly increment all later indices
         # of the same type as new_type.
         if old_type == new_type:
             self._backend_lists[new_type][old_backend_index.index] = wall
             return
 
-        new_backend_index = self._get_obj_backend_index(index + 1, new_type,
+        new_backend_index = self._get_0bj_backend_index(index + 1, new_type,
                                                         old_type)
         self._backend_list_index[index] = new_backend_index
 
@@ -386,7 +393,7 @@ class _WallsMetaList(MutableSequence):
     def insert(self, index, wall):
         self._walls.insert(index, wall)
         new_type = type(wall)
-        new_index = self._get_obj_backend_index(index, new_type)
+        new_index = self._get_0bj_backend_index(index, new_type)
         self._backend_lists[new_type].insert(new_index.index, wall)
         self._backend_list_index.insert(index, new_index)
 
@@ -420,7 +427,7 @@ class _WallsMetaList(MutableSequence):
         for wall_list in self._backend_lists.values():
             wall_list._unsync()
 
-    def _get_obj_backend_index(self, frontend_index, new_type, old_type=None):
+    def _get_0bj_backend_index(self, frontend_index, new_type, old_type=None):
         """Find the correct backend index while adjusting other indices.
 
         The method increments all backend indices of the same type that come

@@ -5,19 +5,8 @@
 r"""Wall potentials.
 
 Wall potentials add forces to any particles within a certain distance,
-:math:`r_{\mathrm{cut}}`, of each wall. In the extrapolated mode, all particles
-outside of the wall boundary are included as well.
-
-Wall geometries (`hoomd.wall`) are used to partition space. There are two
-spaces for each of the possible geometries included and each can be
-selected using the inside parameter. In addition to fully specify a partition,
-it is necessary that one space be closed and one open. Setting ``open=True`` for
-closed spaces and ``open=False`` for open ones. See `hoomd.wall` for more
-information on wall geometries and `WallPotential` for information about forces
-and spaces.
-
-.. attention::
-    The current wall force implementation does not support NPT integrators.
+:math:`r_{\mathrm{cut}}`, of each wall surface. In the extrapolated mode, all
+particles outside of the wall boundary are included as well.
 """
 
 from hoomd.md import force
@@ -245,11 +234,8 @@ class LJ(WallPotential):
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
         lj = hoomd.md.external.wall.LJ(walls=walls)
-        # potential plotted below in red
         lj.params['A'] = {"sigma": 1.0, "epsilon": 1.0, "r_cut": 2.5}
-        # set for both types "A" and "B"
         lj.params[['A','B']] = {"epsilon": 2.0, "sigma": 1.0, "r_cut": 2.8}
-        # set to extrapolated mode
         lj.params["A"] = {"r_extrap": 1.1}
 
     .. py:attribute:: params
@@ -361,7 +347,6 @@ class Yukawa(WallPotential):
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        # add walls to interact with
         yukawa_wall = hoomd.md.external.wall.Yukawa(walls=walls)
         yukawa_wall.params['A'] = {
             "epsilon": 1.0, "kappa": 1.0, "r_cut": 3.0}
@@ -423,7 +408,6 @@ class Morse(WallPotential):
 
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        # add walls to interact with
         morse_wall=hoomd.md.external.wall.Morse(walls=walls)
         morse_wall.params['A'] = {
             "D0": 1.0, "alpha": 1.0, "r0": 1.0, "r_cut": 3.0}
@@ -484,7 +468,6 @@ class ForceShiftedLJ(WallPotential):
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        # add walls to interact with
         shifted_lj_wall=hoomd.md.external.wall.ForceShiftedLJ(
             walls=walls)
         shifted_lj_wall.params['A'] = {
@@ -545,7 +528,6 @@ class Mie(WallPotential):
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        # add walls to interact with
         mie_wall=hoomd.md.external.wall.Mie(walls=walls)
         mie_wall.params['A'] = {
             "epsilon": 1.0, "sigma": 1.0, "n": 12, "m": 6, "r_cut": 3.0}
