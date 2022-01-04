@@ -60,9 +60,9 @@ class CPPExternalPotential(_HOOMDBaseObject):
         Your code *must* return a value.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.11/hoomd/VectorMath.h
+            v3.0.0-beta.12/hoomd/VectorMath.h
     .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.11/hoomd/BoxDim.h
+            v3.0.0-beta.12/hoomd/BoxDim.h
 
     Example:
         .. code-block:: python
@@ -92,7 +92,7 @@ class CPPExternalPotential(_HOOMDBaseObject):
 
     def _getattr_param(self, attr):
         if attr == 'code':
-            return self._param_dict[attr]
+            return self._param_dict._dict[attr]
         return super()._getattr_param(attr)
 
     def _wrap_cpu_code(self, code):

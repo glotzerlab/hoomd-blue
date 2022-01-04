@@ -944,7 +944,6 @@ def valid_args_id(args):
     else:
         name = integrator.__name__
 
-    print(integrator)
     return name + '-' + str(valid_args_id.count(str(integrator)))
 
 
@@ -1023,10 +1022,10 @@ def _cpp_args(_valid_args):
                     # This will fill in default values for the inner shape
                     # objects
                     inner_mc.shape["A"] = args["shapes"][i]
-                    args["shapes"][i] = inner_mc.shape["A"]
+                    args["shapes"][i] = inner_mc.shape["A"].to_base()
             mc = integrator()
             mc.shape['A'] = args
-            args_list.append((cpp_shape, mc.shape['A']))
+            args_list.append((cpp_shape, mc.shape['A'].to_base()))
     return args_list
 
 

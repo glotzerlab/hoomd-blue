@@ -10,7 +10,8 @@ import numpy as np
 import pytest
 
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check, logging_check
+from hoomd.logging import LoggerCategories
 from hoomd import md
 from hoomd.error import TypeConversionError
 
@@ -118,7 +119,7 @@ def test_rcut(make_two_particle_simulation, r_cut):
     assert gay_berne.r_cut[('A', 'A')] == new_r_cut
 
     expected_r_cut = {('A', 'A'): new_r_cut}
-    assert _equivalent_data_structures(gay_berne.r_cut.to_dict(),
+    assert _equivalent_data_structures(gay_berne.r_cut.to_base(),
                                        expected_r_cut)
 
     gay_berne.params[('A', 'A')] = {'epsilon': 1, 'lpar': 0.5, 'lperp': 1.0}
@@ -126,7 +127,7 @@ def test_rcut(make_two_particle_simulation, r_cut):
 
     # Check after attaching
     sim.run(0)
-    assert _equivalent_data_structures(gay_berne.r_cut.to_dict(),
+    assert _equivalent_data_structures(gay_berne.r_cut.to_base(),
                                        expected_r_cut)
 
 
@@ -396,3 +397,12 @@ def test_pickling(make_two_particle_simulation, pair_potential_spec):
     pickling_check(pair_potential)
     sim.run(0)
     pickling_check(pair_potential)
+
+
+def test_logging():
+    logging_check(
+        hoomd.md.pair.aniso.GayBerne, ('md', 'pair', 'aniso'),
+        {'type_shapes': {
+            'category': LoggerCategories.object,
+            'default': True
+        }})

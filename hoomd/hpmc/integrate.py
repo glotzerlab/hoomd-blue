@@ -218,14 +218,6 @@ class HPMCIntegrator(BaseIntegrator):
 
     # TODO need to validate somewhere that quaternions are normalized
 
-    @property
-    def type_shapes(self):
-        """list[dict]: Description of shapes in ``type_shapes`` format."""
-        raise NotImplementedError(
-            "You are using a shape type that is not implemented! "
-            "If you want it, please modify the "
-            "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
-
     def _return_type_shapes(self):
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
@@ -1836,7 +1828,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
                      normals=[(float, float, float)],
                      offsets=[float],
                      vertices=[(float, float, float)],
-                     origin=tuple,
+                     origin=(float, float, float),
                      ignore_statistics=False)
             ],
                                          positions=[(float, float, float)],

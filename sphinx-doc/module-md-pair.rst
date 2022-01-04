@@ -15,6 +15,7 @@ md.pair
     DPDLJ
     DPDConservative
     Ewald
+    ExpandedLJ
     ExpandedMie
     ForceShiftedLJ
     Fourier
@@ -57,6 +58,7 @@ md.pair
         OPP,
         ReactionField,
         SLJ,
+        ExpandedLJ,
         Table,
         TWF,
         Yukawa,

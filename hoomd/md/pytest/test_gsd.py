@@ -128,12 +128,7 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot, tmp_path,
     sim.operations.writers.append(gsd_writer)
 
     # run 5 steps and create a gsd file for testing mode=ab
-    snapshot_list = []
-    for _ in range(5):
-        sim.run(1)
-        snap = sim.state.get_snapshot()
-        if snap.communicator.rank == 0:
-            snapshot_list.append(snap)
+    sim.run(5)
 
     # test mode=ab
     sim.operations.writers.clear()
@@ -178,7 +173,12 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot, tmp_path,
                                  dynamic=['momentum'])
     sim.operations.writers.append(gsd_writer)
 
-    sim.run(5)
+    snapshot_list = []
+    for _ in range(5):
+        sim.run(1)
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            snapshot_list.append(snap)
 
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename_xb, mode='rb') as traj:

@@ -205,6 +205,7 @@ def test_attaching(simulation_factory, two_particle_snapshot_factory,
 def test_error_on_invalid_body(simulation_factory,
                                two_particle_snapshot_factory,
                                valid_body_definition):
+    """Tests that Simulation fails when bodies are not present in state."""
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
@@ -275,6 +276,7 @@ def test_running_without_body_definition(simulation_factory,
 def test_setting_body_after_attaching(simulation_factory,
                                       two_particle_snapshot_factory,
                                       valid_body_definition):
+    """Test updating body definition without updating sim particles fails."""
     rigid = md.constrain.Rigid()
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
     lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), mode="shift")

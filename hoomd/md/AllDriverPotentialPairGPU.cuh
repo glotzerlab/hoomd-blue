@@ -15,6 +15,7 @@
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairDPDThermo.h"
 #include "EvaluatorPairEwald.h"
+#include "EvaluatorPairExpandedLJ.h"
 #include "EvaluatorPairExpandedMie.h"
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "EvaluatorPairFourier.h"
@@ -51,9 +52,14 @@ hipError_t __attribute__((visibility("default")))
 gpu_compute_gauss_forces(const pair_args_t& pair_args,
                          const EvaluatorPairGauss::param_type* d_params);
 
-//! Compute slj pair forces on the GPU with PairEvaluatorGauss
+//! Compute slj pair forces on the GPU with PairEvaluatorSLJ
 hipError_t __attribute__((visibility("default")))
 gpu_compute_slj_forces(const pair_args_t& pair_args, const EvaluatorPairSLJ::param_type* d_params);
+
+//! Compute expanded lj pair forces on the GPU with PairEvaluatorExpandedLJ
+hipError_t __attribute__((visibility("default")))
+gpu_compute_expanded_lj_forces(const pair_args_t& pair_args,
+                               const EvaluatorPairExpandedLJ::param_type* d_params);
 
 //! Compute yukawa pair forces on the GPU with PairEvaluatorGauss
 hipError_t __attribute__((visibility("default")))

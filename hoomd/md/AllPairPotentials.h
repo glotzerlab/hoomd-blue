@@ -11,6 +11,7 @@
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairDPDThermo.h"
 #include "EvaluatorPairEwald.h"
+#include "EvaluatorPairExpandedLJ.h"
 #include "EvaluatorPairExpandedMie.h"
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "EvaluatorPairFourier.h"
@@ -56,6 +57,8 @@ typedef PotentialPair<EvaluatorPairLJ> PotentialPairLJ;
 typedef PotentialPair<EvaluatorPairGauss> PotentialPairGauss;
 //! Pair potential force compute for slj forces
 typedef PotentialPair<EvaluatorPairSLJ> PotentialPairSLJ;
+//! Pair potential force compute for expanded lj forces
+typedef PotentialPair<EvaluatorPairExpandedLJ> PotentialPairExpandedLJ;
 //! Pair potential force compute for yukawa forces
 typedef PotentialPair<EvaluatorPairYukawa> PotentialPairYukawa;
 //! Pair potential force compute for ewald forces
@@ -108,6 +111,9 @@ typedef PotentialPairGPU<EvaluatorPairGauss, kernel::gpu_compute_gauss_forces>
     PotentialPairGaussGPU;
 //! Pair potential force compute for slj forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairSLJ, kernel::gpu_compute_slj_forces> PotentialPairSLJGPU;
+//! Pair potential force compute for expanded lj forces on the GPU
+typedef PotentialPairGPU<EvaluatorPairExpandedLJ, kernel::gpu_compute_expanded_lj_forces>
+    PotentialPairExpandedLJGPU;
 //! Pair potential force compute for yukawa forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairYukawa, kernel::gpu_compute_yukawa_forces>
     PotentialPairYukawaGPU;

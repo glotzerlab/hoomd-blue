@@ -3,6 +3,8 @@ import numpy as np
 import pytest
 from copy import deepcopy
 from hoomd.error import MutabilityError
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check
 try:
     import gsd.hoomd
     skip_gsd = False
@@ -331,8 +333,9 @@ def test_run_limit(simulation_factory, lattice_snapshot_factory):
         sim.run(-1)
 
 
-def test_seed(simulation_factory, lattice_snapshot_factory):
-    sim = simulation_factory()
+def test_seed(device, lattice_snapshot_factory):
+
+    sim = hoomd.Simulation(device)
     assert sim.seed is None
 
     sim.seed = 42
@@ -405,3 +408,29 @@ def test_mutability_error(simulation_factory, two_particle_snapshot_factory,
 
     with pytest.raises(MutabilityError):
         GSD_dump.filter = filt
+
+
+def test_logging():
+    logging_check(
+        hoomd.Simulation, (), {
+            'final_timestep': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'seed': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'timestep': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'tps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'walltime': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })
