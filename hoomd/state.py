@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Module implements the `State` class.
 
 `State` stores and exposes a parent `hoomd.Simulation` object's data (e.g.

@@ -1,8 +1,12 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Sphinx configuration."""
 
 import sys
 import os
 import sphinx
+import datetime
 
 sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 
