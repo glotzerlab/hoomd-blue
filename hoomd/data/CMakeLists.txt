@@ -1,5 +1,6 @@
 set(files __init__.py
           array.py
+          collections.py
           local_access.py
           local_access_cpu.py
           local_access_gpu.py

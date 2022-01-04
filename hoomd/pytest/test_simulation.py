@@ -333,8 +333,9 @@ def test_run_limit(simulation_factory, lattice_snapshot_factory):
         sim.run(-1)
 
 
-def test_seed(simulation_factory, lattice_snapshot_factory):
-    sim = simulation_factory()
+def test_seed(device, lattice_snapshot_factory):
+
+    sim = hoomd.Simulation(device)
     assert sim.seed is None
 
     sim.seed = 42

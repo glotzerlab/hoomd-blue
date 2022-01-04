@@ -95,8 +95,8 @@ class NList(_HOOMDBaseObject):
                                rebuild_check_delay=int(rebuild_check_delay),
                                check_dist=bool(check_dist),
                                diameter_shift=bool(diameter_shift),
-                               max_diameter=float(max_diameter),
-                               _defaults={'exclusions': exclusions})
+                               max_diameter=float(max_diameter))
+        params["exclusions"] = exclusions
         self._param_dict.update(params)
 
     @log(requires_run=True)

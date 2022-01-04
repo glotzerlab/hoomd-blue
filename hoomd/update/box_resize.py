@@ -7,10 +7,18 @@
 from hoomd.operation import Updater
 from hoomd.box import Box
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyTypes, box_preprocessing
 from hoomd.variant import Variant, Constant
 from hoomd import _hoomd
 from hoomd.filter import ParticleFilter, All
+
+
+def _box_getter(param_dict, attr):
+    return param_dict._dict[attr]
+
+
+def _box_setter(param_dict, attr, value):
+    param_dict._dict[attr] = param_dict._type_converter[attr](value)
+    setattr(param_dict._cpp_obj, attr, param_dict._dict[attr])
 
 
 class BoxResize(Updater):
@@ -55,10 +63,8 @@ class BoxResize(Updater):
     """
 
     def __init__(self, trigger, box1, box2, variant, filter=All()):
-        params = ParameterDict(box1=OnlyTypes(Box,
-                                              preprocess=box_preprocessing),
-                               box2=OnlyTypes(Box,
-                                              preprocess=box_preprocessing),
+        params = ParameterDict(box1=Box,
+                               box2=Box,
                                variant=Variant,
                                filter=ParticleFilter)
         params['box1'] = box1
@@ -66,6 +72,8 @@ class BoxResize(Updater):
         params['variant'] = variant
         params['trigger'] = trigger
         params['filter'] = filter
+        for attr in ("box1", "box2"):
+            params._set_special_getset(attr, _box_getter, _box_setter)
         self._param_dict.update(params)
         super().__init__(trigger)
 

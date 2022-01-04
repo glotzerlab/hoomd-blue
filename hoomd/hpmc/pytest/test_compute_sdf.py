@@ -43,7 +43,7 @@ def test_after_attaching(valid_args, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     sim.operations.add(mc)

@@ -1828,7 +1828,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
                      normals=[(float, float, float)],
                      offsets=[float],
                      vertices=[(float, float, float)],
-                     origin=tuple,
+                     origin=(float, float, float),
                      ignore_statistics=False)
             ],
                                          positions=[(float, float, float)],

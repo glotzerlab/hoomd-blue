@@ -395,8 +395,9 @@ def test_nph_attributes_attached_3d(simulation_factory,
     nph.tauS = 10.0
     assert nph.tauS == 10.0
 
-    nph.box_dof = [True, False, False, False, True, False]
-    assert nph.box_dof == [True, False, False, False, True, False]
+    box_dof = (True, False, False, False, True, False)
+    nph.box_dof = box_dof
+    assert nph.box_dof == box_dof
 
     nph.couple = 'none'
     assert nph.couple == 'none'
