@@ -58,9 +58,9 @@ class Sphere(WallGeometry):
 
     .. math::
 
-        d = \left( R - \lvert \vec{r} - \vec{r}_0 \rvert \right)
+        d = \left( R - \lvert \vec{r} - \vec{r}_o \rvert \right)
 
-    for ``inside=True``, where :math:`r` is the particle position, :math:`r_0`
+    for ``inside=True``, where :math:`r` is the particle position, :math:`r_o`
     is the origin of the sphere, and :math:`R` is the sphere's radius. The
     distance is negated when ``inside=False``.
 
@@ -141,12 +141,12 @@ class Cylinder(WallGeometry):
 
     .. math::
 
-        d = \left( R - \lvert \left( \vec{r} - \vec{r}_0 \right)
-            - \left( \left( \vec{r} - \vec{r}_0 \right) \cdot \hat{n}
+        d = \left( R - \lvert \left( \vec{r} - \vec{r}_o \right)
+            - \left( \left( \vec{r} - \vec{r}_o \right) \cdot \hat{n}
             \right) \hat{n} \rvert \right)
 
     for ``inside=True``, where :math:`r` is the particle position,
-    :math:`\vec{r}_0` is the origin of the cylinder, :math:`\hat{n}` is the
+    :math:`\vec{r}_o` is the origin of the cylinder, :math:`\hat{n}` is the
     cylinder's unit axis, and :math:`R` is the cylinder's radius. The distance
     is negated when ``inside=False``.
 
@@ -232,9 +232,9 @@ class Plane(WallGeometry):
 
     .. math::
 
-        d = \hat{n} \cdot \left( \vec{r} - \vec{r}_0 \right)
+        d = \hat{n} \cdot \left( \vec{r} - \vec{r}_o \right)
 
-    where :math:`\vec{r}` is the particle position, :math:`\vec{r}_0` is the
+    where :math:`\vec{r}` is the particle position, :math:`\vec{r}_o` is the
     origin of the plane, and :math:`\hat{n}` is the plane's unit normal.
 
     Attributes:
