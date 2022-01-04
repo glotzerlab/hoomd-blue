@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # this file exists to mark this directory as a python module
 
 """Hard particle Monte Carlo.
