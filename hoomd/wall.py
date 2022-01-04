@@ -359,13 +359,13 @@ class _WallsMetaList(MutableSequence):
         old_type = old_backend_index.type
         # If the old type at index matches the new wall type then we just swap
         # on the backend. Also this is a necessary short-circuit as
-        # _get_0bj_backend_index would incorrectly increment all later indices
+        # _get_obj_backend_index would incorrectly increment all later indices
         # of the same type as new_type.
         if old_type == new_type:
             self._backend_lists[new_type][old_backend_index.index] = wall
             return
 
-        new_backend_index = self._get_0bj_backend_index(index + 1, new_type,
+        new_backend_index = self._get_obj_backend_index(index + 1, new_type,
                                                         old_type)
         self._backend_list_index[index] = new_backend_index
 
@@ -393,7 +393,7 @@ class _WallsMetaList(MutableSequence):
     def insert(self, index, wall):
         self._walls.insert(index, wall)
         new_type = type(wall)
-        new_index = self._get_0bj_backend_index(index, new_type)
+        new_index = self._get_obj_backend_index(index, new_type)
         self._backend_lists[new_type].insert(new_index.index, wall)
         self._backend_list_index.insert(index, new_index)
 
@@ -427,7 +427,7 @@ class _WallsMetaList(MutableSequence):
         for wall_list in self._backend_lists.values():
             wall_list._unsync()
 
-    def _get_0bj_backend_index(self, frontend_index, new_type, old_type=None):
+    def _get_obj_backend_index(self, frontend_index, new_type, old_type=None):
         """Find the correct backend index while adjusting other indices.
 
         The method increments all backend indices of the same type that come
