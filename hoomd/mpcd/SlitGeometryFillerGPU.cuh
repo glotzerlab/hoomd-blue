@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: mphoward
-
 #ifndef MPCD_SLIT_GEOMETRY_FILLER_GPU_CUH_
 #define MPCD_SLIT_GEOMETRY_FILLER_GPU_CUH_
 

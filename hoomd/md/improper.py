@@ -1,8 +1,6 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# Maintainer: joaander / All Developers are free to add commands for new features
-
 R""" Improper potentials.
 
 Impropers add forces between specified quadruplets of particles and are typically used to

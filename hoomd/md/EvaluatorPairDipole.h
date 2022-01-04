@@ -3,7 +3,6 @@
 
 // $Id$
 // $URL$
-// Maintainer: ndtrung
 
 #ifndef __PAIR_EVALUATOR_DIPOLE_H__
 #define __PAIR_EVALUATOR_DIPOLE_H__

@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: pschoenhoefer
-
 #ifndef __MANIFOLD_CLASS_SPHERE_H__
 #define __MANIFOLD_CLASS_SPHERE_H__
 

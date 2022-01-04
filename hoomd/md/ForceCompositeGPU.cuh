@@ -4,8 +4,6 @@
 #include "hoomd/GPUPartition.cuh"
 #include "hoomd/HOOMDMath.h"
 
-// Maintainer: jglaser
-
 /*! \file ForceComposite.cuh
     \brief Defines GPU driver functions for the composite particle integration on the GPU.
 */

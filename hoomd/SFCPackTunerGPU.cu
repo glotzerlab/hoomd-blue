@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: jglaser
-
 /*! \file SFCPackTunerGPU.cu
     \brief Defines GPU kernel code for generating the space-filling curve sorted order on the GPU.
    Used by SFCPackTunerGPU.

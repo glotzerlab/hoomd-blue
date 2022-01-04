@@ -2,7 +2,6 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 //
-// Maintainer: SCiarella
 
 #ifndef __EVALUATOR_REVCROSS__
 #define __EVALUATOR_REVCROSS__

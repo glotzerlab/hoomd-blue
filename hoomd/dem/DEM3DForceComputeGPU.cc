@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: mspells
-
 /*! \file DEM3DForceComputeGPU.cc
   \brief Defines the DEM3DForceComputeGPU class
 */

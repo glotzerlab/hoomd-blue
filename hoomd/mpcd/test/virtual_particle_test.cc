@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: mphoward
-
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/mpcd/SystemData.h"
 #include "hoomd/test/upp11_config.h"

@@ -20,8 +20,6 @@
 #include <thrust/transform.h>
 #pragma GCC diagnostic pop
 
-// Maintainer: jglaser
-
 /*! \file ForceComposite.cu
     \brief Defines GPU kernel code for the composite particle integration on the GPU.
 */

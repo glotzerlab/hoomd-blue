@@ -3,8 +3,6 @@
 
 #include "test_global_array.cuh"
 
-// Maintainer: joaander
-
 /*! \file gpu_array_test.cu
     \brief GPU kernels for gpu_array_test.cc
     \ingroup unit_tests

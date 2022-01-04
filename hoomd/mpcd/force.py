@@ -1,8 +1,6 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# Maintainer: mphoward
-
 r""" MPCD external force fields.
 
 An external field specifies the force to be applied per MPCD particle in

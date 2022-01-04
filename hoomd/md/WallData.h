@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: jproc
-
 /*! \file WallData.h
     \brief Contains declarations for all types (currently Sphere, Cylinder, and
     Plane) of WallData and associated utilities.

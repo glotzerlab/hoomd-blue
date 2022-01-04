@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: joaander / Anyone is free to add their own pair potentials here
-
 #ifndef __ALL_EXTERNAL_POTENTIALS__H__
 #define __ALL_EXTERNAL_POTENTIALS__H__
 

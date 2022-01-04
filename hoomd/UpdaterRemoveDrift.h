@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: joaander
-
 /*! \file UpdaterRemoveDrift.h
     \brief Declares an updater that removes the average drift from the particles
 */

@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: joaander
-
 /*! \file global_array_test.cuh
     \brief Definitions of GPU kernel drivers for global_array_test.cc
     \ingroup unit_tests

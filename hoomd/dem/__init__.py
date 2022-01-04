@@ -64,7 +64,7 @@ anisotropic particles, such as:
 
 :py:mod:`hoomd.dem` is **stable**. When upgrading from version 2.x to 2.y (y > x),
 existing job scripts that follow *documented* interfaces for functions and classes
-will not require any modifications. **Maintainer:** Matthew Spellings.
+
 
 """
 
