@@ -109,18 +109,18 @@ class FENEWCA(Bond):
             The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - attractive force strength
-              :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
+              :math:`k` :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
 
             * ``r0`` (`float`, **required**) - size parameter
-              :math:`[\mathrm{length}]`.
+              :math:`r_0` :math:`[\mathrm{length}]`.
 
             * ``epsilon`` (`float`, **required**) - repulsive force strength
-              :math:`[\mathrm{energy}]`.
+              :math:`\varepsilon` :math:`[\mathrm{energy}]`.
 
             * ``sigma`` (`float`, **required**) - repulsive force interaction
-              width :math:`[\mathrm{length}]`.
+              width :math:`\sigma` :math:`[\mathrm{length}]`.
 
-            * ``delta`` (`float`, **required**) - radial shift
+            * ``delta`` (`float`, **required**) - radial shift :math:`\Delta`
               :math:`[\mathrm{length}]`.
 
     Examples::

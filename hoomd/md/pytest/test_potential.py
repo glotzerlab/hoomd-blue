@@ -282,7 +282,7 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(dpdlj_invalid_dicts, md.pair.DPDLJ, {'kT': 1}))
 
-    dlvo_valid_dict = {'kappa': 1.0, 'Z': 0.1, 'A': 0.1}
+    dlvo_valid_dict = {'kappa': 1.0, 'Z': 0.1, 'A': 0.1, 'a1': 0.1, 'a2': 0.25}
     dlvo_invalid_dicts = _make_invalid_param_dict(dlvo_valid_dict)
     invalid_params_list.extend(
         _make_invalid_params(dlvo_invalid_dicts, md.pair.DLVO, {}))
@@ -544,7 +544,9 @@ def _valid_params(particle_types=['A', 'B']):
     dlvo_arg_dict = {
         'kappa': [1.0, 2.0, 5.0],
         'Z': [0.1, 0.5, 2.0],
-        'A': [0.1, 0.5, 2.0]
+        'A': [0.1, 0.5, 2.0],
+        'a1': [0.1]*3,
+        'a2': [0.25]*3,
     }
     dlvo_valid_param_dicts = _make_valid_param_dicts(dlvo_arg_dict)
 
@@ -885,6 +887,9 @@ def test_force_energy_relationship(simulation_factory,
                                       default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
+
+        if pot_name == 'DLVO':
+            pot.r_cut[pair] = 2.5 - ((0.2 + 0.5)/2 - 1)
 
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
     _update_snap(valid_params.pair_potential, snap)

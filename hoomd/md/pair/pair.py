@@ -1541,9 +1541,8 @@ class DLVO(Pair):
         name (str): Name of the force instance.
         mode (str): Energy shifting mode.
 
-    `DLVO` specifies that a DLVO dispersion and electrostatic interaction
-    should be applied between every non-excluded particle pair in the
-    simulation.
+    `DLVO` computes the energy and force from the DLVO dispersion and
+    electrostatic interaction between every non-excluded pair of particles.
 
     .. math::
         :nowrap:
@@ -1556,39 +1555,34 @@ class DLVO(Pair):
             \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1-a_2)^2} \right) \right]
             & \\
             & + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))};
-            & r < (r_{\mathrm{cut}} + \Delta) \\
-            = & 0; & r \ge (r_{\mathrm{cut}} + \Delta)
+            & r < r_{\mathrm{cut}} \\
+            = & 0; & r \ge r_{\mathrm{cut}}
         \end{eqnarray*}
 
-    where :math:`a_i` is the radius of particle :math:`i`, :math:`\Delta = (d_i
-    + d_j)/2` and :math:`d_i` is the diameter of particle :math:`i`.
+    where :math:`a_1` is the radius of first particle in the pair, :math:`a_2`
+    is the radius of second particle in the pair, :math:`A` is the Hamaker
+    constant, :math:`Z` is proportional to the surface electric potential,
+    and :math:`\kappa` is the screening parameter.
 
     The first term corresponds to the attractive van der Waals interaction with
-    :math:`A` being the Hamaker constant, the second term to the repulsive
-    double-layer interaction between two spherical surfaces with Z proportional
-    to the surface electric potential. See Israelachvili 2011, pp. 317.
-
-    The DLVO potential does not need charge, but does need diameter. See
-    `SLJ` for an explanation on how diameters are handled in the
-    neighbor lists.
-
-    Due to the way that DLVO modifies the cutoff condition, it will not
-    function properly with the xplor shifting mode. See `Pair` for details on
-    how forces are calculated and the available energy shifting and smoothing
-    modes.
+    and the second term to the repulsive double-layer interaction between two
+    spherical surfaces. See "Intermolecular and Surface Forces" Israelachvili
+    2011, pp. 317.
 
     .. py:attribute:: params
 
         The potential parameters. The dictionary has the following keys:
 
-        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+        * ``A`` (`float`, **required**) - Hamaker constant :math:`A`
           :math:`[\mathrm{energy}]`
-        * ``kappa`` (`float`, **required**) - scaling parameter
+        * ``a1`` (`float`, **required**) - Radius of first particle :math:`a_1`
+          :math:`[\mathrm{length}]`
+        * ``a2`` (`float`, **required**) - Radius of second particle :math:`a_2`
+          :math:`[\mathrm{length}]`
+        * ``kappa`` (`float`, **required**) - screening parameter
           :math:`\kappa` :math:`[\mathrm{length}^{-1}]`
-        * ``Z`` (`float`, **required**) - :math:`Z`
-          :math:`[\mathrm{length}^{-1}]`
-        * ``A`` (`float`, **required**) - :math:`A`
-          :math:`[\mathrm{energy}]`
+        * ``Z`` surface electric potential (`float`, **required**) - :math:`Z`
+          :math:`[\mathrm{energy} \cdot \mathrm{length}^{-1}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1597,9 +1591,9 @@ class DLVO(Pair):
 
         nl = nlist.cell()
         dlvo = hoomd.md.pair.DLVO(nlist=nl)
-        dlvo.params[('A', 'A')] = {"epsilon": 1.0, "kappa": 1.0}
-        dlvo.params[('A', 'B')] = {"epsilon": 2.0, "kappa": 0.5,}
-        dlvo.params[(['A', 'B'], ['C', 'D'])] = {"epsilon": 0.5, "kappa": 3.0}
+        dlvo.params[('A', 'A')] = {"A": 1.0, "kappa": 1.0, Z=2, a1=1, a2=1}
+        dlvo.params[('A', 'B')] = {"A": 2.0, "kappa": 0.5, Z=3, a1=1, a2=3}
+        dlvo.params[('B', 'B')] = {"A": 2.0, "kappa": 0.5, Z=3, a1=3, a2=3}
     """
     _cpp_class_name = "PotentialPairDLVO"
     _accepted_modes = ("none", "shift")
@@ -1611,7 +1605,7 @@ class DLVO(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(kappa=float, Z=float, A=float, len_keys=2))
+            TypeParameterDict(kappa=float, Z=float, A=float, a1=float, a2=float, len_keys=2,))
         self._add_typeparam(params)
 
         # this potential needs diameter shifting on
