@@ -716,6 +716,7 @@ class BaseCollectionsTest:
 
 class BaseSequenceTest(BaseCollectionsTest):
     """Basic extensible test suite for tuple-like classes."""
+    _negative_indexing = True
     _allow_slices = True
 
     def test_getitem(self, populated_collection):
@@ -725,14 +726,16 @@ class BaseSequenceTest(BaseCollectionsTest):
             _ = test_collection[len(test_collection)]
         for i, p_item in enumerate(plain_collection):
             assert self.is_equal(test_collection[i], p_item)
-        if not self._allow_slices:
-            return
-        assert all(
-            self.is_equal(t, p)
-            for t, p in zip(test_collection[:], plain_collection))
-        assert all(
-            self.is_equal(t, p)
-            for t, p in zip(test_collection[1:], plain_collection[1:]))
+        if self._allow_slices:
+            assert all(
+                self.is_equal(t, p)
+                for t, p in zip(test_collection[:], plain_collection))
+            assert all(
+                self.is_equal(t, p)
+                for t, p in zip(test_collection[1:], plain_collection[1:]))
+        if self._negative_indexing:
+            for i in range(-1, -len(plain_collection), -1):
+                assert self.is_equal(test_collection[i], plain_collection[i])
 
 
 class BaseListTest(BaseSequenceTest):
@@ -756,6 +759,8 @@ class BaseListTest(BaseSequenceTest):
 
     def test_delitem(self, delete_index, populated_collection):
         """Test __delitem__."""
+        if not self._negative_indexing and delete_index < 0:
+            return
         test_list, plain_list = populated_collection
         # out of bounds test
         if delete_index >= len(test_list) or delete_index < -len(test_list):
@@ -783,7 +788,7 @@ class BaseListTest(BaseSequenceTest):
         for i, item in enumerate(plain_collection, start=1):
             empty_collection.append(item)
             assert len(empty_collection) == i
-            assert self.is_equal(item, empty_collection[-1])
+            assert self.is_equal(item, empty_collection[i - 1])
         self.check_equivalent(empty_collection, plain_collection)
         self.final_check(empty_collection)
 
@@ -799,6 +804,8 @@ class BaseListTest(BaseSequenceTest):
 
     def test_insert(self, insert_index, empty_collection, plain_collection):
         """Test insert."""
+        if not self._negative_indexing and insert_index < 0:
+            return
         check_collection = []
         empty_collection.extend(plain_collection[:-1])
         check_collection.extend(plain_collection[:-1])
@@ -847,6 +854,8 @@ class BaseListTest(BaseSequenceTest):
     def test_setitem(self, setitem_index, populated_collection,
                      generate_plain_collection):
         """Test __setitem__."""
+        if not self._negative_indexing and setitem_index < 0:
+            return
         test_list, plain_list = populated_collection
         item = generate_plain_collection(1)[0]
         # Test out of bounds setting
@@ -872,6 +881,8 @@ class BaseListTest(BaseSequenceTest):
 
     def test_pop(self, pop_index, populated_collection):
         """Test pop."""
+        if not self._negative_indexing and pop_index < 0:
+            return
         test_list, plain_list = populated_collection
         if pop_index >= len(test_list) or pop_index < -len(test_list):
             with pytest.raises(IndexError):
