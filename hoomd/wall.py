@@ -383,8 +383,16 @@ class _WallsMetaList(MutableSequence):
         wall_type = backend_index.type
         del self._backend_lists[wall_type][backend_index.index]
         # Decrement backend index for all indices of the deleted type
+        # First handle the case where the last item was deleted which requires
+        # no updating.
+        if index == -1 or index == len(self._walls):
+            return
+        # Now handle the case where [index:] would include one wall before the
+        # deleted index (since negative index count from the back).
+        if index < 0:
+            index += 1
         for bi in self._backend_list_index[index:]:
-            if wall_type == bi.type:
+            if wall_type is bi.type:
                 bi.index -= 1
 
     def __len__(self):
