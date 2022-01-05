@@ -9,7 +9,7 @@ md.bond
     :nosignatures:
 
     Bond
-    FENE
+    FENEWCA
     Harmonic
     Tether
 
@@ -18,7 +18,7 @@ md.bond
 .. automodule:: hoomd.md.bond
     :synopsis: Bond potentials.
     :members: Bond,
-              FENE,
+              FENEWCA,
               Harmonic,
               Tether
     :no-inherited-members:

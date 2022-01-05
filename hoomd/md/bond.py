@@ -73,20 +73,18 @@ class Harmonic(Bond):
         self._add_typeparam(params)
 
 
-class FENE(Bond):
-    r"""FENE bond potential.
+class FENEWCA(Bond):
+    r"""Bond potential that adds FENE to a WCA repulsive potential.
 
-    :py:class:`FENE` specifies a FENE potential energy between the two particles
-    in each defined bond.
+    :py:class:`FENEWCA` computes the energy and force from the FENE and WCA
+    potentials between the two particles in each defined bond:
 
     .. math::
 
         V(r) = - \frac{1}{2} k r_0^2 \ln \left( 1 - \left( \frac{r -
                \Delta}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)
 
-    where :math:`r` is the distance from one particle to the other in the bond,
-    :math:`\Delta = (d_i + d_j)/2 - 1`, :math:`d_i` is the diameter of particle
-    :math:`i`, and
+    where
 
     .. math::
         :nowrap:
@@ -100,30 +98,38 @@ class FENE(Bond):
                                & r-\Delta \ge 2^{\frac{1}{6}}\sigma
         \end{eqnarray*}
 
+    , :math:`r` is the distance from one particle to the other in the bond,
+    :math:`k` is the attractive force strength, :math:`r_0` is the size of the
+    bond, :math:`\varepsilon` is the repulsive interaction energy, and
+    :math:`sigma` is the repulsive interaction width.
+
     Attributes:
         params (TypeParameter[``bond type``, dict]):
             The parameter of the FENE potential bonds.
             The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - attractive force strength
-              :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
+              :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
 
             * ``r0`` (`float`, **required**) - size parameter
-              :math:`[\mathrm{length}]`
+              :math:`[\mathrm{length}]`.
 
             * ``epsilon`` (`float`, **required**) - repulsive force strength
-              :math:`[\mathrm{energy}]`
+              :math:`[\mathrm{energy}]`.
 
             * ``sigma`` (`float`, **required**) - repulsive force interaction
-              :math:`[\mathrm{length}]`
+              width :math:`[\mathrm{length}]`.
+
+            * ``delta`` (`float`, **required**) - radial shift
+              :math:`[\mathrm{length}]`.
 
     Examples::
 
-        bond_potential = bond.FENE()
-        bond_potential.params['molecule'] = dict(k=3.0, r0=2.38,
-                                                 epsilon=1.0, sigma=1.0)
-        bond_potential.params['backbone'] = dict(k=10.0, r0=1.0,
-                                                 epsilon=0.8, sigma=1.2)
+        fenewca = bond.FENEWCA()
+        fenewca.params['A-A'] = dict(k=3.0, r0=2.38, epsilon=1.0, sigma=1.0,
+                                     delta=0.0)
+        fenewca.params['A-B'] = dict(k=10.0, r0=1.0, epsilon=0.8, sigma=1.2,
+                                     delta=0.0)
 
     """
     _cpp_class_name = "PotentialBondFENE"
@@ -135,6 +141,7 @@ class FENE(Bond):
                               r0=float,
                               epsilon=float,
                               sigma=float,
+                              delta=float,
                               len_keys=1))
         self._add_typeparam(params)
 
