@@ -91,8 +91,9 @@ class _ArrayViewWrapper(MutableSequence):
 
     def pop(self, index=None):
         array = self._get_array_view()
-        if index is not None:
-            index = self._handle_index(index)
+        if index is None:
+            return array.pop()
+        index = self._handle_index(index)
         return array.pop(index)
 
     def __iter__(self):
