@@ -139,7 +139,12 @@ class Pair(force.Force):
                                 TypeParameterDict(nonnegative_real, len_keys=2))
         if default_r_on is not None:
             tp_r_on.default = default_r_on
-        self._extend_typeparam([tp_r_cut, tp_r_on])
+
+        type_params = [tp_r_cut]
+        if 'xplor' in self._accepted_modes:
+            type_params.append(tp_r_on)
+
+        self._extend_typeparam(type_params)
         self._param_dict.update(
             ParameterDict(mode=OnlyFrom(self._accepted_modes)))
         self.mode = mode
@@ -580,7 +585,6 @@ class Ewald(Pair):
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
 
     `Ewald` specifies that a Ewald pair potential should be applied between
     every non-excluded particle pair in the simulation.
@@ -628,8 +632,8 @@ class Ewald(Pair):
     _cpp_class_name = "PotentialPairEwald"
     _accepted_modes = ("none",)
 
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
-        super().__init__(nlist, default_r_cut, default_r_on, 'none')
+    def __init__(self, nlist, default_r_cut=None):
+        super().__init__(nlist=nlist, default_r_cut=default_r_cut, default_r_on=0, mode='none')
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(kappa=float, alpha=0.0, len_keys=2))
@@ -643,7 +647,6 @@ class Table(Pair):
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
-        default_r_on (float): Default turn-on radius :math:`[\\mathrm{length}]`.
 
     `Table` specifies that a tabulated pair potential should be applied between
     every non-excluded particle pair in the simulation in the range
@@ -723,8 +726,8 @@ class Table(Pair):
     _cpp_class_name = "PotentialPairTable"
     _accepted_modes = ("none",)
 
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
-        super().__init__(nlist, default_r_cut, default_r_on, 'none')
+    def __init__(self, nlist, default_r_cut=None):
+        super().__init__(nlist, default_r_cut=default_r_cut, default_r_on=0, mode='none')
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(
@@ -800,7 +803,6 @@ class DPD(Pair):
         kT (`hoomd.variant` or `float`): Temperature of
             thermostat :math:`[\mathrm{energy}]`.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
 
     `DPD` specifies that a DPD pair force should be applied between every
     non-excluded particle pair in the simulation, including an interaction
@@ -877,8 +879,8 @@ class DPD(Pair):
     _cpp_class_name = "PotentialPairDPDThermoDPD"
     _accepted_modes = ("none",)
 
-    def __init__(self, nlist, kT, default_r_cut=None, default_r_on=0.):
-        super().__init__(nlist, default_r_cut, default_r_on, 'none')
+    def __init__(self, nlist, kT, default_r_cut=None,):
+        super().__init__(nlist=nlist, default_r_cut=default_r_cut, default_r_on=0, mode='none')
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(A=float, gamma=float, len_keys=2))
@@ -904,7 +906,6 @@ class DPDConservative(Pair):
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
 
     `DPDConservative` specifies the conservative part of the DPD pair potential
     should be applied between every non-excluded particle pair in the
@@ -946,9 +947,9 @@ class DPDConservative(Pair):
     _cpp_class_name = "PotentialPairDPD"
     _accepted_modes = ("none",)
 
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
+    def __init__(self, nlist, default_r_cut=None):
         # initialize the base class
-        super().__init__(nlist, default_r_cut, default_r_on, 'none')
+        super().__init__(nlist=nlist, default_r_cut=default_r_cut, default_r_on=0, mode='none')
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(A=float, len_keys=2))
         self._add_typeparam(params)
@@ -962,7 +963,6 @@ class DPDLJ(Pair):
         kT (`hoomd.variant` or `float`): Temperature of
             thermostat :math:`[\mathrm{energy}]`.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting mode.
 
     `DPDLJ` specifies that a DPD thermostat and a Lennard-Jones pair potential
@@ -1054,10 +1054,9 @@ class DPDLJ(Pair):
                  nlist,
                  kT,
                  default_r_cut=None,
-                 default_r_on=0.,
                  mode='none'):
 
-        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        super().__init__(nlist=nlist, default_r_cut=default_r_cut, default_r_on=0, mode=mode)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(epsilon=float,
@@ -1088,7 +1087,6 @@ class ForceShiftedLJ(Pair):
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
     `ForceShiftedLJ` specifies that a modified Lennard-Jones pair force should
@@ -1140,8 +1138,8 @@ class ForceShiftedLJ(Pair):
     _cpp_class_name = "PotentialPairForceShiftedLJ"
     _accepted_modes = ("none",)
 
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
-        super().__init__(nlist, default_r_cut, default_r_on, 'none')
+    def __init__(self, nlist, default_r_cut=None):
+        super().__init__(nlist=nlist, default_r_cut=default_r_cut, default_r_on=0, mode='none')
 
         params = TypeParameter(
             'params', 'particle_types',
