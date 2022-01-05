@@ -645,6 +645,10 @@ class BaseCollectionsTest:
         """Return a random float."""
         return max_ * (self.rng.random() - 0.5)
 
+    def bool(self):
+        """Return a random Boolean."""
+        return bool(self.int(2))
+
     def str(self, max_length=20):
         """Return a random string."""
         length = self.int(max_length) + 1
