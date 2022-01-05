@@ -92,8 +92,7 @@ class EvaluatorBondFENE
     DEVICE EvaluatorBondFENE(Scalar _rsq, const param_type& _params)
         : rsq(_rsq), K(_params.k), r_0(_params.r_0),
           lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
-          lj2(_params.epsilon_x_4 * _params.sigma_6),
-          delta(_params.delta)
+          lj2(_params.epsilon_x_4 * _params.sigma_6), delta(_params.delta)
         {
         }
 
@@ -107,9 +106,7 @@ class EvaluatorBondFENE
     /*! \param da Diameter of particle a
         \param db Diameter of particle b
     */
-    DEVICE void setDiameter(Scalar da, Scalar db)
-        {
-        }
+    DEVICE void setDiameter(Scalar da, Scalar db) { }
 
     //! FENE  doesn't use charge
     DEVICE static bool needsCharge()
@@ -183,12 +180,12 @@ class EvaluatorBondFENE
 #endif
 
     protected:
-    Scalar rsq;        //!< Stored rsq from the constructor
-    Scalar K;          //!< K parameter
-    Scalar r_0;        //!< r_0 parameter
-    Scalar lj1;        //!< lj1 parameter
-    Scalar lj2;        //!< lj2 parameter
-    Scalar delta;      //!< Radial shift
+    Scalar rsq;   //!< Stored rsq from the constructor
+    Scalar K;     //!< K parameter
+    Scalar r_0;   //!< r_0 parameter
+    Scalar lj1;   //!< lj1 parameter
+    Scalar lj2;   //!< lj2 parameter
+    Scalar delta; //!< Radial shift
     };
 
     } // end namespace md

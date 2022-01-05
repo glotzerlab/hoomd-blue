@@ -1605,7 +1605,14 @@ class DLVO(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(kappa=float, Z=float, A=float, a1=float, a2=float, len_keys=2,))
+            TypeParameterDict(
+                kappa=float,
+                Z=float,
+                A=float,
+                a1=float,
+                a2=float,
+                len_keys=2,
+            ))
         self._add_typeparam(params)
 
         # this potential needs diameter shifting on

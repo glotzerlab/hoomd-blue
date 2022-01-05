@@ -125,9 +125,7 @@ class EvaluatorPairDLVO
     /*! \param di Diameter of particle i
         \param dj Diameter of particle j
     */
-    DEVICE void setDiameter(Scalar di, Scalar dj)
-        {
-        }
+    DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! DLVO doesn't use charge
     DEVICE static bool needsCharge()

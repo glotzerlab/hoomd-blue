@@ -545,8 +545,8 @@ def _valid_params(particle_types=['A', 'B']):
         'kappa': [1.0, 2.0, 5.0],
         'Z': [0.1, 0.5, 2.0],
         'A': [0.1, 0.5, 2.0],
-        'a1': [0.1]*3,
-        'a2': [0.25]*3,
+        'a1': [0.1] * 3,
+        'a2': [0.25] * 3,
     }
     dlvo_valid_param_dicts = _make_valid_param_dicts(dlvo_arg_dict)
 
@@ -889,7 +889,7 @@ def test_force_energy_relationship(simulation_factory,
         pot.params[pair] = valid_params.pair_potential_params[pair]
 
         if pot_name == 'DLVO':
-            pot.r_cut[pair] = 2.5 - ((0.2 + 0.5)/2 - 1)
+            pot.r_cut[pair] = 2.5 - ((0.2 + 0.5) / 2 - 1)
 
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
     _update_snap(valid_params.pair_potential, snap)
