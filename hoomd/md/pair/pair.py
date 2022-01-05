@@ -633,7 +633,10 @@ class Ewald(Pair):
     _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None):
-        super().__init__(nlist=nlist, default_r_cut=default_r_cut, default_r_on=0, mode='none')
+        super().__init__(nlist=nlist,
+                         default_r_cut=default_r_cut,
+                         default_r_on=0,
+                         mode='none')
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(kappa=float, alpha=0.0, len_keys=2))
@@ -727,7 +730,10 @@ class Table(Pair):
     _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None):
-        super().__init__(nlist, default_r_cut=default_r_cut, default_r_on=0, mode='none')
+        super().__init__(nlist,
+                         default_r_cut=default_r_cut,
+                         default_r_on=0,
+                         mode='none')
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(
@@ -879,8 +885,16 @@ class DPD(Pair):
     _cpp_class_name = "PotentialPairDPDThermoDPD"
     _accepted_modes = ("none",)
 
-    def __init__(self, nlist, kT, default_r_cut=None,):
-        super().__init__(nlist=nlist, default_r_cut=default_r_cut, default_r_on=0, mode='none')
+    def __init__(
+        self,
+        nlist,
+        kT,
+        default_r_cut=None,
+    ):
+        super().__init__(nlist=nlist,
+                         default_r_cut=default_r_cut,
+                         default_r_on=0,
+                         mode='none')
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(A=float, gamma=float, len_keys=2))
@@ -949,7 +963,10 @@ class DPDConservative(Pair):
 
     def __init__(self, nlist, default_r_cut=None):
         # initialize the base class
-        super().__init__(nlist=nlist, default_r_cut=default_r_cut, default_r_on=0, mode='none')
+        super().__init__(nlist=nlist,
+                         default_r_cut=default_r_cut,
+                         default_r_on=0,
+                         mode='none')
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(A=float, len_keys=2))
         self._add_typeparam(params)
@@ -1050,13 +1067,12 @@ class DPDLJ(Pair):
     _cpp_class_name = "PotentialPairDPDLJThermoDPD"
     _accepted_modes = ("none", "shifted")
 
-    def __init__(self,
-                 nlist,
-                 kT,
-                 default_r_cut=None,
-                 mode='none'):
+    def __init__(self, nlist, kT, default_r_cut=None, mode='none'):
 
-        super().__init__(nlist=nlist, default_r_cut=default_r_cut, default_r_on=0, mode=mode)
+        super().__init__(nlist=nlist,
+                         default_r_cut=default_r_cut,
+                         default_r_on=0,
+                         mode=mode)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(epsilon=float,
@@ -1139,7 +1155,10 @@ class ForceShiftedLJ(Pair):
     _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None):
-        super().__init__(nlist=nlist, default_r_cut=default_r_cut, default_r_on=0, mode='none')
+        super().__init__(nlist=nlist,
+                         default_r_cut=default_r_cut,
+                         default_r_on=0,
+                         mode='none')
 
         params = TypeParameter(
             'params', 'particle_types',
