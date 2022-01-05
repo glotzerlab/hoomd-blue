@@ -899,6 +899,15 @@ class BaseListTest(BaseSequenceTest):
         self.check_equivalent(test_list, plain_list)
         self.final_check(test_list)
 
+    def test_empty_pop(self, populated_collection):
+        """Test pop without argument."""
+        test_list, plain_list = populated_collection
+        item = test_list.pop()
+        assert self.is_equal(self.to_base(item), plain_list[-1])
+        plain_list.pop()
+        self.check_equivalent(test_list, plain_list)
+        self.final_check(test_list)
+
     def test_remove(self, populated_collection):
         """Test remove."""
         test_list, plain_list = populated_collection
