@@ -8,7 +8,6 @@ namespace hoomd
     {
 namespace getardump
     {
-using std::auto_ptr;
 using std::endl;
 using std::map;
 using std::max;
