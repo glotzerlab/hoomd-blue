@@ -219,7 +219,7 @@ class Cylinder(WallGeometry):
 
 
 class Plane(WallGeometry):
-    r"""Define a Plane in 3D Euclidean space.
+    r"""Define a plane in 3D Euclidean space.
 
     Args:
         origin (`tuple` [`float`, `float`, `float`]):
