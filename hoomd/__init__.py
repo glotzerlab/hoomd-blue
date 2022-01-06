@@ -39,6 +39,7 @@ from hoomd import integrate
 from hoomd import communicator
 from hoomd import util
 from hoomd import write
+from hoomd import wall
 from hoomd import _hoomd
 if version.md_built:
     from hoomd import md

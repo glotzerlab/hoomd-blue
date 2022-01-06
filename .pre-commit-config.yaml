@@ -42,7 +42,6 @@ repos:
     # These also need to be removed in setup.cfg
     exclude: |
       (?x)(
-        ^hoomd/md/wall.py|
         ^hoomd/md/impropers.py|
         ^hoomd/extern/|
         ^hoomd/mpcd/|

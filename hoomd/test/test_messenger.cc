@@ -146,7 +146,7 @@ UP_TEST(Messenger_file)
         }
 
     // make sure the file was created
-    UP_ASSERT(filesystem::exists("test_messenger_output"));
+    UP_ASSERT(hoomd::filesystem::exists("test_messenger_output"));
 
     // read in the file and make sure correct data was written
     ifstream f("test_messenger_output");

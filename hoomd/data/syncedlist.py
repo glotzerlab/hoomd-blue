@@ -195,7 +195,7 @@ class SyncedList(MutableSequence):
         return self._handle_int(index)
 
     def _handle_slice(self, index):
-        return range(0, len(self))[index]
+        return range(len(self))[index]
 
     def _synced_iter(self):
         """Iterate over values in the list. Does nothing when not synced."""

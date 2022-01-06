@@ -45,4 +45,5 @@ hoomd
    module-hoomd-update
    module-hoomd-variant
    module-hoomd-version
+   module-hoomd-wall
    module-hoomd-write
