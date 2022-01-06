@@ -290,7 +290,6 @@ class Gauss(WallPotential):
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        # add walls to interact with
         gaussian_wall=hoomd.md.external.wall.Gauss(walls=walls)
         gaussian_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0, "r_cut": 2.5}
         gaussian_wall.params[['A','B']] = {
