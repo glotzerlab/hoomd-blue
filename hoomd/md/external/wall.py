@@ -284,7 +284,7 @@ class Gauss(WallPotential):
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        gaussian_wall=hoomd.md.external.wall.Gauss(walls=walls)
+        gaussian_wall = hoomd.md.external.wall.Gauss(walls=walls)
         gaussian_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0, "r_cut": 2.5}
         gaussian_wall.params[['A','B']] = {
             "epsilon": 2.0, "sigma": 1.0, "r_cut": 1.0}
@@ -403,7 +403,7 @@ class Morse(WallPotential):
 
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        morse_wall=hoomd.md.external.wall.Morse(walls=walls)
+        morse_wall = hoomd.md.external.wall.Morse(walls=walls)
         morse_wall.params['A'] = {
             "D0": 1.0, "alpha": 1.0, "r0": 1.0, "r_cut": 3.0}
         morse_wall.params[['A','B']] = {
@@ -463,7 +463,7 @@ class ForceShiftedLJ(WallPotential):
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        shifted_lj_wall=hoomd.md.external.wall.ForceShiftedLJ(
+        shifted_lj_wall = hoomd.md.external.wall.ForceShiftedLJ(
             walls=walls)
         shifted_lj_wall.params['A'] = {
             "epsilon": 1.0, "sigma": 1.0, "r_cut": 3.0}
@@ -523,7 +523,7 @@ class Mie(WallPotential):
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        mie_wall=hoomd.md.external.wall.Mie(walls=walls)
+        mie_wall = hoomd.md.external.wall.Mie(walls=walls)
         mie_wall.params['A'] = {
             "epsilon": 1.0, "sigma": 1.0, "n": 12, "m": 6, "r_cut": 3.0}
         mie_wall.params[['A','B']] = {
