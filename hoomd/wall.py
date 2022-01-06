@@ -12,7 +12,7 @@ from hoomd.data.parameterdicts import ParameterDict
 class WallGeometry(ABC, _HOOMDGetSetAttrBase):
     """Abstract base class for a HOOMD wall geometry.
 
-    Walls are used in both HPMC and MD subpackages. Subclass of `WallGeometry`
+    Walls are used in both HPMC and MD subpackages. Subclasses of `WallGeometry`
     abstract over the wall geometries for both use cases.
     """
 
