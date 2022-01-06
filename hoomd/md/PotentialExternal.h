@@ -108,7 +108,6 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getGlobalBox();
-    PDataFlags flags = this->m_pdata->getFlags();
 
     unsigned int nparticles = m_pdata->getN();
 
