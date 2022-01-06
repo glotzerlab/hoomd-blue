@@ -22,6 +22,7 @@ class Bond(Force):
         :py:class:`Bond` is the base class for all bond potentials.
         Users should not instantiate this class directly.
     """
+
     def __init__(self):
         super().__init__()
 

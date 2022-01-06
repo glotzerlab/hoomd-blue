@@ -18,6 +18,7 @@ class Angle(Force):
         :py:class:`Angle` is the base class for all angular potentials.
         Users should not instantiate this class directly.
     """
+
     def __init__(self):
         super().__init__()
 

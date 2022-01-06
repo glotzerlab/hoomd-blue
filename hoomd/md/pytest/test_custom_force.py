@@ -367,9 +367,7 @@ def test_data_buffers_readonly(two_particle_snapshot_factory,
     sim = simulation_factory(snap)
 
     langevin = md.methods.Langevin(hoomd.filter.All(), kT=1)
-    integrator = md.Integrator(dt=0.005,
-                               forces=[lj],
-                               methods=[langevin])
+    integrator = md.Integrator(dt=0.005, forces=[lj], methods=[langevin])
     sim.operations.integrator = integrator
     sim.run(2)
 
@@ -380,4 +378,3 @@ def test_data_buffers_readonly(two_particle_snapshot_factory,
     if hoomd.version.gpu_enabled and CUPY_IMPORTED:
         with lj.gpu_local_force_arrays as arrays:
             _assert_buffers_readonly(arrays)
-
