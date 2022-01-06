@@ -62,7 +62,7 @@ class WallPotential(force.Force):
     ``inside`` flag (or ``normal`` in the case of `hoomd.wall.Plane`) determines
     which side of the surface is active.
 
-    .. rubric:: Standard Mode.
+    .. rubric:: Standard Mode
 
     In the standard mode, when :math:`r_{\mathrm{extrap}} \le 0`, the potential
     energy is only computed on the active side. :math:`V(d)` is evaluated in the
