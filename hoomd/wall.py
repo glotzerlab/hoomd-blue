@@ -135,8 +135,8 @@ class Cylinder(WallGeometry):
             Whether to include the surface of the cylinder in the space.
             ``True`` means do not include the surface, defaults to ``True``.
 
-    Cylinder walls in HOOMD span the simulation box in the direction given by the
-    ``axis`` attribute.
+    Cylinder walls in HOOMD span the simulation box in the direction given by
+    the ``axis`` attribute.
 
     The signed distance from the wall is
 
