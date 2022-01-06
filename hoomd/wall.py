@@ -15,7 +15,7 @@ from hoomd.data.parameterdicts import ParameterDict
 class WallGeometry(ABC, _HOOMDGetSetAttrBase):
     """Abstract base class for a HOOMD wall geometry.
 
-    Walls are used in both HPMC and MD subpackages. Subclass of `WallGeometry`
+    Walls are used in both HPMC and MD subpackages. Subclasses of `WallGeometry`
     abstract over the wall geometries for both use cases.
     """
 
@@ -138,8 +138,8 @@ class Cylinder(WallGeometry):
             Whether to include the surface of the cylinder in the space.
             ``True`` means do not include the surface, defaults to ``True``.
 
-    Cylinder in HOOMD span the simulation box in the direction given by the
-    ``axis`` attribute.
+    Cylinder walls in HOOMD span the simulation box in the direction given by
+    the ``axis`` attribute.
 
     The signed distance from the wall is
 
@@ -222,7 +222,7 @@ class Cylinder(WallGeometry):
 
 
 class Plane(WallGeometry):
-    r"""Define a Plane in 3D Euclidean space.
+    r"""Define a plane in 3D Euclidean space.
 
     Args:
         origin (`tuple` [`float`, `float`, `float`]):
