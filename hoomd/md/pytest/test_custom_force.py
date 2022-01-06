@@ -82,6 +82,7 @@ def test_simulation(force_cls, simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory(snap)
     _skip_if_cupy_not_imported_and_gpu_device(sim)
     custom_force = force_cls()
+    print(custom_force._in_context_manager)
     nvt = md.methods.NPT(hoomd.filter.All(),
                          kT=1,
                          tau=1,
@@ -341,3 +342,42 @@ def test_ghost_data_access(force_cls, two_particle_snapshot_factory,
                                methods=[nvt])
     sim.operations.integrator = integrator
     _try_running_sim(sim, 2)
+
+
+def _assert_buffers_readonly(force_arrays):
+    """ensure proper errors are raised when trying to modify force buffers."""
+    with pytest.raises(ValueError):
+        force_arrays.force[:] = -100
+    with pytest.raises(ValueError):
+        force_arrays.virial[:] = 5
+    with pytest.raises(ValueError):
+        force_arrays.potential_energy[:] = -5
+    with pytest.raises(ValueError):
+        force_arrays.torque[:] = 2345
+
+
+def test_data_buffers_readonly(two_particle_snapshot_factory,
+                               simulation_factory):
+    """Ensure local data buffers for non-custom force classes are read-only."""
+    nlist = md.nlist.Cell(buffer=0.2)
+    lj = md.pair.LJ(nlist, default_r_cut=2.0)
+    lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
+
+    snap = two_particle_snapshot_factory()
+    sim = simulation_factory(snap)
+
+    langevin = md.methods.Langevin(hoomd.filter.All(), kT=1)
+    integrator = md.Integrator(dt=0.005,
+                               forces=[lj],
+                               methods=[langevin])
+    sim.operations.integrator = integrator
+    sim.run(2)
+
+    # assert buffers are readonly
+    with lj.cpu_local_force_arrays as arrays:
+        _assert_buffers_readonly(arrays)
+
+    if hoomd.version.gpu_enabled and CUPY_IMPORTED:
+        with lj.gpu_local_force_arrays as arrays:
+            _assert_buffers_readonly(arrays)
+

@@ -34,6 +34,9 @@ class Force(_HOOMDBaseObject):
     Initializes some loggable quantities.
     """
 
+    def __init__(self):
+        self._in_context_manager = False
+
     @log(requires_run=True)
     def energy(self):
         """float: Total contribution to the potential energy of the system \
@@ -117,6 +120,63 @@ class Force(_HOOMDBaseObject):
             virial.append(self._cpp_obj.getExternalVirial(i))
         return numpy.array(virial, dtype=numpy.float64)
 
+    @property
+    def cpu_local_force_arrays(self):
+        """hoomd.md.data.ForceLocalAccess: Expose force arrays on the CPU.
+
+        Provides direct access to the force, potential energy, torque, and
+        virial data of the particles in the system on the cpu through a context
+        manager. All data is MPI rank-local.
+
+        The `hoomd.md.data.ForceLocalAccess` object returned by this property
+        has four arrays through which one can modify the force data:
+
+        Examples::
+
+            with self.cpu_local_force_arrays as arrays:
+                arrays.force[:] = ...
+                arrays.potential_energy[:] = ...
+                arrays.torque[:] = ...
+                arrays.virial[:] = ...
+        """
+        if self._in_context_manager:
+            raise RuntimeError("Cannot enter cpu_local_force_arrays context "
+                               "manager inside another local_force_arrays "
+                               "context manager")
+        return hoomd.md.data.ForceLocalAccess(self)
+
+    @property
+    def gpu_local_force_arrays(self):
+        """hoomd.md.data.ForceLocalAccessGPU: Expose force arrays on the GPU.
+
+        Provides direct access to the force, potential energy, torque, and
+        virial data of the particles in the system on the gpu through a context
+        manager. All data is MPI rank-local.
+
+        The `hoomd.md.data.ForceLocalAccessGPU` object returned by this property
+        has four arrays through which one can modify the force data:
+
+        Examples::
+
+            with self.gpu_local_force_arrays as arrays:
+                arrays.force[:] = ...
+                arrays.potential_energy[:] = ...
+                arrays.torque[:] = ...
+                arrays.virial[:] = ...
+
+        Note:
+            GPU local force data is not available if the chosen device for the
+            simulation is `hoomd.device.CPU`.
+        """
+        if not isinstance(self._simulation.device, hoomd.device.GPU):
+            raise RuntimeError(
+                "Cannot access gpu_local_force_arrays without a GPU device")
+        if self._in_context_manager:
+            raise RuntimeError(
+                "Cannot enter gpu_local_force_arrays context manager inside "
+                "another local_force_arrays context manager")
+        return hoomd.md.data.ForceLocalAccessGPU(self)
+
 
 class Custom(Force):
     """Custom forces implemented in python.
@@ -181,7 +241,7 @@ class Custom(Force):
     """
 
     def __init__(self):
-        self._in_context_manager = False
+        super().__init__()
         self._state = None  # to be set on attaching
 
     def _attach(self):
@@ -189,63 +249,6 @@ class Custom(Force):
         self._cpp_obj = _md.CustomForceCompute(self._state._cpp_sys_def,
                                                self.set_forces)
         super()._attach()
-
-    @property
-    def cpu_local_force_arrays(self):
-        """hoomd.md.data.ForceLocalAccess: Expose force arrays on the CPU.
-
-        Provides direct access to the force, potential energy, torque, and
-        virial data of the particles in the system on the cpu through a context
-        manager. All data is MPI rank-local.
-
-        The `hoomd.md.data.ForceLocalAccess` object returned by this property
-        has four arrays through which one can modify the force data:
-
-        Examples::
-
-            with self.cpu_local_force_arrays as arrays:
-                arrays.force[:] = ...
-                arrays.potential_energy[:] = ...
-                arrays.torque[:] = ...
-                arrays.virial[:] = ...
-        """
-        if self._in_context_manager:
-            raise RuntimeError("Cannot enter cpu_local_force_arrays context "
-                               "manager inside another local_force_arrays "
-                               "context manager")
-        return hoomd.md.data.ForceLocalAccess(self)
-
-    @property
-    def gpu_local_force_arrays(self):
-        """hoomd.md.data.ForceLocalAccessGPU: Expose force arrays on the GPU.
-
-        Provides direct access to the force, potential energy, torque, and
-        virial data of the particles in the system on the gpu through a context
-        manager. All data is MPI rank-local.
-
-        The `hoomd.md.data.ForceLocalAccessGPU` object returned by this property
-        has four arrays through which one can modify the force data:
-
-        Examples::
-
-            with self.gpu_local_force_arrays as arrays:
-                arrays.force[:] = ...
-                arrays.potential_energy[:] = ...
-                arrays.torque[:] = ...
-                arrays.virial[:] = ...
-
-        Note:
-            GPU local force data is not available if the chosen device for the
-            simulation is `hoomd.device.CPU`.
-        """
-        if not isinstance(self._simulation.device, hoomd.device.GPU):
-            raise RuntimeError(
-                "Cannot access gpu_local_force_arrays without a GPU device")
-        if self._in_context_manager:
-            raise RuntimeError(
-                "Cannot enter gpu_local_force_arrays context manager inside "
-                "another local_force_arrays context manager")
-        return hoomd.md.data.ForceLocalAccessGPU(self)
 
     @abstractmethod
     def set_forces(self, timestep):
@@ -317,6 +320,7 @@ class Active(Force):
     """
 
     def __init__(self, filter):
+        super().__init__()
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter)
         param_dict["filter"] = filter

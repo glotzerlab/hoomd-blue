@@ -22,6 +22,8 @@ class Bond(Force):
         :py:class:`Bond` is the base class for all bond potentials.
         Users should not instantiate this class directly.
     """
+    def __init__(self):
+        super().__init__()
 
     def _attach(self):
         """Create the c++ mirror class."""
@@ -68,6 +70,7 @@ class Harmonic(Bond):
     _cpp_class_name = "PotentialBondHarmonic"
 
     def __init__(self):
+        super().__init__()
         params = TypeParameter("params", "bond_types",
                                TypeParameterDict(k=float, r0=float, len_keys=1))
         self._add_typeparam(params)
@@ -129,6 +132,7 @@ class FENE(Bond):
     _cpp_class_name = "PotentialBondFENE"
 
     def __init__(self):
+        super().__init__()
         params = TypeParameter(
             "params", "bond_types",
             TypeParameterDict(k=float,
@@ -453,6 +457,7 @@ class Tether(Bond):
     _cpp_class_name = "PotentialBondTether"
 
     def __init__(self):
+        super().__init__()
         params = TypeParameter(
             "params", "bond_types",
             TypeParameterDict(k_b=float,

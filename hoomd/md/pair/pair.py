@@ -129,6 +129,7 @@ class Pair(force.Force):
     _accepted_modes = ("none", "shift", "xplor")
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
+        super().__init__()
         self._nlist = validate_nlist(nlist)
         tp_r_cut = TypeParameter(
             'r_cut', 'particle_types',

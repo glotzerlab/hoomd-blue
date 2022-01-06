@@ -61,6 +61,7 @@ class Triplet(Force):
     """
 
     def __init__(self, nlist, default_r_cut=None):
+        super().__init__()
         self._nlist = validate_nlist(nlist)
         r_cut_param = TypeParameter(
             'r_cut', 'particle_types',

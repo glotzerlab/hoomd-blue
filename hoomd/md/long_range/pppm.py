@@ -133,6 +133,7 @@ class Coulomb(Force):
     """
 
     def __init__(self, nlist, resolution, order, r_cut, alpha, pair_force):
+        super().__init__()
         self._nlist = hoomd.data.typeconverter.OnlyTypes(
             hoomd.md.nlist.NList)(nlist)
         self._param_dict.update(
