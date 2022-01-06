@@ -16,12 +16,14 @@ import hoomd
 
 def _to_md_cpp_wall(wall):
     if isinstance(wall, hoomd.wall.Sphere):
-        return _md.SphereWall(wall.radius, wall.origin, wall.inside, wall.open)
+        return _md.SphereWall(wall.radius, wall.origin.to_base(), wall.inside,
+                              wall.open)
     if isinstance(wall, hoomd.wall.Cylinder):
-        return _md.CylinderWall(wall.radius, wall.origin, wall.axis,
-                                wall.inside, wall.open)
+        return _md.CylinderWall(wall.radius, wall.origin.to_base(),
+                                wall.axis.to_base(), wall.inside, wall.open)
     if isinstance(wall, hoomd.wall.Plane):
-        return _md.PlaneWall(wall.origin, wall.normal, wall.open)
+        return _md.PlaneWall(wall.origin.to_base(), wall.normal.to_base(),
+                             wall.open)
     raise TypeError(f"Unknown wall type encountered {type(wall)}.")
 
 
@@ -42,34 +44,33 @@ class _WallArrayViewFactory:
 class WallPotential(force.Force):
     r"""Generic wall potential.
 
-    Warning:
-        `WallPotential` should not be used directly.  It is a base class that
-        provides features and documentation common to all standard wall
-        potentials.
+    Wall potential classes compute the potential energy and force between all
+    particles and the given walls. The potential :math:`V(d)` is a function of
+    the signed cutoff distance between the particle and wall's surface
+    :math:`d`. The resulting force :math:`\vec{F}` is is parallel to
+    :math:`\vec{d}`, the vector pointing from the closest point on the wall's
+    surface to the particle. :math:`V(d)` is related to a pair potential
+    :math:`V_{\mathrm{pair}}` as defined below and each subclass of
+    `WallPotential` implements a different functional form of
+    :math:`V_{\mathrm{pair}}`.
 
-    All wall potential classes specify that a given potential energy and
-    force be computed on all particles in the system when the signed cutoff
-    distance is near the wall surface: :math:`r < r_{\mathrm{cut}}`.
-    The force :math:`\vec{F}` is in the direction of :math:`\vec{r}`, the vector
-    pointing from the particle to closest point on the wall's surface and
-    :math:`V_{\mathrm{pair}}(r)` is the pair potential specified by subclasses
-    of `WallPotential`.  Walls are two-sided surfaces with positive signed
-    distances to points on the active side of the wall and negative signed
-    distances to points on the inactive side. Additionally, the wall's mode
-    controls how forces and energies are computed for particles on or near the
-    inactive side. The ``inside`` flag (or ``normal`` in the case of
-    `hoomd.wall.Plane`) determines which side of the surface is active.
+    Walls are two-sided surfaces with positive signed distances to points on the
+    active side of the wall and negative signed distances to points on the
+    inactive side. Additionally, the wall's mode controls how forces and
+    energies are computed for particles on or near the inactive side. The
+    ``inside`` flag (or ``normal`` in the case of `hoomd.wall.Plane`) determines
+    which side of the surface is active.
 
     .. rubric:: Standard Mode.
 
     In the standard mode, when :math:`r_{\mathrm{extrap}} \le 0`, the potential
-    energy is only computed on the active side. :math:`V(r)` is evaluated in the
+    energy is only computed on the active side. :math:`V(d)` is evaluated in the
     same manner as when the mode is shift for the analogous :py:mod:`pair
     <hoomd.md.pair>` potentials within the boundaries of the active space.
 
     .. math::
 
-        V(r)  = V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}})
+        V(d)  = V_{\mathrm{pair}}(d) - V_{\mathrm{pair}}(r_{\mathrm{cut}})
 
     For ``open=True`` spaces:
 
@@ -77,9 +78,10 @@ class WallPotential(force.Force):
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F}  = & -\nabla V(r) & 0 < r < r_{\mathrm{cut}} \\
-                 = & 0 & r \ge r_{\mathrm{cut}} \\
-                 = & 0 & r \le 0
+        \vec{F}  = & -\frac{\partial V}{\partial d}\hat{d}
+                   \,\,\, & 0 < d < r_{\mathrm{cut}} \\
+                 = & 0 & d \ge r_{\mathrm{cut}} \\
+                 = & 0 & d \le 0
         \end{eqnarray*}
 
     For ``open=False`` (closed) spaces:
@@ -88,9 +90,10 @@ class WallPotential(force.Force):
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F}  = & -\nabla V(r) & 0 \le r < r_{\mathrm{cut}} \\
-                 = & 0 & r \ge r_{\mathrm{cut}} \\
-                 = & 0 & r < 0
+        \vec{F}  = & -\frac{\partial V}{\partial d}\hat{d}
+                   \,\,\, & 0 \le d < r_{\mathrm{cut}} \\
+                 = & 0 & d \ge r_{\mathrm{cut}} \\
+                 = & 0 & d < 0
         \end{eqnarray*}
 
     Below we show the potential for a `hoomd.wall.Sphere` with radius 5 in 2D,
@@ -106,7 +109,7 @@ class WallPotential(force.Force):
     .. rubric: Extrapolated Mode:
 
     The wall potential can be linearly extrapolated starting at
-    :math:`r = r_{\mathrm{extrap}}` on the active side and continuing to the
+    :math:`d = r_{\mathrm{extrap}}` on the active side and continuing to the
     inactive side. This can be useful to move particles from the inactive side
     to the active side.
 
@@ -116,40 +119,28 @@ class WallPotential(force.Force):
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{extrap}}(r) =& V(r) &, r > r_{\rm extrap} \\
+        V_{\mathrm{extrap}}(d) =& V(d) \,\,\,& d > r_{\rm extrap} \\
              =& V(r_{\rm extrap})
                 + (r_{\rm extrap}-r)\vec{F}(r_{\rm extrap})
-                \cdot \vec{n}&, r \le r_{\rm extrap}
+                \cdot \vec{n}& r \le r_{\rm extrap}
         \end{eqnarray*}
 
-    where :math:`\vec{n}` is such that the force towards the active space for
-    most potentials unless ``r_extrap`` is chosen such that the potential is
-    decreasing at that point. This gives an effective force on the particle due
+    where :math:`\vec{n}` is such that the force points towards the active space
+    for repulsive potentials. This gives an effective force on the particle due
     to the wall:
 
     .. math::
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F}(r) =& \vec{F}_{\rm pair}(r) &, r > r_{\rm extrap} \\
-                =& \vec{F}_{\rm pair}(r_{\rm extrap}) &, r \le r_{\rm extrap}
-        \end{eqnarray*}
-
-    where :math:`\vec{F}_{\rm pair}` is given by the gradient of the pair force
-
-    .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        \vec{F}_{\rm pair}(r) =& -\nabla V_{\rm pair}(r) &, r < r_{\rm cut} \\
-                           =& 0 &, r \ge r_{\mathrm{cut}}
+        \vec{F}(r) =& \vec{F}(d) \,\,\,& d > r_{\rm extrap} \\
+                =& \vec{F}(r_{\rm extrap}) & r \le r_{\rm extrap}
         \end{eqnarray*}
 
     Below is an example of extrapolation with ``r_extrap=1.1`` for a LJ
     potential with :math:`\epsilon=1, \sigma=1`.
 
     .. image:: md-wall-extrapolate.svg
-
 
     To use extrapolated mode ``r_extrap`` must be set per particle type.
 
@@ -180,6 +171,11 @@ class WallPotential(force.Force):
           calculations as pair potentials, features of pair potentials such as
           specified neighborlists, and alternative force shifting modes are not
           supported.
+
+    Warning:
+        `WallPotential` should not be used directly.  It is a base class that
+        provides features and documentation common to all standard wall
+        potentials.
     """
 
     def __init__(self, walls):
@@ -287,7 +283,6 @@ class Gauss(WallPotential):
     Example::
 
         walls = [hoomd.wall.Sphere(radius=4.0)]
-        # add walls to interact with
         gaussian_wall=hoomd.md.external.wall.Gauss(walls=walls)
         gaussian_wall.params['A'] = {"epsilon": 1.0, "sigma": 1.0, "r_cut": 2.5}
         gaussian_wall.params[['A','B']] = {

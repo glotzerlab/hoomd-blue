@@ -51,11 +51,7 @@ class Sphere(WallGeometry):
             means do not include the surface, defaults to ``True``.
 
     Whether the wall is interpreted as a sphere or circle is dependent on the
-    dimension of the system the wall is applied to. For 2D systems the
-    z-component of the origin should be zero.
-
-    Note:
-        `Sphere` objects are immutable.
+    dimension of the system the wall is applied to.
 
     The signed distance from the wall is
 
@@ -66,6 +62,14 @@ class Sphere(WallGeometry):
     for ``inside=True``, where :math:`r` is the particle position, :math:`r_o`
     is the origin of the sphere, and :math:`R` is the sphere's radius. The
     distance is negated when ``inside=False``.
+
+    Warning:
+        When running MD simulations in 2D simulation boxes, set
+        ``origin[2]=(x,y,0)``. Otherwise, the wall force will push particles off
+        the xy plane.
+
+    Note:
+        `Sphere` objects are immutable.
 
     Attributes:
         radius (float):
@@ -137,9 +141,6 @@ class Cylinder(WallGeometry):
     Cylinder in HOOMD span the simulation box in the direction given by the
     ``axis`` attribute.
 
-    Note:
-        `Cylinder` objects are immutable.
-
     The signed distance from the wall is
 
     .. math::
@@ -152,6 +153,14 @@ class Cylinder(WallGeometry):
     :math:`\vec{r}_o` is the origin of the cylinder, :math:`\hat{n}` is the
     cylinder's unit axis, and :math:`R` is the cylinder's radius. The distance
     is negated when ``inside=False``.
+
+    Warning:
+        When running MD simulations in 2D simulation boxes, set
+        ``axis=(0,0,1)``. Otherwise, the wall force will push particles off the
+        xy plane.
+
+    Note:
+        `Cylinder` objects are immutable.
 
     Attributes:
         radius (float):
@@ -228,9 +237,6 @@ class Plane(WallGeometry):
 
     The normal points away from the active half side.
 
-    Note:
-        `Plane` objects are immutable.
-
     The signed distance from the wall is
 
     .. math::
@@ -239,6 +245,14 @@ class Plane(WallGeometry):
 
     where :math:`\vec{r}` is the particle position, :math:`\vec{r}_o` is the
     origin of the plane, and :math:`\hat{n}` is the plane's unit normal.
+
+    Warning:
+        When running MD simulations in 2D simulation boxes, set
+        ``normal=(nx,ny,0)``. Otherwise, the wall force will push particles off
+        the xy plane.
+
+    Note:
+        `Plane` objects are immutable.
 
     Attributes:
         origin (`tuple` [`float`, `float`, `float`]):
@@ -252,7 +266,7 @@ class Plane(WallGeometry):
             means do not include the surface.
     """
 
-    def __init__(self, origin, normal):
+    def __init__(self, origin, normal, open):
         param_dict = ParameterDict(origin=(float, float, float),
                                    normal=(float, float, float),
                                    open=bool)
@@ -386,8 +400,16 @@ class _WallsMetaList(MutableSequence):
         wall_type = backend_index.type
         del self._backend_lists[wall_type][backend_index.index]
         # Decrement backend index for all indices of the deleted type
+        # First handle the case where the last item was deleted which requires
+        # no updating.
+        if index == -1 or index == len(self._walls):
+            return
+        # Now handle the case where [index:] would include one wall before the
+        # deleted index (since negative index count from the back).
+        if index < 0:
+            index += 1
         for bi in self._backend_list_index[index:]:
-            if wall_type == bi.type:
+            if wall_type is bi.type:
                 bi.index -= 1
 
     def __len__(self):

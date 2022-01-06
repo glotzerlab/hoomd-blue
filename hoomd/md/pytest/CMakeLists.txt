@@ -5,6 +5,7 @@ set(files __init__.py
     test_active_rotational_diffusion.py
     test_angle.py
     test_aniso_pair.py
+    test_array_view.py
     test_constrain_distance.py
     test_external.py
     test_filter_md.py
@@ -28,7 +29,6 @@ set(files __init__.py
     test_zero_momentum.py
     test_gsd.py
     test_wall_data.py
-    test_wall_lists.py
     test_wall_potential.py
     )
 

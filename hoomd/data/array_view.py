@@ -38,27 +38,43 @@ class _ArrayViewWrapper(MutableSequence):
     def __len__(self):
         pass
 
-    @_array_view_wrapper
+    def _handle_index(self, index, raise_if_negative=True):
+        if isinstance(index, slice):
+            return range(len(self))[index]
+        if index < 0:
+            new_index = len(self) + index
+            if raise_if_negative and new_index < 0:
+                raise IndexError(f"No index {new_index} exists.")
+            return new_index
+        return index
+
     def insert(self, index, value):
-        pass
+        array = self._get_array_view()
+        index = self._handle_index(index, False)
+        if index < 0:
+            index = 0
+        array.insert(index, value)
 
     def __delitem__(self, index):
         array = self._get_array_view()
-        if not isinstance(index, slice):
+        index = self._handle_index(index)
+        if isinstance(index, int):
             del array[index]
             return
-        for i in sorted([j for j in range(len(array))[index]], reverse=True):
+        for i in sorted(index, reverse=True):
             del array[i]
 
     def __getitem__(self, index):
         array = self._get_array_view()
-        if not isinstance(index, slice):
+        index = self._handle_index(index)
+        if isinstance(index, int):
             return array[index]
-        return [array[index] for index in range(len(array))[index]]
+        return [array[i] for i in index]
 
-    @_array_view_wrapper
     def __setitem__(self, index, value):
-        pass
+        array = self._get_array_view()
+        index = self._handle_index(index)
+        array[index] = value
 
     @_array_view_wrapper
     def append(self, value):
@@ -72,9 +88,12 @@ class _ArrayViewWrapper(MutableSequence):
     def clear(self):
         pass
 
-    @_array_view_wrapper
     def pop(self, index=None):
-        pass
+        array = self._get_array_view()
+        if index is None:
+            return array.pop()
+        index = self._handle_index(index)
+        return array.pop(index)
 
     def __iter__(self):
         for i in range(len(self)):

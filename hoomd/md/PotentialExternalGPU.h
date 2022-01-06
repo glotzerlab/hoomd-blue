@@ -118,17 +118,6 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
 
     if (this->m_prof)
         this->m_prof->pop();
-
-    if (flags[pdata_flag::external_field_virial])
-        {
-        bool virial_terms_defined = evaluator::requestFieldVirialTerm();
-        if (!virial_terms_defined)
-            {
-            this->m_exec_conf->msg->error()
-                << "The required virial terms are not defined for the current setup." << std::endl;
-            throw std::runtime_error("NPT is not supported for requested features");
-            }
-        }
     }
 
 namespace detail

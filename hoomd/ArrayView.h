@@ -191,6 +191,15 @@ template<typename value_type> struct PYBIND11_EXPORT ArrayView
         return popped_value;
         }
 
+    value_type pop()
+        {
+        size_t index = len() - 1;
+        auto popped_value = data[index];
+        delItem(index);
+        update();
+        return popped_value;
+        }
+
     size_t len() const
         {
         return size;
@@ -228,7 +237,12 @@ template<class ArrayView_type> void export_ArrayView(pybind11::module m, const s
     pybind11::class_<ArrayView<ArrayView_type>>(m, name.c_str())
         .def("__len__", &ArrayView<ArrayView_type>::len)
         .def("insert", &ArrayView<ArrayView_type>::insert)
-        .def("pop", &ArrayView<ArrayView_type>::pop)
+        .def("pop",
+             static_cast<ArrayView_type (ArrayView<ArrayView_type>::*)(size_t)>(
+                 &ArrayView<ArrayView_type>::pop))
+        .def("pop",
+             static_cast<ArrayView_type (ArrayView<ArrayView_type>::*)()>(
+                 &ArrayView<ArrayView_type>::pop))
         .def("clear", &ArrayView<ArrayView_type>::clear)
         .def("append", &ArrayView<ArrayView_type>::append)
         .def("extend", &ArrayView<ArrayView_type>::extend)
