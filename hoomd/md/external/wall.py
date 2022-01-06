@@ -150,7 +150,7 @@ class WallPotential(force.Force):
         example, NPT simulations may not behave as expected.
 
     Note:
-        - The virial due to walls is computed, but the pressure and reported by
+        - The virial due to walls is computed, but the pressure computed and reported by
           ``hoomd.md.compute.ThermodynamicQuantities`` is not well defined. The
           volume (or area) of the box enters into the pressure computation,
           which is not correct in a confined system. It may not even be possible
