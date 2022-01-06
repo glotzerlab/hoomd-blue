@@ -510,7 +510,7 @@ class ForceShiftedLJ(WallPotential):
 
 
 class Mie(WallPotential):
-    r"""Mie potential wall potential.
+    r"""Mie wall potential.
 
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
