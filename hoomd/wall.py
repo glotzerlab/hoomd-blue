@@ -266,7 +266,7 @@ class Plane(WallGeometry):
             means do not include the surface.
     """
 
-    def __init__(self, origin, normal, open):
+    def __init__(self, origin, normal, open=True):
         param_dict = ParameterDict(origin=(float, float, float),
                                    normal=(float, float, float),
                                    open=bool)
