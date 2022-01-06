@@ -67,7 +67,7 @@ class WallPotential(force.Force):
     In the standard mode, when :math:`r_{\mathrm{extrap}} \le 0`, the potential
     energy is only computed on the active side. :math:`V(d)` is evaluated in the
     same manner as when the mode is shift for the analogous :py:mod:`pair
-    <hoomd.md.pair>` potentials within the boundaries of the active space.
+    <hoomd.md.pair>` potentials within the boundaries of the active space:
 
     .. math::
 
