@@ -48,11 +48,7 @@ class Sphere(WallGeometry):
             means do not include the surface, defaults to ``True``.
 
     Whether the wall is interpreted as a sphere or circle is dependent on the
-    dimension of the system the wall is applied to. For 2D systems the
-    z-component of the origin should be zero.
-
-    Note:
-        `Sphere` objects are immutable.
+    dimension of the system the wall is applied to.
 
     The signed distance from the wall is
 
@@ -63,6 +59,14 @@ class Sphere(WallGeometry):
     for ``inside=True``, where :math:`r` is the particle position, :math:`r_o`
     is the origin of the sphere, and :math:`R` is the sphere's radius. The
     distance is negated when ``inside=False``.
+
+    Warning:
+        When running MD simulations in 2D simulation boxes, set
+        ``origin[2]=(x,y,0)``. Otherwise, the wall force will push particles off
+        the xy plane.
+
+    Note:
+        `Sphere` objects are immutable.
 
     Attributes:
         radius (float):
@@ -134,9 +138,6 @@ class Cylinder(WallGeometry):
     Cylinder in HOOMD span the simulation box in the direction given by the
     ``axis`` attribute.
 
-    Note:
-        `Cylinder` objects are immutable.
-
     The signed distance from the wall is
 
     .. math::
@@ -149,6 +150,14 @@ class Cylinder(WallGeometry):
     :math:`\vec{r}_o` is the origin of the cylinder, :math:`\hat{n}` is the
     cylinder's unit axis, and :math:`R` is the cylinder's radius. The distance
     is negated when ``inside=False``.
+
+    Warning:
+        When running MD simulations in 2D simulation boxes, set
+        ``axis=(0,0,1)``. Otherwise, the wall force will push particles off the
+        xy plane.
+
+    Note:
+        `Cylinder` objects are immutable.
 
     Attributes:
         radius (float):
@@ -225,9 +234,6 @@ class Plane(WallGeometry):
 
     The normal points away from the active half side.
 
-    Note:
-        `Plane` objects are immutable.
-
     The signed distance from the wall is
 
     .. math::
@@ -236,6 +242,14 @@ class Plane(WallGeometry):
 
     where :math:`\vec{r}` is the particle position, :math:`\vec{r}_o` is the
     origin of the plane, and :math:`\hat{n}` is the plane's unit normal.
+
+    Warning:
+        When running MD simulations in 2D simulation boxes, set
+        ``normal=(nx,ny,0)``. Otherwise, the wall force will push particles off
+        the xy plane.
+
+    Note:
+        `Plane` objects are immutable.
 
     Attributes:
         origin (`tuple` [`float`, `float`, `float`]):
