@@ -97,9 +97,6 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                                          access_location::device,
                                                          access_mode::read);
 
-    // access flags
-    PDataFlags flags = this->m_pdata->getFlags();
-
     this->m_tuner->begin();
     kernel::gpu_cpef<evaluator>(kernel::external_potential_args_t(d_force.data,
                                                                   d_virial.data,
