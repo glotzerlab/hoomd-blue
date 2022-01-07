@@ -10,10 +10,16 @@ v3.0.0-beta.13 (not yet released)
 *Added*
 
 * ``md.pair.ExpandedLJ`` - A Lennard-Jones potential where ``r`` is replaced with ``r-delta``.
+* Support nested modification of operation parameters.
+* ``wall`` - Define wall surfaces in the simulation box.
+* ``md.external.wall`` - Pair interactions between particles and wall surfaces.
 
 *Changed*
 
 *Fixed*
+
+* Compile error with ``Apple clang clang-1300.0.29.30``.
+* Incorrect OPLS dihedral forces when compiled with ``Apple clang clang-1300.0.29.30``.
 
 *Deprecated*
 
