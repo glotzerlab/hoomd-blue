@@ -1,4 +1,4 @@
-# Maintainer: joaander
+
 
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc

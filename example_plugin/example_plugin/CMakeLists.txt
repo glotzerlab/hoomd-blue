@@ -1,4 +1,4 @@
-# Maintainer: mspells
+
 
 set(COMPONENT_NAME example_plugin)
 

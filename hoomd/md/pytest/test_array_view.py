@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Test the internal wall data lists for C++.
 
 This test file also tests the ``array_view`` from hoomd/ArrayView.h, and the

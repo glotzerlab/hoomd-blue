@@ -1,7 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-# Maintainer: mphoward
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 R""" Multiparticle collision dynamics.
 
@@ -90,7 +88,7 @@ Example script for a pure bulk SRD fluid::
 When upgrading versions, existing job scripts may need to be need to be updated.
 Such modifications will be noted in the change log.
 
-**Maintainer:** Michael P. Howard, University of Texas at Austin.
+
 """
 
 # these imports are necessary in order to link derived types between modules
