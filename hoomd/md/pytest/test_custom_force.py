@@ -1,4 +1,3 @@
-import copy as cp
 import pytest
 import numpy as np
 import numpy.testing as npt
@@ -22,8 +21,7 @@ from hoomd import md
 
 @pytest.fixture(scope='module')
 def local_force_names(device):
-    """Test on both the CPU and GPU local access buffers if GPU is available,
-    or just on CPU local access buffers if only CPU is available."""
+    """Get local access properties based on the chosen devices."""
     names = ['cpu_local_force_arrays']
     if isinstance(device, hoomd.device.GPU):
         names.append('gpu_local_force_arrays')
@@ -50,8 +48,7 @@ def force_simulation_factory(simulation_factory):
 
 
 class MyEmptyForce(md.force.Custom):
-    """Empty force for use in tests that will modify buffers outside the
-    simulation loop."""
+    """Empty Force class; used by tests which access local buffers."""
 
     def __init__(self):
         super().__init__()
@@ -213,7 +210,8 @@ def test_compare_to_periodic(local_force_names, force_simulation_factory,
             npt.assert_allclose(virials1, virials2)
 
 
-def test_nested_context_managers(local_force_names, two_particle_snapshot_factory,
+def test_nested_context_managers(local_force_names,
+                                 two_particle_snapshot_factory,
                                  force_simulation_factory):
     """Ensure we cannot nest local force context managers."""
     for local_force_name in local_force_names:
@@ -275,7 +273,7 @@ def test_ghost_data_access(local_force_names, two_particle_snapshot_factory,
 
 
 def _assert_buffers_readonly(force_arrays):
-    """ensure proper errors are raised when trying to modify force buffers."""
+    """Ensure proper errors are raised when trying to modify force buffers."""
     with pytest.raises(ValueError):
         force_arrays.force[:] = -100
     with pytest.raises(ValueError):
@@ -311,6 +309,7 @@ def _make_two_particle_snapshot(device, particle_types=['A'], d=1, L=20):
     """Make the snapshot.
 
     Args:
+        device: hoomd device object.
         particle_types: List of particle type names
         dimensions: Number of dimensions (2 or 3)
         d: Distance apart to place particles
@@ -337,6 +336,7 @@ def test_failure_with_cpu_device_and_gpu_buffer():
     device = hoomd.device.CPU()
     snap = _make_two_particle_snapshot(device)
     sim = hoomd.Simulation(device)
+    sim.create_state_from_snapshot(snap)
     custom_force = MyForce('gpu_local_force_arrays')
     npt = md.methods.NPT(hoomd.filter.All(),
                          kT=1,
