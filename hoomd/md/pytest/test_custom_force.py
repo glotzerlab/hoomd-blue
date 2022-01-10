@@ -1,9 +1,13 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import pytest
 import numpy as np
 import numpy.testing as npt
 
+# cupy works implicitly to set values in GPU force arrays
 try:
-    import cupy
+    import cupy  # noqa F401
     CUPY_IMPORTED = True
 except ImportError:
     CUPY_IMPORTED = False
