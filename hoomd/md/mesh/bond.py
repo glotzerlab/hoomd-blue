@@ -82,15 +82,6 @@ class MeshBond(Force):
                     f"{str(err)}")
 
     @property
-    def parameter(self):
-        """Shortcut to set params."""
-        return self.params["mesh"]
-
-    @parameter.setter
-    def parameter(self, value):
-        self.params["mesh"] = value
-
-    @property
     def mesh(self):
         """Mesh data structure used to compute the bond potential."""
         return self._mesh
