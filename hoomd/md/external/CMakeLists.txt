@@ -1,5 +1,6 @@
 set(files __init__.py
           field.py
+          wall.py
     )
 
 install(FILES ${files}

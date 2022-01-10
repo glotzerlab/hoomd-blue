@@ -1,7 +1,10 @@
 ci:
   autoupdate_schedule: quarterly
 
-exclude: (?:^hoomd/extern/)
+exclude: (?x)(
+        ^hoomd/extern/|
+        ^hoomd/sphinx-doc/tutorial/
+        )
 
 repos:
 - repo: local
@@ -13,8 +16,14 @@ repos:
     pass_filenames: false
     always_run: true
     additional_dependencies: [jinja2==3.0.1, pyyaml==5.4.1]
+  - id: check-maintainer
+    name: Check for maintainer comments
+    description: 'Enforce that `maintainer` comments are removed.'
+    entry: '(# Maintainer:|\/\/ Maintainer:)'
+    language: pygrep
+    types_or: [python, c, c++, cuda, inc]
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: 'v4.0.1'
+  rev: 'v4.1.0'
   hooks:
   - id: end-of-file-fixer
     exclude_types: [svg]
@@ -24,12 +33,45 @@ repos:
   - id: check-yaml
     exclude: (?:^.github/workflows/templates) # templates are not properly formatted yaml
   - id: check-case-conflict
+  - id: fix-encoding-pragma
+    args:
+    - --remove
+  - id: mixed-line-ending
+- repo: https://github.com/glotzerlab/fix-license-header
+  rev: 686eea86f3a812bf1227a9d074c8328a459c5a66
+  hooks:
+  - id: fix-license-header
+    name: Fix license headers (Python)
+    types_or: [python]
+    args:
+    - --license-file=LICENSE
+    - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
+    - --keep-before=#!
+  - id: fix-license-header
+    name: Fix license headers (C)
+    types_or: [c, c++, cuda, inc]
+    args:
+    - --license-file=LICENSE
+    - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
+    - --comment-prefix=//
+  - id: fix-license-header
+    name: Fix license headers (reStructuredText)
+    types_or: [rst]
+    args:
+    - --license-file=LICENSE
+    - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
+    - --keep-after=.. include
+    - --comment-prefix=..
+- repo: https://github.com/kynan/nbstripout
+  rev: 0.5.0
+  hooks:
+    - id: nbstripout
 - repo: https://github.com/google/yapf
-  rev: 'v0.31.0'
+  rev: 'v0.32.0'
   hooks:
   - id: yapf
 - repo: https://github.com/PyCQA/flake8
-  rev: '3.9.2'
+  rev: '4.0.1'
   hooks:
   - id: flake8
     additional_dependencies:
@@ -42,7 +84,6 @@ repos:
     # These also need to be removed in setup.cfg
     exclude: |
       (?x)(
-        ^hoomd/md/wall.py|
         ^hoomd/md/impropers.py|
         ^hoomd/extern/|
         ^hoomd/mpcd/|

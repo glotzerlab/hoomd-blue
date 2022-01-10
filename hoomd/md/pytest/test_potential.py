@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from collections.abc import Sequence, Mapping
 import math
 from numbers import Number
@@ -70,9 +73,9 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
 
     lj.r_cut[('A', 'A')] = 2.5
-    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_base())
     sim.run(0)
-    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_base())
 
 
 def test_invalid_mode():
@@ -113,15 +116,15 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
     integrator.methods.append(
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
     sim.operations.integrator = integrator
-    assert lj.r_on.to_dict() == {}
+    assert lj.r_on.to_base() == {}
 
     lj.r_on[('A', 'A')] = 1.5
-    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_base())
     sim.run(0)
-    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_base())
 
     lj.r_on[('A', 'A')] = 1.0
-    assert _equivalent_data_structures({('A', 'A'): 1.0}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.0}, lj.r_on.to_base())
 
 
 def _make_invalid_param_dict(valid_dict):
@@ -253,6 +256,11 @@ def _invalid_params():
     slj_invalid_dicts = _make_invalid_param_dict(slj_valid_dict)
     invalid_params_list.extend(
         _make_invalid_params(slj_invalid_dicts, md.pair.SLJ, {}))
+
+    expanded_lj_valid_dict = {"sigma": 0.5, "epsilon": 0.0005, "delta": 0.25}
+    expanded_lj_invalid_dicts = _make_invalid_param_dict(expanded_lj_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(expanded_lj_invalid_dicts, md.pair.ExpandedLJ, {}))
 
     expanded_mie_valid_dict = {
         "epsilon": 0.05,
@@ -508,6 +516,17 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(
         paramtuple(md.pair.SLJ, dict(zip(combos, slj_valid_param_dicts)), {}))
 
+    expanded_lj_arg_dict = {
+        'sigma': [0.5, 1.0, 1.5],
+        'epsilon': [0.0005, 0.001, 0.0015],
+        'delta': [1.0, 0.5, 0.0]
+    }
+    expanded_lj_valid_param_dicts = _make_valid_param_dicts(
+        expanded_lj_arg_dict)
+    valid_params_list.append(
+        paramtuple(md.pair.ExpandedLJ,
+                   dict(zip(combos, expanded_lj_valid_param_dicts)), {}))
+
     dpd_arg_dict = {'A': [0.5, 1.0, 1.5], 'gamma': [0.0005, 0.001, 0.0015]}
     dpd_valid_param_dicts = _make_valid_param_dicts(dpd_arg_dict)
     valid_params_list.append(
@@ -640,7 +659,7 @@ def test_valid_params(valid_params):
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     assert _equivalent_data_structures(valid_params.pair_potential_params,
-                                       pot.params.to_dict())
+                                       pot.params.to_base())
 
 
 def _update_snap(pair_potential, snap):
@@ -688,7 +707,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
     assert _equivalent_data_structures(valid_params.pair_potential_params,
-                                       pot.params.to_dict())
+                                       pot.params.to_base())
 
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
