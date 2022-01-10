@@ -297,9 +297,7 @@ def test_data_buffers_readonly(local_force_names, two_particle_snapshot_factory,
     sim = simulation_factory(snap)
 
     langevin = md.methods.Langevin(hoomd.filter.All(), kT=1)
-    integrator = md.Integrator(dt=0.005,
-                               forces=[lj],
-                               methods=[langevin])
+    integrator = md.Integrator(dt=0.005, forces=[lj], methods=[langevin])
     sim.operations.integrator = integrator
     sim.run(2)
 
@@ -350,4 +348,3 @@ def test_failure_with_cpu_device_and_gpu_buffer():
     sim.operations.integrator = integrator
     with pytest.raises(RuntimeError):
         sim.run(1)
-

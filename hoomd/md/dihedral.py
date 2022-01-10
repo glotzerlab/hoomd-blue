@@ -42,6 +42,7 @@ class Dihedral(Force):
         :py:class:`Dihedral` is the base class for all dihedral potentials.
         Users should not instantiate this class directly.
     """
+
     def __init__(self):
         super().__init__()
 
