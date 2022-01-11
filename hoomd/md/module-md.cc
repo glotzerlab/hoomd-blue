@@ -80,6 +80,7 @@
 #include "HarmonicAngleForceComputeGPU.h"
 #include "HarmonicDihedralForceComputeGPU.h"
 #include "HarmonicImproperForceComputeGPU.h"
+#include "HelfrichMeshForceComputeGPU.h"
 #include "MuellerPlatheFlowGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
@@ -327,6 +328,7 @@ PYBIND11_MODULE(_md, m)
     // export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
 #ifdef ENABLE_HIP
+    export_HelfrichMeshForceComputeGPU(m);
     export_NeighborListGPU(m);
     export_NeighborListGPUBinned(m);
     export_NeighborListGPUStencil(m);

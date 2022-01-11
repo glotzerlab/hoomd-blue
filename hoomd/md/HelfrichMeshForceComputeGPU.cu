@@ -27,24 +27,21 @@ namespace kernel
     \param N number of particles
     \param d_pos device array of particle positions
     \param d_rtag device array of particle reverse tags
-    \param d_bonds device array of mesh bonds
-    \param d_triangles device array of mesh triangles
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param blist List of mesh bonds stored on the GPU
-    \param pitch Pitch of 2D angles list
+    \param d_triangles device array of mesh triangles
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
 */
 __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
-                                                         Scalar3* d_sigma_dash,
-                                                         const unsigned int N,
-                                                         const Scalar4* d_pos,
-					                 const unsigned int* d_rtag,
-                                                         const MeshBond::members_t* d_bonds,
-                                                         const MeshTriangle::members_t* d_triangles,
-                                                         const BoxDim& box,
-                                                         const group_storage<4>* blist,
-					                 const Index2D blist_idx,
-                                                         const unsigned int* n_bonds_list)
+                                                  Scalar3* d_sigma_dash,
+                                                  const unsigned int N,
+                                                  const Scalar4* d_pos,
+					          const unsigned int* d_rtag,
+                                                  const BoxDim& box,
+                                                  const group_storage<4>* blist,
+                                                  const group_storage<6>* d_triangles,
+					          const Index2D blist_idx,
+                                                  const unsigned int* n_bonds_list)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -76,7 +73,7 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
 	if(cur_tr1_idx == cur_tr2_idx)
 		continue;
 
-        const typename MeshTriangle::members_t& triangle1 = d_triangles[tr_idx1];
+        const group_storage<6>& triangle1 = d_triangles[cur_tr1_idx];
 
         unsigned int cur_idx_c = d_rtag[triangle1.tag[0]];
 
@@ -87,7 +84,7 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
 		iterator++;
 		}
 
-        const typename MeshTriangle::members_t& triangle2 = d_triangles[tr_idx2];
+        const group_storage<6>& triangle2 = d_triangles[cur_tr2_idx];
 
         unsigned int cur_idx_d = d_rtag[triangle2.tag[0]];
 
@@ -172,9 +169,9 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
 	Scalar sigma_hat_ab = (cot_accb + cot_addb)/2;
 
 
-	sigma_a = sigma_hat_ab*rsqab*0.25;
+	Scalar sigma_a = sigma_hat_ab*rsqab*0.25;
 
-	sigma_dash_a = sigma_hat_ab*dab;
+	Scalar3 sigma_dash_a = sigma_hat_ab*dab;
 
 	sigma += sigma_a;
 	sigma_dash += sigma_dash_a;
@@ -190,11 +187,9 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
     \param N number of particles
     \param d_pos device array of particle positions
     \param d_rtag device array of particle reverse tags
-    \param d_bonds device array of mesh bonds
-    \param d_triangles device array of mesh triangles
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param blist List of mesh bonds stored on the GPU
-    \param pitch Pitch of 2D angles list
+    \param d_triangles device array of mesh triangles
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
     \param block_size Block size to use when performing calculations
     \param compute_capability Device compute capability (200, 300, 350, ...)
@@ -203,17 +198,16 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
 hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
-					     Scalar3* d_sigma_dash,
-                                             const unsigned int N,
-                                             const Scalar4* d_pos,
-					     const unsigned int* d_rtag,
-                                             const MeshBond::members_t* d_bonds,
-                                             const MeshTriangle::members_t* d_triangles,
-                                             const BoxDim& box,
-                                             const group_storage<4>* blist,
-					     const Index2D blist_idx,
-                                             const unsigned int* n_bonds_list,
-                                             int block_size)
+				      Scalar3* d_sigma_dash,
+                                      const unsigned int N,
+                                      const Scalar4* d_pos,
+				      const unsigned int* d_rtag,
+                                      const BoxDim& box,
+                                      const group_storage<4>* blist,
+                                      const group_storage<6>* d_triangles,
+				      const Index2D blist_idx,
+                                      const unsigned int* n_bonds_list,
+                                      int block_size)
     {
 
     unsigned int max_block_size;
@@ -238,10 +232,9 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
                        N,
                        d_pos,
                        d_rtag,
-                       d_bonds,
-                       d_triangles,
                        box,
                        blist,
+                       d_triangles,
                        blist_idx,
                        n_bonds_list);
 
@@ -255,35 +248,32 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
     \param N number of particles
     \param d_pos device array of particle positions
     \param d_rtag device array of particle reverse tags
-    \param d_bonds device array of mesh bonds
-    \param d_triangles device array of mesh triangles
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
     \param blist List of mesh bonds stored on the GPU
-    \param pitch Pitch of 2D angles list
+    \param d_triangles device array of mesh triangles
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
     \param d_params K params packed as Scalar variables
     \param n_bond_type number of mesh bond types
     \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
 */
 __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
-                                             Scalar* d_virial,
-					     const size_t virial_pitch,
-                                             const unsigned int N,
-                                             const Scalar4* d_pos,
-					     const unsigned int* d_rtag,
-                                             const MeshBond::members_t* d_bonds,
-                                             const MeshTriangle::members_t* d_triangles,
-                                             const BoxDim& box,
-					     const Scalar* d_sigma,
-                                             const Scalar3* d_sigma_dash,
-                                             const group_storage<4>* blist,
-					     const Index2D blist_idx,
-                                             const unsigned int* n_bonds_list,
-					     Scalar* d_params,
-                                             const unsigned int n_bond_type,
-					     unsigned int* d_flags)
+                                                  Scalar* d_virial,
+					          const size_t virial_pitch,
+                                                  const unsigned int N,
+                                                  const Scalar4* d_pos,
+					          const unsigned int* d_rtag,
+                                                  const BoxDim& box,
+					          const Scalar* d_sigma,
+                                                  const Scalar3* d_sigma_dash,
+                                                  const group_storage<4>* blist,
+                                                  const group_storage<6>* d_triangles,
+					          const Index2D blist_idx,
+                                                  const unsigned int* n_bonds_list,
+					          Scalar* d_params,
+                                                  const unsigned int n_bond_type,
+					          unsigned int* d_flags)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -321,9 +311,9 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
 	if(cur_tr1_idx == cur_tr2_idx)
 		continue;
 
-        const typename MeshTriangle::members_t& triangle1 = d_triangles[tr_idx1];
+      const group_storage<6>& triangle1 = d_triangles[cur_tr1_idx];
 
-        unsigned int cur_idx_c = d_rtag[triangle1.tag[0]];
+      unsigned int cur_idx_c = d_rtag[triangle1.tag[0]];
 
 	unsigned int iterator = 1;
 	while( idx == cur_idx_c || cur_bond_idx == cur_idx_c)
@@ -332,7 +322,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
 		iterator++;
 		}
 
-        const typename MeshTriangle::members_t& triangle2 = d_triangles[tr_idx2];
+      const group_storage<6>& triangle2 = d_triangles[cur_tr2_idx];
 
         unsigned int cur_idx_d = d_rtag[triangle2.tag[0]];
 
@@ -500,7 +490,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
 	Scalar dsigma_dash_c = -dot(dsigma_hat_ac,dac) - dot(dsigma_hat_bc,dbc);
 	Scalar dsigma_dash_d = -dot(dsigma_hat_ad,dad) - dot(dsigma_hat_bd,dbd);
 
-        Scalar K = __ldg(d_params + cur_angle_type);
+        Scalar K = __ldg(d_params + cur_bond_type);
 
 	Scalar3 Fa;
 	Fa = K*(dsigma_dash_a*sigma_dash_a/sigma_a - dot(sigma_dash_a,sigma_dash_a)/(2*sigma_a*sigma_a)*dsigma_a);
@@ -512,7 +502,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
-        force.w = m_K[0]/2.0*dot(sigma_dash_a,sigma_dash_a)/sigma_a;
+        force.w = K/2.0*dot(sigma_dash_a,sigma_dash_a)/sigma_a;
 
         virial[0] += Scalar(1. / 2.) * dab.x * Fa.x;// xx
         virial[1] += Scalar(1. / 2.) * dab.y * Fa.x;// xy
@@ -534,13 +524,11 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     \param N number of particles
     \param d_pos device array of particle positions
     \param d_rtag device array of particle reverse tags
-    \param d_bonds device array of mesh bonds
-    \param d_triangles device array of mesh triangles
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
     \param blist List of mesh bonds stored on the GPU
-    \param pitch Pitch of 2D angles list
+    \param d_triangles device array of mesh triangles
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
     \param d_params K params packed as Scalar variables
     \param n_bond_type number of mesh bond types
@@ -552,23 +540,22 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
 hipError_t gpu_compute_helfrich_force(Scalar4* d_force,
-                                             Scalar* d_virial,
-					     const size_t virial_pitch,
-                                             const unsigned int N,
-                                             const Scalar4* d_pos,
-					     const unsigned int* d_rtag,
-                                             const MeshBond::members_t* d_bonds,
-                                             const MeshTriangle::members_t* d_triangles,
-                                             const BoxDim& box,
-					     const Scalar* d_sigma,
-                                             const Scalar3* d_sigma_dash,
-                                             const group_storage<4>* blist,
-					     const Index2D blist_idx,
-                                             const unsigned int* n_bonds_list,
-					     Scalar* d_params,
-                                             const unsigned int n_bond_type,
-                                             int block_size,
-					     unsigned int* d_flags)
+                                      Scalar* d_virial,
+				      const size_t virial_pitch,
+                                      const unsigned int N,
+                                      const Scalar4* d_pos,
+				      const unsigned int* d_rtag,
+                                      const BoxDim& box,
+				      const Scalar* d_sigma,
+                                      const Scalar3* d_sigma_dash,
+                                      const group_storage<4>* blist,
+                                      const group_storage<6>* d_triangles,
+				      const Index2D blist_idx,
+                                      const unsigned int* n_bonds_list,
+				      Scalar* d_params,
+                                      const unsigned int n_bond_type,
+                                      int block_size,
+                                      unsigned int* d_flags)
     {
 
     unsigned int max_block_size;
@@ -594,14 +581,13 @@ hipError_t gpu_compute_helfrich_force(Scalar4* d_force,
                        N,
                        d_pos,
                        d_rtag,
-                       d_bonds,
-                       d_triangles,
                        box,
                        d_sigma,
                        d_sigma_dash,
                        blist,
+                       d_triangles,
                        blist_idx,
-                       n_angles_list,
+                       n_bonds_list,
 		       d_params,
 		       n_bond_type,
 		       d_flags);

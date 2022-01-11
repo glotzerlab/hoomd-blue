@@ -2,7 +2,10 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceCompute.h"
+#include "HelfrichMeshForceComputeGPU.cuh"
 #include "hoomd/Autotuner.h"
+
+#include <memory>
 
 /*! \file HelfrichMeshForceComputeGPU.h
     \brief Declares a class for computing helfrich energy forces on the GPU
@@ -11,8 +14,6 @@
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
-
-#include <pybind11/pybind11.h>
 
 #ifndef __HELFRICHMESHFORCECOMPUTE_GPU_H__
 #define __HELFRICHMESHFORCECOMPUTE_GPU_H__
@@ -53,10 +54,10 @@ class PYBIND11_EXPORT HelfrichMeshForceComputeGPU : public HelfrichMeshForceComp
     std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for block size of force loop
     std::unique_ptr<Autotuner> m_tuner_sigma; //!< Autotuner for block size of sigma loop
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
+    GPUArray<Scalar> m_params;         //!< Parameters stored on the GPU
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
-
     };
 
 namespace detail

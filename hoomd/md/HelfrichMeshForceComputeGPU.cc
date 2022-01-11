@@ -2,7 +2,6 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceComputeGPU.h"
-#include "HelfrichMeshForceComputeGPU.cuh"
 
 using namespace std;
 
@@ -30,9 +29,9 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
         }
 
     // allocate and zero device memory
-    GPUArray<Scalar> params(this->m_meshbond_data->getNTypes(),
+    GPUArray<Scalar> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(),
                                                     this->m_exec_conf);
-    this->m_params.swap(params);
+    m_params.swap(params);
 
     // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
@@ -55,7 +54,7 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
         ArrayHandle<Scalar3> old_sigma_dash(m_sigma_dash, access_location::host);
         ArrayHandle<Scalar> old_sigma(m_sigma, access_location::host);
 
-        ArrayHandle<Scalar4> sigma_dash(tmp_sigma_dash, access_location::host);
+        ArrayHandle<Scalar3> sigma_dash(tmp_sigma_dash, access_location::host);
         ArrayHandle<Scalar> sigma(tmp_sigma, access_location::host);
 
         // for each type of the particles in the group
@@ -72,22 +71,28 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
 
     }
 
+void HelfrichMeshForceComputeGPU::setParams(unsigned int type, Scalar K)
+    {
+    HelfrichMeshForceCompute::setParams(type, K);
+
+    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::readwrite);
+    // update the local copy of the memory
+    h_params.data[type] = K;
+    }
+
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
+void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
     // start the profile
     if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, this->m_prof_name);
+        this->m_prof->push(this->m_exec_conf, "HelfrichForce");
 
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
 
-    ArrayHandle<typename MeshBond::members_t> d_bonds(m_mesh_data->getMeshBondData()->getMembersArray(),
-                                                   access_location::device,
-                                                   access_mode::read);
     ArrayHandle<typename MeshTriangle::members_t> d_triangles(m_mesh_data->getMeshTriangleData()->getMembersArray(),
                                                    access_location::device,
                                                    access_mode::read);
@@ -97,35 +102,35 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
     BoxDim box = this->m_pdata->getGlobalBox();
 
-    const GPUArray<typename MeshBond::members_t>& gpu_meshbond_list = this->m_meshbond_data->getGPUTable();
-    const Index2D& gpu_table_indexer = this->m_meshbond_data->getGPUTableIndexer();
+    const GPUArray<typename MeshBond::members_t>& gpu_meshbond_list = this->m_mesh_data->getMeshBondData()->getGPUTable();
+    const Index2D& gpu_table_indexer = this->m_mesh_data->getMeshBondData()->getGPUTableIndexer();
 
-    ArrayHandle<typename MeshBond::members_t> d_gpu_meshbondlist(gpu_bond_list,
+    ArrayHandle<typename MeshBond::members_t> d_gpu_meshbondlist(gpu_meshbond_list,
                                                           access_location::device,
                                                           access_mode::read);
-    ArrayHandle<unsigned int> d_gpu_n_meshbond(this->m_meshbond_data->getNGroupsArray(),
+    ArrayHandle<unsigned int> d_gpu_n_meshbond(this->m_mesh_data->getMeshBondData()->getNGroupsArray(),
                                             access_location::device,
                                             access_mode::read);
 
-    this->m_tuner_sigma->begin();
+    m_tuner_sigma->begin();
     kernel::gpu_compute_helfrich_sigma(d_sigma.data,
-                                          d_sigma_dash.data,
-                                          m_pdata->getN(),
-                                          d_pos.data,
-                                          d_rtag.data,
-                                          d_bonds.data,
-                                          d_triangles.data,
-                                          box,
-                                          d_gpu_meshbondlist.data,
-                                          gpu_table_indexer,
-                                          d_gpu_n_meshbond.data,
-                                          m_tuner_sigma->getParam());
+                                       d_sigma_dash.data,
+                                       m_pdata->getN(),
+                                       d_pos.data,
+                                       d_rtag.data,
+                                       box,
+                                       d_gpu_meshbondlist.data,
+                                       d_triangles.data,
+                                       gpu_table_indexer,
+                                       d_gpu_n_meshbond.data,
+                                       m_tuner_sigma->getParam());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {
         CHECK_CUDA_ERROR();
+	}
 
-    this->m_tuner_sigma->end();
+    m_tuner_sigma->end();
 
 
 
@@ -137,25 +142,24 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
 
-    this->m_tuner_force->begin();
+    m_tuner_force->begin();
     kernel::gpu_compute_helfrich_force(d_force.data,
-                                          d_virial.data,
-                                          m_virial.getPitch(),
-                                          m_pdata->getN(),
-                                          d_pos.data,
-                                          d_rtag.data,
-                                          d_bonds.data,
-                                          d_triangles.data,
-                                          box,
-		    			  d_sigma.data,
-                                          d_sigma_dash.data,
-                                          d_gpu_meshbondlist.data,
-                                          gpu_table_indexer,
-                                          d_gpu_n_meshbond.data,
-                                          d_params.data,
-                                          m_meshbond_data->getNTypes(),
-                                          m_tuner_force->getParam(),
-					  d_flags.data);
+                                       d_virial.data,
+                                       m_virial.getPitch(),
+                                       m_pdata->getN(),
+                                       d_pos.data,
+                                       d_rtag.data,
+                                       box,
+		    		       d_sigma.data,
+                                       d_sigma_dash.data,
+                                       d_gpu_meshbondlist.data,
+                                       d_triangles.data,
+                                       gpu_table_indexer,
+                                       d_gpu_n_meshbond.data,
+                                       d_params.data,
+                                       m_mesh_data->getMeshBondData()->getNTypes(),
+                                       m_tuner_force->getParam(),
+				       d_flags.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {
@@ -173,7 +177,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             throw std::runtime_error("Error in meshbond calculation");
             }
         }
-    this->m_tuner_force->end();
+    m_tuner_force->end();
 
     if (this->m_prof)
         this->m_prof->pop(this->m_exec_conf);
@@ -187,7 +191,7 @@ void export_HelfrichMeshForceComputeGPU(pybind11::module& m)
     pybind11::class_<HelfrichMeshForceComputeGPU,
                      HelfrichMeshForceCompute,
                      std::shared_ptr<HelfrichMeshForceComputeGPU>>(m, "HelfrichMeshForceCompute")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<MeshDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<MeshDefinition>>());
     }
 
     } // end namespace detail
