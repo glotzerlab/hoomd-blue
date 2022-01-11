@@ -61,12 +61,13 @@ def test_communicator_partition():
 
 def test_commuicator_walltime():
     """Check that Communicator.walltime functions."""
-    ref_time = 1/16
+    ref_time = 1 / 16
     c = hoomd.communicator.Communicator()
     time.sleep(ref_time)
     t = c.walltime
 
     numpy.testing.assert_allclose(t, ref_time, rtol=1e-01)
+
 
 @skip_mpi4py
 @pytest.mark.skipif(not hoomd.version.mpi_enabled,
