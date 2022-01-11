@@ -16,6 +16,13 @@
 #include <stdexcept>
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
+
 // Define matrix vector multiplication since it's faster than quat vector.
 template<typename Scalar>
 HOSTDEVICE inline vec3<Scalar> rotate(const Scalar (&mat)[3][3], const vec3<Scalar>& v)
@@ -793,5 +800,9 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar>>& verts1,
         }
     overlap = (counter == max_num_points);
     }
+
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __GJK_SV_H__

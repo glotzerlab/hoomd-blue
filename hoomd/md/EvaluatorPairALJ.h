@@ -39,6 +39,13 @@
 #endif
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
+
+using namespace detail;
+
 /*! Clip a value between 0 and 1 */
 HOSTDEVICE inline Scalar clip(const Scalar& x)
     {
@@ -1657,5 +1664,8 @@ template<> std::string EvaluatorPairALJ<3>::getShapeSpec() const
     return shapedef.str();
     }
 #endif
+
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __EVALUATOR_PAIR_ALJ_H__

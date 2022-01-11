@@ -34,6 +34,8 @@
 
 #include <pybind11/pybind11.h>
 
+using namespace hoomd::detail;
+
 namespace hoomd
     {
 namespace md
