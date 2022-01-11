@@ -69,6 +69,7 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
     m_sigma_dash.swap(tmp_sigma_dash);
     m_sigma.swap(tmp_sigma);
 
+
     }
 
 void HelfrichMeshForceComputeGPU::setParams(unsigned int type, Scalar K)
@@ -132,8 +133,6 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
 
     m_tuner_sigma->end();
 
-
-
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_params(m_params, access_location::device, access_mode::read);
@@ -190,7 +189,7 @@ void export_HelfrichMeshForceComputeGPU(pybind11::module& m)
     {
     pybind11::class_<HelfrichMeshForceComputeGPU,
                      HelfrichMeshForceCompute,
-                     std::shared_ptr<HelfrichMeshForceComputeGPU>>(m, "HelfrichMeshForceCompute")
+                     std::shared_ptr<HelfrichMeshForceComputeGPU>>(m, "HelfrichMeshForceComputeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<MeshDefinition>>());
     }
 

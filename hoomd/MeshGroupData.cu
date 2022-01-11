@@ -90,7 +90,7 @@ __global__ void gpu_mesh_scatter_kernel(unsigned int n_scratch,
 
     for (unsigned int k = group_size_half; k < group_size; ++k)
         {
-        p.idx[k - 2] = g.tag[k];
+        p.idx[k - 1] = g.tag[k];
         }
 
     unsigned int j = 0;
