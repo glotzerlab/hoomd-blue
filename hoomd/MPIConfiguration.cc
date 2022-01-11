@@ -98,6 +98,7 @@ void export_MPIConfiguration(pybind11::module& m)
         .def("barrier", &MPIConfiguration::barrier)
         .def("getNRanksGlobal", &MPIConfiguration::getNRanksGlobal)
         .def("getRankGlobal", &MPIConfiguration::getRankGlobal)
+        .def("getWalltime", &MPIConfiguration::getWalltime)
 #ifdef ENABLE_MPI
         .def_static("_make_mpi_conf_mpi_comm",
                     [](pybind11::object mpi_comm) -> std::shared_ptr<MPIConfiguration>
