@@ -3,13 +3,14 @@
 
 #pragma once
 
-// ensure that HOOMDMath.h is the first thing included
-#include "ClockSource.h"
+// ensure that HOOMDMath.h is the first header included to work around broken mpi headers
 #include "HOOMDMath.h"
 
 #ifdef ENABLE_MPI
 #include <mpi.h>
 #endif
+
+#include "ClockSource.h"
 
 /*! \file MPIConfiguration.h
     \brief Declares MPIConfiguration, which initializes the MPI environment
