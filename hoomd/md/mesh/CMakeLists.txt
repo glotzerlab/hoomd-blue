@@ -1,5 +1,6 @@
 set(files __init__.py
           bond.py
+          bending.py
    )
 
 install(FILES ${files}
