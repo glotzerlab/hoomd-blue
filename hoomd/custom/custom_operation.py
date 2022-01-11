@@ -38,7 +38,7 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
             `hoomd.custom.Action` is run.
     """
 
-    _override_setattr = {'_action'}
+    _override_setattr = {'_action', "_export_dict"}
 
     @abstractmethod
     def _cpp_class_name(self):
