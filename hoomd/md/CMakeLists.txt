@@ -1,4 +1,4 @@
-# Maintainer: joaander
+
 
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc
@@ -8,6 +8,7 @@ set(_md_sources module-md.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
                    CosineSqAngleForceCompute.cc
+                   EvaluatorWalls.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
@@ -24,6 +25,7 @@ set(_md_sources module-md.cc
                    ManifoldPrimitive.cc
                    ManifoldSphere.cc
                    MolecularForceCompute.cc
+                   MuellerPlatheFlow.cc
                    NeighborListBinned.cc
                    NeighborList.cc
                    NeighborListStencil.cc
@@ -39,8 +41,8 @@ set(_md_sources module-md.cc
                    TwoStepNPTMTK.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
+                   WallData.cc
                    ZeroMomentumUpdater.cc
-                   MuellerPlatheFlow.cc
                    )
 
 set(_md_headers ActiveForceComputeGPU.h
@@ -100,6 +102,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
                 EvaluatorPairSLJ.h
+                EvaluatorPairExpandedLJ.h
                 EvaluatorPairTWF.h
                 EvaluatorPairYukawa.h
                 EvaluatorPairZBL.h
@@ -248,6 +251,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       PairLJ0804DriverPotentialPairGPU.cu
                       ReactionFieldDriverPotentialPairGPU.cu
                       SLJDriverPotentialPairGPU.cu
+                      ExpandedLJDriverPotentialPairGPU.cu
                       YukawaDriverPotentialPairGPU.cu
                       ZBLDriverPotentialPairGPU.cu
                       BondTablePotentialGPU.cu
@@ -342,7 +346,6 @@ set(files __init__.py
           many_body.py
           nlist.py
           update.py
-          wall.py
           special_pair.py
     )
 

@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
 from hoomd.conftest import pickling_check, logging_check
 from hoomd.logging import LoggerCategories
@@ -395,8 +398,9 @@ def test_nph_attributes_attached_3d(simulation_factory,
     nph.tauS = 10.0
     assert nph.tauS == 10.0
 
-    nph.box_dof = [True, False, False, False, True, False]
-    assert nph.box_dof == [True, False, False, False, True, False]
+    box_dof = (True, False, False, False, True, False)
+    nph.box_dof = box_dof
+    assert nph.box_dof == box_dof
 
     nph.couple = 'none'
     assert nph.couple == 'none'

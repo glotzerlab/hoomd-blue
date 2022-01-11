@@ -4,6 +4,7 @@ set(files __init__.py
           test_balance.py
           test_box.py
           test_box_resize.py
+          test_collections.py
           test_communicator.py
           test_dcd.py
           test_device.py
@@ -18,6 +19,7 @@ set(files __init__.py
           test_local_snapshot.py
           test_logging.py
           test_filter.py
+          test_parameter_dict.py
           dummy.py
           test_snapshot.py
           test_state.py
