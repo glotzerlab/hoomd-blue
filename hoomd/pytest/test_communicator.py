@@ -3,6 +3,8 @@
 
 import hoomd
 import pytest
+import time
+import numpy
 try:
     from mpi4py import MPI
     mpi4py_available = True
@@ -55,6 +57,16 @@ def test_communicator_partition():
         if mpi4py_available:
             mpi_communicator = MPI.COMM_WORLD
             assert communicator.partition == mpi_communicator.Get_rank()
+
+
+def test_commuicator_walltime():
+    """Check that Communicator.walltime functions."""
+    ref_time = 1 / 16
+    c = hoomd.communicator.Communicator()
+    time.sleep(ref_time)
+    t = c.walltime
+
+    numpy.testing.assert_allclose(t, ref_time, rtol=1e-01)
 
 
 @skip_mpi4py

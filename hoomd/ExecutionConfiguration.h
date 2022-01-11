@@ -4,7 +4,7 @@
 #ifndef __EXECUTION_CONFIGURATION__
 #define __EXECUTION_CONFIGURATION__
 
-// ensure that HOOMDMath.h is the first thing included
+// ensure that HOOMDMath.h is the first header included to work around broken mpi headers
 #include "HOOMDMath.h"
 
 #ifdef ENABLE_MPI
