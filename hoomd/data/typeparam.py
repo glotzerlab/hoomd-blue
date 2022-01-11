@@ -208,6 +208,7 @@ class TypeParameter(MutableMapping):
 
     def to_dict(self):
         """Alias for `to_base`."""
+        return self.to_base()
 
     def __iter__(self):
         """Get the keys in the dictionaty."""
