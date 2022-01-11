@@ -110,8 +110,7 @@ class Action(metaclass=_AbstractLoggable):
 
     def detach(self):
         """Detaches the Action from the `hoomd.Simulation`."""
-        if hasattr(self, '_state'):
-            del self._state
+        self._state = None
 
     @abstractmethod
     def act(self, timestep):
