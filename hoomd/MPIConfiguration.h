@@ -4,8 +4,8 @@
 #pragma once
 
 // ensure that HOOMDMath.h is the first thing included
-#include "HOOMDMath.h"
 #include "ClockSource.h"
+#include "HOOMDMath.h"
 
 #ifdef ENABLE_MPI
 #include <mpi.h>
