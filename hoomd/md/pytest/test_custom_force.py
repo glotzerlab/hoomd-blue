@@ -356,11 +356,11 @@ def test_failure_with_cpu_device_and_gpu_buffer():
 
 
 def test_get_set_aniso():
-    """make sure aniso is settable."""
+    """Make sure aniso is settable."""
     force = MyEmptyForce()
-    assert force.aniso == False
+    assert not force.aniso
     force.aniso = True
-    assert force.aniso == True
+    assert force.aniso
 
 
 def test_torques_update(local_force_names, two_particle_snapshot_factory,
@@ -385,6 +385,5 @@ def test_torques_update(local_force_names, two_particle_snapshot_factory,
 
         snap = sim.state.get_snapshot()
         if sim.device.communicator.rank == 0:
-            assert np.count_nonzero(snap.particles.orientation - initial_orientations)
-
-
+            assert np.count_nonzero(snap.particles.orientation
+                                    - initial_orientations)

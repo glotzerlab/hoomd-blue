@@ -50,8 +50,8 @@ void export_CustomForceCompute(py::module& m)
         "CustomForceCompute")
         .def(py::init<std::shared_ptr<SystemDefinition>, pybind11::object>())
         .def_property("aniso",
-                     &CustomForceCompute::isAnisotropic,
-                     &CustomForceCompute::setAnisotropic);
+                      &CustomForceCompute::isAnisotropic,
+                      &CustomForceCompute::setAnisotropic);
     }
 
     } // end namespace detail
