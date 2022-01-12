@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Synced list utility classes."""
 
@@ -195,7 +194,7 @@ class SyncedList(MutableSequence):
         return self._handle_int(index)
 
     def _handle_slice(self, index):
-        return range(0, len(self))[index]
+        return range(len(self))[index]
 
     def _synced_iter(self):
         """Iterate over values in the list. Does nothing when not synced."""

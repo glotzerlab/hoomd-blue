@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Pair potentials."""
 
@@ -1606,11 +1605,11 @@ class DLVO(Pair):
 
     Example::
 
-        nl = nlist.cell()
+        nl = hoomd.md.nlist.Cell()
         dlvo = hoomd.md.pair.DLVO(nlist=nl)
-        dlvo.params[('A', 'A')] = {"A": 1.0, "kappa": 1.0, Z=2, a1=1, a2=1}
-        dlvo.params[('A', 'B')] = {"A": 2.0, "kappa": 0.5, Z=3, a1=1, a2=3}
-        dlvo.params[('B', 'B')] = {"A": 2.0, "kappa": 0.5, Z=3, a1=3, a2=3}
+        dlvo.params[('A', 'A')] = dict(A=1.0, kappa=1.0, Z=2, a1=1, a2=1)
+        dlvo.params[('A', 'B')] = dict(A=2.0, kappa=0.5, Z=3, a1=1, a2=3)
+        dlvo.params[('B', 'B')] = dict(A=2.0, kappa=0.5, Z=3, a1=3, a2=3)
     """
     _cpp_class_name = "PotentialPairDLVO"
     _accepted_modes = ("none", "shift")

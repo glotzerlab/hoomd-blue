@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Code to support unit and validation tests.
 
@@ -645,6 +644,10 @@ class BaseCollectionsTest:
         """Return a random float."""
         return max_ * (self.rng.random() - 0.5)
 
+    def bool(self):
+        """Return a random Boolean."""
+        return bool(self.int(2))
+
     def str(self, max_length=20):
         """Return a random string."""
         length = self.int(max_length) + 1
@@ -716,20 +719,26 @@ class BaseCollectionsTest:
 
 class BaseSequenceTest(BaseCollectionsTest):
     """Basic extensible test suite for tuple-like classes."""
+    _negative_indexing = True
+    _allow_slices = True
 
     def test_getitem(self, populated_collection):
         """Test __getitem__."""
         test_collection, plain_collection = populated_collection
-        for i, p_item in enumerate(plain_collection):
-            assert self.is_equal(test_collection[i], p_item)
-        assert all(
-            self.is_equal(t, p)
-            for t, p in zip(test_collection[:], plain_collection))
-        assert all(
-            self.is_equal(t, p)
-            for t, p in zip(test_collection[1:], plain_collection[1:]))
         with pytest.raises(IndexError):
             _ = test_collection[len(test_collection)]
+        for i, p_item in enumerate(plain_collection):
+            assert self.is_equal(test_collection[i], p_item)
+        if self._allow_slices:
+            assert all(
+                self.is_equal(t, p)
+                for t, p in zip(test_collection[:], plain_collection))
+            assert all(
+                self.is_equal(t, p)
+                for t, p in zip(test_collection[1:], plain_collection[1:]))
+        if self._negative_indexing:
+            for i in range(-1, -len(plain_collection), -1):
+                assert self.is_equal(test_collection[i], plain_collection[i])
 
 
 class BaseListTest(BaseSequenceTest):
@@ -753,6 +762,8 @@ class BaseListTest(BaseSequenceTest):
 
     def test_delitem(self, delete_index, populated_collection):
         """Test __delitem__."""
+        if not self._negative_indexing and delete_index < 0:
+            return
         test_list, plain_list = populated_collection
         # out of bounds test
         if delete_index >= len(test_list) or delete_index < -len(test_list):
@@ -766,6 +777,8 @@ class BaseListTest(BaseSequenceTest):
         self.check_equivalent(test_list, plain_list)
         assert self.to_base(old_item) not in test_list
         # test slice deletion
+        if not self._allow_slices:
+            return
         old_items = test_list[1:]
         del test_list[1:]
         assert len(test_list) == 1
@@ -778,7 +791,7 @@ class BaseListTest(BaseSequenceTest):
         for i, item in enumerate(plain_collection, start=1):
             empty_collection.append(item)
             assert len(empty_collection) == i
-            assert self.is_equal(item, empty_collection[-1])
+            assert self.is_equal(item, empty_collection[i - 1])
         self.check_equivalent(empty_collection, plain_collection)
         self.final_check(empty_collection)
 
@@ -794,6 +807,8 @@ class BaseListTest(BaseSequenceTest):
 
     def test_insert(self, insert_index, empty_collection, plain_collection):
         """Test insert."""
+        if not self._negative_indexing and insert_index < 0:
+            return
         check_collection = []
         empty_collection.extend(plain_collection[:-1])
         check_collection.extend(plain_collection[:-1])
@@ -842,6 +857,8 @@ class BaseListTest(BaseSequenceTest):
     def test_setitem(self, setitem_index, populated_collection,
                      generate_plain_collection):
         """Test __setitem__."""
+        if not self._negative_indexing and setitem_index < 0:
+            return
         test_list, plain_list = populated_collection
         item = generate_plain_collection(1)[0]
         # Test out of bounds setting
@@ -867,6 +884,8 @@ class BaseListTest(BaseSequenceTest):
 
     def test_pop(self, pop_index, populated_collection):
         """Test pop."""
+        if not self._negative_indexing and pop_index < 0:
+            return
         test_list, plain_list = populated_collection
         if pop_index >= len(test_list) or pop_index < -len(test_list):
             with pytest.raises(IndexError):
@@ -876,6 +895,15 @@ class BaseListTest(BaseSequenceTest):
         item = test_list.pop(pop_index)
         assert self.is_equal(self.to_base(item), plain_list[pop_index])
         plain_list.pop(pop_index)
+        self.check_equivalent(test_list, plain_list)
+        self.final_check(test_list)
+
+    def test_empty_pop(self, populated_collection):
+        """Test pop without argument."""
+        test_list, plain_list = populated_collection
+        item = test_list.pop()
+        assert self.is_equal(self.to_base(item), plain_list[-1])
+        plain_list.pop()
         self.check_equivalent(test_list, plain_list)
         self.final_check(test_list)
 
