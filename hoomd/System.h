@@ -163,6 +163,18 @@ class PYBIND11_EXPORT System
         return m_default_flags[pdata_flag::pressure_tensor];
         }
 
+    /// Get the particle group cache
+    pybind11::object getGroupCache()
+        {
+        return m_group_cache;
+        }
+
+    /// Set the group cache
+    void setGroupCache(pybind11::object group_cache)
+        {
+        m_group_cache = group_cache;
+        }
+
     private:
     std::vector<std::pair<std::shared_ptr<Analyzer>,
                           std::shared_ptr<Trigger>>>
@@ -220,6 +232,9 @@ class PYBIND11_EXPORT System
 
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
+
+    /// Cache of ParticleGroup objects
+    pybind11::object m_group_cache;
     };
 
 namespace detail

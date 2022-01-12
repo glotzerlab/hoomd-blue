@@ -2,6 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define the Simulation class."""
+import collections
 import inspect
 
 import hoomd._hoomd as _hoomd
@@ -119,6 +120,12 @@ class Simulation(metaclass=Loggable):
 
         if self._seed is not None:
             self._state._cpp_sys_def.setSeed(self._seed)
+
+        # group_cache provides a cache of C++ group objects of the form:
+        # {type(filter): {filter: C++ group}}
+        # The first layer is to prevent user created filters with poorly
+        # implemented __hash__ and __eq__ from causing cache errors.
+        self._cpp_sys.group_cache = collections.defaultdict(dict)
 
         self._init_communicator()
 

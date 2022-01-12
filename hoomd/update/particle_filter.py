@@ -18,7 +18,8 @@ class _GroupConverter:
     """
 
     def __call__(self, filter):
-        return self._state._groups[type(filter)][filter]
+        group_cache = self._state._simulation._cpp_sys.group_cache
+        return group_cache[type(filter)][filter]
 
     def _attach(self, simulation):
         self._state = simulation.state

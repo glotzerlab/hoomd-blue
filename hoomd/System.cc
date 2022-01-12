@@ -346,6 +346,7 @@ void export_System(pybind11::module& m)
         .def_property_readonly("updaters", &System::getUpdaters)
         .def_property_readonly("tuners", &System::getTuners)
         .def_property_readonly("computes", &System::getComputes)
+        .def_property("group_cache", &System::getGroupCache, &System::setGroupCache)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &System::setCommunicator)
 #endif
