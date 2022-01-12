@@ -360,19 +360,13 @@ def equality_check(a, b):
 
     def check_item(x, y, attr):
         if isinstance(x, hoomd.operation._HOOMDGetSetAttrBase):
-            equal = equality_check(x, y)
+            equality_check(x, y)
         else:
-            equal = numpy.all(x == y)
-        if not equal:
-            logger.debug(
-                f"In equality check, attr '{attr}' not equal: {x} != {y}.")
-            return False
-        return True
+            assert numpy.all(x == y), f"attr '{attr}' not equal:"
 
     if not isinstance(a, hoomd.operation._HOOMDGetSetAttrBase):
         return a == b
-    if type(a) != type(b):
-        return False
+    assert type(a) == type(b)
 
     _check_obj_attr_compatibility(a, b)
 
@@ -384,24 +378,19 @@ def equality_check(a, b):
             param_keys = a._param_dict.keys()
             b_param_keys = b._param_dict.keys()
             # Check key equality
-            if param_keys != b_param_keys:
-                logger.debug(
-                    f"In equality check, incompatible param_dict keys: "
-                    f"{param_keys}, {b_param_keys}")
-                return False
+            assert param_keys == b_param_keys, "Incompatible param_dict keys:"
             # Check item equality
             for key in param_keys:
                 check_item(a._param_dict[key], b._param_dict[key], key)
             continue
 
         check_item(a.__dict__[attr], b.__dict__[attr], attr)
-    return True
 
 
 def pickling_check(instance):
     """Test that an instance can be pickled and unpickled."""
     pkled_instance = pickle.loads(pickle.dumps(instance))
-    assert equality_check(instance, pkled_instance)
+    equality_check(instance, pkled_instance)
 
 
 def operation_pickling_check(instance, sim):
