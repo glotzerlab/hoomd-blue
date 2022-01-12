@@ -125,9 +125,7 @@ template<class ScalarType> class LatticeReferenceList
 
         if (!exec_conf || !pdata || pdata->getNGlobal() != numPoints)
             {
-            if (exec_conf)
-                exec_conf->msg->error() << "Check pointers and initialization list" << std::endl;
-            throw std::runtime_error("Error setting LatticeReferenceList");
+            throw std::runtime_error("There must be one lattice point per particle.");
             }
         m_N = (unsigned int)numPoints;
         GPUArray<ScalarType> temp(numPoints, exec_conf);

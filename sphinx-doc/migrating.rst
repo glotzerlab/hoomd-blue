@@ -85,6 +85,8 @@ Commands and features deprecated in v2.x are removed in v3.0.
      - Replace with
    * - Python 2.7
      - Python >= 3.6
+   * - Compute < 6.0 GPUs
+     - Compute >= 6.0 GPUs
    * - ``static`` parameter in ``hoomd.dump.gsd``
      - ``dynamic`` parameter
    * - ``set_params`` and other ``set_*`` methods

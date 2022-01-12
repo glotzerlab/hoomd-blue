@@ -485,8 +485,7 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
 
         if (0 <= singularity)
             {
-            m_exec_conf->msg->error() << "Singular constraint matrix." << std::endl;
-            throw std::runtime_error("Error computing constraint forces\n");
+            throw std::runtime_error("Singular constraint matrix.");
             }
 
         /*

@@ -418,9 +418,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Cannot compute net force on the GPU if CUDA is disabled"
-                                  << endl;
-        throw runtime_error("Error computing accelerations");
+        throw runtime_error("Cannot compute net force on the GPU if CUDA is disabled.");
         }
 
     // compute all the normal forces first

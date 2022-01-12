@@ -58,8 +58,7 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepNPTMTKGPU with CUDA disabled" << endl;
-        throw std::runtime_error("Error initializing TwoStepNPTMTKGPU");
+        throw std::runtime_error("Cannot create TwoStepNPTMTKGPU on a CPU device.");
         }
 
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTKGPU" << endl;
@@ -122,8 +121,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
-        m_exec_conf->msg->error() << "integrate.npt(): Integration group empty." << std::endl;
-        throw std::runtime_error("Error during NPT integration.");
+        throw std::runtime_error("Integration group empty.");
         }
 
     // profile this step

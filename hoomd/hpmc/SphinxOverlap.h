@@ -4862,7 +4862,7 @@ DEVICE inline OverlapReal yol4(OverlapReal ar,
                  / (4 * OverlapReal(M_PI));
     }
 
-    }      // namespace detail
-    }      // namespace hpmc
-    }      // end namespace hoomd
+    }  // namespace detail
+    }  // namespace hpmc
+    }  // end namespace hoomd
 #endif // __SPHINXOVERLAP__H__

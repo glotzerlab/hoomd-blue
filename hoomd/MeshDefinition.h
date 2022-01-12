@@ -24,7 +24,8 @@ namespace hoomd
 class Communicator;
 #endif
 
-//! Mesh class that contains all infrastructure necessary to combine a set of particles into a mesh triangulation
+//! Mesh class that contains all infrastructure necessary to combine a set of particles into a mesh
+//! triangulation
 /*! MeshDefinition is a container class to define a mesh tringulation comprised of the
     particles within the simulation system. The vertices of the mesh are given by the
     particle positions. The information which vertex tuples are directly bonded (i.e. share an
@@ -76,6 +77,16 @@ class PYBIND11_EXPORT MeshDefinition
         return m_meshbond_data;
         }
 
+    pybind11::list getTypes() const
+        {
+        return m_meshtriangle_data->getTypesPy();
+        }
+
+    unsigned int getSize() const
+        {
+        return m_meshtriangle_data->getN();
+        }
+
     BondData::Snapshot getBondData();
 
     Scalar getEnergy()
@@ -94,7 +105,7 @@ class PYBIND11_EXPORT MeshDefinition
         m_sysdef; //!< System definition later needed for dynamic bonding
     std::shared_ptr<MeshBondData> m_meshbond_data;         //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
-    GlobalVector<Scalar3> m_triangle_normals; //! normal vectors of the triangles
+    GlobalVector<Scalar3> m_triangle_normals;              //! normal vectors of the triangles
     Scalar m_mesh_energy; //!< storing energy for dynamic bonding later
     bool m_data_changed;  //!< check if dynamic bonding has changed the mesh data
     };

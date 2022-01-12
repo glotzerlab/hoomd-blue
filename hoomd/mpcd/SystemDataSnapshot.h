@@ -87,6 +87,6 @@ namespace detail
 void export_SystemDataSnapshot(pybind11::module& m);
     } // namespace detail
 
-    }      // end namespace mpcd
-    }      // end namespace hoomd
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_SYSTEM_DATA_SNAPSHOT_H_

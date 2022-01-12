@@ -310,9 +310,7 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i,
         }
     else
         {
-        m_exec_conf->msg->error() << "comm.balance: unknown dimension for particle reduction"
-                                  << endl;
-        throw runtime_error("Unknown dimension for particle reduction");
+        throw runtime_error("Unknown dimension for particle reduction.");
         }
 
     return true;
@@ -428,50 +426,40 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
         u(j) = Scalar(0.5) * (cum_frac_i[j + 1] + cum_frac_i[j + 2]) * L_i;
         }
 
-    try
+    BVLSSolver solver(A, b, l, u);
+    solver.setMaxIterations(3 * (n + m));
+    solver.solve();
+    if (solver.converged())
         {
-        BVLSSolver solver(A, b, l, u);
-        solver.setMaxIterations(3 * (n + m));
-        solver.solve();
-        if (solver.converged())
+        Eigen::VectorXd x = solver.getSolution();
+        vector<Scalar> sorted_f(n);
+        // do validation / sanity checking
+        for (unsigned int cur_div = 0; cur_div < n; ++cur_div)
             {
-            Eigen::VectorXd x = solver.getSolution();
-            vector<Scalar> sorted_f(n);
-            // do validation / sanity checking
-            for (unsigned int cur_div = 0; cur_div < n; ++cur_div)
+            if (x(cur_div) < min_domain_size)
                 {
-                if (x(cur_div) < min_domain_size)
-                    {
-                    m_exec_conf->msg->warning()
-                        << "comm.balance: no convergence, domains too small" << endl;
-                    return false;
-                    }
-                sorted_f[cur_div] = x(cur_div) / L_i;
-                if (cur_div > 0 && sorted_f[cur_div] < sorted_f[cur_div - 1])
-                    {
-                    m_exec_conf->msg->warning()
-                        << "comm.balance: domains attempting to flip" << endl;
-                    return false;
-                    }
+                m_exec_conf->msg->warning()
+                    << "LoadBalancer: no convergence, domains too small" << endl;
+                return false;
                 }
-            // only push back the solution after we know it is valid
-            for (unsigned int cur_div = 0; cur_div < sorted_f.size(); ++cur_div)
+            sorted_f[cur_div] = x(cur_div) / L_i;
+            if (cur_div > 0 && sorted_f[cur_div] < sorted_f[cur_div - 1])
                 {
-                cum_frac_i[cur_div + 1] = sorted_f[cur_div];
+                m_exec_conf->msg->warning() << "LoadBalancer: domains attempting to flip" << endl;
+                return false;
                 }
-            return true;
             }
-        else
+        // only push back the solution after we know it is valid
+        for (unsigned int cur_div = 0; cur_div < sorted_f.size(); ++cur_div)
             {
-            m_exec_conf->msg->warning() << "comm.balance: converged load balance not found" << endl;
-            return false;
+            cum_frac_i[cur_div + 1] = sorted_f[cur_div];
             }
+        return true;
         }
-    catch (const runtime_error& e)
+    else
         {
-        m_exec_conf->msg->error() << "comm.balance: an error occurred seeking optimal load balance"
-                                  << endl;
-        throw e;
+        m_exec_conf->msg->warning() << "LoadBalancer: converged load balance not found" << endl;
+        return false;
         }
 
     return false;

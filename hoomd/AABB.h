@@ -271,9 +271,9 @@ struct
         }
     }
 #ifndef HOOMD_LLVMJIT_BUILD
-__attribute__((aligned(32)));
+    __attribute__((aligned(32)));
 #else
-;
+    ;
 #endif
 
 //! Check if two AABBs overlap

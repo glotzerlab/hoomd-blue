@@ -82,15 +82,6 @@ class MeshBond(Force):
                     f"{str(err)}")
 
     @property
-    def parameter(self):
-        """Shortcut to set params."""
-        return self.params["mesh"]
-
-    @parameter.setter
-    def parameter(self, value):
-        self.params["mesh"] = value
-
-    @property
     def mesh(self):
         """Mesh data structure used to compute the bond potential."""
         return self._mesh
@@ -98,7 +89,8 @@ class MeshBond(Force):
     @mesh.setter
     def mesh(self, value):
         if self._attached:
-            raise RuntimeError("mesh cannot be set after scheduling.")
+            raise RuntimeError(
+                "mesh cannot be set after calling Simulation.run().")
         mesh = validate_mesh(value)
         if self._added:
             if mesh._added and self._simulation != mesh._simulation:

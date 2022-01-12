@@ -285,8 +285,9 @@ unsigned int ParticleData::getTypeByName(const std::string& name) const
             return i;
         }
 
-    m_exec_conf->msg->error() << "Type " << name << " not found!" << endl;
-    throw runtime_error("Error mapping type name");
+    std::ostringstream s;
+    s << "Type " << name << " not found!";
+    throw runtime_error(s.str());
     return 0;
     }
 
@@ -299,8 +300,9 @@ std::string ParticleData::getNameByType(unsigned int type) const
     // check for an invalid request
     if (type >= getNTypes())
         {
-        m_exec_conf->msg->error() << "Requesting type name for non-existent type " << type << endl;
-        throw runtime_error("Error mapping type name");
+        ostringstream s;
+        s << "Requesting type name for non-existent type " << type << ".";
+        throw runtime_error(s.str());
         }
 
     // return the name
@@ -318,8 +320,9 @@ void ParticleData::setTypeName(unsigned int type, const std::string& name)
     // check for an invalid request
     if (type >= getNTypes())
         {
-        m_exec_conf->msg->error() << "Setting name for non-existent type " << type << endl;
-        throw runtime_error("Error mapping type name");
+        ostringstream s;
+        s << "Setting name for non-existent type " << type << ".";
+        throw runtime_error(s.str());
         }
 
     m_type_mapping[type] = name;
@@ -1081,22 +1084,20 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
                 if (rank >= n_ranks)
                     {
-                    m_exec_conf->msg->error()
-                        << "init.*: Particle " << snap_idx << " out of bounds." << std::endl;
-                    m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;
-                    m_exec_conf->msg->error()
-                        << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
-                    m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
-                    m_exec_conf->msg->error()
-                        << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
+                    ostringstream s;
+                    s << "init.*: Particle " << snap_idx << " out of bounds." << std::endl;
+                    s << "Cartesian coordinates: " << std::endl;
+                    s << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
+                    s << "Fractional coordinates: " << std::endl;
+                    s << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
                     Scalar3 lo = m_global_box.getLo();
                     Scalar3 hi = m_global_box.getHi();
-                    m_exec_conf->msg->error() << "Global box lo: (" << lo.x << ", " << lo.y << ", "
-                                              << lo.z << ")" << std::endl;
-                    m_exec_conf->msg->error() << "           hi: (" << hi.x << ", " << hi.y << ", "
-                                              << hi.z << ")" << std::endl;
+                    s << "Global box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")"
+                      << std::endl;
+                    s << "           hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")"
+                      << std::endl;
 
-                    throw std::runtime_error("Error initializing from snapshot.");
+                    throw std::runtime_error(s.str());
                     }
 
                 // fill up per-processor data structures
@@ -1631,16 +1632,15 @@ unsigned int ParticleData::getOwnerRank(unsigned int tag) const
 
     if (n_found == 0)
         {
-        m_exec_conf->msg->error() << "Could not find particle " << tag << " on any processor."
-                                  << endl
-                                  << endl;
-        throw std::runtime_error("Error accessing particle data.");
+        ostringstream s;
+        s << "Could not find particle " << tag << " on any processor.";
+        throw std::runtime_error(s.str());
         }
     else if (n_found > 1)
         {
-        m_exec_conf->msg->error() << "Found particle " << tag << " on multiple processors." << endl
-                                  << endl;
-        throw std::runtime_error("Error accessing particle data.");
+        ostringstream s;
+        s << "Found particle " << tag << " on multiple processors.";
+        throw std::runtime_error(s.str());
         }
 
     // Now find the processor that owns it
@@ -2150,10 +2150,9 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                 // check for particle data consistency
                 if (buf.size() != 1)
                     {
-                    m_exec_conf->msg->error() << "More than one (" << buf.size()
-                                              << ") particle marked for sending." << endl
-                                              << endl;
-                    throw std::runtime_error("Error moving particle.");
+                    std::ostringstream s;
+                    s << "More than one (" << buf.size() << ") particle marked for sending.";
+                    throw std::runtime_error(s.str());
                     }
 
                 MPI_Request req;
@@ -2518,9 +2517,7 @@ void ParticleData::removeParticle(unsigned int tag)
     {
     if (getNGlobal() == 0)
         {
-        m_exec_conf->msg->error() << "Trying to remove particle when there are zero particles!"
-                                  << endl;
-        throw runtime_error("Error removing particle");
+        throw runtime_error("Trying to remove particle when there are zero particles!");
         }
 
     // we are changing the local number of particles, so remove ghosts
@@ -2529,9 +2526,9 @@ void ParticleData::removeParticle(unsigned int tag)
     // sanity check
     if (tag >= m_rtag.size())
         {
-        m_exec_conf->msg->error() << "Trying to remove particle " << tag << " which does not exist!"
-                                  << endl;
-        throw runtime_error("Error removing particle");
+        std::ostringstream s;
+        s << "Trying to remove particle " << tag << " which does not exist.";
+        throw runtime_error(s.str());
         }
 
     // Local particle index
@@ -2557,9 +2554,9 @@ void ParticleData::removeParticle(unsigned int tag)
 
     if (!is_available)
         {
-        m_exec_conf->msg->error() << "Trying to remove particle " << tag
-                                  << " which has been previously removed!" << endl;
-        throw runtime_error("Error removing particle");
+        std::ostringstream s;
+        s << "Trying to remove particle " << tag << " which has been previously removed!";
+        throw runtime_error(s.str());
         }
 
     // delete from map
@@ -2648,8 +2645,9 @@ unsigned int ParticleData::getNthTag(unsigned int n)
     {
     if (n >= getNGlobal())
         {
-        m_exec_conf->msg->error() << "Particle id " << n << "does not exist!" << std::endl;
-        throw std::runtime_error("Error fetching particle");
+        std::ostringstream s;
+        s << "Particle id " << n << "does not exist!";
+        throw std::runtime_error(s.str());
         }
 
     assert(m_tag_set.size() == getNGlobal());

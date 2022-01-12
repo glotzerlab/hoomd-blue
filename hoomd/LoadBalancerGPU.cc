@@ -48,9 +48,11 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
     {
     // do nothing if rank doesn't own any particles
     if (m_pdata->getN() == 0)
+        {
         return;
+        }
 
-    // mark the current ranks of each particle (hijack the comm flags array)
+        // mark the current ranks of each particle (hijack the comm flags array)
         {
         ArrayHandle<unsigned int> d_comm_flag(m_pdata->getCommFlags(),
                                               access_location::device,

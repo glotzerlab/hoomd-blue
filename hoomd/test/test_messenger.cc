@@ -122,7 +122,7 @@ UP_TEST(Messenger_prefix)
 
 UP_TEST(Messenger_file)
     {
-    // scope the messengers so that the file is closed and written
+        // scope the messengers so that the file is closed and written
         {
         Messenger msg;
 

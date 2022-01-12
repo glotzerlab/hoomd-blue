@@ -60,10 +60,7 @@ void FIREEnergyMinimizer::setFdec(Scalar fdec)
     {
     if (!(fdec < 1.0 && fdec >= 0.0))
         {
-        m_exec_conf->msg->error() << "integrate.mode_minimize_fire: fractional decrease in "
-                                     "timestep should be between 0 and 1"
-                                  << endl;
-        throw runtime_error("Error setting parameters for FIREEnergyMinimizer");
+        throw runtime_error("fdec must be in the range [0,1).");
         }
     m_fdec = fdec;
     }

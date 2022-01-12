@@ -62,7 +62,7 @@ UP_TEST(ZeroMomentumUpdater_basic)
     Scalar sum_py = 0.0;
     Scalar sum_pz = 0.0;
 
-    // note: assuming mass == 1 for now
+        // note: assuming mass == 1 for now
         {
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
                                    access_location::host,

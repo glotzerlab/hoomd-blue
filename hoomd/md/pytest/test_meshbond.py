@@ -1,3 +1,4 @@
+import copy as cp
 import hoomd
 import pytest
 import numpy as np
@@ -32,24 +33,25 @@ def get_mesh_bond_and_args():
 
 
 def get_mesh_bond_args_forces_and_energies():
-    harmonic_forces1 = [[-28.395, 16.393861, 0], [-27.4125, 15.826614, 0],
-                        [-24.93, 14.393342, 0]]
-    harmonic_forces2 = [[0, -32.787722, 0], [0, -31.653229, 0],
-                        [0, -28.786684, 0]]
-    harmonic_forces3 = [[28.395, 16.393861, 0], [27.4125, 15.826614, 0],
-                        [24.93, 14.393342, 0]]
+    harmonic_forces = [[[-28.395, 16.393861, 0], [0, -32.787722, 0],
+                        [28.395, 16.393861, 0]],
+                       [[-27.4125, 15.826614, 0], [0, -31.653229, 0],
+                        [27.4125, 15.826614, 0]],
+                       [[-24.93, 14.393342, 0], [0, -28.786684, 0],
+                        [24.93, 14.393342, 0]]]
     harmonic_energies = [17.9172, 20.0385, 20.7168]
-    FENE_forces1 = [[-165.834803, 95.744768, 0], [-9.719869, 5.611769, 0],
-                    [33.483261, -19.331569, 0]]
-    FENE_forces2 = [[0, -191.489537, 0], [0., -11.223537, 0], [0, 38.663139, 0]]
-    FENE_forces3 = [[165.834803, 95.744768, 0], [9.719869, 5.611769, 0],
-                    [-33.483261, -19.331569, 0]]
+    FENE_forces = [[[-165.834803, 95.744768, 0], [0, -191.489537, 0],
+                    [165.834803, 95.744768, 0]],
+                   [[-9.719869, 5.611769, 0], [0., -11.223537, 0],
+                    [9.719869, 5.611769, 0]],
+                   [[33.483261, -19.331569, 0], [0, 38.663139, 0],
+                    [-33.483261, -19.331569, 0]]]
     FENE_energies = [82.0225, 48.6153, 33.4625]
-    Tether_forces1 = [[0, 0, 0], [-0.036666, 0.021169, 0],
-                      [-5.358389, 3.093667, 0]]
-    Tether_forces2 = [[0, 0, 0], [0, -0.042339, 0], [0, -6.187334, 0]]
-    Tether_forces3 = [[0, 0, 0], [0.036666, 0.021169, 0],
-                      [5.358389, 3.093667, 0]]
+    Tether_forces = [[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                     [[-0.036666, 0.021169, 0], [0, -0.042339, 0],
+                      [0.036666, 0.021169, 0]],
+                     [[-5.358389, 3.093667, 0], [0, -6.187334, 0],
+                      [5.358389, 3.093667, 0]]]
     Tether_energies = [0, 0.000463152, 0.1472802]
 
     harmonic_args_and_vals = []
@@ -57,14 +59,11 @@ def get_mesh_bond_args_forces_and_energies():
     Tether_args_and_vals = []
     for i in range(3):
         harmonic_args_and_vals.append(
-            (*_harmonic_arg_list[i], harmonic_forces1[i], harmonic_forces2[i],
-             harmonic_forces3[i], harmonic_energies[i]))
+            (*_harmonic_arg_list[i], harmonic_forces[i], harmonic_energies[i]))
         FENE_args_and_vals.append(
-            (*_FENE_arg_list[i], FENE_forces1[i], FENE_forces2[i],
-             FENE_forces3[i], FENE_energies[i]))
+            (*_FENE_arg_list[i], FENE_forces[i], FENE_energies[i]))
         Tether_args_and_vals.append(
-            (*_Tether_arg_list[i], Tether_forces1[i], Tether_forces2[i],
-             Tether_forces3[i], Tether_energies[i]))
+            (*_Tether_arg_list[i], Tether_forces[i], Tether_energies[i]))
     return harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
 
 
@@ -106,11 +105,11 @@ def triplet_snapshot_factory(device):
 def test_before_attaching(mesh_bond_cls, potential_kwargs):
     mesh = hoomd.mesh.Mesh()
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.parameter = potential_kwargs
+    mesh_bond_potential.params["mesh"] = potential_kwargs
 
     assert mesh is mesh_bond_potential.mesh
     for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.parameter[key],
+        np.testing.assert_allclose(mesh_bond_potential.params["mesh"][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
@@ -126,12 +125,12 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
     snap = triplet_snapshot_factory(d=0.969, L=5)
     sim = simulation_factory(snap)
 
-    mesh = hoomd.mesh.Mesh()
+    mesh = hoomd.mesh.Mesh(name=["triags"])
     mesh.size = 1
     mesh.triangles = [[0, 1, 2]]
 
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.parameter = potential_kwargs
+    mesh_bond_potential.params["triags"] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -145,17 +144,19 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
 
     sim.run(0)
     for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.parameter[key],
+        np.testing.assert_allclose(mesh_bond_potential.params["triags"][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
 
+    mesh1 = hoomd.mesh.Mesh()
+    with pytest.raises(RuntimeError):
+        mesh_bond_potential.mesh = mesh1
 
-@pytest.mark.parametrize(
-    "mesh_bond_cls, potential_kwargs, force1, force2, force3, energy",
-    get_mesh_bond_args_forces_and_energies())
+
+@pytest.mark.parametrize("mesh_bond_cls, potential_kwargs, force, energy",
+                         get_mesh_bond_args_forces_and_energies())
 def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
-                             mesh_bond_cls, potential_kwargs, force1, force2,
-                             force3, energy):
+                             mesh_bond_cls, potential_kwargs, force, energy):
     snap = triplet_snapshot_factory(d=0.969, L=5)
     sim = simulation_factory(snap)
 
@@ -164,7 +165,7 @@ def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
     mesh.triangles = [[0, 1, 2]]
 
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.parameter = potential_kwargs
+    mesh_bond_potential.params["mesh"] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -185,6 +186,57 @@ def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
                                    energy,
                                    rtol=1e-2,
                                    atol=1e-5)
-        np.testing.assert_allclose(sim_forces[0], force1, rtol=1e-2, atol=1e-5)
-        np.testing.assert_allclose(sim_forces[1], force2, rtol=1e-2, atol=1e-5)
-        np.testing.assert_allclose(sim_forces[2], force3, rtol=1e-2, atol=1e-5)
+        np.testing.assert_allclose(sim_forces, force, rtol=1e-2, atol=1e-5)
+
+
+@pytest.fixture(scope='session')
+def mesh_snapshot_factory(device):
+
+    def make_snapshot(d=1.0, phi_deg=45, particle_types=['A'], L=20):
+        phi_rad = phi_deg * (np.pi / 180)
+        # the central particles are along the x-axis, so phi is determined from
+        # the angle in the yz plane.
+
+        s = hoomd.Snapshot(device.communicator)
+        N = 4
+        if s.communicator.rank == 0:
+            box = [L, L, L, 0, 0, 0]
+            s.configuration.box = box
+            s.particles.N = N
+            s.particles.types = particle_types
+            # shift particle positions slightly in z so MPI tests pass
+            s.particles.position[:] = [
+                [0.0, d * np.cos(phi_rad / 2), d * np.sin(phi_rad / 2) + 0.1],
+                [0.0, 0.0, 0.1], [d, 0.0, 0.1],
+                [d, d * np.cos(phi_rad / 2), -d * np.sin(phi_rad / 2) + 0.1]
+            ]
+
+        return s
+
+    return make_snapshot
+
+
+def test_auto_detach_simulation(simulation_factory, mesh_snapshot_factory):
+    sim = simulation_factory(mesh_snapshot_factory(d=0.969, L=5))
+    mesh = hoomd.mesh.Mesh()
+    mesh.triangles = [[0, 1, 2], [0, 2, 3]]
+
+    harmonic = hoomd.md.mesh.bond.Harmonic(mesh)
+    harmonic.params["mesh"] = dict(k=1, r0=1)
+
+    harmonic_2 = cp.deepcopy(harmonic)
+    harmonic_2.mesh = mesh
+
+    integrator = hoomd.md.Integrator(dt=0.005, forces=[harmonic, harmonic_2])
+
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All()))
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+    del integrator.forces[1]
+    assert mesh._attached
+    assert hasattr(mesh, "_cpp_obj")
+    del integrator.forces[0]
+    assert not mesh._attached
+    assert mesh._cpp_obj is None

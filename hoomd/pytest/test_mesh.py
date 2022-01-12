@@ -1,9 +1,8 @@
-import copy as cp
 import hoomd
 from hoomd.mesh import Mesh
 import numpy
 import pytest
-from hoomd.error import DataAccessError
+from hoomd.error import DataAccessError, MutabilityError, TypeConversionError
 
 
 @pytest.fixture(scope='session')
@@ -42,6 +41,7 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
     mesh = Mesh()
 
     assert mesh.size == 0
+    assert mesh.types == ["mesh"]
     assert len(mesh.triangles) == 0
     with pytest.raises(DataAccessError):
         mesh.bonds == 0
@@ -50,14 +50,24 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
     mesh._attach()
 
     assert mesh.size == 0
+    assert mesh.types == ["mesh"]
     assert len(mesh.triangles) == 0
     assert len(mesh.bonds) == 0
 
 
 def test_mesh_setter():
-    mesh = Mesh()
+    mesh = Mesh(name=["vesicle"])
 
-    mesh.size = 2
+    mesh.size = 1
+    assert mesh.size == 1
+
+    with pytest.raises(TypeConversionError):
+        mesh.types = "mesh"
+    with pytest.raises(TypeConversionError):
+        mesh.types = ["me", "sh"]
+    mesh.types = ["mesh"]
+    assert mesh.types == ["mesh"]
+
     mesh.triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
 
     assert mesh.size == 2
@@ -71,7 +81,12 @@ def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
 
     mesh._add(sim)
     mesh._attach()
-    mesh.size = 2
+
+    with pytest.raises(MutabilityError):
+        mesh.types = ["vesicle"]
+    with pytest.raises(MutabilityError):
+        mesh.size = 3
+
     mesh.triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
 
     assert mesh.size == 2
@@ -79,30 +94,3 @@ def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
                                                                       3]]))
     assert numpy.array_equal(
         mesh.bonds, numpy.array([[0, 1], [1, 2], [2, 0], [2, 3], [3, 1]]))
-
-
-def test_auto_detach_simulation(simulation_factory, mesh_snapshot_factory):
-    sim = simulation_factory(mesh_snapshot_factory(d=0.969, L=5))
-    mesh = Mesh()
-    mesh.size = 2
-    mesh.triangles = [[0, 1, 2], [0, 2, 3]]
-
-    harmonic = hoomd.md.mesh.bond.Harmonic(mesh)
-    harmonic.parameter = dict(k=1, r0=1)
-
-    harmonic_2 = cp.deepcopy(harmonic)
-    harmonic_2.mesh = mesh
-
-    integrator = hoomd.md.Integrator(dt=0.005, forces=[harmonic, harmonic_2])
-
-    integrator.methods.append(
-        hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All()))
-    sim.operations.integrator = integrator
-
-    sim.run(0)
-    del integrator.forces[1]
-    assert mesh._attached
-    assert hasattr(mesh, "_cpp_obj")
-    del integrator.forces[0]
-    assert not mesh._attached
-    assert mesh._cpp_obj is None

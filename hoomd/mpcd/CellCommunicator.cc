@@ -131,7 +131,7 @@ void mpcd::CellCommunicator::initialize()
         ci.getH() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::north)],
         ci.getD() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::up)]);
 
-    // check to make sure box is not overdecomposed
+        // check to make sure box is not overdecomposed
         {
         const unsigned int nextra = m_cl->getNExtraCells();
         unsigned int err = ((max_lo.x + nextra) > min_hi.x || (max_lo.y + nextra) > min_hi.y
@@ -230,14 +230,14 @@ void mpcd::CellCommunicator::initialize()
             }                 // j
         }                     // k
 
-    // allocate send / receive index arrays
+        // allocate send / receive index arrays
         {
         GPUArray<unsigned int> send_idx(send_map.size(), m_exec_conf);
         m_send_idx.swap(send_idx);
         }
 
-    // fill the send indexes with the global values
-    // flood the array of unique neighbors and count the number to send
+        // fill the send indexes with the global values
+        // flood the array of unique neighbors and count the number to send
         {
         ArrayHandle<unsigned int> h_send_idx(m_send_idx,
                                              access_location::host,
@@ -291,7 +291,7 @@ void mpcd::CellCommunicator::initialize()
         MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
         }
 
-    // transform all of the global cell indexes back into local cell indexes
+        // transform all of the global cell indexes back into local cell indexes
         {
         ArrayHandle<unsigned int> h_send_idx(m_send_idx,
                                              access_location::host,
@@ -305,7 +305,7 @@ void mpcd::CellCommunicator::initialize()
         std::transform(recv_idx.begin(), recv_idx.end(), recv_idx.begin(), wrapper);
         }
 
-    // map the received cells from a rank-basis to a cell-basis
+        // map the received cells from a rank-basis to a cell-basis
         {
         std::multimap<unsigned int, unsigned int> cell_map;
         std::set<unsigned int> unique_cells;
@@ -317,9 +317,9 @@ void mpcd::CellCommunicator::initialize()
             }
         m_num_cells = (unsigned int)unique_cells.size();
 
-        /*
-         * Allocate auxiliary memory for receiving cell reordering
-         */
+            /*
+             * Allocate auxiliary memory for receiving cell reordering
+             */
             {
             GPUArray<unsigned int> recv(recv_idx.size(), m_exec_conf);
             m_recv.swap(recv);

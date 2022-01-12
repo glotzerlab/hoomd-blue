@@ -29,10 +29,10 @@ std::shared_ptr<SystemDefinition> create_sysdef()
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(10, box, 4));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    // set the types
-    // currently, the position is only set on the first 3 particles, intended for use in the total
-    // and center of mass tests. Later, other particles will be added to test the new particle data
-    // selectors
+        // set the types
+        // currently, the position is only set on the first 3 particles, intended for use in the
+        // total and center of mass tests. Later, other particles will be added to test the new
+        // particle data selectors
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
@@ -203,7 +203,7 @@ UP_TEST(ParticleGroup_sort_test)
             UP_ASSERT(!tags04.isMember(i));
         }
 
-    // resort the particles
+        // resort the particles
         {
         ArrayHandle<unsigned int> h_tag(pdata->getTags(),
                                         access_location::host,

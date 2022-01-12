@@ -2923,7 +2923,7 @@ void CommunicatorGPU::exchangeGhosts()
         // MPI library may use non-zero stream
         hipDeviceSynchronize();
 #else
-        // only unpack in non-CUDA MPI builds
+            // only unpack in non-CUDA MPI builds
             {
             // access receive buffers
             ArrayHandle<unsigned int> d_tag_ghost_recvbuf(m_tag_ghost_recvbuf,

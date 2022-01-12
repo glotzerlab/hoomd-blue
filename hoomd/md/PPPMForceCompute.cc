@@ -74,9 +74,7 @@ void PPPMForceCompute::setParams(unsigned int nx,
 
     if (order < 1 || order > PPPM_MAX_ORDER)
         {
-        m_exec_conf->msg->error() << "charge.pppm: Interpolation order has to be between 1 and "
-                                  << PPPM_MAX_ORDER << std::endl;
-        throw std::runtime_error("Error initializing PPPMForceCompute.");
+        throw std::runtime_error("Invalid interpolation order.");
         }
 
     m_order = order;
@@ -91,38 +89,30 @@ void PPPMForceCompute::setParams(unsigned int nx,
 
         if (!is_pow2(m_mesh_points.x) || !is_pow2(m_mesh_points.y) || !is_pow2(m_mesh_points.z))
             {
-            m_exec_conf->msg->error()
-                << "The number of mesh points along the every direction must be a power of two!"
-                << std::endl;
-            throw std::runtime_error("Error initializing charge.pppm");
+            throw std::runtime_error(
+                "The number of mesh points along the every direction must be a power of two!");
             }
 
         if (nx % didx.getW())
             {
-            m_exec_conf->msg->error() << "The number of mesh points along the x-direction (" << nx
-                                      << ") is not" << std::endl
-                                      << "a multiple of the width (" << didx.getW()
-                                      << ") of the processor grid!" << std::endl
-                                      << std::endl;
-            throw std::runtime_error("Error initializing charge.pppm");
+            std::ostringstream s;
+            s << "The number of mesh points along the x-direction (" << nx << ") is not"
+              << "a multiple of the width (" << didx.getW() << ") of the processor grid!";
+            throw std::runtime_error(s.str());
             }
         if (ny % didx.getH())
             {
-            m_exec_conf->msg->error() << "The number of mesh points along the y-direction (" << ny
-                                      << ") is not" << std::endl
-                                      << "a multiple of the height (" << didx.getH()
-                                      << ") of the processor grid!" << std::endl
-                                      << std::endl;
-            throw std::runtime_error("Error initializing charge.pppm");
+            std::ostringstream s;
+            s << "The number of mesh points along the y-direction (" << ny << ") is not"
+              << "a multiple of the height (" << didx.getH() << ") of the processor grid!";
+            throw std::runtime_error(s.str());
             }
         if (nz % didx.getD())
             {
-            m_exec_conf->msg->error() << "The number of mesh points along the z-direction (" << nz
-                                      << ") is not" << std::endl
-                                      << "a multiple of the depth (" << didx.getD()
-                                      << ") of the processor grid!" << std::endl
-                                      << std::endl;
-            throw std::runtime_error("Error initializing charge.pppm");
+            std::ostringstream s;
+            s << "The number of mesh points along the z-direction (" << nz << ") is not"
+              << "a multiple of the depth (" << didx.getD() << ") of the processor grid!";
+            throw std::runtime_error(s.str());
             }
 
         m_mesh_points.x /= didx.getW();

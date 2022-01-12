@@ -185,7 +185,7 @@ void gpu_update_mesh_table(const unsigned int n_groups,
 
         // scatter groups to destinations
         block_size = 256;
-        n_blocks = (group_size * n_groups) / block_size + 1;
+        n_blocks = (group_size_half * n_groups) / block_size + 1;
 
         hipLaunchKernelGGL(gpu_mesh_scatter_kernel<group_size>,
                            dim3(n_blocks),

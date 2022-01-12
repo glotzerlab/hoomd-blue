@@ -123,7 +123,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
                        tol);
         }
 
-    // rearrange the two particles in memory and see if they are properly updated
+        // rearrange the two particles in memory and see if they are properly updated
         {
         ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(),
                                    access_location::host,
@@ -499,7 +499,7 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
     fc1->compute(0);
     fc2->compute(0);
 
-    // verify that the forces are identical (within roundoff errors)
+        // verify that the forces are identical (within roundoff errors)
         {
         GlobalArray<Scalar4>& force_array_7 = fc1->getForceArray();
         GlobalArray<Scalar>& virial_array_7 = fc1->getVirialArray();

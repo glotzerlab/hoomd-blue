@@ -74,7 +74,7 @@ Install prerequisites
 
 **General requirements:**
 
-- C++14 capable compiler (tested with ``gcc`` 7, 8, 9, 10, 11 / ``clang`` 6, 7, 8, 9, 10, 11, 12)
+- C++14 capable compiler (tested with ``gcc`` 7, 8, 9, 10, 11 / ``clang`` 6, 7, 8, 9, 10, 11, 12, 13)
 - Python >= 3.6
 - NumPy >= 1.7
 - pybind11 >= 2.2
@@ -115,7 +115,7 @@ Install prerequisites
 
 **For runtime code generation** (required when ``ENABLE_LLVM=on``):
 
-- LLVM >= 10.0
+- LLVM >= 10.0, < 13
 
 **To build the documentation:**
 

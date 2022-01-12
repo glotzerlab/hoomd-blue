@@ -173,7 +173,7 @@ const unsigned int FILTER_BATCH_SIZE = 4;
 */
 __global__ void gpu_nlist_filter_kernel(unsigned int* d_n_neigh,
                                         unsigned int* d_nlist,
-                                        const unsigned int* d_head_list,
+                                        const size_t* d_head_list,
                                         const unsigned int* d_n_ex,
                                         const unsigned int* d_ex_list,
                                         const Index2D exli,
@@ -211,7 +211,7 @@ __global__ void gpu_nlist_filter_kernel(unsigned int* d_n_neigh,
         }
 
     // loop over the list, regenerating it as we go
-    const unsigned int my_head = d_head_list[idx];
+    const size_t my_head = d_head_list[idx];
     for (unsigned int cur_neigh_idx = 0; cur_neigh_idx < n_neigh; cur_neigh_idx++)
         {
         unsigned int cur_neigh = d_nlist[my_head + cur_neigh_idx];
@@ -240,7 +240,7 @@ __global__ void gpu_nlist_filter_kernel(unsigned int* d_n_neigh,
 
 hipError_t gpu_nlist_filter(unsigned int* d_n_neigh,
                             unsigned int* d_nlist,
-                            const unsigned int* d_head_list,
+                            const size_t* d_head_list,
                             const unsigned int* d_n_ex,
                             const unsigned int* d_ex_list,
                             const Index2D& exli,
@@ -368,8 +368,8 @@ hipError_t gpu_update_exclusion_list(const unsigned int* d_tag,
  * d_Nmax. A prefix sum is then performed in gpu_nlist_build_head_list() to accumulate starting
  * indices.
  */
-__global__ void gpu_nlist_init_head_list_kernel(unsigned int* d_head_list,
-                                                unsigned int* d_req_size_nlist,
+__global__ void gpu_nlist_init_head_list_kernel(size_t* d_head_list,
+                                                size_t* d_req_size_nlist,
                                                 const unsigned int* d_Nmax,
                                                 const Scalar4* d_pos,
                                                 const unsigned int N,
@@ -417,8 +417,8 @@ __global__ void gpu_nlist_init_head_list_kernel(unsigned int* d_head_list,
  * the last particle in d_req_size_nlist, the head index of the last particle is added to this
  * number to get the total size.
  */
-__global__ void gpu_nlist_get_nlist_size_kernel(unsigned int* d_req_size_nlist,
-                                                const unsigned int* d_head_list,
+__global__ void gpu_nlist_get_nlist_size_kernel(size_t* d_req_size_nlist,
+                                                const size_t* d_head_list,
                                                 const unsigned int N)
     {
     *d_req_size_nlist += d_head_list[N - 1];
@@ -440,8 +440,8 @@ __global__ void gpu_nlist_get_nlist_size_kernel(unsigned int* d_req_size_nlist,
  * performed in place on \a d_head_list using the thrust libraries and a single thread is used to
  * perform compute the total size of the neighbor list while still on device.
  */
-hipError_t gpu_nlist_build_head_list(unsigned int* d_head_list,
-                                     unsigned int* d_req_size_nlist,
+hipError_t gpu_nlist_build_head_list(size_t* d_head_list,
+                                     size_t* d_req_size_nlist,
                                      const unsigned int* d_Nmax,
                                      const Scalar4* d_pos,
                                      const unsigned int N,
@@ -469,7 +469,7 @@ hipError_t gpu_nlist_build_head_list(unsigned int* d_head_list,
                        N,
                        ntypes);
 
-    thrust::device_ptr<unsigned int> t_head_list = thrust::device_pointer_cast(d_head_list);
+    thrust::device_ptr<size_t> t_head_list = thrust::device_pointer_cast(d_head_list);
     thrust::exclusive_scan(t_head_list, t_head_list + N, t_head_list);
 
     hipLaunchKernelGGL((gpu_nlist_get_nlist_size_kernel),

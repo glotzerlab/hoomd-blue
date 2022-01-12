@@ -157,7 +157,7 @@ template<class Shape> void export_ExternalCallback(pybind11::module& m, const st
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, pybind11::object>());
     }
 
-    }      // end namespace detail
-    }      // namespace hpmc
-    }      // end namespace hoomd
+    }  // end namespace detail
+    }  // namespace hpmc
+    }  // end namespace hoomd
 #endif // _EXTERNAL_FIELD_LATTICE_H_

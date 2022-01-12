@@ -251,7 +251,7 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
         m_prof->push(m_exec_conf, "MPCD thermo");
         }
 
-    // first reduce the properties on the rank
+        // first reduce the properties on the rank
         {
         const Index3D& ci = m_cl->getCellIndexer();
         uint3 upper = make_uint3(ci.getW(), ci.getH(), ci.getD());

@@ -347,9 +347,8 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
         {
         if (m_exec_conf->getNPartitions() % npartition)
             {
-            m_exec_conf->msg->error() << "Total number of partitions not a multiple of number "
-                                      << "of Gibbs ensemble partitions." << std::endl;
-            throw std::runtime_error("Error setting up Gibbs ensemble integration.");
+            throw std::runtime_error("Total number of partitions not a multiple of the number "
+                                     "of Gibbs ensemble partitions.");
             }
 
         GPUVector<Scalar4> postype_backup(m_exec_conf);
@@ -1600,9 +1599,9 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
         if (!accept)
             {
-            // volume move rejected
+                // volume move rejected
 
-            // restore particle positions and orientations
+                // restore particle positions and orientations
                 {
                 ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                                access_location::host,

@@ -43,8 +43,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     // r_buff must be non-negative or it is not physical
     if (m_r_buff < 0.0)
         {
-        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
-        throw runtime_error("Error initializing NeighborList");
+        throw runtime_error("Requested buffer radius is less than zero.");
         }
 
     // initialize values
@@ -120,7 +119,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     TAG_ALLOCATION(m_nlist);
 
     // allocate head list indexer
-    GlobalArray<unsigned int> head_list(m_pdata->getMaxN(), m_exec_conf);
+    GlobalArray<size_t> head_list(m_pdata->getMaxN(), m_exec_conf);
     m_head_list.swap(head_list);
     TAG_ALLOCATION(m_head_list);
 
@@ -129,7 +128,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_Nmax.swap(Nmax);
     TAG_ALLOCATION(m_Nmax);
 
-    // flood Nmax with 4s initially
+        // flood Nmax with 4s initially
         {
         ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::overwrite);
         for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
@@ -465,8 +464,7 @@ void NeighborList::setRBuff(Scalar r_buff)
     m_r_buff = r_buff;
     if (m_r_buff < 0.0)
         {
-        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
-        throw runtime_error("Error changing NeighborList parameters");
+        throw runtime_error("Requested buffer radius is less than zero.");
         }
     notifyRCutMatrixChange();
     forceUpdate();
@@ -1103,20 +1101,17 @@ void NeighborList::addOneThreeExclusionsFromTopology()
 
         if (nBondsA >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagA << ".";
+            s << "Compile time maximum set to: " << MAXNBONDS - 1 << endl;
+            throw runtime_error(s.str());
             }
 
         if (nBondsB >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagB << ".";
+            throw runtime_error(s.str());
             }
 
         localBondList[tagA * MAXNBONDS + nBondsA] = tagB;
@@ -1187,20 +1182,16 @@ void NeighborList::addOneFourExclusionsFromTopology()
 
         if (nBondsA >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagA << ".";
+            throw runtime_error(s.str());
             }
 
         if (nBondsB >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagB << ".";
+            throw runtime_error(s.str());
             }
 
         localBondList[tagA * MAXNBONDS + nBondsA] = tagB;
@@ -1485,8 +1476,7 @@ unsigned int NeighborList::getSmallestRebuild()
  */
 void NeighborList::buildNlist(uint64_t timestep)
     {
-    m_exec_conf->msg->error() << "nlist: O(N^2) neighbor lists are no longer supported." << endl;
-    throw runtime_error("Error updating neighborlist bins");
+    throw runtime_error("Not implemented.");
     }
 
 /*! Translates the exclusions set in \c m_n_ex_tag and \c m_ex_list_tag to indices in \c m_n_ex_idx
@@ -1545,7 +1535,7 @@ void NeighborList::filterNlist()
         m_prof->push("filter");
 
     // access data
-    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_ex_list_idx(m_ex_list_idx,
                                             access_location::host,
@@ -1556,7 +1546,7 @@ void NeighborList::filterNlist()
     // for each particle's neighbor list
     for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
         {
-        unsigned int myHead = h_head_list.data[idx];
+        size_t myHead = h_head_list.data[idx];
         unsigned int n_neigh = h_n_neigh.data[idx];
         unsigned int n_ex = h_n_ex_idx.data[idx];
         unsigned int new_n_neigh = 0;
@@ -1605,11 +1595,9 @@ void NeighborList::buildHeadList()
     if (m_prof)
         m_prof->push("head-list");
 
-    unsigned int headAddress = 0;
+    size_t headAddress = 0;
         {
-        ArrayHandle<unsigned int> h_head_list(m_head_list,
-                                              access_location::host,
-                                              access_mode::overwrite);
+        ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::read);
@@ -1739,17 +1727,15 @@ void NeighborList::updateMemoryMapping()
         // stash this partition for the future, so we can unset hints again
         m_last_gpu_partition = gpu_partition;
 
-        // split preferred location of neighbor list across GPUs
+            // split preferred location of neighbor list across GPUs
             {
-            ArrayHandle<unsigned int> h_head_list(m_head_list,
-                                                  access_location::host,
-                                                  access_mode::read);
+            ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
 
             for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
                 {
                 auto range = gpu_partition.getRange(idev);
 
-                unsigned int start = h_head_list.data[range.first];
+                size_t start = h_head_list.data[range.first];
                 unsigned int end = (range.second == m_pdata->getN())
                                        ? m_nlist.getNumElements()
                                        : h_head_list.data[range.second];
@@ -1774,7 +1760,7 @@ void NeighborList::updateMemoryMapping()
                 continue;
 
             cudaMemAdvise(m_head_list.get() + range.first,
-                          sizeof(unsigned int) * nelem,
+                          sizeof(size_t) * nelem,
                           cudaMemAdviseSetPreferredLocation,
                           gpu_map[idev]);
             cudaMemAdvise(m_n_neigh.get() + range.first,
@@ -1788,7 +1774,7 @@ void NeighborList::updateMemoryMapping()
 
             // pin to that device by prefetching
             cudaMemPrefetchAsync(m_head_list.get() + range.first,
-                                 sizeof(unsigned int) * nelem,
+                                 sizeof(size_t) * nelem,
                                  gpu_map[idev]);
             cudaMemPrefetchAsync(m_n_neigh.get() + range.first,
                                  sizeof(unsigned int) * nelem,

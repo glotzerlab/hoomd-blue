@@ -169,7 +169,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
         CHECK_CLOSE(thermo->getTemperature(), 2.0, tol);
         }
 
-    // scale all particles so that they move into one common cell
+        // scale all particles so that they move into one common cell
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,

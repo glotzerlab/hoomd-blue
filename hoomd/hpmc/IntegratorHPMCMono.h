@@ -1228,8 +1228,7 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
 
     if (!m_past_first_run)
         {
-        m_exec_conf->msg->error() << "get_patch_energy only works after a run() command" << std::endl;
-        throw std::runtime_error("Error communicating in count_overlaps");
+        throw std::runtime_error("computePatchEnergy must be called after run().");
         }
 
     // build an up to date AABB tree
@@ -1420,9 +1419,7 @@ void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& pa
     // validate input
     if (typ >= this->m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "integrate.HPMCIntegrator_?." << /*evaluator::getName() <<*/ ": Trying to set pair params for a non existent type! "
-                  << typ << std::endl;
-        throw std::runtime_error("Error setting parameters in IntegratorHPMCMono");
+        throw std::runtime_error("Invalid particle type.");
         }
 
     // need to scope this because updateCellWidth will access it
@@ -1831,7 +1828,6 @@ std::vector<std::pair<unsigned int, unsigned int> > IntegratorHPMCMono<Shape>::m
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        m_exec_conf->msg->error() << "map_overlaps does not support MPI parallel jobs" << std::endl;
         throw std::runtime_error("map_overlaps does not support MPI parallel jobs");
         }
     #endif
@@ -2032,7 +2028,6 @@ bool IntegratorHPMCMono<Shape>::py_test_overlap(unsigned int type_i, unsigned in
         #ifdef ENABLE_MPI
         if (m_pdata->getDomainDecomposition())
             {
-            this->m_exec_conf->msg->error() << "test_overlap does not support MPI parallel jobs with use_images=True" << std::endl;
             throw std::runtime_error("test_overlap does not support MPI parallel jobs");
             }
         #endif

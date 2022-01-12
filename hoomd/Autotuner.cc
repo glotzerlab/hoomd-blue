@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cfloat>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 using namespace std;
@@ -46,8 +47,9 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
     // initialize memory
     if (m_parameters.size() == 0)
         {
-        this->m_exec_conf->msg->error() << "Autotuner " << m_name << " got no parameters" << endl;
-        throw std::runtime_error("Error initializing autotuner");
+        std::ostringstream s;
+        s << "Error initializing autotuner: Autotuner " << m_name << " got no parameters";
+        throw std::runtime_error(s.str());
         }
     m_samples.resize(m_parameters.size());
     m_sample_median.resize(m_parameters.size());
@@ -112,8 +114,9 @@ Autotuner::Autotuner(unsigned int start,
     // initialize memory
     if (m_parameters.size() == 0)
         {
-        m_exec_conf->msg->error() << "Autotuner " << m_name << " got no parameters" << endl;
-        throw std::runtime_error("Error initializing autotuner");
+        std::ostringstream s;
+        s << "Error initializing autotuner: Autotuner " << m_name << " got no parameters";
+        throw std::runtime_error(s.str());
         }
     m_samples.resize(m_parameters.size());
     m_sample_median.resize(m_parameters.size());

@@ -126,7 +126,7 @@ namespace detail
     {
 //! Export the MPCDCollisionMethod class to python
 void export_CollisionMethod(pybind11::module& m);
-    }      // end namespace detail
-    }      // end namespace mpcd
-    }      // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_COLLISION_METHOD_H_

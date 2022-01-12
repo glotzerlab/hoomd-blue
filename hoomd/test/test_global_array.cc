@@ -38,7 +38,7 @@ UP_TEST(GlobalArray_basic_tests)
     // basic check: ensure that the number of elements is set correctly
     UP_ASSERT_EQUAL((int)gpu_array.getNumElements(), 100);
 
-    // basic check 2: acquire the data on the host and fill out a pattern
+        // basic check 2: acquire the data on the host and fill out a pattern
         {
         ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
         UP_ASSERT(h_handle.data != NULL);
@@ -46,7 +46,7 @@ UP_TEST(GlobalArray_basic_tests)
             h_handle.data[i] = i;
         }
 
-    // basic check 3: verify the data set in check 2
+        // basic check 3: verify the data set in check 2
         {
         ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::read);
         UP_ASSERT(h_handle.data != NULL);
@@ -99,7 +99,7 @@ UP_TEST(GlobalArray_transfer_tests)
 
     GlobalArray<int> gpu_array(100, exec_conf);
 
-    // initialize the data on the device
+        // initialize the data on the device
         {
         ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
         UP_ASSERT(d_handle.data != NULL);
@@ -109,7 +109,7 @@ UP_TEST(GlobalArray_transfer_tests)
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
-    // copy it to the host and verify
+        // copy it to the host and verify
         {
         ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
         UP_ASSERT(h_handle.data != NULL);
@@ -121,7 +121,7 @@ UP_TEST(GlobalArray_transfer_tests)
             }
         }
 
-    // test host-> device copies
+        // test host-> device copies
         {
         ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
         UP_ASSERT(d_handle.data != NULL);
@@ -131,7 +131,7 @@ UP_TEST(GlobalArray_transfer_tests)
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
-    // via the read access mode
+        // via the read access mode
         {
         ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::read);
         UP_ASSERT(h_handle.data != NULL);
@@ -150,7 +150,7 @@ UP_TEST(GlobalArray_transfer_tests)
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
-    // and via the readwrite access mode
+        // and via the readwrite access mode
         {
         ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
         UP_ASSERT(h_handle.data != NULL);

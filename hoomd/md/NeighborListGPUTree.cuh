@@ -142,7 +142,7 @@ class LBVHTraverserWrapper
         unsigned int* neigh_list;
         unsigned int* nneigh;
         unsigned int* new_max_neigh;
-        unsigned int* first_neigh;
+        size_t* first_neigh;
         unsigned int max_neigh;
         };
 

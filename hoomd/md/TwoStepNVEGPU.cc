@@ -26,8 +26,7 @@ TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepNVEGPU when CUDA is disabled" << endl;
-        throw std::runtime_error("Error initializing TwoStepNVEGPU");
+        throw std::runtime_error("Cannot initialize TwoStepNVEGPU on a CPU device.");
         }
 
     // initialize autotuner

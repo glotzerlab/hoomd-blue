@@ -740,19 +740,19 @@ template<class CL> void celllist_basic_test(std::shared_ptr<ExecutionConfigurati
 
     // initialize mpcd system
     std::shared_ptr<mpcd::ParticleData> pdata;
-    // place each particle in the same cell, but on different ranks
-    /*
-     * The +/- halves of the box owned by each domain are:
-     *    x y z
-     * 0: - - -
-     * 1: + - -
-     * 2: - + -
-     * 3: + + -
-     * 4: - - +
-     * 5: + - +
-     * 6: - + +
-     * 7: + + +
-     */
+        // place each particle in the same cell, but on different ranks
+        /*
+         * The +/- halves of the box owned by each domain are:
+         *    x y z
+         * 0: - - -
+         * 1: + - -
+         * 2: - + -
+         * 3: + + -
+         * 4: - - +
+         * 5: + - +
+         * 6: - + +
+         * 7: + + +
+         */
         {
         auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(8);
 
@@ -1443,7 +1443,7 @@ template<class CL> void celllist_edge_test(std::shared_ptr<ExecutionConfiguratio
 //! dimension test case for MPCD CellList class
 UP_TEST(mpcd_cell_list_dimensions)
     {
-    // mpi in 1d
+        // mpi in 1d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(
             new ExecutionConfiguration(ExecutionConfiguration::CPU, std::vector<int>()));
@@ -1452,7 +1452,7 @@ UP_TEST(mpcd_cell_list_dimensions)
         celllist_dimension_test<mpcd::CellList>(exec_conf, false, true, false);
         celllist_dimension_test<mpcd::CellList>(exec_conf, false, false, true);
         }
-    // mpi in 2d
+        // mpi in 2d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(
             new ExecutionConfiguration(ExecutionConfiguration::CPU, std::vector<int>()));
@@ -1461,7 +1461,7 @@ UP_TEST(mpcd_cell_list_dimensions)
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, false, true);
         celllist_dimension_test<mpcd::CellList>(exec_conf, false, true, true);
         }
-    // mpi in 3d
+        // mpi in 3d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(
             new ExecutionConfiguration(ExecutionConfiguration::CPU, std::vector<int>()));
@@ -1488,7 +1488,7 @@ UP_TEST(mpcd_cell_list_edge_test)
 //! dimension test case for MPCD CellListGPU class
 UP_TEST(mpcd_cell_list_gpu_dimensions)
     {
-    // mpi in 1d
+        // mpi in 1d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(
             new ExecutionConfiguration(ExecutionConfiguration::GPU, std::vector<int>()));
@@ -1497,7 +1497,7 @@ UP_TEST(mpcd_cell_list_gpu_dimensions)
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, false, true, false);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, false, false, true);
         }
-    // mpi in 2d
+        // mpi in 2d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(
             new ExecutionConfiguration(ExecutionConfiguration::GPU, std::vector<int>()));
@@ -1506,7 +1506,7 @@ UP_TEST(mpcd_cell_list_gpu_dimensions)
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, false, true);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, false, true, true);
         }
-    // mpi in 3d
+        // mpi in 3d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(
             new ExecutionConfiguration(ExecutionConfiguration::GPU, std::vector<int>()));

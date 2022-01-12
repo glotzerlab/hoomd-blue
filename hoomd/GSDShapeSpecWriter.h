@@ -53,14 +53,16 @@ class GSDShapeSpecWriter
         {
         if (number == -1)
             {
-            this->m_exec_conf->msg->error() << "GSD: " << strerror(errno) << std::endl;
-            throw std::runtime_error("Error writing GSD file");
+            std::ostringstream s;
+            s << "Error writing GSD file: " << strerror(errno);
+            throw std::runtime_error(s.str());
             }
         else if (number != 0)
             {
-            this->m_exec_conf->msg->error() << "GSD: "
-                                            << "Unknown error " << number << std::endl;
-            throw std::runtime_error("Error writing GSD file");
+            std::ostringstream s;
+            s << "Error writing GSD file: "
+              << "Unknown error " << number;
+            throw std::runtime_error(s.str());
             }
         }
 
