@@ -1,8 +1,6 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-import copy
-
 import numpy as np
 import pytest
 
@@ -75,7 +73,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
     incircle_diameter = hexagon.incircle_radius
     r_cut_set = incircle_diameter * kernel_scale * r_cut_scale
 
-    alj = md.pair.aniso.ALJ(default_r_cut=r_cut_set, nlist=md.nlist.Cell())
+    alj = md.pair.aniso.ALJ(default_r_cut=r_cut_set, nlist=md.nlist.Cell(0.4))
 
     alj.shape["A"] = {
         "vertices": hexagon.vertices,
@@ -92,7 +90,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
         "alpha": alpha
     }
 
-    integrator = md.Integrator(dt=1e-4, aniso=True)
+    integrator = md.Integrator(dt=1e-4, integrate_rotational_dof=True)
     nve = md.methods.NVE(filter=hoomd.filter.All())
     integrator.methods.append(nve)
 
@@ -107,7 +105,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
     velocities = []
     total_energies = []
     while sim.timestep < n_total:
-        sim.run(1_000)
+        sim.run(1000)
         with sim.state.cpu_local_snapshot as snapshot:
             velocities.append(np.array(snapshot.particles.velocity, copy=True))
             total_energies.append(thermo.kinetic_energy
@@ -123,7 +121,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
 
 def test_type_shapes(simulation_factory, two_particle_snapshot_factory):
     pytest.importorskip("coxeter")
-    alj = md.pair.aniso.ALJ(md.nlist.Cell())
+    alj = md.pair.aniso.ALJ(md.nlist.Cell(buffer=0.1))
     sim = simulation_factory(two_particle_snapshot_factory(d=2.0))
     sim.operations.integrator = md.Integrator(0.005, forces=[alj])
 
@@ -182,7 +180,7 @@ def test_type_shapes(simulation_factory, two_particle_snapshot_factory):
         shape_spec["a"],
         get_rounding_radius(ellipse_axes[2], alj.params[("A", "A")]))
 
-    alj = copy.deepcopy(alj)
+    sim.operations.integrator.forces.remove(alj)
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=2, d=2))
     sim.operations.integrator = md.Integrator(0.005, forces=[alj])
