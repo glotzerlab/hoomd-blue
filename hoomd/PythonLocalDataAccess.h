@@ -238,6 +238,9 @@ template<class Output, class Data> class LocalDataAccess
      *  get_array_func: the method of m_data to use to access the array.
      *  flag: indications whether to get data on ghost particles and/or
      *  standard particles.
+     *  bufferWriteable: Whether this buffer should be read-only or not. If false,
+     *  the exposed buffer is read-only. If true, the buffer is writeable only
+     *  if the ghost data flag is standard.
      *  second_dimension_size: the size of the second dimension (defaults to
      *  0)
      *  offset: the offset in bytes from the start of the array to the
@@ -249,13 +252,18 @@ template<class Output, class Data> class LocalDataAccess
     Output getBuffer(std::unique_ptr<ArrayHandle<T>>& handle,
                      const U<T>& (Data::*get_array_func)() const,
                      GhostDataFlag flag,
+                     bool bufferWriteable,
                      unsigned int second_dimension_size = 0,
                      ssize_t offset = 0,
                      std::vector<ssize_t> strides = {})
         {
         checkManager();
 
-        bool read_only = flag != GhostDataFlag::standard;
+        bool read_only = !bufferWriteable;
+        if (flag != GhostDataFlag::standard && read_only == false)
+            {
+            read_only = false;
+            }
 
         updateHandle(handle, get_array_func, read_only);
 

@@ -8,8 +8,9 @@ set(_md_sources module-md.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
                    CosineSqAngleForceCompute.cc
+                   CustomForceCompute.cc
                    EvaluatorWalls.cc
-                   FIREEnergyMinimizer.cc
+                       FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
                    HarmonicAngleForceCompute.cc
@@ -74,6 +75,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMATypes.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
+                CustomForceCompute.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
                 EvaluatorBondTether.h
@@ -358,6 +360,8 @@ copy_files_to_build("${files}" "md" "*.py")
 install(FILES ${_md_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/md
        )
+
+add_subdirectory(data)
 
 add_subdirectory(pair)
 

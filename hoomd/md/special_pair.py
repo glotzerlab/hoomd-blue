@@ -28,6 +28,9 @@ class SpecialPair(Force):
 
     """
 
+    def __init__(self):
+        super.__init__()
+
     def _attach(self):
         # check that some bonds are defined
         if self._simulation.state._cpp_sys_def.getPairData().getNGlobal() == 0:
@@ -95,6 +98,7 @@ class LJ(SpecialPair):
     _cpp_class_name = "PotentialSpecialPairLJ"
 
     def __init__(self):
+        super.__init__()
         # setup the coefficient options
         params = TypeParameter(
             "params", "special_pair_types",
@@ -156,6 +160,7 @@ class Coulomb(SpecialPair):
     _cpp_class_name = "PotentialSpecialPairCoulomb"
 
     def __init__(self):
+        super.__init__()
         params = TypeParameter("params", "special_pair_types",
                                TypeParameterDict(alpha=float, len_keys=1))
         r_cut = TypeParameter("r_cut", "special_pair_types",

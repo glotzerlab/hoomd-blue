@@ -1029,7 +1029,8 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
         {
         return this->template getBuffer<unsigned int, unsigned int, GPUVector>(m_tags_handle,
                                                                                &GroupData::getTags,
-                                                                               flag);
+                                                                               flag,
+                                                                               true);
         }
 
     Output getRTags()
@@ -1044,7 +1045,7 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
         return this->template getBuffer<
             typeval_t,
             typename std::conditional<GroupData::typemap_val, unsigned int, Scalar>::type,
-            GPUVector>(m_typeval_handle, &GroupData::getTypeValArray, flag);
+            GPUVector>(m_typeval_handle, &GroupData::getTypeValArray, flag, true);
         }
 
     Output getMembers(GhostDataFlag flag)
@@ -1053,6 +1054,7 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
             m_members_handle,
             &GroupData::getMembersArray,
             flag,
+            true,
             GroupData::size);
         }
 
