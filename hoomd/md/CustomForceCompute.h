@@ -36,6 +36,16 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
     //! Destructor
     ~CustomForceCompute();
 
+    bool isAnisotropic()
+        {
+        return m_aniso;
+        }
+
+    void setAnisotropic(bool aniso)
+        {
+        m_aniso = aniso;
+        }
+
     protected:
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -43,6 +53,9 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
     private:
     //! A python callback when the force is updated
     pybind11::object m_setForces;
+
+    //! flag for anisotropic python custom forces
+    bool m_aniso = false;
     };
 
 namespace detail
