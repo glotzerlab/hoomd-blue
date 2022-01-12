@@ -506,18 +506,19 @@ class State:
         for groups in self._groups.values():
             for group in groups.values():
                 if integrator is not None:
-                    if not integrator._attached:
-                        raise RuntimeError(
-                            "Call update_group_dof after attaching")
-
-                    integrator._cpp_obj.updateGroupDOF(group)
+                    if integrator._attached:
+                        integrator._cpp_obj.updateGroupDOF(group)
                 else:
                     group.setTranslationalDOF(0)
                     group.setRotationalDOF(0)
 
     @property
-    def cpu_local_snapshot(self):
+    def cpu_local_snapshot(self, call_update_group_dof=False):
         """hoomd.data.LocalSnapshot: Expose simulation data on the CPU.
+
+        Args:
+            call_update_group_dof (bool): When ``True``, call
+                `update_group_dof` when closing the context manager.
 
         Provides access directly to the system state's particle, bond, angle,
         dihedral, improper, constaint, and pair data through a context manager.
@@ -555,11 +556,15 @@ class State:
             raise RuntimeError(
                 "Cannot enter cpu_local_snapshot context manager inside "
                 "another local_snapshot context manager.")
-        return LocalSnapshot(self)
+        return LocalSnapshot(self, call_update_group_dof)
 
     @property
-    def gpu_local_snapshot(self):
+    def gpu_local_snapshot(self, call_update_group_dof=False):
         """hoomd.data.LocalSnapshotGPU: Expose simulation data on the GPU.
+
+        Args:
+            call_update_group_dof (bool): When ``True``, call
+                `update_group_dof` when closing the context manager.
 
         Provides access directly to the system state's particle, bond, angle,
         dihedral, improper, constaint, and pair data through a context manager.
@@ -604,7 +609,7 @@ class State:
                 "Cannot enter gpu_local_snapshot context manager inside "
                 "another local_snapshot context manager.")
         else:
-            return LocalSnapshotGPU(self)
+            return LocalSnapshotGPU(self, call_update_group_dof)
 
     def thermalize_particle_momenta(self, filter, kT):
         """Assign random values to particle momenta.

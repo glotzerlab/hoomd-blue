@@ -52,8 +52,8 @@ if hoomd.version.gpu_enabled:
     class LocalSnapshotGPU(_LocalSnapshot):
         """Access system state data on the GPU."""
 
-        def __init__(self, state):
-            super().__init__(state)
+        def __init__(self, state, call_update_group_dof):
+            super().__init__(state, call_update_group_dof)
             self._particles = ParticleLocalAccessGPU(state)
             self._bonds = BondLocalAccessGPU(state)
             self._angles = AngleLocalAccessGPU(state)

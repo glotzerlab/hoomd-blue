@@ -82,8 +82,8 @@ class LocalSnapshot(_LocalSnapshot):
         after the regular data.
     """
 
-    def __init__(self, state):
-        super().__init__(state)
+    def __init__(self, state, call_update_group_dof):
+        super().__init__(state, call_update_group_dof)
         self._particles = ParticleLocalAccessCPU(state)
         self._bonds = BondLocalAccessCPU(state)
         self._angles = AngleLocalAccessCPU(state)
