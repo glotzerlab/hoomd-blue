@@ -144,14 +144,19 @@ class _InternalCustomOperation(CustomOperation,
     # These attributes are not accessible or able to be passed through to
     # prevent leaky abstractions and help promote the illusion of a single
     # object for cases of internal custom actions.
-    _disallowed_attrs = {'detach', 'attach', 'action'}
+    _disallowed_attrs = {'detach', 'attach', 'action', "act"}
+
+    def __getattribute__(self, attr):
+        if attr in object.__getattribute__(self, "_disallowed_attrs"):
+            raise AttributeError("{} object {} has no attribute {}.".format(
+                type(self), self, attr))
+        return object.__getattribute__(self, attr)
 
     def __getattr__(self, attr):
         if attr in self._disallowed_attrs:
             raise AttributeError("{} object {} has no attribute {}.".format(
                 type(self), self, attr))
-        else:
-            return super().__getattr__(attr)
+        return super().__getattr__(attr)
 
     @property
     @abstractmethod
@@ -170,10 +175,6 @@ class _InternalCustomOperation(CustomOperation,
         wrapping_method = getattr(self, self._operation_func).__func__
         setattr(wrapping_method, "__doc__", self._action.act.__doc__)
 
-    @property
-    def action(self):
-        raise AttributeError(f"Object {self} has no attribute 'action'.")
-
     def __dir__(self):
         """Expose all attributes for dynamic querying in notebooks and IDEs."""
         list_ = super().__dir__()
@@ -184,7 +185,3 @@ class _InternalCustomOperation(CustomOperation,
         list_.remove("action")
         list_.remove("act")
         return list_ + action_list
-
-    @property
-    def act(self):
-        raise AttributeError(f"Object {self} has no attribute 'act'.")
