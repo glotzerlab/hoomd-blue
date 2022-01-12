@@ -69,10 +69,10 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
 
     def _setattr_hook(self, attr, value):
         """This implements the __setattr__ pass through to the Action."""
-        if hasattr(self._action, attr):
+        if attr not in self.__dict__ and hasattr(self._action, attr):
             setattr(self._action, attr, value)
-        else:
-            object.__setattr__(self, attr, value)
+            return
+        object.__setattr__(self, attr, value)
 
     def _attach(self):
         """Attach to a `hoomd.Simulation`.
