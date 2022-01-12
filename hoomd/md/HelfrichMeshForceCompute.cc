@@ -26,7 +26,8 @@ namespace md
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef)
+HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                                   std::shared_ptr<MeshDefinition> meshdef)
     : ForceCompute(sysdef), m_K(NULL), m_mesh_data(meshdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing HelfrichMeshForceCompute" << endl;
@@ -77,7 +78,6 @@ HelfrichMeshForceCompute::~HelfrichMeshForceCompute()
 */
 void HelfrichMeshForceCompute::setParams(unsigned int type, Scalar K)
     {
-
     m_K[type] = K;
 
     // check for some silly errors a user could make
@@ -113,8 +113,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     if (m_prof)
         m_prof->push("Harmonic Angle");
 
-    computeSigma();// precompute sigmas
-
+    computeSigma(); // precompute sigmas
 
     assert(m_pdata);
     // access the particle data arrays
@@ -126,12 +125,14 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
 
-    ArrayHandle<typename MeshBond::members_t> h_bonds(m_mesh_data->getMeshBondData()->getMembersArray(),
-                                                   access_location::host,
-                                                   access_mode::read);
-    ArrayHandle<typename MeshTriangle::members_t> h_triangles(m_mesh_data->getMeshTriangleData()->getMembersArray(),
-                                                   access_location::host,
-                                                   access_mode::read);
+    ArrayHandle<typename MeshBond::members_t> h_bonds(
+        m_mesh_data->getMeshBondData()->getMembersArray(),
+        access_location::host,
+        access_mode::read);
+    ArrayHandle<typename MeshTriangle::members_t> h_triangles(
+        m_mesh_data->getMeshTriangleData()->getMembersArray(),
+        access_location::host,
+        access_mode::read);
 
     ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::read);
     ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::read);
@@ -160,12 +161,10 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     for (unsigned int i = 0; i < 6; i++)
         helfrich_virial[i] = Scalar(0.0);
 
-
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
         {
-
         // lookup the tag of each of the particles participating in the bond
         const typename MeshBond::members_t& bond = h_bonds.data[i];
         assert(bond.tag[0] < m_pdata->getMaximumTag() + 1);
@@ -179,32 +178,29 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         unsigned int tr_idx1 = bond.tag[2];
         unsigned int tr_idx2 = bond.tag[3];
 
-	if( tr_idx1 == tr_idx2)
-		continue;
-
+        if (tr_idx1 == tr_idx2)
+            continue;
 
         const typename MeshTriangle::members_t& triangle1 = h_triangles.data[tr_idx1];
         const typename MeshTriangle::members_t& triangle2 = h_triangles.data[tr_idx2];
 
         unsigned int idx_c = h_rtag.data[triangle1.tag[0]];
 
-	unsigned int iterator = 1;
-	while( idx_a == idx_c || idx_b == idx_c)
-		{
-		idx_c = h_rtag.data[triangle1.tag[iterator]];
-		iterator++;
-		}
+        unsigned int iterator = 1;
+        while (idx_a == idx_c || idx_b == idx_c)
+            {
+            idx_c = h_rtag.data[triangle1.tag[iterator]];
+            iterator++;
+            }
 
         unsigned int idx_d = h_rtag.data[triangle2.tag[0]];
 
-	iterator = 1;
-	while( idx_a == idx_d || idx_b == idx_d)
-		{
-		idx_d = h_rtag.data[triangle2.tag[iterator]];
-		iterator++;
-		}
-
-
+        iterator = 1;
+        while (idx_a == idx_d || idx_b == idx_d)
+            {
+            idx_d = h_rtag.data[triangle2.tag[iterator]];
+            iterator++;
+            }
 
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
@@ -213,14 +209,14 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
         // calculate d\vec{r}
         Scalar3 dab;
-        dab.x =  h_pos.data[idx_b].x - h_pos.data[idx_a].x;
-        dab.y =  h_pos.data[idx_b].y - h_pos.data[idx_a].y;
-        dab.z =  h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+        dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
+        dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
+        dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
 
         Scalar3 dac;
-        dac.x =  h_pos.data[idx_c].x - h_pos.data[idx_a].x;
-        dac.y =  h_pos.data[idx_c].y - h_pos.data[idx_a].y;
-        dac.z =  h_pos.data[idx_c].z - h_pos.data[idx_a].z;
+        dac.x = h_pos.data[idx_c].x - h_pos.data[idx_a].x;
+        dac.y = h_pos.data[idx_c].y - h_pos.data[idx_a].y;
+        dac.z = h_pos.data[idx_c].z - h_pos.data[idx_a].z;
 
         Scalar3 dad;
         dad.x = h_pos.data[idx_d].x - h_pos.data[idx_a].x;
@@ -260,13 +256,12 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar rsqbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
         Scalar rbd = sqrt(rsqbd);
 
-
-	Scalar3 nab, nac, nad, nbc, nbd;
-	nab = dab/rab;
-	nac = dac/rac;
-	nad = dad/rad;
-	nbc = dbc/rbc;
-	nbd = dbd/rbd;
+        Scalar3 nab, nac, nad, nbc, nbd;
+        nab = dab / rab;
+        nac = dac / rac;
+        nad = dad / rad;
+        nbc = dbc / rbc;
+        nbd = dbd / rbd;
 
         Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
 
@@ -279,7 +274,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         if (s_accb < SMALL)
             s_accb = SMALL;
         s_accb = 1.0 / s_accb;
-
 
         Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
 
@@ -341,61 +335,66 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             s_baad = SMALL;
         s_baad = 1.0 / s_baad;
 
+        Scalar cot_accb = c_accb * s_accb;
+        Scalar cot_addb = c_addb * s_addb;
 
-	Scalar cot_accb = c_accb*s_accb;
-	Scalar cot_addb = c_addb*s_addb;
+        Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
-	Scalar sigma_hat_ab = (cot_accb + cot_addb)/2;
+        Scalar3 sigma_dash_a = h_sigma_dash.data[idx_a]; // precomputed
+        Scalar3 sigma_dash_b = h_sigma_dash.data[idx_b]; // precomputed
+        Scalar3 sigma_dash_c = h_sigma_dash.data[idx_c]; // precomputed
+        Scalar3 sigma_dash_d = h_sigma_dash.data[idx_d]; // precomputed
 
-	Scalar3 sigma_dash_a = h_sigma_dash.data[idx_a]; //precomputed
-	Scalar3 sigma_dash_b = h_sigma_dash.data[idx_b]; //precomputed
-	Scalar3 sigma_dash_c = h_sigma_dash.data[idx_c]; //precomputed
-	Scalar3 sigma_dash_d = h_sigma_dash.data[idx_d]; //precomputed
+        Scalar sigma_a = h_sigma.data[idx_a]; // precomputed
+        Scalar sigma_b = h_sigma.data[idx_b]; // precomputed
+        Scalar sigma_c = h_sigma.data[idx_c]; // precomputed
+        Scalar sigma_d = h_sigma.data[idx_d]; // precomputed
 
-	Scalar sigma_a = h_sigma.data[idx_a]; //precomputed
-	Scalar sigma_b = h_sigma.data[idx_b]; //precomputed
-	Scalar sigma_c = h_sigma.data[idx_c]; //precomputed
-	Scalar sigma_d = h_sigma.data[idx_d]; //precomputed
+        Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
+        dc_abbc = -nbc / rab - c_abbc / rab * nab;
+        dc_abbd = -nbd / rab - c_abbd / rab * nab;
+        dc_baac = nac / rab - c_baac / rab * nab;
+        dc_baad = nad / rab - c_baad / rab * nab;
 
-	Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
-	dc_abbc = -nbc/rab - c_abbc/rab*nab;
-	dc_abbd = -nbd/rab - c_abbd/rab*nab;
-	dc_baac = nac/rab - c_baac/rab*nab;
-	dc_baad = nad/rab - c_baad/rab*nab;
+        Scalar3 dsigma_hat_ac, dsigma_hat_ad, dsigma_hat_bc, dsigma_hat_bd;
+        dsigma_hat_ac = s_abbc * s_abbc * s_abbc * dc_abbc / 2;
+        dsigma_hat_ad = s_abbd * s_abbd * s_abbd * dc_abbd / 2;
+        dsigma_hat_bc = s_baac * s_baac * s_baac * dc_baac / 2;
+        dsigma_hat_bd = s_baad * s_baad * s_baad * dc_baad / 2;
 
-	Scalar3 dsigma_hat_ac, dsigma_hat_ad, dsigma_hat_bc, dsigma_hat_bd;
-	dsigma_hat_ac = s_abbc*s_abbc*s_abbc*dc_abbc/2;
-	dsigma_hat_ad = s_abbd*s_abbd*s_abbd*dc_abbd/2;
-	dsigma_hat_bc = s_baac*s_baac*s_baac*dc_baac/2;
-	dsigma_hat_bd = s_baad*s_baad*s_baad*dc_baad/2;
+        Scalar3 dsigma_a, dsigma_b, dsigma_c, dsigma_d;
+        dsigma_a = (dsigma_hat_ac * rsqac + dsigma_hat_ad * rsqad + 2 * sigma_hat_ab * dab) / 4;
+        dsigma_b = (dsigma_hat_bc * rsqbc + dsigma_hat_bd * rsqbd + 2 * sigma_hat_ab * dab) / 4;
+        dsigma_c = (dsigma_hat_ac * rsqac + dsigma_hat_bc * rsqbc) / 4;
+        dsigma_d = (dsigma_hat_ad * rsqad + dsigma_hat_bd * rsqbd) / 4;
 
-	Scalar3 dsigma_a, dsigma_b, dsigma_c, dsigma_d;
-	dsigma_a = (dsigma_hat_ac*rsqac + dsigma_hat_ad*rsqad + 2*sigma_hat_ab*dab)/4;
-	dsigma_b = (dsigma_hat_bc*rsqbc + dsigma_hat_bd*rsqbd + 2*sigma_hat_ab*dab)/4;
-	dsigma_c = (dsigma_hat_ac*rsqac + dsigma_hat_bc*rsqbc)/4;
-	dsigma_d = (dsigma_hat_ad*rsqad + dsigma_hat_bd*rsqbd)/4;
+        Scalar dsigma_dash_a = dot(dsigma_hat_ac, dac) + dot(dsigma_hat_ad, dad) + sigma_hat_ab;
+        Scalar dsigma_dash_b = dot(dsigma_hat_bc, dbc) + dot(dsigma_hat_bd, dbd) - sigma_hat_ab;
+        Scalar dsigma_dash_c = -dot(dsigma_hat_ac, dac) - dot(dsigma_hat_bc, dbc);
+        Scalar dsigma_dash_d = -dot(dsigma_hat_ad, dad) - dot(dsigma_hat_bd, dbd);
 
-	Scalar dsigma_dash_a = dot(dsigma_hat_ac,dac) + dot(dsigma_hat_ad,dad) + sigma_hat_ab;
-	Scalar dsigma_dash_b = dot(dsigma_hat_bc,dbc) + dot(dsigma_hat_bd,dbd) - sigma_hat_ab;
-	Scalar dsigma_dash_c = -dot(dsigma_hat_ac,dac) - dot(dsigma_hat_bc,dbc);
-	Scalar dsigma_dash_d = -dot(dsigma_hat_ad,dad) - dot(dsigma_hat_bd,dbd);
-
-
-	Scalar3 Fa;
-	Fa = m_K[0]*(dsigma_dash_a*sigma_dash_a/sigma_a - dot(sigma_dash_a,sigma_dash_a)/(2*sigma_a*sigma_a)*dsigma_a);
-	Fa += m_K[0]*(dsigma_dash_b*sigma_dash_b/sigma_b -dot(sigma_dash_b,sigma_dash_b)/(2*sigma_b*sigma_b)*dsigma_b);
-	Fa += m_K[0]*(dsigma_dash_c*sigma_dash_c/sigma_c -dot(sigma_dash_c,sigma_dash_c)/(2*sigma_c*sigma_c)*dsigma_c);
-	Fa += m_K[0]*(dsigma_dash_d*sigma_dash_d/sigma_d -dot(sigma_dash_d,sigma_dash_d)/(2*sigma_d*sigma_d)*dsigma_d);
-
+        Scalar3 Fa;
+        Fa = -m_K[0]
+             * (dsigma_dash_a * sigma_dash_a / sigma_a
+                - dot(sigma_dash_a, sigma_dash_a) / (2 * sigma_a * sigma_a) * dsigma_a);
+        Fa -= m_K[0]
+              * (dsigma_dash_b * sigma_dash_b / sigma_b
+                 - dot(sigma_dash_b, sigma_dash_b) / (2 * sigma_b * sigma_b) * dsigma_b);
+        Fa -= m_K[0]
+              * (dsigma_dash_c * sigma_dash_c / sigma_c
+                 - dot(sigma_dash_c, sigma_dash_c) / (2 * sigma_c * sigma_c) * dsigma_c);
+        Fa -= m_K[0]
+              * (dsigma_dash_d * sigma_dash_d / sigma_d
+                 - dot(sigma_dash_d, sigma_dash_d) / (2 * sigma_d * sigma_d) * dsigma_d);
 
         if (compute_virial)
             {
-            helfrich_virial[0] = Scalar(1. / 2.) * dab.x * Fa.x;// xx
-            helfrich_virial[1] = Scalar(1. / 2.) * dab.y * Fa.x;// xy
-            helfrich_virial[2] = Scalar(1. / 2.) * dab.z * Fa.x;// xz
-            helfrich_virial[3] = Scalar(1. / 2.) * dab.y * Fa.y;// yy
-            helfrich_virial[4] = Scalar(1. / 2.) * dab.z * Fa.y;// yz
-            helfrich_virial[5] = Scalar(1. / 2.) * dab.z * Fa.z;// zz
+            helfrich_virial[0] = Scalar(1. / 2.) * dab.x * Fa.x; // xx
+            helfrich_virial[1] = Scalar(1. / 2.) * dab.y * Fa.x; // xy
+            helfrich_virial[2] = Scalar(1. / 2.) * dab.z * Fa.x; // xz
+            helfrich_virial[3] = Scalar(1. / 2.) * dab.y * Fa.y; // yy
+            helfrich_virial[4] = Scalar(1. / 2.) * dab.z * Fa.y; // yz
+            helfrich_virial[5] = Scalar(1. / 2.) * dab.z * Fa.z; // zz
             }
 
         // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
@@ -405,7 +404,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w = m_K[0]/2.0*dot(sigma_dash_a,sigma_dash_a)/sigma_a;
+            h_force.data[idx_a].w = m_K[0] / 2.0 * dot(sigma_dash_a, sigma_dash_a) / sigma_a;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
             }
@@ -415,11 +414,10 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fa.x;
             h_force.data[idx_b].y -= Fa.y;
             h_force.data[idx_b].z -= Fa.z;
-            h_force.data[idx_b].w = m_K[0]/2.0*dot(sigma_dash_b,sigma_dash_b)/sigma_b;
+            h_force.data[idx_b].w = m_K[0] / 2.0 * dot(sigma_dash_b, sigma_dash_b) / sigma_b;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
-
         }
 
     if (m_prof)
@@ -428,17 +426,18 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
 void HelfrichMeshForceCompute::computeSigma()
     {
-
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
-    ArrayHandle<typename MeshBond::members_t> h_bonds(m_mesh_data->getMeshBondData()->getMembersArray(),
-                                                   access_location::host,
-                                                   access_mode::read);
-    ArrayHandle<typename MeshTriangle::members_t> h_triangles(m_mesh_data->getMeshTriangleData()->getMembersArray(),
-                                                   access_location::host,
-                                                   access_mode::read);
+    ArrayHandle<typename MeshBond::members_t> h_bonds(
+        m_mesh_data->getMeshBondData()->getMembersArray(),
+        access_location::host,
+        access_mode::read);
+    ArrayHandle<typename MeshTriangle::members_t> h_triangles(
+        m_mesh_data->getMeshTriangleData()->getMembersArray(),
+        access_location::host,
+        access_mode::read);
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
@@ -466,29 +465,29 @@ void HelfrichMeshForceCompute::computeSigma()
         unsigned int tr_idx1 = bond.tag[2];
         unsigned int tr_idx2 = bond.tag[3];
 
-	if( tr_idx1 == tr_idx2)
-		continue;
+        if (tr_idx1 == tr_idx2)
+            continue;
 
         const typename MeshTriangle::members_t& triangle1 = h_triangles.data[tr_idx1];
         const typename MeshTriangle::members_t& triangle2 = h_triangles.data[tr_idx2];
 
         unsigned int idx_c = h_rtag.data[triangle1.tag[0]];
 
-	unsigned int iterator = 1;
-	while( idx_a == idx_c || idx_b == idx_c)
-		{
-		idx_c = h_rtag.data[triangle1.tag[iterator]];
-		iterator++;
-		}
+        unsigned int iterator = 1;
+        while (idx_a == idx_c || idx_b == idx_c)
+            {
+            idx_c = h_rtag.data[triangle1.tag[iterator]];
+            iterator++;
+            }
 
         unsigned int idx_d = h_rtag.data[triangle2.tag[0]];
 
-	iterator = 1;
-	while( idx_a == idx_d || idx_b == idx_d)
-		{
-		idx_d = h_rtag.data[triangle2.tag[iterator]];
-		iterator++;
-		}
+        iterator = 1;
+        while (idx_a == idx_d || idx_b == idx_d)
+            {
+            idx_d = h_rtag.data[triangle2.tag[iterator]];
+            iterator++;
+            }
 
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
@@ -497,14 +496,14 @@ void HelfrichMeshForceCompute::computeSigma()
 
         // calculate d\vec{r}
         Scalar3 dab;
-        dab.x =  h_pos.data[idx_b].x - h_pos.data[idx_a].x;
-        dab.y =  h_pos.data[idx_b].y - h_pos.data[idx_a].y;
-        dab.z =  h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+        dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
+        dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
+        dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
 
         Scalar3 dac;
-        dac.x =  h_pos.data[idx_c].x - h_pos.data[idx_a].x;
-        dac.y =  h_pos.data[idx_c].y - h_pos.data[idx_a].y;
-        dac.z =  h_pos.data[idx_c].z - h_pos.data[idx_a].z;
+        dac.x = h_pos.data[idx_c].x - h_pos.data[idx_a].x;
+        dac.y = h_pos.data[idx_c].y - h_pos.data[idx_a].y;
+        dac.z = h_pos.data[idx_c].z - h_pos.data[idx_a].z;
 
         Scalar3 dad;
         dad.x = h_pos.data[idx_d].x - h_pos.data[idx_a].x;
@@ -543,11 +542,11 @@ void HelfrichMeshForceCompute::computeSigma()
         Scalar rbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
         rbd = sqrt(rbd);
 
-	Scalar3 nac, nad, nbc, nbd;
-	nac = dac/rac;
-	nad = dad/rad;
-	nbc = dbc/rbc;
-	nbd = dbd/rbd;
+        Scalar3 nac, nad, nbc, nbd;
+        nac = dac / rac;
+        nad = dad / rad;
+        nbc = dbc / rbc;
+        nbd = dbd / rbd;
 
         Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
 
@@ -573,26 +572,24 @@ void HelfrichMeshForceCompute::computeSigma()
             s_addb = SMALL;
         s_addb = 1.0 / s_addb;
 
-	Scalar cot_accb = c_accb*s_accb;
-	Scalar cot_addb = c_addb*s_addb;
+        Scalar cot_accb = c_accb * s_accb;
+        Scalar cot_addb = c_addb * s_addb;
 
-	Scalar sigma_hat_ab = (cot_accb + cot_addb)/2;
+        Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
+        Scalar sigma_a = sigma_hat_ab * rsqab * 0.25;
 
-	Scalar sigma_a = sigma_hat_ab*rsqab*0.25;
+        h_sigma.data[idx_a] += sigma_a;
+        h_sigma.data[idx_b] += sigma_a;
 
-	h_sigma.data[idx_a] += sigma_a;
-	h_sigma.data[idx_b] += sigma_a;
+        h_sigma_dash.data[idx_a].x += sigma_hat_ab * dab.x;
+        h_sigma_dash.data[idx_a].y += sigma_hat_ab * dab.y;
+        h_sigma_dash.data[idx_a].z += sigma_hat_ab * dab.z;
 
-	h_sigma_dash.data[idx_a].x += sigma_hat_ab*dab.x;
-	h_sigma_dash.data[idx_a].y += sigma_hat_ab*dab.y;
-	h_sigma_dash.data[idx_a].z += sigma_hat_ab*dab.z;
-
-	h_sigma_dash.data[idx_b].x -= sigma_hat_ab*dab.x;
-	h_sigma_dash.data[idx_b].y -= sigma_hat_ab*dab.y;
-	h_sigma_dash.data[idx_b].z -= sigma_hat_ab*dab.z;
-
-	}
+        h_sigma_dash.data[idx_b].x -= sigma_hat_ab * dab.x;
+        h_sigma_dash.data[idx_b].y -= sigma_hat_ab * dab.y;
+        h_sigma_dash.data[idx_b].z -= sigma_hat_ab * dab.z;
+        }
     }
 
 namespace detail
@@ -602,7 +599,7 @@ void export_HelfrichMeshForceCompute(pybind11::module& m)
     pybind11::class_<HelfrichMeshForceCompute,
                      ForceCompute,
                      std::shared_ptr<HelfrichMeshForceCompute>>(m, "HelfrichMeshForceCompute")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,std::shared_ptr<MeshDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
         .def("setParams", &HelfrichMeshForceCompute::setParamsPython)
         .def("getParams", &HelfrichMeshForceCompute::getParams);
     }

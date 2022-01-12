@@ -36,11 +36,11 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
                                                   Scalar3* d_sigma_dash,
                                                   const unsigned int N,
                                                   const Scalar4* d_pos,
-					          const unsigned int* d_rtag,
+                                                  const unsigned int* d_rtag,
                                                   BoxDim box,
                                                   const group_storage<4>* blist,
                                                   const group_storage<6>* d_triangles,
-					          const Index2D blist_idx,
+                                                  const Index2D blist_idx,
                                                   const unsigned int* n_bonds_list)
     {
     // start by identifying which particle we are to handle
@@ -70,79 +70,75 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         int cur_tr1_idx = cur_bond.idx[1];
         int cur_tr2_idx = cur_bond.idx[2];
 
-
-        if(cur_tr1_idx == cur_tr2_idx)
-        	continue;
+        if (cur_tr1_idx == cur_tr2_idx)
+            continue;
 
         const group_storage<6>& triangle1 = d_triangles[cur_tr1_idx];
 
         unsigned int cur_idx_c = d_rtag[triangle1.tag[0]];
 
-
         unsigned int iterator = 1;
-        while( idx == cur_idx_c || cur_bond_idx == cur_idx_c)
-        	{
-        	cur_idx_c = d_rtag[triangle1.tag[iterator]];
-        	iterator++;
-        	}
+        while (idx == cur_idx_c || cur_bond_idx == cur_idx_c)
+            {
+            cur_idx_c = d_rtag[triangle1.tag[iterator]];
+            iterator++;
+            }
 
         const group_storage<6>& triangle2 = d_triangles[cur_tr2_idx];
 
         unsigned int cur_idx_d = d_rtag[triangle2.tag[0]];
 
-
         iterator = 1;
-        while( idx == cur_idx_d || cur_bond_idx == cur_idx_d)
-        	{
-        	cur_idx_d = d_rtag[triangle2.tag[iterator]];
-        	iterator++;
-        	}
+        while (idx == cur_idx_d || cur_bond_idx == cur_idx_d)
+            {
+            cur_idx_d = d_rtag[triangle2.tag[iterator]];
+            iterator++;
+            }
 
-       // get the b-particle's position (MEM TRANSFER: 16 bytes)
-       Scalar4 bb_postype = d_pos[cur_bond_idx];
-       Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
-       // get the c-particle's position (MEM TRANSFER: 16 bytes)
-       Scalar4 cc_postype = d_pos[cur_idx_c];
-       Scalar3 cc_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
-       // get the c-particle's position (MEM TRANSFER: 16 bytes)
-       Scalar4 dd_postype = d_pos[cur_idx_d];
-       Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
+        // get the b-particle's position (MEM TRANSFER: 16 bytes)
+        Scalar4 bb_postype = d_pos[cur_bond_idx];
+        Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
+        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        Scalar4 cc_postype = d_pos[cur_idx_c];
+        Scalar3 cc_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
+        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        Scalar4 dd_postype = d_pos[cur_idx_d];
+        Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
 
+        Scalar3 dab = bb_pos - pos;
+        Scalar3 dac = cc_pos - pos;
+        Scalar3 dad = dd_pos - pos;
+        Scalar3 dbc = cc_pos - bb_pos;
+        Scalar3 dbd = dd_pos - bb_pos;
 
-       Scalar3 dab = bb_pos - pos;
-       Scalar3 dac = cc_pos - pos;
-       Scalar3 dad = dd_pos - pos;
-       Scalar3 dbc = cc_pos - bb_pos;
-       Scalar3 dbd = dd_pos - bb_pos;
+        dab = box.minImage(dab);
+        dac = box.minImage(dac);
+        dad = box.minImage(dad);
+        dbc = box.minImage(dbc);
+        dbd = box.minImage(dbd);
 
-       dab = box.minImage(dab);
-       dac = box.minImage(dac);
-       dad = box.minImage(dad);
-       dbc = box.minImage(dbc);
-       dbd = box.minImage(dbd);
+        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
+        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
 
-       // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-       // FLOPS: 14 / MEM TRANSFER: 2 Scalars
+        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
+        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+        Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+        rac = sqrt(rac);
+        Scalar rad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
+        rad = sqrt(rad);
 
-       // FLOPS: 42 / MEM TRANSFER: 6 Scalars
-       Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-       Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-       rac = sqrt(rac);
-       Scalar rad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
-       rad = sqrt(rad);
+        Scalar rbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
+        rbc = sqrt(rbc);
+        Scalar rbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
+        rbd = sqrt(rbd);
 
-       Scalar rbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
-       rbc = sqrt(rbc);
-       Scalar rbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
-       rbd = sqrt(rbd);
+        Scalar3 nac, nad, nbc, nbd;
+        nac = dac / rac;
+        nad = dad / rad;
+        nbc = dbc / rbc;
+        nbd = dbd / rbd;
 
-       Scalar3 nac, nad, nbc, nbd;
-       nac = dac/rac;
-       nad = dad/rad;
-       nbc = dbc/rbc;
-       nbd = dbd/rbd;
-
-       Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
+        Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
 
         if (c_accb > 1.0)
             c_accb = 1.0;
@@ -166,15 +162,14 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
             s_addb = SMALL;
         s_addb = 1.0 / s_addb;
 
-        Scalar cot_accb = c_accb*s_accb;
-        Scalar cot_addb = c_addb*s_addb;
+        Scalar cot_accb = c_accb * s_accb;
+        Scalar cot_addb = c_addb * s_addb;
 
-        Scalar sigma_hat_ab = (cot_accb + cot_addb)/2;
+        Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
+        Scalar sigma_a = sigma_hat_ab * rsqab * 0.25;
 
-        Scalar sigma_a = sigma_hat_ab*rsqab*0.25;
-
-        Scalar3 sigma_dash_a = sigma_hat_ab*dab;
+        Scalar3 sigma_dash_a = sigma_hat_ab * dab;
 
         sigma += sigma_a;
         sigma_dash += sigma_dash_a;
@@ -183,7 +178,6 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_sigma[idx] = sigma;
     d_sigma_dash[idx] = sigma_dash;
-
     }
 
 /*! \param d_sigma Device memory to write per paricle sigma
@@ -202,18 +196,17 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
 hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
-				      Scalar3* d_sigma_dash,
+                                      Scalar3* d_sigma_dash,
                                       const unsigned int N,
                                       const Scalar4* d_pos,
-				      const unsigned int* d_rtag,
+                                      const unsigned int* d_rtag,
                                       const BoxDim& box,
                                       const group_storage<4>* blist,
                                       const group_storage<6>* d_triangles,
-				      const Index2D blist_idx,
+                                      const Index2D blist_idx,
                                       const unsigned int* n_bonds_list,
                                       int block_size)
     {
-
     unsigned int max_block_size;
     hipFuncAttributes attr;
     hipFuncGetAttributes(&attr, (const void*)gpu_compute_helfrich_sigma_kernel);
@@ -264,20 +257,20 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
 */
 __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
                                                   Scalar* d_virial,
-					          const size_t virial_pitch,
+                                                  const size_t virial_pitch,
                                                   const unsigned int N,
                                                   const Scalar4* d_pos,
-					          const unsigned int* d_rtag,
+                                                  const unsigned int* d_rtag,
                                                   BoxDim box,
-					          const Scalar* d_sigma,
+                                                  const Scalar* d_sigma,
                                                   const Scalar3* d_sigma_dash,
                                                   const group_storage<4>* blist,
                                                   const group_storage<6>* d_triangles,
-					          const Index2D blist_idx,
+                                                  const Index2D blist_idx,
                                                   const unsigned int* n_bonds_list,
-					          Scalar* d_params,
+                                                  Scalar* d_params,
                                                   const unsigned int n_bond_type,
-					          unsigned int* d_flags)
+                                                  unsigned int* d_flags)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -292,8 +285,8 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
-    Scalar3 sigma_dash_a = d_sigma_dash[idx]; //precomputed
-    Scalar sigma_a = d_sigma[idx]; //precomputed
+    Scalar3 sigma_dash_a = d_sigma_dash[idx]; // precomputed
+    Scalar sigma_a = d_sigma[idx];            // precomputed
 
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
@@ -302,7 +295,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     for (int i = 0; i < 6; i++)
         virial[i] = Scalar(0.0);
 
-     //loop over all angles
+    // loop over all angles
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
         group_storage<4> cur_bond = blist[blist_idx(idx, bond_idx)];
@@ -312,30 +305,30 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         int cur_tr2_idx = cur_bond.idx[2];
         int cur_bond_type = cur_bond.idx[3];
 
-        if(cur_tr1_idx == cur_tr2_idx)
-        	continue;
+        if (cur_tr1_idx == cur_tr2_idx)
+            continue;
 
-      const group_storage<6>& triangle1 = d_triangles[cur_tr1_idx];
+        const group_storage<6>& triangle1 = d_triangles[cur_tr1_idx];
 
-      unsigned int cur_idx_c = d_rtag[triangle1.tag[0]];
+        unsigned int cur_idx_c = d_rtag[triangle1.tag[0]];
 
         unsigned int iterator = 1;
-        while( idx == cur_idx_c || cur_bond_idx == cur_idx_c)
-        	{
-        	cur_idx_c = d_rtag[triangle1.tag[iterator]];
-        	iterator++;
-        	}
+        while (idx == cur_idx_c || cur_bond_idx == cur_idx_c)
+            {
+            cur_idx_c = d_rtag[triangle1.tag[iterator]];
+            iterator++;
+            }
 
-      const group_storage<6>& triangle2 = d_triangles[cur_tr2_idx];
+        const group_storage<6>& triangle2 = d_triangles[cur_tr2_idx];
 
         unsigned int cur_idx_d = d_rtag[triangle2.tag[0]];
 
         iterator = 1;
-        while( idx == cur_idx_d || cur_bond_idx == cur_idx_d)
-        	{
-        	cur_idx_d = d_rtag[triangle2.tag[iterator]];
-        	iterator++;
-        	}
+        while (idx == cur_idx_d || cur_bond_idx == cur_idx_d)
+            {
+            cur_idx_d = d_rtag[triangle2.tag[iterator]];
+            iterator++;
+            }
 
         // get the b-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 bb_postype = d_pos[cur_bond_idx];
@@ -346,7 +339,6 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 dd_postype = d_pos[cur_idx_d];
         Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
-
 
         Scalar3 dab = bb_pos - pos;
         Scalar3 dac = cc_pos - pos;
@@ -376,13 +368,12 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         Scalar rsqbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
         Scalar rbd = sqrt(rsqbd);
 
-
         Scalar3 nab, nac, nad, nbc, nbd;
-        nab = dab/rab;
-        nac = dac/rac;
-        nad = dad/rad;
-        nbc = dbc/rbc;
-        nbd = dbd/rbd;
+        nab = dab / rab;
+        nac = dac / rac;
+        nad = dad / rad;
+        nbc = dbc / rbc;
+        nbd = dbd / rbd;
 
         Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
 
@@ -395,7 +386,6 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         if (s_accb < SMALL)
             s_accb = SMALL;
         s_accb = 1.0 / s_accb;
-
 
         Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
 
@@ -457,63 +447,69 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
             s_baad = SMALL;
         s_baad = 1.0 / s_baad;
 
+        Scalar cot_accb = c_accb * s_accb;
+        Scalar cot_addb = c_addb * s_addb;
 
-        Scalar cot_accb = c_accb*s_accb;
-        Scalar cot_addb = c_addb*s_addb;
+        Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
-        Scalar sigma_hat_ab = (cot_accb + cot_addb)/2;
+        Scalar3 sigma_dash_b = d_sigma_dash[cur_bond_idx]; // precomputed
+        Scalar3 sigma_dash_c = d_sigma_dash[cur_idx_c];    // precomputed
+        Scalar3 sigma_dash_d = d_sigma_dash[cur_idx_d];    // precomputed
 
-        Scalar3 sigma_dash_b = d_sigma_dash[cur_bond_idx]; //precomputed
-        Scalar3 sigma_dash_c = d_sigma_dash[cur_idx_c]; //precomputed
-        Scalar3 sigma_dash_d = d_sigma_dash[cur_idx_d]; //precomputed
-
-        Scalar sigma_b = d_sigma[cur_bond_idx]; //precomputed
-        Scalar sigma_c = d_sigma[cur_idx_c]; //precomputed
-        Scalar sigma_d = d_sigma[cur_idx_d]; //precomputed
+        Scalar sigma_b = d_sigma[cur_bond_idx]; // precomputed
+        Scalar sigma_c = d_sigma[cur_idx_c];    // precomputed
+        Scalar sigma_d = d_sigma[cur_idx_d];    // precomputed
 
         Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
-        dc_abbc = -nbc/rab - c_abbc/rab*nab;
-        dc_abbd = -nbd/rab - c_abbd/rab*nab;
-        dc_baac = nac/rab - c_baac/rab*nab;
-        dc_baad = nad/rab - c_baad/rab*nab;
+        dc_abbc = -nbc / rab - c_abbc / rab * nab;
+        dc_abbd = -nbd / rab - c_abbd / rab * nab;
+        dc_baac = nac / rab - c_baac / rab * nab;
+        dc_baad = nad / rab - c_baad / rab * nab;
 
         Scalar3 dsigma_hat_ac, dsigma_hat_ad, dsigma_hat_bc, dsigma_hat_bd;
-        dsigma_hat_ac = s_abbc*s_abbc*s_abbc*dc_abbc/2;
-        dsigma_hat_ad = s_abbd*s_abbd*s_abbd*dc_abbd/2;
-        dsigma_hat_bc = s_baac*s_baac*s_baac*dc_baac/2;
-        dsigma_hat_bd = s_baad*s_baad*s_baad*dc_baad/2;
+        dsigma_hat_ac = s_abbc * s_abbc * s_abbc * dc_abbc / 2;
+        dsigma_hat_ad = s_abbd * s_abbd * s_abbd * dc_abbd / 2;
+        dsigma_hat_bc = s_baac * s_baac * s_baac * dc_baac / 2;
+        dsigma_hat_bd = s_baad * s_baad * s_baad * dc_baad / 2;
 
         Scalar3 dsigma_a, dsigma_b, dsigma_c, dsigma_d;
-        dsigma_a = (dsigma_hat_ac*rsqac + dsigma_hat_ad*rsqad + 2*sigma_hat_ab*dab)/4;
-        dsigma_b = (dsigma_hat_bc*rsqbc + dsigma_hat_bd*rsqbd + 2*sigma_hat_ab*dab)/4;
-        dsigma_c = (dsigma_hat_ac*rsqac + dsigma_hat_bc*rsqbc)/4;
-        dsigma_d = (dsigma_hat_ad*rsqad + dsigma_hat_bd*rsqbd)/4;
+        dsigma_a = (dsigma_hat_ac * rsqac + dsigma_hat_ad * rsqad + 2 * sigma_hat_ab * dab) / 4;
+        dsigma_b = (dsigma_hat_bc * rsqbc + dsigma_hat_bd * rsqbd + 2 * sigma_hat_ab * dab) / 4;
+        dsigma_c = (dsigma_hat_ac * rsqac + dsigma_hat_bc * rsqbc) / 4;
+        dsigma_d = (dsigma_hat_ad * rsqad + dsigma_hat_bd * rsqbd) / 4;
 
-        Scalar dsigma_dash_a = dot(dsigma_hat_ac,dac) + dot(dsigma_hat_ad,dad) + sigma_hat_ab;
-        Scalar dsigma_dash_b = dot(dsigma_hat_bc,dbc) + dot(dsigma_hat_bd,dbd) - sigma_hat_ab;
-        Scalar dsigma_dash_c = -dot(dsigma_hat_ac,dac) - dot(dsigma_hat_bc,dbc);
-        Scalar dsigma_dash_d = -dot(dsigma_hat_ad,dad) - dot(dsigma_hat_bd,dbd);
+        Scalar dsigma_dash_a = dot(dsigma_hat_ac, dac) + dot(dsigma_hat_ad, dad) + sigma_hat_ab;
+        Scalar dsigma_dash_b = dot(dsigma_hat_bc, dbc) + dot(dsigma_hat_bd, dbd) - sigma_hat_ab;
+        Scalar dsigma_dash_c = -dot(dsigma_hat_ac, dac) - dot(dsigma_hat_bc, dbc);
+        Scalar dsigma_dash_d = -dot(dsigma_hat_ad, dad) - dot(dsigma_hat_bd, dbd);
 
         Scalar K = __ldg(d_params + cur_bond_type);
 
         Scalar3 Fa;
-        Fa = K*(dsigma_dash_a*sigma_dash_a/sigma_a - dot(sigma_dash_a,sigma_dash_a)/(2*sigma_a*sigma_a)*dsigma_a);
-        Fa += K*(dsigma_dash_b*sigma_dash_b/sigma_b -dot(sigma_dash_b,sigma_dash_b)/(2*sigma_b*sigma_b)*dsigma_b);
-        Fa += K*(dsigma_dash_c*sigma_dash_c/sigma_c -dot(sigma_dash_c,sigma_dash_c)/(2*sigma_c*sigma_c)*dsigma_c);
-        Fa += K*(dsigma_dash_d*sigma_dash_d/sigma_d -dot(sigma_dash_d,sigma_dash_d)/(2*sigma_d*sigma_d)*dsigma_d);
-
+        Fa = -K
+             * (dsigma_dash_a * sigma_dash_a / sigma_a
+                - dot(sigma_dash_a, sigma_dash_a) / (2 * sigma_a * sigma_a) * dsigma_a);
+        Fa -= K
+              * (dsigma_dash_b * sigma_dash_b / sigma_b
+                 - dot(sigma_dash_b, sigma_dash_b) / (2 * sigma_b * sigma_b) * dsigma_b);
+        Fa -= K
+              * (dsigma_dash_c * sigma_dash_c / sigma_c
+                 - dot(sigma_dash_c, sigma_dash_c) / (2 * sigma_c * sigma_c) * dsigma_c);
+        Fa -= K
+              * (dsigma_dash_d * sigma_dash_d / sigma_d
+                 - dot(sigma_dash_d, sigma_dash_d) / (2 * sigma_d * sigma_d) * dsigma_d);
 
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
-        force.w = K/2.0*dot(sigma_dash_a,sigma_dash_a)/sigma_a;
+        force.w = K / 2.0 * dot(sigma_dash_a, sigma_dash_a) / sigma_a;
 
-        virial[0] += Scalar(1. / 2.) * dab.x * Fa.x;// xx
-        virial[1] += Scalar(1. / 2.) * dab.y * Fa.x;// xy
-        virial[2] += Scalar(1. / 2.) * dab.z * Fa.x;// xz
-        virial[3] += Scalar(1. / 2.) * dab.y * Fa.y;// yy
-        virial[4] += Scalar(1. / 2.) * dab.z * Fa.y;// yz
-        virial[5] += Scalar(1. / 2.) * dab.z * Fa.z;// zz
+        virial[0] += Scalar(1. / 2.) * dab.x * Fa.x; // xx
+        virial[1] += Scalar(1. / 2.) * dab.y * Fa.x; // xy
+        virial[2] += Scalar(1. / 2.) * dab.z * Fa.x; // xz
+        virial[3] += Scalar(1. / 2.) * dab.y * Fa.y; // yy
+        virial[4] += Scalar(1. / 2.) * dab.z * Fa.y; // yz
+        virial[5] += Scalar(1. / 2.) * dab.z * Fa.z; // zz
         }
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
@@ -545,23 +541,22 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
 */
 hipError_t gpu_compute_helfrich_force(Scalar4* d_force,
                                       Scalar* d_virial,
-				      const size_t virial_pitch,
+                                      const size_t virial_pitch,
                                       const unsigned int N,
                                       const Scalar4* d_pos,
-				      const unsigned int* d_rtag,
+                                      const unsigned int* d_rtag,
                                       const BoxDim& box,
-				      const Scalar* d_sigma,
+                                      const Scalar* d_sigma,
                                       const Scalar3* d_sigma_dash,
                                       const group_storage<4>* blist,
                                       const group_storage<6>* d_triangles,
-				      const Index2D blist_idx,
+                                      const Index2D blist_idx,
                                       const unsigned int* n_bonds_list,
-				      Scalar* d_params,
+                                      Scalar* d_params,
                                       const unsigned int n_bond_type,
                                       int block_size,
                                       unsigned int* d_flags)
     {
-
     unsigned int max_block_size;
     hipFuncAttributes attr;
     hipFuncGetAttributes(&attr, (const void*)gpu_compute_helfrich_force_kernel);
@@ -592,9 +587,9 @@ hipError_t gpu_compute_helfrich_force(Scalar4* d_force,
                        d_triangles,
                        blist_idx,
                        n_bonds_list,
-		       d_params,
-		       n_bond_type,
-		       d_flags);
+                       d_params,
+                       n_bond_type,
+                       d_flags);
 
     return hipSuccess;
     }
