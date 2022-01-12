@@ -281,6 +281,9 @@ class State:
     def set_snapshot(self, snapshot):
         """Restore the state of the simulation from a snapshot.
 
+        Also calls `update_group_dof` to count the number of degrees in the
+        system with the new state.
+
         Args:
             snapshot (hoomd.Snapshot): Snapshot of the system from
               `get_snapshot`
@@ -319,6 +322,7 @@ class State:
                 raise RuntimeError("Pair types must remain the same")
 
         self._cpp_sys_def.initializeFromSnapshot(snapshot._cpp_obj)
+        self.update_group_dof()
 
     @property
     def particle_types(self):
@@ -491,7 +495,9 @@ class State:
         of degrees of freedom given to that group by the simulation's
         Integrator. This method is called automatically when:
 
-        * The Integrator is attached to the simulation
+        * An Integrator is assigned to the simulation's operations.
+        * The `md.Integrator.integrate_rotational_dof`` parameter is set.
+        * `State.set_snapshot` is called.
 
         Call it manually to force an update.
         """
