@@ -108,6 +108,12 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         """`hoomd.custom.Action` The action the operation wraps."""
         return self._action
 
+    def __setstate__(self, state):
+        """Set object state from pickling or deepcopying."""
+        self._action = state.pop("_action")
+        for attr, value in state.items():
+            setattr(self, attr, value)
+
 
 class _AbstractLoggableWithPassthrough(_AbstractLoggable):
 
