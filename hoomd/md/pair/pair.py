@@ -296,6 +296,12 @@ class LJ(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
+
     Example::
 
         nl = nlist.Cell()
@@ -350,6 +356,12 @@ class Gauss(Pair):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
+
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
 
     Example::
 
@@ -498,6 +510,12 @@ class ExpandedLJ(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
+
     Example::
 
         nl = nlist.Cell()
@@ -561,6 +579,12 @@ class Yukawa(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
+
     Example::
 
         nl = nlist.Cell()
@@ -620,6 +644,12 @@ class Ewald(Pair):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
+
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``.
+
+        Type: `str`
 
     Example::
 
@@ -712,6 +742,8 @@ class Table(Pair):
             the tabulated force values :math:`[\\mathrm{force}]`. Must have the
             same length as ``V``.
 
+        mode (str): Energy shifting/smoothing mode: ``"none"``.
+
     Note:
         The implicitly defined :math:`r` values are those that would be returned
         by ``numpy.linspace(r_min, r_cut, len(V), endpoint=False)``.
@@ -781,6 +813,12 @@ class Morse(Pair):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
+
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
 
     Example::
 
@@ -872,6 +910,12 @@ class DPD(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``.
+
+        Type: `str`
+
     Example::
 
         nl = nlist.Cell()
@@ -948,6 +992,12 @@ class DPDConservative(Pair):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
+
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``.
+
+        Type: `str`
 
     Example::
 
@@ -1054,6 +1104,12 @@ class DPDLJ(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"`` or ``"shift"``.
+
+        Type: `str`
+
     Example::
 
         nl = nlist.Cell()
@@ -1064,7 +1120,7 @@ class DPDLJ(Pair):
         dpdlj.r_cut[('B', 'B')] = 2.0**(1.0/6.0)
     """
     _cpp_class_name = "PotentialPairDPDLJThermoDPD"
-    _accepted_modes = ("none", "shifted")
+    _accepted_modes = ("none", "shift")
 
     def __init__(self, nlist, kT, default_r_cut=None, mode='none'):
 
@@ -1143,6 +1199,12 @@ class ForceShiftedLJ(Pair):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
+
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``.
+
+        Type: `str`
 
     Example::
 
@@ -1223,6 +1285,12 @@ class Moliere(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
+
     Example::
 
         nl = nlist.Cell()
@@ -1301,6 +1369,12 @@ class ZBL(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``.
+
+        Type: `str`
+
     Example::
 
         nl = nlist.Cell()
@@ -1368,6 +1442,12 @@ class Mie(Pair):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
+
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
 
     Example::
 
@@ -1440,6 +1520,12 @@ class ExpandedMie(Pair):
 
         Type: `TypeParameter` [ `tuple` [``particle_type``, ``particle_type``],
         `dict`]
+
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
 
     Example::
 
@@ -1525,6 +1611,12 @@ class ReactionField(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
+
     Example::
 
         nl = nlist.Cell()
@@ -1603,6 +1695,12 @@ class DLVO(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"`` or ``"shift"``.
+
+        Type: `str`
+
     Example::
 
         nl = hoomd.md.nlist.Cell()
@@ -1671,6 +1769,12 @@ class Buckingham(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
+
     Example::
 
         nl = nlist.Cell()
@@ -1728,6 +1832,12 @@ class LJ1208(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
+
     Example::
 
         nl = nlist.Cell()
@@ -1782,6 +1892,12 @@ class LJ0804(Pair):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
+
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
 
     Example::
 
@@ -1851,6 +1967,12 @@ class Fourier(Pair):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
+
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
 
     Example::
 
@@ -1923,6 +2045,12 @@ class OPP(Pair):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
 
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
+
     Example::
 
         nl = nlist.Cell()
@@ -1991,6 +2119,12 @@ class TWF(Pair):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
+
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
 
     Example::
 
