@@ -483,30 +483,24 @@ class State:
             return group
 
     def update_group_dof(self):
-        """Update the number of degrees of freedom in each group.
+        """Schedule an update the number of degrees of freedom in each group.
 
-        The groups of particles selected by filters each need to know the number
-        of degrees of freedom given to that group by the simulation's
-        Integrator. This method is called automatically when:
+        `update_group_dof` requests that `Simulation` update the degrees of
+        freedom provided to each group by the Integrator. `Simulation` will
+        perform this update at the start of `Simulation.run` or at the start
+        of the next timestep during an ongoing call to `Simulation.run`.
 
-        * An Integrator is assigned to the simulation's operations.
-        * The `md.Integrator.integrate_rotational_dof`` parameter is set.
+        This method is called automatically when:
+
+        * An Integrator is assigned to the `Simulation`'s operations.
+        * The `md.Integrator` ``integrate_rotational_dof`` parameter is set.
         * `State.set_snapshot` is called.
         * After the context is released when `cpu_local_snapshot` or
           `gpu_local_snapshot` is called with ``call_update_group_dof=True``.
 
-        Call it manually to force an update.
+        Call `update_group_dof` manually to force an update.
         """
-        integrator = self._simulation.operations.integrator
-
-        for groups in self._simulation._cpp_sys.group_cache.values():
-            for group in groups.values():
-                if integrator is not None:
-                    if integrator._attached:
-                        integrator._cpp_obj.updateGroupDOF(group)
-                else:
-                    group.setTranslationalDOF(0)
-                    group.setRotationalDOF(0)
+        self._simulation._cpp_sys.updateGroupDOFOnNextStep()
 
     @property
     def cpu_local_snapshot(self, call_update_group_dof=False):

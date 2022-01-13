@@ -107,6 +107,12 @@ void System::run(uint64_t nsteps, bool write_at_start)
         }
 #endif
 
+    if (m_update_group_dof_next_step)
+        {
+        updateGroupDOF();
+        m_update_group_dof_next_step = false;
+        }
+
     // Prepare the run
     if (m_integrator)
         {
@@ -126,6 +132,12 @@ void System::run(uint64_t nsteps, bool write_at_start)
     // run the steps
     for (uint64_t count = 0; count < nsteps; count++)
         {
+        if (m_update_group_dof_next_step)
+            {
+            updateGroupDOF();
+            m_update_group_dof_next_step = false;
+            }
+
         for (auto& tuner : m_tuners)
             {
             if ((*tuner->getTrigger())(m_cur_tstep))
@@ -311,6 +323,30 @@ PDataFlags System::determineFlags(uint64_t tstep)
     return flags;
     }
 
+/*! Apply the degrees of freedom given by the integrator to all groups in the cache.
+*/
+void System::updateGroupDOF()
+    {
+    for (auto groups_pair : m_group_cache)
+        {
+        pybind11::dict groups = groups_pair.second.cast<pybind11::dict>();
+        for (auto group_pair : groups)
+            {
+            auto group = group_pair.second;
+            auto cpp_group = group.cast<std::shared_ptr<ParticleGroup>>();
+            if (m_integrator)
+                {
+                m_integrator->updateGroupDOF(cpp_group);
+                }
+            else
+                {
+                cpp_group->setTranslationalDOF(0);
+                cpp_group->setRotationalDOF(0);
+                }
+            }
+        }
+    }
+
 namespace detail
     {
 void export_System(pybind11::module& m)
@@ -347,6 +383,7 @@ void export_System(pybind11::module& m)
         .def_property_readonly("tuners", &System::getTuners)
         .def_property_readonly("computes", &System::getComputes)
         .def_property("group_cache", &System::getGroupCache, &System::setGroupCache)
+        .def("updateGroupDOFOnNextStep", &System::updateGroupDOFOnNextStep)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &System::setCommunicator)
 #endif
