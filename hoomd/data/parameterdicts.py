@@ -541,11 +541,15 @@ class TypeParameterDict(_ValidatedDefaultDict):
 
     def __getstate__(self):
         """Get object state for deepcopying and pickling."""
+        if self._attached:
+            dict_ = {k: self[k] for k in self}
+        else:
+            dict_ = self._dict
         return {
             "_len_keys": self._len_keys,
             "_default": self._default,
             "_type_converter": self._type_converter,
-            "_dict": self._dict,
+            "_dict": dict_,
             "_cpp_obj": None
         }
 
