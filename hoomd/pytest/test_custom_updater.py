@@ -11,7 +11,7 @@ class ChargeModifier(hoomd.custom.Action):
     def act(self, timestep):
         with self._state.cpu_local_snapshot as snap:
             index = snap.particles.rtag[timestep % self._state.N_particles]
-            if index != -1:
+            if index < len(snap.particles.position):
                 snap.particles.charge[index] = -5
 
 
