@@ -26,7 +26,7 @@ def snapshot_factory(device):
                 [1, 1, 1],
             ]
             snap.particles.angmom[:] = [[0, 2, 4, 6]] * 3
-            snap.particles.types = ['A']
+            snap.particles.types = ['A', 'B']
 
         return snap
 
@@ -82,6 +82,7 @@ def test_local_snapshot(simulation_factory, snapshot_factory):
     sim.run(0)
 
     # reduce the rotational dof by modifying the moment of inertia of particle 0
+    # TODO: Fix
     with sim.state.cpu_local_snapshot as snapshot:
         N = len(snapshot.particles.position)
         idx = snapshot.particles.rtag[0]
@@ -136,7 +137,7 @@ def test_set_method(simulation_factory, snapshot_factory):
     sim = simulation_factory(snapshot)
     filter_all = hoomd.filter.All()
     method1 = hoomd.md.methods.Langevin(filter=filter_all, kT=1.0)
-    integrator1 = hoomd.md.Integrator(
+    integrator = hoomd.md.Integrator(
         0.005,
         methods=[method1],
         integrate_rotational_dof=True,
@@ -144,7 +145,7 @@ def test_set_method(simulation_factory, snapshot_factory):
 
     method2 = hoomd.md.methods.NVT(filter=filter_all, kT=1.0, tau=1.0)
 
-    sim.operations.integrator = integrator1
+    sim.operations.integrator = integrator
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter=filter_all)
     sim.operations.add(thermo)
 
@@ -172,14 +173,14 @@ def test_set_integrate_rotational_dof(simulation_factory, snapshot_factory):
 
     sim = simulation_factory(snapshot)
     filter_all = hoomd.filter.All()
-    method1 = hoomd.md.methods.Langevin(filter=filter_all, kT=1.0)
-    integrator1 = hoomd.md.Integrator(
+    method = hoomd.md.methods.Langevin(filter=filter_all, kT=1.0)
+    integrator = hoomd.md.Integrator(
         0.005,
-        methods=[method1],
+        methods=[method],
         integrate_rotational_dof=True,
     )
 
-    sim.operations.integrator = integrator1
+    sim.operations.integrator = integrator
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter=filter_all)
     sim.operations.add(thermo)
 
@@ -191,4 +192,45 @@ def test_set_integrate_rotational_dof(simulation_factory, snapshot_factory):
     # check the degrees of freedom setting False
     sim.operations.integrator.integrate_rotational_dof = False
     sim.run(0)
+    assert thermo.rotational_degrees_of_freedom == 0
+
+
+def test_filter_updater(simulation_factory, snapshot_factory):
+    """Test dof update after filter updater triggers."""
+    snapshot = snapshot_factory()
+
+    sim = simulation_factory(snapshot)
+    filter_type = hoomd.filter.Type(['A'])
+    method = hoomd.md.methods.Langevin(filter=filter_type, kT=1.0)
+    integrator = hoomd.md.Integrator(
+        0.005,
+        methods=[method],
+        integrate_rotational_dof=True,
+    )
+
+    sim.operations.integrator = integrator
+    filter_all = hoomd.filter.All()
+    thermo = hoomd.md.compute.ThermodynamicQuantities(filter=filter_all)
+    sim.operations.add(thermo)
+
+    # check initial degrees of freedom
+    sim.run(0)
+    assert thermo.translational_degrees_of_freedom == 9
+    assert thermo.rotational_degrees_of_freedom == 7
+
+    with sim.state.cpu_local_snapshot as snapshot:
+        snapshot.particles.typeid[:] = 1
+
+    # group hasn't updated, DOF should remain the same
+    sim.run(0)
+    assert thermo.translational_degrees_of_freedom == 9
+    assert thermo.rotational_degrees_of_freedom == 7
+
+    # add the filter updater and trigger it to change the DOF
+    filter_updater = hoomd.update.FilterUpdater(
+        trigger=hoomd.trigger.Periodic(1), filters=[filter_type])
+    sim.operations.updaters.append(filter_updater)
+
+    sim.run(1)
+    assert thermo.translational_degrees_of_freedom == 0
     assert thermo.rotational_degrees_of_freedom == 0

@@ -132,12 +132,6 @@ void System::run(uint64_t nsteps, bool write_at_start)
     // run the steps
     for (uint64_t count = 0; count < nsteps; count++)
         {
-        if (m_update_group_dof_next_step)
-            {
-            updateGroupDOF();
-            m_update_group_dof_next_step = false;
-            }
-
         for (auto& tuner : m_tuners)
             {
             if ((*tuner->getTrigger())(m_cur_tstep))
@@ -148,7 +142,16 @@ void System::run(uint64_t nsteps, bool write_at_start)
         for (auto& updater_trigger_pair : m_updaters)
             {
             if ((*updater_trigger_pair.second)(m_cur_tstep))
+                {
                 updater_trigger_pair.first->update(m_cur_tstep);
+                m_update_group_dof_next_step |= updater_trigger_pair.first->mayChangeDegreesOfFreedom(m_cur_tstep);
+                }
+            }
+
+        if (m_update_group_dof_next_step)
+            {
+            updateGroupDOF();
+            m_update_group_dof_next_step = false;
             }
 
         // look ahead to the next time step and see which analyzers and updaters will be executed
