@@ -492,6 +492,8 @@ class State:
         * An Integrator is assigned to the simulation's operations.
         * The `md.Integrator.integrate_rotational_dof`` parameter is set.
         * `State.set_snapshot` is called.
+        * After the context is released when `cpu_local_snapshot` or
+          `gpu_local_snapshot` is called with ``call_update_group_dof=True``.
 
         Call it manually to force an update.
         """
