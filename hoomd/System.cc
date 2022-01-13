@@ -144,7 +144,8 @@ void System::run(uint64_t nsteps, bool write_at_start)
             if ((*updater_trigger_pair.second)(m_cur_tstep))
                 {
                 updater_trigger_pair.first->update(m_cur_tstep);
-                m_update_group_dof_next_step |= updater_trigger_pair.first->mayChangeDegreesOfFreedom(m_cur_tstep);
+                m_update_group_dof_next_step
+                    |= updater_trigger_pair.first->mayChangeDegreesOfFreedom(m_cur_tstep);
                 }
             }
 
@@ -327,7 +328,7 @@ PDataFlags System::determineFlags(uint64_t tstep)
     }
 
 /*! Apply the degrees of freedom given by the integrator to all groups in the cache.
-*/
+ */
 void System::updateGroupDOF()
     {
     for (auto groups_pair : m_group_cache)

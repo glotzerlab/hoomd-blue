@@ -182,7 +182,6 @@ class PYBIND11_EXPORT System
         }
 
     private:
-
     /// Update the number of degrees of freedom in cached groups
     void updateGroupDOF();
 

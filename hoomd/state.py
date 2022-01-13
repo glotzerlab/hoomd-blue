@@ -240,7 +240,6 @@ class State:
         # snapshots are not contexted at once.
         self._in_context_manager = False
 
-
     def get_snapshot(self):
         """Make a copy of the simulation current state.
 

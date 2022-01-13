@@ -22,6 +22,7 @@ class Method(_HOOMDBaseObject):
     Note:
         Users should use the subclasses and not instantiate `Method` directly.
     """
+
     def _attach(self):
         self._simulation.state.update_group_dof()
         super()._attach()

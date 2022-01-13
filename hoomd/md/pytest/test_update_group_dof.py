@@ -10,8 +10,7 @@ def snapshot_factory(device):
     """Make a test snapshot for update_group_dof testing."""
 
     def make_snapshot():
-        """Make the snapshot.
-        """
+        """Make the snapshot."""
         snap = hoomd.Snapshot(device.communicator)
 
         if snap.communicator.rank == 0:
