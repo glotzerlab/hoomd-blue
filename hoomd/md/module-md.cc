@@ -26,6 +26,7 @@
 #include "HarmonicAngleForceCompute.h"
 #include "HarmonicDihedralForceCompute.h"
 #include "HarmonicImproperForceCompute.h"
+#include "HelfrichMeshForceCompute.h"
 #include "IntegrationMethodTwoStep.h"
 #include "IntegratorTwoStep.h"
 #include "ManifoldDiamond.h"
@@ -79,6 +80,7 @@
 #include "HarmonicAngleForceComputeGPU.h"
 #include "HarmonicDihedralForceComputeGPU.h"
 #include "HarmonicImproperForceComputeGPU.h"
+#include "HelfrichMeshForceComputeGPU.h"
 #include "MuellerPlatheFlowGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
@@ -299,6 +301,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialMeshBond<PotentialMeshBondTether>(m, "PotentialMeshBondTether");
     export_PotentialSpecialPair<PotentialSpecialPairLJ>(m, "PotentialSpecialPairLJ");
     export_PotentialSpecialPair<PotentialSpecialPairCoulomb>(m, "PotentialSpecialPairCoulomb");
+
+    export_HelfrichMeshForceCompute(m);
     export_NeighborList(m);
     export_NeighborListBinned(m);
     export_NeighborListStencil(m);
@@ -321,6 +325,7 @@ PYBIND11_MODULE(_md, m)
     // export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
 #ifdef ENABLE_HIP
+    export_HelfrichMeshForceComputeGPU(m);
     export_NeighborListGPU(m);
     export_NeighborListGPUBinned(m);
     export_NeighborListGPUStencil(m);
