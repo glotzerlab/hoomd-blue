@@ -303,12 +303,10 @@ class _ValidatedDefaultDict(MutableMapping):
             return False
         if set(self.keys()) != set(other.keys()):
             return False
-        if isinstance(self.default, dict):
-            return all(
-                np.all(self[type_][key] == other[type_][key])
-                for type_ in self
-                for key in self[type_])
-        return all(np.all(self[type_] == other[type_]) for type_ in self)
+        for type_, value in self.items():
+            if value != other[type_]:
+                return False
+        return True
 
     @property
     def default(self):
