@@ -342,11 +342,10 @@ class PairLocalAccessBase(_GroupLocalAccess):
 
 class _LocalSnapshot:
 
-    def __init__(self, state, call_update_group_dof):
+    def __init__(self, state):
         self._state = state
         self._box = state.box
         self._local_box = state._cpp_sys_def.getParticleData().getBox()
-        self._call_update_group_dof = call_update_group_dof
 
     @property
     def global_box(self):
@@ -413,5 +412,3 @@ class _LocalSnapshot:
         self._impropers._exit()
         self._constraints._exit()
         self._pairs._exit()
-        if self._call_update_group_dof:
-            self._state.update_group_dof

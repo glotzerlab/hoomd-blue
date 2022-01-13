@@ -80,9 +80,9 @@ def test_local_snapshot(simulation_factory, snapshot_factory):
     sim.operations.add(thermo)
 
     sim.run(0)
+    assert thermo.rotational_degrees_of_freedom == 7
 
     # reduce the rotational dof by modifying the moment of inertia of particle 0
-    # TODO: Fix
     with sim.state.cpu_local_snapshot as snapshot:
         N = len(snapshot.particles.position)
         idx = snapshot.particles.rtag[0]
@@ -90,8 +90,14 @@ def test_local_snapshot(simulation_factory, snapshot_factory):
         if idx < N:
             snapshot.particles.moment_inertia[idx] = [0, 0, 0]
 
+    # group dof doesn't automatically update with local snapshots
     sim.run(0)
     assert thermo.rotational_degrees_of_freedom == 7
+
+    # test the update after manually calling
+    sim.state.update_group_dof()
+    sim.run(0)
+    assert thermo.rotational_degrees_of_freedom == 6
 
 
 def test_set_integrator(simulation_factory, snapshot_factory):
