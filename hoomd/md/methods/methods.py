@@ -26,6 +26,10 @@ class Method(_HOOMDBaseObject):
         self._simulation.state.update_group_dof()
         super()._attach()
 
+    def _detach(self):
+        self._simulation.state.update_group_dof()
+        super()._detach()
+
 
 class NVT(Method):
     r"""NVT Integration via the Nosé-Hoover thermostat.

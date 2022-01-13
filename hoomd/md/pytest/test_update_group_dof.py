@@ -159,6 +159,12 @@ def test_set_method(simulation_factory, snapshot_factory):
     assert thermo.translational_degrees_of_freedom == 6
     assert thermo.rotational_degrees_of_freedom == 7
 
+    # check after deleting a method
+    sim.operations.integrator.methods.pop()
+    sim.run(0)
+    assert thermo.translational_degrees_of_freedom == 0
+    assert thermo.rotational_degrees_of_freedom == 0
+
 
 def test_set_integrate_rotational_dof(simulation_factory, snapshot_factory):
     """Test dof update after setting integrate_rotational_dof."""
