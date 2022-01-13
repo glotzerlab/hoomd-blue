@@ -128,6 +128,12 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     //! Easy access to the energy on a single particle
     Scalar getEnergy(unsigned int tag);
 
+    virtual Scalar
+    energyDiff(unsigned int vb1, unsigned int vb2, unsigned int vt1, unsigned int vt2)
+        {
+        return 0;
+        }
+
     //! Get the array of computed forces
     GlobalArray<Scalar4>& getForceArray()
         {
