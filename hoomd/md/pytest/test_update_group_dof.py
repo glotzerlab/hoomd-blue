@@ -53,9 +53,10 @@ def test_set_snapshot(simulation_factory, snapshot_factory):
     assert thermo.rotational_degrees_of_freedom == 7
 
     # add a particle and check after set_snapshot
-    snapshot.particles.N = 4
     if snapshot.communicator.rank == 0:
-        snapshot.particles.moment_inertia[3] = [0, 0, 1]
+        snapshot.particles.N = 4
+        if snapshot.communicator.rank == 0:
+            snapshot.particles.moment_inertia[3] = [0, 0, 1]
     sim.state.set_snapshot(snapshot)
 
     sim.run(0)
