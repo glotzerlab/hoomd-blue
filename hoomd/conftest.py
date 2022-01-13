@@ -6,6 +6,7 @@
 ``conftest`` is not part of HOOMD-blue's public API.
 """
 
+from collections.abc import Mapping
 import logging
 import pickle
 import pytest
@@ -361,8 +362,21 @@ def equality_check(a, b):
     def check_item(x, y, attr):
         if isinstance(x, hoomd.operation._HOOMDGetSetAttrBase):
             equality_check(x, y)
-        else:
-            assert numpy.all(x == y), f"attr '{attr}' not equal:"
+            return
+        if isinstance(x, Mapping):
+            for k, v in x.items():
+                assert k in y, f"For attr {attr}, key difference {k}"
+                check_item(v, y[k], ".".join((attr, str(k))))
+            return
+        if not isinstance(x, str) and hasattr(x, "__len__"):
+            assert len(x) == len(y)
+            for i, (v_x, v_y) in enumerate(zip(x, y)):
+                check_item(v_x, v_y, attr + f"[{i}]")
+            return
+        if isinstance(x, float):
+            assert numpy.isclose(x, y), f"attr '{attr}' not equal:"
+            return
+        assert x == y, f"attr '{attr}' not equal:"
 
     if not isinstance(a, hoomd.operation._HOOMDGetSetAttrBase):
         return a == b
@@ -382,6 +396,18 @@ def equality_check(a, b):
             # Check item equality
             for key in param_keys:
                 check_item(a._param_dict[key], b._param_dict[key], key)
+            continue
+
+        if attr == "_typeparam_dict":
+            keys = a._typeparam_dict.keys()
+            b_keys = b._typeparam_dict.keys()
+            # Check key equality
+            assert keys == b_keys, "Incompatible _typeparam_dict:"
+            # Check item equality
+            for key in keys:
+                for type_, value in a._typeparam_dict[key].items():
+                    check_item(value, b._typeparam_dict[key][type_], ".".join(
+                        (key, str(type_))))
             continue
 
         check_item(a.__dict__[attr], b.__dict__[attr], attr)
