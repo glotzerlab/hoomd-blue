@@ -9,6 +9,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "hoomd/ForceCompute.h"
+#include "hoomd/Integrator.h"
 #include "hoomd/MeshDefinition.h"
 #include "hoomd/Updater.h"
 #include "hoomd/Variant.h"
@@ -38,6 +40,7 @@ class PYBIND11_EXPORT MeshDynamicBondUpdater : public Updater
     public:
     /// Constructor
     MeshDynamicBondUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<Integrator> integrator,
                            std::shared_ptr<MeshDefinition> mesh);
 
     /// Destructor
@@ -47,7 +50,8 @@ class PYBIND11_EXPORT MeshDynamicBondUpdater : public Updater
     virtual void update(uint64_t timestep);
 
     private:
-    std::shared_ptr<MeshDefinition> m_mesh; //!< Active force to call rotationalDiffusion on
+    std::shared_ptr<Integrator> m_integrator; //!< Integrator that advances time in this System
+    std::shared_ptr<MeshDefinition> m_mesh;   //!< Active force to call rotationalDiffusion on
     };
 
 namespace detail

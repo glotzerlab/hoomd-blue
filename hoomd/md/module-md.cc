@@ -36,6 +36,7 @@
 #include "ManifoldSphere.h"
 #include "ManifoldXYPlane.h"
 #include "ManifoldZCylinder.h"
+#include "MeshDynamicBondUpdater.h"
 #include "MolecularForceCompute.h"
 #include "MuellerPlatheFlow.h"
 #include "NeighborList.h"
@@ -303,6 +304,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialSpecialPair<PotentialSpecialPairCoulomb>(m, "PotentialSpecialPairCoulomb");
 
     export_HelfrichMeshForceCompute(m);
+    export_MeshDynamicBondUpdater(m);
     export_NeighborList(m);
     export_NeighborListBinned(m);
     export_NeighborListStencil(m);
