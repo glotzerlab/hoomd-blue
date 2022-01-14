@@ -211,7 +211,7 @@ class Custom(Force):
     ``_with_ghost``.
 
     Note:
-        Pass `aniso=True` to the `md.force.Custom` constructor if your custom
+        Pass ``aniso=True`` to the `md.force.Custom` constructor if your custom
         force produces non-zero torques on particles.
 
     Examples::
