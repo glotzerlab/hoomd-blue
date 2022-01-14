@@ -503,7 +503,7 @@ class State:
         * An Integrator is assigned to the `Simulation`'s operations.
         * The `md.Integrator` ``integrate_rotational_dof`` parameter is set.
         * `State.set_snapshot` is called.
-        * On timesteps where a `updater.FilterUpdater` triggers.
+        * On timesteps where a `update.FilterUpdater` triggers.
 
         Call `update_group_dof` manually to force an update, such as when
         you modify particle moments of inertia with `cpu_local_snapshot`.
