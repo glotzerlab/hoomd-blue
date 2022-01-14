@@ -80,6 +80,18 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     //! Benchmark the force compute
     virtual double benchmark(unsigned int num_iters);
 
+    //! Computes enegry differences for dynamical mesh bonding
+    virtual Scalar energyDiff(unsigned int idx_a,
+                              unsigned int idx_b,
+                              Scalar3 xab,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              Scalar3 xcd,
+                              unsigned int type_id)
+        {
+        return 0;
+        }
+
     //! Total the potential energy
     Scalar calcEnergySum();
 
@@ -127,12 +139,6 @@ class PYBIND11_EXPORT ForceCompute : public Compute
 
     //! Easy access to the energy on a single particle
     Scalar getEnergy(unsigned int tag);
-
-    virtual Scalar
-    energyDiff(unsigned int vb1, unsigned int vb2, unsigned int vt1, unsigned int vt2)
-        {
-        return 0;
-        }
 
     //! Get the array of computed forces
     GlobalArray<Scalar4>& getForceArray()

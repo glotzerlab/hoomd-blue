@@ -67,6 +67,14 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
+
+    virtual Scalar energyDiff(unsigned int idx_a,
+                              unsigned int idx_b,
+                              Scalar3 xab,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              Scalar3 xcd,
+                              unsigned int type_id);
     };
 
 template<class evaluator, class Bonds>
@@ -338,6 +346,76 @@ void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
 
     if (m_prof)
         m_prof->pop();
+    }
+
+template<class evaluator, class Bonds>
+Scalar PotentialBond<evaluator, Bonds>::energyDiff(unsigned int idx_a,
+                                                   unsigned int idx_b,
+                                                   Scalar3 xab,
+                                                   unsigned int idx_c,
+                                                   unsigned int idx_d,
+                                                   Scalar3 xcd,
+                                                   unsigned int type_id)
+    {
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+    // access the parameters
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+
+    // access diameter (if needed)
+    Scalar diameter_a = Scalar(0.0);
+    Scalar diameter_b = Scalar(0.0);
+    Scalar diameter_c = Scalar(0.0);
+    Scalar diameter_d = Scalar(0.0);
+    if (evaluator::needsDiameter())
+        {
+        diameter_a = h_diameter.data[idx_a];
+        diameter_b = h_diameter.data[idx_b];
+        diameter_c = h_diameter.data[idx_c];
+        diameter_d = h_diameter.data[idx_d];
+        }
+
+    // access charge (if needed)
+    Scalar charge_a = Scalar(0.0);
+    Scalar charge_b = Scalar(0.0);
+    Scalar charge_c = Scalar(0.0);
+    Scalar charge_d = Scalar(0.0);
+    if (evaluator::needsCharge())
+        {
+        charge_a = h_charge.data[idx_a];
+        charge_b = h_charge.data[idx_b];
+        charge_c = h_charge.data[idx_c];
+        charge_d = h_charge.data[idx_d];
+        }
+
+    // calculate r_ab squared
+    Scalar rsqab = dot(xab, xab);
+    Scalar rsqcd = dot(xcd, xcd);
+
+    // compute the force and potential energy
+    Scalar force_divr = Scalar(0.0);
+    Scalar bond_eng1 = Scalar(0.0);
+    Scalar bond_eng2 = Scalar(0.0);
+    evaluator eval1(rsqab, h_params.data[type_id]);
+    evaluator eval2(rsqcd, h_params.data[type_id]);
+    if (evaluator::needsDiameter())
+        {
+        eval1.setDiameter(diameter_a, diameter_b);
+        eval2.setDiameter(diameter_c, diameter_d);
+        }
+    if (evaluator::needsCharge())
+        {
+        eval1.setCharge(charge_a, charge_b);
+        eval2.setCharge(charge_c, charge_d);
+        }
+
+    eval1.evalForceAndEnergy(force_divr, bond_eng1);
+    eval2.evalForceAndEnergy(force_divr, bond_eng2);
+
+    return (bond_eng1 - bond_eng2) / 2.0;
     }
 
 #ifdef ENABLE_MPI

@@ -49,7 +49,14 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
         access_location::host,
         access_mode::readwrite);
 
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    ArrayHandle<typeval_t> h_typeval(m_mesh->getMeshBondData()->getTypeValArray(),
+                                     access_location::host,
+                                     access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
 
     std::vector<std::shared_ptr<ForceCompute>> forces = m_integrator->getForces();
 
@@ -99,11 +106,21 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             iterator++;
             }
 
+        Scalar3 posa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
+        Scalar3 posb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
+        Scalar3 posc = make_scalar3(h_pos.data[idx_c].x, h_pos.data[idx_c].y, h_pos.data[idx_c].z);
+        Scalar3 posd = make_scalar3(h_pos.data[idx_d].x, h_pos.data[idx_d].y, h_pos.data[idx_d].z);
+
+        Scalar3 xab = posb - posa;
+        Scalar3 xcd = posd - posc;
+
+        unsigned int type_id = h_typeval.data[i].type;
+
         Scalar energyDifference = 0;
 
         for (auto& force : forces)
             {
-            force->energyDiff(idx_a, idx_b, idx_c, idx_d);
+            force->energyDiff(idx_a, idx_b, xab, idx_c, idx_d, xcd, type_id);
             }
 
         if (energyDifference < 0)
