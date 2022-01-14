@@ -164,15 +164,9 @@ class PYBIND11_EXPORT System
         }
 
     /// Get the particle group cache.
-    pybind11::object getGroupCache()
+    std::vector<std::shared_ptr<ParticleGroup>>& getGroupCache()
         {
         return m_group_cache;
-        }
-
-    /// Set the group cache.
-    void setGroupCache(pybind11::object group_cache)
-        {
-        m_group_cache = group_cache;
         }
 
     /// Trigger an update of the group degrees of freedom.
@@ -243,7 +237,7 @@ class PYBIND11_EXPORT System
         m_exec_conf; //!< Stored shared ptr to the execution configuration
 
     /// Cache of ParticleGroup objects
-    pybind11::dict m_group_cache;
+    std::vector<std::shared_ptr<ParticleGroup>> m_group_cache;
 
     /// Flag to trigger update of group degrees of freedom
     bool m_update_group_dof_next_step = false;

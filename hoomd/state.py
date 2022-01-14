@@ -7,6 +7,8 @@
 particle positions, system bonds).
 
 """
+from collections import defaultdict
+
 from . import _hoomd
 from hoomd.box import Box
 from hoomd.snapshot import Snapshot
@@ -240,6 +242,12 @@ class State:
         # snapshots are not contexted at once.
         self._in_context_manager = False
 
+        # self._groups provides a cache of C++ group objects of the form:
+        # {type(filter): {filter: C++ group}}
+        # The first layer is to prevent user created filters with poorly
+        # implemented __hash__ and __eq__ from causing cache errors.
+        self._groups = defaultdict(dict)
+
     def get_snapshot(self):
         """Make a copy of the simulation current state.
 
@@ -463,7 +471,7 @@ class State:
 
     def _get_group(self, filter_):
         cls = filter_.__class__
-        group_cache = self._simulation._cpp_sys.group_cache
+        group_cache = self._groups
         if filter_ in group_cache[cls]:
             return group_cache[cls][filter_]
         else:
@@ -474,6 +482,7 @@ class State:
             else:
                 group = _hoomd.ParticleGroup(self._cpp_sys_def, filter_)
             group_cache[cls][filter_] = group
+            self._simulation._cpp_sys.group_cache.append(group)
 
             integrator = self._simulation.operations.integrator
             if integrator is not None and integrator._attached:

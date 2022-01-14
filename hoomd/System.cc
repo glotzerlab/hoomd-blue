@@ -26,6 +26,7 @@ PYBIND11_MAKE_OPAQUE(std::vector<_analyzer_pair>)
 typedef std::pair<std::shared_ptr<hoomd::Updater>, std::shared_ptr<hoomd::Trigger>> _updater_pair;
 PYBIND11_MAKE_OPAQUE(std::vector<_updater_pair>)
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::Tuner>>)
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ParticleGroup>>);
 
 namespace hoomd
     {
@@ -331,22 +332,16 @@ PDataFlags System::determineFlags(uint64_t tstep)
  */
 void System::updateGroupDOF()
     {
-    for (auto groups_pair : m_group_cache)
+    for (auto group : m_group_cache)
         {
-        pybind11::dict groups = groups_pair.second.cast<pybind11::dict>();
-        for (auto group_pair : groups)
+        if (m_integrator)
             {
-            auto group = group_pair.second;
-            auto cpp_group = group.cast<std::shared_ptr<ParticleGroup>>();
-            if (m_integrator)
-                {
-                m_integrator->updateGroupDOF(cpp_group);
-                }
-            else
-                {
-                cpp_group->setTranslationalDOF(0);
-                cpp_group->setRotationalDOF(0);
-                }
+            m_integrator->updateGroupDOF(group);
+            }
+        else
+            {
+            group->setTranslationalDOF(0);
+            group->setRotationalDOF(0);
             }
         }
     }
@@ -386,7 +381,8 @@ void export_System(pybind11::module& m)
         .def_property_readonly("updaters", &System::getUpdaters)
         .def_property_readonly("tuners", &System::getTuners)
         .def_property_readonly("computes", &System::getComputes)
-        .def_property("group_cache", &System::getGroupCache, &System::setGroupCache)
+        .def_property_readonly("group_cache", &System::getGroupCache)
+        .def("getGroupCache", &System::getGroupCache)
         .def("updateGroupDOFOnNextStep", &System::updateGroupDOFOnNextStep)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &System::setCommunicator)
