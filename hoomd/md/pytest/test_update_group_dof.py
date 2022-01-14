@@ -55,8 +55,7 @@ def test_set_snapshot(simulation_factory, snapshot_factory):
     # add a particle and check after set_snapshot
     if snapshot.communicator.rank == 0:
         snapshot.particles.N = 4
-        if snapshot.communicator.rank == 0:
-            snapshot.particles.moment_inertia[3] = [0, 0, 1]
+        snapshot.particles.moment_inertia[3] = [0, 0, 1]
     sim.state.set_snapshot(snapshot)
 
     sim.run(0)
@@ -65,7 +64,7 @@ def test_set_snapshot(simulation_factory, snapshot_factory):
 
 
 def test_local_snapshot(simulation_factory, snapshot_factory):
-    """Test dof update after local snapshot release."""
+    """Test dof doesn't update after local snapshot release."""
     snapshot = snapshot_factory()
 
     sim = simulation_factory(snapshot)
