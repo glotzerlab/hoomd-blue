@@ -51,6 +51,8 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
+    std::vector<std::shared_ptr<ForceCompute>> forces = m_integrator->getForces();
+
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
@@ -98,8 +100,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             }
 
         Scalar energyDifference = 0;
-
-        std::vector<std::shared_ptr<ForceCompute>> forces = m_integrator->getForces();
 
         for (auto& force : forces)
             {

@@ -216,6 +216,37 @@ class ReversePerturbationFlow(Updater):
         return self._cpp_obj.summed_exchanged_momentum
 
 
+class MeshDynamicalBonding(Updater):
+    """Dynamical bonding of the applies mesh.
+
+    Args:
+        trigger (hoomd.trigger.Trigger): Select the timesteps to triger bond
+        flip attempt.
+        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
+
+    Examples::
+
+        mdb = hoomd.md.update.MeshDynamicalBonding(hoomd.trigger.Periodic(100),
+        mesh)
+
+    """
+
+    def __init__(self, trigger, mesh):
+        # initialize base class
+        super().__init__(trigger)
+
+        self._mesh = mesh
+
+    def _attach(self):
+        # create the c++ mirror class
+
+        self._cpp_obj = _md.MeshDynamicBondUpdater(
+            self._simulation.state._cpp_sys_def,
+            self._simulation.operations.integrator._cpp_obj,
+            self._mesh._cpp_obj)
+        super()._attach()
+
+
 class ActiveRotationalDiffusion(Updater):
     r"""Updater to introduce rotational diffusion with an active force.
 
