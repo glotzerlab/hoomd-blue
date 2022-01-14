@@ -75,8 +75,7 @@ def _skip_if_gpu_device_and_no_cupy(sim):
 class MyForce(md.force.Custom):
 
     def __init__(self, local_force_name):
-        super().__init__()
-        self.aniso = True
+        super().__init__(aniso=True)
         self._local_force_name = local_force_name
 
     def set_forces(self, timestep):
@@ -353,14 +352,6 @@ def test_failure_with_cpu_device_and_gpu_buffer():
     sim.operations.integrator = integrator
     with pytest.raises(RuntimeError):
         sim.run(1)
-
-
-def test_get_set_aniso():
-    """Make sure aniso is settable."""
-    force = MyEmptyForce()
-    assert not force.aniso
-    force.aniso = True
-    assert force.aniso
 
 
 def test_torques_update(local_force_names, two_particle_snapshot_factory,

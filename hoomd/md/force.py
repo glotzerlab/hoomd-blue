@@ -196,8 +196,7 @@ class Custom(Force):
 
         class MyCustomForce(hoomd.force.Custom):
             def __init__(self):
-                super().__init__()
-                self.aniso = True
+                super().__init__(aniso=True)
 
             def set_forces(self, timestep):
                 with self.cpu_local_force_arrays as arrays:
@@ -212,10 +211,8 @@ class Custom(Force):
     ``_with_ghost``.
 
     Note:
-        If updating the torque array in the set_forces method, make sure to set
-        the `aniso` property of the custom force object to `True` so the
-        simulation knows to update the rotational degrees of freedom in the
-        system.
+        Pass `aniso=True` to the `md.force.Custom` constructor if your custom
+        force produces non-zero torques on particles.
 
     Examples::
 
@@ -246,18 +243,16 @@ class Custom(Force):
         Access to the force buffers is constant (O(1)) time.
     """
 
-    def __init__(self):
+    def __init__(self, aniso=False):
         super().__init__()
-        aniso_param = ParameterDict(aniso=bool)
-        aniso_param['aniso'] = False
-        self._param_dict.update(aniso_param)
+        self._aniso = aniso
 
         self._state = None  # to be set on attaching
 
     def _attach(self):
         self._state = self._simulation.state
         self._cpp_obj = _md.CustomForceCompute(self._state._cpp_sys_def,
-                                               self.set_forces)
+                                               self.set_forces, self._aniso)
         super()._attach()
 
     @abstractmethod

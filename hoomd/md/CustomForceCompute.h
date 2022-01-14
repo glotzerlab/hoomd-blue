@@ -31,7 +31,8 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
     public:
     //! Constructs the compute
     CustomForceCompute(std::shared_ptr<hoomd::SystemDefinition> sysdef,
-                       pybind11::object py_setForces);
+                       pybind11::object py_setForces,
+                       bool aniso);
 
     //! Destructor
     ~CustomForceCompute();
@@ -39,11 +40,6 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
     bool isAnisotropic()
         {
         return m_aniso;
-        }
-
-    void setAnisotropic(bool aniso)
-        {
-        m_aniso = aniso;
         }
 
     protected:
@@ -55,7 +51,7 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
     pybind11::object m_setForces;
 
     //! flag for anisotropic python custom forces
-    bool m_aniso = false;
+    bool m_aniso;
     };
 
 namespace detail
