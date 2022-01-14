@@ -6,6 +6,9 @@ set(files __init__.py
           test_box_resize.py
           test_collections.py
           test_communicator.py
+          test_custom_tuner.py
+          test_custom_updater.py
+          test_custom_writer.py
           test_dcd.py
           test_device.py
           test_filter_updater.py
