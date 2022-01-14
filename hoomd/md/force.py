@@ -181,8 +181,8 @@ class Custom(Force):
     """Custom forces implemented in python.
 
     Derive a custom force class from `Custom`, and override the `set_forces`
-    method to  compute forces on particles. Use have direct, zero-copy access to
-    the C++ managed buffers via either the `cpu_local_force_arrays` or
+    method to compute forces on particles. Users have direct, zero-copy access
+    to the C++ managed buffers via either the `cpu_local_force_arrays` or
     `gpu_local_force_arrays` property. Choose the property that corresponds to
     the device you wish to alter the data on. In addition to zero-copy access to
     force buffers, custom forces have access to the local snapshot API via the
@@ -196,7 +196,7 @@ class Custom(Force):
 
         class MyCustomForce(hoomd.force.Custom):
             def __init__(self):
-                super().__init__()
+                super().__init__(aniso=True)
 
             def set_forces(self, timestep):
                 with self.cpu_local_force_arrays as arrays:
@@ -209,6 +209,10 @@ class Custom(Force):
     associated with each rank. To access this read-only ghost data, access the
     property name with either the prefix ``ghost_`` of the suffix
     ``_with_ghost``.
+
+    Note:
+        Pass ``aniso=True`` to the `md.force.Custom` constructor if your custom
+        force produces non-zero torques on particles.
 
     Examples::
 
@@ -239,14 +243,16 @@ class Custom(Force):
         Access to the force buffers is constant (O(1)) time.
     """
 
-    def __init__(self):
+    def __init__(self, aniso=False):
         super().__init__()
+        self._aniso = aniso
+
         self._state = None  # to be set on attaching
 
     def _attach(self):
         self._state = self._simulation.state
         self._cpp_obj = _md.CustomForceCompute(self._state._cpp_sys_def,
-                                               self.set_forces)
+                                               self.set_forces, self._aniso)
         super()._attach()
 
     @abstractmethod

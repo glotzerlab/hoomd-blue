@@ -75,7 +75,7 @@ def _skip_if_gpu_device_and_no_cupy(sim):
 class MyForce(md.force.Custom):
 
     def __init__(self, local_force_name):
-        super().__init__()
+        super().__init__(aniso=True)
         self._local_force_name = local_force_name
 
     def set_forces(self, timestep):
@@ -352,3 +352,29 @@ def test_failure_with_cpu_device_and_gpu_buffer():
     sim.operations.integrator = integrator
     with pytest.raises(RuntimeError):
         sim.run(1)
+
+
+def test_torques_update(local_force_names, two_particle_snapshot_factory,
+                        force_simulation_factory):
+    """Confirm torque'd particles' orientation changes over time."""
+    initial_orientations = np.array([[1, 0, 0, 0], [1, 0, 0, 0]])
+    for local_force_name in local_force_names:
+        snap = two_particle_snapshot_factory()
+        force = MyForce(local_force_name)
+        sim = force_simulation_factory(force, snap)
+        if sim.device.communicator.rank == 0:
+            snap.particles.moment_inertia[:] = [[1, 1, 1], [1, 1, 1]]
+        sim.state.set_snapshot(snap)
+
+        _skip_if_gpu_device_and_no_cupy(sim)
+        sim.operations.integrator.integrate_rotational_dof = True
+
+        if sim.device.communicator.rank == 0:
+            npt.assert_allclose(snap.particles.orientation,
+                                initial_orientations)
+        sim.run(2)
+
+        snap = sim.state.get_snapshot()
+        if sim.device.communicator.rank == 0:
+            assert np.count_nonzero(snap.particles.orientation
+                                    - initial_orientations)
