@@ -48,7 +48,7 @@ class ExternalField(_HOOMDBaseObject):
 
 
 class Harmonic(ExternalField):
-    r"""Restrain particle positions and orientations with harmonic springs.  # noqa: E501,D415,W505
+    r"""Restrain particle positions and orientations with harmonic springs.
 
     Args:
         reference_positions ((*N_particles*, 3) `numpy.ndarray` of
@@ -189,7 +189,7 @@ class Harmonic(ExternalField):
 
     @log(requires_run=True)
     def energy(self):
-        """float: The energy of the harmonic field :math:`[\\mathrm{energy}]`.  # noqa
+        """float: The energy of the harmonic field :math:`[\\mathrm{energy}]`.
 
         """
         timestep = self._simulation.timestep
@@ -198,7 +198,7 @@ class Harmonic(ExternalField):
     @log(requires_run=True)
     def energy_translational(self):
         """float: The energy associated with positional fluctuations \
-            :math:`[\\mathrm{energy}]`.  # noqa
+            :math:`[\\mathrm{energy}]`.
 
         """
         timestep = self._simulation.timestep
