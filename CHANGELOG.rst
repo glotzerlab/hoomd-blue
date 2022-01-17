@@ -25,12 +25,12 @@ v3.0.0-beta.13 (2022-01-18)
   methods, and on steps where ``FilterUpdater`` acts on the system.
 * [breaking] ``update_group_dof`` defers counting the degrees of freedom until the next timestep or
   the next call to ``Simulation.run``.
-* [breaking] Renamed ``md.bond.FENE`` to ``md.bond.FENEWCA``
+* [breaking] Renamed ``md.bond.FENE`` to ``md.bond.FENEWCA``.
 * ``md.bond.FENEWCA`` takes a user provided ``delta`` parameter and ignores the particle diameters.
 * [breaking] ``md.pair.DLVO`` takes user provided ``a1`` and ``a2`` parameters and ignores the
   particle diameters.
 * Removed invalid linker options when using gcc on Apple systems.
-* Removed the `r_on` attribute and ``default_r_on`` constructor argument from pair potentials that
+* Removed the ``r_on`` attribute and ``default_r_on`` constructor argument from pair potentials that
   do not use it.
 
 *Fixed*
