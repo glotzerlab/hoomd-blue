@@ -13,6 +13,21 @@ valid_constructor_args = [
          k_translational=1.0,
          k_rotational=1.0,
          symmetries=[[1, 0, 0, 0]]),
+    dict(reference_positions=[[0, 0, 0]],
+         reference_orientations=[[1, 0, 0, 0]],
+         k_translational=0.0,
+         k_rotational=1.0,
+         symmetries=[[1, 0, 0, 0]]),
+    dict(reference_positions=[[0, 0, 0]],
+         reference_orientations=[[1, 0, 0, 0]],
+         k_translational=1.0,
+         k_rotational=0.0,
+         symmetries=[[1, 0, 0, 0]]),
+    dict(reference_positions=[[0, 0, 0]],
+         reference_orientations=[[1, 0, 0, 0]],
+         k_translational=0.0,
+         k_rotational=0.0,
+         symmetries=[[1, 0, 0, 0]]),
 ]
 
 
