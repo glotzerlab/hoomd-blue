@@ -111,13 +111,13 @@ class Harmonic(ExternalField):
     def __init__(self, reference_positions, reference_orientations,
                  k_translational, k_rotational, symmetries):
         param_dict = ParameterDict(
-            reference_positions=NDArrayValidator(dtype=np.float32,
+            reference_positions=NDArrayValidator(dtype=np.double,
                                                  shape=(None, 3)),
-            reference_orientations=NDArrayValidator(dtype=np.float32,
+            reference_orientations=NDArrayValidator(dtype=np.double,
                                                     shape=(None, 4)),
             k_translational=float,
             k_rotational=float,
-            symmetries=NDArrayValidator(dtype=np.float32, shape=(None, 4)),
+            symmetries=NDArrayValidator(dtype=np.double, shape=(None, 4)),
         )
         param_dict['k_translational'] = k_translational
         param_dict['k_rotational'] = k_rotational
