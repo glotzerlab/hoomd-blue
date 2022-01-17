@@ -65,8 +65,7 @@ class Harmonic(ExternalField):
             `float`): the orientations that are equivalent through symmetry,
             i.e., the rotation quaternions that leave the particles unchanged.
             At a minimum, the identity quaternion (``[1, 0, 0, 0]``) must be
-            included here.
-            :math:`[\mathrm{dimensionless}]`.
+            included here :math:`[\mathrm{dimensionless}]`.
 
     :py:class:`Harmonic` specifies that harmonic springs are used to
     restrain the position and orientation of every particle:
@@ -84,23 +83,25 @@ class Harmonic(ExternalField):
     :math:`q_{\mathrm{symmetry}}` is the given set of symmetric orientations
     from the ``symmetries`` argument.
 
+    .. py:attribute:: reference_positions
+
+        The reference positions, to which particles are restrained
+        :math:`[\mathrm{length}]`.
+
+         **Type:** np.ndarray, shape=(*N_particles*, 3), dtype=`float`
+
+    .. py:attribute:: reference_orientations
+
+        The reference orientations, to which particles are restrained
+        :math:`[\mathrm{dimensionless}]`.
+
+         **Type:** np.ndarray, shape=(*N_particles*, 4), dtype=`float`
+
     Attributes:
-        reference_positions (\
-                np.ndarray, shape=(*N_particles*, 3), dtype=`float`)
-            The reference positions, to which particles are restrained
-            :math:`[\mathrm{length}]`.
-
-        reference_orientations (\
-                np.ndarray, shape=(*N_particles*, 4), dtype=`float`)
-            The reference orientations, to which particles are
-            restrained :math:`[\mathrm{dimensionless}]`.
-
         k_translational (`float`): The translational spring constant
             :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
-
         k_rotational (`float`): The rotational spring constant
             :math:`[\mathrm{energy}]`.
-
         symmetries (np.ndarray, shape=(*N_particles*, 4), dtype=`float`)
             The orientations that are equivalent through symmetry,
             i.e., the rotation quaternions that leave the particles unchanged
