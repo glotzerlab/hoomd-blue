@@ -116,9 +116,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
                 {
                 this->m_reference_orientations[i]
                     = quat<Scalar>(rawdata[i],
-                                   vec3<Scalar>(rawdata[i + 1],
-                                                rawdata[i + 2],
-                                                rawdata[i + 3]));
+                                   vec3<Scalar>(rawdata[i + 1], rawdata[i + 2], rawdata[i + 3]));
                 }
             }
 
@@ -149,10 +147,9 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         m_symmetry.resize(N_sym);
         for (size_t i = 0; i < N_sym; i += 4)
             {
-            this->m_symmetry[i] = quat<Scalar>(rawdata[i],
-                                               vec3<Scalar>(rawdata[i + 1],
-                                                            rawdata[i + 2],
-                                                            rawdata[i + 3]));
+            this->m_symmetry[i]
+                = quat<Scalar>(rawdata[i],
+                               vec3<Scalar>(rawdata[i + 1], rawdata[i + 2], rawdata[i + 3]));
             }
 
 #ifdef ENABLE_MPI
