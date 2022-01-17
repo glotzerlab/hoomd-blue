@@ -78,7 +78,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
                 throw std::runtime_error("The array must be of shape (N_particles, 3).");
                 }
             const double* rawdata = static_cast<const double*>(ref_pos.data());
-            for (size_t i = 0; i < std::min<unsigned long>(N_particles, m_pdata->getNGlobal()); i++)
+            for (size_t i = 0; i < N_particles; i++)
                 {
                 const size_t array_index = i * 3;
                 this->m_reference_positions[i] = vec3<Scalar>(rawdata[array_index],
