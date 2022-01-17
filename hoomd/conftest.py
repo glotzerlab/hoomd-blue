@@ -555,7 +555,7 @@ class ListWriter(hoomd.custom.Action):
 
 def index_id(i):
     """Used for pytest fixture ids of indices."""
-    return f"({i=})"
+    return f"(i={i})"
 
 
 class BaseCollectionsTest:
