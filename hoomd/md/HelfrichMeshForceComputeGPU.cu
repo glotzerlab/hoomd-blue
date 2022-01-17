@@ -105,11 +105,11 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         Scalar4 dd_postype = d_pos[cur_idx_d];
         Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
 
-        Scalar3 dab = bb_pos - pos;
-        Scalar3 dac = cc_pos - pos;
-        Scalar3 dad = dd_pos - pos;
-        Scalar3 dbc = cc_pos - bb_pos;
-        Scalar3 dbd = dd_pos - bb_pos;
+        Scalar3 dab = pos - bb_pos;
+        Scalar3 dac = pos - cc_pos;
+        Scalar3 dad = pos - dd_pos;
+        Scalar3 dbc = bb_pos - cc_pos;
+        Scalar3 dbd = bb_pos - dd_pos;
 
         dab = box.minImage(dab);
         dac = box.minImage(dac);
@@ -145,10 +145,10 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         if (c_accb < -1.0)
             c_accb = -1.0;
 
-        Scalar s_accb = sqrt(1.0 - c_accb * c_accb);
-        if (s_accb < SMALL)
-            s_accb = SMALL;
-        s_accb = 1.0 / s_accb;
+        Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
+        if (inv_s_accb < SMALL)
+            inv_s_accb = SMALL;
+        inv_s_accb = 1.0 / inv_s_accb;
 
         Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
 
@@ -157,13 +157,13 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         if (c_addb < -1.0)
             c_addb = -1.0;
 
-        Scalar s_addb = sqrt(1.0 - c_addb * c_addb);
-        if (s_addb < SMALL)
-            s_addb = SMALL;
-        s_addb = 1.0 / s_addb;
+        Scalar inv_s_addb = sqrt(1.0 - c_addb * c_addb);
+        if (inv_s_addb < SMALL)
+            inv_s_addb = SMALL;
+        inv_s_addb = 1.0 / inv_s_addb;
 
-        Scalar cot_accb = c_accb * s_accb;
-        Scalar cot_addb = c_addb * s_addb;
+        Scalar cot_accb = c_accb * inv_s_accb;
+        Scalar cot_addb = c_addb * inv_s_addb;
 
         Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
@@ -287,6 +287,8 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
 
     Scalar3 sigma_dash_a = d_sigma_dash[idx]; // precomputed
     Scalar sigma_a = d_sigma[idx];            // precomputed
+    Scalar inv_sigma_a = 1.0 / sigma_a;
+    Scalar sigma_dash_a2 = 0.5 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a * inv_sigma_a;
 
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
@@ -340,11 +342,11 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         Scalar4 dd_postype = d_pos[cur_idx_d];
         Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
 
-        Scalar3 dab = bb_pos - pos;
-        Scalar3 dac = cc_pos - pos;
-        Scalar3 dad = dd_pos - pos;
-        Scalar3 dbc = cc_pos - bb_pos;
-        Scalar3 dbd = dd_pos - bb_pos;
+        Scalar3 dab = pos - bb_pos;
+        Scalar3 dac = pos - cc_pos;
+        Scalar3 dad = pos - dd_pos;
+        Scalar3 dbc = bb_pos - cc_pos;
+        Scalar3 dbd = bb_pos - dd_pos;
 
         dab = box.minImage(dab);
         dac = box.minImage(dac);
@@ -382,10 +384,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         if (c_accb < -1.0)
             c_accb = -1.0;
 
-        Scalar s_accb = sqrt(1.0 - c_accb * c_accb);
-        if (s_accb < SMALL)
-            s_accb = SMALL;
-        s_accb = 1.0 / s_accb;
+        Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
+        if (inv_s_accb < SMALL)
+            inv_s_accb = SMALL;
+        inv_s_accb = 1.0 / inv_s_accb;
 
         Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
 
@@ -394,10 +396,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         if (c_addb < -1.0)
             c_addb = -1.0;
 
-        Scalar s_addb = sqrt(1.0 - c_addb * c_addb);
-        if (s_addb < SMALL)
-            s_addb = SMALL;
-        s_addb = 1.0 / s_addb;
+        Scalar inv_s_addb = sqrt(1.0 - c_addb * c_addb);
+        if (inv_s_addb < SMALL)
+            inv_s_addb = SMALL;
+        inv_s_addb = 1.0 / inv_s_addb;
 
         Scalar c_abbc = -nab.x * nbc.x - nab.y * nbc.y - nab.z * nbc.z;
 
@@ -406,10 +408,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         if (c_abbc < -1.0)
             c_abbc = -1.0;
 
-        Scalar s_abbc = sqrt(1.0 - c_abbc * c_abbc);
-        if (s_abbc < SMALL)
-            s_abbc = SMALL;
-        s_abbc = 1.0 / s_abbc;
+        Scalar inv_s_abbc = sqrt(1.0 - c_abbc * c_abbc);
+        if (inv_s_abbc < SMALL)
+            inv_s_abbc = SMALL;
+        inv_s_abbc = 1.0 / inv_s_abbc;
 
         Scalar c_abbd = -nab.x * nbd.x - nab.y * nbd.y - nab.z * nbd.z;
 
@@ -418,10 +420,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         if (c_abbd < -1.0)
             c_abbd = -1.0;
 
-        Scalar s_abbd = sqrt(1.0 - c_abbd * c_abbd);
-        if (s_abbd < SMALL)
-            s_abbd = SMALL;
-        s_abbd = 1.0 / s_abbd;
+        Scalar inv_s_abbd = sqrt(1.0 - c_abbd * c_abbd);
+        if (inv_s_abbd < SMALL)
+            inv_s_abbd = SMALL;
+        inv_s_abbd = 1.0 / inv_s_abbd;
 
         Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
 
@@ -430,10 +432,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         if (c_baac < -1.0)
             c_baac = -1.0;
 
-        Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
-        if (s_baac < SMALL)
-            s_baac = SMALL;
-        s_baac = 1.0 / s_baac;
+        Scalar inv_s_baac = sqrt(1.0 - c_baac * c_baac);
+        if (inv_s_baac < SMALL)
+            inv_s_baac = SMALL;
+        inv_s_baac = 1.0 / inv_s_baac;
 
         Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
 
@@ -442,13 +444,13 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         if (c_baad < -1.0)
             c_baad = -1.0;
 
-        Scalar s_baad = sqrt(1.0 - c_baad * c_baad);
-        if (s_baad < SMALL)
-            s_baad = SMALL;
-        s_baad = 1.0 / s_baad;
+        Scalar inv_s_baad = sqrt(1.0 - c_baad * c_baad);
+        if (inv_s_baad < SMALL)
+            inv_s_baad = SMALL;
+        inv_s_baad = 1.0 / inv_s_baad;
 
-        Scalar cot_accb = c_accb * s_accb;
-        Scalar cot_addb = c_addb * s_addb;
+        Scalar cot_accb = c_accb * inv_s_accb;
+        Scalar cot_addb = c_addb * inv_s_addb;
 
         Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
@@ -467,10 +469,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         dc_baad = nad / rab - c_baad / rab * nab;
 
         Scalar3 dsigma_hat_ac, dsigma_hat_ad, dsigma_hat_bc, dsigma_hat_bd;
-        dsigma_hat_ac = s_abbc * s_abbc * s_abbc * dc_abbc / 2;
-        dsigma_hat_ad = s_abbd * s_abbd * s_abbd * dc_abbd / 2;
-        dsigma_hat_bc = s_baac * s_baac * s_baac * dc_baac / 2;
-        dsigma_hat_bd = s_baad * s_baad * s_baad * dc_baad / 2;
+        dsigma_hat_ac = inv_s_abbc * inv_s_abbc * inv_s_abbc * dc_abbc / 2;
+        dsigma_hat_ad = inv_s_abbd * inv_s_abbd * inv_s_abbd * dc_abbd / 2;
+        dsigma_hat_bc = inv_s_baac * inv_s_baac * inv_s_baac * dc_baac / 2;
+        dsigma_hat_bd = inv_s_baad * inv_s_baad * inv_s_baad * dc_baad / 2;
 
         Scalar3 dsigma_a, dsigma_b, dsigma_c, dsigma_d;
         dsigma_a = (dsigma_hat_ac * rsqac + dsigma_hat_ad * rsqad + 2 * sigma_hat_ab * dab) / 4;
@@ -485,24 +487,38 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
 
         Scalar K = __ldg(d_params + cur_bond_type);
 
+        Scalar inv_sigma_b = 1.0 / sigma_b;
+        Scalar inv_sigma_c = 1.0 / sigma_c;
+        Scalar inv_sigma_d = 1.0 / sigma_d;
+
+        Scalar sigma_dash_b2 = 0.5 * dot(sigma_dash_b, sigma_dash_b) * inv_sigma_b * inv_sigma_b;
+        Scalar sigma_dash_c2 = 0.5 * dot(sigma_dash_c, sigma_dash_c) * inv_sigma_c * inv_sigma_c;
+        Scalar sigma_dash_d2 = 0.5 * dot(sigma_dash_d, sigma_dash_d) * inv_sigma_d * inv_sigma_d;
+
+
         Scalar3 Fa;
-        Fa = -K
-             * (dsigma_dash_a * sigma_dash_a / sigma_a
-                - dot(sigma_dash_a, sigma_dash_a) / (2 * sigma_a * sigma_a) * dsigma_a);
-        Fa -= K
-              * (dsigma_dash_b * sigma_dash_b / sigma_b
-                 - dot(sigma_dash_b, sigma_dash_b) / (2 * sigma_b * sigma_b) * dsigma_b);
-        Fa -= K
-              * (dsigma_dash_c * sigma_dash_c / sigma_c
-                 - dot(sigma_dash_c, sigma_dash_c) / (2 * sigma_c * sigma_c) * dsigma_c);
-        Fa -= K
-              * (dsigma_dash_d * sigma_dash_d / sigma_d
-                 - dot(sigma_dash_d, sigma_dash_d) / (2 * sigma_d * sigma_d) * dsigma_d);
+
+        Fa.x = dsigma_dash_a * inv_sigma_a * sigma_dash_a.x - sigma_dash_a2 * dsigma_a.x;
+        Fa.x += (dsigma_dash_b * inv_sigma_b * sigma_dash_b.x - sigma_dash_b2 * dsigma_b.x);
+        Fa.x += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.x - sigma_dash_c2 * dsigma_c.x);
+        Fa.x += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.x - sigma_dash_d2 * dsigma_d.x);
+
+        Fa.y = dsigma_dash_a * inv_sigma_a * sigma_dash_a.y - sigma_dash_a2 * dsigma_a.y;
+        Fa.y += (dsigma_dash_b * inv_sigma_b * sigma_dash_b.y - sigma_dash_b2 * dsigma_b.y);
+        Fa.y += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.y - sigma_dash_c2 * dsigma_c.y);
+        Fa.y += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.y - sigma_dash_d2 * dsigma_d.y);
+
+        Fa.z = dsigma_dash_a * inv_sigma_a * sigma_dash_a.z - sigma_dash_a2 * dsigma_a.z;
+        Fa.z += (dsigma_dash_b * inv_sigma_b * sigma_dash_b.z - sigma_dash_b2 * dsigma_b.z);
+        Fa.z += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.z - sigma_dash_c2 * dsigma_c.z);
+        Fa.z += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.z - sigma_dash_d2 * dsigma_d.z);
+
+	Fa *= K;
 
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
-        force.w = K / 2.0 * dot(sigma_dash_a, sigma_dash_a) / sigma_a;
+        force.w = K / 2.0 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
 
         virial[0] += Scalar(1. / 2.) * dab.x * Fa.x; // xx
         virial[1] += Scalar(1. / 2.) * dab.y * Fa.x; // xy
