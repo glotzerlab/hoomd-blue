@@ -87,11 +87,13 @@ class Harmonic(ExternalField):
     from the ``symmetries`` argument.
 
     Attributes:
-        reference_positions (np.ndarray, shape=(*N_particles*, 3), dtype=`float`)
+        reference_positions (\
+                np.ndarray, shape=(*N_particles*, 3), dtype=`float`)
             The reference positions, to which particles are restrained
             :math:`[\mathrm{length}]`.
 
-        reference_orientations (np.ndarray, shape=(*N_particles*, 4), dtype=`float`)
+        reference_orientations (\
+                np.ndarray, shape=(*N_particles*, 4), dtype=`float`)
             The reference orientations, to which particles are
             restrained :math:`[\mathrm{dimensionless}]`.
 
@@ -188,18 +190,15 @@ class Harmonic(ExternalField):
 
     @log(requires_run=True)
     def energy(self):
-        """float: The energy of the harmonic field :math:`[\\mathrm{energy}]`.
-
-        """
+        """tuple(float): The energy of the harmonic field \
+                :math:`[\\mathrm{energy}]`."""
         timestep = self._simulation.timestep
         return sum(self._cpp_obj.getEnergies(timestep))
 
     @log(requires_run=True)
     def energy_translational(self):
         """float: The energy associated with positional fluctuations \
-            :math:`[\\mathrm{energy}]`.
-
-        """
+            :math:`[\\mathrm{energy}]`."""
         timestep = self._simulation.timestep
         return self._cpp_obj.getEnergies(timestep)[0]
 
