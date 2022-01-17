@@ -193,7 +193,7 @@ class Harmonic(ExternalField):
 
         """
         timestep = self._simulation.timestep
-        return self._cpp_obj.getEnergy(timestep, True, True)
+        return sum(self._cpp_obj.getEnergies(timestep))
 
     @log(requires_run=True)
     def energy_translational(self):
@@ -202,7 +202,7 @@ class Harmonic(ExternalField):
 
         """
         timestep = self._simulation.timestep
-        return self._cpp_obj.getEnergy(timestep, True, False)
+        return self._cpp_obj.getEnergies(timestep)[0]
 
     @log(requires_run=True)
     def energy_rotational(self):
@@ -213,4 +213,4 @@ class Harmonic(ExternalField):
 
         """
         timestep = self._simulation.timestep
-        return self._cpp_obj.getEnergy(timestep, False, True)
+        return self._cpp_obj.getEnergies(timestep)[1]

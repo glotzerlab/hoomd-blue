@@ -306,14 +306,15 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         return dE;
         }
 
-    /** This function gets exported to python to act as a property
+    /** Compute the total external energy on the system from the external field
      *
-     * The include_translational and include_rotational arguments allow the purely rotational
-     * or purely orientational energies to be calculated separately
+     * The return valueis a std::pair, where the 0th item is the translational energy and the
+     * last item is the rotational energy
      */
-    Scalar getEnergy(uint64_t timestep, bool include_translational, bool include_rotational)
+    std::pair<Scalar, Scalar> getEnergies(uint64_t timestep)
         {
-        Scalar energy = Scalar(0.0);
+        Scalar energy_translational = Scalar(0.0);
+        Scalar energy_rotational = Scalar(0.0);
         // access particle data and system box
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                        access_location::host,
@@ -325,23 +326,27 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
             {
             vec3<Scalar> position(h_postype.data[i]);
             quat<Scalar> orientation(h_orient.data[i]);
-            energy += calcE(i, position, orientation, include_translational, include_rotational);
+            energy_translational += calcE_trans(i, position);
+            energy_rotational += calcE_rot(i, orientation);
             }
 
 #ifdef ENABLE_MPI
         if (this->m_sysdef->isDomainDecomposed())
             {
+            Scalar energies[] = {energy_translational, energy_rotational};
             MPI_Allreduce(MPI_IN_PLACE,
-                          &energy,
-                          1,
+                          energies,
+                          2,
                           MPI_HOOMD_SCALAR,
                           MPI_SUM,
                           m_exec_conf->getMPICommunicator());
+            energy_translational = energies[0];
+            energy_rotational = energies[1];
             }
 #endif
 
-        return energy;
-        } // end getEnergy(uin64_t)
+        return std::make_pair(energy_translational, energy_rotational);
+        } // end getEnergies(uin64_t)
 
     //! Calculate the change in energy from moving a single particle with tag = index
     double energydiff(const unsigned int& index,
@@ -350,8 +355,8 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
                       const vec3<Scalar>& position_new,
                       const Shape& shape_new)
         {
-        double old_U = calcE(index, position_old, shape_old, true, true),
-               new_U = calcE(index, position_new, shape_new, true, true);
+        double old_U = calcE(index, position_old, shape_old),
+               new_U = calcE(index, position_new, shape_new);
         return new_U - old_U;
         }
 
@@ -401,29 +406,19 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
      */
     Scalar calcE(const unsigned int& index,
                  const vec3<Scalar>& position,
-                 const quat<Scalar>& orientation,
-                 bool include_translational = true,
-                 bool include_rotational = true)
+                 const quat<Scalar>& orientation)
         {
         Scalar energy = 0.0;
-        if (include_translational)
-            {
-            energy += calcE_trans(index, position);
-            }
-        if (include_rotational)
-            {
-            energy += calcE_rot(index, orientation);
-            }
+        energy += calcE_trans(index, position);
+        energy += calcE_rot(index, orientation);
         return energy;
         }
 
     Scalar calcE(const unsigned int& index,
                  const vec3<Scalar>& position,
-                 const Shape& shape,
-                 bool include_translational = true,
-                 bool include_rotational = true)
+                 const Shape& shape)
         {
-        return calcE(index, position, shape.orientation, include_translational, include_rotational);
+        return calcE(index, position, shape.orientation);
         }
 
     private:
@@ -462,7 +457,7 @@ template<class Shape> void export_HarmonicField(pybind11::module& m, std::string
         .def_property("symmetries",
                       &ExternalFieldHarmonic<Shape>::getSymmetricallyEquivalentOrientations,
                       &ExternalFieldHarmonic<Shape>::setSymmetricallyEquivalentOrientations)
-        .def("getEnergy", &ExternalFieldHarmonic<Shape>::getEnergy);
+        .def("getEnergies", &ExternalFieldHarmonic<Shape>::getEnergies);
     }
 
 void export_HarmonicFields(pybind11::module& m);
