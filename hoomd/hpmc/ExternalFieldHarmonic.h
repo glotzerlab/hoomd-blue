@@ -78,12 +78,11 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
                 throw std::runtime_error("The array must be of shape (N_particles, 3).");
                 }
             const double* rawdata = static_cast<const double*>(ref_pos.data());
-            for (size_t i = 0; i < N_particles; i++)
+            for (size_t i = 0; i < N_particles; i += 3)
                 {
-                const size_t array_index = i * 3;
-                this->m_reference_positions[i] = vec3<Scalar>(rawdata[array_index],
-                                                              rawdata[array_index + 1],
-                                                              rawdata[array_index + 2]);
+                this->m_reference_positions[i] = vec3<Scalar>(rawdata[i]],
+                                                              rawdata[i + 1],
+                                                              rawdata[i + 2]);
                 }
             }
 
@@ -113,14 +112,13 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
                 throw std::runtime_error("The array must be of shape (N_particles, 4).");
                 }
             const double* rawdata = static_cast<const double*>(ref_ors.data());
-            for (size_t i = 0; i < N_particles; i++)
+            for (size_t i = 0; i < N_particles; i += 4)
                 {
-                const size_t array_index = i * 4;
                 this->m_reference_orientations[i]
-                    = quat<Scalar>(rawdata[array_index],
-                                   vec3<Scalar>(rawdata[array_index + 1],
-                                                rawdata[array_index + 2],
-                                                rawdata[array_index + 3]));
+                    = quat<Scalar>(rawdata[i],
+                                   vec3<Scalar>(rawdata[i + 1],
+                                                rawdata[i + 2],
+                                                rawdata[i + 3]));
                 }
             }
 
@@ -149,13 +147,12 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
             }
         const double* rawdata = static_cast<const double*>(equivalent_quaternions.data());
         m_symmetry.resize(N_sym);
-        for (size_t i = 0; i < N_sym; i++)
+        for (size_t i = 0; i < N_sym; i += 4)
             {
-            const size_t array_index = i * 4;
-            this->m_symmetry[i] = quat<Scalar>(rawdata[array_index],
-                                               vec3<Scalar>(rawdata[array_index + 1],
-                                                            rawdata[array_index + 2],
-                                                            rawdata[array_index + 3]));
+            this->m_symmetry[i] = quat<Scalar>(rawdata[i],
+                                               vec3<Scalar>(rawdata[i + 1],
+                                                            rawdata[i + 2],
+                                                            rawdata[i + 3]));
             }
 
 #ifdef ENABLE_MPI
@@ -262,7 +259,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
      * changes. But why would you have a lattice field and a box updater active in the same
      * simulation?
      */
-    double calculateDeltaE(const Scalar4* const position_old_arg, // why is this a Scalar4?
+    double calculateDeltaE(const Scalar4* const position_old_arg,
                            const Scalar4* const orientation_old_arg,
                            const BoxDim* const box_old_arg)
         {
