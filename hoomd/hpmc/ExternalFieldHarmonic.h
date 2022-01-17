@@ -404,9 +404,8 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
      * This function _should_ only be used for logging purposes and not for calculating move
      * acceptance criteria, since it's the energy difference that matters for the latter.
      */
-    Scalar calcE(const unsigned int& index,
-                 const vec3<Scalar>& position,
-                 const quat<Scalar>& orientation)
+    Scalar
+    calcE(const unsigned int& index, const vec3<Scalar>& position, const quat<Scalar>& orientation)
         {
         Scalar energy = 0.0;
         energy += calcE_trans(index, position);
@@ -414,9 +413,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         return energy;
         }
 
-    Scalar calcE(const unsigned int& index,
-                 const vec3<Scalar>& position,
-                 const Shape& shape)
+    Scalar calcE(const unsigned int& index, const vec3<Scalar>& position, const Shape& shape)
         {
         return calcE(index, position, shape.orientation);
         }
