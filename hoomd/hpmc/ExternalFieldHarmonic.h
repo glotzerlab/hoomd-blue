@@ -261,7 +261,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
      * changes. But why would you have a lattice field and a box updater active in the same
      * simulation?
      */
-    double calculateDeltaE(const Scalar4* const position_old_arg, // why is this a Scalar4?
+    double calculateDeltaE(const Scalar4* const position_old_arg,
                            const Scalar4* const orientation_old_arg,
                            const BoxDim* const box_old_arg)
         {
