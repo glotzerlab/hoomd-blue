@@ -43,6 +43,7 @@ class ExternalField(_HOOMDBaseObject):
     Note:
         Users should use the subclasses and not instantiate `ExternalField`
         directly.
+
     """
 
 
@@ -62,13 +63,10 @@ class Harmonic(ExternalField):
             :math:`[\mathrm{energy}]`.
         symmetries ((*N_sym*, 4) `numpy.ndarray` of
             `float`): the orientations that are equivalent through symmetry,
-            i.e., the rotation quaternions that leave the particles unchanged
+            i.e., the rotation quaternions that leave the particles unchanged.
+            At a minimum, the identity quaternion (``[1, 0, 0, 0]``) must be
+            included here.
             :math:`[\mathrm{dimensionless}]`.
-
-    Note:
-        The ``symmetries`` argument requires at least one quaternion. For almost
-        all use cases, the identity quaternion (``[1, 0, 0, 0]``) is a minimum
-        requirement.
 
     :py:class:`Harmonic` specifies that harmonic springs are used to
     restrain the position and orientation of every particle:
