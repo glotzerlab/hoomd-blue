@@ -393,14 +393,6 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         return Scalar(0.5) * m_k_rotational * dqmin;
         }
 
-    Scalar calcE_rot(const unsigned int& index, const Shape& shape)
-        {
-        if (!shape.hasOrientation())
-            return Scalar(0.0);
-
-        return calcE_rot(index, shape.orientation);
-        }
-
     /** Calculate the total energy associated with the deviation of a single particle from its ref.
      * pos. and orientation
      *
