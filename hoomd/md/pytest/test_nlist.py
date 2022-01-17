@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import copy as cp
 import hoomd
 from hoomd.logging import LoggerCategories
@@ -5,7 +8,7 @@ import numpy as np
 import pytest
 import random
 from hoomd.md.nlist import Cell, Stencil, Tree
-from hoomd.conftest import logging_check
+from hoomd.conftest import logging_check, pickling_check
 
 
 def _nlist_params():
@@ -26,8 +29,13 @@ def nlist_params(request):
 
 def _assert_nlist_params(nlist, param_dict):
     """Assert the params of the nlist are the same as in the dictionary."""
-    for param in param_dict.keys():
-        assert getattr(nlist, param) == param_dict[param]
+    for param, item in param_dict.items():
+        if isinstance(item, (tuple, list)):
+            assert all(
+                a == b
+                for a, b in zip(getattr(nlist, param), param_dict[param]))
+        else:
+            assert getattr(nlist, param) == param_dict[param]
 
 
 def test_common_params(nlist_params):
@@ -113,7 +121,8 @@ def test_auto_detach_simulation(simulation_factory,
     integrator.methods.append(
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
 
-    sim = simulation_factory(two_particle_snapshot_factory(d=2.0))
+    sim = simulation_factory(
+        two_particle_snapshot_factory(particle_types=["A", "B"], d=2.0))
     sim.operations.integrator = integrator
     sim.run(0)
     del integrator.forces[1]
@@ -122,6 +131,24 @@ def test_auto_detach_simulation(simulation_factory,
     del integrator.forces[0]
     assert not nlist._attached
     assert nlist._cpp_obj is None
+
+
+def test_pickling(simulation_factory, two_particle_snapshot_factory):
+    nlist = Cell(0.4)
+    pickling_check(nlist)
+    lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
+    lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
+    lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
+    lj.params[('B', 'B')] = dict(epsilon=1, sigma=1)
+    integrator = hoomd.md.Integrator(0.005, forces=[lj])
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+
+    sim = simulation_factory(
+        two_particle_snapshot_factory(particle_types=["A", "B"], d=2.0))
+    sim.operations.integrator = integrator
+    sim.run(0)
+    pickling_check(nlist)
 
 
 def test_logging():

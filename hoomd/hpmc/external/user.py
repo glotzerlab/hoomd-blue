@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """User-defined external fields for HPMC simulations."""
 
@@ -92,7 +91,7 @@ class CPPExternalPotential(ExternalField):
 
     def _getattr_param(self, attr):
         if attr == 'code':
-            return self._param_dict[attr]
+            return self._param_dict._dict[attr]
         return super()._getattr_param(attr)
 
     def _wrap_cpu_code(self, code):

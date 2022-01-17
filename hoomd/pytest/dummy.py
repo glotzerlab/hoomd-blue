@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.trigger import Trigger
 from hoomd.operation import Operation, _TriggeredOperation
 
@@ -60,6 +63,9 @@ class DummyCppObj:
 
     def notifyDetach(self):  # noqa: N802
         pass
+
+    def __getstate__(self):
+        raise RuntimeError("Mimic lack of pickling for C++ objects.")
 
 
 class DummyOperation(Operation):

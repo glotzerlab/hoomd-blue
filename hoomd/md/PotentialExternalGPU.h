@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PotentialExternal.h"
 #include "PotentialExternalGPU.cuh"
@@ -96,12 +94,6 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params,
                                                          access_location::device,
                                                          access_mode::read);
-    ArrayHandle<typename evaluator::field_type> d_field(this->m_field,
-                                                        access_location::device,
-                                                        access_mode::read);
-
-    // access flags
-    PDataFlags flags = this->m_pdata->getFlags();
 
     this->m_tuner->begin();
     kernel::gpu_cpef<evaluator>(kernel::external_potential_args_t(d_force.data,
@@ -114,7 +106,7 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                                                   box,
                                                                   this->m_tuner->getParam()),
                                 d_params.data,
-                                d_field.data);
+                                this->m_field.get());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -123,17 +115,6 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
 
     if (this->m_prof)
         this->m_prof->pop();
-
-    if (flags[pdata_flag::external_field_virial])
-        {
-        bool virial_terms_defined = evaluator::requestFieldVirialTerm();
-        if (!virial_terms_defined)
-            {
-            this->m_exec_conf->msg->error()
-                << "The required virial terms are not defined for the current setup." << std::endl;
-            throw std::runtime_error("NPT is not supported for requested features");
-            }
-        }
     }
 
 namespace detail
@@ -146,8 +127,7 @@ template<class T, class base>
 void export_PotentialExternalGPU(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, base, std::shared_ptr<T>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setField", &T::setField);
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     } // end namespace detail

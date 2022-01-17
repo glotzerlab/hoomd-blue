@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Migrating to HOOMD v3
 =====================
 
@@ -153,6 +156,8 @@ Commands and features deprecated in v2.x are removed in v3.0.
      - n/a
    * - ``f_list`` and ``t_list`` parameters to ``md.force.active``
      - Per-type ``active_force`` and ``active_torque``
+   * - ``md.pair.SLJ``
+     - ``md.pair.ExpandedLJ``
 
 ``hoomd.cgcmm``:
 

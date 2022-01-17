@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from collections.abc import Sequence, Mapping
 import math
 from numbers import Number
@@ -70,9 +73,9 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
 
     lj.r_cut[('A', 'A')] = 2.5
-    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_base())
     sim.run(0)
-    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_base())
 
 
 def test_invalid_mode():
@@ -113,15 +116,15 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
     integrator.methods.append(
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
     sim.operations.integrator = integrator
-    assert lj.r_on.to_dict() == {}
+    assert lj.r_on.to_base() == {}
 
     lj.r_on[('A', 'A')] = 1.5
-    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_base())
     sim.run(0)
-    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_base())
 
     lj.r_on[('A', 'A')] = 1.0
-    assert _equivalent_data_structures({('A', 'A'): 1.0}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.0}, lj.r_on.to_base())
 
 
 def _make_invalid_param_dict(valid_dict):
@@ -254,6 +257,11 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(slj_invalid_dicts, md.pair.SLJ, {}))
 
+    expanded_lj_valid_dict = {"sigma": 0.5, "epsilon": 0.0005, "delta": 0.25}
+    expanded_lj_invalid_dicts = _make_invalid_param_dict(expanded_lj_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(expanded_lj_invalid_dicts, md.pair.ExpandedLJ, {}))
+
     expanded_mie_valid_dict = {
         "epsilon": 0.05,
         "sigma": 0.5,
@@ -277,7 +285,7 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(dpdlj_invalid_dicts, md.pair.DPDLJ, {'kT': 1}))
 
-    dlvo_valid_dict = {'kappa': 1.0, 'Z': 0.1, 'A': 0.1}
+    dlvo_valid_dict = {'kappa': 1.0, 'Z': 0.1, 'A': 0.1, 'a1': 0.1, 'a2': 0.25}
     dlvo_invalid_dicts = _make_invalid_param_dict(dlvo_valid_dict)
     invalid_params_list.extend(
         _make_invalid_params(dlvo_invalid_dicts, md.pair.DLVO, {}))
@@ -508,6 +516,17 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(
         paramtuple(md.pair.SLJ, dict(zip(combos, slj_valid_param_dicts)), {}))
 
+    expanded_lj_arg_dict = {
+        'sigma': [0.5, 1.0, 1.5],
+        'epsilon': [0.0005, 0.001, 0.0015],
+        'delta': [1.0, 0.5, 0.0]
+    }
+    expanded_lj_valid_param_dicts = _make_valid_param_dicts(
+        expanded_lj_arg_dict)
+    valid_params_list.append(
+        paramtuple(md.pair.ExpandedLJ,
+                   dict(zip(combos, expanded_lj_valid_param_dicts)), {}))
+
     dpd_arg_dict = {'A': [0.5, 1.0, 1.5], 'gamma': [0.0005, 0.001, 0.0015]}
     dpd_valid_param_dicts = _make_valid_param_dicts(dpd_arg_dict)
     valid_params_list.append(
@@ -528,7 +547,9 @@ def _valid_params(particle_types=['A', 'B']):
     dlvo_arg_dict = {
         'kappa': [1.0, 2.0, 5.0],
         'Z': [0.1, 0.5, 2.0],
-        'A': [0.1, 0.5, 2.0]
+        'A': [0.1, 0.5, 2.0],
+        'a1': [0.1] * 3,
+        'a2': [0.25] * 3,
     }
     dlvo_valid_param_dicts = _make_valid_param_dicts(dlvo_arg_dict)
 
@@ -640,7 +661,7 @@ def test_valid_params(valid_params):
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     assert _equivalent_data_structures(valid_params.pair_potential_params,
-                                       pot.params.to_dict())
+                                       pot.params.to_base())
 
 
 def _update_snap(pair_potential, snap):
@@ -688,7 +709,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
     assert _equivalent_data_structures(valid_params.pair_potential_params,
-                                       pot.params.to_dict())
+                                       pot.params.to_base())
 
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
@@ -869,6 +890,9 @@ def test_force_energy_relationship(simulation_factory,
                                       default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
+
+        if pot_name == 'DLVO':
+            pot.r_cut[pair] = 2.5 - ((0.2 + 0.5) / 2 - 1)
 
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
     _update_snap(valid_params.pair_potential, snap)

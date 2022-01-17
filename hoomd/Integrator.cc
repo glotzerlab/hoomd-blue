@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Integrator.h"
 
@@ -259,9 +259,9 @@ void Integrator::computeNetForce(uint64_t timestep)
 
         for (const auto& force : m_forces)
             {
-            GlobalArray<Scalar4>& h_force_array = force->getForceArray();
-            GlobalArray<Scalar>& h_virial_array = force->getVirialArray();
-            GlobalArray<Scalar4>& h_torque_array = force->getTorqueArray();
+            const GlobalArray<Scalar4>& h_force_array = force->getForceArray();
+            const GlobalArray<Scalar>& h_virial_array = force->getVirialArray();
+            const GlobalArray<Scalar4>& h_torque_array = force->getTorqueArray();
 
             assert(nparticles <= h_force_array.getNumElements());
             assert(6 * nparticles <= h_virial_array.getNumElements());
@@ -356,9 +356,9 @@ void Integrator::computeNetForce(uint64_t timestep)
         assert(6 * nparticles <= net_virial.getNumElements());
         for (const auto& constraint_force : m_constraint_forces)
             {
-            GlobalArray<Scalar4>& h_force_array = constraint_force->getForceArray();
-            GlobalArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
-            GlobalArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
+            const GlobalArray<Scalar4>& h_force_array = constraint_force->getForceArray();
+            const GlobalArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
+            const GlobalArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
             ArrayHandle<Scalar4> h_force(h_force_array, access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array, access_location::host, access_mode::read);

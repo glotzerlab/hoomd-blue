@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 md.pair
 --------------
 
@@ -15,6 +18,7 @@ md.pair
     DPDLJ
     DPDConservative
     Ewald
+    ExpandedLJ
     ExpandedMie
     ForceShiftedLJ
     Fourier
@@ -57,6 +61,7 @@ md.pair
         OPP,
         ReactionField,
         SLJ,
+        ExpandedLJ,
         Table,
         TWF,
         Yukawa,

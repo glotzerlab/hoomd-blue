@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from math import isclose
 import pytest
 
@@ -187,7 +190,7 @@ class TestMoveSize:
     def test_act(self, move_size_tuner, simulation):
         simulation.operations.tuners.append(move_size_tuner)
         cnt = 0
-        while not move_size_tuner.tuned and cnt < 3:
+        while not move_size_tuner.tuned and cnt < 4:
             simulation.run(2000)
             cnt += 1
         assert move_size_tuner.tuned

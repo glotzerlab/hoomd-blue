@@ -1,4 +1,4 @@
-# Maintainer: joaander
+
 
 set(_hpmc_gpu_shapes ShapeSphere
                  ShapeConvexPolygon

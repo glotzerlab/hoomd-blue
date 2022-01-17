@@ -1,12 +1,12 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.update.BoxMC."""
 
 import hoomd
-from hoomd.logging import LoggerCategories
 from hoomd.conftest import operation_pickling_check, logging_check
+from hoomd.data.collections import _HOOMDSyncedCollection
+from hoomd.logging import LoggerCategories
 import pytest
 import numpy as np
 
@@ -91,6 +91,11 @@ def counter_attrs():
 
 
 def _is_close(v1, v2):
+    if isinstance(v1, _HOOMDSyncedCollection):
+        v1 = v1.to_base()
+    if isinstance(v2, _HOOMDSyncedCollection):
+        v2 = v2.to_base()
+
     return v1 == v2 if isinstance(v1, str) else np.allclose(v1, v2)
 
 
