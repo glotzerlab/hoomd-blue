@@ -174,6 +174,7 @@ def test_system_rotational_dof(simulation_factory, device):
                               volume=1000)
 
     integrator.integrate_rotational_dof = False
+    sim.run(0)
     assert thermo.rotational_degrees_of_freedom == 0
 
 
