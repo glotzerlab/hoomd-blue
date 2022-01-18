@@ -30,58 +30,55 @@ class Harmonic(ExternalField):
     r"""Restrain particle positions and orientations with harmonic springs.
 
     Args:
-        reference_positions ((*N_particles*, 3) `numpy.ndarray` of
-            `float`): the reference positions, to which particles are restrained
+        reference_positions ((*N_particles*, 3) `numpy.ndarray` of `float`):
+            the reference positions to which particles are restrained
             :math:`[\mathrm{length}]`.
-        reference_orientations ((*N_particles*, 4) `numpy.ndarray` of
-            `float`): the reference orientations, to which particles are
-            restrained :math:`[\mathrm{dimensionless}]`.
+        reference_orientations ((*N_particles*, 4) `numpy.ndarray` of `float`):
+            the reference orientations to which particles are restrained
+            :math:`[\mathrm{dimensionless}]`.
         k_translational (`float`): translational spring constant
             :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
         k_rotational (`float`): rotational spring constant
             :math:`[\mathrm{energy}]`.
-        symmetries ((*N_sym*, 4) `numpy.ndarray` of
-            `float`): the orientations that are equivalent through symmetry,
-            i.e., the rotation quaternions that leave the particles unchanged.
-            At a minimum, the identity quaternion (``[1, 0, 0, 0]``) must be
-            included here :math:`[\mathrm{dimensionless}]`.
+        symmetries ((*N_symmetries*, 4) `numpy.ndarray` of `float`): the
+            orientations that are equivalent through symmetry, i.e., the
+            rotation quaternions that leave the particles unchanged. At a
+            minimum, the identity quaternion (``[1, 0, 0, 0]``) must be included
+            here :math:`[\mathrm{dimensionless}]`.
 
     :py:class:`Harmonic` specifies that harmonic springs are used to
     restrain the position and orientation of every particle:
 
     .. math::
 
-        V_{i}(r_i)  = \frac{1}{2} k_{trans} \cdot (r_i-r_{0,i})^2 \\
-        V_{i}(q_i)  = \frac{1}{2} k_{rot} \cdot \min_j \left[ (q_i-q_{0,i} \cdot
-            q_{\mathrm{symmetry},j})^2 \right]
+        V_\mathrm{translational} = \sum_i^{N_\mathrm{particles}} \frac{1}{2}
+            k_{translational} \cdot (\vec{r}_i-\vec{r}_{0,i})^2 \\
 
-    where :math:`k_{trans}` and :math:`k_{rot}` correspond to the arguments
-    ``k_translational`` and ``k_rotational``, respectively, :math:`r_i` and
-    :math:`q_i` are the position and orientation of particle :math:`i`, the
-    :math:`0` subscripts denote the given reference quantities, and
-    :math:`q_{\mathrm{symmetry}}` is the given set of symmetric orientations
-    from the ``symmetries`` argument.
+        V_\mathrm{rotational} = \sum_i^{N_\mathrm{particles}} \frac{1}{2}
+            k_{rotational} \cdot \min_j \left[
+            (\mathbf{q}_i-\mathbf{q}_{0,i} \cdot
+             \mathbf{q}_{\mathrm{symmetry},j})^2 \right]
 
-    .. py:attribute:: reference_positions
 
-        The reference positions, to which particles are restrained
-        :math:`[\mathrm{length}]`.
-
-         **Type:** np.ndarray, shape=(*N_particles*, 3), dtype=`float`
-
-    .. py:attribute:: reference_orientations
-
-        The reference orientations, to which particles are restrained
-        :math:`[\mathrm{dimensionless}]`.
-
-         **Type:** np.ndarray, shape=(*N_particles*, 4), dtype=`float`
+    where :math:`k_{translational}` and :math:`k_{rotational}` correspond to the
+    parameters ``k_translational`` and ``k_rotational``, respectively,
+    :math:`\vec{r}_i` and :math:`\mathbf{q}_i` are the position and orientation
+    of particle :math:`i`, the :math:`0` subscripts denote the given reference
+    quantities, and :math:`\mathbf{q}_{\mathrm{symmetry}}` is the given set of
+    symmetric orientations from the ``symmetries`` parameter.
 
     Attributes:
         k_translational (`float`): The translational spring constant
             :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
         k_rotational (`float`): The rotational spring constant
             :math:`[\mathrm{energy}]`.
-        symmetries (np.ndarray, shape=(*N_particles*, 4), dtype=`float`)
+        reference_positions ((*N_particles*, 3) `numpy.ndarray` of `float`):
+            The reference positions to which particles are restrained
+            :math:`[\mathrm{length}]`.
+        reference_orientations ((*N_particles*, 4) `numpy.ndarray` of `float`):
+            The reference orientations to which particles are restrained
+            :math:`[\mathrm{dimensionless}]`.
+        symmetries ((*N_symmetries*, 4) `numpy.ndarray` of `float`):
             The orientations that are equivalent through symmetry,
             i.e., the rotation quaternions that leave the particles unchanged
             :math:`[\mathrm{dimensionless}]`.
@@ -168,25 +165,30 @@ class Harmonic(ExternalField):
 
     @log(requires_run=True)
     def energy(self):
-        """tuple(float): The energy of the harmonic field \
-                :math:`[\\mathrm{energy}]`."""
+        """float: The total energy of the harmonic field \
+                [\\mathrm{energy}]`.
+
+        :math:`V_\\mathrm{translational} + V_\\mathrm{rotational}`
+        """
         timestep = self._simulation.timestep
         return sum(self._cpp_obj.getEnergies(timestep))
 
     @log(requires_run=True)
     def energy_translational(self):
         """float: The energy associated with positional fluctuations \
-            :math:`[\\mathrm{energy}]`."""
+            :math:`[\\mathrm{energy}]`.
+
+        :math:`V_\\mathrm{translational}`
+        """
         timestep = self._simulation.timestep
         return self._cpp_obj.getEnergies(timestep)[0]
 
     @log(requires_run=True)
     def energy_rotational(self):
         """float: The energy associated with rotational fluctuations \
-            :math:`[\\mathrm{energy}]`.
+             :math:`[\\mathrm{energy}]`.
 
-        This function will always return 0 for a non-orientable shape.
-
+        :math:`V_\\mathrm{rotational}`
         """
         timestep = self._simulation.timestep
         return self._cpp_obj.getEnergies(timestep)[1]
