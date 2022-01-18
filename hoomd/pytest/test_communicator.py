@@ -66,7 +66,7 @@ def test_commuicator_walltime():
     time.sleep(ref_time)
     t = c.walltime
 
-    numpy.testing.assert_allclose(t, ref_time, rtol=1e-01)
+    assert t >= ref_time
 
 
 @skip_mpi4py
