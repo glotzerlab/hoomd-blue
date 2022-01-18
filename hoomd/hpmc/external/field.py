@@ -14,27 +14,6 @@ import hoomd
 import numpy as np
 
 
-# \internal
-# \brief Base class for external fields
-#
-# An external in hoomd reflects an ExternalField in c++. It is responsible for
-# all high-level management that happens behind the scenes for hoomd writers. 1)
-# The instance of the c++ external itself is tracked optionally passed to the
-# hpmc integrator. While external fields are Compute types and are added to the
-# System they will not be enforced unless they are added to the integrator.
-# Only one external field can be held by the integrator so if multiple fields
-# are required use the external_field_composite class to manage them.
-class _External(Compute):
-    # \internal
-    # \brief Initialize an empty external.
-    #
-    # \post nothing is done here yet.
-    def __init__(self):
-        # _compute.__init__(self)
-        self.cpp_compute = None
-        # nothing else to do.
-
-
 class ExternalField(_HOOMDBaseObject):
     """Base class external field.
 
