@@ -253,6 +253,11 @@ template<class evaluator> class PotentialPair : public ForceCompute
         {
         if (m_tail_correction_enabled)
             {
+            if (m_shift_mode != no_shift)
+                {
+                throw std::runtime_error(
+                    "Pair potential shift mode must be \"none\" to applay tail corrections.");
+                }
             ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
 
             std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
