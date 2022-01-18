@@ -167,13 +167,16 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         {
         // lookup the tag of each of the particles participating in the bond
         const typename MeshBond::members_t& bond = h_bonds.data[i];
-        assert(bond.tag[0] < m_pdata->getMaximumTag() + 1);
-        assert(bond.tag[1] < m_pdata->getMaximumTag() + 1);
+
+        unsigned int btag_a = bond.tag[0];
+        assert(btag_a < m_pdata->getMaximumTag() + 1);
+        unsigned int btag_b = bond.tag[1];
+        assert(btag_b < m_pdata->getMaximumTag() + 1);
 
         // transform a and b into indices into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[bond.tag[0]];
-        unsigned int idx_b = h_rtag.data[bond.tag[1]];
+        unsigned int idx_a = h_rtag.data[btag_a];
+        unsigned int idx_b = h_rtag.data[btag_b];
 
         unsigned int tr_idx1 = bond.tag[2];
         unsigned int tr_idx2 = bond.tag[3];
@@ -184,21 +187,25 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         const typename MeshTriangle::members_t& triangle1 = h_triangles.data[tr_idx1];
         const typename MeshTriangle::members_t& triangle2 = h_triangles.data[tr_idx2];
 
-        unsigned int idx_c = h_rtag.data[triangle1.tag[0]];
+        unsigned int btag_c = triangle1.tag[0];
+        unsigned int idx_c = h_rtag.data[btag_c];
 
         unsigned int iterator = 1;
         while (idx_a == idx_c || idx_b == idx_c)
             {
-            idx_c = h_rtag.data[triangle1.tag[iterator]];
+            btag_c = triangle1.tag[iterator];
+            idx_c = h_rtag.data[btag_c];
             iterator++;
             }
 
-        unsigned int idx_d = h_rtag.data[triangle2.tag[0]];
+        unsigned int btag_d = triangle2.tag[0];
+        unsigned int idx_d = h_rtag.data[btag_d];
 
         iterator = 1;
         while (idx_a == idx_d || idx_b == idx_d)
             {
-            idx_d = h_rtag.data[triangle2.tag[iterator]];
+            btag_d = triangle2.tag[iterator];
+            idx_d = h_rtag.data[btag_d];
             iterator++;
             }
 
@@ -209,29 +216,29 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
         // calculate d\vec{r}
         Scalar3 dab;
-        dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
-        dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
-        dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+        dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
+        dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
+        dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
 
         Scalar3 dac;
-        dac.x = h_pos.data[idx_c].x - h_pos.data[idx_a].x;
-        dac.y = h_pos.data[idx_c].y - h_pos.data[idx_a].y;
-        dac.z = h_pos.data[idx_c].z - h_pos.data[idx_a].z;
+        dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
+        dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+        dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
 
         Scalar3 dad;
-        dad.x = h_pos.data[idx_d].x - h_pos.data[idx_a].x;
-        dad.y = h_pos.data[idx_d].y - h_pos.data[idx_a].y;
-        dad.z = h_pos.data[idx_d].z - h_pos.data[idx_a].z;
+        dad.x = h_pos.data[idx_a].x - h_pos.data[idx_d].x;
+        dad.y = h_pos.data[idx_a].y - h_pos.data[idx_d].y;
+        dad.z = h_pos.data[idx_a].z - h_pos.data[idx_d].z;
 
         Scalar3 dbc;
-        dbc.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
-        dbc.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
-        dbc.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
+        dbc.x = h_pos.data[idx_b].x - h_pos.data[idx_c].x;
+        dbc.y = h_pos.data[idx_b].y - h_pos.data[idx_c].y;
+        dbc.z = h_pos.data[idx_b].z - h_pos.data[idx_c].z;
 
         Scalar3 dbd;
-        dbd.x = h_pos.data[idx_d].x - h_pos.data[idx_b].x;
-        dbd.y = h_pos.data[idx_d].y - h_pos.data[idx_b].y;
-        dbd.z = h_pos.data[idx_d].z - h_pos.data[idx_b].z;
+        dbd.x = h_pos.data[idx_b].x - h_pos.data[idx_d].x;
+        dbd.y = h_pos.data[idx_b].y - h_pos.data[idx_d].y;
+        dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
 
         // apply minimum image conventions to all 3 vectors
         dab = box.minImage(dab);
@@ -270,10 +277,10 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         if (c_accb < -1.0)
             c_accb = -1.0;
 
-        Scalar s_accb = sqrt(1.0 - c_accb * c_accb);
-        if (s_accb < SMALL)
-            s_accb = SMALL;
-        s_accb = 1.0 / s_accb;
+        Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
+        if (inv_s_accb < SMALL)
+            inv_s_accb = SMALL;
+        inv_s_accb = 1.0 / inv_s_accb;
 
         Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
 
@@ -282,10 +289,10 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         if (c_addb < -1.0)
             c_addb = -1.0;
 
-        Scalar s_addb = sqrt(1.0 - c_addb * c_addb);
-        if (s_addb < SMALL)
-            s_addb = SMALL;
-        s_addb = 1.0 / s_addb;
+        Scalar inv_s_addb = sqrt(1.0 - c_addb * c_addb);
+        if (inv_s_addb < SMALL)
+            inv_s_addb = SMALL;
+        inv_s_addb = 1.0 / inv_s_addb;
 
         Scalar c_abbc = -nab.x * nbc.x - nab.y * nbc.y - nab.z * nbc.z;
 
@@ -294,10 +301,10 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         if (c_abbc < -1.0)
             c_abbc = -1.0;
 
-        Scalar s_abbc = sqrt(1.0 - c_abbc * c_abbc);
-        if (s_abbc < SMALL)
-            s_abbc = SMALL;
-        s_abbc = 1.0 / s_abbc;
+        Scalar inv_s_abbc = sqrt(1.0 - c_abbc * c_abbc);
+        if (inv_s_abbc < SMALL)
+            inv_s_abbc = SMALL;
+        inv_s_abbc = 1.0 / inv_s_abbc;
 
         Scalar c_abbd = -nab.x * nbd.x - nab.y * nbd.y - nab.z * nbd.z;
 
@@ -306,10 +313,10 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         if (c_abbd < -1.0)
             c_abbd = -1.0;
 
-        Scalar s_abbd = sqrt(1.0 - c_abbd * c_abbd);
-        if (s_abbd < SMALL)
-            s_abbd = SMALL;
-        s_abbd = 1.0 / s_abbd;
+        Scalar inv_s_abbd = sqrt(1.0 - c_abbd * c_abbd);
+        if (inv_s_abbd < SMALL)
+            inv_s_abbd = SMALL;
+        inv_s_abbd = 1.0 / inv_s_abbd;
 
         Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
 
@@ -318,10 +325,10 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         if (c_baac < -1.0)
             c_baac = -1.0;
 
-        Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
-        if (s_baac < SMALL)
-            s_baac = SMALL;
-        s_baac = 1.0 / s_baac;
+        Scalar inv_s_baac = sqrt(1.0 - c_baac * c_baac);
+        if (inv_s_baac < SMALL)
+            inv_s_baac = SMALL;
+        inv_s_baac = 1.0 / inv_s_baac;
 
         Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
 
@@ -330,25 +337,25 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         if (c_baad < -1.0)
             c_baad = -1.0;
 
-        Scalar s_baad = sqrt(1.0 - c_baad * c_baad);
-        if (s_baad < SMALL)
-            s_baad = SMALL;
-        s_baad = 1.0 / s_baad;
+        Scalar inv_s_baad = sqrt(1.0 - c_baad * c_baad);
+        if (inv_s_baad < SMALL)
+            inv_s_baad = SMALL;
+        inv_s_baad = 1.0 / inv_s_baad;
 
-        Scalar cot_accb = c_accb * s_accb;
-        Scalar cot_addb = c_addb * s_addb;
+        Scalar cot_accb = c_accb * inv_s_accb;
+        Scalar cot_addb = c_addb * inv_s_addb;
 
         Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
-        Scalar3 sigma_dash_a = h_sigma_dash.data[idx_a]; // precomputed
-        Scalar3 sigma_dash_b = h_sigma_dash.data[idx_b]; // precomputed
-        Scalar3 sigma_dash_c = h_sigma_dash.data[idx_c]; // precomputed
-        Scalar3 sigma_dash_d = h_sigma_dash.data[idx_d]; // precomputed
+        Scalar3 sigma_dash_a = h_sigma_dash.data[btag_a]; // precomputed
+        Scalar3 sigma_dash_b = h_sigma_dash.data[btag_b]; // precomputed
+        Scalar3 sigma_dash_c = h_sigma_dash.data[btag_c]; // precomputed
+        Scalar3 sigma_dash_d = h_sigma_dash.data[btag_d]; // precomputed
 
-        Scalar sigma_a = h_sigma.data[idx_a]; // precomputed
-        Scalar sigma_b = h_sigma.data[idx_b]; // precomputed
-        Scalar sigma_c = h_sigma.data[idx_c]; // precomputed
-        Scalar sigma_d = h_sigma.data[idx_d]; // precomputed
+        Scalar sigma_a = h_sigma.data[btag_a]; // precomputed
+        Scalar sigma_b = h_sigma.data[btag_b]; // precomputed
+        Scalar sigma_c = h_sigma.data[btag_c]; // precomputed
+        Scalar sigma_d = h_sigma.data[btag_d]; // precomputed
 
         Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
         dc_abbc = -nbc / rab - c_abbc / rab * nab;
@@ -357,10 +364,10 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         dc_baad = nad / rab - c_baad / rab * nab;
 
         Scalar3 dsigma_hat_ac, dsigma_hat_ad, dsigma_hat_bc, dsigma_hat_bd;
-        dsigma_hat_ac = s_abbc * s_abbc * s_abbc * dc_abbc / 2;
-        dsigma_hat_ad = s_abbd * s_abbd * s_abbd * dc_abbd / 2;
-        dsigma_hat_bc = s_baac * s_baac * s_baac * dc_baac / 2;
-        dsigma_hat_bd = s_baad * s_baad * s_baad * dc_baad / 2;
+        dsigma_hat_ac = inv_s_abbc * inv_s_abbc * inv_s_abbc * dc_abbc / 2;
+        dsigma_hat_ad = inv_s_abbd * inv_s_abbd * inv_s_abbd * dc_abbd / 2;
+        dsigma_hat_bc = inv_s_baac * inv_s_baac * inv_s_baac * dc_baac / 2;
+        dsigma_hat_bd = inv_s_baad * inv_s_baad * inv_s_baad * dc_baad / 2;
 
         Scalar3 dsigma_a, dsigma_b, dsigma_c, dsigma_d;
         dsigma_a = (dsigma_hat_ac * rsqac + dsigma_hat_ad * rsqad + 2 * sigma_hat_ab * dab) / 4;
@@ -373,19 +380,34 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar dsigma_dash_c = -dot(dsigma_hat_ac, dac) - dot(dsigma_hat_bc, dbc);
         Scalar dsigma_dash_d = -dot(dsigma_hat_ad, dad) - dot(dsigma_hat_bd, dbd);
 
+        Scalar inv_sigma_a = 1.0 / sigma_a;
+        Scalar inv_sigma_b = 1.0 / sigma_b;
+        Scalar inv_sigma_c = 1.0 / sigma_c;
+        Scalar inv_sigma_d = 1.0 / sigma_d;
+
+        Scalar sigma_dash_a2 = 0.5 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a * inv_sigma_a;
+        Scalar sigma_dash_b2 = 0.5 * dot(sigma_dash_b, sigma_dash_b) * inv_sigma_b * inv_sigma_b;
+        Scalar sigma_dash_c2 = 0.5 * dot(sigma_dash_c, sigma_dash_c) * inv_sigma_c * inv_sigma_c;
+        Scalar sigma_dash_d2 = 0.5 * dot(sigma_dash_d, sigma_dash_d) * inv_sigma_d * inv_sigma_d;
+
         Scalar3 Fa;
-        Fa = -m_K[0]
-             * (dsigma_dash_a * sigma_dash_a / sigma_a
-                - dot(sigma_dash_a, sigma_dash_a) / (2 * sigma_a * sigma_a) * dsigma_a);
-        Fa -= m_K[0]
-              * (dsigma_dash_b * sigma_dash_b / sigma_b
-                 - dot(sigma_dash_b, sigma_dash_b) / (2 * sigma_b * sigma_b) * dsigma_b);
-        Fa -= m_K[0]
-              * (dsigma_dash_c * sigma_dash_c / sigma_c
-                 - dot(sigma_dash_c, sigma_dash_c) / (2 * sigma_c * sigma_c) * dsigma_c);
-        Fa -= m_K[0]
-              * (dsigma_dash_d * sigma_dash_d / sigma_d
-                 - dot(sigma_dash_d, sigma_dash_d) / (2 * sigma_d * sigma_d) * dsigma_d);
+
+        Fa.x = dsigma_dash_a * inv_sigma_a * sigma_dash_a.x - sigma_dash_a2 * dsigma_a.x;
+        Fa.x += (dsigma_dash_b * inv_sigma_b * sigma_dash_b.x - sigma_dash_b2 * dsigma_b.x);
+        Fa.x += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.x - sigma_dash_c2 * dsigma_c.x);
+        Fa.x += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.x - sigma_dash_d2 * dsigma_d.x);
+
+        Fa.y = dsigma_dash_a * inv_sigma_a * sigma_dash_a.y - sigma_dash_a2 * dsigma_a.y;
+        Fa.y += (dsigma_dash_b * inv_sigma_b * sigma_dash_b.y - sigma_dash_b2 * dsigma_b.y);
+        Fa.y += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.y - sigma_dash_c2 * dsigma_c.y);
+        Fa.y += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.y - sigma_dash_d2 * dsigma_d.y);
+
+        Fa.z = dsigma_dash_a * inv_sigma_a * sigma_dash_a.z - sigma_dash_a2 * dsigma_a.z;
+        Fa.z += (dsigma_dash_b * inv_sigma_b * sigma_dash_b.z - sigma_dash_b2 * dsigma_b.z);
+        Fa.z += (dsigma_dash_c * inv_sigma_c * sigma_dash_c.z - sigma_dash_c2 * dsigma_c.z);
+        Fa.z += (dsigma_dash_d * inv_sigma_d * sigma_dash_d.z - sigma_dash_d2 * dsigma_d.z);
+
+        Fa *= m_K[0];
 
         if (compute_virial)
             {
@@ -404,7 +426,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w = m_K[0] / 2.0 * dot(sigma_dash_a, sigma_dash_a) / sigma_a;
+            h_force.data[idx_a].w = m_K[0] * 0.5 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
             }
@@ -414,7 +436,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fa.x;
             h_force.data[idx_b].y -= Fa.y;
             h_force.data[idx_b].z -= Fa.z;
-            h_force.data[idx_b].w = m_K[0] / 2.0 * dot(sigma_dash_b, sigma_dash_b) / sigma_b;
+            h_force.data[idx_b].w = m_K[0] * 0.5 * dot(sigma_dash_b, sigma_dash_b) * inv_sigma_b;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
@@ -454,13 +476,16 @@ void HelfrichMeshForceCompute::computeSigma()
         {
         // lookup the tag of each of the particles participating in the bond
         const typename MeshBond::members_t& bond = h_bonds.data[i];
-        assert(bond.tag[0] < m_pdata->getMaximumTag() + 1);
-        assert(bond.tag[1] < m_pdata->getMaximumTag() + 1);
+
+        unsigned int btag_a = bond.tag[0];
+        assert(btag_a < m_pdata->getMaximumTag() + 1);
+        unsigned int btag_b = bond.tag[1];
+        assert(btag_b < m_pdata->getMaximumTag() + 1);
 
         // transform a and b into indices into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[bond.tag[0]];
-        unsigned int idx_b = h_rtag.data[bond.tag[1]];
+        unsigned int idx_a = h_rtag.data[btag_a];
+        unsigned int idx_b = h_rtag.data[btag_b];
 
         unsigned int tr_idx1 = bond.tag[2];
         unsigned int tr_idx2 = bond.tag[3];
@@ -496,29 +521,29 @@ void HelfrichMeshForceCompute::computeSigma()
 
         // calculate d\vec{r}
         Scalar3 dab;
-        dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
-        dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
-        dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+        dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
+        dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
+        dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
 
         Scalar3 dac;
-        dac.x = h_pos.data[idx_c].x - h_pos.data[idx_a].x;
-        dac.y = h_pos.data[idx_c].y - h_pos.data[idx_a].y;
-        dac.z = h_pos.data[idx_c].z - h_pos.data[idx_a].z;
+        dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
+        dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+        dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
 
         Scalar3 dad;
-        dad.x = h_pos.data[idx_d].x - h_pos.data[idx_a].x;
-        dad.y = h_pos.data[idx_d].y - h_pos.data[idx_a].y;
-        dad.z = h_pos.data[idx_d].z - h_pos.data[idx_a].z;
+        dad.x = h_pos.data[idx_a].x - h_pos.data[idx_d].x;
+        dad.y = h_pos.data[idx_a].y - h_pos.data[idx_d].y;
+        dad.z = h_pos.data[idx_a].z - h_pos.data[idx_d].z;
 
         Scalar3 dbc;
-        dbc.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
-        dbc.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
-        dbc.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
+        dbc.x = h_pos.data[idx_b].x - h_pos.data[idx_c].x;
+        dbc.y = h_pos.data[idx_b].y - h_pos.data[idx_c].y;
+        dbc.z = h_pos.data[idx_b].z - h_pos.data[idx_c].z;
 
         Scalar3 dbd;
-        dbd.x = h_pos.data[idx_d].x - h_pos.data[idx_b].x;
-        dbd.y = h_pos.data[idx_d].y - h_pos.data[idx_b].y;
-        dbd.z = h_pos.data[idx_d].z - h_pos.data[idx_b].z;
+        dbd.x = h_pos.data[idx_b].x - h_pos.data[idx_d].x;
+        dbd.y = h_pos.data[idx_b].y - h_pos.data[idx_d].y;
+        dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
 
         // apply minimum image conventions to all 3 vectors
         dab = box.minImage(dab);
@@ -555,10 +580,10 @@ void HelfrichMeshForceCompute::computeSigma()
         if (c_accb < -1.0)
             c_accb = -1.0;
 
-        Scalar s_accb = sqrt(1.0 - c_accb * c_accb);
-        if (s_accb < SMALL)
-            s_accb = SMALL;
-        s_accb = 1.0 / s_accb;
+        Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
+        if (inv_s_accb < SMALL)
+            inv_s_accb = SMALL;
+        inv_s_accb = 1.0 / inv_s_accb;
 
         Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
 
@@ -567,28 +592,28 @@ void HelfrichMeshForceCompute::computeSigma()
         if (c_addb < -1.0)
             c_addb = -1.0;
 
-        Scalar s_addb = sqrt(1.0 - c_addb * c_addb);
-        if (s_addb < SMALL)
-            s_addb = SMALL;
-        s_addb = 1.0 / s_addb;
+        Scalar inv_s_addb = sqrt(1.0 - c_addb * c_addb);
+        if (inv_s_addb < SMALL)
+            inv_s_addb = SMALL;
+        inv_s_addb = 1.0 / inv_s_addb;
 
-        Scalar cot_accb = c_accb * s_accb;
-        Scalar cot_addb = c_addb * s_addb;
+        Scalar cot_accb = c_accb * inv_s_accb;
+        Scalar cot_addb = c_addb * inv_s_addb;
 
         Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
         Scalar sigma_a = sigma_hat_ab * rsqab * 0.25;
 
-        h_sigma.data[idx_a] += sigma_a;
-        h_sigma.data[idx_b] += sigma_a;
+        h_sigma.data[btag_a] += sigma_a;
+        h_sigma.data[btag_b] += sigma_a;
 
-        h_sigma_dash.data[idx_a].x += sigma_hat_ab * dab.x;
-        h_sigma_dash.data[idx_a].y += sigma_hat_ab * dab.y;
-        h_sigma_dash.data[idx_a].z += sigma_hat_ab * dab.z;
+        h_sigma_dash.data[btag_a].x += sigma_hat_ab * dab.x;
+        h_sigma_dash.data[btag_a].y += sigma_hat_ab * dab.y;
+        h_sigma_dash.data[btag_a].z += sigma_hat_ab * dab.z;
 
-        h_sigma_dash.data[idx_b].x -= sigma_hat_ab * dab.x;
-        h_sigma_dash.data[idx_b].y -= sigma_hat_ab * dab.y;
-        h_sigma_dash.data[idx_b].z -= sigma_hat_ab * dab.z;
+        h_sigma_dash.data[btag_b].x -= sigma_hat_ab * dab.x;
+        h_sigma_dash.data[btag_b].y -= sigma_hat_ab * dab.y;
+        h_sigma_dash.data[btag_b].z -= sigma_hat_ab * dab.z;
         }
     }
 
