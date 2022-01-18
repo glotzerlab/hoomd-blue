@@ -1,4 +1,6 @@
-// inclusion guard
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef _UPDATER_HPMC_CLUSTERS_
 #define _UPDATER_HPMC_CLUSTERS_
 

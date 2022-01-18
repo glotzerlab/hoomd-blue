@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 md.bond
 --------------
 
@@ -9,7 +12,7 @@ md.bond
     :nosignatures:
 
     Bond
-    FENE
+    FENEWCA
     Harmonic
     Tether
 
@@ -18,7 +21,7 @@ md.bond
 .. automodule:: hoomd.md.bond
     :synopsis: Bond potentials.
     :members: Bond,
-              FENE,
+              FENEWCA,
               Harmonic,
               Tether
     :no-inherited-members:

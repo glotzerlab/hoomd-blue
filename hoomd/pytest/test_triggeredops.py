@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation, DummyTrigger
 from hoomd.pytest.dummy import DummyTriggeredOp
 from hoomd.data.syncedlist import SyncedList

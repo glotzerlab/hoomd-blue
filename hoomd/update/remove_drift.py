@@ -1,12 +1,12 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement RemoveDrift."""
 
 import hoomd
 from hoomd.operation import Updater
 from hoomd.data.typeconverter import NDArrayValidator
+from hoomd.data.parameterdicts import ParameterDict
 from hoomd import _hoomd
 import numpy as np
 
@@ -35,7 +35,9 @@ class RemoveDrift(Updater):
     def __init__(self, reference_positions, trigger=1):
         super().__init__(trigger)
         self._param_dict.update(
-            {"reference_positions": NDArrayValidator(np.float64, (None, 3))})
+            ParameterDict({
+                "reference_positions": NDArrayValidator(np.float64, (None, 3))
+            }))
         self.reference_positions = reference_positions
 
     def _add(self, simulation):

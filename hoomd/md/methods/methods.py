@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD integration methods."""
 
@@ -23,7 +22,14 @@ class Method(_HOOMDBaseObject):
     Note:
         Users should use the subclasses and not instantiate `Method` directly.
     """
-    pass
+
+    def _attach(self):
+        self._simulation.state.update_group_dof()
+        super()._attach()
+
+    def _detach(self):
+        self._simulation.state.update_group_dof()
+        super()._detach()
 
 
 class NVT(Method):

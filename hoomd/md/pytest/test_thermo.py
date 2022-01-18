@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
 from hoomd.conftest import operation_pickling_check, logging_check
 from hoomd.error import DataAccessError
@@ -171,6 +174,7 @@ def test_system_rotational_dof(simulation_factory, device):
                               volume=1000)
 
     integrator.integrate_rotational_dof = False
+    sim.run(0)
     assert thermo.rotational_degrees_of_freedom == 0
 
 

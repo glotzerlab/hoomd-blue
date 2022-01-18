@@ -68,7 +68,6 @@ set(_hoomd_sources Analyzer.cc
                    Communicator.cc
                    CommunicatorGPU.cc
                    Compute.cc
-                   ConstForceCompute.cc
                    DCDDumpWriter.cc
                    DomainDecomposition.cc
                    ExecutionConfiguration.cc
@@ -123,6 +122,7 @@ set(_hoomd_headers
     AABB.h
     AABBTree.h
     Analyzer.h
+    ArrayView.h
     Autotuner.h
     BondedGroupData.cuh
     BondedGroupData.h
@@ -139,7 +139,6 @@ set(_hoomd_headers
     CommunicatorGPU.h
     Communicator.h
     Compute.h
-    ConstForceCompute.h
     DCDDumpWriter.h
     DomainDecomposition.h
     ExecutionConfiguration.h
@@ -236,7 +235,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set_source_files_properties(extern/libgetar/src/lz4.c PROPERTIES COMPILE_FLAGS "-Wno-conversion")
     set_source_files_properties(extern/libgetar/miniz/miniz.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
     if (CMAKE_COMPILER_IS_GNUCXX)
-        set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-conversion -Wno-return-local-addr")
+        set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-conversion -Wno-return-local-addr -Wno-misleading-indentation")
     else()
         set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-conversion")
     endif()
@@ -252,6 +251,12 @@ pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} $
 
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hoomd ALIAS _hoomd)
+
+# Work around support for the delete operator with pybind11 and older versions of clang
+# https://github.com/pybind/pybind11/issues/1604
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(_hoomd PUBLIC -fsized-deallocation)
+endif()
 
 # add quick hull as its own library so that it's symbols can be public
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
@@ -378,6 +383,7 @@ set(files box.py
           snapshot.py
           logging.py
           version.py
+          wall.py
     )
 
 install(FILES ${files}

@@ -1,13 +1,11 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Compute.h"
+#include "GlobalArray.h"
 #include "Index1D.h"
 #include "ParticleGroup.h"
-
-#include "GlobalArray.h"
+#include "PythonLocalDataAccess.h"
 
 #ifdef ENABLE_HIP
 #include "ParticleData.cuh"
@@ -129,19 +127,19 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     Scalar getEnergy(unsigned int tag);
 
     //! Get the array of computed forces
-    GlobalArray<Scalar4>& getForceArray()
+    const GlobalArray<Scalar4>& getForceArray() const
         {
         return m_force;
         }
 
     //! Get the array of computed virials
-    GlobalArray<Scalar>& getVirialArray()
+    const GlobalArray<Scalar>& getVirialArray() const
         {
         return m_virial;
         }
 
     //! Get the array of computed torques
-    GlobalArray<Scalar4>& getTorqueArray()
+    const GlobalArray<Scalar4>& getTorqueArray() const
         {
         return m_torque;
         }
@@ -176,6 +174,21 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         {
         // by default, only translational degrees of freedom are integrated
         return false;
+        }
+
+    unsigned int getN() const
+        {
+        return m_pdata->getN();
+        }
+
+    unsigned int getNGhosts() const
+        {
+        return m_pdata->getNGhosts();
+        }
+
+    bool getBuffersWriteable() const
+        {
+        return m_buffers_writeable;
         }
 
     protected:
@@ -219,6 +232,9 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     /// Store the particle data flags used during the last computation
     PDataFlags m_computed_flags;
 
+    // whether the local force buffers exposed by this class should be read-only
+    bool m_buffers_writeable;
+
     //! Actually perform the computation of the forces
     /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
         the base class compute() when the forces need to be computed.
@@ -227,14 +243,106 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     virtual void computeForces(uint64_t timestep) { }
     };
 
+/** Make the local particle data available to python via zero-copy access
+ *
+ * */
+template<class Output>
+class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, ForceCompute>
+    {
+    public:
+    LocalForceComputeData(ForceCompute& data)
+        : LocalDataAccess<Output, ForceCompute>(data), m_force_handle(), m_torque_handle(),
+          m_virial_handle(), m_virial_pitch(data.getVirialArray().getPitch()),
+          m_buffers_writeable(data.getBuffersWriteable())
+        {
+        }
+
+    virtual ~LocalForceComputeData() = default;
+
+    Output getForce(GhostDataFlag flag)
+        {
+        return this->template getBuffer<Scalar4, Scalar>(m_force_handle,
+                                                         &ForceCompute::getForceArray,
+                                                         flag,
+                                                         m_buffers_writeable,
+                                                         3);
+        }
+
+    Output getPotentialEnergy(GhostDataFlag flag)
+        {
+        return this->template getBuffer<Scalar4, Scalar>(m_force_handle,
+                                                         &ForceCompute::getForceArray,
+                                                         flag,
+                                                         m_buffers_writeable,
+                                                         0,
+                                                         3 * sizeof(Scalar));
+        }
+
+    Output getTorque(GhostDataFlag flag)
+        {
+        return this->template getBuffer<Scalar4, Scalar>(m_torque_handle,
+                                                         &ForceCompute::getTorqueArray,
+                                                         flag,
+                                                         m_buffers_writeable,
+                                                         3);
+        }
+
+    Output getVirial(GhostDataFlag flag)
+        {
+        // we order the strides as (1, m_virial_pitch) because we need to expose
+        // the array as having shape (N, 6) even though the underlying data has
+        // shape (6, m_virial_pitch)
+        return this->template getBuffer<Scalar, Scalar>(
+            m_virial_handle,
+            &ForceCompute::getVirialArray,
+            flag,
+            m_buffers_writeable,
+            6,
+            0,
+            std::vector<ssize_t>(
+                {sizeof(Scalar), static_cast<ssize_t>(m_virial_pitch * sizeof(Scalar))}));
+        }
+
+    protected:
+    void clear()
+        {
+        m_force_handle.reset(nullptr);
+        m_torque_handle.reset(nullptr);
+        m_virial_handle.reset(nullptr);
+        m_rtag_handle.reset(nullptr);
+        }
+
+    private:
+    std::unique_ptr<ArrayHandle<Scalar4>> m_force_handle;
+    std::unique_ptr<ArrayHandle<Scalar4>> m_torque_handle;
+    std::unique_ptr<ArrayHandle<Scalar>> m_virial_handle;
+    std::unique_ptr<ArrayHandle<unsigned int>> m_rtag_handle;
+    size_t m_virial_pitch;
+    bool m_buffers_writeable;
+    };
+
 namespace detail
     {
 //! Exports the ForceCompute class to python
 #ifndef __HIPCC__
 void export_ForceCompute(pybind11::module& m);
 #endif
+
+template<class Output> void export_LocalForceComputeData(pybind11::module& m, std::string name)
+    {
+    pybind11::class_<LocalForceComputeData<Output>, std::shared_ptr<LocalForceComputeData<Output>>>(
+        m,
+        name.c_str())
+        .def(pybind11::init<ForceCompute&>())
+        .def("getForce", &LocalForceComputeData<Output>::getForce)
+        .def("getPotentialEnergy", &LocalForceComputeData<Output>::getPotentialEnergy)
+        .def("getTorque", &LocalForceComputeData<Output>::getTorque)
+        .def("getVirial", &LocalForceComputeData<Output>::getVirial)
+        .def("enter", &LocalForceComputeData<Output>::enter)
+        .def("exit", &LocalForceComputeData<Output>::exit);
+    };
     } // end namespace detail
 
     } // end namespace hoomd
 
-#endif
+#endif // __FORCECOMPUTE_H__
