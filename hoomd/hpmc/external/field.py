@@ -8,7 +8,6 @@ from hoomd.data.typeconverter import NDArrayValidator
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
 from hoomd.logging import log
-from hoomd.operation import Compute
 from hoomd.operation import _HOOMDBaseObject
 import hoomd
 import numpy as np
