@@ -42,30 +42,38 @@ def test_valid_construction_harmonicfield(device, constructor_args):
         assert np.all(getattr(field, attr) == value)
 
 
-@pytest.mark.cpu
-def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
-    mc = hoomd.hpmc.integrate.Sphere()
-    mc.shape['A'] = dict(diameter=0)
+@pytest.fixture(scope="module")
+def add_default_integrator():
 
+    def add(simulation):
+        mc = hoomd.hpmc.integrate.Sphere()
+        mc.shape['A'] = dict(diameter=0)
+        snapshot = simulation.state.get_snapshot()
+        if simulation.device.communicator.rank == 0:
+            reference_positions = snapshot.particles.position
+            reference_orientations = snapshot.particles.orientation
+        else:
+            reference_positions = [[0, 0, 0], [0, 0, 0]]
+            reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
+        lattice = hoomd.hpmc.external.field.Harmonic(
+            reference_positions=reference_positions,
+            reference_orientations=reference_orientations,
+            k_translational=1.0,
+            k_rotational=1.0,
+            symmetries=[[1, 0, 0, 0]])
+        mc.external_potential = lattice
+        simulation.integrator = mc
+        return mc, lattice
+
+    return add
+
+
+@pytest.mark.cpu
+def test_attaching(simulation_factory, two_particle_snapshot_factory,
+                   add_default_integrator):
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = mc
-
-    # create field
-    snapshot = sim.state.get_snapshot()
-    if device.communicator.rank == 0:
-        reference_positions = snapshot.particles.position
-        reference_orientations = snapshot.particles.orientation
-    else:
-        reference_positions = [[0, 0, 0], [0, 0, 0]]
-        reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-    lattice = hoomd.hpmc.external.field.Harmonic(
-        reference_positions=reference_positions,
-        reference_orientations=reference_orientations,
-        k_translational=1.0,
-        k_rotational=1.0,
-        symmetries=[[1, 0, 0, 0]])
-    mc.external_potential = lattice
+    mc, lattice = add_default_integrator(sim)
 
     # create C++ mirror classes and set parameters
     sim.run(0)
@@ -76,29 +84,11 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
 
 
 @pytest.mark.cpu
-def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
-    mc = hoomd.hpmc.integrate.Sphere()
-    mc.shape['A'] = dict(diameter=0)
-
+def test_detaching(simulation_factory, two_particle_snapshot_factory,
+                   add_default_integrator):
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = mc
-
-    # create harmonic field
-    snapshot = sim.state.get_snapshot()
-    if device.communicator.rank == 0:
-        reference_positions = snapshot.particles.position
-        reference_orientations = snapshot.particles.orientation
-    else:
-        reference_positions = [[0, 0, 0], [0, 0, 0]]
-        reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-    lattice = hoomd.hpmc.external.field.Harmonic(
-        reference_positions=reference_positions,
-        reference_orientations=reference_orientations,
-        k_translational=1.0,
-        k_rotational=1.0,
-        symmetries=[[1, 0, 0, 0]])
-    mc.external_potential = lattice
+    mc, lattice = add_default_integrator(sim)
 
     # create C++ mirror classes and set parameters
     sim.run(0)
@@ -110,32 +100,14 @@ def test_detaching(device, simulation_factory, two_particle_snapshot_factory):
 
 
 @pytest.mark.cpu
-def test_harmonic_displacement_energy(device, simulation_factory,
-                                      two_particle_snapshot_factory):
+def test_harmonic_displacement_energy(simulation_factory,
+                                      two_particle_snapshot_factory,
+                                      add_default_integrator):
     """Ensure harmonic displacements result in expected energy."""
-    mc = hoomd.hpmc.integrate.Sphere()
-    mc.shape['A'] = dict(diameter=0, orientable=True)
-
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = mc
-
-    # create harmonic field
-    k_trans = 1.0
-    snapshot = sim.state.get_snapshot()
-    if device.communicator.rank == 0:
-        reference_positions = snapshot.particles.position
-        reference_orientations = snapshot.particles.orientation
-    else:
-        reference_positions = [[0, 0, 0], [0, 0, 0]]
-        reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-    lattice = hoomd.hpmc.external.field.Harmonic(
-        reference_positions=reference_positions,
-        reference_orientations=reference_orientations,
-        k_translational=k_trans,
-        k_rotational=1.0,
-        symmetries=[[1, 0, 0, 0]])
-    mc.external_potential = lattice
+    mc, lattice = add_default_integrator(sim)
+    mc.shape['A'] = dict(diameter=0, orientable=True)
 
     dx = 0.01
     disp = np.array([dx, 0, 0])
@@ -143,8 +115,9 @@ def test_harmonic_displacement_energy(device, simulation_factory,
 
     # run and check energy
     sim.run(0)
-    assert np.allclose(lattice.energy,
-                       0.5 * dx**2 * k_trans * sim.state.N_particles)
+    assert np.allclose(
+        lattice.energy,
+        0.5 * dx**2 * lattice.k_translational * sim.state.N_particles)
 
     # make some moves and make sure the different energies are not zero
     sim.run(10)
@@ -165,38 +138,22 @@ def test_harmonic_displacement_energy(device, simulation_factory,
 
 
 @pytest.mark.cpu
-def test_harmonic_displacement(device, simulation_factory,
-                               two_particle_snapshot_factory):
+def test_harmonic_displacement(simulation_factory,
+                               two_particle_snapshot_factory,
+                               add_default_integrator):
     """Ensure particles remain close to reference positions."""
-    mc = hoomd.hpmc.integrate.Sphere()
-    particle_diameter = 0.5
-    mc.shape['A'] = dict(diameter=particle_diameter)
-
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = mc
-
-    # create lattice field
+    mc, lattice = add_default_integrator(sim)
+    particle_diameter = 0.5
+    mc.shape['A'] = dict(diameter=particle_diameter)
     k_trans = 100.0
-    snapshot = sim.state.get_snapshot()
-    if device.communicator.rank == 0:
-        reference_positions = snapshot.particles.position
-        reference_orientations = snapshot.particles.orientation
-    else:
-        reference_positions = [[0, 0, 0], [0, 0, 0]]
-        reference_orientations = [[1, 0, 0, 0], [1, 0, 0, 0]]
-    lattice = hoomd.hpmc.external.field.Harmonic(
-        reference_positions=reference_positions,
-        reference_orientations=reference_orientations,
-        k_translational=k_trans,
-        k_rotational=1.0,
-        symmetries=[[1, 0, 0, 0]])
-    mc.external_potential = lattice
+    lattice.k_translational = k_trans
 
     # run and check that particles haven't moved farther than half a diameter
     sim.run(100)
     snapshot = sim.state.get_snapshot()
-    if device.communicator.rank == 0:
+    if snapshot.communicator.rank == 0:
         new_positions = snapshot.particles.position
-        dx = np.linalg.norm(new_positions - reference_positions, axis=1)
+        dx = np.linalg.norm(new_positions - lattice.reference_positions, axis=1)
         assert np.all(np.less(dx, particle_diameter / 2))
