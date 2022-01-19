@@ -90,17 +90,13 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
 
     protected:
     Scalar* m_K;   //!< K parameter for multiple mesh triangles
-    Scalar*m_A0;
+    Scalar* m_A0;
 
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing area conservation energy
-
-    GlobalVector<Scalar> m_numerator_base; //! base of numerator term of area conservation energy
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
 
-    //! compute base of numerator term 
-    virtual void computeNumeratorBase();
     };
 
 namespace detail

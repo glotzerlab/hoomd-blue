@@ -35,33 +35,12 @@ AreaConservationMeshForceCompute::AreaConservationMeshForceCompute(std::shared_p
     m_K = new Scalar[m_pdata->getNTypes()];
     m_A0 = new Scalar[m_pdata->getNTypes()];
 
-    // // allocate memory for the per-type normal verctors
-    // GlobalVector<Scalar3> tmp_sigma_dash(m_pdata->getN(), m_exec_conf);
+// #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+//     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
+//         {
 
-    // m_sigma_dash.swap(tmp_sigma_dash);
-    // TAG_ALLOCATION(m_sigma_dash);
-
-    // allocate memory for the per-type normal verctors
-    // GlobalVector<Scalar> tmp_numerator_base(m_mesh_data->getMeshTriangleData()->getN(), m_exec_conf);
-    GlobalVector<Scalar> tmp_numerator_base(1, m_exec_conf); // The number of meshstructure?
-
-    m_numerator_base.swap(tmp_numerator_base);
-    TAG_ALLOCATION(m_numerator_base);
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        // cudaMemAdvise(m_sigma_dash.get(),
-        //               sizeof(Scalar3) * m_sigma_dash.getNumElements(),
-        //               cudaMemAdviseSetReadMostly,
-        //               0);
-
-        cudaMemAdvise(m_numerator_base.get(),
-                      sizeof(Scalar) * m_numerator_base.getNumElements(),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        }
-#endif
+//         }
+// #endif
     }
 
 AreaConservationMeshForceCompute::~AreaConservationMeshForceCompute()
@@ -72,7 +51,6 @@ AreaConservationMeshForceCompute::~AreaConservationMeshForceCompute()
     delete[] m_A0;
     m_K = NULL;
     m_A0 = NULL;
-
     }
 
 /*! \param type Type of the angle to set parameters for
@@ -123,8 +101,6 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     if (m_prof)
         m_prof->push("Area Conservation in Mesh");
 
-    computeNumeratorBase(); // precompute base part of numerator in U(energy)
-
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -135,24 +111,16 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
 
-    // ArrayHandle<typename MeshBond::members_t> h_bonds(m_mesh_data->getMeshBondData()->getMembersArray(),
-    //                                                access_location::host,
-    //                                                access_mode::read);
     ArrayHandle<typename MeshTriangle::members_t> h_triangles(m_mesh_data->getMeshTriangleData()->getMembersArray(),
                                                    access_location::host,
                                                    access_mode::read);
-
-    ArrayHandle<Scalar> h_numerator_base(m_numerator_base, access_location::host, access_mode::read);
-    // ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::read);
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
     assert(h_pos.data);
     assert(h_rtag.data);
-    // assert(h_bonds.data);
     assert(h_triangles.data);
-    assert(h_numerator_base.data);
 
     // Zero data for force calculation.
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
@@ -172,7 +140,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     Scalar At = m_A0[0] / size; 
     for (unsigned int i = 0; i < size; i++)
-{
+        {
         // lookup the tag of each of the particles participating in the triangle
         const typename MeshTriangle::members_t& triangle = h_triangles.data[i];
         assert(triangle.tag[0] < m_pdata->getMaximumTag() + 1);
@@ -270,12 +238,13 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         // d_srac_drb = 0.0;
         // d_srac_drc = nac;
 
-        Scalar numerator_base = h_numerator_base.data; //h_numerator_base.data[i]; //precomputed
+        Scalar Ut;
+        Ut = rab * rac * s_baac / 2 - At;
 
         Scalar3 Fa, Fb, Fc;
-        Fa = m_K[0] / (2 * At) * numerator_base * (- 1.0 * nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
-        Fb = m_K[0] / (2 * At) * numerator_base * (nab * rac * s_baac + ds_drb * rab * rac);
-        Fc = m_K[0] / (2 * At) * numerator_base * (nac * rab * s_baac + ds_drc * rab * rac);
+        Fa = m_K[0] / (2 * At) * Ut * (- 1.0 * nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
+        Fb = m_K[0] / (2 * At) * Ut * (nab * rac * s_baac + ds_drb * rab * rac);
+        Fc = m_K[0] / (2 * At) * Ut * (nac * rab * s_baac + ds_drc * rab * rac);
 
         //std::cout << i << " " << idx_c << ": " << Fa.x << " " << Fa.y << " " << Fa.z << std::endl;
 
@@ -344,94 +313,6 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
     if (m_prof)
         m_prof->pop();
-    }
-
-void AreaConservationMeshForceCompute::computeNumeratorBase()
-    {
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
-    // ArrayHandle<typename MeshBond::members_t> h_bonds(
-    //     m_mesh_data->getMeshBondData()->getMembersArray(),
-    //     access_location::host,
-    //     access_mode::read);
-    ArrayHandle<typename MeshTriangle::members_t> h_triangles(
-        m_mesh_data->getMeshTriangleData()->getMembersArray(),
-        access_location::host,
-        access_mode::read);
-
-    // get a local copy of the simulation box too
-    const BoxDim& box = m_pdata->getGlobalBox();
-
-    ArrayHandle<Scalar> h_numerator_base(m_numerator_base, access_location::host, access_mode::overwrite);
-
-    memset((void*)h_numerator_base.data, 0, sizeof(Scalar) * m_numerator_base.getNumElements());
-    // memset((void*)h_sigma_dash.data, 0, sizeof(Scalar3) * m_sigma_dash.getNumElements());
-
-    // for each of the angles
-    const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
-    Scalar At = m_A0[0] / size; 
-    for (unsigned int i = 0; i < size; i++)
-        {
-        // lookup the tag of each of the particles participating in the triangle
-        const typename MeshTriangle::members_t& triangle = h_triangles.data[i];
-        assert(triangle.tag[0] < m_pdata->getMaximumTag() + 1);
-        assert(triangle.tag[1] < m_pdata->getMaximumTag() + 1);
-        assert(triangle.tag[2] < m_pdata->getMaximumTag() + 1);
-
-        // transform a, b, and c into indices into the particle data arrays
-        // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[triangle.tag[0]];
-        unsigned int idx_b = h_rtag.data[triangle.tag[1]];
-        unsigned int idx_c = h_rtag.data[triangle.tag[2]];
-
-        assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
-        assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
-        assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
-
-        // calculate d\vec{r}
-        Scalar3 dab;
-        dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
-        dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
-        dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
-
-        Scalar3 dac;
-        dac.x = h_pos.data[idx_c].x - h_pos.data[idx_a].x;
-        dac.y = h_pos.data[idx_c].y - h_pos.data[idx_a].y;
-        dac.z = h_pos.data[idx_c].z - h_pos.data[idx_a].z;
-
-        // apply minimum image conventions to all 3 vectors
-        dab = box.minImage(dab);
-        dac = box.minImage(dac);
-
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
-        Scalar rab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-        rab = sqrt(rab);
-        Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-        rac = sqrt(rac);
-
-        Scalar3 nab, nac;
-        nab = dab / rab;
-        nac = dac / rac;
-
-        Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
-
-        if (c_baac > 1.0)
-            c_baac = 1.0;
-        if (c_baac < -1.0)
-            c_baac = -1.0;
-
-        Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
-        if (s_baac < SMALL)
-            s_baac = SMALL;
-
-        Scalar numerator_base = rab * rac * s_baac / 2 - At;
-
-        h_numerator_base.data += numerator_base; // h_numerator_base.data[i]
-        }
     }
 
 namespace detail
