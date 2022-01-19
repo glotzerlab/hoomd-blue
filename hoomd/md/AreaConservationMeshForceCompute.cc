@@ -138,7 +138,10 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
     // for each of the triangles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
-    Scalar At = m_A0[0] / size; 
+
+    // from whole surface area A0 to the surface of individual triangle A0 -> At
+    Scalar At = m_A0[0] / size;
+    
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the triangle
