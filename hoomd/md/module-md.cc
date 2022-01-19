@@ -13,6 +13,7 @@
 #include "AllSpecialPairPotentials.h"
 #include "AllTripletPotentials.h"
 #include "AnisoPotentialPair.h"
+#include "AreaConservationMeshForceCompute.h"
 #include "BondTablePotential.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoHMA.h"
@@ -299,6 +300,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialMeshBond<PotentialMeshBondTether>(m, "PotentialMeshBondTether");
     export_PotentialSpecialPair<PotentialSpecialPairLJ>(m, "PotentialSpecialPairLJ");
     export_PotentialSpecialPair<PotentialSpecialPairCoulomb>(m, "PotentialSpecialPairCoulomb");
+    export_AreaConservationMeshForceCompute(m);
     export_NeighborList(m);
     export_NeighborListBinned(m);
     export_NeighborListStencil(m);
