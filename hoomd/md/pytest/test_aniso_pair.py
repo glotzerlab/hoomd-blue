@@ -389,11 +389,13 @@ def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
     old_snap = sim.state.get_snapshot()
     sim.run(5)
     new_snap = sim.state.get_snapshot()
+    forces = pair_potential.forces
+    energies = pair_potential.energies
     if new_snap.communicator.rank == 0:
         assert not np.allclose(new_snap.particles.position,
                                old_snap.particles.position)
-        assert np.any(pair_potential.energies != 0)
-        assert np.any(pair_potential.forces != 0)
+        assert np.any(energies != 0)
+        assert np.any(forces != 0)
 
 
 @pytest.mark.parametrize("aniso_forces_and_energies",
