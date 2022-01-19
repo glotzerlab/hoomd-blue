@@ -301,10 +301,10 @@ template<class evaluator> class PotentialPair : public ForceCompute
             num_particles_by_type[typeid_i] += 1;
             }
 
-        unsigned int directions[3] = {0, 3, 5};
-        for (int direction_idx = 0; direction_idx < 3; direction_idx++)
+        // zero out the entire external virial tensor
+        for (unsigned int i = 0; i < 6; i++)
             {
-            m_external_virial[directions[direction_idx]] = Scalar(0.0);
+            m_external_virial[i] = Scalar(0.0);
             }
         for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
             {
@@ -323,11 +323,12 @@ template<class evaluator> class PotentialPair : public ForceCompute
                 // \Delta W = \Delta P (D \cdot V)
                 // We will assume that the contribution to pressure is equal
                 // in x, y, and z, so we will add 1/3 \Delta W on the diagonal
-                for (int direction_idx = 0; direction_idx < 3; direction_idx++)
-                    {
-                    m_external_virial[directions[direction_idx]]
-                        += dimension * volume * delta_pressure / Scalar(3.0);
-                    }
+                // Note that 0, 3, and 5 are the indices of m_external_virial corresponding to the
+                // diagonal elements
+                Scalar delta_virial = dimension * volume * delta_pressure / Scalar(3.0);
+                m_external_virial[0] += delta_virial;
+                m_external_virial[3] += delta_virial;
+                m_external_virial[5] += delta_virial;
                 }
             }
         } // end void computeTailCorrection()
