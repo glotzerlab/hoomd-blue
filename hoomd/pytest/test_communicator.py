@@ -4,7 +4,6 @@
 import hoomd
 import pytest
 import time
-import numpy
 try:
     from mpi4py import MPI
     mpi4py_available = True
