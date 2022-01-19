@@ -191,110 +191,6 @@ template<class evaluator> class PotentialPair : public ForceCompute
         return m_tail_correction_enabled;
         }
 
-    //! Get the contribution to the external virial
-    Scalar getExternalVirial(unsigned int dir)
-        {
-        assert(dir < 6);
-        if (m_tail_correction_enabled)
-            {
-            std::set<int> diagonal_inds = {0, 3, 5};
-            if (diagonal_inds.find(dir) != diagonal_inds.end())
-                {
-                BoxDim box = m_pdata->getBox();
-                int dimension = m_sysdef->getNDimensions();
-                bool is_two_dimensions = dimension == 2;
-                Scalar volume = box.getVolume(is_two_dimensions);
-
-                ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
-
-                std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
-
-                ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
-                                               access_location::host,
-                                               access_mode::read);
-
-                for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                    {
-                    unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
-                    num_particles_by_type[typeid_i] += 1;
-                    }
-
-                m_external_virial[dir] = Scalar(0.0);
-                for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
-                    {
-                    // rho is the number density
-                    Scalar rho_i = num_particles_by_type[type_i] / volume;
-                    for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
-                        {
-                        Scalar rho_j = num_particles_by_type[type_j] / volume;
-                        evaluator eval(Scalar(0.0),
-                                       h_rcutsq.data[m_typpair_idx(type_i, type_j)],
-                                       m_params[m_typpair_idx(type_i, type_j)]);
-                        // The pressure LRC, where
-                        // P = \frac{2 \cdot K_{trans} + W}{D \cdot  V}
-                        Scalar delta_pressure = Scalar(4.0) / Scalar(6.0) * rho_i * rho_j * M_PI
-                                                * eval.evalPressureLRCIntegral();
-                        // \Delta W = \Delta P (D \cdot V)
-                        // We will assume that the contribution to pressure is equal
-                        // in x, y, and z, so we will add 1/3 \Delta W on the diagonal
-                        m_external_virial[dir] += dimension * volume * delta_pressure / Scalar(3.0);
-                        }
-                    }
-
-                return m_external_virial[dir];
-                }
-            return 0;
-            }
-        return 0;
-        }
-
-    //! Get the contribution to the external potential energy
-    Scalar getExternalEnergy()
-        {
-        if (m_tail_correction_enabled)
-            {
-            if (m_shift_mode != no_shift)
-                {
-                throw std::runtime_error(
-                    "Pair potential shift mode must be \"none\" to applay tail corrections.");
-                }
-            ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
-
-            std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
-
-            ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
-                                           access_location::host,
-                                           access_mode::read);
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                {
-                unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
-                num_particles_by_type[typeid_i] += 1;
-                }
-            BoxDim box = m_pdata->getBox();
-            bool is_two_dimensions = m_sysdef->getNDimensions() == 2;
-            Scalar volume = box.getVolume(is_two_dimensions);
-
-            m_external_energy = Scalar(0.0);
-            for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
-                {
-                for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
-                    {
-                    // rho is the number density
-                    Scalar rho_j = num_particles_by_type[type_j] / volume;
-                    evaluator eval(Scalar(0.0),
-                                   h_rcutsq.data[m_typpair_idx(type_i, type_j)],
-                                   m_params[m_typpair_idx(type_i, type_j)]);
-                    m_external_energy += Scalar(2.0) * num_particles_by_type[type_i] * M_PI * rho_j
-                                         * eval.evalEnergyLRCIntegral();
-                    }
-                }
-
-            // TODO MPI reduction
-            return m_external_energy;
-            }
-        return 0;
-        }
-
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     virtual CommFlags getRequestedCommFlags(uint64_t timestep);
@@ -348,7 +244,100 @@ template<class evaluator> class PotentialPair : public ForceCompute
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
-    };
+
+    void computeTailCorrection(unsigned int dir)
+        {
+        if (!m_tail_correction_enabled)
+            return;
+
+        // code from getExternalEnergy
+        if (m_shift_mode != no_shift)
+            {
+            throw std::runtime_error(
+                "Pair potential shift mode must be \"none\" to applay tail corrections.");
+            }
+        ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+
+        std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
+
+        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                       access_location::host,
+                                       access_mode::read);
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            {
+            unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
+            num_particles_by_type[typeid_i] += 1;
+            }
+        BoxDim box = m_pdata->getBox();
+        bool is_two_dimensions = m_sysdef->getNDimensions() == 2;
+        Scalar volume = box.getVolume(is_two_dimensions);
+
+        m_external_energy = Scalar(0.0);
+        for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
+            {
+            for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                {
+                // rho is the number density
+                Scalar rho_j = num_particles_by_type[type_j] / volume;
+                evaluator eval(Scalar(0.0),
+                               h_rcutsq.data[m_typpair_idx(type_i, type_j)],
+                               m_params[m_typpair_idx(type_i, type_j)]);
+                m_external_energy += Scalar(2.0) * num_particles_by_type[type_i] * M_PI * rho_j
+                                     * eval.evalEnergyLRCIntegral();
+                }
+            }
+
+        // TODO: MPI reduction
+
+        // code from getExternalVirial
+        assert(dir < 6);
+        std::set<int> diagonal_inds = {0, 3, 5};
+        if (diagonal_inds.find(dir) != diagonal_inds.end())
+            {
+            BoxDim box = m_pdata->getBox();
+            int dimension = m_sysdef->getNDimensions();
+            bool is_two_dimensions = dimension == 2;
+            Scalar volume = box.getVolume(is_two_dimensions);
+
+            ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+
+            std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
+
+            ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                           access_location::host,
+                                           access_mode::read);
+
+            for (unsigned int i = 0; i < m_pdata->getN(); i++)
+                {
+                unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
+                num_particles_by_type[typeid_i] += 1;
+                }
+
+            m_external_virial[dir] = Scalar(0.0);
+            for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
+                {
+                // rho is the number density
+                Scalar rho_i = num_particles_by_type[type_i] / volume;
+                for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                    {
+                    Scalar rho_j = num_particles_by_type[type_j] / volume;
+                    evaluator eval(Scalar(0.0),
+                                   h_rcutsq.data[m_typpair_idx(type_i, type_j)],
+                                   m_params[m_typpair_idx(type_i, type_j)]);
+                    // The pressure LRC, where
+                    // P = \frac{2 \cdot K_{trans} + W}{D \cdot  V}
+                    Scalar delta_pressure = Scalar(4.0) / Scalar(6.0) * rho_i * rho_j * M_PI
+                                            * eval.evalPressureLRCIntegral();
+                    // \Delta W = \Delta P (D \cdot V)
+                    // We will assume that the contribution to pressure is equal
+                    // in x, y, and z, so we will add 1/3 \Delta W on the diagonal
+                    m_external_virial[dir] += dimension * volume * delta_pressure / Scalar(3.0);
+                    }
+                }
+
+            } // end if (diagonal_inds.find(dir) != diagonal_inds.end())
+        }     // end void computeTailCorrection()
+    };        // end class PotentialPair
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
@@ -804,6 +793,8 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
             h_virial.data[5 * m_virial_pitch + mem_idx] += virialzzi;
             }
         }
+
+    computeTailCorrection(0); // 0 is a placeholder for now... change!
 
     if (m_prof)
         m_prof->pop();
