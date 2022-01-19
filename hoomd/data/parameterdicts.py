@@ -303,12 +303,10 @@ class _ValidatedDefaultDict(MutableMapping):
             return False
         if set(self.keys()) != set(other.keys()):
             return False
-        if isinstance(self.default, dict):
-            return all(
-                np.all(self[type_][key] == other[type_][key])
-                for type_ in self
-                for key in self[type_])
-        return all(np.all(self[type_] == other[type_]) for type_ in self)
+        for type_, value in self.items():
+            if value != other[type_]:
+                return False
+        return True
 
     @property
     def default(self):
@@ -543,11 +541,15 @@ class TypeParameterDict(_ValidatedDefaultDict):
 
     def __getstate__(self):
         """Get object state for deepcopying and pickling."""
+        if self._attached:
+            dict_ = {k: self[k] for k in self}
+        else:
+            dict_ = self._dict
         return {
             "_len_keys": self._len_keys,
             "_default": self._default,
             "_type_converter": self._type_converter,
-            "_dict": self._dict,
+            "_dict": dict_,
             "_cpp_obj": None
         }
 

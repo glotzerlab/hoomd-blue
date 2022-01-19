@@ -5,7 +5,6 @@
 
 #include <functional>
 
-#include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/ComputeThermo.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
 #ifdef ENABLE_HIP

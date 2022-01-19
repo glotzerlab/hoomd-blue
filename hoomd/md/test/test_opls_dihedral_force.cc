@@ -8,7 +8,6 @@
 
 #include <functional>
 
-#include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/OPLSDihedralForceCompute.h"
 #ifdef ENABLE_HIP
 #include "hoomd/md/OPLSDihedralForceComputeGPU.h"
@@ -57,8 +56,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
     fc_4->compute(0);
 
         {
-        GlobalArray<Scalar4>& force_array_1 = fc_4->getForceArray();
-        GlobalArray<Scalar>& virial_array_1 = fc_4->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_1 = fc_4->getForceArray();
+        const GlobalArray<Scalar>& virial_array_1 = fc_4->getVirialArray();
         size_t pitch = 0;
         ArrayHandle<Scalar4> h_force_1(force_array_1, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_1(virial_array_1, access_location::host, access_mode::read);
@@ -84,8 +83,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
 
         {
         // this time there should be a force
-        GlobalArray<Scalar4>& force_array_2 = fc_4->getForceArray();
-        GlobalArray<Scalar>& virial_array_2 = fc_4->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_2 = fc_4->getForceArray();
+        const GlobalArray<Scalar>& virial_array_2 = fc_4->getVirialArray();
         size_t pitch = virial_array_2.getPitch();
         ArrayHandle<Scalar4> h_force_2(force_array_2, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_2(virial_array_2, access_location::host, access_mode::read);
@@ -146,8 +145,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
     fc_4->compute(1);
 
         {
-        GlobalArray<Scalar4>& force_array_3 = fc_4->getForceArray();
-        GlobalArray<Scalar>& virial_array_3 = fc_4->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_3 = fc_4->getForceArray();
+        const GlobalArray<Scalar>& virial_array_3 = fc_4->getVirialArray();
         size_t pitch = virial_array_3.getPitch();
         ArrayHandle<Scalar4> h_force_3(force_array_3, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_3(virial_array_3, access_location::host, access_mode::read);
@@ -218,8 +217,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
 
     fc_4->compute(2);
         {
-        GlobalArray<Scalar4>& force_array_4 = fc_4->getForceArray();
-        GlobalArray<Scalar>& virial_array_4 = fc_4->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_4 = fc_4->getForceArray();
+        const GlobalArray<Scalar>& virial_array_4 = fc_4->getVirialArray();
         size_t pitch = virial_array_4.getPitch();
         ArrayHandle<Scalar4> h_force_4(force_array_4, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_4(virial_array_4, access_location::host, access_mode::read);
@@ -265,8 +264,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
     fc_4->compute(3);
 
         {
-        GlobalArray<Scalar4>& force_array_5 = fc_4->getForceArray();
-        GlobalArray<Scalar>& virial_array_5 = fc_4->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_5 = fc_4->getForceArray();
+        const GlobalArray<Scalar>& virial_array_5 = fc_4->getVirialArray();
         size_t pitch = virial_array_5.getPitch();
         ArrayHandle<Scalar4> h_force_5(force_array_5, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_5(virial_array_5, access_location::host, access_mode::read);
@@ -329,8 +328,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
 
         {
         // check that the forces are correctly computed
-        GlobalArray<Scalar4>& force_array_6 = fc_8->getForceArray();
-        GlobalArray<Scalar>& virial_array_6 = fc_8->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_6 = fc_8->getForceArray();
+        const GlobalArray<Scalar>& virial_array_6 = fc_8->getVirialArray();
         size_t pitch = virial_array_6.getPitch();
         ArrayHandle<Scalar4> h_force_6(force_array_6, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_6(virial_array_6, access_location::host, access_mode::read);
@@ -421,8 +420,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator,
     fc_5->compute(0);
 
         {
-        GlobalArray<Scalar4>& force_array_7 = fc_5->getForceArray();
-        GlobalArray<Scalar>& virial_array_7 = fc_5->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_7 = fc_5->getForceArray();
+        const GlobalArray<Scalar>& virial_array_7 = fc_5->getVirialArray();
         size_t pitch = virial_array_7.getPitch();
         ArrayHandle<Scalar4> h_force_7(force_array_7, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_7(virial_array_7, access_location::host, access_mode::read);
@@ -501,13 +500,13 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
 
         // verify that the forces are identical (within roundoff errors)
         {
-        GlobalArray<Scalar4>& force_array_7 = fc1->getForceArray();
-        GlobalArray<Scalar>& virial_array_7 = fc1->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_7 = fc1->getForceArray();
+        const GlobalArray<Scalar>& virial_array_7 = fc1->getVirialArray();
         size_t pitch = virial_array_7.getPitch();
         ArrayHandle<Scalar4> h_force_7(force_array_7, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_7(virial_array_7, access_location::host, access_mode::read);
-        GlobalArray<Scalar4>& force_array_8 = fc2->getForceArray();
-        GlobalArray<Scalar>& virial_array_8 = fc2->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_8 = fc2->getForceArray();
+        const GlobalArray<Scalar>& virial_array_8 = fc2->getVirialArray();
         ArrayHandle<Scalar4> h_force_8(force_array_8, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_8(virial_array_8, access_location::host, access_mode::read);
 

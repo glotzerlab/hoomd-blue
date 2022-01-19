@@ -68,7 +68,6 @@ set(_hoomd_sources Analyzer.cc
                    Communicator.cc
                    CommunicatorGPU.cc
                    Compute.cc
-                   ConstForceCompute.cc
                    DCDDumpWriter.cc
                    DomainDecomposition.cc
                    ExecutionConfiguration.cc
@@ -140,7 +139,6 @@ set(_hoomd_headers
     CommunicatorGPU.h
     Communicator.h
     Compute.h
-    ConstForceCompute.h
     DCDDumpWriter.h
     DomainDecomposition.h
     ExecutionConfiguration.h
@@ -253,6 +251,12 @@ pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} $
 
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hoomd ALIAS _hoomd)
+
+# Work around support for the delete operator with pybind11 and older versions of clang
+# https://github.com/pybind/pybind11/issues/1604
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(_hoomd PUBLIC -fsized-deallocation)
+endif()
 
 # add quick hull as its own library so that it's symbols can be public
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)

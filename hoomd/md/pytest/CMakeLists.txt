@@ -8,6 +8,7 @@ set(files __init__.py
     test_aniso_pair.py
     test_array_view.py
     test_constrain_distance.py
+    test_custom_force.py
     test_external.py
     test_filter_md.py
     test_bond.py
@@ -29,6 +30,7 @@ set(files __init__.py
     test_rigid.py
     test_zero_momentum.py
     test_gsd.py
+    test_update_group_dof.py
     test_wall_data.py
     test_wall_potential.py
     )

@@ -8,7 +8,6 @@
 
 #include <functional>
 
-#include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/CosineSqAngleForceCompute.h"
 #ifdef ENABLE_HIP
 #include "hoomd/md/CosineSqAngleForceComputeGPU.h"
@@ -54,8 +53,8 @@ void angle_force_basic_tests(angleforce_creator af_creator,
     // compute the force and check the results
     fc_3->compute(0);
         {
-        GlobalArray<Scalar4>& force_array_1 = fc_3->getForceArray();
-        GlobalArray<Scalar>& virial_array_1 = fc_3->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_1 = fc_3->getForceArray();
+        const GlobalArray<Scalar>& virial_array_1 = fc_3->getVirialArray();
         size_t pitch = virial_array_1.getPitch();
         ArrayHandle<Scalar4> h_force_1(force_array_1, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_1(virial_array_1, access_location::host, access_mode::read);
@@ -81,8 +80,8 @@ void angle_force_basic_tests(angleforce_creator af_creator,
         // this time there should be a force, but it should be 0 because the angle
         // is equal to the equilibrium angle
         {
-        GlobalArray<Scalar4>& force_array_2 = fc_3->getForceArray();
-        GlobalArray<Scalar>& virial_array_2 = fc_3->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_2 = fc_3->getForceArray();
+        const GlobalArray<Scalar>& virial_array_2 = fc_3->getVirialArray();
         size_t pitch = virial_array_2.getPitch();
         ArrayHandle<Scalar4> h_force_2(force_array_2, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_2(virial_array_2, access_location::host, access_mode::read);
@@ -100,8 +99,8 @@ void angle_force_basic_tests(angleforce_creator af_creator,
     pdata_3->setPosition(2, make_scalar3(1002.0, 0.0, 0.0));
     fc_3->compute(1);
         {
-        GlobalArray<Scalar4>& force_array_2 = fc_3->getForceArray();
-        GlobalArray<Scalar>& virial_array_2 = fc_3->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_2 = fc_3->getForceArray();
+        const GlobalArray<Scalar>& virial_array_2 = fc_3->getVirialArray();
         size_t pitch = virial_array_2.getPitch();
         ArrayHandle<Scalar4> h_force_2(force_array_2, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_2(virial_array_2, access_location::host, access_mode::read);
@@ -121,8 +120,8 @@ void angle_force_basic_tests(angleforce_creator af_creator,
     pdata_3->setPosition(2, make_scalar3(1.0, 1.0, 0.0));
     fc_3->compute(1);
         {
-        GlobalArray<Scalar4>& force_array_2 = fc_3->getForceArray();
-        GlobalArray<Scalar>& virial_array_2 = fc_3->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_2 = fc_3->getForceArray();
+        const GlobalArray<Scalar>& virial_array_2 = fc_3->getVirialArray();
         size_t pitch = virial_array_2.getPitch();
         ArrayHandle<Scalar4> h_force_2(force_array_2, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_2(virial_array_2, access_location::host, access_mode::read);
@@ -172,8 +171,8 @@ void angle_force_basic_tests(angleforce_creator af_creator,
     fc_3->compute(1);
 
         {
-        GlobalArray<Scalar4>& force_array_3 = fc_3->getForceArray();
-        GlobalArray<Scalar>& virial_array_3 = fc_3->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_3 = fc_3->getForceArray();
+        const GlobalArray<Scalar>& virial_array_3 = fc_3->getVirialArray();
         size_t pitch = virial_array_3.getPitch();
         ArrayHandle<Scalar4> h_force_3(force_array_3, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_3(virial_array_3, access_location::host, access_mode::read);
@@ -219,13 +218,13 @@ void angle_force_comparison_tests(angleforce_creator af_creator1,
     fc2->compute(0);
 
         {
-        GlobalArray<Scalar4>& force_array_7 = fc1->getForceArray();
-        GlobalArray<Scalar>& virial_array_7 = fc1->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_7 = fc1->getForceArray();
+        const GlobalArray<Scalar>& virial_array_7 = fc1->getVirialArray();
         size_t pitch = virial_array_7.getPitch();
         ArrayHandle<Scalar4> h_force_7(force_array_7, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_7(virial_array_7, access_location::host, access_mode::read);
-        GlobalArray<Scalar4>& force_array_8 = fc2->getForceArray();
-        GlobalArray<Scalar>& virial_array_8 = fc2->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_8 = fc2->getForceArray();
+        const GlobalArray<Scalar>& virial_array_8 = fc2->getVirialArray();
         ArrayHandle<Scalar4> h_force_8(force_array_8, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_8(virial_array_8, access_location::host, access_mode::read);
 

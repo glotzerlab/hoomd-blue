@@ -6,6 +6,7 @@
 ``conftest`` is not part of HOOMD-blue's public API.
 """
 
+from collections.abc import Mapping
 import logging
 import pickle
 import pytest
@@ -360,19 +361,26 @@ def equality_check(a, b):
 
     def check_item(x, y, attr):
         if isinstance(x, hoomd.operation._HOOMDGetSetAttrBase):
-            equal = equality_check(x, y)
-        else:
-            equal = numpy.all(x == y)
-        if not equal:
-            logger.debug(
-                f"In equality check, attr '{attr}' not equal: {x} != {y}.")
-            return False
-        return True
+            equality_check(x, y)
+            return
+        if isinstance(x, Mapping):
+            for k, v in x.items():
+                assert k in y, f"For attr {attr}, key difference {k}"
+                check_item(v, y[k], ".".join((attr, str(k))))
+            return
+        if not isinstance(x, str) and hasattr(x, "__len__"):
+            assert len(x) == len(y)
+            for i, (v_x, v_y) in enumerate(zip(x, y)):
+                check_item(v_x, v_y, attr + f"[{i}]")
+            return
+        if isinstance(x, float):
+            assert numpy.isclose(x, y), f"attr '{attr}' not equal:"
+            return
+        assert x == y, f"attr '{attr}' not equal:"
 
     if not isinstance(a, hoomd.operation._HOOMDGetSetAttrBase):
         return a == b
-    if type(a) != type(b):
-        return False
+    assert type(a) == type(b)
 
     _check_obj_attr_compatibility(a, b)
 
@@ -384,24 +392,31 @@ def equality_check(a, b):
             param_keys = a._param_dict.keys()
             b_param_keys = b._param_dict.keys()
             # Check key equality
-            if param_keys != b_param_keys:
-                logger.debug(
-                    f"In equality check, incompatible param_dict keys: "
-                    f"{param_keys}, {b_param_keys}")
-                return False
+            assert param_keys == b_param_keys, "Incompatible param_dict keys:"
             # Check item equality
             for key in param_keys:
                 check_item(a._param_dict[key], b._param_dict[key], key)
             continue
 
+        if attr == "_typeparam_dict":
+            keys = a._typeparam_dict.keys()
+            b_keys = b._typeparam_dict.keys()
+            # Check key equality
+            assert keys == b_keys, "Incompatible _typeparam_dict:"
+            # Check item equality
+            for key in keys:
+                for type_, value in a._typeparam_dict[key].items():
+                    check_item(value, b._typeparam_dict[key][type_], ".".join(
+                        (key, str(type_))))
+            continue
+
         check_item(a.__dict__[attr], b.__dict__[attr], attr)
-    return True
 
 
 def pickling_check(instance):
     """Test that an instance can be pickled and unpickled."""
     pkled_instance = pickle.loads(pickle.dumps(instance))
-    assert equality_check(instance, pkled_instance)
+    equality_check(instance, pkled_instance)
 
 
 def operation_pickling_check(instance, sim):
@@ -540,7 +555,7 @@ class ListWriter(hoomd.custom.Action):
 
 def index_id(i):
     """Used for pytest fixture ids of indices."""
-    return f"({i=})"
+    return f"(i={i})"
 
 
 class BaseCollectionsTest:

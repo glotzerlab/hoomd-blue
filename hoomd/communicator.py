@@ -181,6 +181,14 @@ class Communicator(object):
         yield None
         _current_communicator = prev
 
+    @property
+    def walltime(self):
+        """Wall clock time since creating the `Communicator` [seconds].
+
+        `walltime` returns the same value on each rank in the current partition.
+        """
+        return self.cpp_mpi_conf.getWalltime()
+
 
 # store the "current" communicator to be used for MPI_Abort calls. This defaults
 # to the world communicator, but users can opt in to a more specific

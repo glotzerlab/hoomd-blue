@@ -19,6 +19,7 @@ hoomd.md
     module-md-bond
     module-md-constrain
     module-md-compute
+    module-md-data
     module-md-dihedral
     module-md-external
     module-md-force

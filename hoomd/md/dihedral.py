@@ -42,6 +42,9 @@ class Dihedral(Force):
         Users should not instantiate this class directly.
     """
 
+    def __init__(self):
+        super().__init__()
+
     def _attach(self):
         # check that some dihedrals are defined
         if self._simulation.state._cpp_sys_def.getDihedralData().getNGlobal(
@@ -93,6 +96,7 @@ class Harmonic(Dihedral):
     _cpp_class_name = "HarmonicDihedralForceCompute"
 
     def __init__(self):
+        super().__init__()
         params = TypeParameter(
             'params', 'dihedral_types',
             TypeParameterDict(k=float, d=float, n=int, phi0=float, len_keys=1))
@@ -356,6 +360,7 @@ class OPLS(Dihedral):
     _cpp_class_name = "OPLSDihedralForceCompute"
 
     def __init__(self):
+        super().__init__()
         # check that some dihedrals are defined
         params = TypeParameter(
             'params', 'dihedral_types',

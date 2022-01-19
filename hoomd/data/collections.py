@@ -7,8 +7,8 @@ from abc import abstractmethod
 from collections import abc
 import warnings
 
+import hoomd
 import hoomd.data.typeconverter as _typeconverter
-import hoomd.error
 
 
 class _ReadAndWrite:
@@ -553,6 +553,9 @@ class _HOOMDTuple(_HOOMDSyncedCollection, abc.Sequence):
 
 
 def _to_hoomd_data(root, schema, parent=None, identity=None, data=None):
+    _exclude_classes = (hoomd.logging.Logger,)
+    if isinstance(data, _exclude_classes):
+        return data
     if isinstance(data, abc.MutableMapping):
         spec = _find_structural_validator(schema,
                                           _typeconverter.TypeConverterMapping)

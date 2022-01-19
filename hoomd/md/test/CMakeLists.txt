@@ -54,7 +54,7 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
 
     add_dependencies(test_all ${CUR_TEST})
 
-    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND NOT APPLE)
         # these options are needed to avoid linker errors with GCC
         set(additional_link_options "-Wl,--allow-shlib-undefined -Wl,--no-as-needed")
     endif()

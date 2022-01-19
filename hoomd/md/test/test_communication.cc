@@ -15,7 +15,6 @@ HOOMD_UP_MAIN()
 #include "hoomd/Communicator.h"
 #include "hoomd/ExecutionConfiguration.h"
 
-#include "hoomd/ConstForceCompute.h"
 #include "hoomd/filter/ParticleFilterAll.h"
 #include "hoomd/md/IntegratorTwoStep.h"
 #include "hoomd/md/TwoStepNVE.h"
@@ -2961,11 +2960,6 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     // distribute particle data on processors
     pdata_1->initializeFromSnapshot(snap);
     pdata_2->initializeFromSnapshot(snap);
-
-    // Create ConstForceComputes
-    //    std::shared_ptr<ConstForceCompute> fc_1(new ConstForceCompute(sysdef_1, Scalar(-0.3),
-    //    Scalar(0.2), Scalar(-0.123))); std::shared_ptr<ConstForceCompute> fc_2(new
-    //    ConstForceCompute(sysdef_2, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
 
     std::shared_ptr<ParticleFilter> selector_all_1(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));

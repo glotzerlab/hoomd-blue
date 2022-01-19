@@ -8,7 +8,6 @@
 
 #include <functional>
 
-#include "hoomd/ConstForceCompute.h"
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/md/AllBondPotentials.h"
 
@@ -53,8 +52,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
 
     // compute the force and check the results
     fc_2->compute(0);
-    GlobalArray<Scalar4>& force_array_1 = fc_2->getForceArray();
-    GlobalArray<Scalar>& virial_array_1 = fc_2->getVirialArray();
+    const GlobalArray<Scalar4>& force_array_1 = fc_2->getForceArray();
+    const GlobalArray<Scalar>& virial_array_1 = fc_2->getVirialArray();
 
         {
         size_t pitch = virial_array_1.getPitch();
@@ -79,8 +78,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
 
         {
         // this time there should be a force
-        GlobalArray<Scalar4>& force_array_2 = fc_2->getForceArray();
-        GlobalArray<Scalar>& virial_array_2 = fc_2->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_2 = fc_2->getForceArray();
+        const GlobalArray<Scalar>& virial_array_2 = fc_2->getVirialArray();
         size_t pitch = virial_array_2.getPitch();
         ArrayHandle<Scalar4> h_force_2(force_array_2, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_2(virial_array_2, access_location::host, access_mode::read);
@@ -133,8 +132,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
 
         {
         // this time there should be a force
-        GlobalArray<Scalar4>& force_array_3 = fc_2->getForceArray();
-        GlobalArray<Scalar>& virial_array_3 = fc_2->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_3 = fc_2->getForceArray();
+        const GlobalArray<Scalar>& virial_array_3 = fc_2->getVirialArray();
         ArrayHandle<Scalar4> h_force_3(force_array_3, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_3(virial_array_3, access_location::host, access_mode::read);
         MY_CHECK_CLOSE(h_force_3.data[0].x, -0.225, tol);
@@ -149,8 +148,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
 
         {
         // the force should be zero
-        GlobalArray<Scalar4>& force_array_4 = fc_2->getForceArray();
-        GlobalArray<Scalar>& virial_array_4 = fc_2->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_4 = fc_2->getForceArray();
+        const GlobalArray<Scalar>& virial_array_4 = fc_2->getVirialArray();
         ArrayHandle<Scalar4> h_force_4(force_array_4, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_4(virial_array_4, access_location::host, access_mode::read);
         MY_CHECK_SMALL(h_force_4.data[0].x, tol_small);
@@ -188,8 +187,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
 
         {
         // check that the forces are correctly computed
-        GlobalArray<Scalar4>& force_array_5 = fc_6->getForceArray();
-        GlobalArray<Scalar>& virial_array_5 = fc_6->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_5 = fc_6->getForceArray();
+        const GlobalArray<Scalar>& virial_array_5 = fc_6->getVirialArray();
         size_t pitch = virial_array_5.getPitch();
         ArrayHandle<Scalar4> h_force_5(force_array_5, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_5(virial_array_5, access_location::host, access_mode::read);
@@ -308,8 +307,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator,
     fc_4->compute(0);
 
         {
-        GlobalArray<Scalar4>& force_array_6 = fc_4->getForceArray();
-        GlobalArray<Scalar>& virial_array_6 = fc_4->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_6 = fc_4->getForceArray();
+        const GlobalArray<Scalar>& virial_array_6 = fc_4->getVirialArray();
         size_t pitch = virial_array_6.getPitch();
         ArrayHandle<Scalar4> h_force_6(force_array_6, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_6(virial_array_6, access_location::host, access_mode::read);
@@ -392,13 +391,13 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
 
         // verify that the forces are identical (within roundoff errors)
         {
-        GlobalArray<Scalar4>& force_array_7 = fc1->getForceArray();
-        GlobalArray<Scalar>& virial_array_7 = fc1->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_7 = fc1->getForceArray();
+        const GlobalArray<Scalar>& virial_array_7 = fc1->getVirialArray();
         size_t pitch = virial_array_7.getPitch();
         ArrayHandle<Scalar4> h_force_7(force_array_7, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_7(virial_array_7, access_location::host, access_mode::read);
-        GlobalArray<Scalar4>& force_array_8 = fc2->getForceArray();
-        GlobalArray<Scalar>& virial_array_8 = fc2->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_8 = fc2->getForceArray();
+        const GlobalArray<Scalar>& virial_array_8 = fc2->getVirialArray();
         ArrayHandle<Scalar4> h_force_8(force_array_8, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_8(virial_array_8, access_location::host, access_mode::read);
 
@@ -438,69 +437,6 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
         CHECK_SMALL(deltav2[3], double(tol_small));
         CHECK_SMALL(deltav2[4], double(tol_small));
         CHECK_SMALL(deltav2[5], double(tol_small));
-        }
-    }
-
-//! Check ConstForceCompute to see that it operates properly
-void const_force_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
-    {
-    // Generate a simple test particle data
-    std::shared_ptr<SystemDefinition> sysdef_2(
-        new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-    pdata_2->setFlags(~PDataFlags(0));
-
-    pdata_2->setPosition(0, make_scalar3(0.0, 0.0, 0.0));
-    pdata_2->setPosition(1, make_scalar3(0.9, 0.0, 0.0));
-
-    // Create the ConstForceCompute and check that it works properly
-    ConstForceCompute fc(sysdef_2, Scalar(-1.3), Scalar(2.5), Scalar(45.67));
-        {
-        GlobalArray<Scalar4>& force_array_9 = fc.getForceArray();
-        GlobalArray<Scalar>& virial_array_9 = fc.getVirialArray();
-        size_t pitch = virial_array_9.getPitch();
-        ArrayHandle<Scalar4> h_force_9(force_array_9, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_virial_9(virial_array_9, access_location::host, access_mode::read);
-        MY_CHECK_CLOSE(h_force_9.data[0].x, -1.3, tol);
-        MY_CHECK_CLOSE(h_force_9.data[0].y, 2.5, tol);
-        MY_CHECK_CLOSE(h_force_9.data[0].z, 45.67, tol);
-        MY_CHECK_SMALL(h_force_9.data[0].w, tol_small);
-        MY_CHECK_SMALL(h_virial_9.data[0 * pitch + 0] + h_virial_9.data[3 * pitch + 0]
-                           + h_virial_9.data[5 * pitch + 0],
-                       tol_small);
-
-        MY_CHECK_CLOSE(h_force_9.data[1].x, -1.3, tol);
-        MY_CHECK_CLOSE(h_force_9.data[1].y, 2.5, tol);
-        MY_CHECK_CLOSE(h_force_9.data[1].z, 45.67, tol);
-        MY_CHECK_SMALL(h_force_9.data[1].w, tol_small);
-        MY_CHECK_SMALL(h_virial_9.data[0 * pitch + 1] + h_virial_9.data[3 * pitch + 1]
-                           + h_virial_9.data[5 * pitch + 1],
-                       tol_small);
-        }
-
-    // check the setforce method
-    fc.setForce(Scalar(67.54), Scalar(22.1), Scalar(-1.4));
-        {
-        GlobalArray<Scalar4>& force_array_10 = fc.getForceArray();
-        GlobalArray<Scalar>& virial_array_10 = fc.getVirialArray();
-        size_t pitch = virial_array_10.getPitch();
-        ArrayHandle<Scalar4> h_force_10(force_array_10, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_virial_10(virial_array_10, access_location::host, access_mode::read);
-        MY_CHECK_CLOSE(h_force_10.data[0].x, 67.54, tol);
-        MY_CHECK_CLOSE(h_force_10.data[0].y, 22.1, tol);
-        MY_CHECK_CLOSE(h_force_10.data[0].z, -1.4, tol);
-        MY_CHECK_SMALL(h_force_10.data[0].w, tol_small);
-        MY_CHECK_SMALL(h_virial_10.data[0 * pitch + 0] + h_virial_10.data[3 * pitch + 0]
-                           + h_virial_10.data[5 * pitch + 0],
-                       tol_small);
-
-        MY_CHECK_CLOSE(h_force_10.data[1].x, 67.54, tol);
-        MY_CHECK_CLOSE(h_force_10.data[1].y, 22.1, tol);
-        MY_CHECK_CLOSE(h_force_10.data[1].z, -1.4, tol);
-        MY_CHECK_SMALL(h_force_10.data[1].w, tol_small);
-        MY_CHECK_SMALL(h_virial_10.data[0 * pitch + 1] + h_virial_10.data[3 * pitch + 1]
-                           + h_virial_10.data[5 * pitch + 1],
-                       tol_small);
         }
     }
 
@@ -550,10 +486,3 @@ UP_TEST(PotentialBondHarmonicGPU_compare)
     }
 
 #endif
-
-//! test case for constant forces
-UP_TEST(ConstForceCompute_basic)
-    {
-    const_force_test(std::shared_ptr<ExecutionConfiguration>(
-        new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    }

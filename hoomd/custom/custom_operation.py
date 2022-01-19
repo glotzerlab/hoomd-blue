@@ -38,7 +38,7 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
             `hoomd.custom.Action` is run.
     """
 
-    _override_setattr = {'_action'}
+    _override_setattr = {'_action', "_export_dict"}
 
     @abstractmethod
     def _cpp_class_name(self):
@@ -58,9 +58,6 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
 
     def __getattr__(self, attr):
         """Pass through attributes/methods of the wrapped object."""
-        if attr == '_action':
-            raise AttributeError(
-                f"{type(self).__name__} object has no attribute _action")
         try:
             return super().__getattr__(attr)
         except AttributeError:
@@ -72,10 +69,10 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
 
     def _setattr_hook(self, attr, value):
         """This implements the __setattr__ pass through to the Action."""
-        if hasattr(self._action, attr):
+        if attr not in self.__dict__ and hasattr(self._action, attr):
             setattr(self._action, attr, value)
-        else:
-            object.__setattr__(self, attr, value)
+            return
+        object.__setattr__(self, attr, value)
 
     def _attach(self):
         """Attach to a `hoomd.Simulation`.
@@ -111,6 +108,12 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         """`hoomd.custom.Action` The action the operation wraps."""
         return self._action
 
+    def __setstate__(self, state):
+        """Set object state from pickling or deepcopying."""
+        self._action = state.pop("_action")
+        for attr, value in state.items():
+            setattr(self, attr, value)
+
 
 class _AbstractLoggableWithPassthrough(_AbstractLoggable):
 
@@ -141,14 +144,19 @@ class _InternalCustomOperation(CustomOperation,
     # These attributes are not accessible or able to be passed through to
     # prevent leaky abstractions and help promote the illusion of a single
     # object for cases of internal custom actions.
-    _disallowed_attrs = {'detach', 'attach', 'action'}
+    _disallowed_attrs = {'detach', 'attach', 'action', "act"}
+
+    def __getattribute__(self, attr):
+        if attr in object.__getattribute__(self, "_disallowed_attrs"):
+            raise AttributeError("{} object {} has no attribute {}.".format(
+                type(self), self, attr))
+        return object.__getattribute__(self, attr)
 
     def __getattr__(self, attr):
         if attr in self._disallowed_attrs:
             raise AttributeError("{} object {} has no attribute {}.".format(
                 type(self), self, attr))
-        else:
-            return super().__getattr__(attr)
+        return super().__getattr__(attr)
 
     @property
     @abstractmethod
@@ -167,10 +175,6 @@ class _InternalCustomOperation(CustomOperation,
         wrapping_method = getattr(self, self._operation_func).__func__
         setattr(wrapping_method, "__doc__", self._action.act.__doc__)
 
-    @property
-    def action(self):
-        raise AttributeError(f"Object {self} has no attribute 'action'.")
-
     def __dir__(self):
         """Expose all attributes for dynamic querying in notebooks and IDEs."""
         list_ = super().__dir__()
@@ -181,7 +185,3 @@ class _InternalCustomOperation(CustomOperation,
         list_.remove("action")
         list_.remove("act")
         return list_ + action_list
-
-    @property
-    def act(self):
-        raise AttributeError(f"Object {self} has no attribute 'act'.")
