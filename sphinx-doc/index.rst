@@ -57,7 +57,7 @@ Related tools
 
 - `freud <https://freud.readthedocs.io/>`_:
   Analyze HOOMD-blue simulation results with the **freud** Python library.
-- `signac <https://signac.readthedocs.io/>`_:
+- `signac <https://signac.io/>`_:
   Manage your workflow with **signac**.
 
 Example scripts
