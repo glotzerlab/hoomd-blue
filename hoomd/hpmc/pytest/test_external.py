@@ -62,7 +62,7 @@ def add_default_integrator():
             k_rotational=1.0,
             symmetries=[[1, 0, 0, 0]])
         mc.external_potential = lattice
-        simulation.integrator = mc
+        simulation.operation.integrator = mc
         return mc, lattice
 
     return add
