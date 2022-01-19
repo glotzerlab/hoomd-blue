@@ -14,8 +14,6 @@
 #include "ForceConstraint.h"
 #include "GSDDumpWriter.h"
 #include "GSDReader.h"
-#include "GetarDumpWriter.h"
-#include "GetarInitializer.h"
 #include "HOOMDMath.h"
 #include "Initializers.h"
 #include "Integrator.h"
@@ -257,7 +255,6 @@ PYBIND11_MODULE(_hoomd, m)
 
     // initializers
     export_GSDReader(m);
-    getardump::export_GetarInitializer(m);
 
     // computes
     export_Compute(m);
@@ -278,7 +275,6 @@ PYBIND11_MODULE(_hoomd, m)
     export_Analyzer(m);
     export_PythonAnalyzer(m);
     export_DCDDumpWriter(m);
-    getardump::export_GetarDumpWriter(m);
     export_GSDDumpWriter(m);
 
     // updaters
