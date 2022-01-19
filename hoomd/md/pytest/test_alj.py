@@ -9,6 +9,7 @@ import hoomd.conftest
 from hoomd import md
 
 
+@pytest.mark.validate
 def test_conservation(simulation_factory, lattice_snapshot_factory):
     # For test, use a unit area hexagon.
     coxeter = pytest.importorskip("coxeter")
