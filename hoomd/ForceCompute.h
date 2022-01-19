@@ -83,10 +83,8 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     //! Computes enegry differences for dynamical mesh bonding
     virtual Scalar energyDiff(unsigned int idx_a,
                               unsigned int idx_b,
-                              Scalar3 xab,
                               unsigned int idx_c,
                               unsigned int idx_d,
-                              Scalar3 xcd,
                               unsigned int type_id)
         {
         return 0;

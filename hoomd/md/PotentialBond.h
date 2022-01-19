@@ -70,10 +70,8 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
 
     virtual Scalar energyDiff(unsigned int idx_a,
                               unsigned int idx_b,
-                              Scalar3 xab,
                               unsigned int idx_c,
                               unsigned int idx_d,
-                              Scalar3 xcd,
                               unsigned int type_id);
     };
 
@@ -351,12 +349,11 @@ void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
 template<class evaluator, class Bonds>
 Scalar PotentialBond<evaluator, Bonds>::energyDiff(unsigned int idx_a,
                                                    unsigned int idx_b,
-                                                   Scalar3 xab,
                                                    unsigned int idx_c,
                                                    unsigned int idx_d,
-                                                   Scalar3 xcd,
                                                    unsigned int type_id)
     {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
                                    access_location::host,
                                    access_mode::read);
@@ -364,6 +361,8 @@ Scalar PotentialBond<evaluator, Bonds>::energyDiff(unsigned int idx_a,
 
     // access the parameters
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
 
     // access diameter (if needed)
     Scalar diameter_a = Scalar(0.0);
@@ -391,6 +390,18 @@ Scalar PotentialBond<evaluator, Bonds>::energyDiff(unsigned int idx_a,
         charge_d = h_charge.data[idx_d];
         }
 
+    Scalar3 posa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
+    Scalar3 posb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
+    Scalar3 posc = make_scalar3(h_pos.data[idx_c].x, h_pos.data[idx_c].y, h_pos.data[idx_c].z);
+    Scalar3 posd = make_scalar3(h_pos.data[idx_d].x, h_pos.data[idx_d].y, h_pos.data[idx_d].z);
+
+    Scalar3 xab = posb - posa;
+
+    Scalar3 xcd = posd - posc;
+
+    xab = box.minImage(xab);
+    xcd = box.minImage(xcd);
+
     // calculate r_ab squared
     Scalar rsqab = dot(xab, xab);
     Scalar rsqcd = dot(xcd, xcd);
@@ -415,7 +426,7 @@ Scalar PotentialBond<evaluator, Bonds>::energyDiff(unsigned int idx_a,
     eval1.evalForceAndEnergy(force_divr, bond_eng1);
     eval2.evalForceAndEnergy(force_divr, bond_eng2);
 
-    return (bond_eng1 - bond_eng2) / 2.0;
+    return (bond_eng2 - bond_eng1) / 2.0;
     }
 
 #ifdef ENABLE_MPI
