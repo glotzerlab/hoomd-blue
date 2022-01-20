@@ -13,7 +13,7 @@
 #include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
@@ -42,7 +42,7 @@ void export_convex_spheropolyhedron(pybind11::module& m)
     export_UpdaterClusters<ShapeSpheropolyhedron>(m, "UpdaterClustersConvexSpheropolyhedron");
 
     export_ExternalFieldInterface<ShapeSpheropolyhedron>(m, "ExternalFieldSpheropolyhedron");
-    export_LatticeField<ShapeSpheropolyhedron>(m, "ExternalFieldLatticeSpheropolyhedron");
+    export_HarmonicField<ShapeSpheropolyhedron>(m, "ExternalFieldHarmonicSpheropolyhedron");
     export_ExternalFieldComposite<ShapeSpheropolyhedron>(m,
                                                          "ExternalFieldCompositeSpheropolyhedron");
     export_ExternalFieldWall<ShapeSpheropolyhedron>(m, "WallSpheropolyhedron");

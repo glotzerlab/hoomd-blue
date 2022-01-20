@@ -691,11 +691,6 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC update");
 
-    if( m_external ) // I think we need this here otherwise I don't think it will get called.
-        {
-        m_external->compute(timestep);
-        }
-
     uint16_t seed = m_sysdef->getSeed();
 
     // access interaction matrix
@@ -973,8 +968,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     } // end loop over images
                 } // end if (m_patch)
 
-            // Add external energetic contribution
-            if (m_external)
+            // Add external energetic contribution if there are no overlaps
+            if (m_external && !overlap)
                 {
                 patch_field_energy_diff -= m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
                 }

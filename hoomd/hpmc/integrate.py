@@ -197,6 +197,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._external_potential is not None:
             self._external_potential._attach()
             self._cpp_obj.setExternalField(self._external_potential._cpp_obj)
+
         if self._pair_potential is not None:
             self._pair_potential._attach()
             self._cpp_obj.setPatchEnergy(self._pair_potential._cpp_obj)
@@ -373,9 +374,9 @@ class HPMCIntegrator(BaseIntegrator):
     @external_potential.setter
     def external_potential(self, new_external_potential):
         if not isinstance(new_external_potential,
-                          hoomd.hpmc.external.user.CPPExternalPotential):
+                          hoomd.hpmc.external.field.ExternalField):
             msg = 'External potentials should be an instance of '
-            msg += 'CPPExternalPotential'
+            msg += 'hoomd.hpmc.field.external.ExternalField.'
             raise TypeError(msg)
         if self._added:
             new_external_potential._add(self._simulation)

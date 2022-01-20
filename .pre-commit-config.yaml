@@ -85,6 +85,7 @@ repos:
     exclude: |
       (?x)(
         ^hoomd/md/impropers.py|
+        ^hoomd/hpmc/external/wall.py|
         ^hoomd/extern/|
         ^hoomd/mpcd/|
         ^hoomd/dem/|
