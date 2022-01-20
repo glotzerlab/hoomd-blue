@@ -187,25 +187,21 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         const typename MeshTriangle::members_t& triangle1 = h_triangles.data[tr_idx1];
         const typename MeshTriangle::members_t& triangle2 = h_triangles.data[tr_idx2];
 
-        unsigned int btag_c = triangle1.tag[0];
-        unsigned int idx_c = h_rtag.data[btag_c];
+        unsigned int idx_c = h_rtag.data[triangle1.tag[0]];
 
         unsigned int iterator = 1;
         while (idx_a == idx_c || idx_b == idx_c)
             {
-            btag_c = triangle1.tag[iterator];
-            idx_c = h_rtag.data[btag_c];
+            idx_c = h_rtag.data[triangle1.tag[iterator]];
             iterator++;
             }
 
-        unsigned int btag_d = triangle2.tag[0];
-        unsigned int idx_d = h_rtag.data[btag_d];
+        unsigned int idx_d = h_rtag.data[triangle2.tag[0]];
 
         iterator = 1;
         while (idx_a == idx_d || idx_b == idx_d)
             {
-            btag_d = triangle2.tag[iterator];
-            idx_d = h_rtag.data[btag_d];
+            idx_d = h_rtag.data[triangle2.tag[iterator]];
             iterator++;
             }
 
@@ -347,15 +343,15 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
 
         Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
-        Scalar3 sigma_dash_a = h_sigma_dash.data[btag_a]; // precomputed
-        Scalar3 sigma_dash_b = h_sigma_dash.data[btag_b]; // precomputed
-        Scalar3 sigma_dash_c = h_sigma_dash.data[btag_c]; // precomputed
-        Scalar3 sigma_dash_d = h_sigma_dash.data[btag_d]; // precomputed
+        Scalar3 sigma_dash_a = h_sigma_dash.data[idx_a]; // precomputed
+        Scalar3 sigma_dash_b = h_sigma_dash.data[idx_b]; // precomputed
+        Scalar3 sigma_dash_c = h_sigma_dash.data[idx_c]; // precomputed
+        Scalar3 sigma_dash_d = h_sigma_dash.data[idx_d]; // precomputed
 
-        Scalar sigma_a = h_sigma.data[btag_a]; // precomputed
-        Scalar sigma_b = h_sigma.data[btag_b]; // precomputed
-        Scalar sigma_c = h_sigma.data[btag_c]; // precomputed
-        Scalar sigma_d = h_sigma.data[btag_d]; // precomputed
+        Scalar sigma_a = h_sigma.data[idx_a]; // precomputed
+        Scalar sigma_b = h_sigma.data[idx_b]; // precomputed
+        Scalar sigma_c = h_sigma.data[idx_c]; // precomputed
+        Scalar sigma_d = h_sigma.data[idx_d]; // precomputed
 
         Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
         dc_abbc = -nbc / rab - c_abbc / rab * nab;
@@ -604,16 +600,16 @@ void HelfrichMeshForceCompute::computeSigma()
 
         Scalar sigma_a = sigma_hat_ab * rsqab * 0.25;
 
-        h_sigma.data[btag_a] += sigma_a;
-        h_sigma.data[btag_b] += sigma_a;
+        h_sigma.data[idx_a] += sigma_a;
+        h_sigma.data[idx_b] += sigma_a;
 
-        h_sigma_dash.data[btag_a].x += sigma_hat_ab * dab.x;
-        h_sigma_dash.data[btag_a].y += sigma_hat_ab * dab.y;
-        h_sigma_dash.data[btag_a].z += sigma_hat_ab * dab.z;
+        h_sigma_dash.data[idx_a].x += sigma_hat_ab * dab.x;
+        h_sigma_dash.data[idx_a].y += sigma_hat_ab * dab.y;
+        h_sigma_dash.data[idx_a].z += sigma_hat_ab * dab.z;
 
-        h_sigma_dash.data[btag_b].x -= sigma_hat_ab * dab.x;
-        h_sigma_dash.data[btag_b].y -= sigma_hat_ab * dab.y;
-        h_sigma_dash.data[btag_b].z -= sigma_hat_ab * dab.z;
+        h_sigma_dash.data[idx_b].x -= sigma_hat_ab * dab.x;
+        h_sigma_dash.data[idx_b].y -= sigma_hat_ab * dab.y;
+        h_sigma_dash.data[idx_b].z -= sigma_hat_ab * dab.z;
         }
     }
 
