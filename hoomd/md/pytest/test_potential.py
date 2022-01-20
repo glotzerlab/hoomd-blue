@@ -1134,3 +1134,28 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory,
     sim.operations.integrator = integrator
     sim.run(0)
     pickling_check(pot)
+
+
+@pytest.mark.parametrize("mode", ['none', 'shift', 'xplor'])
+def test_shift_mode_with_lrc(simulation_factory, two_particle_snapshot_factory,
+                             mode):
+    cell = md.nlist.Cell(buffer=0.4)
+    lj = md.pair.LJ(nlist=cell,
+                    default_r_cut=2.5,
+                    mode=mode,
+                    tail_correction=True)
+
+    lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
+    snap = two_particle_snapshot_factory(dimensions=3, d=.5)
+    sim = simulation_factory(snap)
+    integrator = md.Integrator(dt=0.005)
+    integrator.forces.append(lj)
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+    sim.operations.integrator = integrator
+    shift_allowed_modes = {'none'}
+    if mode not in shift_allowed_modes:
+        with pytest.raises(RuntimeError):
+            sim.run(1)
+    else:
+        sim.run(1)
