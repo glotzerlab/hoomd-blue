@@ -1159,3 +1159,50 @@ def test_shift_mode_with_lrc(simulation_factory, two_particle_snapshot_factory,
             sim.run(1)
     else:
         sim.run(1)
+
+
+def test_lrc_non_lj(simulation_factory, two_particle_snapshot_factory):
+    # test we can't pass in tail_correction to non-LJ pair potential
+    cell = md.nlist.Cell(buffer=0.4)
+    with pytest.raises(TypeError):
+        # flake8 complains about unused variable with gauss = md.pair.Gauss(...)
+        md.pair.Gauss(nlist=cell,
+                      default_r_cut=2.5,
+                      mode='none',
+                      tail_correction=True)
+
+
+def test_tail_corrections(simulation_factory, two_particle_snapshot_factory):
+    # the tail correction should always decrease the potential energy with a LJ
+    # pair potential and the cutoff is greater than sigma
+    # further, the pressure correction should always be negative for the LJ
+    # potenial if r_cut is greater than 2^(1/6)sigma
+    sims = {}
+    for tail_correction in [True, False]:
+        cell = md.nlist.Cell(buffer=0.4)
+        lj = md.pair.LJ(nlist=cell,
+                        default_r_cut=2.0,
+                        mode='none',
+                        tail_correction=tail_correction)
+
+        lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
+        snap = two_particle_snapshot_factory(dimensions=3, d=1.5)
+        sim = simulation_factory(snap)
+        integrator = md.Integrator(dt=0.005)
+        integrator.forces.append(lj)
+        integrator.methods.append(
+            hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+        sim.operations.integrator = integrator
+        sim.always_compute_pressure = True
+        sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
+        thermodynamic_properties = hoomd.md.compute.ThermodynamicQuantities(
+            filter=hoomd.filter.All())
+        sim.operations.computes.append(thermodynamic_properties)
+        sim.run(10)
+        sims[tail_correction] = sim
+    e_true = sims[True].operations.computes[0].potential_energy
+    e_false = sims[False].operations.computes[0].potential_energy
+    p_true = sims[True].operations.computes[0].pressure
+    p_false = sims[False].operations.computes[0].pressure
+    assert e_true < e_false
+    assert p_true < p_false
