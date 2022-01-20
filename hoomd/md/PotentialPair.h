@@ -247,7 +247,7 @@ template<class evaluator> class PotentialPair : public ForceCompute
 
     //! Compute the long-range corrections to energy and pressure to account for truncating the pair
     //! potentials
-    void computeTailCorrection()
+    virtual void computeTailCorrection()
         {
         // early exit if tail correction not enabled
         if (!m_tail_correction_enabled)
