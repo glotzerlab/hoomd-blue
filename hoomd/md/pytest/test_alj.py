@@ -70,8 +70,8 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
 
     # Define forces and methods
     r_cut_scale = 1.3
-    kernel_scale = 2 * (1 / np.cos(np.pi / hexagon.num_vertices))
-    incircle_diameter = hexagon.incircle_radius
+    kernel_scale = (1 / np.cos(np.pi / hexagon.num_vertices))
+    incircle_diameter = 2 * hexagon.incircle_radius
     r_cut_set = incircle_diameter * kernel_scale * r_cut_scale
 
     alj = md.pair.aniso.ALJ(default_r_cut=r_cut_set, nlist=md.nlist.Cell(0.4))
@@ -91,9 +91,10 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
         "alpha": alpha
     }
 
-    integrator = md.Integrator(dt=1e-4, integrate_rotational_dof=True)
     nve = md.methods.NVE(filter=hoomd.filter.All())
-    integrator.methods.append(nve)
+    integrator = md.Integrator(dt=1e-4, forces=[alj], methods=[nve],
+                               integrate_rotational_dof=True)
+    sim.operations.integrator = integrator
 
     # Compress box
     sim.run(n_compression_end)
