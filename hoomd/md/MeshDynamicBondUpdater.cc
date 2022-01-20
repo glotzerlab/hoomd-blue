@@ -60,6 +60,8 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh->getMeshBondData()->getN();
 
+    m_mesh->MeshDataChange();
+
     unsigned int zahl = 0;
     for (unsigned int i = 0; i < size; i++)
         {
@@ -148,7 +150,8 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             // h_bonds.data[b2t2].tag[2] << " " << h_bonds.data[b2t2].tag[3] << std::endl; int b3t2
             // = h_triangles.data[tr_idx2].tag[5]; std::cout << "bond_t2_3 " << b3t2 << " " <<
             // h_bonds.data[b3t2].tag[0] << " " << h_bonds.data[b3t2].tag[1] << " " <<
-            // h_bonds.data[b3t2].tag[2] << " " << h_bonds.data[b3t2].tag[3] << std::endl; zahl++;
+            // h_bonds.data[b3t2].tag[2] << " " << h_bonds.data[b3t2].tag[3] << std::endl;
+            zahl++;
             typename MeshBond::members_t bond_n;
             typename MeshTriangle::members_t triangle1_n;
             typename MeshTriangle::members_t triangle2_n;
@@ -279,7 +282,7 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             // exit(0);
             }
         }
-    // std::cout << float(zahl)/size << std::endl;
+    std::cout << float(zahl) / size << std::endl;
     }
 
 namespace detail

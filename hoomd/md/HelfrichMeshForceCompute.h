@@ -2,8 +2,8 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: dnlebard
-#include "hoomd/MeshDefinition.h"
 #include "hoomd/ForceCompute.h"
+#include "hoomd/MeshDefinition.h"
 
 #include <memory>
 
@@ -33,10 +33,7 @@ struct helfrich_params
 #ifndef __HIPCC__
     helfrich_params() : k(0) { }
 
-    helfrich_params(pybind11::dict params)
-        : k(params["k"].cast<Scalar>())
-        {
-        }
+    helfrich_params(pybind11::dict params) : k(params["k"].cast<Scalar>()) { }
 
     pybind11::dict asDict()
         {
@@ -47,9 +44,9 @@ struct helfrich_params
 #endif
     }
 #ifdef SINGLE_PRECISION
-__attribute__((aligned(8)));
+    __attribute__((aligned(8)));
 #else
-__attribute__((aligned(16)));
+    __attribute__((aligned(16)));
 #endif
 
 //! Computes helfrich energy forces on the mesh
@@ -61,7 +58,8 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public ForceCompute
     {
     public:
     //! Constructs the compute
-    HelfrichMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef);
+    HelfrichMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<MeshDefinition> meshdef);
 
     //! Destructor
     virtual ~HelfrichMeshForceCompute();
@@ -88,19 +86,27 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public ForceCompute
 #endif
 
     protected:
-    Scalar* m_K;   //!< K parameter for multiple mesh triangles
+    Scalar* m_K; //!< K parameter for multiple mesh triangles
 
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
 
-    GlobalVector<Scalar3> m_sigma_dash; //! sum of the distances weighted by the bending angle over all neighbors
+    GlobalVector<Scalar3>
+        m_sigma_dash; //! sum of the distances weighted by the bending angle over all neighbors
 
-    GlobalVector<Scalar> m_sigma; //! sum of the vectors weighted by the bending angle over all neighbors
+    GlobalVector<Scalar>
+        m_sigma; //! sum of the vectors weighted by the bending angle over all neighbors
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
 
     //! compute normals
     virtual void computeSigma();
+
+    virtual Scalar energyDiff(unsigned int idx_a,
+                              unsigned int idx_b,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              unsigned int type_id);
     };
 
 namespace detail

@@ -55,6 +55,12 @@ void MeshDefinition::updateMeshData()
         new MeshBondData(m_sysdef->getParticleData(), triangle_data));
     }
 
+//! Update data from snapshot
+void MeshDefinition::MeshDataChange()
+    {
+    m_data_changed = true;
+    }
+
 namespace detail
     {
 void export_MeshDefinition(pybind11::module& m)

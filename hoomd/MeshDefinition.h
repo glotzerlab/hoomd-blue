@@ -98,6 +98,8 @@ class PYBIND11_EXPORT MeshDefinition
 
     void updateMeshData();
 
+    void MeshDataChange();
+
     TriangleData::Snapshot triangle_data; //!< The triangle data accessible in python
 
     private:

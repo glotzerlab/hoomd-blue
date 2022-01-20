@@ -426,7 +426,7 @@ Scalar PotentialBond<evaluator, Bonds>::energyDiff(unsigned int idx_a,
     eval1.evalForceAndEnergy(force_divr, bond_eng1);
     eval2.evalForceAndEnergy(force_divr, bond_eng2);
 
-    return (bond_eng2 - bond_eng1) / 2.0;
+    return (bond_eng2 - bond_eng1);
     }
 
 #ifdef ENABLE_MPI
