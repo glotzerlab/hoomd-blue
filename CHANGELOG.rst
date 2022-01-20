@@ -7,6 +7,11 @@ Change Log
 v3.x
 ----
 
+*Added*
+
+* ``hoomd.hpmc.external.field.Harmonic`` - harmonic potential of particles to specific sites in
+  the simulation box and orientations.
+
 v3.0.0-beta.13 (2022-01-18)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
