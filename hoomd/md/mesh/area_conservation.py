@@ -25,11 +25,11 @@ class AreaConservation(MeshBond):
         area_conservation_potential = mesh.bond.AreaConservation(mesh)
         area_conservation_potential.parameter = dict(k=10.0, A0=250)
     """
-    _cpp_class_name = "HelfrichMeshForceCompute"
+    _cpp_class_name = "AreaConservationMeshForceCompute"
 
     def __init__(self, mesh):
         params = TypeParameter("params", "types",
-                               TypeParameterDict(k=float, len_keys=2))
+                               TypeParameterDict(k=float, A0=float, len_keys=2))
         self._add_typeparam(params)
 
         super().__init__(mesh)
