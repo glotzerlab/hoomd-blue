@@ -92,7 +92,9 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
     }
 
     nve = md.methods.NVE(filter=hoomd.filter.All())
-    integrator = md.Integrator(dt=1e-4, forces=[alj], methods=[nve],
+    integrator = md.Integrator(dt=1e-4,
+                               forces=[alj],
+                               methods=[nve],
                                integrate_rotational_dof=True)
     sim.operations.integrator = integrator
 
