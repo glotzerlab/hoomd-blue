@@ -357,16 +357,6 @@ class Box:
         return _vec3_to_array(self._cpp_obj.getPeriodic(), bool)
 
     @property
-    def lattice_vectors(self):
-        """(3, 3) `numpy.ndarray` of `float`: Box lattice vectors.
-
-        The lattice vectors are read-only.
-        """
-        return np.concatenate([
-            _vec3_to_array(self._cpp_obj.getLatticeVector(i)) for i in range(3)
-        ]).reshape(3, 3)
-
-    @property
     def volume(self):
         """float: Volume of the box.
 

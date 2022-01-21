@@ -74,15 +74,6 @@ def test_dimensions(base_box):
         assert base_box.dimensions == 3
 
 
-def test_lattice_vectors(base_box):
-    expected_vectors = np.array([[1, 0, 0], [2, 2, 0], [6, 9, 3]],
-                                dtype=np.float64)
-    assert np.allclose(base_box.lattice_vectors, expected_vectors)
-    box = Box.cube(4)
-    lattice_vectors = np.array([[4, 0, 0], [0, 4, 0], [0, 0, 4]])
-    assert np.allclose(box.lattice_vectors, lattice_vectors)
-
-
 def get_aspect(L):
     return np.array([L[0] / L[1], L[0] / L[2], L[1] / L[2]])
 
