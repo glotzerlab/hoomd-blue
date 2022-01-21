@@ -68,7 +68,9 @@ void export_MeshDefinition(pybind11::module& m)
         .def("updateTriangleData", &MeshDefinition::updateTriangleData)
         .def("updateMeshData", &MeshDefinition::updateMeshData)
         .def("getEnergy", &MeshDefinition::getEnergy)
-        .def_readonly("triangles", &MeshDefinition::triangle_data);
+        .def_readonly("triangles", &MeshDefinition::triangle_data)
+        .def_property_readonly("types", &MeshDefinition::getTypes)
+        .def_property_readonly("size", &MeshDefinition::getSize);
     }
 
     } // end namespace detail

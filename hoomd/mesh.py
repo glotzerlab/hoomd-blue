@@ -6,9 +6,11 @@
 
 from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyIf, to_type_converter
+from collections.abc import Sequence
 from hoomd.logging import log
 import numpy as np
-import warnings
 
 
 class Mesh(_HOOMDBaseObject):
@@ -17,28 +19,38 @@ class Mesh(_HOOMDBaseObject):
     The mesh is defined by an array of triangles tht make up a
     triangulated surface.
 
+    Args:
+        name ([`str`]): name of the mesh that also acts as a
+        type name. Only one type per mesh can be defined!
+
     Examples::
 
         mesh = mesh.Mesh()
-        mesh.size = 4
         mesh.triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]]
 
     """
 
-    def __init__(self):
+    def __init__(self, name=["mesh"]):
 
+        param_dict = ParameterDict(size=int,
+                                   types=OnlyIf(
+                                       to_type_converter([
+                                           str,
+                                       ] * 1),
+                                       preprocess=self._preprocess_type))
+
+        param_dict["types"] = name
+        param_dict["size"] = 0
         self._triangles = np.empty([0, 3], dtype=int)
-        self._size = 0
+
+        self._param_dict.update(param_dict)
 
     def _attach(self):
 
         self._cpp_obj = _hoomd.MeshDefinition(
             self._simulation.state._cpp_sys_def)
 
-        self.types = ["mesh"]
-        if self._size != 0:
-            self.size = self._size
-            self.triangles = self._triangles
+        self.triangles = self._triangles
 
         super()._attach()
 
@@ -51,32 +63,6 @@ class Mesh(_HOOMDBaseObject):
                 return
             if self._added:
                 self._remove()
-
-    @property
-    def size(self):
-        """(int): Number of triangles in the mesh."""
-        if self._attached:
-            self._update_triangles()
-            return self._cpp_obj.triangles.N
-        return self._size
-
-    @size.setter
-    def size(self, newN):
-        if self._attached:
-            self._cpp_obj.triangles.N = newN
-        self._size = newN
-
-    @property
-    def types(self):
-        """(list[str]): Names of the triangle types."""
-        return ["mesh"]
-
-    @types.setter
-    def types(self, newtypes):
-        if self._attached:
-            self._cpp_obj.triangles.types = ["mesh"]
-        else:
-            warnings.warn("Mesh only allows for one type!")
 
     @log(category='sequence')
     def triangles(self):
@@ -93,8 +79,12 @@ class Mesh(_HOOMDBaseObject):
     @triangles.setter
     def triangles(self, triag):
         if self._attached:
+            self._cpp_obj.triangles.types = self._param_dict["types"]
+            self._cpp_obj.triangles.N = len(triag)
             self._cpp_obj.triangles.group[:] = triag
             self._update_mesh()
+        else:
+            self.size = len(triag)
         self._triangles = triag
 
     @log(category='sequence', requires_run=True)
@@ -118,3 +108,9 @@ class Mesh(_HOOMDBaseObject):
 
     def _update_triangles(self):
         self._cpp_obj.updateTriangleData()
+
+    def _preprocess_type(self, typename):
+        if isinstance(typename, Sequence):
+            if len(typename) != 1:
+                raise ValueError("Only one meshtype is allowed.")
+            return typename
