@@ -18,18 +18,18 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
     assert(nz > 0);
 
     // Update global box
-    BoxDim old_box = global_box;
-    Scalar3 L = global_box.getL();
+    BoxDim old_box = *global_box;
+    Scalar3 L = old_box.getL();
     L.x *= (Scalar)nx;
     L.y *= (Scalar)ny;
     L.z *= (Scalar)nz;
-    global_box.setL(L);
+    global_box->setL(L);
 
     unsigned int old_n = particle_data.size;
     unsigned int n = nx * ny * nz;
 
     // replicate snapshots
-    particle_data.replicate(nx, ny, nz, old_box, global_box);
+    particle_data.replicate(nx, ny, nz, old_box, *global_box);
     bond_data.replicate(n, old_n);
     angle_data.replicate(n, old_n);
     dihedral_data.replicate(n, old_n);
@@ -42,13 +42,13 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
     {
     for (unsigned int i = 0; i < particle_data.size; i++)
         {
-        auto const frac = global_box.makeFraction(particle_data.pos[i]);
+        auto const frac = global_box->makeFraction(particle_data.pos[i]);
         auto modulus_positive
             = [](Real x) { return std::fmod(std::fmod(x, Real(1.0)) + Real(1.0), Real(1.0)); };
         auto const wrapped = vec3<Real>(modulus_positive(static_cast<Real>(frac.x)),
                                         modulus_positive(static_cast<Real>(frac.y)),
                                         modulus_positive(static_cast<Real>(frac.z)));
-        particle_data.pos[i] = global_box.makeCoordinates(wrapped);
+        particle_data.pos[i] = global_box->makeCoordinates(wrapped);
         auto const img = make_int3(static_cast<int>(std::floor(frac.x)),
                                    static_cast<int>(std::floor(frac.y)),
                                    static_cast<int>(std::floor(frac.z)));

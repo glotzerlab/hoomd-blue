@@ -2374,7 +2374,7 @@ void CommunicatorGPU::exchangeGhosts()
                                                              access_location::device,
                                                              access_mode::overwrite);
 
-            const BoxDim& global_box = m_pdata->getGlobalBox();
+            const BoxDim global_box = m_pdata->getGlobalBox();
             const Index3D& di = m_pdata->getDomainDecomposition()->getDomainIndexer();
             uint3 my_pos = m_pdata->getDomainDecomposition()->getGridPos();
 
@@ -3085,7 +3085,7 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                                                              access_location::device,
                                                              access_mode::overwrite);
 
-            const BoxDim& global_box = m_pdata->getGlobalBox();
+            const BoxDim global_box = m_pdata->getGlobalBox();
             const Index3D& di = m_pdata->getDomainDecomposition()->getDomainIndexer();
             uint3 my_pos = m_pdata->getDomainDecomposition()->getGridPos();
 

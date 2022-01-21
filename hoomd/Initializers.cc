@@ -40,7 +40,7 @@ SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M,
 std::shared_ptr<SnapshotSystemData<Scalar>> SimpleCubicInitializer::getSnapshot() const
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snapshot(new SnapshotSystemData<Scalar>());
-    snapshot->global_box = box;
+    snapshot->global_box = std::make_shared<BoxDim>(box);
 
     SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
     unsigned int num_particles = m_M * m_M * m_M;
@@ -121,7 +121,7 @@ void RandomInitializer::setSeed(unsigned int seed)
 std::shared_ptr<SnapshotSystemData<Scalar>> RandomInitializer::getSnapshot() const
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snapshot(new SnapshotSystemData<Scalar>());
-    snapshot->global_box = m_box;
+    snapshot->global_box = std::make_shared<BoxDim>(m_box);
 
     SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
     pdata.resize(m_N);

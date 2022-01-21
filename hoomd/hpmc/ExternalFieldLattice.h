@@ -232,7 +232,7 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
 
     double calculateDeltaE(const Scalar4* const position_old_arg,
                            const Scalar4* const orientation_old_arg,
-                           const BoxDim* const box_old_arg)
+                           const BoxDim& box_old)
         {
         // TODO: rethink the formatting a bit.
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
@@ -243,19 +243,16 @@ template<class Shape> class ExternalFieldLattice : public ExternalFieldMono<Shap
                                       access_mode::readwrite);
         const Scalar4* const position_new = h_pos.data;
         const Scalar4* const orientation_new = h_orient.data;
-        const BoxDim* const box_new = &m_pdata->getGlobalBox();
+        const BoxDim box_new = m_pdata->getGlobalBox();
         const Scalar4 *position_old = position_old_arg, *orientation_old = orientation_old_arg;
-        const BoxDim* box_old = box_old_arg;
         if (!position_old)
             position_old = position_new;
         if (!orientation_old)
             orientation_old = orientation_new;
-        if (!box_old)
-            box_old = box_new;
 
         Scalar curVolume = m_box.getVolume();
-        Scalar newVolume = box_new->getVolume();
-        Scalar oldVolume = box_old->getVolume();
+        Scalar newVolume = box_new.getVolume();
+        Scalar oldVolume = box_old.getVolume();
         Scalar scaleOld = pow((oldVolume / curVolume), Scalar(1.0 / 3.0));
         Scalar scaleNew = pow((newVolume / curVolume), Scalar(1.0 / 3.0));
 

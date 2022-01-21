@@ -267,7 +267,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                           access_location::host,
                                           access_mode::readwrite);
         Scalar ext_energy
-            = m_mc->getExternalField()->calculateDeltaE(h_pos_backup.data, NULL, &curBox);
+            = m_mc->getExternalField()->calculateDeltaE(h_pos_backup.data, NULL, curBox);
         // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians
         // and exponentiate only once...
         deltaE += ext_energy;

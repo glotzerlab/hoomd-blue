@@ -39,7 +39,7 @@ template<class Shape> class ExternalFieldMonoComposite : public ExternalFieldMon
 
     double calculateDeltaE(const Scalar4* const position_old,
                            const Scalar4* const orientation_old,
-                           const BoxDim* const box_old)
+                           const BoxDim& box_old)
         {
         throw(std::runtime_error("ExternalFieldMonoComposite::calculateDeltaE is not implemented"));
         return double(0.0);

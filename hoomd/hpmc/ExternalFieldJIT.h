@@ -128,7 +128,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
 
     virtual double calculateDeltaE(const Scalar4* const position_old_arg,
                                    const Scalar4* const orientation_old_arg,
-                                   const BoxDim* const box_old_arg)
+                                   const BoxDim& box_old)
         {
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
                                        access_location::host,
@@ -144,7 +144,6 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
                                      access_mode::read);
         const BoxDim& box_new = this->m_pdata->getGlobalBox();
         const Scalar4 *position_old = position_old_arg, *orientation_old = orientation_old_arg;
-        const BoxDim* box_old = box_old_arg;
         if (!position_old)
             {
             const Scalar4* const position_new = h_postype.data;
