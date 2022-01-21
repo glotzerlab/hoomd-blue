@@ -338,7 +338,7 @@ endif()
 # Libraries and compile definitions for MPI enabled builds
 if (ENABLE_MPI)
     target_compile_definitions(_hoomd PUBLIC ENABLE_MPI)
-    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal)
+    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal::cereal)
 
     if (ENABLE_MPI_CUDA)
           target_compile_definitions(_hoomd PUBLIC ENABLE_MPI_CUDA)
