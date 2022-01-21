@@ -29,7 +29,7 @@ class AreaConservation(MeshBond):
 
     def __init__(self, mesh):
         params = TypeParameter("params", "types",
-                               TypeParameterDict(k=float, A0=float, len_keys=2))
+                               TypeParameterDict(k=float, A0=float, len_keys=1))
         self._add_typeparam(params)
 
         super().__init__(mesh)
