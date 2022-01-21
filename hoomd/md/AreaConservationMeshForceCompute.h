@@ -75,6 +75,8 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     /// Get the parameters for a type
     pybind11::dict getParams(std::string type);
 
+    Scalar getArea();
+
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     /*! \param timestep Current time step

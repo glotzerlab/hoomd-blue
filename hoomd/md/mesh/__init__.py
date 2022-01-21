@@ -4,4 +4,4 @@
 
 """Mesh potentials for molecular dynamics."""
 
-from . import bond, area_conservation
+from . import bond, conservation

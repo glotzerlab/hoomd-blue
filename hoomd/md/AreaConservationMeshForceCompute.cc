@@ -188,10 +188,6 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         dc.y = h_pos.data[idx_c].y;
         dc.z = h_pos.data[idx_c].z;
 
-        da = box.minImage(da);
-        db = box.minImage(db);
-        dc = box.minImage(dc);
-
         // FLOPS: 14 / MEM TRANSFER: 2 Scalars
 
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
@@ -225,31 +221,17 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         ds_drb = - 1.0 * c_baac / sqrt(1.0 - c_baac * c_baac) * dc_drb;
         ds_drc = - 1.0 * c_baac / sqrt(1.0 - c_baac * c_baac) * dc_drc;
 
-        // Scalar drab_dra, drab_drb, drab_drc, drac_dra, drac_drb, drac_drc;
-        // d_rab_dra = -1.0;
-        // d_rab_drb = 1.0;
-        // d_rab_drc = 0.0;
-        // d_rab_dra = -1.0;
-        // d_rab_drb = 0.0;
-        // d_rab_drc = 1.0;
-
-        // Scalar dsrab_dra, dsrab_drb, dsrab_drc, dsrac_dra, dsrac_drb, dsrac_drc;
-        // d_srab_dra = -1.0 * nab;
-        // d_srab_drb = nab;
-        // d_srab_drc = 0.0;
-        // d_srac_dra = -1.0 * nac;
-        // d_srac_drb = 0.0;
-        // d_srac_drc = nac;
-
         Scalar Ut;
         Ut = rab * rac * s_baac / 2 - At;
 
         Scalar3 Fa, Fb, Fc;
-        Fa = m_K[0] / (2 * At) * Ut * (- 1.0 * nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
-        Fb = m_K[0] / (2 * At) * Ut * (nab * rac * s_baac + ds_drb * rab * rac);
-        Fc = m_K[0] / (2 * At) * Ut * (nac * rab * s_baac + ds_drc * rab * rac);
+        Fa = - m_K[0] / (2 * At) * Ut * (- 1.0 * nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
+        Fb = - m_K[0] / (2 * At) * Ut * (nab * rac * s_baac + ds_drb * rab * rac);
+        Fc = - m_K[0] / (2 * At) * Ut * (nac * rab * s_baac + ds_drc * rab * rac);
 
-        //std::cout << i << " " << idx_c << ": " << Fa.x << " " << Fa.y << " " << Fa.z << std::endl;
+        // std::cout << i << " " << idx_a << ": " << Fa.x << " " << Fa.y << " " << Fa.z << std::endl;
+        // std::cout << i << " " << idx_b << ": " << Fb.x << " " << Fb.y << " " << Fb.z << std::endl;
+        // std::cout << i << " " << idx_c << ": " << Fc.x << " " << Fc.y << " " << Fc.z << std::endl;
 
         if (compute_virial)
             {
@@ -268,7 +250,8 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w = m_K[0]/(2.0*At)*(rab*rac*s_baac/2 - At);
+            h_force.data[idx_a].w = m_K[0]/(6.0*At)*Ut*Ut; // divided by 3 because of three 
+                                                           // particles sharing the energy
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += area_conservation_virial[j];
             }
@@ -288,7 +271,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x += Fb.x;
             h_force.data[idx_b].y += Fb.y;
             h_force.data[idx_b].z += Fb.z;
-            h_force.data[idx_b].w = m_K[0]/(2.0*At)*(rab*rac*s_baac/2 - At);
+            h_force.data[idx_b].w = m_K[0]/(6.0*At)*Ut*Ut;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += area_conservation_virial[j];
             }
@@ -308,14 +291,99 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_c].x += Fc.x;
             h_force.data[idx_c].y += Fc.y;
             h_force.data[idx_c].z += Fc.z;
-            h_force.data[idx_c].w = m_K[0]/(2.0*At)*(rab*rac*s_baac/2 - At);
+            h_force.data[idx_c].w = m_K[0]/(6.0*At)*Ut*Ut;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_c] += area_conservation_virial[j];
             }
         }
-
+    // for (int i=0; i < 4; i++)
+    // {
+    // std::cout << i << ": " << h_force.data[i].x << " " << h_force.data[i].y << " " << h_force.data[i].z << std::endl;
+    // }
     if (m_prof)
         m_prof->pop();
+    }
+
+Scalar AreaConservationMeshForceCompute::getArea()
+    {
+
+    // access the particle data arrays
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    ArrayHandle<typename MeshTriangle::members_t> h_triangles(m_mesh_data->getMeshTriangleData()->getMembersArray(),
+                                                   access_location::host,
+                                                   access_mode::read);
+
+    // get a local copy of the simulation box too
+    const BoxDim& box = m_pdata->getGlobalBox();
+
+    // for each of the triangles
+    const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
+
+    // from whole surface area A0 to the surface of individual triangle A0 -> At
+    Scalar Area = 0;
+    
+    for (unsigned int i = 0; i < size; i++)
+        {
+        // lookup the tag of each of the particles participating in the triangle
+        const typename MeshTriangle::members_t& triangle = h_triangles.data[i];
+        assert(triangle.tag[0] < m_pdata->getMaximumTag() + 1);
+        assert(triangle.tag[1] < m_pdata->getMaximumTag() + 1);
+        assert(triangle.tag[2] < m_pdata->getMaximumTag() + 1);
+
+        // transform a, b, and c into indices into the particle data arrays
+        // (MEM TRANSFER: 4 integers)
+        unsigned int idx_a = h_rtag.data[triangle.tag[0]];
+        unsigned int idx_b = h_rtag.data[triangle.tag[1]];
+        unsigned int idx_c = h_rtag.data[triangle.tag[2]];
+
+        //std::cout << i << ": " << idx_a << " " << idx_b << " " << idx_c << " " << idx_d << std::endl;
+
+        assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
+
+        // calculate d\vec{r}
+        Scalar3 dab;
+        dab.x =  h_pos.data[idx_b].x - h_pos.data[idx_a].x;
+        dab.y =  h_pos.data[idx_b].y - h_pos.data[idx_a].y;
+        dab.z =  h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+
+        Scalar3 dac;
+        dac.x =  h_pos.data[idx_c].x - h_pos.data[idx_a].x;
+        dac.y =  h_pos.data[idx_c].y - h_pos.data[idx_a].y;
+        dac.z =  h_pos.data[idx_c].z - h_pos.data[idx_a].z;
+
+        // apply minimum image conventions to all 3 vectors
+        dab = box.minImage(dab);
+        dac = box.minImage(dac);
+
+        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+        Scalar rab = sqrt(rsqab);
+        Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+        Scalar rac = sqrt(rsqac);
+
+        Scalar3 nab, nac;
+        nab = dab/rab;
+        nac = dac/rac;
+
+        Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
+
+        if (c_baac > 1.0)
+            c_baac = 1.0;
+        if (c_baac < -1.0)
+            c_baac = -1.0;
+
+        Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
+        if (s_baac < SMALL)
+            s_baac = SMALL;
+
+        Area += rab * rac * s_baac / 2;
+
+        }
+    return Area;
     }
 
 namespace detail
@@ -327,7 +395,8 @@ void export_AreaConservationMeshForceCompute(pybind11::module& m)
                      std::shared_ptr<AreaConservationMeshForceCompute>>(m, "AreaConservationMeshForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
         .def("setParams", &AreaConservationMeshForceCompute::setParamsPython)
-        .def("getParams", &AreaConservationMeshForceCompute::getParams);
+        .def("getParams", &AreaConservationMeshForceCompute::getParams)
+        .def("getArea", &AreaConservationMeshForceCompute::getArea);
     }
 
     } // end namespace detail

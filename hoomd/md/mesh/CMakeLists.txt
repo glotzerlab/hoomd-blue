@@ -1,6 +1,6 @@
 set(files __init__.py
           bond.py
-          area_conservation.py
+          conservation.py
    )
 
 install(FILES ${files}
