@@ -56,8 +56,8 @@ jobs:
         include:
         - {config: [clang12_py310, mpi, tbb, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc11_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda116_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda116_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     env:
       CXXFLAGS: '-Werror'
@@ -125,8 +125,8 @@ jobs:
         include:
         - {config: [clang12_py310, mpi, tbb, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc11_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda116_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda116_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     steps:
     - name: Clean workspace
@@ -168,8 +168,8 @@ jobs:
         include:
         - {config: [clang12_py310, mpi, tbb, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc11_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda116_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda116_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     steps:
     - name: Clean workspace
@@ -204,8 +204,8 @@ jobs:
         include:
         - {config: [clang12_py310, mpi, tbb, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc11_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda116_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda116_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
     steps:
@@ -238,7 +238,6 @@ jobs:
         - {config: [clang13_py310], runner: ubuntu-latest, docker_options: '' }
         - {config: [clang11_py39, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda114_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda113_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda112_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
@@ -320,7 +319,6 @@ jobs:
         - {config: [clang13_py310], runner: ubuntu-latest, docker_options: '' }
         - {config: [clang11_py39, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda114_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda113_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda112_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
@@ -378,7 +376,6 @@ jobs:
         - {config: [clang13_py310], runner: ubuntu-latest, docker_options: '' }
         - {config: [clang11_py39, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda114_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda113_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda112_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
