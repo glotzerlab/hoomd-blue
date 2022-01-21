@@ -113,7 +113,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     if (m_prof)
         m_prof->push("Harmonic Angle");
 
-    computeSigma(); // precompute sigmas
+    precomputeParameter(); // precompute sigmas
 
     assert(m_pdata);
     // access the particle data arrays
@@ -442,7 +442,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-void HelfrichMeshForceCompute::computeSigma()
+void HelfrichMeshForceCompute::precomputeParameter()
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
@@ -492,20 +492,24 @@ void HelfrichMeshForceCompute::computeSigma()
         const typename MeshTriangle::members_t& triangle1 = h_triangles.data[tr_idx1];
         const typename MeshTriangle::members_t& triangle2 = h_triangles.data[tr_idx2];
 
+        unsigned int btag_c = triangle1.tag[0];
         unsigned int idx_c = h_rtag.data[triangle1.tag[0]];
 
         unsigned int iterator = 1;
         while (idx_a == idx_c || idx_b == idx_c)
             {
+            btag_c = triangle1.tag[iterator];
             idx_c = h_rtag.data[triangle1.tag[iterator]];
             iterator++;
             }
 
         unsigned int idx_d = h_rtag.data[triangle2.tag[0]];
 
+        unsigned int btag_d = triangle2.tag[0];
         iterator = 1;
         while (idx_a == idx_d || idx_b == idx_d)
             {
+            btag_d = triangle2.tag[iterator];
             idx_d = h_rtag.data[triangle2.tag[iterator]];
             iterator++;
             }
@@ -569,6 +573,16 @@ void HelfrichMeshForceCompute::computeSigma()
         nbc = dbc / rbc;
         nbd = dbd / rbd;
 
+        Scalar3 nab = dab / sqrt(rsqab);
+
+        Scalar c_caad = nac.x * nad.x + nac.y * nad.y + nac.z * nad.z;
+        Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
+        Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
+
+        Scalar c_cbbd = nbc.x * nbd.x + nbc.y * nbd.y + nbc.z * nbd.z;
+        Scalar c_abbd = -nab.x * nbd.x - nab.y * nbd.y - nab.z * nbd.z;
+        Scalar c_abbc = -nab.x * nbc.x - nab.y * nbc.y - nab.z * nbc.z;
+
         Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
 
         if (c_accb > 1.0)
@@ -595,6 +609,20 @@ void HelfrichMeshForceCompute::computeSigma()
 
         Scalar cot_accb = c_accb * inv_s_accb;
         Scalar cot_addb = c_addb * inv_s_addb;
+
+        // if( idx_a == 75 && idx_b == 183){
+        // if( c_caad > c_baad || c_caad > c_baac || c_cbbd > c_abbd || c_cbbd > c_abbc){
+        // if( c_caad > c_baad || c_caad > c_baac){
+        //		//if( c_cbbd > c_abbd || c_cbbd > c_abbc){
+        //		std::cout << btag_a << " " << btag_b << " " << btag_c << " " << btag_d << std::endl;
+        //		std::cout << btag_a << " " << idx_a << " a " << acos(c_caad) << " " << acos(c_baad)
+        //<< " " << acos(c_baac) << " " << acos(c_caad) - acos(c_baac)-acos(c_baad)  << std::endl;
+        //		std::cout << btag_b << " " << idx_b << " b " << acos(c_cbbd) << " " << acos(c_abbd)
+        //<< " " << acos(c_abbc) << " " << acos(c_cbbd) - acos(c_abbc)-acos(c_abbd)  << std::endl;
+        //		//}
+        //
+        //	//exit(0);
+        //}
 
         Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
@@ -653,9 +681,9 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
 
     Scalar3 dcd;
-    dbd.x = h_pos.data[idx_c].x - h_pos.data[idx_d].x;
-    dbd.y = h_pos.data[idx_c].y - h_pos.data[idx_d].y;
-    dbd.z = h_pos.data[idx_c].z - h_pos.data[idx_d].z;
+    dcd.x = h_pos.data[idx_c].x - h_pos.data[idx_d].x;
+    dcd.y = h_pos.data[idx_c].y - h_pos.data[idx_d].y;
+    dcd.z = h_pos.data[idx_c].z - h_pos.data[idx_d].z;
 
     // apply minimum image conventions to all 3 vectors
     dab = box.minImage(dab);
@@ -666,22 +694,26 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     dcd = box.minImage(dcd);
 
     Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-    Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-    rac = sqrt(rac);
-    Scalar rad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
-    rad = sqrt(rad);
+    Scalar rab = sqrt(rsqab);
+    Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+    Scalar rac = sqrt(rsqac);
+    Scalar rsqad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
+    Scalar rad = sqrt(rsqad);
 
-    Scalar rbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
-    rbc = sqrt(rbc);
-    Scalar rbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
-    rbd = sqrt(rbd);
+    Scalar rsqbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
+    Scalar rbc = sqrt(rsqbc);
+    Scalar rsqbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
+    Scalar rbd = sqrt(rsqbd);
     Scalar rsqcd = dcd.x * dcd.x + dcd.y * dcd.y + dcd.z * dcd.z;
+    Scalar rcd = sqrt(rsqcd);
 
-    Scalar3 nac, nad, nbc, nbd;
+    Scalar3 nab, nac, nad, nbc, nbd, ncd;
+    nab = dab / rab;
     nac = dac / rac;
     nad = dad / rad;
     nbc = dbc / rbc;
     nbd = dbd / rbd;
+    ncd = dcd / rcd;
 
     Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
 
@@ -707,6 +739,54 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
         inv_s_addb = SMALL;
     inv_s_addb = 1.0 / inv_s_addb;
 
+    Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
+
+    if (c_baac > 1.0)
+        c_baac = 1.0;
+    if (c_baac < -1.0)
+        c_baac = -1.0;
+
+    Scalar inv_s_baac = sqrt(1.0 - c_baac * c_baac);
+    if (inv_s_baac < SMALL)
+        inv_s_baac = SMALL;
+    inv_s_baac = 1.0 / inv_s_baac;
+
+    Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
+
+    if (c_baad > 1.0)
+        c_baad = 1.0;
+    if (c_baad < -1.0)
+        c_baad = -1.0;
+
+    Scalar inv_s_baad = sqrt(1.0 - c_baad * c_baad);
+    if (inv_s_baad < SMALL)
+        inv_s_baad = SMALL;
+    inv_s_baad = 1.0 / inv_s_baad;
+
+    Scalar c_abbc = -(nab.x * nbc.x + nab.y * nbc.y + nab.z * nbc.z);
+
+    if (c_abbc > 1.0)
+        c_abbc = 1.0;
+    if (c_abbc < -1.0)
+        c_abbc = -1.0;
+
+    Scalar inv_s_abbc = sqrt(1.0 - c_abbc * c_abbc);
+    if (inv_s_abbc < SMALL)
+        inv_s_abbc = SMALL;
+    inv_s_abbc = 1.0 / inv_s_abbc;
+
+    Scalar c_abbd = -(nab.x * nbd.x + nab.y * nbd.y + nab.z * nbd.z);
+
+    if (c_abbd > 1.0)
+        c_abbd = 1.0;
+    if (c_abbd < -1.0)
+        c_abbd = -1.0;
+
+    Scalar inv_s_abbd = sqrt(1.0 - c_abbd * c_abbd);
+    if (inv_s_abbd < SMALL)
+        inv_s_abbd = SMALL;
+    inv_s_abbd = 1.0 / inv_s_abbd;
+
     Scalar c_caad = nac.x * nad.x + nac.y * nad.y + nac.z * nad.z;
 
     if (c_caad > 1.0)
@@ -731,35 +811,104 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
         inv_s_cbbd = SMALL;
     inv_s_cbbd = 1.0 / inv_s_cbbd;
 
+    Scalar c_accd = -(nac.x * ncd.x + nac.y * ncd.y + nac.z * ncd.z);
+
+    if (c_accd > 1.0)
+        c_accd = 1.0;
+    if (c_accd < -1.0)
+        c_accd = -1.0;
+
+    Scalar inv_s_accd = sqrt(1.0 - c_accd * c_accd);
+    if (inv_s_accd < SMALL)
+        inv_s_accd = SMALL;
+    inv_s_accd = 1.0 / inv_s_accd;
+
+    Scalar c_addc = nad.x * ncd.x + nad.y * ncd.y + nad.z * ncd.z;
+
+    if (c_addc > 1.0)
+        c_addc = 1.0;
+    if (c_addc < -1.0)
+        c_addc = -1.0;
+
+    Scalar inv_s_addc = sqrt(1.0 - c_addc * c_addc);
+    if (inv_s_addc < SMALL)
+        inv_s_addc = SMALL;
+    inv_s_addc = 1.0 / inv_s_addc;
+
+    Scalar c_bccd = -(nbc.x * ncd.x + nbc.y * ncd.y + nbc.z * ncd.z);
+
+    if (c_bccd > 1.0)
+        c_bccd = 1.0;
+    if (c_bccd < -1.0)
+        c_bccd = -1.0;
+
+    Scalar inv_s_bccd = sqrt(1.0 - c_bccd * c_bccd);
+    if (inv_s_bccd < SMALL)
+        inv_s_bccd = SMALL;
+    inv_s_bccd = 1.0 / inv_s_bccd;
+
+    Scalar c_bddc = nbd.x * ncd.x + nbd.y * ncd.y + nbd.z * ncd.z;
+
+    if (c_bddc > 1.0)
+        c_bddc = 1.0;
+    if (c_bddc < -1.0)
+        c_bddc = -1.0;
+
+    Scalar inv_s_bddc = sqrt(1.0 - c_bddc * c_bddc);
+    if (inv_s_bddc < SMALL)
+        inv_s_bddc = SMALL;
+    inv_s_bddc = 1.0 / inv_s_bddc;
+
     Scalar cot_accb = c_accb * inv_s_accb;
     Scalar cot_addb = c_addb * inv_s_addb;
+    Scalar cot_baac = c_baac * inv_s_baac;
+    Scalar cot_baad = c_baad * inv_s_baad;
+    Scalar cot_abbc = c_abbc * inv_s_abbc;
+    Scalar cot_abbd = c_abbd * inv_s_abbd;
+
     Scalar cot_caad = c_caad * inv_s_caad;
     Scalar cot_cbbd = c_cbbd * inv_s_cbbd;
+    Scalar cot_accd = c_accd * inv_s_accd;
+    Scalar cot_addc = c_addc * inv_s_addc;
+    Scalar cot_bccd = c_bccd * inv_s_bccd;
+    Scalar cot_bddc = c_bddc * inv_s_bddc;
 
-    Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
-    Scalar sigma_hat_cd = (cot_caad + cot_cbbd) / 2;
+    Scalar sigma_hat_ab = -(cot_accb + cot_addb) * 0.5;
+    Scalar sigma_hat_cd = (cot_caad + cot_cbbd) * 0.5;
+    Scalar sigma_hat_ac = (cot_addc - cot_abbc) * 0.5;
+    Scalar sigma_hat_ad = (cot_accd - cot_abbd) * 0.5;
+    Scalar sigma_hat_bc = (cot_bddc - cot_baac) * 0.5;
+    Scalar sigma_hat_bd = (cot_bccd - cot_baad) * 0.5;
 
     Scalar sigma_a = h_sigma.data[idx_a]; // precomputed
     Scalar sigma_b = h_sigma.data[idx_b]; // precomputed
     Scalar sigma_c = h_sigma.data[idx_c]; // precomputed
     Scalar sigma_d = h_sigma.data[idx_d]; // precomputed
 
-    Scalar sigma_a_n = sigma_a - sigma_hat_ab * rsqab * 0.25;
-    Scalar sigma_b_n = sigma_b - sigma_hat_ab * rsqab * 0.25;
+    m_sigma_diff_a = (sigma_hat_ab * rsqab + sigma_hat_ac * rsqac + sigma_hat_ad * rsqad) * 0.25;
+    m_sigma_diff_b = (sigma_hat_ab * rsqab + sigma_hat_bc * rsqbc + sigma_hat_bd * rsqbd) * 0.25;
+    m_sigma_diff_c = (sigma_hat_ac * rsqac + sigma_hat_bc * rsqbc + sigma_hat_cd * rsqcd) * 0.25;
+    m_sigma_diff_d = (sigma_hat_ad * rsqad + sigma_hat_bd * rsqbd + sigma_hat_cd * rsqcd) * 0.25;
 
-    Scalar sigma_c_n = sigma_a + sigma_hat_cd * rsqcd * 0.25;
-    Scalar sigma_d_n = sigma_b + sigma_hat_cd * rsqcd * 0.25;
+    Scalar sigma_a_n = sigma_a + m_sigma_diff_a;
+    Scalar sigma_b_n = sigma_b + m_sigma_diff_b;
+    Scalar sigma_c_n = sigma_c + m_sigma_diff_c;
+    Scalar sigma_d_n = sigma_d + m_sigma_diff_d;
 
     Scalar3 sigma_dash_a = h_sigma_dash.data[idx_a]; // precomputed
     Scalar3 sigma_dash_b = h_sigma_dash.data[idx_b]; // precomputed
     Scalar3 sigma_dash_c = h_sigma_dash.data[idx_c]; // precomputed
     Scalar3 sigma_dash_d = h_sigma_dash.data[idx_d]; // precomputed
 
-    Scalar3 sigma_dash_a_n = sigma_dash_a - sigma_hat_ab * dab;
-    Scalar3 sigma_dash_b_n = sigma_dash_b + sigma_hat_ab * dab;
+    m_sigma_dash_diff_a = sigma_hat_ab * dab + sigma_hat_ac * dac + sigma_hat_ad * dad;
+    m_sigma_dash_diff_b = -sigma_hat_ab * dab + sigma_hat_bc * dbc + sigma_hat_bd * dbd;
+    m_sigma_dash_diff_c = -sigma_hat_ac * dac - sigma_hat_bc * dbc + sigma_hat_cd * dcd;
+    m_sigma_dash_diff_d = -sigma_hat_ad * dad - sigma_hat_bd * dbd - sigma_hat_cd * dcd;
 
-    Scalar3 sigma_dash_c_n = sigma_dash_c + sigma_hat_cd * dcd;
-    Scalar3 sigma_dash_d_n = sigma_dash_d - sigma_hat_cd * dcd;
+    Scalar3 sigma_dash_a_n = sigma_dash_a + m_sigma_dash_diff_a;
+    Scalar3 sigma_dash_b_n = sigma_dash_b + m_sigma_dash_diff_b;
+    Scalar3 sigma_dash_c_n = sigma_dash_c + m_sigma_dash_diff_c;
+    Scalar3 sigma_dash_d_n = sigma_dash_d + m_sigma_dash_diff_d;
 
     Scalar energy_old = dot(sigma_dash_a, sigma_dash_a) / sigma_a;
     energy_old += (dot(sigma_dash_b, sigma_dash_b) / sigma_b);

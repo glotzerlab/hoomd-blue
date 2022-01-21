@@ -62,6 +62,11 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
     m_mesh->MeshDataChange();
 
+    for (auto& force : forces)
+        {
+        force->precomputeParameter();
+        }
+
     unsigned int zahl = 0;
     for (unsigned int i = 0; i < size; i++)
         {
@@ -89,7 +94,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
         unsigned int idx_c = h_rtag.data[tag_c];
 
         unsigned int iterator = 0;
-
         while (idx_a == idx_c || idx_b == idx_c)
             {
             iterator++;
@@ -119,38 +123,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
         if (energyDifference < 0)
             {
-            // std::cout << "Hier triangle1 " << triangle1.tag[0] << " " << triangle1.tag[1] << " "
-            // << triangle1.tag[2] << " " << triangle1.tag[3] << " " << triangle1.tag[4] << " " <<
-            // triangle1.tag[5] << " " << std::endl; std::cout << i << std::endl;
-            // std::cout << "tags " << tag_a  << " " << tag_b << " " << tag_c << " " << tag_d <<
-            // std::endl; std::cout << "bond " << h_bonds.data[i].tag[0] << " " <<
-            // h_bonds.data[i].tag[1] << " " << h_bonds.data[i].tag[2] << " " <<
-            // h_bonds.data[i].tag[3] << std::endl; std::cout << "triangle1 " << tr_idx1 << " " <<
-            // h_triangles.data[tr_idx1].tag[0] << " " << h_triangles.data[tr_idx1].tag[1] << " " <<
-            // h_triangles.data[tr_idx1].tag[2] << " " << h_triangles.data[tr_idx1].tag[3] << " " <<
-            // h_triangles.data[tr_idx1].tag[4] << " " << h_triangles.data[tr_idx1].tag[5] << " " <<
-            // std::endl; int b1t1 = h_triangles.data[tr_idx1].tag[3]; std::cout << "bond_t1_1 " <<
-            // b1t1 << " " << h_bonds.data[b1t1].tag[0] << " " << h_bonds.data[b1t1].tag[1] << " "
-            // << h_bonds.data[b1t1].tag[2] << " " << h_bonds.data[b1t1].tag[3] << std::endl; int
-            // b2t1 = h_triangles.data[tr_idx1].tag[4]; std::cout << "bond_t1_2 " << b2t1 << " " <<
-            // h_bonds.data[b2t1].tag[0] << " " << h_bonds.data[b2t1].tag[1] << " " <<
-            // h_bonds.data[b2t1].tag[2] << " " << h_bonds.data[b2t1].tag[3] << std::endl; int b3t1
-            // = h_triangles.data[tr_idx1].tag[5]; std::cout << "bond_t1_3 " << b3t1 << " " <<
-            // h_bonds.data[b3t1].tag[0] << " " << h_bonds.data[b3t1].tag[1] << " " <<
-            // h_bonds.data[b3t1].tag[2] << " " << h_bonds.data[b3t1].tag[3] << std::endl; std::cout
-            // << "triangle2 " << tr_idx2 << " " << h_triangles.data[tr_idx2].tag[0] << " " <<
-            // h_triangles.data[tr_idx2].tag[1] << " " << h_triangles.data[tr_idx2].tag[2] << " " <<
-            // h_triangles.data[tr_idx2].tag[3] << " " << h_triangles.data[tr_idx2].tag[4] << " " <<
-            // h_triangles.data[tr_idx2].tag[5] << " " << std::endl; int b1t2 =
-            // h_triangles.data[tr_idx2].tag[3]; std::cout << "bond_t2_1 " << b1t2 << " " <<
-            // h_bonds.data[b1t2].tag[0] << " " << h_bonds.data[b1t2].tag[1] << " " <<
-            // h_bonds.data[b1t2].tag[2] << " " << h_bonds.data[b1t2].tag[3] << std::endl; int b2t2
-            // = h_triangles.data[tr_idx2].tag[4]; std::cout << "bond_t2_2 " << b2t2 << " " <<
-            // h_bonds.data[b2t2].tag[0] << " " << h_bonds.data[b2t2].tag[1] << " " <<
-            // h_bonds.data[b2t2].tag[2] << " " << h_bonds.data[b2t2].tag[3] << std::endl; int b3t2
-            // = h_triangles.data[tr_idx2].tag[5]; std::cout << "bond_t2_3 " << b3t2 << " " <<
-            // h_bonds.data[b3t2].tag[0] << " " << h_bonds.data[b3t2].tag[1] << " " <<
-            // h_bonds.data[b3t2].tag[2] << " " << h_bonds.data[b3t2].tag[3] << std::endl;
             zahl++;
             typename MeshBond::members_t bond_n;
             typename MeshTriangle::members_t triangle1_n;
@@ -222,10 +194,10 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                 k = triangle2.tag[j];
                 if (k != i)
                     {
-                    bond_n = h_bonds.data[k];
+                    typename MeshBond::members_t& bond_s = h_bonds.data[k];
 
                     unsigned int tr_idx;
-                    if (bond_n.tag[0] == tag_a || bond_n.tag[1] == tag_a)
+                    if (bond_s.tag[0] == tag_a || bond_s.tag[1] == tag_a)
                         {
                         tr_idx = tr_idx1;
                         triangle1_n.tag[4] = k;
@@ -236,11 +208,11 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                         triangle2_n.tag[4] = k;
                         }
 
-                    if (bond_n.tag[2] == tr_idx1 || bond_n.tag[2] == tr_idx2)
-                        bond_n.tag[2] = tr_idx;
+                    if (bond_s.tag[2] == tr_idx1 || bond_s.tag[2] == tr_idx2)
+                        bond_s.tag[2] = tr_idx;
                     else
-                        bond_n.tag[3] = tr_idx;
-                    h_bonds.data[k] = bond_n;
+                        bond_s.tag[3] = tr_idx;
+                    h_bonds.data[k] = bond_s;
                     }
                 }
 
@@ -249,37 +221,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
             h_triangles.data[tr_idx1] = triangle1_n;
             h_triangles.data[tr_idx2] = triangle2_n;
-
-            // std::cout << std::endl;
-            // std::cout << "triangle1 " << tr_idx1 << " " << h_triangles.data[tr_idx1].tag[0] << "
-            // " << h_triangles.data[tr_idx1].tag[1] << " " << h_triangles.data[tr_idx1].tag[2] << "
-            // " << h_triangles.data[tr_idx1].tag[3] << " " << h_triangles.data[tr_idx1].tag[4] << "
-            // " << h_triangles.data[tr_idx1].tag[5] << " " << std::endl; b1t1 =
-            // h_triangles.data[tr_idx1].tag[3]; std::cout << "bond_t1_1 " << b1t1 << " " <<
-            // h_bonds.data[b1t1].tag[0] << " " << h_bonds.data[b1t1].tag[1] << " " <<
-            // h_bonds.data[b1t1].tag[2] << " " << h_bonds.data[b1t1].tag[3] << std::endl; b2t1 =
-            // h_triangles.data[tr_idx1].tag[4]; std::cout << "bond_t1_2 " << b2t1 << " " <<
-            // h_bonds.data[b2t1].tag[0] << " " << h_bonds.data[b2t1].tag[1] << " " <<
-            // h_bonds.data[b2t1].tag[2] << " " << h_bonds.data[b2t1].tag[3] << std::endl; b3t1 =
-            // h_triangles.data[tr_idx1].tag[5]; std::cout << "bond_t1_3 " << b3t1 << " " <<
-            // h_bonds.data[b3t1].tag[0] << " " << h_bonds.data[b3t1].tag[1] << " " <<
-            // h_bonds.data[b3t1].tag[2] << " " << h_bonds.data[b3t1].tag[3] << std::endl; std::cout
-            // << "triangle2 " << tr_idx2 << " " << h_triangles.data[tr_idx2].tag[0] << " " <<
-            // h_triangles.data[tr_idx2].tag[1] << " " << h_triangles.data[tr_idx2].tag[2] << " " <<
-            // h_triangles.data[tr_idx2].tag[3] << " " << h_triangles.data[tr_idx2].tag[4] << " " <<
-            // h_triangles.data[tr_idx2].tag[5] << " " << std::endl; b1t2 =
-            // h_triangles.data[tr_idx2].tag[3]; std::cout << "bond_t2_1 " << b1t2 << " " <<
-            // h_bonds.data[b1t2].tag[0] << " " << h_bonds.data[b1t2].tag[1] << " " <<
-            // h_bonds.data[b1t2].tag[2] << " " << h_bonds.data[b1t2].tag[3] << std::endl; b2t2 =
-            // h_triangles.data[tr_idx2].tag[4]; std::cout << "bond_t2_2 " << b2t2 << " " <<
-            // h_bonds.data[b2t2].tag[0] << " " << h_bonds.data[b2t2].tag[1] << " " <<
-            // h_bonds.data[b2t2].tag[2] << " " << h_bonds.data[b2t2].tag[3] << std::endl; b3t2 =
-            // h_triangles.data[tr_idx2].tag[5]; std::cout << "bond_t2_3 " << b3t2 << " " <<
-            // h_bonds.data[b3t2].tag[0] << " " << h_bonds.data[b3t2].tag[1] << " " <<
-            // h_bonds.data[b3t2].tag[2] << " " << h_bonds.data[b3t2].tag[3] << std::endl; std::cout
-            // << energyDifference << " " << h_bonds.data[i].tag[0] << " " << h_bonds.data[i].tag[1]
-            // << " " << h_bonds.data[i].tag[2] << " " << h_bonds.data[i].tag[3] << std::endl;
-            // exit(0);
             }
         }
     std::cout << float(zahl) / size << std::endl;

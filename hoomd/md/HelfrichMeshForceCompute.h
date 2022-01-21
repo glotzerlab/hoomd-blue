@@ -96,11 +96,22 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public ForceCompute
     GlobalVector<Scalar>
         m_sigma; //! sum of the vectors weighted by the bending angle over all neighbors
 
+    // difference for dynamic bonding loop
+    Scalar m_sigma_diff_a;
+    Scalar m_sigma_diff_b;
+    Scalar m_sigma_diff_c;
+    Scalar m_sigma_diff_d;
+
+    Scalar3 m_sigma_dash_diff_a;
+    Scalar3 m_sigma_dash_diff_b;
+    Scalar3 m_sigma_dash_diff_c;
+    Scalar3 m_sigma_dash_diff_d;
+
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
 
     //! compute normals
-    virtual void computeSigma();
+    virtual void precomputeParameter();
 
     virtual Scalar energyDiff(unsigned int idx_a,
                               unsigned int idx_b,

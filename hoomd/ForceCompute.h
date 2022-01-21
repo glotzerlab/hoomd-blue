@@ -80,6 +80,8 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     //! Benchmark the force compute
     virtual double benchmark(unsigned int num_iters);
 
+    virtual void precomputeParameter() {};
+
     //! Computes enegry differences for dynamical mesh bonding
     virtual Scalar energyDiff(unsigned int idx_a,
                               unsigned int idx_b,
