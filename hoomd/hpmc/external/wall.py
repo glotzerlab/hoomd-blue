@@ -1,6 +1,31 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+import hoomd
+
+
+def _to_hpmc_walls(wall):
+    #todo: convert to _hpmc wall class object
+    # md walls has similar function
+    pass
+
+
+class Walls(hoomd.hpmc.external.field.ExternalField):
+
+    def __init__(self, walls):
+        self._walls = walls
+
+    @property
+    def walls(self):
+        return walls
+
+    @walls.setter
+    def walls(self, walls):
+        if walls is self._walls:
+            return
+        self._walls = hoomd.wall._WallsMetaList(walls, _to_hpmc_walls)
+        # todo: fix attaching walls when attached
+
 
 class wall(_External):  # noqa: name will change in v3
     R"""Manage walls (an external field type).  # noqa

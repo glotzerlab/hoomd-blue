@@ -18,6 +18,7 @@
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#include <pybind11/stl_bind.h>
 #endif
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -960,7 +961,13 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< integrator
     BoxDim m_box;                                    //!< the current box
     };
+    } // namespace hpmc
+    } // namespace hoomd
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 namespace detail
     {
 template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const std::string& name)
@@ -970,24 +977,9 @@ template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const s
                      std::shared_ptr<ExternalFieldWall<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>>())
-        .def("SetSphereWallParameter", &ExternalFieldWall<Shape>::SetSphereWallParameter)
-        .def("SetCylinderWallParameter", &ExternalFieldWall<Shape>::SetCylinderWallParameter)
-        .def("SetPlaneWallParameter", &ExternalFieldWall<Shape>::SetPlaneWallParameter)
-        .def("AddSphereWall", &ExternalFieldWall<Shape>::AddSphereWall)
-        .def("AddCylinderWall", &ExternalFieldWall<Shape>::AddCylinderWall)
-        .def("AddPlaneWall", &ExternalFieldWall<Shape>::AddPlaneWall)
-        .def("RemoveSphereWall", &ExternalFieldWall<Shape>::RemoveSphereWall)
-        .def("RemoveCylinderWall", &ExternalFieldWall<Shape>::RemoveCylinderWall)
-        .def("RemovePlaneWall", &ExternalFieldWall<Shape>::RemovePlaneWall)
         .def("countOverlaps", &ExternalFieldWall<Shape>::countOverlaps)
         .def("setVolume", &ExternalFieldWall<Shape>::setVolume)
         .def("getVolume", &ExternalFieldWall<Shape>::getVolume)
-        .def("getNumSphereWalls", &ExternalFieldWall<Shape>::getNumSphereWalls)
-        .def("getNumCylinderWalls", &ExternalFieldWall<Shape>::getNumCylinderWalls)
-        .def("getNumPlaneWalls", &ExternalFieldWall<Shape>::getNumPlaneWalls)
-        .def("GetSphereWallParametersPy", &ExternalFieldWall<Shape>::GetSphereWallParametersPy)
-        .def("GetCylinderWallParametersPy", &ExternalFieldWall<Shape>::GetCylinderWallParametersPy)
-        .def("GetPlaneWallParametersPy", &ExternalFieldWall<Shape>::GetPlaneWallParametersPy)
         .def("GetCurrBoxLx", &ExternalFieldWall<Shape>::GetCurrBoxLx)
         .def("GetCurrBoxLy", &ExternalFieldWall<Shape>::GetCurrBoxLy)
         .def("GetCurrBoxLz", &ExternalFieldWall<Shape>::GetCurrBoxLz)
@@ -997,6 +989,8 @@ template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const s
         .def("SetCurrBox", &ExternalFieldWall<Shape>::SetCurrBox);
     }
 
+void export_wall_list(pybind11::module& m);
+void export_wall_classes(pybind11::module& m);
     } // end namespace detail
     } // namespace hpmc
     } // end namespace hoomd
