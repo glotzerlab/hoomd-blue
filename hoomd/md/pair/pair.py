@@ -268,7 +268,8 @@ class LJ(Pair):
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
-        tail_correction (bool): Whether to apply the isotropic integrated long range tail correction.
+        tail_correction (bool): Whether to apply the isotropic integrated long
+            range tail correction.
 
     `LJ` specifies that a Lennard-Jones pair potential should be
     applied between every non-excluded particle pair in the simulation.
