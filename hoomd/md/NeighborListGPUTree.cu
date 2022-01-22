@@ -809,7 +809,12 @@ float double2float_ru(double x)
  */
 LBVHWrapper::LBVHWrapper()
     {
-    lbvh_ = std::make_shared<neighbor::LBVH>();
+    lbvh_ = new neighbor::LBVH();
+    }
+
+LBVHWrapper::~LBVHWrapper()
+    {
+    delete lbvh_;
     }
 
 /*!
@@ -884,8 +889,13 @@ std::vector<unsigned int> LBVHWrapper::getTunableParameters() const
  */
 LBVHTraverserWrapper::LBVHTraverserWrapper()
     {
-    trav_ = std::make_shared<neighbor::LBVHTraverser>();
+    trav_ = new neighbor::LBVHTraverser();
     };
+
+LBVHTraverserWrapper::~LBVHTraverserWrapper()
+    {
+    delete trav_;
+    }
 
 /*!
  * \param map Mapping operation for the primitives for efficient traversal

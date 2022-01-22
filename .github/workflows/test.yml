@@ -50,14 +50,14 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ubuntu-latest
     container:
-      image: glotzerlab/ci:2021.11-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
         - {config: [clang12_py310, mpi, tbb, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc11_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda11_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     env:
       CXXFLAGS: '-Werror'
@@ -118,15 +118,15 @@ jobs:
     needs: build
     runs-on: ${{ matrix.runner }}
     container:
-      image: glotzerlab/ci:2021.11-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
       options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
         - {config: [clang12_py310, mpi, tbb, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc11_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda11_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     steps:
     - name: Clean workspace
@@ -161,15 +161,15 @@ jobs:
     needs: build
     runs-on: ${{ matrix.runner }}
     container:
-      image: glotzerlab/ci:2021.11-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
       options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
         - {config: [clang12_py310, mpi, tbb, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc11_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda11_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     steps:
     - name: Clean workspace
@@ -197,15 +197,15 @@ jobs:
     needs: build
     runs-on: ${{ matrix.runner }}
     container:
-      image: glotzerlab/ci:2021.11-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
       options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
         - {config: [clang12_py310, mpi, tbb, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc11_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda11_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
     steps:
@@ -231,13 +231,17 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ubuntu-latest
     container:
-      image: glotzerlab/ci:2021.11-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
         - {config: [clang13_py310], runner: ubuntu-latest, docker_options: '' }
         - {config: [clang11_py39, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [cuda114_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda113_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda112_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda111_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda10_gcc7_py37, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [clang10_py38, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
@@ -307,7 +311,7 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.runner }}
     container:
-      image: glotzerlab/ci:2021.11-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
       options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -315,6 +319,10 @@ jobs:
         - {config: [clang13_py310], runner: ubuntu-latest, docker_options: '' }
         - {config: [clang11_py39, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [cuda114_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda113_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda112_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda111_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda10_gcc7_py37, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [clang10_py38, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
@@ -360,7 +368,7 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.runner }}
     container:
-      image: glotzerlab/ci:2021.11-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
       options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -368,6 +376,10 @@ jobs:
         - {config: [clang13_py310], runner: ubuntu-latest, docker_options: '' }
         - {config: [clang11_py39, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [cuda114_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda113_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda112_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda111_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda10_gcc7_py37, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [clang10_py38, llvm], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }

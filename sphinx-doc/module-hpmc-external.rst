@@ -10,3 +10,4 @@ hpmc.external
    :maxdepth: 3
 
    module-hpmc-external-user
+   module-hpmc-external-field
