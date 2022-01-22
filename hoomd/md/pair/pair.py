@@ -93,6 +93,32 @@ class Pair(force.Force):
     for those pairs that interact via WCA in order to enable shifting of the WCA
     potential to 0 at the cutoff.
 
+    Some pair potentials have long range corrections to the potential energy and
+    pressure enabled. These corrections are only valid when the
+    shifting/smoothing mode is set to ``"none"``. Following `Sun 1998
+    <https://doi.org/10.1021/jp980939v>`_, the pressure and energy corrections
+    :math:`\Delta P` and :math:`\Delta E` are given by:
+
+    .. math::
+
+        \Delta P = \frac{-2\pi}{3} \sum_{i=1}^{n} \rho_i \sum_{j=1}^{n} \rho_j
+        \int_{r_c}^{\infty} \left( r
+        \frac{\mathrm{d}V_{ij}(r)}{\mathrm{d}r} \right) r^2 \,\,\mathrm{d}r
+
+    and
+
+    .. math::
+
+        \Delta E = 2\pi \sum_{i=1}^{n} N_i \sum_{j=1}^{n} \rho_j
+        \int_{r_c}^{\infty} V_{ij}(r) r^2\,\,\mathrm{d}r,
+
+    where :math:`n` is the number of unique particle types in the system,
+    :math:`\rho_i` is the number density of particles of type :math:`i` in the
+    system, :math:`V_{ij}(r)` is the pair potential between particles of type
+    :math:`i` and :math:`j`, and :math:`N_i` is the number of particles of type
+    :math:`i` in the system. These expressions assume that the radial pair
+    distribution functions :math:`g_{ij}(r)` are unity at the cutoff and beyond.
+
     The following coefficients must be set per unique pair of particle types.
     See `hoomd.md.pair` for information on how to set coefficients.
 
@@ -278,14 +304,15 @@ class LJ(Pair):
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left(
+        V_{\mathrm{LJ}}(r) &=& 4 \varepsilon \left[ \left(
         \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r}
         \right)^{6} \right]; & r < r_{\mathrm{cut}} \\
-        = & 0; & r \ge r_{\mathrm{cut}} \\
+        &=& 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
-    See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes.
+    See `Pair` for details on how forces are calculated, the available
+    energy shifting and smoothing modes, and the deails of the long range tail
+    correction.
 
     .. py:attribute:: params
 
