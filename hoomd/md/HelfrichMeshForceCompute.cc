@@ -587,22 +587,22 @@ void HelfrichMeshForceCompute::computeSigma()
         if (c_addb < -1.0)
             c_addb = -1.0;
 
-        Scalar c_abbc = -(nab.x * nbc.x + nab.y * nbc.y + nab.z * nbc.z);
-        Scalar c_abbd = -(nab.x * nbd.x + nab.y * nbd.y + nab.z * nbd.z);
-        Scalar c_cbbd = nbc.x * nbd.x + nbc.y * nbd.y + nbc.z * nbd.z;
+        vec3<Scalar> nbac
+            = cross(vec3<Scalar>(nab.x, nab.y, nab.z), vec3<Scalar>(nac.x, nac.y, nac.z));
 
-        if (c_cbbd > c_abbd || c_cbbd > c_abbc)
+        Scalar inv_nbac = 1.0 / sqrt(dot(nbac, nbac));
+
+        vec3<Scalar> nbad
+            = cross(vec3<Scalar>(nab.x, nab.y, nab.z), vec3<Scalar>(nad.x, nad.y, nad.z));
+
+        Scalar inv_nbad = 1.0 / sqrt(dot(nbad, nbad));
+
+        if (dot(nbac, nbad) * inv_nbad * inv_nbac > 0.9)
             {
-            Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
-            Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
-            Scalar c_caad = nac.x * nad.x + nac.y * nad.y + nac.z * nad.z;
-            if (c_caad > c_baad || c_caad > c_baac)
-                {
-                this->m_exec_conf->msg->error() << "helfrich calculations : triangles " << tr_idx1
-                                                << " " << tr_idx2 << " overlap." << std::endl
-                                                << std::endl;
-                throw std::runtime_error("Error in bending energy calculation");
-                }
+            this->m_exec_conf->msg->error() << "helfrich calculations : triangles " << tr_idx1
+                                            << " " << tr_idx2 << " overlap." << std::endl
+                                            << std::endl;
+            throw std::runtime_error("Error in bending energy calculation");
             }
 
         Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
