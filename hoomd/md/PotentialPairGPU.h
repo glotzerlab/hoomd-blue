@@ -84,6 +84,12 @@ class PotentialPairGPU : public PotentialPair<evaluator>
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
+
+    //! Tail corrections
+    virtual void computeTailCorrection()
+        {
+        PotentialPair<evaluator>::computeTailCorrection();
+        }
     };
 
 template<class evaluator,
