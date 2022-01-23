@@ -84,12 +84,6 @@ class PotentialPairGPU : public PotentialPair<evaluator>
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
-
-    //! Tail corrections
-    virtual void computeTailCorrection()
-        {
-        PotentialPair<evaluator>::computeTailCorrection();
-        }
     };
 
 template<class evaluator,
@@ -215,7 +209,7 @@ void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
              this->m_params.data());
 
     // energy and pressure corrections
-    computeTailCorrection();
+    this->computeTailCorrection();
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
