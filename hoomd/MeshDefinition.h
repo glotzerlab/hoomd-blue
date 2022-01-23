@@ -19,11 +19,6 @@
 
 namespace hoomd
     {
-#ifdef ENABLE_MPI
-//! Forward declaration of Communicator
-class Communicator;
-#endif
-
 //! Mesh class that contains all infrastructure necessary to combine a set of particles into a mesh
 //! triangulation
 /*! MeshDefinition is a container class to define a mesh tringulation comprised of the
