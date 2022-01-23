@@ -4,10 +4,6 @@
 
 #include "MeshDefinition.h"
 
-#ifdef ENABLE_MPI
-#include "Communicator.h"
-#endif
-
 using namespace std;
 
 namespace hoomd
