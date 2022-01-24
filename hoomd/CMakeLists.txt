@@ -274,6 +274,9 @@ endif()
 
 # link the library to its dependencies
 target_link_libraries(_hoomd PUBLIC pybind11::pybind11 quickhull Eigen3::Eigen)
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    target_link_libraries(_hoomd PUBLIC execinfo) # on FreeBSD backtrace() is in libexecinfo
+endif()
 
 # specify required include directories
 target_include_directories(_hoomd PUBLIC
@@ -338,7 +341,7 @@ endif()
 # Libraries and compile definitions for MPI enabled builds
 if (ENABLE_MPI)
     target_compile_definitions(_hoomd PUBLIC ENABLE_MPI)
-    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal)
+    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal::cereal)
 
     if (ENABLE_MPI_CUDA)
           target_compile_definitions(_hoomd PUBLIC ENABLE_MPI_CUDA)
