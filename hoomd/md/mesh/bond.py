@@ -125,7 +125,7 @@ class Harmonic(MeshBond):
     Examples::
 
         harmonic = mesh.bond.Harmonic(mesh)
-        harmonic.parameter = dict(k=10.0, r0=1.0)
+        harmonic.params["mesh"] = dict(k=10.0, r0=1.0)
     """
     _cpp_class_name = "PotentialMeshBondHarmonic"
 
@@ -168,8 +168,8 @@ class FENE(MeshBond):
     Examples::
 
         bond_potential = mesh.bond.FENE(mesh)
-        bond_potential.parameter = dict(k=10.0, r0=1.0,
-                                                 epsilon=0.8, sigma=1.2)
+        bond_potential.params["mesh"] = dict(k=10.0, r0=1.0,
+                                                 epsilon=0.8, sigma=1.2, delta=0.0)
 
     """
     _cpp_class_name = "PotentialMeshBondFENE"
@@ -181,6 +181,7 @@ class FENE(MeshBond):
                               r0=float,
                               epsilon=float,
                               sigma=float,
+                              delta=float,
                               len_keys=1))
         self._add_typeparam(params)
 
@@ -221,7 +222,7 @@ class Tether(MeshBond):
     Examples::
 
         bond_potential = mesh.bond.Tether(mesh)
-        bond_potential.parameter = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
+        bond_potential.params["mesh"] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
                                          l_c0=1.8, l_max=2.1)
     """
     _cpp_class_name = "PotentialMeshBondTether"

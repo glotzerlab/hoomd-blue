@@ -78,7 +78,7 @@ class Mesh(_HOOMDBaseObject):
     @triangles.setter
     def triangles(self, triag):
         if self._attached:
-            self._cpp_obj.setTypes(self._param_dict["types"])
+            self._cpp_obj.setTypes(list(self._param_dict['types']))
             self._cpp_obj.setTriangleData(triag)
         else:
             self.size = len(triag)
