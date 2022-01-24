@@ -1239,9 +1239,9 @@ def test_tail_corrections(simulation_factory, two_particle_snapshot_factory):
         return 4 / 6 * rho**2 * np.pi * integral
 
     # energy regression test
-    np.testing.assert_allclose(e_false, lj(d_pair, sigma, epsilon))
+    np.testing.assert_allclose(e_false, lj_energy(d_pair, sigma, epsilon))
     dE = energy_correction(sigma, epsilon, r_cut, rho, N)
-    np.testing.assert_allclose(e_true, lj(d_pair, sigma, epsilon) + dE)
+    np.testing.assert_allclose(e_true, lj_energy(d_pair, sigma, epsilon) + dE)
 
     # pressure regression test
     mass = 1.0
