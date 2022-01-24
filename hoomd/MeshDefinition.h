@@ -82,18 +82,18 @@ class PYBIND11_EXPORT MeshDefinition
         return m_meshtriangle_data->getN();
         }
 
+    void setTypes(pybind11::list types);
+
     BondData::Snapshot getBondData();
+
+    TriangleData::Snapshot getTriangleData();
+
+    void setTriangleData(pybind11::array_t<int> triangles);
 
     Scalar getEnergy()
         {
         return m_mesh_energy;
         }
-
-    void updateTriangleData();
-
-    void updateMeshData();
-
-    TriangleData::Snapshot triangle_data; //!< The triangle data accessible in python
 
     private:
     std::shared_ptr<SystemDefinition>
@@ -101,7 +101,6 @@ class PYBIND11_EXPORT MeshDefinition
     std::shared_ptr<MeshBondData> m_meshbond_data;         //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
     Scalar m_mesh_energy; //!< storing energy for dynamic bonding later
-    bool m_data_changed;  //!< check if dynamic bonding has changed the mesh data
     };
 
 namespace detail

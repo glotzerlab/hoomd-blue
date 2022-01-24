@@ -19,9 +19,15 @@ MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef)
                             new MeshBondData(m_sysdef->getParticleData(), 1))),
       m_meshtriangle_data(
           std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), 1))),
-      m_mesh_energy(0), m_data_changed(false)
+      m_mesh_energy(0)
 
     {
+    }
+
+void MeshDefinition::setTypes(pybind11::list types)
+    {
+    m_meshbond_data->setTypeName(0, pybind11::cast<string>(types[0]));
+    m_meshtriangle_data->setTypeName(0, pybind11::cast<string>(types[0]));
     }
 
 //! Bond array getter
@@ -32,19 +38,36 @@ BondData::Snapshot MeshDefinition::getBondData()
     return bond_data;
     }
 
-//! Update triangle data to make it accessible for python
-void MeshDefinition::updateTriangleData()
+//! Triangle array getter
+TriangleData::Snapshot MeshDefinition::getTriangleData()
     {
-    if (m_data_changed)
-        {
-        m_meshtriangle_data->takeSnapshot(triangle_data);
-        m_data_changed = false;
-        }
+    TriangleData::Snapshot triangle_data;
+    m_meshtriangle_data->takeSnapshot(triangle_data);
+    return triangle_data;
     }
 
-//! Update data from snapshot
-void MeshDefinition::updateMeshData()
+//! Triangle array setter
+void MeshDefinition::setTriangleData(pybind11::array_t<int> triangles)
     {
+    TriangleData::Snapshot triangle_data = getTriangleData();
+
+    pybind11::buffer_info buf = triangles.request();
+
+    int* ptr = static_cast<int*>(buf.ptr);
+
+    size_t len_triang = len(triangles);
+
+    triangle_data.resize(static_cast<unsigned int>(len_triang));
+
+    TriangleData::members_t triangle_new;
+
+    for (size_t i = 0; i < len_triang; i++)
+        {
+        triangle_new.tag[0] = ptr[i * 3];
+        triangle_new.tag[1] = ptr[i * 3 + 1];
+        triangle_new.tag[2] = ptr[i * 3 + 2];
+        triangle_data.groups[i] = triangle_new;
+        }
     m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(
         new MeshTriangleData(m_sysdef->getParticleData(), triangle_data));
     m_meshbond_data = std::shared_ptr<MeshBondData>(
@@ -61,10 +84,10 @@ void export_MeshDefinition(pybind11::module& m)
         .def("getMeshTriangleData", &MeshDefinition::getMeshTriangleData)
         .def("getMeshBondData", &MeshDefinition::getMeshBondData)
         .def("getBondData", &MeshDefinition::getBondData)
-        .def("updateTriangleData", &MeshDefinition::updateTriangleData)
-        .def("updateMeshData", &MeshDefinition::updateMeshData)
+        .def("getTriangleData", &MeshDefinition::getTriangleData)
+        .def("setTriangleData", &MeshDefinition::setTriangleData)
+        .def("setTypes", &MeshDefinition::setTypes)
         .def("getEnergy", &MeshDefinition::getEnergy)
-        .def_readonly("triangles", &MeshDefinition::triangle_data)
         .def_property_readonly("types", &MeshDefinition::getTypes)
         .def_property_readonly("size", &MeshDefinition::getSize);
     }
