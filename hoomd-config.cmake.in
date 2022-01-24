@@ -54,6 +54,11 @@ if (ENABLE_MPI)
     find_dependency(cereal CONFIG REQUIRED)
     if (cereal_FOUND)
         find_package_message(cereal "Found cereal: ${cereal_DIR}" "[${cereal_DIR}]")
+
+        if (NOT TARGET cereal::cereal AND TARGET cereal)
+            message(STATUS "Found cereal target, adding cereal::cereal alias.")
+            add_library(cereal::cereal ALIAS cereal)
+        endif()
     endif()
 endif()
 

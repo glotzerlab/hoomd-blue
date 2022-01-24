@@ -13,7 +13,7 @@
 #include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
@@ -42,7 +42,7 @@ void export_convex_polyhedron(pybind11::module& m)
     export_UpdaterClusters<ShapeConvexPolyhedron>(m, "UpdaterClustersConvexPolyhedron");
 
     export_ExternalFieldInterface<ShapeConvexPolyhedron>(m, "ExternalFieldConvexPolyhedron");
-    export_LatticeField<ShapeConvexPolyhedron>(m, "ExternalFieldLatticeConvexPolyhedron");
+    export_HarmonicField<ShapeConvexPolyhedron>(m, "ExternalFieldHarmonicConvexPolyhedron");
     export_ExternalFieldComposite<ShapeConvexPolyhedron>(m,
                                                          "ExternalFieldCompositeConvexPolyhedron");
     export_ExternalFieldWall<ShapeConvexPolyhedron>(m, "WallConvexPolyhedron");

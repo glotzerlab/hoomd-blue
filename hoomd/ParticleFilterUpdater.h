@@ -44,6 +44,12 @@ class PYBIND11_EXPORT ParticleFilterUpdater : public Updater
     /// Update particle group membership
     virtual void update(uint64_t timestep);
 
+    /// Return true if updating should trigger a recount of the degrees of freedom.
+    virtual bool mayChangeDegreesOfFreedom(uint64_t timestep)
+        {
+        return true;
+        }
+
     private:
     std::vector<std::shared_ptr<ParticleGroup>> m_groups; //!< Selected groups to update
     };

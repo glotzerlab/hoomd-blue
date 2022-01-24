@@ -124,6 +124,12 @@ class PYBIND11_EXPORT Updater
     /// Python will notify C++ objects when they are detached from Simulation
     virtual void notifyDetach() {};
 
+    /// Return true if updating should trigger a recount of the degrees of freedom.
+    virtual bool mayChangeDegreesOfFreedom(uint64_t timestep)
+        {
+        return false;
+        }
+
     protected:
     const std::shared_ptr<SystemDefinition>
         m_sysdef; //!< The system definition this compute is associated with

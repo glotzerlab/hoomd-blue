@@ -6,14 +6,14 @@
 import hoomd
 from hoomd import _compile
 from hoomd.hpmc import integrate
+from hoomd.hpmc.external.field import ExternalField
 if hoomd.version.llvm_enabled:
     from hoomd.hpmc import _jit
-from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 
 
-class CPPExternalPotential(_HOOMDBaseObject):
+class CPPExternalPotential(ExternalField):
     """Define an external potential energy field imposed on all particles in \
             the system.
 
@@ -59,9 +59,9 @@ class CPPExternalPotential(_HOOMDBaseObject):
         Your code *must* return a value.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.12/hoomd/VectorMath.h
+            v3.0.0-beta.13/hoomd/VectorMath.h
     .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.12/hoomd/BoxDim.h
+            v3.0.0-beta.13/hoomd/BoxDim.h
 
     Example:
         .. code-block:: python
