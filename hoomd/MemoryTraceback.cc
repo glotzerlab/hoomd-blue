@@ -32,7 +32,7 @@ void MemoryTraceback::registerAllocation(const void* ptr,
     m_tags[idx] = tag;
 
     // obtain a traceback
-    int num_symbols = backtrace(&m_traces[idx].front(), MAX_TRACEBACK);
+    auto num_symbols = backtrace(&m_traces[idx].front(), MAX_TRACEBACK);
 
     m_traces[idx].resize(num_symbols);
     }

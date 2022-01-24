@@ -274,6 +274,9 @@ endif()
 
 # link the library to its dependencies
 target_link_libraries(_hoomd PUBLIC pybind11::pybind11 quickhull Eigen3::Eigen)
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    target_link_libraries(_hoomd PUBLIC execinfo) # on FreeBSD backtrace() is in libexecinfo
+endif()
 
 # specify required include directories
 target_include_directories(_hoomd PUBLIC
