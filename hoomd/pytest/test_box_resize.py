@@ -62,7 +62,7 @@ def sys(request, fractional_coordinates):
 
 def make_system(fractional_coordinates, box):
     hoomd_box = hoomd.Box.from_box(box)
-    points = fractional_coordinates @ hoomd_box.matrix.T
+    points = fractional_coordinates @ hoomd_box.to_matrix().T
     return (hoomd_box, points)
 
 
