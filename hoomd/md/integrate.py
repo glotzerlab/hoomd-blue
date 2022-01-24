@@ -105,11 +105,6 @@ class _DynamicIntegrator(BaseIntegrator):
 
         return children
 
-    def _getattr_param(self, attr):
-        if attr == "rigid":
-            return self._param_dict._dict["rigid"]
-        return super()._getattr_param(attr)
-
     def _setattr_param(self, attr, value):
         if attr == "rigid":
             self._set_rigid(value)

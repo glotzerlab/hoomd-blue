@@ -443,15 +443,6 @@ class ActiveOnManifold(Active):
         param_dict["manifold_constraint"] = manifold_constraint
         self._param_dict.update(param_dict)
 
-    def _getattr_param(self, attr):
-        if self._attached:
-            if attr == "manifold_constraint":
-                return self._param_dict["manifold_constraint"]
-            parameter = getattr(self._cpp_obj, attr)
-            return parameter
-        else:
-            return self._param_dict[attr]
-
     def _setattr_param(self, attr, value):
         if attr == "manifold_constraint":
             raise AttributeError(
