@@ -187,21 +187,25 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         const typename MeshTriangle::members_t& triangle1 = h_triangles.data[tr_idx1];
         const typename MeshTriangle::members_t& triangle2 = h_triangles.data[tr_idx2];
 
+        unsigned int btag_c = triangle1.tag[0];
         unsigned int idx_c = h_rtag.data[triangle1.tag[0]];
 
         unsigned int iterator = 1;
         while (idx_a == idx_c || idx_b == idx_c)
             {
             idx_c = h_rtag.data[triangle1.tag[iterator]];
+            btag_c = triangle1.tag[iterator];
             iterator++;
             }
 
         unsigned int idx_d = h_rtag.data[triangle2.tag[0]];
+        unsigned int btag_d = triangle2.tag[0];
 
         iterator = 1;
         while (idx_a == idx_d || idx_b == idx_d)
             {
             idx_d = h_rtag.data[triangle2.tag[iterator]];
+            btag_d = triangle2.tag[iterator];
             iterator++;
             }
 
@@ -236,12 +240,18 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         dbd.y = h_pos.data[idx_b].y - h_pos.data[idx_d].y;
         dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
 
+        Scalar3 dcd;
+        dcd.x = h_pos.data[idx_c].x - h_pos.data[idx_d].x;
+        dcd.y = h_pos.data[idx_c].y - h_pos.data[idx_d].y;
+        dcd.z = h_pos.data[idx_c].z - h_pos.data[idx_d].z;
+
         // apply minimum image conventions to all 3 vectors
         dab = box.minImage(dab);
         dac = box.minImage(dac);
         dad = box.minImage(dad);
         dbc = box.minImage(dbc);
         dbd = box.minImage(dbd);
+        dcd = box.minImage(dcd);
 
         // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
         // FLOPS: 14 / MEM TRANSFER: 2 Scalars
@@ -267,71 +277,65 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         nbd = dbd / rbd;
 
         Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
-
         if (c_accb > 1.0)
             c_accb = 1.0;
         if (c_accb < -1.0)
             c_accb = -1.0;
+
+        Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
+        if (c_addb > 1.0)
+            c_addb = 1.0;
+        if (c_addb < -1.0)
+            c_addb = -1.0;
+
+        Scalar c_abbc = -nab.x * nbc.x - nab.y * nbc.y - nab.z * nbc.z;
+        if (c_abbc > 1.0)
+            c_abbc = 1.0;
+        if (c_abbc < -1.0)
+            c_abbc = -1.0;
+
+        Scalar c_abbd = -nab.x * nbd.x - nab.y * nbd.y - nab.z * nbd.z;
+        if (c_abbd > 1.0)
+            c_abbd = 1.0;
+        if (c_abbd < -1.0)
+            c_abbd = -1.0;
+
+        Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
+        if (c_baac > 1.0)
+            c_baac = 1.0;
+        if (c_baac < -1.0)
+            c_baac = -1.0;
+
+        Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
+        if (c_baad > 1.0)
+            c_baad = 1.0;
+        if (c_baad < -1.0)
+            c_baad = -1.0;
 
         Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
         if (inv_s_accb < SMALL)
             inv_s_accb = SMALL;
         inv_s_accb = 1.0 / inv_s_accb;
 
-        Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
-
-        if (c_addb > 1.0)
-            c_addb = 1.0;
-        if (c_addb < -1.0)
-            c_addb = -1.0;
-
         Scalar inv_s_addb = sqrt(1.0 - c_addb * c_addb);
         if (inv_s_addb < SMALL)
             inv_s_addb = SMALL;
         inv_s_addb = 1.0 / inv_s_addb;
-
-        Scalar c_abbc = -nab.x * nbc.x - nab.y * nbc.y - nab.z * nbc.z;
-
-        if (c_abbc > 1.0)
-            c_abbc = 1.0;
-        if (c_abbc < -1.0)
-            c_abbc = -1.0;
 
         Scalar inv_s_abbc = sqrt(1.0 - c_abbc * c_abbc);
         if (inv_s_abbc < SMALL)
             inv_s_abbc = SMALL;
         inv_s_abbc = 1.0 / inv_s_abbc;
 
-        Scalar c_abbd = -nab.x * nbd.x - nab.y * nbd.y - nab.z * nbd.z;
-
-        if (c_abbd > 1.0)
-            c_abbd = 1.0;
-        if (c_abbd < -1.0)
-            c_abbd = -1.0;
-
         Scalar inv_s_abbd = sqrt(1.0 - c_abbd * c_abbd);
         if (inv_s_abbd < SMALL)
             inv_s_abbd = SMALL;
         inv_s_abbd = 1.0 / inv_s_abbd;
 
-        Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
-
-        if (c_baac > 1.0)
-            c_baac = 1.0;
-        if (c_baac < -1.0)
-            c_baac = -1.0;
-
         Scalar inv_s_baac = sqrt(1.0 - c_baac * c_baac);
         if (inv_s_baac < SMALL)
             inv_s_baac = SMALL;
         inv_s_baac = 1.0 / inv_s_baac;
-
-        Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
-
-        if (c_baad > 1.0)
-            c_baad = 1.0;
-        if (c_baad < -1.0)
-            c_baad = -1.0;
 
         Scalar inv_s_baad = sqrt(1.0 - c_baad * c_baad);
         if (inv_s_baad < SMALL)
@@ -557,6 +561,7 @@ void HelfrichMeshForceCompute::precomputeParameter()
 
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+        Scalar rab = sqrt(rsqab);
         Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
         rac = sqrt(rac);
         Scalar rad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
@@ -567,7 +572,8 @@ void HelfrichMeshForceCompute::precomputeParameter()
         Scalar rbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
         rbd = sqrt(rbd);
 
-        Scalar3 nac, nad, nbc, nbd;
+        Scalar3 nab, nac, nad, nbc, nbd;
+        nab = dab / rab;
         nac = dac / rac;
         nad = dad / rad;
         nbc = dbc / rbc;
@@ -584,23 +590,39 @@ void HelfrichMeshForceCompute::precomputeParameter()
         Scalar c_abbc = -nab.x * nbc.x - nab.y * nbc.y - nab.z * nbc.z;
 
         Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
-
         if (c_accb > 1.0)
             c_accb = 1.0;
         if (c_accb < -1.0)
             c_accb = -1.0;
 
-        Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
-        if (inv_s_accb < SMALL)
-            inv_s_accb = SMALL;
-        inv_s_accb = 1.0 / inv_s_accb;
-
         Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
-
         if (c_addb > 1.0)
             c_addb = 1.0;
         if (c_addb < -1.0)
             c_addb = -1.0;
+
+        vec3<Scalar> nbac
+            = cross(vec3<Scalar>(nab.x, nab.y, nab.z), vec3<Scalar>(nac.x, nac.y, nac.z));
+
+        Scalar inv_nbac = 1.0 / sqrt(dot(nbac, nbac));
+
+        vec3<Scalar> nbad
+            = cross(vec3<Scalar>(nab.x, nab.y, nab.z), vec3<Scalar>(nad.x, nad.y, nad.z));
+
+        Scalar inv_nbad = 1.0 / sqrt(dot(nbad, nbad));
+
+        if (dot(nbac, nbad) * inv_nbad * inv_nbac > 0.9)
+            {
+            this->m_exec_conf->msg->error() << "helfrich calculations : triangles " << tr_idx1
+                                            << " " << tr_idx2 << " overlap." << std::endl
+                                            << std::endl;
+            throw std::runtime_error("Error in bending energy calculation");
+            }
+
+        Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
+        if (inv_s_accb < SMALL)
+            inv_s_accb = SMALL;
+        inv_s_accb = 1.0 / inv_s_accb;
 
         Scalar inv_s_addb = sqrt(1.0 - c_addb * c_addb);
         if (inv_s_addb < SMALL)
