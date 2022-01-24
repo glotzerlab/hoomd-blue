@@ -1062,6 +1062,7 @@ def test_setting_to_new_sim(simulation_factory, two_particle_snapshot_factory):
         sim1.operations.integrator.forces.append(lj)
 
 
+@pytest.mark.filterwarnings("always")
 def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
     """Test neighbor list cannot be spread between multiple simulations."""
     sim1 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
@@ -1073,11 +1074,13 @@ def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
     lj2 = deepcopy(lj)
     sim1.operations.integrator.forces.append(lj)
     sim2.operations.integrator.forces.append(lj2)
-    with pytest.raises(RuntimeError):
-        lj2.nlist = nlist
+    lj2.nlist = nlist
+    sim1.run(0)
+    with pytest.warns(RuntimeWarning):
+        sim2.run(0)
     sim2.operations.integrator.forces.remove(lj2)
     lj2.nlist = nlist
-    with pytest.raises(RuntimeError):
+    with pytest.warns(RuntimeWarning):
         sim2.operations.integrator.forces.append(lj2)
 
 
