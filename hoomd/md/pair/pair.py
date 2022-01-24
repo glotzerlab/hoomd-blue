@@ -93,16 +93,17 @@ class Pair(force.Force):
     for those pairs that interact via WCA in order to enable shifting of the WCA
     potential to 0 at the cutoff.
 
-    Some pair potentials have long range corrections to the potential energy and
-    pressure enabled. These corrections are only valid when the
-    shifting/smoothing mode is set to ``"none"``. Following `Sun 1998
-    <https://doi.org/10.1021/jp980939v>`_, the pressure and energy corrections
-    :math:`\Delta P` and :math:`\Delta E` are given by:
+    Some pair potentials optionally apply isotropic integrated long range tail
+    corrections when the ``tail_correction`` parameter is ``True``. These
+    corrections are only valid when the shifting/smoothing mode is set to
+    ``"none"``. Following `Sun 1998 <https://doi.org/10.1021/jp980939v>`_, the
+    pressure and energy corrections :math:`\Delta P` and :math:`\Delta E` are
+    given by:
 
     .. math::
 
         \Delta P = \frac{-2\pi}{3} \sum_{i=1}^{n} \rho_i \sum_{j=1}^{n} \rho_j
-        \int_{r_c}^{\infty} \left( r
+        \int_{r_\mathrm{cut}}^{\infty} \left( r
         \frac{\mathrm{d}V_{ij}(r)}{\mathrm{d}r} \right) r^2 \,\,\mathrm{d}r
 
     and
@@ -110,7 +111,7 @@ class Pair(force.Force):
     .. math::
 
         \Delta E = 2\pi \sum_{i=1}^{n} N_i \sum_{j=1}^{n} \rho_j
-        \int_{r_c}^{\infty} V_{ij}(r) r^2\,\,\mathrm{d}r,
+        \int_{r_\mathrm{cut}}^{\infty} V_{ij}(r) r^2\,\,\mathrm{d}r,
 
     where :math:`n` is the number of unique particle types in the system,
     :math:`\rho_i` is the number density of particles of type :math:`i` in the
