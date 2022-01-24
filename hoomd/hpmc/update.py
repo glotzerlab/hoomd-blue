@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HPMC updaters."""
 
@@ -573,6 +572,15 @@ class Clusters(Updater):
         return counter.average_cluster_size
 
 
+def _box_getter(param_dict, attr):
+    return param_dict._dict[attr]
+
+
+def _box_setter(param_dict, attr, value):
+    param_dict._dict[attr] = param_dict._type_converter[attr](value)
+    setattr(param_dict._cpp_obj, attr, param_dict._dict[attr])
+
+
 class QuickCompress(Updater):
     """Quickly compress a hard particle system to a target box.
 
@@ -616,7 +624,7 @@ class QuickCompress(Updater):
     of the largest particle type.
 
     Tip:
-        Use the `hoomd.hpmc.tune.MoveSizeTuner` in conjunction with
+        Use the `hoomd.hpmc.tune.MoveSize` in conjunction with
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
 
@@ -649,16 +657,14 @@ class QuickCompress(Updater):
                  min_scale=0.99):
         super().__init__(trigger)
 
-        param_dict = ParameterDict(
-            max_overlaps_per_particle=float,
-            min_scale=float,
-            target_box=hoomd.data.typeconverter.OnlyTypes(
-                hoomd.Box,
-                preprocess=hoomd.data.typeconverter.box_preprocessing),
-            instance=int)
+        param_dict = ParameterDict(max_overlaps_per_particle=float,
+                                   min_scale=float,
+                                   target_box=hoomd.Box,
+                                   instance=int)
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
+        param_dict._set_special_getset("target_box", _box_getter, _box_setter)
 
         self._param_dict.update(param_dict)
 

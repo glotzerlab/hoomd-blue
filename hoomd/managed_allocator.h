@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 //! Class to perform cudaMallocManaged allocations
 //! Adapted from github.com/jaredhoberock/managed_allocator
@@ -234,6 +234,24 @@ bool operator!=(const managed_allocator<T>& lhs, const managed_allocator<U>& rhs
     return lhs.usesDevice() != rhs.usesDevice();
     }
 
+/// Create a initialized std::shared_ptr using managed memory.
+///
+/// This function mimics std::make_shared and taking in the / constructor arguments of the templated
+/// type. Only the object will be stored in managed memory, the memory for the shared_ptr must be
+/// separate or this will error on compilation.
+///
+/// @param use_device whether to use cudaMallocManaged passed to the allocator
+/// @param args the arguments expected by a constructor of the template T
+template<class T, class... Args>
+std::shared_ptr<T> make_managed_shared(bool use_device, Args&&... args)
+    {
+    auto allocator = managed_allocator<T>(use_device);
+    auto* memory = allocator.allocate(1);
+    T* value_ptr = new (memory) T(std::forward(args)...);
+    return std::shared_ptr<T>(value_ptr,
+                              [allocator = std::move(allocator)](T* ptr) mutable
+                              { allocator.deallocate(ptr, 1); });
+    }
     } // end namespace detail
 
     } // end namespace hoomd

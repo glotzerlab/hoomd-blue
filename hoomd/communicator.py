@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MPI communicator."""
 
@@ -181,6 +180,14 @@ class Communicator(object):
         _current_communicator = self
         yield None
         _current_communicator = prev
+
+    @property
+    def walltime(self):
+        """Wall clock time since creating the `Communicator` [seconds].
+
+        `walltime` returns the same value on each rank in the current partition.
+        """
+        return self.cpp_mpi_conf.getWalltime()
 
 
 # store the "current" communicator to be used for MPI_Abort calls. This defaults

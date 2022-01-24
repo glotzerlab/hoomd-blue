@@ -99,7 +99,24 @@ if (HIP_PLATFORM STREQUAL "nvcc")
                  /usr/local/cuda-11.1/compat
                  /usr/local/cuda-11.2/compat
                  /usr/local/cuda-11.3/compat
-                 /usr/local/cuda-11.4/compat)
+                 /usr/local/cuda-11.4/compat
+                 /usr/local/cuda-11.5/compat
+                 /usr/local/cuda-11.6/compat
+                 /usr/local/cuda-11.7/compat
+                 /usr/local/cuda-11.8/compat
+                 /usr/local/cuda-11.9/compat
+                 /usr/local/cuda-11.10/compat
+                 /usr/local/cuda-12.0/compat
+                 /usr/local/cuda-12.1/compat
+                 /usr/local/cuda-12.2/compat
+                 /usr/local/cuda-12.3/compat
+                 /usr/local/cuda-12.4/compat
+                 /usr/local/cuda-12.5/compat
+                 /usr/local/cuda-12.6/compat
+                 /usr/local/cuda-12.7/compat
+                 /usr/local/cuda-12.8/compat
+                 /usr/local/cuda-12.9/compat
+                 /usr/local/cuda-12.10/compat)
     mark_as_advanced(CUDA_cuda_LIBRARY)
     if(CUDA_cuda_LIBRARY AND NOT TARGET CUDA::cuda)
       add_library(CUDA::cuda UNKNOWN IMPORTED)

@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Define the ParticleSorter class."""
 
 from hoomd.data.parameterdicts import ParameterDict
@@ -14,7 +17,7 @@ class ParticleSorter(Tuner):
 
     Args:
         trigger (hoomd.trigger.Trigger): Select the timesteps on which to sort.
-            Defaults to a `hoomd.trigger.Periodic(200)` trigger.
+            Defaults to a ``hoomd.trigger.Periodic(200)`` trigger.
 
         grid (int): Resolution of the grid to use when sorting. The default
             value of `None` sets ``grid=4096`` in 2D simulations and

@@ -1,5 +1,6 @@
 set(files __init__.py
         user.py
+        field.py
  )
 
 install(FILES ${files}

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MPIConfiguration.h"
 
@@ -100,6 +98,7 @@ void export_MPIConfiguration(pybind11::module& m)
         .def("barrier", &MPIConfiguration::barrier)
         .def("getNRanksGlobal", &MPIConfiguration::getNRanksGlobal)
         .def("getRankGlobal", &MPIConfiguration::getRankGlobal)
+        .def("getWalltime", &MPIConfiguration::getWalltime)
 #ifdef ENABLE_MPI
         .def_static("_make_mpi_conf_mpi_comm",
                     [](pybind11::object mpi_comm) -> std::shared_ptr<MPIConfiguration>

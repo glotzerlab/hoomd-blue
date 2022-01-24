@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file QuaternionMath.h
     \brief Quaternion math utility functions
@@ -111,7 +109,7 @@ no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scalar4& inertia, Scala
         inertia_t = inertia.z;
     else
         inertia_t = Scalar(0.0);
-    if (fabs(inertia_t) < EPSILON)
+    if (fabs(inertia_t) == 0)
         phi *= Scalar(0.0);
     else
         phi /= (Scalar(4.0) * inertia_t);
@@ -187,19 +185,19 @@ DEVICE inline void computeAngularVelocity(Scalar4& angmom,
     Scalar angbody[3];
 
     // angbody = angmom_body / moment_inertia = transpose(rotation_matrix) * angmom / moment_inertia
-    if (moment_inertia.x < EPSILON)
+    if (moment_inertia.x == 0)
         angbody[0] = Scalar(0.0);
     else
         angbody[0] = (ex_space.x * angmom.x + ex_space.y * angmom.y + ex_space.z * angmom.z)
                      / moment_inertia.x;
 
-    if (moment_inertia.y < EPSILON)
+    if (moment_inertia.y == 0)
         angbody[1] = Scalar(0.0);
     else
         angbody[1] = (ey_space.x * angmom.x + ey_space.y * angmom.y + ey_space.z * angmom.z)
                      / moment_inertia.y;
 
-    if (moment_inertia.z < EPSILON)
+    if (moment_inertia.z == 0)
         angbody[2] = Scalar(0.0);
     else
         angbody[2] = (ez_space.x * angmom.x + ez_space.y * angmom.y + ez_space.z * angmom.z)

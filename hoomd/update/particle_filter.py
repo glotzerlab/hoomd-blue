@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Implement Python interface for a ParticleFilter updater."""
 
 import copy
@@ -15,7 +18,7 @@ class _GroupConverter:
     """
 
     def __call__(self, filter):
-        return self._state._groups[type(filter)][filter]
+        return self._state._get_group(filter)
 
     def _attach(self, simulation):
         self._state = simulation.state

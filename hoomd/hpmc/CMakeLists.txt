@@ -1,4 +1,4 @@
-# Maintainer: joaander
+
 
 set(_hpmc_gpu_shapes ShapeSphere
                  ShapeConvexPolygon
@@ -49,7 +49,7 @@ set(_hpmc_headers
     ComputeSDF.h
     ExternalFieldComposite.h
     ExternalField.h
-    ExternalFieldLattice.h
+    ExternalFieldHarmonic.h
     ExternalFieldWall.h
     GSDHPMCSchema.h
     GPUHelpers.cuh
@@ -171,7 +171,6 @@ set(files   compute.py
             __init__.py
             integrate.py
             update.py
-            field.py
     )
 
 install(FILES ${files}
