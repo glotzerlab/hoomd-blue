@@ -218,18 +218,20 @@ void ParticleData::setGlobalBox(const std::shared_ptr<BoxDim>& box)
         {
         throw std::runtime_error("Expected non-null shared pointer to a box.");
         }
-    m_global_box = std::make_shared<const BoxDim>(*box);
+    BoxDim global_box = *box;
 
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
-        bcast(m_global_box, 0, m_exec_conf->getMPICommunicator());
-        m_box = std::make_shared<const BoxDim>(m_decomposition->calculateLocalBox(getGlobalBox()));
+        bcast(global_box, 0, m_exec_conf->getMPICommunicator());
+        m_global_box = std::make_shared<const BoxDim>(global_box);
+        m_box = std::make_shared<const BoxDim>(m_decomposition->calculateLocalBox(global_box));
         }
     else
 #endif
         {
         // local box = global box
+        m_global_box = std::make_shared<const BoxDim>(global_box);
         m_box = m_global_box;
         }
 
@@ -246,18 +248,20 @@ void ParticleData::setGlobalBox(const BoxDim& box)
     assert(box.getPeriodic().x);
     assert(box.getPeriodic().y);
     assert(box.getPeriodic().z);
-    m_global_box = std::make_shared<const BoxDim>(box);
+    BoxDim global_box = box;
 
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
-        bcast(m_global_box, 0, m_exec_conf->getMPICommunicator());
-        m_box = std::make_shared<const BoxDim>(m_decomposition->calculateLocalBox(getGlobalBox()));
+        bcast(global_box, 0, m_exec_conf->getMPICommunicator());
+        m_global_box = std::make_shared<const BoxDim>(global_box);
+        m_box = std::make_shared<const BoxDim>(m_decomposition->calculateLocalBox(global_box));
         }
     else
 #endif
         {
         // local box = global box
+        m_global_box = std::make_shared<const BoxDim>(global_box);
         m_box = m_global_box;
         }
 
