@@ -1207,7 +1207,7 @@ class PYBIND11_EXPORT ParticleData
         {
         assert(decomposition);
         m_decomposition = decomposition;
-        m_box = m_decomposition->calculateLocalBox(getGlobalBox());
+        m_box = std::make_shared<const BoxDim>(m_decomposition->calculateLocalBox(getGlobalBox()));
         m_boxchange_signal.emit();
         }
 
