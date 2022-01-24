@@ -172,7 +172,7 @@ class FENE(MeshBond):
 
         bond_potential = mesh.bond.FENE(mesh)
         bond_potential.params["mesh"] = dict(k=10.0, r0=1.0,
-                                                 epsilon=0.8, sigma=1.2, delta=0.0)
+                                            epsilon=0.8, sigma=1.2, delta=0.0)
 
     """
     _cpp_class_name = "PotentialMeshBondFENE"
