@@ -572,15 +572,6 @@ class Clusters(Updater):
         return counter.average_cluster_size
 
 
-def _box_getter(param_dict, attr):
-    return param_dict._dict[attr]
-
-
-def _box_setter(param_dict, attr, value):
-    param_dict._dict[attr] = param_dict._type_converter[attr](value)
-    setattr(param_dict._cpp_obj, attr, param_dict._dict[attr])
-
-
 class QuickCompress(Updater):
     """Quickly compress a hard particle system to a target box.
 
@@ -664,7 +655,6 @@ class QuickCompress(Updater):
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
-        param_dict._set_special_getset("target_box", _box_getter, _box_setter)
 
         self._param_dict.update(param_dict)
 
@@ -690,7 +680,8 @@ class QuickCompress(Updater):
 
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
             self._simulation.state._cpp_sys_def, integrator._cpp_obj,
-            self.max_overlaps_per_particle, self.min_scale, self.target_box)
+            self.max_overlaps_per_particle, self.min_scale,
+            self.target_box._cpp_obj)
         super()._attach()
 
     @property
