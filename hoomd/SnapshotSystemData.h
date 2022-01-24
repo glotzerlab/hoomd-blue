@@ -54,7 +54,7 @@ template<class Real> struct SnapshotSystemData
     PairData::Snapshot pair_data;             //!< The pair data
 
     //! Constructor
-    SnapshotSystemData() : dimensions {3}, global_box {new BoxDim()} { }
+    SnapshotSystemData() : dimensions(3), global_box(new BoxDim()) { }
 
     // Replicate the system along three spatial dimensions
     /*! \param nx Number of times to replicate the system along the x direction
