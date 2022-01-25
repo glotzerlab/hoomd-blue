@@ -124,6 +124,7 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
         if (energyDifference < 0)
             {
             zahl++;
+
             typename MeshBond::members_t bond_n;
             typename MeshTriangle::members_t triangle1_n;
             typename MeshTriangle::members_t triangle2_n;

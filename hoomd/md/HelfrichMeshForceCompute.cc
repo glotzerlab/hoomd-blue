@@ -5,6 +5,7 @@
 
 #include "HelfrichMeshForceCompute.h"
 
+#include <float.h>
 #include <iostream>
 #include <math.h>
 #include <sstream>
@@ -579,16 +580,6 @@ void HelfrichMeshForceCompute::precomputeParameter()
         nbc = dbc / rbc;
         nbd = dbd / rbd;
 
-        Scalar3 nab = dab / sqrt(rsqab);
-
-        Scalar c_caad = nac.x * nad.x + nac.y * nad.y + nac.z * nad.z;
-        Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
-        Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
-
-        Scalar c_cbbd = nbc.x * nbd.x + nbc.y * nbd.y + nbc.z * nbd.z;
-        Scalar c_abbd = -nab.x * nbd.x - nab.y * nbd.y - nab.z * nbd.z;
-        Scalar c_abbc = -nab.x * nbc.x - nab.y * nbc.y - nab.z * nbc.z;
-
         Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
         if (c_accb > 1.0)
             c_accb = 1.0;
@@ -613,10 +604,10 @@ void HelfrichMeshForceCompute::precomputeParameter()
 
         if (dot(nbac, nbad) * inv_nbad * inv_nbac > 0.9)
             {
-            this->m_exec_conf->msg->error() << "helfrich calculations : triangles " << tr_idx1
-                                            << " " << tr_idx2 << " overlap." << std::endl
-                                            << std::endl;
-            throw std::runtime_error("Error in bending energy calculation");
+            // this->m_exec_conf->msg->error() << "helfrich calculations : triangles " << tr_idx1
+            //                                 << " " << tr_idx2 << " overlap." << std::endl
+            //                                 << std::endl;
+            // throw std::runtime_error("Error in bending energy calculation");
             }
 
         Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
@@ -631,20 +622,6 @@ void HelfrichMeshForceCompute::precomputeParameter()
 
         Scalar cot_accb = c_accb * inv_s_accb;
         Scalar cot_addb = c_addb * inv_s_addb;
-
-        // if( idx_a == 75 && idx_b == 183){
-        // if( c_caad > c_baad || c_caad > c_baac || c_cbbd > c_abbd || c_cbbd > c_abbc){
-        // if( c_caad > c_baad || c_caad > c_baac){
-        //		//if( c_cbbd > c_abbd || c_cbbd > c_abbc){
-        //		std::cout << btag_a << " " << btag_b << " " << btag_c << " " << btag_d << std::endl;
-        //		std::cout << btag_a << " " << idx_a << " a " << acos(c_caad) << " " << acos(c_baad)
-        //<< " " << acos(c_baac) << " " << acos(c_caad) - acos(c_baac)-acos(c_baad)  << std::endl;
-        //		std::cout << btag_b << " " << idx_b << " b " << acos(c_cbbd) << " " << acos(c_abbd)
-        //<< " " << acos(c_abbc) << " " << acos(c_cbbd) - acos(c_abbc)-acos(c_abbd)  << std::endl;
-        //		//}
-        //
-        //	//exit(0);
-        //}
 
         Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
 
@@ -941,6 +918,9 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     energy_new += (dot(sigma_dash_b_n, sigma_dash_b_n) / sigma_b_n);
     energy_new += (dot(sigma_dash_c_n, sigma_dash_c_n) / sigma_c_n);
     energy_new += (dot(sigma_dash_d_n, sigma_dash_d_n) / sigma_d_n);
+
+    if (energy_new < 0)
+        return DBL_MAX;
 
     return m_K[0] * 0.5 * (energy_new - energy_old);
     }

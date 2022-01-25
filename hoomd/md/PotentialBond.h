@@ -4,6 +4,7 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
 #include "hoomd/MeshDefinition.h"
+#include <float.h>
 #include <memory>
 
 #include <vector>
@@ -424,9 +425,12 @@ Scalar PotentialBond<evaluator, Bonds>::energyDiff(unsigned int idx_a,
         }
 
     eval1.evalForceAndEnergy(force_divr, bond_eng1);
-    eval2.evalForceAndEnergy(force_divr, bond_eng2);
+    bool evaluated = eval2.evalForceAndEnergy(force_divr, bond_eng2);
 
-    return (bond_eng2 - bond_eng1);
+    if (evaluated)
+        return (bond_eng2 - bond_eng1);
+    else
+        return DBL_MAX;
     }
 
 #ifdef ENABLE_MPI
