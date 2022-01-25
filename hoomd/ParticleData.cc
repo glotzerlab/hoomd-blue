@@ -1109,8 +1109,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
                 // only wrap if the particles is on one of the boundaries
                 uchar3 periodic = make_uchar3(flags.x, flags.y, flags.z);
-                global_box->setPeriodic(periodic);
-                global_box->wrap(pos, img, flags);
+                global_box.setPeriodic(periodic);
+                global_box.wrap(pos, img, flags);
 
                 // place particle using actual domain fractions, not global box fraction
                 unsigned int rank
