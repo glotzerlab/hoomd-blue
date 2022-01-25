@@ -35,10 +35,10 @@ class Harmonic(ExternalField):
         reference_orientations ((*N_particles*, 4) `numpy.ndarray` of `float`):
             the reference orientations to which particles are restrained
             :math:`[\mathrm{dimensionless}]`.
-        k_translational (`float`): translational spring constant
-            :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
-        k_rotational (`float`): rotational spring constant
-            :math:`[\mathrm{energy}]`.
+        k_translational (`hoomd.variant.Variant` or `float`): translational
+            spring constant :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
+        k_rotational (`hoomd.variant.Variant` or `float`): rotational spring
+            constant :math:`[\mathrm{energy}]`.
         symmetries ((*N_symmetries*, 4) `numpy.ndarray` of `float`): the
             orientations that are equivalent through symmetry, i.e., the
             rotation quaternions that leave the particles unchanged. At a
@@ -67,10 +67,10 @@ class Harmonic(ExternalField):
     symmetric orientations from the ``symmetries`` parameter.
 
     Attributes:
-        k_translational (`float`): The translational spring constant
-            :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
-        k_rotational (`float`): The rotational spring constant
-            :math:`[\mathrm{energy}]`.
+        k_translational (`hoomd.variant.Variant` or `float`): The translational
+            spring constant :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
+        k_rotational (`hoomd.variant.Variant` or `float`): The rotational spring
+            constant :math:`[\mathrm{energy}]`.
         reference_positions ((*N_particles*, 3) `numpy.ndarray` of `float`):
             The reference positions to which particles are restrained
             :math:`[\mathrm{length}]`.
@@ -91,8 +91,8 @@ class Harmonic(ExternalField):
                                                  shape=(None, 3)),
             reference_orientations=NDArrayValidator(dtype=np.double,
                                                     shape=(None, 4)),
-            k_translational=float,
-            k_rotational=float,
+            k_translational=hoomd.variant.Variant,
+            k_rotational=hoomd.variant.Variant,
             symmetries=NDArrayValidator(dtype=np.double, shape=(None, 4)),
         )
         param_dict['k_translational'] = k_translational
