@@ -215,7 +215,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         }
 
     //! Setter for translational spring constant
-    void setKTranslational(std::shared_ptr<Variant> k_translational)
+    void setKTranslational(std::shared_ptr<Variant>& k_translational)
         {
         m_k_translational = k_translational;
         }
@@ -227,7 +227,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         }
 
     //! Setter for rotational spring constant
-    void setKRotational(std::shared_ptr<Variant> k_rotational)
+    void setKRotational(std::shared_ptr<Variant>& k_rotational)
         {
         m_k_rotational = k_rotational;
         }
