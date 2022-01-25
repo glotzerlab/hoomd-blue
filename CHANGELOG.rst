@@ -7,6 +7,11 @@ Change Log
 v3.x
 ----
 
+*Added*
+
+* ``hoomd.hpmc.external.field.Harmonic`` - harmonic potential of particles to specific sites in
+  the simulation box and orientations.
+
 v3.0.0-beta.13 (2022-01-18)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -32,6 +37,7 @@ v3.0.0-beta.13 (2022-01-18)
 * Removed invalid linker options when using gcc on Apple systems.
 * Removed the ``r_on`` attribute and ``default_r_on`` constructor argument from pair potentials that
   do not use it.
+* Building from source requires a C++17 compatible compiler.
 
 *Fixed*
 

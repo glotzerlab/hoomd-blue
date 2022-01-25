@@ -11,7 +11,6 @@ shapes.
 from hoomd.hpmc import integrate
 from hoomd.hpmc import update
 from hoomd.hpmc import compute
-from hoomd.hpmc import field
 from hoomd.hpmc import tune
 from hoomd.hpmc import pair
 from hoomd.hpmc import external

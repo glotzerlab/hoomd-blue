@@ -79,6 +79,9 @@ class LBVHWrapper
     //! Constructor
     LBVHWrapper();
 
+    /// Destructor
+    ~LBVHWrapper();
+
     //! Setup the LBVH
     void setup(const Scalar4* points, const unsigned int* map, unsigned int N, hipStream_t stream);
 
@@ -92,7 +95,7 @@ class LBVHWrapper
                unsigned int block_size);
 
     //! Get the underlying LBVH
-    std::shared_ptr<neighbor::LBVH> get()
+    neighbor::LBVH* get()
         {
         return lbvh_;
         }
@@ -107,7 +110,11 @@ class LBVHWrapper
     std::vector<unsigned int> getTunableParameters() const;
 
     private:
-    std::shared_ptr<neighbor::LBVH> lbvh_; //!< Underlying neighbor::LBVH
+    // Storing a bare pointer here because CUDA 11.5 fails to compile
+    // std::shared_ptr<neighbor::LBVH>
+
+    /// Underlying neighbor::LBVH
+    neighbor::LBVH* lbvh_;
     };
 
 //! Wrapper around the neighbor::LBVHTraverser class
@@ -147,6 +154,9 @@ class LBVHTraverserWrapper
     //! Constructor
     LBVHTraverserWrapper();
 
+    /// Destructor
+    ~LBVHTraverserWrapper();
+
     //! Setup the LBVH traverser
     void setup(const unsigned int* map, neighbor::LBVH& lbvh, hipStream_t stream);
 
@@ -162,7 +172,10 @@ class LBVHTraverserWrapper
     std::vector<unsigned int> getTunableParameters() const;
 
     private:
-    std::shared_ptr<neighbor::LBVHTraverser> trav_; //!< Underlying neighbor::LBVHTraverser
+    // Storing a bare pointer here because CUDA 11.5 fails to compile
+    // std::shared_ptr<neighbor::LBVHTraverser>
+
+    neighbor::LBVHTraverser* trav_; //!< Underlying neighbor::LBVHTraverser
     };
 
     } // end namespace kernel

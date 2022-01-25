@@ -483,7 +483,7 @@ void NeighborListGPUTree::buildTree()
             if (m_lbvhs[i]->getN() == 0)
                 continue;
             m_traversers[i]->setup(d_sorted_indexes.data + h_type_first.data[i],
-                                   *(*m_lbvhs[i]).get(),
+                                   *(m_lbvhs[i]->get()),
                                    m_streams[i]);
             }
         hipDeviceSynchronize();
@@ -596,7 +596,7 @@ void NeighborListGPUTree::traverseTree()
             args.max_neigh = h_Nmax.data[i];
 
             m_traversers[j]->traverse(args,
-                                      *(*m_lbvhs[j]).get(),
+                                      *(m_lbvhs[j]->get()),
                                       d_image_list.data,
                                       (unsigned int)m_image_list.getNumElements(),
                                       m_streams[i],

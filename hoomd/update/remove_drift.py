@@ -15,9 +15,8 @@ class RemoveDrift(Updater):
     r"""Remove the average drift from a system restrained on a lattice.
 
     Args:
-        reference_positions ((*N_particles*, 3) `numpy.ndarray` of
-            `float`): the reference positions of the
-            lattice :math:`[\mathrm{length}]`.
+        reference_positions ((*N_particles*, 3) `numpy.ndarray` of `float`):
+            the reference positions of the lattice :math:`[\mathrm{length}]`.
         trigger (`hoomd.trigger.Trigger`): Select the timesteps to remove drift.
 
     During the time steps specified by *trigger*, the mean drift
