@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Mesh Bond potentials."""
 
 from hoomd.md.mesh.potential import MeshPotential
@@ -30,7 +33,7 @@ class Harmonic(MeshPotential):
     Examples::
 
         harmonic = mesh.bond.Harmonic(mesh)
-        harmonic.parameter = dict(k=10.0, r0=1.0)
+        harmonic.params["mesh"] = dict(k=10.0, r0=1.0)
     """
     _cpp_class_name = "PotentialMeshBondHarmonic"
 
@@ -73,8 +76,8 @@ class FENE(MeshPotential):
     Examples::
 
         bond_potential = mesh.bond.FENE(mesh)
-        bond_potential.parameter = dict(k=10.0, r0=1.0,
-                                                 epsilon=0.8, sigma=1.2)
+        bond_potential.params["mesh"] = dict(k=10.0, r0=1.0,
+                                            epsilon=0.8, sigma=1.2, delta=0.0)
 
     """
     _cpp_class_name = "PotentialMeshBondFENE"
@@ -86,6 +89,7 @@ class FENE(MeshPotential):
                               r0=float,
                               epsilon=float,
                               sigma=float,
+                              delta=float,
                               len_keys=1))
         self._add_typeparam(params)
 
@@ -126,7 +130,7 @@ class Tether(MeshPotential):
     Examples::
 
         bond_potential = mesh.bond.Tether(mesh)
-        bond_potential.parameter = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
+        bond_potential.params["mesh"] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
                                          l_c0=1.8, l_max=2.1)
     """
     _cpp_class_name = "PotentialMeshBondTether"

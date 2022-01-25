@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __HOOMD_MATH_H__
 #define __HOOMD_MATH_H__
@@ -202,9 +200,6 @@ void export_hoomd_math_functions(pybind11::module& m);
     }
 #endif
 #endif
-
-//! Small epsilon value
-const Scalar EPSILON = 1.0e-6;
 
 //! Fastmath routines
 /*! Routines in the fast namespace map to fast math routines on the CPU and GPU. Where possible,

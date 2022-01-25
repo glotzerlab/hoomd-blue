@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from collections import namedtuple
 from collections.abc import Mapping, Sequence
 import itertools
@@ -10,7 +13,8 @@ import numpy as np
 import pytest
 
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check, logging_check
+from hoomd.logging import LoggerCategories
 from hoomd import md
 from hoomd.error import TypeConversionError
 
@@ -70,7 +74,7 @@ def make_two_particle_simulation(two_particle_snapshot_factory,
 @pytest.mark.parametrize("mode", [('none', 'shift'), ('shift', 'none')])
 def test_mode(make_two_particle_simulation, mode):
     """Test that all modes are correctly set on construction."""
-    cell = md.nlist.Cell()
+    cell = md.nlist.Cell(buffer=0.4)
     # Test setting on construction
     gay_berne = md.pair.aniso.GayBerne(nlist=cell,
                                        default_r_cut=2.5,
@@ -93,10 +97,11 @@ def test_mode_invalid(mode):
     """Test mode validation on construction and setting."""
     # Test errors on construction
     with pytest.raises(TypeConversionError):
-        gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(),
+        gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(buffer=0.4),
                                            default_r_cut=2.5,
                                            mode=mode)
-    gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(), default_r_cut=2.5)
+    gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(buffer=0.4),
+                                       default_r_cut=2.5)
     gay_berne.params[('A', 'A')] = {'epsilon': 1, 'lpar': 0.5, 'lperp': 1.0}
     # Test errors on setting
     with pytest.raises(TypeConversionError):
@@ -106,7 +111,7 @@ def test_mode_invalid(mode):
 @pytest.mark.parametrize("r_cut", [2.5, 4.0, 1.0, 0.01])
 def test_rcut(make_two_particle_simulation, r_cut):
     """Test that r_cut is correctly set and settable."""
-    cell = md.nlist.Cell()
+    cell = md.nlist.Cell(buffer=0.4)
     # Test construction
     gay_berne = md.pair.aniso.GayBerne(nlist=cell, default_r_cut=r_cut)
     assert gay_berne.r_cut.default == r_cut
@@ -117,7 +122,7 @@ def test_rcut(make_two_particle_simulation, r_cut):
     assert gay_berne.r_cut[('A', 'A')] == new_r_cut
 
     expected_r_cut = {('A', 'A'): new_r_cut}
-    assert _equivalent_data_structures(gay_berne.r_cut.to_dict(),
+    assert _equivalent_data_structures(gay_berne.r_cut.to_base(),
                                        expected_r_cut)
 
     gay_berne.params[('A', 'A')] = {'epsilon': 1, 'lpar': 0.5, 'lperp': 1.0}
@@ -125,14 +130,14 @@ def test_rcut(make_two_particle_simulation, r_cut):
 
     # Check after attaching
     sim.run(0)
-    assert _equivalent_data_structures(gay_berne.r_cut.to_dict(),
+    assert _equivalent_data_structures(gay_berne.r_cut.to_base(),
                                        expected_r_cut)
 
 
 @pytest.mark.parametrize("r_cut", [-1., 'foo', None])
 def test_rcut_invalid(r_cut):
     """Test r_cut validation logic."""
-    cell = md.nlist.Cell()
+    cell = md.nlist.Cell(buffer=0.4)
     # Test construction error
     if r_cut is not None:
         with pytest.raises(TypeConversionError):
@@ -247,7 +252,7 @@ def _valid_params(particle_types=['A', 'B']):
 @pytest.mark.parametrize('pair_potential_spec', _valid_params())
 def test_setting_params_and_shape(make_two_particle_simulation,
                                   pair_potential_spec):
-    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(),
+    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(buffer=0.4),
                                              default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
@@ -299,7 +304,8 @@ def _aniso_forces_and_energies():
 @pytest.fixture(scope="function", params=_valid_params())
 def pair_potential(request):
     spec = request.param
-    pair_potential = spec.cls(nlist=md.nlist.Cell(), default_r_cut=2.5)
+    pair_potential = spec.cls(nlist=md.nlist.Cell(buffer=0.4),
+                              default_r_cut=2.5)
     for key, value in spec.type_parameters.items():
         setattr(pair_potential, key, value)
     return pair_potential
@@ -347,9 +353,8 @@ def test_aniso_force_computes(make_two_particle_simulation,
         \theta_1 = (1, 0, 0, 0) \ \theta_2 = (0.70738827, 0, 0, 0.70682518) \\
 
     """
-    pot = aniso_forces_and_energies.pair_potential(nlist=md.nlist.Cell(),
-                                                   default_r_cut=2.5,
-                                                   mode='none')
+    pot = aniso_forces_and_energies.pair_potential(
+        nlist=md.nlist.Cell(buffer=0.4), default_r_cut=2.5, mode='none')
     for param, value in aniso_forces_and_energies.pair_potential_params.items():
         getattr(pot, param)[('A', 'A')] = value
     sim = make_two_particle_simulation(types=['A'], d=0.75, force=pot)
@@ -382,7 +387,7 @@ def test_aniso_force_computes(make_two_particle_simulation,
 
 @pytest.mark.parametrize('pair_potential_spec', _valid_params())
 def test_pickling(make_two_particle_simulation, pair_potential_spec):
-    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(),
+    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(buffer=0.4),
                                              default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
@@ -395,3 +400,12 @@ def test_pickling(make_two_particle_simulation, pair_potential_spec):
     pickling_check(pair_potential)
     sim.run(0)
     pickling_check(pair_potential)
+
+
+def test_logging():
+    logging_check(
+        hoomd.md.pair.aniso.GayBerne, ('md', 'pair', 'aniso'),
+        {'type_shapes': {
+            'category': LoggerCategories.object,
+            'default': True
+        }})

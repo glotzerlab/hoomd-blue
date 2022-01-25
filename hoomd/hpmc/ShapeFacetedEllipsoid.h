@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -168,6 +168,7 @@ struct FacetedEllipsoidParams : ShapeParams
     /// Generate the intersections points of polyhedron edges with the sphere
     DEVICE void initializeVertices(bool managed = false)
         {
+        const Scalar tolerance = 1e-5;
         additional_verts = detail::PolyhedronVertices(2 * N * N, managed);
         additional_verts.diameter = OverlapReal(2.0); // for unit sphere
         additional_verts.N = 0;
@@ -242,7 +243,7 @@ struct FacetedEllipsoidParams : ShapeParams
                         }
                     }
 
-                if (allowed && dot(v1, v1) <= OverlapReal(1.0 + SMALL))
+                if (allowed && dot(v1, v1) <= OverlapReal(1.0 + tolerance))
                     {
                     additional_verts.x[additional_verts.N] = v1.x;
                     additional_verts.y[additional_verts.N] = v1.y;
@@ -273,7 +274,7 @@ struct FacetedEllipsoidParams : ShapeParams
                         }
                     }
 
-                if (allowed && dot(v2, v2) <= (OverlapReal(1.0 + SMALL)))
+                if (allowed && dot(v2, v2) <= (OverlapReal(1.0 + tolerance)))
                     {
                     additional_verts.x[additional_verts.N] = v2.x;
                     additional_verts.y[additional_verts.N] = v2.y;
@@ -381,6 +382,8 @@ class SupportFuncFacetedEllipsoid
     */
     DEVICE vec3<OverlapReal> operator()(const vec3<OverlapReal>& n_in) const
         {
+        const Scalar tolerance = 1e-5;
+
         // transform support direction into coordinate system of the unit sphere
         vec3<OverlapReal> n(n_in);
         n.x *= params.a;
@@ -420,7 +423,7 @@ class SupportFuncFacetedEllipsoid
             OverlapReal alpha = dot(n_sphere, n_p);
             OverlapReal arg = (OverlapReal(1.0) - alpha * alpha / np_sq);
             vec3<OverlapReal> v;
-            if (arg >= OverlapReal(SMALL))
+            if (arg >= OverlapReal(tolerance))
                 {
                 OverlapReal arg2 = OverlapReal(1.0) - b * b / np_sq;
                 OverlapReal invgamma = fast::sqrt(arg2 / arg);

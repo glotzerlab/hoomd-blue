@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file System.cc
     \brief Defines the System class
@@ -28,6 +26,7 @@ PYBIND11_MAKE_OPAQUE(std::vector<_analyzer_pair>)
 typedef std::pair<std::shared_ptr<hoomd::Updater>, std::shared_ptr<hoomd::Trigger>> _updater_pair;
 PYBIND11_MAKE_OPAQUE(std::vector<_updater_pair>)
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::Tuner>>)
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ParticleGroup>>);
 
 namespace hoomd
     {
@@ -109,6 +108,12 @@ void System::run(uint64_t nsteps, bool write_at_start)
         }
 #endif
 
+    if (m_update_group_dof_next_step)
+        {
+        updateGroupDOF();
+        m_update_group_dof_next_step = false;
+        }
+
     // Prepare the run
     if (m_integrator)
         {
@@ -138,7 +143,17 @@ void System::run(uint64_t nsteps, bool write_at_start)
         for (auto& updater_trigger_pair : m_updaters)
             {
             if ((*updater_trigger_pair.second)(m_cur_tstep))
+                {
                 updater_trigger_pair.first->update(m_cur_tstep);
+                m_update_group_dof_next_step
+                    |= updater_trigger_pair.first->mayChangeDegreesOfFreedom(m_cur_tstep);
+                }
+            }
+
+        if (m_update_group_dof_next_step)
+            {
+            updateGroupDOF();
+            m_update_group_dof_next_step = false;
             }
 
         // look ahead to the next time step and see which analyzers and updaters will be executed
@@ -313,6 +328,24 @@ PDataFlags System::determineFlags(uint64_t tstep)
     return flags;
     }
 
+/*! Apply the degrees of freedom given by the integrator to all groups in the cache.
+ */
+void System::updateGroupDOF()
+    {
+    for (auto group : m_group_cache)
+        {
+        if (m_integrator)
+            {
+            m_integrator->updateGroupDOF(group);
+            }
+        else
+            {
+            group->setTranslationalDOF(0);
+            group->setRotationalDOF(0);
+            }
+        }
+    }
+
 namespace detail
     {
 void export_System(pybind11::module& m)
@@ -348,6 +381,9 @@ void export_System(pybind11::module& m)
         .def_property_readonly("updaters", &System::getUpdaters)
         .def_property_readonly("tuners", &System::getTuners)
         .def_property_readonly("computes", &System::getComputes)
+        .def_property_readonly("group_cache", &System::getGroupCache)
+        .def("getGroupCache", &System::getGroupCache)
+        .def("updateGroupDOFOnNextStep", &System::updateGroupDOFOnNextStep)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &System::setCommunicator)
 #endif

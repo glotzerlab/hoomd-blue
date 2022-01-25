@@ -5,7 +5,9 @@ set(files __init__.py
     test_active_rotational_diffusion.py
     test_angle.py
     test_aniso_pair.py
+    test_array_view.py
     test_constrain_distance.py
+    test_custom_force.py
     test_external.py
     test_filter_md.py
     test_bond.py
@@ -15,6 +17,7 @@ set(files __init__.py
     test_potential.py
     test_pppm_coulomb.py
     test_manifolds.py
+    test_meta_wall_list.py
     test_methods.py
     test_meshbond.py
     test_minimize_fire.py
@@ -27,6 +30,9 @@ set(files __init__.py
     test_rigid.py
     test_zero_momentum.py
     test_gsd.py
+    test_update_group_dof.py
+    test_wall_data.py
+    test_wall_potential.py
     )
 
 install(FILES ${files}

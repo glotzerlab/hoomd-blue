@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import copy as cp
 import hoomd
 import pytest
@@ -12,7 +15,8 @@ _FENE_args = {
     'k': [30.0, 25.0, 20.0],
     'r0': [1.6, 1.7, 1.8],
     'epsilon': [0.9, 1.0, 1.1],
-    'sigma': [1.1, 1.0, 0.9]
+    'sigma': [1.1, 1.0, 0.9],
+    'delta': [0, 0, 0]
 }
 _FENE_arg_list = [(hoomd.md.mesh.bond.FENE, dict(zip(_FENE_args, val)))
                   for val in zip(*_FENE_args.values())]
