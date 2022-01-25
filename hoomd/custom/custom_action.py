@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement Action."""
 
@@ -111,8 +110,7 @@ class Action(metaclass=_AbstractLoggable):
 
     def detach(self):
         """Detaches the Action from the `hoomd.Simulation`."""
-        if hasattr(self, '_state'):
-            del self._state
+        self._state = None
 
     @abstractmethod
     def act(self, timestep):

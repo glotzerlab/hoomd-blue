@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborListGPUTree.cuh"
 #include "hip/hip_runtime.h"
@@ -811,7 +809,12 @@ float double2float_ru(double x)
  */
 LBVHWrapper::LBVHWrapper()
     {
-    lbvh_ = std::make_shared<neighbor::LBVH>();
+    lbvh_ = new neighbor::LBVH();
+    }
+
+LBVHWrapper::~LBVHWrapper()
+    {
+    delete lbvh_;
     }
 
 /*!
@@ -886,8 +889,13 @@ std::vector<unsigned int> LBVHWrapper::getTunableParameters() const
  */
 LBVHTraverserWrapper::LBVHTraverserWrapper()
     {
-    trav_ = std::make_shared<neighbor::LBVHTraverser>();
+    trav_ = new neighbor::LBVHTraverser();
     };
+
+LBVHTraverserWrapper::~LBVHTraverserWrapper()
+    {
+    delete trav_;
+    }
 
 /*!
  * \param map Mapping operation for the primitives for efficient traversal

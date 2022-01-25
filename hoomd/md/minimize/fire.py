@@ -1,10 +1,6 @@
-# coding: utf-8
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
-
-# Maintainer: joaander / All Developers are free to add commands for new
 # features
 
 """Energy minimizer."""
@@ -116,9 +112,10 @@ class FIRE(_DynamicIntegrator):
 
     Examples::
 
-        fire = md.minimize.FIRE(dt=0.05)
-        fire.force_tol = 1e-2
-        fire.energy_tol = 1e-7
+        fire = md.minimize.FIRE(dt=0.05,
+                                force_tol=1e-2,
+                                angmom_tol=1e-2,
+                                energy_tol=1e-7)
         fire.methods.append(md.methods.NVE(hoomd.filter.All()))
         sim.operations.integrator = fire
         while not(fire.converged):
@@ -132,9 +129,8 @@ class FIRE(_DynamicIntegrator):
            sim.run(100)
 
     Note:
-        The `minimire.FIRE` class should be used as the integrator for
-        simulations, just as the standard `md.Integrator` class is (see
-        examples).
+        `FIRE` should be used as the integrator for simulations, just as the
+        standard `md.Integrator` class is (see examples).
 
     Note:
         The algorithm requires an integration method to update the particle
@@ -154,6 +150,14 @@ class FIRE(_DynamicIntegrator):
             This is the maximum step size the minimizer is permitted to use
             :math:`[\\mathrm{time}]`. Consider the stability of the system when
             setting.
+        force_tol (float):
+            Force convergence criteria
+            :math:`[\\mathrm{force} / \\mathrm{mass}]`.
+        angmom_tol (float):
+            Angular momentum convergence criteria
+            :math:`[\\mathrm{energy} * \\mathrm{time}]`.
+        energy_tol (float):
+            Energy convergence criteria :math:`[\\mathrm{energy}]`.
         integrate_rotational_dof (bool): When True, integrate rotational degrees
             of freedom.
         forces (Sequence[hoomd.md.force.Force]):
@@ -186,14 +190,6 @@ class FIRE(_DynamicIntegrator):
         fdec_alpha (float):
             Factor to decrease :math:`\\alpha t` by
             :math:`[\\mathrm{dimensionless}]`.
-        force_tol (float):
-            Force convergence criteria
-            :math:`[\\mathrm{force} / \\mathrm{mass}]`.
-        angmom_tol (float):
-            Angular momentum convergence criteria
-            :math:`[\\mathrm{energy} * \\mathrm{time}]`.
-        energy_tol (float):
-            Energy convergence criteria :math:`[\\mathrm{energy}]`.
         min_steps_conv (int):
             A minimum number of attempts before convergence criteria are
             considered.
@@ -203,6 +199,9 @@ class FIRE(_DynamicIntegrator):
 
     def __init__(self,
                  dt,
+                 force_tol,
+                 angmom_tol,
+                 energy_tol,
                  integrate_rotational_dof=False,
                  forces=None,
                  constraints=None,
@@ -213,9 +212,6 @@ class FIRE(_DynamicIntegrator):
                  fdec_dt=0.5,
                  alpha_start=0.1,
                  fdec_alpha=0.99,
-                 force_tol=0.1,
-                 angmom_tol=0.1,
-                 energy_tol=1e-5,
                  min_steps_conv=10):
 
         super().__init__(forces, constraints, methods, rigid)

@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef _EXTERNAL_FIELD_ENERGY_JIT_H_
 #define _EXTERNAL_FIELD_ENERGY_JIT_H_
 

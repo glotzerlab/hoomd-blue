@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement many body potentials."""
 
@@ -61,6 +60,7 @@ class Triplet(Force):
     """
 
     def __init__(self, nlist, default_r_cut=None):
+        super().__init__()
         self._nlist = validate_nlist(nlist)
         r_cut_param = TypeParameter(
             'r_cut', 'particle_types',

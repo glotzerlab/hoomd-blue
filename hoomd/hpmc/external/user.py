@@ -1,20 +1,19 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """User-defined external fields for HPMC simulations."""
 
 import hoomd
 from hoomd import _compile
 from hoomd.hpmc import integrate
+from hoomd.hpmc.external.field import ExternalField
 if hoomd.version.llvm_enabled:
     from hoomd.hpmc import _jit
-from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 
 
-class CPPExternalPotential(_HOOMDBaseObject):
+class CPPExternalPotential(ExternalField):
     """Define an external potential energy field imposed on all particles in \
             the system.
 
@@ -60,9 +59,9 @@ class CPPExternalPotential(_HOOMDBaseObject):
         Your code *must* return a value.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.11/hoomd/VectorMath.h
+            v3.0.0-beta.13/hoomd/VectorMath.h
     .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.11/hoomd/BoxDim.h
+            v3.0.0-beta.13/hoomd/BoxDim.h
 
     Example:
         .. code-block:: python
@@ -92,7 +91,7 @@ class CPPExternalPotential(_HOOMDBaseObject):
 
     def _getattr_param(self, attr):
         if attr == 'code':
-            return self._param_dict[attr]
+            return self._param_dict._dict[attr]
         return super()._getattr_param(attr)
 
     def _wrap_cpu_code(self, code):

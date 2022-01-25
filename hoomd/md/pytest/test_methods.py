@@ -1,5 +1,9 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check, logging_check
+from hoomd.logging import LoggerCategories
 import pytest
 from copy import deepcopy
 from collections import namedtuple
@@ -394,8 +398,9 @@ def test_nph_attributes_attached_3d(simulation_factory,
     nph.tauS = 10.0
     assert nph.tauS == 10.0
 
-    nph.box_dof = [True, False, False, False, True, False]
-    assert nph.box_dof == [True, False, False, False, True, False]
+    box_dof = (True, False, False, False, True, False)
+    nph.box_dof = box_dof
+    assert nph.box_dof == box_dof
 
     nph.couple = 'none'
     assert nph.couple == 'none'
@@ -611,3 +616,29 @@ def test_pickling(method_base_params, simulation_factory,
     sim.operations.integrator = integrator
     sim.run(0)
     pickling_check(method)
+
+
+def test_logging():
+    logging_check(hoomd.md.methods.NPH, ('md', 'methods'), {
+        'barostat_energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })
+    logging_check(
+        hoomd.md.methods.NPT, ('md', 'methods'), {
+            'barostat_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'thermostat_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })
+    logging_check(hoomd.md.methods.NVT, ('md', 'methods'), {
+        'thermostat_energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

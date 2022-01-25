@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HOOMD Errors."""
 
@@ -42,3 +41,13 @@ class IncompleteSpecificationError(ValueError):
 class SimulationDefinitionError(RuntimeError):
     """Error in definition of simulation internal state."""
     pass
+
+
+class IsolationWarning(UserWarning):
+    """Warn about data structure removal from original data source."""
+
+    def __str__(self):
+        """Returns the error message."""
+        return ("The data structure is removed from its original data source, "
+                "and updates will no longer modify the previously composing "
+                "object. Call obj.to_base() to remove this warning.")
