@@ -109,7 +109,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
     velocities = []
     total_energies = []
     while sim.timestep < n_total:
-        sim.run(1000)
+        sim.run(1_000)
         with sim.state.cpu_local_snapshot as snapshot:
             velocities.append(np.array(snapshot.particles.velocity, copy=True))
             total_energies.append(thermo.kinetic_energy
