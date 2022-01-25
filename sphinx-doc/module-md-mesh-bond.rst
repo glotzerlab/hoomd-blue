@@ -8,7 +8,6 @@ md.mesh.bond
 .. autosummary::
     :nosignatures:
 
-    MeshBond
     FENE
     Harmonic
     Tether
@@ -17,8 +16,7 @@ md.mesh.bond
 
 .. automodule:: hoomd.md.mesh.bond
     :synopsis: Bond potentials applied to a mesh data structure.
-    :members: MeshBond,
-              FENE,
+    :members: FENE,
               Harmonic,
               Tether
     :no-inherited-members:

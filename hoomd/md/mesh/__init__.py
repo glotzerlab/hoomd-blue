@@ -4,4 +4,5 @@
 
 """Mesh potentials for molecular dynamics."""
 
+from .potential import MeshPotential
 from . import bond

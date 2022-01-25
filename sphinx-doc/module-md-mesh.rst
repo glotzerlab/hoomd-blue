@@ -5,10 +5,16 @@ md.mesh
 
 .. py:currentmodule:: hoomd.md.mesh
 
+.. autosummary::
+    :nosignatures:
+
+    MeshPotential
+
 .. rubric:: Details
 
 .. automodule:: hoomd.md.mesh
     :synopsis: Mesh potentials.
+    :members: MeshPotential
 
 .. rubric:: Modules
 
