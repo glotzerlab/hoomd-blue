@@ -82,6 +82,9 @@ class PYBIND11_EXPORT ForceCompute : public Compute
 
     virtual void precomputeParameter() {};
 
+    virtual void
+    postcompute(unsigned int idx_a, unsigned int idx_b, unsigned int idx_c, unsigned int idx_d) {};
+
     //! Computes enegry differences for dynamical mesh bonding
     virtual Scalar energyDiff(unsigned int idx_a,
                               unsigned int idx_b,

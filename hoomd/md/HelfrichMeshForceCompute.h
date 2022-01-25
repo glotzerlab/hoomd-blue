@@ -110,8 +110,10 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public ForceCompute
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
 
-    //! compute normals
     virtual void precomputeParameter();
+
+    virtual void
+    postcompute(unsigned int idx_a, unsigned int idx_b, unsigned int idx_c, unsigned int idx_d);
 
     virtual Scalar energyDiff(unsigned int idx_a,
                               unsigned int idx_b,

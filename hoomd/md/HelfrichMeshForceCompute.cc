@@ -640,6 +640,25 @@ void HelfrichMeshForceCompute::precomputeParameter()
         }
     }
 
+void HelfrichMeshForceCompute::postcompute(unsigned int idx_a,
+                                           unsigned int idx_b,
+                                           unsigned int idx_c,
+                                           unsigned int idx_d)
+    {
+    ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::readwrite);
+
+    h_sigma.data[idx_a] += m_sigma_diff_a;
+    h_sigma.data[idx_b] += m_sigma_diff_b;
+    h_sigma.data[idx_c] += m_sigma_diff_c;
+    h_sigma.data[idx_d] += m_sigma_diff_d;
+
+    h_sigma_dash.data[idx_a] += m_sigma_dash_diff_a;
+    h_sigma_dash.data[idx_b] += m_sigma_dash_diff_b;
+    h_sigma_dash.data[idx_c] += m_sigma_dash_diff_c;
+    h_sigma_dash.data[idx_d] += m_sigma_dash_diff_d;
+    }
+
 Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
                                             unsigned int idx_b,
                                             unsigned int idx_c,

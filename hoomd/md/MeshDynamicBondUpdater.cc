@@ -222,6 +222,11 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
             h_triangles.data[tr_idx1] = triangle1_n;
             h_triangles.data[tr_idx2] = triangle2_n;
+
+            for (auto& force : forces)
+                {
+                force->postcompute(idx_a, idx_b, idx_c, idx_d);
+                }
             }
         }
     std::cout << float(zahl) / size << std::endl;
