@@ -62,7 +62,7 @@ class NList(_HOOMDBaseObject):
 
     .. rubric:: Diameter shifting
 
-    Set `diameter_shift` to `True` when using `hoomd.md.pair.SLJ` or
+    Set `diameter_shift` to `True` when using
     `hoomd.md.pair.DLVO` so that the neighbor list includes all particles that
     interact under the modified :math:`r_\mathrm{cut}` conditions in those
     potentials. When `diameter_shift` is `True`, set `max_diameter` to the
