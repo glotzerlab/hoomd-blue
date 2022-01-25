@@ -1,11 +1,14 @@
-"""Mesh Bond potentials."""
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-from hoomd.md.mesh.bond import MeshBond
+"""Mesh Bending potentials."""
+
+from hoomd.md.mesh.potential import MeshPotential
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 
 
-class Helfrich(MeshBond):
+class Helfrich(MeshPotential):
     r"""Helfrich bending potential.
 
     :py:class:`Helfrich` specifies a Helfrich bending energy applied to
