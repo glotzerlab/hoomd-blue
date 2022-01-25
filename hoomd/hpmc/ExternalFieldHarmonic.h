@@ -392,7 +392,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
             quat<Scalar> dq = q0 - equiv_orientation;
             dqmin = (i == 0) ? norm2(dq) : fmin(dqmin, norm2(dq));
             }
-        Scalar k = (*m_k_translational)(timestep);
+        Scalar k = (*m_k_rotational)(timestep);
         return Scalar(0.5) * k * dqmin;
         }
 
