@@ -244,7 +244,6 @@ PYBIND11_MODULE(_md, m)
     export_wall_field(m);
     export_WallPotential<EvaluatorPairLJ>(m, "WallsPotentialLJ");
     export_WallPotential<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
-    export_WallPotential<EvaluatorPairSLJ>(m, "WallsPotentialSLJ"); //TODO
     export_WallPotential<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
     export_WallPotential<EvaluatorPairMie>(m, "WallsPotentialMie");
     export_WallPotential<EvaluatorPairGauss>(m, "WallsPotentialGauss");
@@ -370,7 +369,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
         m,
         "WallsPotentialYukawaGPU");
-    export_PotentialExternalGPU<WallsPotentialSLJGPU, WallsPotentialSLJ>(m, "WallsPotentialSLJGPU"); //TODO
     export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU, WallsPotentialForceShiftedLJ>(
         m,
         "WallsPotentialForceShiftedLJGPU");
