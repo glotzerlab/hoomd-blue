@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file NeighborListGPUTree.cc
     \brief Defines NeighborListGPUTree
@@ -485,7 +483,7 @@ void NeighborListGPUTree::buildTree()
             if (m_lbvhs[i]->getN() == 0)
                 continue;
             m_traversers[i]->setup(d_sorted_indexes.data + h_type_first.data[i],
-                                   *(*m_lbvhs[i]).get(),
+                                   *(m_lbvhs[i]->get()),
                                    m_streams[i]);
             }
         hipDeviceSynchronize();
@@ -598,7 +596,7 @@ void NeighborListGPUTree::traverseTree()
             args.max_neigh = h_Nmax.data[i];
 
             m_traversers[j]->traverse(args,
-                                      *(*m_lbvhs[j]).get(),
+                                      *(m_lbvhs[j]->get()),
                                       d_image_list.data,
                                       (unsigned int)m_image_list.getNumElements(),
                                       m_streams[i],

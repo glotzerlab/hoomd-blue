@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 /*! \file MeshDefinition.h
     \brief Defines the MeshDefinition class
  */
@@ -19,11 +22,6 @@
 
 namespace hoomd
     {
-#ifdef ENABLE_MPI
-//! Forward declaration of Communicator
-class Communicator;
-#endif
-
 //! Mesh class that contains all infrastructure necessary to combine a set of particles into a mesh
 //! triangulation
 /*! MeshDefinition is a container class to define a mesh tringulation comprised of the
@@ -87,18 +85,18 @@ class PYBIND11_EXPORT MeshDefinition
         return m_meshtriangle_data->getN();
         }
 
+    void setTypes(pybind11::list types);
+
     BondData::Snapshot getBondData();
+
+    TriangleData::Snapshot getTriangleData();
+
+    void setTriangleData(pybind11::array_t<int> triangles);
 
     Scalar getEnergy()
         {
         return m_mesh_energy;
         }
-
-    void updateTriangleData();
-
-    void updateMeshData();
-
-    TriangleData::Snapshot triangle_data; //!< The triangle data accessible in python
 
     private:
     std::shared_ptr<SystemDefinition>
@@ -107,7 +105,6 @@ class PYBIND11_EXPORT MeshDefinition
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
     GlobalVector<Scalar3> m_triangle_normals;              //! normal vectors of the triangles
     Scalar m_mesh_energy; //!< storing energy for dynamic bonding later
-    bool m_data_changed;  //!< check if dynamic bonding has changed the mesh data
     };
 
 namespace detail

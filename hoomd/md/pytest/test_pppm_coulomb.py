@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
 from hoomd.conftest import pickling_check
 import pytest
@@ -38,7 +41,7 @@ def test_attach_detach(simulation_factory,
     Also test that parameters can be set.
     """
     # detached
-    nlist = hoomd.md.nlist.Cell()
+    nlist = hoomd.md.nlist.Cell(buffer=0.4)
     ewald, coulomb = hoomd.md.long_range.pppm.make_pppm_coulomb_forces(
         nlist=nlist, resolution=(64, 64, 64), order=6, r_cut=3.0, alpha=0)
 
@@ -49,7 +52,7 @@ def test_attach_detach(simulation_factory,
     assert coulomb.r_cut == 3.0
     assert coulomb.alpha == 0
 
-    nlist2 = hoomd.md.nlist.Tree()
+    nlist2 = hoomd.md.nlist.Tree(buffer=0.4)
     coulomb.nlist = nlist2
     assert coulomb.nlist is nlist2
     assert ewald.nlist is nlist2
@@ -99,7 +102,7 @@ def test_attach_detach(simulation_factory,
 def test_pickling(simulation_factory, two_charged_particle_snapshot_factory):
     """Test that md.long_range.pppm.Coulomb can be pickled and unpickled."""
     # detached
-    nlist = hoomd.md.nlist.Cell()
+    nlist = hoomd.md.nlist.Cell(buffer=0.4)
     ewald, coulomb = hoomd.md.long_range.pppm.make_pppm_coulomb_forces(
         nlist=nlist, resolution=(64, 64, 64), order=6, r_cut=3.0, alpha=0)
     pickling_check(coulomb)
@@ -122,7 +125,7 @@ def test_pickling(simulation_factory, two_charged_particle_snapshot_factory):
 
 def test_pppm_energy(simulation_factory, two_charged_particle_snapshot_factory):
     """Test that md.long_range.pppm.Coulomb computes the correct energy."""
-    nlist = hoomd.md.nlist.Cell()
+    nlist = hoomd.md.nlist.Cell(buffer=0.4)
     ewald, coulomb = hoomd.md.long_range.pppm.make_pppm_coulomb_forces(
         nlist=nlist, resolution=(64, 64, 64), order=6, r_cut=3.0, alpha=0)
 

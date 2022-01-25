@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HPMCPrecisionSetup.h"
 #include "MinkowskiMath.h"
@@ -86,7 +86,9 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
     OverlapReal d;
     const OverlapReal precision_tol
         = OverlapReal(1e-7); // precision tolerance for single-precision floats near 1.0
-    const OverlapReal root_tol = OverlapReal(3e-4); // square root of precision tolerance
+
+    // square root of precision tolerance, in distance units
+    const OverlapReal root_tol = OverlapReal(3e-4) * R;
 
     if (fabs(ab_t.x) < root_tol && fabs(ab_t.y) < root_tol && fabs(ab_t.z) < root_tol)
         {
@@ -115,7 +117,9 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
     // cross product is zero if v0,v1 colinear with origin, but we have already determined origin is
     // within v1 support plane. If origin is on a line between v1 and v0, particles overlap.
     // if (dot(n, n) < tol)
-    if (fabs(n.x) < precision_tol && fabs(n.y) < precision_tol && fabs(n.z) < precision_tol)
+    // cross product has units of length**2, multiply tolerance by R**2 to put in the same units
+    if (fabs(n.x) < precision_tol * R * R && fabs(n.y) < precision_tol * R * R
+        && fabs(n.z) < precision_tol * R * R)
         return true;
 
     v2 = S(n); // Convexity should guarantee ||v2|| > 0, but v2 == v1 may be possible in edge cases
@@ -211,7 +215,8 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
         const OverlapReal tol_multiplier = 10000;
         n = cross(v2 - v1, v3 - v1);
         d = dot((v4 - v1) * tol_multiplier, n);
-        OverlapReal tol = precision_tol * tol_multiplier * R * fast::sqrt(dot(n, n));
+        // d is in units of length**3, multiply by R**2 * |n| to put in the same units
+        OverlapReal tol = precision_tol * tol_multiplier * R * R * fast::sqrt(dot(n, n));
 
         // First, check if v4 is on plane (v2,v1,v3)
         if (fabs(d) < tol)

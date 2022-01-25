@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
@@ -13,7 +13,7 @@
 #include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
@@ -41,7 +41,7 @@ void export_sphere(pybind11::module& m)
     export_UpdaterClusters<ShapeSphere>(m, "UpdaterClustersSphere");
 
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
-    export_LatticeField<ShapeSphere>(m, "ExternalFieldLatticeSphere");
+    export_HarmonicField<ShapeSphere>(m, "ExternalFieldHarmonicSphere");
     export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
     export_UpdaterExternalFieldWall<ShapeSphere>(m, "UpdaterExternalFieldWallSphere");

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "FIREEnergyMinimizer.h"
 
@@ -259,9 +257,9 @@ void FIREEnergyMinimizer::update(uint64_t timestep)
 
                 // check for zero moment of inertia
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 // ignore torque component along an axis for which the moment of inertia zero
                 if (x_zero)
@@ -350,14 +348,14 @@ void FIREEnergyMinimizer::update(uint64_t timestep)
         }
 
     Scalar factor_t;
-    if (fabs(fnorm) > EPSILON)
+    if (fabs(fnorm) > 0)
         factor_t = m_alpha * vnorm / fnorm;
     else
         factor_t = 1.0;
 
     Scalar factor_r = 0.0;
 
-    if (fabs(tnorm) > EPSILON)
+    if (fabs(tnorm) > 0)
         factor_r = m_alpha * wnorm / tnorm;
     else
         factor_r = 1.0;
@@ -402,9 +400,9 @@ void FIREEnergyMinimizer::update(uint64_t timestep)
 
                 // check for zero moment of inertia
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 // ignore torque component along an axis for which the moment of inertia zero
                 if (x_zero)

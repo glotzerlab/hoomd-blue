@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import pytest
 
 import hoomd
@@ -15,7 +18,7 @@ def make_simulation(simulation_factory, two_particle_snapshot_factory):
 
 @pytest.fixture
 def integrator_elements():
-    nlist = md.nlist.Cell()
+    nlist = md.nlist.Cell(buffer=0.4)
     lj = md.pair.LJ(nlist=nlist, default_r_cut=2.5)
     gauss = md.pair.Gauss(nlist, default_r_cut=3.0)
     lj.params[("A", "A")] = {"epsilon": 1.0, "sigma": 1.0}

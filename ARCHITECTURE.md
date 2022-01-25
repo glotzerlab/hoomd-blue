@@ -115,33 +115,37 @@ attaching, detaching, and removal.
 
 ### Attribute Validation and Defaults
 
-In Python, five fundamental classes exist for value validation, processing, and
+In Python, four fundamental classes exist for value validation, processing, and
 syncing when attached: `hoomd.data.parameterdicts.ParameterDict`,
 `hoomd.data.parameterdicts.TypeParameterDict`,
-`hoomd.data.parameterdicts.AttachedTypeParameterDict`,
 `hoomd.data.typeparam.TypeParameter`, and
 `hoomd.data.syncedlist.SyncedList`.
 These can be/are used by `_HOOMDBaseObject` subclasses as well as others.
+In addition, classes provided by `hoomd.data.collection` allow for nested
+editing of Python objects while maintaining a correspondence to C++.
 
 #### `ParameterDict`
 
 `ParameterDict` provides a mapping (`dict`) interface from attribute names to
 validated and processed values. Each instance of `ParameterDict` has its own
-specification defining the validation logic for its keys. `_HOOMDBaseObject`
-subclasses automatically sync the `ParameterDict` instance in the `_param_dict`
-attribute. This requires that all `ParameterDict` keys be available as
-properties of the C++ object using the pybind11 property implementation
+specification defining the validation logic for its keys. `ParameterDict`
+contains logic when given a pybind11 produced Python object can sync between C++
+and Python. See `ParameterDict.__setitem__` for this logic. Attribute specific
+logic can be created using the `_getters` and `_setters` attributes. The logic
+requires (outside custom getters and setters that all `ParameterDict` keys be
+available as properties of the C++ object using the pybind11 property
+implementation
 (https://pybind11.readthedocs.io/en/stable/classes.html#instance-and-static-fields).
 Properties can be read-only which means they will never be set through
 `ParameterDict`, but can be through the C++ class constructor. Attempting to set
-such a property after attaching will result in an exception being thrown.
+such a property after attaching will result in an `MutabiliyError` being thrown.
 
 This class should be used to define all attributes shared with C++ member
 variables that are on a per-object basis (i.e. not per type). Examples of
 this can be seen in many HOOMD classes.  One good example is
 `hoomd.md.update.ReversePerturbationFlow`.
 
-#### `TypeParameterDict` and `AttachedTypeParameterDict`
+#### `TypeParameterDict`
 
 These classes work together to define validated mappings from types or groups of
 types to values. The type validation and processing logic is identical to that
@@ -157,11 +161,11 @@ potential `params` (see `hoomd/md/pair/pair.py`) and HPMC shape specs (see
 
 #### `TypeParameter`
 
-This class is a wrapper for `TypeParameterDict` and `AttachedTypeParameterDict`
-to work with `_HOOMDBaseObject` subclass instances. It provides very little
-independent logic and can be found in `hoomd/data/typeparam.py`.
-`_HOOMDBaseObject` expects the values of `_typeparam_dict` keys to be
-`TypeParameter` instances. See the methods
+This class is a wrapper for `TypeParameterDict` to work with `_HOOMDBaseObject`
+subclass instances. It provides very little independent logic and can be found
+in `hoomd/data/typeparam.py`. This class primarily serves as the source of user
+documentation for type parameters. `_HOOMDBaseObject` expects the values of
+`_typeparam_dict` keys to be `TypeParameter` instances. See the methods
 `hoomd.operation._HOOMDBaseObject._append_typeparm` and
 `hoomd.operation._HOOMDBaseObject._extend_typeparm` for more information.
 
@@ -203,6 +207,16 @@ documentation; however the implementation can be found in
 in ability to be nested but has less customization due to terminating in
 concrete values.
 
+#### HOOMD Collection Types
+
+In `hoomd.data.collection` classes exist which mimic Python `dict`s, `list`s,
+and `tuples` (`set`s could easily be added). These classes keep a reference to
+their owning object (e.g. a `ParameterDict` or `TypeParameterDict` instance).
+Through this reference and read-modify-write approach, these classes facilitate
+nested editing of Python attributes while maintaining a synced status in C++. In
+general, developers should not need to worry about this as the use of these
+classes is automated through previously described classes.
+
 ### Internal Python Actions
 
 HOOMD-blue version 3 allows for much more interaction with Python objects within
@@ -242,6 +256,10 @@ To test the pickling of objects see the helper methods in
 [hoomd/confest.py](hoomd/conftest.py), `pickling_check` and
 `operation_pickling_check`. All objects that are expected to be picklable and
 this is most objects in HOOMD-blue should have a pickling test.
+
+A full test suite for collection-like objects can be found in
+[hoomd/confest.py](hoomd/conftest.py). This suite is used by all HOOMD
+collection like classes.
 
 **Pybind11 Pickling**
 

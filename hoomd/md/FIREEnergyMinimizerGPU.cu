@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: askeys
 
 #include "FIREEnergyMinimizerGPU.cuh"
 #include "hoomd/TextureTools.h"
@@ -328,9 +329,9 @@ __global__ void gpu_fire_reduce_Pr_partial_kernel(const Scalar4* d_angmom,
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x < EPSILON);
-        y_zero = (I.y < EPSILON);
-        z_zero = (I.z < EPSILON);
+        x_zero = (I.x == 0);
+        y_zero = (I.y == 0);
+        z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
         if (x_zero)
@@ -523,9 +524,9 @@ __global__ void gpu_fire_reduce_tsq_partial_kernel(const Scalar4* d_net_torque,
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x < EPSILON);
-        y_zero = (I.y < EPSILON);
-        z_zero = (I.z < EPSILON);
+        x_zero = (I.x == 0);
+        y_zero = (I.y == 0);
+        z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
         if (x_zero)
@@ -836,9 +837,9 @@ __global__ void gpu_fire_update_angmom_kernel(const Scalar4* d_net_torque,
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x < EPSILON);
-        y_zero = (I.y < EPSILON);
-        z_zero = (I.z < EPSILON);
+        x_zero = (I.x == 0);
+        y_zero = (I.y == 0);
+        z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
         if (x_zero)

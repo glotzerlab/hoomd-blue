@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Testing
 =======
 
@@ -44,12 +47,13 @@ Change to the build directory and execute the following commands to run the test
 * ``python3 -m pytest hoomd``
 
 pytest_ may be run outside the build directory by:
+
 * Passing a full path to the build: ``python3 -m pytest <build-directory>/hoomd``
 * After installing to an environment: ``python3 -m pytest --pyargs hoomd``
 
 .. note::
 
-    ``python3 -m pytest --pyargs hoomd`` tests the hoomd installation it finds by `import hoomd`,
+    ``python3 -m pytest --pyargs hoomd`` tests the hoomd installation it finds by ``import hoomd``,
     which may not be the one you just built. You must also change to a directory outside the
     source, otherwise ``import hoomd`` attempts to import the uncompiled source.
 

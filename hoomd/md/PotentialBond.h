@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
@@ -238,11 +238,9 @@ void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
         // throw an error if this bond is incomplete
         if (idx_a >= max_local || idx_b >= max_local)
             {
-            this->m_exec_conf->msg->error()
-                << "bond." << evaluator::getName() << ": bond " << bond.tag[0] << " " << bond.tag[1]
-                << " incomplete." << std::endl
-                << std::endl;
-            throw std::runtime_error("Error in bond calculation");
+            std::ostringstream stream;
+            stream << "Error: bond " << bond.tag[0] << " " << bond.tag[1] << " is incomplete.";
+            throw std::runtime_error(stream.str());
             }
 
         // calculate d\vec{r}

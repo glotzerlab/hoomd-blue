@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement Mesh."""
 
@@ -72,17 +71,14 @@ class Mesh(_HOOMDBaseObject):
         triangulation of the mesh structure.
         """
         if self._attached:
-            self._update_triangles()
-            return self._cpp_obj.triangles.group
+            return self._cpp_obj.getTriangleData().group
         return self._triangles
 
     @triangles.setter
     def triangles(self, triag):
         if self._attached:
-            self._cpp_obj.triangles.types = self._param_dict["types"]
-            self._cpp_obj.triangles.N = len(triag)
-            self._cpp_obj.triangles.group[:] = triag
-            self._update_mesh()
+            self._cpp_obj.setTypes(list(self._param_dict['types']))
+            self._cpp_obj.setTriangleData(triag)
         else:
             self.size = len(triag)
         self._triangles = triag
@@ -95,19 +91,12 @@ class Mesh(_HOOMDBaseObject):
         bonds within the mesh structure.
         """
         if self._attached:
-            self._update_triangles()
             return self._cpp_obj.getBondData().group
 
     @log(requires_run=True)
     def energy(self):
         """(float): Surface energy of the mesh."""
         return self._cpp_obj.getEnergy()
-
-    def _update_mesh(self):
-        self._cpp_obj.updateMeshData()
-
-    def _update_triangles(self):
-        self._cpp_obj.updateTriangleData()
 
     def _preprocess_type(self, typename):
         if isinstance(typename, Sequence):

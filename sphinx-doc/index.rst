@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 ==========
 HOOMD-blue
 ==========
@@ -48,6 +51,14 @@ Resources
   Additional information and publications.
 - `HOOMD-blue benchmark scripts <https://github.com/glotzerlab/hoomd-benchmarks>`_:
   Scripts to evaluate the performance of HOOMD-blue simulations.
+
+Related tools
+=============
+
+- `freud <https://freud.readthedocs.io/>`_:
+  Analyze HOOMD-blue simulation results with the **freud** Python library.
+- `signac <https://signac.io/>`_:
+  Manage your workflow with **signac**.
 
 Example scripts
 ===============

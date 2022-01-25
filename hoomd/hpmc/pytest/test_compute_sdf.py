@@ -1,9 +1,14 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from __future__ import print_function
 from __future__ import division
 import hoomd
 import pytest
 import numpy as np
 import hoomd.hpmc.pytest.conftest
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check
 
 
 def test_before_attaching():
@@ -41,7 +46,7 @@ def test_after_attaching(valid_args, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     sim.operations.add(mc)
@@ -194,3 +199,17 @@ def test_values(simulation_factory, lattice_snapshot_factory):
         v = np.mean(sdf_data[1:, :], axis=0)
         invalid = np.abs(_avg - v) > (8 * _err)
         assert np.sum(invalid) == 0
+
+
+def test_logging():
+    logging_check(
+        hoomd.hpmc.compute.SDF, ('hpmc', 'compute'), {
+            'betaP': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'sdf': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
+        })

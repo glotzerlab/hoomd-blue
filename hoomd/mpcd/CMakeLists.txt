@@ -1,4 +1,4 @@
-# Maintainer: mphoward
+
 if (NOT BUILD_MD)
     message(FATAL_ERROR "MPCD package cannot be built without MD.")
 endif(NOT BUILD_MD)

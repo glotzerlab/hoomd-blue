@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from collections.abc import Sequence, Mapping
 import math
 from numbers import Number
@@ -50,7 +53,7 @@ def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 
 
 def test_rcut(simulation_factory, two_particle_snapshot_factory):
-    lj = md.pair.LJ(nlist=md.nlist.Cell(), default_r_cut=2.5)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), default_r_cut=2.5)
     assert lj.r_cut.default == 2.5
     # ensure 0 is a valid value for r_cut
     lj.r_cut[("A", "A")] = 0.0
@@ -70,13 +73,13 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
 
     lj.r_cut[('A', 'A')] = 2.5
-    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_base())
     sim.run(0)
-    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_base())
 
 
 def test_invalid_mode():
-    cell = md.nlist.Cell()
+    cell = md.nlist.Cell(buffer=0.4)
     for invalid_mode in [1, 'str', [1, 2, 3]]:
         with pytest.raises(TypeConversionError):
             md.pair.LJ(nlist=cell, default_r_cut=2.5, mode=invalid_mode)
@@ -84,7 +87,7 @@ def test_invalid_mode():
 
 @pytest.mark.parametrize("mode", ['none', 'shift', 'xplor'])
 def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
-    cell = md.nlist.Cell()
+    cell = md.nlist.Cell(buffer=0.4)
     lj = md.pair.LJ(nlist=cell, default_r_cut=2.5, mode=mode)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     snap = two_particle_snapshot_factory(dimensions=3, d=.5)
@@ -98,7 +101,9 @@ def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
 
 
 def test_ron(simulation_factory, two_particle_snapshot_factory):
-    lj = md.pair.LJ(nlist=md.nlist.Cell(), mode='xplor', default_r_cut=2.5)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4),
+                    mode='xplor',
+                    default_r_cut=2.5)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     with pytest.raises(TypeConversionError):
         lj.r_on[('A', 'A')] = 'str'
@@ -111,15 +116,15 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
     integrator.methods.append(
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
     sim.operations.integrator = integrator
-    assert lj.r_on.to_dict() == {}
+    assert lj.r_on.to_base() == {}
 
     lj.r_on[('A', 'A')] = 1.5
-    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_base())
     sim.run(0)
-    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_base())
 
     lj.r_on[('A', 'A')] = 1.0
-    assert _equivalent_data_structures({('A', 'A'): 1.0}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.0}, lj.r_on.to_base())
 
 
 def _make_invalid_param_dict(valid_dict):
@@ -252,6 +257,11 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(slj_invalid_dicts, md.pair.SLJ, {}))
 
+    expanded_lj_valid_dict = {"sigma": 0.5, "epsilon": 0.0005, "delta": 0.25}
+    expanded_lj_invalid_dicts = _make_invalid_param_dict(expanded_lj_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(expanded_lj_invalid_dicts, md.pair.ExpandedLJ, {}))
+
     expanded_mie_valid_dict = {
         "epsilon": 0.05,
         "sigma": 0.5,
@@ -275,7 +285,7 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(dpdlj_invalid_dicts, md.pair.DPDLJ, {'kT': 1}))
 
-    dlvo_valid_dict = {'kappa': 1.0, 'Z': 0.1, 'A': 0.1}
+    dlvo_valid_dict = {'kappa': 1.0, 'Z': 0.1, 'A': 0.1, 'a1': 0.1, 'a2': 0.25}
     dlvo_invalid_dicts = _make_invalid_param_dict(dlvo_valid_dict)
     invalid_params_list.extend(
         _make_invalid_params(dlvo_invalid_dicts, md.pair.DLVO, {}))
@@ -353,7 +363,7 @@ def invalid_params(request):
 
 def test_invalid_params(invalid_params):
     pot = invalid_params.pair_potential(**invalid_params.extra_args,
-                                        nlist=md.nlist.Cell())
+                                        nlist=md.nlist.Cell(buffer=0.4))
     for pair in invalid_params.pair_potential_params:
         if isinstance(pair, tuple):
             with pytest.raises(TypeConversionError):
@@ -361,7 +371,7 @@ def test_invalid_params(invalid_params):
 
 
 def test_invalid_pair_key():
-    pot = md.pair.LJ(nlist=md.nlist.Cell())
+    pot = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4))
     for invalid_key in [3, [1, 2], 'str']:
         with pytest.raises(KeyError):
             pot.r_cut[invalid_key] = 2.5
@@ -506,6 +516,17 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(
         paramtuple(md.pair.SLJ, dict(zip(combos, slj_valid_param_dicts)), {}))
 
+    expanded_lj_arg_dict = {
+        'sigma': [0.5, 1.0, 1.5],
+        'epsilon': [0.0005, 0.001, 0.0015],
+        'delta': [1.0, 0.5, 0.0]
+    }
+    expanded_lj_valid_param_dicts = _make_valid_param_dicts(
+        expanded_lj_arg_dict)
+    valid_params_list.append(
+        paramtuple(md.pair.ExpandedLJ,
+                   dict(zip(combos, expanded_lj_valid_param_dicts)), {}))
+
     dpd_arg_dict = {'A': [0.5, 1.0, 1.5], 'gamma': [0.0005, 0.001, 0.0015]}
     dpd_valid_param_dicts = _make_valid_param_dicts(dpd_arg_dict)
     valid_params_list.append(
@@ -526,7 +547,9 @@ def _valid_params(particle_types=['A', 'B']):
     dlvo_arg_dict = {
         'kappa': [1.0, 2.0, 5.0],
         'Z': [0.1, 0.5, 2.0],
-        'A': [0.1, 0.5, 2.0]
+        'A': [0.1, 0.5, 2.0],
+        'a1': [0.1] * 3,
+        'a2': [0.25] * 3,
     }
     dlvo_valid_param_dicts = _make_valid_param_dicts(dlvo_arg_dict)
 
@@ -633,12 +656,12 @@ def valid_params(request):
 
 def test_valid_params(valid_params):
     pot = valid_params.pair_potential(**valid_params.extra_args,
-                                      nlist=md.nlist.Cell(),
+                                      nlist=md.nlist.Cell(buffer=0.4),
                                       default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     assert _equivalent_data_structures(valid_params.pair_potential_params,
-                                       pot.params.to_dict())
+                                       pot.params.to_base())
 
 
 def _update_snap(pair_potential, snap):
@@ -666,7 +689,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
-                                      nlist=md.nlist.Cell(),
+                                      nlist=md.nlist.Cell(buffer=0.4),
                                       default_r_cut=2.5)
     pot.params = valid_params.pair_potential_params
 
@@ -686,14 +709,14 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
     assert _equivalent_data_structures(valid_params.pair_potential_params,
-                                       pot.params.to_dict())
+                                       pot.params.to_base())
 
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
-                                      nlist=md.nlist.Cell(),
+                                      nlist=md.nlist.Cell(buffer=0.4),
                                       default_r_cut=2.5)
     pot.params = valid_params.pair_potential_params
 
@@ -741,7 +764,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     r_on = 0.5
     r = 1.0
 
-    lj = md.pair.LJ(nlist=md.nlist.Cell(), default_r_cut=r_cut)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), default_r_cut=r_cut)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=r))
@@ -766,7 +789,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     if energies is not None:
         E_rcut = sum(energies)
 
-    lj_shift = md.pair.LJ(nlist=md.nlist.Cell(),
+    lj_shift = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4),
                           mode='shift',
                           default_r_cut=r_cut)
     lj_shift.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
@@ -787,7 +810,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     if energies is not None:
         assert sum(energies) == E_r - E_rcut
 
-    lj_xplor = md.pair.LJ(nlist=md.nlist.Cell(),
+    lj_xplor = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4),
                           mode='xplor',
                           default_r_cut=r_cut)
     lj_xplor.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
@@ -863,10 +886,13 @@ def test_force_energy_relationship(simulation_factory,
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
-                                      nlist=md.nlist.Cell(),
+                                      nlist=md.nlist.Cell(buffer=0.4),
                                       default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
+
+        if pot_name == 'DLVO':
+            pot.r_cut[pair] = 2.5 - ((0.2 + 0.5) / 2 - 1)
 
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
     _update_snap(valid_params.pair_potential, snap)
@@ -968,7 +994,7 @@ def test_force_energy_accuracy(simulation_factory,
                     + " pair force")
 
     pot = forces_and_energies.pair_potential(**forces_and_energies.extra_args,
-                                             nlist=md.nlist.Cell(),
+                                             nlist=md.nlist.Cell(buffer=0.4),
                                              default_r_cut=2.5)
     pot.params[('A', 'A')] = forces_and_energies.pair_potential_params
     snap = two_particle_snapshot_factory(particle_types=['A'], d=0.75)
@@ -1009,7 +1035,7 @@ def test_setting_to_new_sim(simulation_factory, two_particle_snapshot_factory):
     sim1 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
     sim2 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
 
-    nlist = md.nlist.Cell()
+    nlist = md.nlist.Cell(buffer=0.4)
     lj = md.pair.LJ(nlist, default_r_cut=1.1)
     lj.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
     sim1.operations.integrator.forces.append(lj)
@@ -1041,7 +1067,7 @@ def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
     sim1 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
     sim2 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
 
-    nlist = md.nlist.Cell()
+    nlist = md.nlist.Cell(buffer=0.4)
     lj = md.pair.LJ(nlist, default_r_cut=1.1)
     lj.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
     lj2 = deepcopy(lj)
@@ -1081,6 +1107,14 @@ def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
                 'category': LoggerCategories.particle,
                 'default': True
             },
+            'additional_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'additional_virial': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
         })))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
@@ -1091,7 +1125,7 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory,
     sim = simulation_factory(two_particle_snapshot_factory())
     _skip_if_triplet_gpu_mpi(sim, valid_params.pair_potential)
     pot = valid_params.pair_potential(**valid_params.extra_args,
-                                      nlist=md.nlist.Cell(),
+                                      nlist=md.nlist.Cell(buffer=0.4),
                                       default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]

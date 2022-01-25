@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 hoomd
 =====
 
@@ -46,4 +49,5 @@ hoomd
    module-hoomd-update
    module-hoomd-variant
    module-hoomd-version
+   module-hoomd-wall
    module-hoomd-write
