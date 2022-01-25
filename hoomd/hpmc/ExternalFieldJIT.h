@@ -154,10 +154,6 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
             const Scalar4* const orientation_new = h_orientation.data;
             orientation_old = orientation_new;
             }
-        if (!box_old)
-            {
-            box_old = &box_new;
-            }
         double dE = 0.0;
         for (size_t i = 0; i < this->m_pdata->getN(); i++)
             {
@@ -171,7 +167,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
                          quat<Scalar>(h_orientation.data[i]),
                          h_diameter.data[i],
                          h_charge.data[i]);
-            dE -= energy(*box_old,
+            dE -= energy(box_old,
                          typ_i,
                          vec3<Scalar>(*(position_old + i)),
                          quat<Scalar>(*(orientation_old + i)),

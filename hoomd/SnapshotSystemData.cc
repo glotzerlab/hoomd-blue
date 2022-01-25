@@ -62,7 +62,9 @@ void SnapshotSystemData<Real>::broadcast_box(std::shared_ptr<MPIConfiguration> m
 #ifdef ENABLE_MPI
     if (mpi_conf->getNRanks() > 1)
         {
-        bcast(global_box, 0, mpi_conf->getCommunicator());
+        auto box = *global_box;
+        bcast(box, 0, mpi_conf->getCommunicator());
+        global_box = std::make_shared<BoxDim>(box);
         bcast(dimensions, 0, mpi_conf->getCommunicator());
         }
 #endif
@@ -73,19 +75,18 @@ void SnapshotSystemData<Real>::broadcast(unsigned int root,
                                          std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_MPI
+    auto communicator = exec_conf->getMPICommunicator();
+    broadcast_box(exec_conf->getMPIConfig());
     if (exec_conf->getNRanks() > 1)
         {
-        bcast(global_box, root, exec_conf->getMPICommunicator());
-        bcast(dimensions, root, exec_conf->getMPICommunicator());
-
-        particle_data.bcast(root, exec_conf->getMPICommunicator());
-        bcast(map, root, exec_conf->getMPICommunicator());
-        bond_data.bcast(root, exec_conf->getMPICommunicator());
-        angle_data.bcast(root, exec_conf->getMPICommunicator());
-        dihedral_data.bcast(root, exec_conf->getMPICommunicator());
-        improper_data.bcast(root, exec_conf->getMPICommunicator());
-        constraint_data.bcast(root, exec_conf->getMPICommunicator());
-        pair_data.bcast(root, exec_conf->getMPICommunicator());
+        particle_data.bcast(root, communicator);
+        bcast(map, root, communicator);
+        bond_data.bcast(root, communicator);
+        angle_data.bcast(root, communicator);
+        dihedral_data.bcast(root, communicator);
+        improper_data.bcast(root, communicator);
+        constraint_data.bcast(root, communicator);
+        pair_data.bcast(root, communicator);
         }
 #endif
     }
@@ -98,11 +99,9 @@ void SnapshotSystemData<Real>::broadcast_all(unsigned int root,
     MPI_Comm hoomd_world = exec_conf->getHOOMDWorldMPICommunicator();
     int n_ranks;
     MPI_Comm_size(hoomd_world, &n_ranks);
+    broadcast_box(exec_conf->getMPIConfig());
     if (n_ranks > 0)
         {
-        bcast(global_box, root, hoomd_world);
-        bcast(dimensions, root, hoomd_world);
-
         particle_data.bcast(root, hoomd_world);
         bcast(map, root, hoomd_world);
 

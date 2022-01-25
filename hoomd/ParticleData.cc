@@ -243,25 +243,24 @@ void ParticleData::setGlobalBox(const std::shared_ptr<BoxDim>& box)
         it is the responsibility of the caller to ensure that all particles lie within
         the new box.
 */
-void ParticleData::setGlobalBox(const BoxDim& box)
+void ParticleData::setGlobalBox(BoxDim box)
     {
     assert(box.getPeriodic().x);
     assert(box.getPeriodic().y);
     assert(box.getPeriodic().z);
-    BoxDim global_box = box;
 
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
-        bcast(global_box, 0, m_exec_conf->getMPICommunicator());
-        m_global_box = std::make_shared<const BoxDim>(global_box);
-        m_box = std::make_shared<const BoxDim>(m_decomposition->calculateLocalBox(global_box));
+        bcast(box, 0, m_exec_conf->getMPICommunicator());
+        m_global_box = std::make_shared<const BoxDim>(box);
+        m_box = std::make_shared<const BoxDim>(m_decomposition->calculateLocalBox(box));
         }
     else
 #endif
         {
         // local box = global box
-        m_global_box = std::make_shared<const BoxDim>(global_box);
+        m_global_box = std::make_shared<const BoxDim>(box);
         m_box = m_global_box;
         }
 

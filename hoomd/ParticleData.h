@@ -471,7 +471,7 @@ class PYBIND11_EXPORT ParticleData
     const BoxDim getBox() const;
 
     //! Set the global simulation box
-    void setGlobalBox(const BoxDim& box);
+    void setGlobalBox(BoxDim box);
 
     //! Set the global simulation box
     void setGlobalBox(const std::shared_ptr<BoxDim>& box);
