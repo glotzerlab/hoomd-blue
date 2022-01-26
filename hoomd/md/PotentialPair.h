@@ -284,35 +284,38 @@ template<class evaluator> class PotentialPair : public ForceCompute
             num_particles_by_type[typeid_i] += 1;
             }
 
-        // compute energy correction and store in m_external_energy; this is done on every step
-        m_external_energy = Scalar(0.0);
-        for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
-            {
-            for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
-                {
-                // rho is the number density
-                Scalar rho_j = num_particles_by_type[type_j] / volume;
-                evaluator eval(Scalar(0.0),
-                               h_rcutsq.data[m_typpair_idx(type_i, type_j)],
-                               m_params[m_typpair_idx(type_i, type_j)]);
-                m_external_energy += Scalar(2.0) * num_particles_by_type[type_i] * M_PI * rho_j
-                                     * eval.evalEnergyLRCIntegral();
-                }
-            }
-
-        // MPI reduction
 #ifdef ENABLE_MPI
         if (m_sysdef->isDomainDecomposed())
             {
-            // reduce external energy on all processors
+            // reduce number of each type of particle on all processors
             MPI_Allreduce(MPI_IN_PLACE,
-                          &m_external_energy,
-                          1,
-                          MPI_HOOMD_SCALAR,
+                          num_particles_by_type.data(),
+                          m_pdata->getNTypes(),
+                          MPI_UNSIGNED,
                           MPI_SUM,
                           m_exec_conf->getMPICommunicator());
             }
 #endif
+
+        // compute energy correction and store in m_external_energy; this is done on every step
+        m_external_energy = Scalar(0.0);
+        const unsigned int my_rank = m_exec_conf->getRank();
+        if (my_rank == 0)
+            {
+            for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
+                {
+                for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                    {
+                    // rho is the number density
+                    Scalar rho_j = num_particles_by_type[type_j] / volume;
+                    evaluator eval(Scalar(0.0),
+                                   h_rcutsq.data[m_typpair_idx(type_i, type_j)],
+                                   m_params[m_typpair_idx(type_i, type_j)]);
+                    m_external_energy += Scalar(2.0) * num_particles_by_type[type_i] * M_PI * rho_j
+                                         * eval.evalEnergyLRCIntegral();
+                    }
+                }
+            }
 
         // compute the virial
         if (compute_virial)
@@ -323,45 +326,35 @@ template<class evaluator> class PotentialPair : public ForceCompute
                 m_external_virial[i] = Scalar(0.0);
                 }
 
-            for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
+            if (my_rank == 0)
                 {
-                // rho is the number density
-                Scalar rho_i = num_particles_by_type[type_i] / volume;
-                for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
                     {
-                    Scalar rho_j = num_particles_by_type[type_j] / volume;
-                    evaluator eval(Scalar(0.0),
-                                   h_rcutsq.data[m_typpair_idx(type_i, type_j)],
-                                   m_params[m_typpair_idx(type_i, type_j)]);
-                    // The pressure LRC, where
-                    // P = \frac{2 \cdot K_{trans} + W}{D \cdot  V}
-                    Scalar delta_pressure = Scalar(4.0) / Scalar(6.0) * rho_i * rho_j * M_PI
-                                            * eval.evalPressureLRCIntegral();
-                    // \Delta W = \Delta P (D \cdot V)
-                    // We will assume that the contribution to pressure is equal
-                    // in x, y, and z, so we will add 1/3 \Delta W on the diagonal
-                    // Note that 0, 3, and 5 are the indices of m_external_virial corresponding to
-                    // the diagonal elements
-                    Scalar delta_virial = dimension * volume * delta_pressure / Scalar(3.0);
-                    m_external_virial[0] += delta_virial;
-                    m_external_virial[3] += delta_virial;
-                    m_external_virial[5] += delta_virial;
+                    // rho is the number density
+                    Scalar rho_i = num_particles_by_type[type_i] / volume;
+                    for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                        {
+                        Scalar rho_j = num_particles_by_type[type_j] / volume;
+                        evaluator eval(Scalar(0.0),
+                                       h_rcutsq.data[m_typpair_idx(type_i, type_j)],
+                                       m_params[m_typpair_idx(type_i, type_j)]);
+                        // The pressure LRC, where
+                        // P = \frac{2 \cdot K_{trans} + W}{D \cdot  V}
+                        Scalar delta_pressure = Scalar(4.0) / Scalar(6.0) * rho_i * rho_j * M_PI
+                                                * eval.evalPressureLRCIntegral();
+                        // \Delta W = \Delta P (D \cdot V)
+                        // We will assume that the contribution to pressure is equal
+                        // in x, y, and z, so we will add 1/3 \Delta W on the diagonal
+                        // Note that 0, 3, and 5 are the indices of m_external_virial corresponding
+                        // to the diagonal elements
+                        Scalar delta_virial = dimension * volume * delta_pressure / Scalar(3.0);
+                        m_external_virial[0] += delta_virial;
+                        m_external_virial[3] += delta_virial;
+                        m_external_virial[5] += delta_virial;
+                        }
                     }
                 }
 
-            // MPI reduction
-#ifdef ENABLE_MPI
-            if (m_sysdef->isDomainDecomposed())
-                {
-                // reduce external energy on all processors
-                MPI_Allreduce(MPI_IN_PLACE,
-                              &m_external_virial,
-                              6,
-                              MPI_HOOMD_SCALAR,
-                              MPI_SUM,
-                              m_exec_conf->getMPICommunicator());
-                }
-#endif
             } // end if (compute_virial)
 
         } // end void computeTailCorrection()
