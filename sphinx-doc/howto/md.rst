@@ -1,13 +1,13 @@
 .. Copyright (c) 2009-2022 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-Molecular Dynamics
+Molecular dynamics
 ===================
 
 How to model molecular systems
 ------------------------------
 
-To model molecular systems using Molecular Dynamic in HOOMD-blue:
+To model molecular systems using molecular dynamics in HOOMD-blue:
 
 1. Define the bonds, angles, dihedrals, impropers, and constraints as needed to the
    system `State <hoomd.State>`.
