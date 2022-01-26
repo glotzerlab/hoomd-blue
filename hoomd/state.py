@@ -121,8 +121,7 @@ class State:
     - :math:`q`: charge :math:`[\\mathrm{charge}]`
     - :math:`d`: diameter :math:`[\\mathrm{length}]` - deprecated in v3.0.0.
       HOOMD-blue reads and writes particle diameters, but does not use them in
-      any computations. As of the current beta release, diameter is still used
-      in `md.pair.DLVO`.
+      any computations.
     - :math:`\\vec{v}``: velocity :math:`[\\mathrm{velocity}]` - x,y,z
       components of the particle's velocity in the box's reference frame.
     - :math:`\\mathbf{P_S}``: angular momentum :math:`[\\mathrm{mass} \\cdot
