@@ -1238,19 +1238,20 @@ def test_tail_corrections(simulation_factory, two_particle_snapshot_factory):
         integral = lj1 * 4 / 3 / r_cut**9 - lj2 * 2 / r_cut**3
         return 4 / 6 * rho**2 * np.pi * integral
 
-    # energy regression test
-    np.testing.assert_allclose(e_false, lj_energy(d_pair, sigma, epsilon))
     dE = energy_correction(sigma, epsilon, r_cut, rho, N)
-    np.testing.assert_allclose(e_true, lj_energy(d_pair, sigma, epsilon) + dE)
-
-    # pressure regression test
     mass = 1.0
     ke = 0.5 * mass * (np.dot(v1, v1) + np.dot(v2, v2))
     ljf = lj_force_mag(d_pair, sigma, epsilon)
     mean_virial = 1 / 3 * ljf * d_pair
     pressure_should_be = (2 * ke / 3 + mean_virial) / volume
-    np.testing.assert_allclose(p_false, pressure_should_be)
     dP = pressure_correction(sigma, epsilon, r_cut, rho)
+
+    # energy regression test
+    np.testing.assert_allclose(e_false, lj_energy(d_pair, sigma, epsilon))
+    np.testing.assert_allclose(e_true, lj_energy(d_pair, sigma, epsilon) + dE)
+
+    # pressure regression test
+    np.testing.assert_allclose(p_false, pressure_should_be)
     np.testing.assert_allclose(p_true, pressure_should_be + dP)
 
     # make sure corrections correct in the right direction
