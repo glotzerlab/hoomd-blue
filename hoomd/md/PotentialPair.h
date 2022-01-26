@@ -267,7 +267,7 @@ template<class evaluator> class PotentialPair : public ForceCompute
         PDataFlags flags = this->m_pdata->getFlags();
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-        BoxDim box = m_pdata->getBox();
+        BoxDim box = m_pdata->getGlobalBox();
         int dimension = m_sysdef->getNDimensions();
         bool is_two_dimensions = dimension == 2;
         Scalar volume = box.getVolume(is_two_dimensions);
