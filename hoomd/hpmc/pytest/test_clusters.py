@@ -1,11 +1,11 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.update.Clusters."""
 
 import hoomd
-from hoomd.conftest import operation_pickling_check
+from hoomd.conftest import operation_pickling_check, logging_check
+from hoomd.logging import LoggerCategories
 import pytest
 import hoomd.hpmc.pytest.conftest
 
@@ -62,7 +62,7 @@ def test_valid_construction_and_attach(device, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     mc.shape["B"] = args
@@ -109,7 +109,7 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     mc.shape["B"] = args
@@ -165,3 +165,12 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
                                     pivot_move_probability=0.1)
     operation_pickling_check(cl, sim)
+
+
+def test_logging():
+    logging_check(hoomd.hpmc.update.Clusters, ('hpmc', 'update'), {
+        'avg_cluster_size': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

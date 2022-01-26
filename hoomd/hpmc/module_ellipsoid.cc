@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
@@ -13,7 +13,7 @@
 #include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
@@ -42,7 +42,7 @@ void export_ellipsoid(pybind11::module& m)
     export_UpdaterClusters<ShapeEllipsoid>(m, "UpdaterClustersEllipsoid");
 
     export_ExternalFieldInterface<ShapeEllipsoid>(m, "ExternalFieldEllipsoid");
-    export_LatticeField<ShapeEllipsoid>(m, "ExternalFieldLatticeEllipsoid");
+    export_HarmonicField<ShapeEllipsoid>(m, "ExternalFieldHarmonicEllipsoid");
     export_ExternalFieldComposite<ShapeEllipsoid>(m, "ExternalFieldCompositeEllipsoid");
     export_ExternalFieldWall<ShapeEllipsoid>(m, "WallEllipsoid");
     export_UpdaterExternalFieldWall<ShapeEllipsoid>(m, "UpdaterExternalFieldWallEllipsoid");

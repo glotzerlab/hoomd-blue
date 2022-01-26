@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Anisotropic potentials."""
 
@@ -27,7 +26,7 @@ class AnisotropicPair(Pair):
     :math:`q_j`, of the particles.
 
     `AnisotropicPair` is similar to `hoomd.md.pair.Pair` except it does not
-    support the `xplor` shifting mode or `r_on`.
+    support the ``'xplor'`` shifting mode or `r_on`.
 
     Args:
         nlist (hoomd.md.nlist.NList) : The neighbor list.

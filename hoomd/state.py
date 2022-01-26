@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Module implements the `State` class.
 
 `State` stores and exposes a parent `hoomd.Simulation` object's data (e.g.
@@ -279,6 +282,9 @@ class State:
     def set_snapshot(self, snapshot):
         """Restore the state of the simulation from a snapshot.
 
+        Also calls `update_group_dof` to count the number of degrees in the
+        system with the new state.
+
         Args:
             snapshot (hoomd.Snapshot): Snapshot of the system from
               `get_snapshot`
@@ -317,6 +323,7 @@ class State:
                 raise RuntimeError("Pair types must remain the same")
 
         self._cpp_sys_def.initializeFromSnapshot(snapshot._cpp_obj)
+        self.update_group_dof()
 
     @property
     def particle_types(self):
@@ -466,8 +473,9 @@ class State:
 
     def _get_group(self, filter_):
         cls = filter_.__class__
-        if filter_ in self._groups[cls]:
-            return self._groups[cls][filter_]
+        group_cache = self._groups
+        if filter_ in group_cache[cls]:
+            return group_cache[cls][filter_]
         else:
             if isinstance(filter_, hoomd.filter.CustomFilter):
                 group = _hoomd.ParticleGroup(
@@ -475,7 +483,8 @@ class State:
                     _hoomd.ParticleFilterCustom(filter_, self))
             else:
                 group = _hoomd.ParticleGroup(self._cpp_sys_def, filter_)
-            self._groups[cls][filter_] = group
+            group_cache[cls][filter_] = group
+            self._simulation._cpp_sys.group_cache.append(group)
 
             integrator = self._simulation.operations.integrator
             if integrator is not None and integrator._attached:
@@ -484,29 +493,24 @@ class State:
             return group
 
     def update_group_dof(self):
-        """Update the number of degrees of freedom in each group.
+        """Schedule an update the number of degrees of freedom in each group.
 
-        The groups of particles selected by filters each need to know the number
-        of degrees of freedom given to that group by the simulation's
-        Integrator. This method is called automatically when:
+        `update_group_dof` requests that `Simulation` update the degrees of
+        freedom provided to each group by the Integrator. `Simulation` will
+        perform this update at the start of `Simulation.run` or at the start
+        of the next timestep during an ongoing call to `Simulation.run`.
 
-        * The Integrator is attached to the simulation
+        This method is called automatically when:
 
-        Call it manually to force an update.
+        * An Integrator is assigned to the `Simulation`'s operations.
+        * The `md.Integrator` ``integrate_rotational_dof`` parameter is set.
+        * `State.set_snapshot` is called.
+        * On timesteps where a `update.FilterUpdater` triggers.
+
+        Call `update_group_dof` manually to force an update, such as when
+        you modify particle moments of inertia with `cpu_local_snapshot`.
         """
-        integrator = self._simulation.operations.integrator
-
-        for groups in self._groups.values():
-            for group in groups.values():
-                if integrator is not None:
-                    if not integrator._attached:
-                        raise RuntimeError(
-                            "Call update_group_dof after attaching")
-
-                    integrator._cpp_obj.updateGroupDOF(group)
-                else:
-                    group.setTranslationalDOF(0)
-                    group.setRotationalDOF(0)
+        self._simulation._cpp_sys.updateGroupDOFOnNextStep()
 
     @property
     def cpu_local_snapshot(self):
@@ -522,10 +526,10 @@ class State:
         `hoomd.Snapshot`.
 
         The `hoomd.data.LocalSnapshot` data access is mediated through
-        `hoomd.array.HOOMDArray` objects. This lets us ensure memory safety when
-        directly accessing HOOMD-blue's data. The interface provides zero-copy
-        access (zero-copy is guaranteed on CPU, access may be zero-copy if
-        running on GPU).
+        `hoomd.data.array.HOOMDArray` objects. This lets us ensure memory safety
+        when directly accessing HOOMD-blue's data. The interface provides
+        zero-copy access (zero-copy is guaranteed on CPU, access may be
+        zero-copy if running on GPU).
 
         Changing the data in the buffers exposed by the local snapshot will
         change the data across the HOOMD-blue simulation. For a trivial example,
@@ -565,7 +569,7 @@ class State:
         `hoomd.Snapshot`.
 
         The `hoomd.data.LocalSnapshotGPU` data access is mediated through
-        `hoomd.array.HOOMDGPUArray` objects. This helps us maintain memory
+        `hoomd.data.array.HOOMDGPUArray` objects. This helps us maintain memory
         safety when directly accessing HOOMD-blue's data. The interface provides
         zero-copy access on the GPU (assuming data was last accessed on the
         GPU).

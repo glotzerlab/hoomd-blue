@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Neighbor list acceleration structures.
 
@@ -95,8 +94,8 @@ class NList(_HOOMDBaseObject):
                                rebuild_check_delay=int(rebuild_check_delay),
                                check_dist=bool(check_dist),
                                diameter_shift=bool(diameter_shift),
-                               max_diameter=float(max_diameter),
-                               _defaults={'exclusions': exclusions})
+                               max_diameter=float(max_diameter))
+        params["exclusions"] = exclusions
         self._param_dict.update(params)
 
     @log(requires_run=True)
@@ -154,7 +153,7 @@ class Cell(NList):
     """
 
     def __init__(self,
-                 buffer=0.4,
+                 buffer,
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  diameter_shift=False,
@@ -233,7 +232,7 @@ class Stencil(NList):
 
     def __init__(self,
                  cell_width,
-                 buffer=0.4,
+                 buffer,
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  diameter_shift=False,
@@ -296,7 +295,7 @@ class Tree(NList):
     """
 
     def __init__(self,
-                 buffer=0.4,
+                 buffer,
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  diameter_shift=False,

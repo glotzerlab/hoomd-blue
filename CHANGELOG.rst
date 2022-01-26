@@ -1,8 +1,77 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Change Log
 ==========
 
 v3.x
 ----
+
+*Added*
+
+* ``hoomd.hpmc.external.field.Harmonic`` - harmonic potential of particles to specific sites in
+  the simulation box and orientations.
+
+v3.0.0-beta.13 (2022-01-18)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``md.pair.ExpandedLJ`` - A Lennard-Jones potential where ``r`` is replaced with ``r-delta``.
+* Support nested modification of operation parameters.
+* ``wall`` - Define wall surfaces in the simulation box.
+* ``md.external.wall`` - Pair interactions between particles and wall surfaces.
+* ``Communicator.walltime`` - the wall clock time since creating the ``Communicator``.
+* ``hoomd.md.force.Custom`` - user defined forces in Python.
+
+*Changed*
+
+* Call ``update_group_dof`` implicitly in ``set_snapshot``, when changing integrators or integration
+  methods, and on steps where ``FilterUpdater`` acts on the system.
+* [breaking] ``update_group_dof`` defers counting the degrees of freedom until the next timestep or
+  the next call to ``Simulation.run``.
+* [breaking] Renamed ``md.bond.FENE`` to ``md.bond.FENEWCA``.
+* ``md.bond.FENEWCA`` takes a user provided ``delta`` parameter and ignores the particle diameters.
+* [breaking] ``md.pair.DLVO`` takes user provided ``a1`` and ``a2`` parameters and ignores the
+  particle diameters.
+* Removed invalid linker options when using gcc on Apple systems.
+* Removed the ``r_on`` attribute and ``default_r_on`` constructor argument from pair potentials that
+  do not use it.
+* Building from source requires a C++17 compatible compiler.
+
+*Fixed*
+
+* Compile error with ``Apple clang clang-1300.0.29.30``.
+* Incorrect OPLS dihedral forces when compiled with ``Apple clang clang-1300.0.29.30``.
+
+*Deprecated*
+
+* ``md.pair.SLJ`` - Replaced with ``md.pair.ExpandedLJ``.
+
+*Removed*
+
+* Leftover ``state`` logging category.
+
+v3.0.0-beta.12 (2021-12-14)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support simulations with arbitrarily large or small scales (within the limits of the floating
+  point representation).
+
+*Changed*
+
+* Report full error details in the exception message.
+* Improved documentation.
+* [breaking]: ``buffer`` is now a required argument when constructing a neighbor list.
+* [breaking]: ``force_tol``, ``angmom_tol``, and ``energy_tol`` are now required arguments to
+  ``md.minimize.FIRE``
+
+*Fixed*
+
+* Allow neighbor lists to store more than ``2**32-1`` total neighbors.
+* Return expected parameter values instead of ``NaN`` when potential parameters are set to 0.
 
 v3.0.0-beta.11 (2021-11-18)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -484,7 +553,7 @@ v2.9.7 (2021-08-03)
 *Bug fixes*
 
 * Support CUDA 11.5. A bug in CUDA 11.4 may result in the error
-  `__global__ function call is not configure` when running HOOMD.
+  ``__global__ function call is not configured`` when running HOOMD.
 
 v2.9.6 (2021-03-16)
 ^^^^^^^^^^^^^^^^^^^

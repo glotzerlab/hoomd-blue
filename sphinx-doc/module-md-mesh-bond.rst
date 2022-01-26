@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 md.mesh.bond
 --------------
 
@@ -8,7 +11,6 @@ md.mesh.bond
 .. autosummary::
     :nosignatures:
 
-    MeshBond
     FENE
     Harmonic
     Tether
@@ -17,8 +19,7 @@ md.mesh.bond
 
 .. automodule:: hoomd.md.mesh.bond
     :synopsis: Bond potentials applied to a mesh data structure.
-    :members: MeshBond,
-              FENE,
+    :members: FENE,
               Harmonic,
               Tether
     :no-inherited-members:
