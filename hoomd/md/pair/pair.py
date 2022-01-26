@@ -120,6 +120,13 @@ class Pair(force.Force):
     :math:`i` in the system. These expressions assume that the radial pair
     distribution functions :math:`g_{ij}(r)` are unity at the cutoff and beyond.
 
+    Warning:
+        The value of the tail corrections depends on the number of each type of
+        particle in the system, and these are precomputed when the pair
+        potential object is initialized. If the number of any of the types of
+        particles changes, the tail corrections will yield invalid results.
+
+
     The following coefficients must be set per unique pair of particle types.
     See `hoomd.md.pair` for information on how to set coefficients.
 
