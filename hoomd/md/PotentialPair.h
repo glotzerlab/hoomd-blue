@@ -237,6 +237,9 @@ template<class evaluator> class PotentialPair : public ForceCompute
     /// r_cut (not squared) given to the neighbor list
     std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
 
+    /// Keep track of number of each type of particle
+    std::vector<unsigned int> m_num_particles_by_type;
+
 #ifdef ENABLE_MPI
     /// The system's communicator.
     std::shared_ptr<Communicator> m_comm;
@@ -272,30 +275,6 @@ template<class evaluator> class PotentialPair : public ForceCompute
         bool is_two_dimensions = dimension == 2;
         Scalar volume = box.getVolume(is_two_dimensions);
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
-                                       access_location::host,
-                                       access_mode::read);
-
-        // get number of each type of particle, needed for energy and pressure correction
-        std::vector<unsigned int> num_particles_by_type(m_pdata->getNTypes());
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
-            {
-            unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
-            num_particles_by_type[typeid_i] += 1;
-            }
-
-#ifdef ENABLE_MPI
-        if (m_sysdef->isDomainDecomposed())
-            {
-            // reduce number of each type of particle on all processors
-            MPI_Allreduce(MPI_IN_PLACE,
-                          num_particles_by_type.data(),
-                          m_pdata->getNTypes(),
-                          MPI_UNSIGNED,
-                          MPI_SUM,
-                          m_exec_conf->getMPICommunicator());
-            }
-#endif
 
         // compute energy correction and store in m_external_energy; this is done on every step
         m_external_energy = Scalar(0.0);
@@ -307,11 +286,11 @@ template<class evaluator> class PotentialPair : public ForceCompute
                 for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
                     {
                     // rho is the number density
-                    Scalar rho_j = num_particles_by_type[type_j] / volume;
+                    Scalar rho_j = m_num_particles_by_type[type_j] / volume;
                     evaluator eval(Scalar(0.0),
                                    h_rcutsq.data[m_typpair_idx(type_i, type_j)],
                                    m_params[m_typpair_idx(type_i, type_j)]);
-                    m_external_energy += Scalar(2.0) * num_particles_by_type[type_i] * M_PI * rho_j
+                    m_external_energy += Scalar(2.0) * m_num_particles_by_type[type_i] * M_PI * rho_j
                                          * eval.evalEnergyLRCIntegral();
                     }
                 }
@@ -331,10 +310,10 @@ template<class evaluator> class PotentialPair : public ForceCompute
                 for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
                     {
                     // rho is the number density
-                    Scalar rho_i = num_particles_by_type[type_i] / volume;
+                    Scalar rho_i = m_num_particles_by_type[type_i] / volume;
                     for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
                         {
-                        Scalar rho_j = num_particles_by_type[type_j] / volume;
+                        Scalar rho_j = m_num_particles_by_type[type_j] / volume;
                         evaluator eval(Scalar(0.0),
                                        h_rcutsq.data[m_typpair_idx(type_i, type_j)],
                                        m_params[m_typpair_idx(type_i, type_j)]);
@@ -426,6 +405,31 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
 
     // initialize name
     m_prof_name = std::string("Pair ") + evaluator::getName();
+
+    // get number of each type of particle, needed for energy and pressure correction
+    m_num_particles_by_type.resize(m_pdata->getNTypes());
+    std::fill(m_num_particles_by_type.begin(), m_num_particles_by_type.end(), 0);
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
+        m_num_particles_by_type[typeid_i] += 1;
+        }
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        // reduce number of each type of particle on all processors
+        MPI_Allreduce(MPI_IN_PLACE,
+                      m_num_particles_by_type.data(),
+                      m_pdata->getNTypes(),
+                      MPI_UNSIGNED,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
+#endif
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
