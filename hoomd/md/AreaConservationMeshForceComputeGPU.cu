@@ -160,7 +160,9 @@ hipError_t gpu_compute_AreaConservation_area(Scalar* d_area,
     }
 
 //! Kernel for calculating area conservation force on the GPU
-/*! \param d_force Device memory to write computed forces
+/*! 
+    \param d_area Device memory to write total surface area
+    \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch
     \param N number of particles
@@ -172,7 +174,8 @@ hipError_t gpu_compute_AreaConservation_area(Scalar* d_area,
     \param n_triangle_type number of mesh triangle types
     \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
 */
-__global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
+__global__ void gpu_compute_AreaConservation_force_kernel(Scalar* d_area,
+                                                          Scalar4* d_force,
                                                           Scalar* d_virial,
                                                           const size_t virial_pitch,
                                                           const unsigned int N,
@@ -204,7 +207,8 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
     Scalar virial[6];
     for (int i = 0; i < 6; i++)
         virial[i] = Scalar(0.0);
-
+    
+    Scalar area = 0.0;
     // loop over all triangles
     for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
         {
@@ -252,8 +256,6 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
             c_baac = -1.0;
 
         Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
-        if (s_baac < SMALL)
-            s_baac = SMALL;
 
         Scalar2 params = __ldg(d_params); // Todo: + cur_angle_type
         Scalar K = params.x;
@@ -261,9 +263,9 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
         Scalar At = A0 / N;
 
         Scalar3 dc_dra, dc_drb, dc_drc; // dcos_baac / dr_a 
-        dc_dra = nac / rab * (-1.0) + nab /rac * (-1.0) - nab*nac / rab * (-1.0 * nab) - nab * nac / rac * (-1.0 * nac);
-        dc_drb = nac / rab - rab * nac / rab * nab;
-        dc_drc = nac / rac - nab * nac / rac * nac;
+        dc_dra = nac / rab * (-1.0) + nab /rac * (-1.0) - dot(nab, nac) / rab * (-1.0 * nab) - dot(nab, nac) / rac * (-1.0 * nac);
+        dc_drb = nac / rab - dot(nab, nac) / rab * nab;
+        dc_drc = nac / rac - dot(nab, nac) / rac * nac;
 
         Scalar3 ds_dra, ds_drb, ds_drc; // dsin_baac / dr_a 
         ds_dra = - 1.0 * c_baac / sqrt(1.0 - c_baac * c_baac) * dc_dra;
@@ -271,6 +273,7 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
         ds_drc = - 1.0 * c_baac / sqrt(1.0 - c_baac * c_baac) * dc_drc;
 
         Scalar numerator_base;
+        area += rab * rac * s_baac / 2;
         numerator_base = rab * rac * s_baac / 2 - At;
 
         Scalar3 Fa; //, Fb, Fc; Todo: double-check: Fb, Fc necessary if they're going to recalc ?
@@ -279,7 +282,7 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
-        force.w = K/(6.0*At)*numerator_base*numerator_base; // divided by 3 because of three 
+        force.w += K/(6.0*At)*numerator_base*numerator_base; // divided by 3 because of three 
                                                             // particles sharing the energy
 
         virial[0] += Scalar(1. / 2.) * da.x * Fa.x; // xx
@@ -292,12 +295,15 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force;
+    d_area[idx] = area;
 
     for (unsigned int i = 0; i < 6; i++)
         d_virial[i * virial_pitch + idx] = virial[i];
     }
 
-/*! \param d_force Device memory to write computed forces
+/*!
+    \param d_area Device memory to write total surface area
+    \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param N number of particles
     \param d_pos device array of particle positions
@@ -312,7 +318,8 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
-hipError_t gpu_compute_AreaConservation_force(Scalar4* d_force,
+hipError_t gpu_compute_AreaConservation_force(Scalar* d_area,
+                                              Scalar4* d_force,
                                               Scalar* d_virial,
                                               const size_t virial_pitch,
                                               const unsigned int N,
@@ -343,6 +350,7 @@ hipError_t gpu_compute_AreaConservation_force(Scalar4* d_force,
                        dim3(threads),
                        0,
                        0,
+                       d_area,
                        d_force,
                        d_virial,
                        virial_pitch,

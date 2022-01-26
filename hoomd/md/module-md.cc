@@ -69,6 +69,7 @@
 #include "ActiveForceComputeGPU.h"
 #include "ActiveForceConstraintComputeGPU.h"
 #include "AnisoPotentialPairGPU.h"
+#include "AreaConservationMeshForceComputeGPU.h"
 #include "BondTablePotentialGPU.h"
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoHMAGPU.h"
@@ -397,6 +398,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(
         m,
         "WallsPotentialMorseGPU");
+    export_AreaConservationMeshForceComputeGPU(m);
 #endif
 
     // updaters

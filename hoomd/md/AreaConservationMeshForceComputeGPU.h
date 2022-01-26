@@ -44,8 +44,6 @@ class PYBIND11_EXPORT AreaConservationMeshForceComputeGPU : public AreaConservat
         AreaConservationMeshForceCompute::setAutotunerParams(enable, period);
         m_tuner_force->setPeriod(period);
         m_tuner_force->setEnabled(enable);
-        m_tuner_area->setPeriod(period);
-        m_tuner_area->setEnabled(enable);
         }
 
     //! Set the parameters
@@ -53,7 +51,7 @@ class PYBIND11_EXPORT AreaConservationMeshForceComputeGPU : public AreaConservat
 
     protected:
     std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for block size of force loop
-    std::unique_ptr<Autotuner> m_tuner_area; //!< Autotuner for block size of area loop
+    GPUArray<Scalar> m_area; //!<Area stored on the GPU
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
     GPUArray<Scalar> m_params;         //!< Parameters stored on the GPU
 

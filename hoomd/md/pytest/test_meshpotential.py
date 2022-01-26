@@ -34,11 +34,11 @@ _Tether_arg_list = [(hoomd.md.mesh.bond.Tether, dict(zip(_Tether_args, val)))
 
 _AreaConservation_args = {
     'k': [1.0, 20.0, 100.0],
-    'A0': [6*np.sqrt(3), 5*np.sqrt(3), 7*np.sqrt(3)]
+    'A0': [6 * np.sqrt(3), 5 * np.sqrt(3), 7 * np.sqrt(3)]
 }
 _AreaConservation_arg_list = [(hoomd.md.mesh.conservation.AreaConservation,
-                       dict(zip(_AreaConservation_args, val)))
-                      for val in zip(*_AreaConservation_args.values())]
+                               dict(zip(_AreaConservation_args, val)))
+                               for val in zip(*_AreaConservation_args.values())]
 
 
 def get_mesh_potential_and_args():
@@ -54,10 +54,8 @@ def get_mesh_potential_args_forces_and_energies():
                        [[33.24, 0., -23.504229], [-33.24, 0., -23.504229],
                         [0., 33.24, 23.504229], [0., -33.24, 23.504229]]]
     harmonic_energies = [35.83449, 40.077075, 41.43366]
-    FENE_forces = [[[221.113071, 0.,
-                     -156.350552], [-221.113071, 0., -156.350552],
-                    [0., 221.113071, 156.350552], [0., -221.113071,
-                                                   156.350552]],
+    FENE_forces = [[[221.113071, 0.,-156.350552], [-221.113071, 0., -156.350552],
+                    [0., 221.113071, 156.350552], [0., -221.113071,156.350552]],
                    [[12.959825, 0., -9.16398], [-12.959825, 0., -9.16398],
                     [0., 12.959825, 9.16398], [0., -12.959825, 9.16398]],
                    [[-44.644347, 0., 31.568321], [44.644347, 0., 31.568321],
@@ -69,19 +67,19 @@ def get_mesh_potential_args_forces_and_energies():
                      [[7.144518, 0., -5.051937], [-7.144518, 0., -5.051937],
                       [0., 7.144518, 5.051937], [0., -7.144518, 5.051937]]]
     Tether_energies = [0, 0.000926, 0.294561]
-    AreaConservation_forces = [[[1.03742626, 0., -0.58685692],
-                                [-0.48413226, 0., -0.78247589],
-                                [0., 0.622455759, 0.570075463],
-                                [-0.1383235, -0.1383235, 0.48904743]],
-                               [[20.56810334, 0., -11.63507628],
-                                [-9.59844823, 0., -15.51343504],
-                                [0., 12.3408620, 11.3023657],
-                                [-2.74241378, -2.74241378, 9.6958969]],
-                               [[104.38699063, 0., -59.05019916],
-                                [-48.71392896, 0., -78.73359888],
-                                [0., 62.6321944, 57.3616304],
-                                [-13.91826542, -13.91826542, 49.2084993]]]
-    AreaConservation_energies = [19.0886432, 312.635170, 2254.758997]
+    AreaConservation_forces = [[[0.94380349, 0., -0.66736985],
+                                [-0.94380349, 0.,  -0.66736985],
+                                [-0.11797544, 0.82582805, 0.50052739],
+                                [-0.11797544, -0.35392631, 0.50052739]],
+                               [[18.17566447, 0., -12.8521356 ],
+                                [-18.17566447, 0., -12.8521356 ],
+                                [-2.27195806, 15.90370641, 9.6391017 ],
+                                [-2.27195806, -6.81587418, 9.6391017 ]],
+                               [[ 96.88179659, 0., -68.50577534],
+                                [-96.88179659, 0., -68.50577534],
+                                [-12.11022457, 84.77157202, 51.37933151],
+                                [-12.11022457, -36.33067372, 51.37933151]]]
+    AreaConservation_energies = [3.69707, 57.13009, 454.492529]
 
     harmonic_args_and_vals = []
     FENE_args_and_vals = []
@@ -96,7 +94,7 @@ def get_mesh_potential_args_forces_and_energies():
             (*_Tether_arg_list[i], Tether_forces[i], Tether_energies[i]))
         AreaConservation_args_and_vals.append(
             (*_AreaConservation_arg_list[i], AreaConservation_forces[i],
-            AreaConservation_energies[i]))
+             AreaConservation_energies[i]))
     return (harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
             + AreaConservation_args_and_vals)
 
@@ -164,6 +162,7 @@ def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
     langevin = hoomd.md.methods.Langevin(kT=1,
                                          filter=hoomd.filter.All(),
                                          alpha=0.1)
+
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 

@@ -75,7 +75,10 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     /// Get the parameters for a type
     pybind11::dict getParams(std::string type);
 
-    Scalar getArea();
+    Scalar getArea()
+    {
+    return m_area;
+    };
 
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
@@ -93,6 +96,7 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     protected:
     Scalar* m_K;   //!< K parameter for multiple mesh triangles
     Scalar* m_A0;
+    Scalar m_area;
 
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing area conservation energy
 

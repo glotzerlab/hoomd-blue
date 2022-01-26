@@ -1,11 +1,11 @@
 """Mesh Area Conservation potential."""
 
-from hoomd.md.mesh.bond import MeshBond
+from hoomd.md.mesh.potential import MeshPotential
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 
 
-class AreaConservation(MeshBond):
+class AreaConservation(MeshPotential):
     r"""Area conservation potential.
     :py:class:`AreaConservation` specifies a area conservation energy of each 
     triangle mesh unit applied to all particles within the mesh.
