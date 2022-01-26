@@ -62,12 +62,12 @@ class NList(_HOOMDBaseObject):
 
     .. rubric:: Diameter shifting
 
-    Set `diameter_shift` to `True` when using
-    `hoomd.md.pair.DLVO` so that the neighbor list includes all particles that
-    interact under the modified :math:`r_\mathrm{cut}` conditions in those
-    potentials. When `diameter_shift` is `True`, set `max_diameter` to the
-    largest value that any particle's diameter will achieve (where **diameter**
-    is the per particle quantity stored in the `hoomd.State`).
+    Set `diameter_shift` to `True` when using `hoomd.md.pair.DLVO` so that the
+    neighbor list includes all particles that interact under the modified
+    :math:`r_\mathrm{cut}` conditions in those potentials. When `diameter_shift`
+    is `True`, set `max_diameter` to the largest value that any particle's
+    diameter will achieve (where **diameter** is the per particle quantity
+    stored in the `hoomd.State`).
 
     Attributes:
         buffer (float): Buffer width :math:`[\mathrm{length}]`.
