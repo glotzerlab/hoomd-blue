@@ -52,7 +52,8 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
         \param orientation_old_arg Old (local) orientations
         \param box_old_arg Old (global) box
      */
-    double calculateDeltaE(const Scalar4* const position_old_arg,
+    double calculateDeltaE(uint64_t timestep,
+                           const Scalar4* const position_old_arg,
                            const Scalar4* const orientation_old_arg,
                            const BoxDim* const box_old_arg)
         {
@@ -85,7 +86,8 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
     void compute(uint64_t timestep) { }
 
     // Compute the energy difference for a proposed move on a single particle
-    double energydiff(const unsigned int& index,
+    double energydiff(uint64_t timestep,
+                      const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
