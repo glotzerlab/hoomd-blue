@@ -116,9 +116,8 @@ def test_harmonic_displacement_energy(simulation_factory,
     # run and check energy
     sim.run(0)
     k_translational = lattice.k_translational(sim.timestep)
-    assert np.allclose(
-        lattice.energy,
-        0.5 * dx**2 * k_translational * sim.state.N_particles)
+    assert np.allclose(lattice.energy,
+                       0.5 * dx**2 * k_translational * sim.state.N_particles)
 
     # make some moves and make sure the different energies are not zero
     sim.run(10)
@@ -126,8 +125,6 @@ def test_harmonic_displacement_energy(simulation_factory,
     assert lattice.energy_translational != 0.0
     assert np.allclose(lattice.energy,
                        lattice.energy_translational + lattice.energy_rotational)
-
-
 
     print(lattice.energy_rotational)
     # set k_rotational to zero and ensure the rotational energy is zero

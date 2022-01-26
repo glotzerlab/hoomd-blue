@@ -279,10 +279,14 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         double dE = 0.0;
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
-            Scalar old_E
-                = calcE(timestep, i, vec3<Scalar>(*(position_old + i)), quat<Scalar>(*(orientation_old + i)));
-            Scalar new_E
-                = calcE(timestep, i, vec3<Scalar>(*(position_new + i)), quat<Scalar>(*(orientation_new + i)));
+            Scalar old_E = calcE(timestep,
+                                 i,
+                                 vec3<Scalar>(*(position_old + i)),
+                                 quat<Scalar>(*(orientation_old + i)));
+            Scalar new_E = calcE(timestep,
+                                 i,
+                                 vec3<Scalar>(*(position_new + i)),
+                                 quat<Scalar>(*(orientation_new + i)));
             dE += new_E - old_E;
             }
 
@@ -402,8 +406,10 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
      * This function _should_ only be used for logging purposes and not for calculating move
      * acceptance criteria, since it's the energy difference that matters for the latter.
      */
-    Scalar
-    calcE(uint64_t timestep, const unsigned int& index, const vec3<Scalar>& position, const quat<Scalar>& orientation)
+    Scalar calcE(uint64_t timestep,
+                 const unsigned int& index,
+                 const vec3<Scalar>& position,
+                 const quat<Scalar>& orientation)
         {
         Scalar energy = 0.0;
         energy += calcE_trans(timestep, index, position);
@@ -411,7 +417,10 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         return energy;
         }
 
-    Scalar calcE(uint64_t timestep, const unsigned int& index, const vec3<Scalar>& position, const Shape& shape)
+    Scalar calcE(uint64_t timestep,
+                 const unsigned int& index,
+                 const vec3<Scalar>& position,
+                 const Shape& shape)
         {
         return calcE(timestep, index, position, shape.orientation);
         }
