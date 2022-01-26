@@ -290,8 +290,8 @@ template<class evaluator> class PotentialPair : public ForceCompute
                     evaluator eval(Scalar(0.0),
                                    h_rcutsq.data[m_typpair_idx(type_i, type_j)],
                                    m_params[m_typpair_idx(type_i, type_j)]);
-                    m_external_energy += Scalar(2.0) * m_num_particles_by_type[type_i] * M_PI * rho_j
-                                         * eval.evalEnergyLRCIntegral();
+                    m_external_energy += Scalar(2.0) * m_num_particles_by_type[type_i] * M_PI
+                                         * rho_j * eval.evalEnergyLRCIntegral();
                     }
                 }
             }
