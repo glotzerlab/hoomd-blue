@@ -32,7 +32,7 @@ namespace hoomd
 SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M,
                                                Scalar spacing,
                                                const std::string& type_name)
-    : m_M(M), m_spacing(spacing), box(M * spacing), m_type_name(type_name)
+    : m_M(M), m_spacing(spacing), box(std::make_shared<BoxDim>(M * spacing)), m_type_name(type_name)
     {
     }
 
@@ -40,13 +40,13 @@ SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M,
 std::shared_ptr<SnapshotSystemData<Scalar>> SimpleCubicInitializer::getSnapshot() const
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snapshot(new SnapshotSystemData<Scalar>());
-    snapshot->global_box = std::make_shared<BoxDim>(box);
+    snapshot->global_box = box;
 
     SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
     unsigned int num_particles = m_M * m_M * m_M;
     pdata.resize(num_particles);
 
-    Scalar3 lo = box.getLo();
+    Scalar3 lo = box->getLo();
 
     // just do a simple triple for loop to fill the space
     unsigned int c = 0;
@@ -98,7 +98,7 @@ RandomInitializer::RandomInitializer(unsigned int N,
         }
 
     Scalar L = pow(Scalar(M_PI / 6.0) * Scalar(N) / phi_p, Scalar(1.0 / 3.0));
-    m_box = BoxDim(L);
+    m_box = std::make_shared<BoxDim>(L);
     }
 
 /*! \param seed Random seed to set
@@ -121,12 +121,12 @@ void RandomInitializer::setSeed(unsigned int seed)
 std::shared_ptr<SnapshotSystemData<Scalar>> RandomInitializer::getSnapshot() const
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snapshot(new SnapshotSystemData<Scalar>());
-    snapshot->global_box = std::make_shared<BoxDim>(m_box);
+    snapshot->global_box = m_box;
 
     SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
     pdata.resize(m_N);
 
-    Scalar L = m_box.getL().x;
+    Scalar L = m_box->getL().x;
     for (unsigned int i = 0; i < m_N; i++)
         {
         // generate random particles until we find a suitable one meeting the min_dist

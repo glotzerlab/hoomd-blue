@@ -64,6 +64,42 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_integrator_data = std::shared_ptr<IntegratorData>(new IntegratorData());
     }
 
+// Mostly exists as test pass a plain box rather than a std::shared_ptr.
+/*! \param N Number of particles to allocate
+    \param box Initial box particles are in
+    \param n_types Number of particle types to set
+    \param n_bond_types Number of bond types to create
+    \param n_angle_types Number of angle types to create
+    \param n_dihedral_types Number of dihedral types to create
+    \param n_improper_types Number of improper types to create
+    \param exec_conf The ExecutionConfiguration HOOMD is to be run on
+
+    Creating SystemDefinition with this constructor results in
+     - ParticleData constructed with the arguments \a N, \a box, \a n_types, and \a exec_conf->
+     - BondData constructed with the arguments \a n_bond_types
+     - All other data structures are default constructed.
+*/
+SystemDefinition::SystemDefinition(unsigned int N,
+                                   const BoxDim& box,
+                                   unsigned int n_types,
+                                   unsigned int n_bond_types,
+                                   unsigned int n_angle_types,
+                                   unsigned int n_dihedral_types,
+                                   unsigned int n_improper_types,
+                                   std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                   std::shared_ptr<DomainDecomposition> decomposition)
+    : SystemDefinition::SystemDefinition(N,
+                                         std::make_shared<BoxDim>(box),
+                                         n_types,
+                                         n_bond_types,
+                                         n_angle_types,
+                                         n_dihedral_types,
+                                         n_improper_types,
+                                         exec_conf,
+                                         decomposition)
+    {
+    }
+
 /*! Evaluates the snapshot and initializes the respective *Data classes using
    its contents (box dimensions and sub-snapshots)
     \param snapshot Snapshot to use
