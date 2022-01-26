@@ -126,7 +126,8 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         return total_energy;
         }
 
-    virtual double calculateDeltaE(const Scalar4* const position_old_arg,
+    virtual double calculateDeltaE(uint64_t timestep,
+                                   const Scalar4* const position_old_arg,
                                    const Scalar4* const orientation_old_arg,
                                    const BoxDim* const box_old_arg)
         {
@@ -194,7 +195,8 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         }
 
     //! method to calculate the energy difference for the proposed move.
-    double energydiff(const unsigned int& index,
+    double energydiff(uint64_t timestep,
+                      const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
