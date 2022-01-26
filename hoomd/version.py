@@ -19,6 +19,9 @@ Attributes:
 
     dem_built (bool): ``True`` when the ``dem`` component is built.
 
+    floating_point_precision (tuple[int, int]): Floating point width in bits for
+        the particle properties and local calculations.
+
     git_branch (str):  Name of the git branch used when compiling this build.
 
     git_sha1 (str):  SHA1 of the git commit used when compiling this build.
@@ -78,3 +81,4 @@ tbb_enabled = _hoomd.BuildInfo.getEnableTBB()
 mpi_enabled = _hoomd.BuildInfo.getEnableMPI()
 source_dir = _hoomd.BuildInfo.getSourceDir()
 install_dir = _hoomd.BuildInfo.getInstallDir()
+floating_point_precision = _hoomd.BuildInfo.getFloatingPointPrecision()

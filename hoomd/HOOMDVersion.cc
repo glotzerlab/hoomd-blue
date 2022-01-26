@@ -173,4 +173,15 @@ std::string BuildInfo::getInstallDir()
     return std::string(HOOMD_INSTALL_PREFIX) + "/" + std::string(PYTHON_SITE_INSTALL_DIR);
     }
 
+std::pair<unsigned int, unsigned int> BuildInfo::getFloatingPointPrecision()
+    {
+    #if defined(SINGLE_PRECISION)
+    return std::make_pair(32, 32);
+    #elif !defined(SINGLE_PRECISION) && defined(ENABLE_HPMC_MIXED_PRECISION)
+    return std::make_pair(64, 32);
+    #elif !defined(SINGLE_PRECISION) && !defined(ENABLE_HPMC_MIXED_PRECISION)
+    return std::make_pair(64, 64);
+    #endif
+    }
+
     } // namespace hoomd
