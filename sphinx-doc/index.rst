@@ -126,6 +126,7 @@ Molecular dynamics:
     :maxdepth: 1
     :caption: Getting started
 
+    features
     installation
     building
     migrating
