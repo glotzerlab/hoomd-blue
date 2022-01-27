@@ -257,7 +257,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
      */
     double calculateDeltaE(const Scalar4* const position_old_arg,
                            const Scalar4* const orientation_old_arg,
-                           const BoxDim* const box_old_arg)
+                           const BoxDim& box_old) override
         {
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
