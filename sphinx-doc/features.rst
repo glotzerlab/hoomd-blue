@@ -43,8 +43,6 @@ method for electrostatics. HOOMD-blue enables active matter simulations with `md
 `md.update.ActiveRotationalDiffusion`. At runtime, `hoomd.version.md_built` indicates whether the
 build supports MD simulations.
 
-md.update
-
 .. seealso::
 
     Tutorial: :doc:`tutorial/01-Introducing-Molecular-Dynamics/00-index`
@@ -77,7 +75,7 @@ preliminary support for AMD GPUs. CPU support is always enabled. GPU support mus
 compile time with the ``ENABLE_GPU`` CMake option (see :doc:`building`). Select the device to use at
 run time with the `device <hoomd.device>` module. Unless otherwise stated in the documentation,
 **all** operations and methods support GPU execution. At runtime, `hoomd.version.gpu_enabled` indicates
-whether the build supports run time compilation.
+whether the build supports GPU devices.
 
 MPI
 ---
@@ -100,7 +98,7 @@ the `device.Device.num_cpu_threads` property. In this release, threading support
 very limited and only applies to implicit depletants in `hpmc.integrate.HPMCIntegrator`, and
 `hpmc.pair.user.CPPPotentialUnion`. Threading must must be enabled at compile time with the
 ``ENABLE_TBB`` CMake option (see :doc:`building`). At runtime, `hoomd.version.tbb_enabled` indicates
-whether the build supports MPI.
+whether the build supports threaded execution.
 
 Run time compilation
 --------------------
@@ -117,15 +115,15 @@ Mixed precision
 ---------------
 
 HOOMD-blue performs computations with mixed floating point precision. There is a **high precision**
-type and a **reduced precision** type. All particle properties are stored in the **high precision**
-type, and most operations also perform all computations with **high precision**. Operations that do
-not mention "Mixed precision" in their documentation perform all calculations in **high percision**.
-Some operations use **reduced precision** when possible to improve performance, as detailed in the
+type and a **reduced precision** type. All particle properties are stored in the high precision
+type, and most operations also perform all computations with high precision. Operations that do not
+mention "Mixed precision" in their documentation perform all calculations in high percision. Some
+operations use reduced precision when possible to improve performance, as detailed in the
 documentation for each operation. In this release, only `hpmc` implements mixed precision.
 
 The precision is set at compile time with the ``SINGLE_PRECISION`` and
-``ENABLE_HPMC_MIXED_PRECISION`` CMake options (see :doc:`building`). By default, the **high
-precision** width is 64 bits and the **reduced precision** width is 32 bits. At runtime,
+``ENABLE_HPMC_MIXED_PRECISION`` CMake options (see :doc:`building`). By default, the high precision
+width is 64 bits and the reduced precision width is 32 bits. At runtime,
 `hoomd.version.floating_point_precision` indicates the width of the floating point types.
 
 Plugins
