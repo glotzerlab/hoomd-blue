@@ -73,6 +73,11 @@ class HPMCIntegrator(BaseIntegrator):
         gsd = hoomd.write.GSD(
             'trajectory.gsd', hoomd.trigger.Periodic(1000), log=log)
 
+    .. rubric:: Mixed precision
+
+    All HPMC integrators use reduced precision floating point arithmetic when
+    checking for particle overlaps in the local particle reference frame.
+
     .. rubric:: Parameters
 
     Attributes:

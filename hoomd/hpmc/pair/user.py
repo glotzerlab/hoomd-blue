@@ -72,6 +72,11 @@ class CPPPotentialBase(_HOOMDBaseObject):
     Note:
         Your code *must* return a value.
 
+    .. rubric:: Mixed precision
+
+    `CPPPotentialBase` uses 32-bit precision floating point arithmetic when
+    computing energies in the local particle reference frame.
+
     """
 
     @log(requires_run=True)
