@@ -73,6 +73,11 @@ class HPMCIntegrator(BaseIntegrator):
         gsd = hoomd.write.GSD(
             'trajectory.gsd', hoomd.trigger.Periodic(1000), log=log)
 
+    .. rubric:: Threading
+
+    HPMC integrators use threaded execution on multiple CPU cores only when
+    placing implicit depletants (``depletant_fugacity != 0``).
+
     .. rubric:: Mixed precision
 
     All HPMC integrators use reduced precision floating point arithmetic when

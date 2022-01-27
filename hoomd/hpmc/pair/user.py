@@ -329,6 +329,9 @@ class CPPPotentialUnion(CPPPotentialBase):
         `CPPPotentialUnion` is **experimental** and subject to change in future
         minor releases.
 
+    .. rubric:: Threading
+
+    CPPPotentialUnion uses threaded execution on multiple CPU cores.
 
     .. py:attribute:: positions
 

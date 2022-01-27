@@ -501,11 +501,6 @@ class Clusters(Updater):
     algorithm is then no longer ergodic for those and needs to be combined with
     local moves.
 
-
-    .. rubric:: Threading
-
-    The `Clusters` updater support threaded execution on multiple CPU cores.
-
     .. rubric:: Mixed precision
 
     `Clusters` uses reduced precision floating point arithmetic when checking

@@ -3,6 +3,9 @@
 
 """Version and build information.
 
+See Also:
+    `features`
+
 Attributes:
     build_dir (str): The directory where this build was compiled.
 
@@ -19,11 +22,9 @@ Attributes:
 
     dem_built (bool): ``True`` when the ``dem`` component is built.
 
-    floating_point_precision (tuple[int, int]): Element 0 is the high precision
-        floating point width in bits used for the particle properties. Element 1
-        is the floating point width in bits for calculations, such as those in
-        the local reference frame of particles, that may be computed with lower
-        precision. The floating point precision is configured at compile time.
+    floating_point_precision (tuple[int, int]): The **high precision** floating
+        point width in bits  (element 0) and the **reduced precision** width in
+        bits (element 1).
 
     git_branch (str):  Name of the git branch used when compiling this build.
 
