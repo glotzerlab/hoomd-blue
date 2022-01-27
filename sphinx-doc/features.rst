@@ -8,7 +8,7 @@ Hard particle Monte Carlo
 -------------------------
 
 HOOMD-blue can perform simulations of hard particles using the Monte Carlo method (`hpmc`). Hard
-particles are defined by their shape and the `HPMC integrator <hpmc.integrate>` supports
+particles are defined by their shape, and the `HPMC integrator <hpmc.integrate>` supports
 polygons, spheropolygons, polyhedra, spheropolyhedra, ellipsoids, faceted ellipsoids, spheres,
 indented spheres, and unions of shapes. HPMC can make both constant volume and constant pressure
 box moves (`hpmc.update.BoxMC`), perform cluster moves (`hpmc.update.Clusters`)
@@ -105,10 +105,10 @@ whether the build supports MPI.
 Run time compilation
 --------------------
 
-Some operations allow the user to provide arbitrary C++ code which HOOMD-blue compiles at run time
+Some operations allow the user to provide arbitrary C++ code that HOOMD-blue compiles at run time
 and executes during the simulation. `hpmc.pair.user` and `hpmc.external.user` enable users to apply
-arbiratray pair and external potentials to particles in HPMC simulations. `hpmc.pair.user` is
-supports both CPUs and NVIDIA GPUs while `hpmc.external.user` is only supports CPUs. Run time
+arbitrary pair and external potentials to particles in HPMC simulations. `hpmc.pair.user`
+supports both CPUs and NVIDIA GPUs while `hpmc.external.user` only supports CPUs. Run time
 compilation must be enabled at compile time with the ``ENABLE_LLVM`` CMake option (see
 :doc:`building`). At runtime, `hoomd.version.llvm_enabled` indicates whether the build supports run
 time compilation.
@@ -118,7 +118,7 @@ Mixed precision
 
 HOOMD-blue performs computations with mixed floating point precision. There is a **high precision**
 type and a **reduced precision** type. All particle properties are stored in the **high precision**
-type and most operations also perform all computations with **high precision**. Operations that to
+type, and most operations also perform all computations with **high precision**. Operations that do
 not mention "Mixed precision" in their documentation perform all calculations in **high percision**.
 Some operations use **reduced precision** when possible to improve performance, as detailed in the
 documentation for each operation. In this release, only `hpmc` implements mixed precision.
