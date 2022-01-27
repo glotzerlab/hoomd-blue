@@ -346,7 +346,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
-                      const Shape& shape_new)
+                      const Shape& shape_new) override
         {
         double old_U = calcE(index, position_old, shape_old),
                new_U = calcE(index, position_new, shape_new);
