@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "MeshVolumeConservation.h"
+#include "VolumeConservationMeshForceCompute.h"
 
 #include <iostream>
 #include <math.h>
@@ -10,11 +10,8 @@
 
 using namespace std;
 
-// SMALL a relatively small number
-#define SMALL Scalar(0.001)
-
-/*! \file MeshVolumeConservation.cc
-    \brief Contains code for the MeshVolumeConservation class
+/*! \file VolumeConservationMeshForceCompute.cc
+    \brief Contains code for the VolumeConservationMeshForceCompute class
 */
 
 namespace hoomd
@@ -24,11 +21,12 @@ namespace md
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-MeshVolumeConservation::MeshVolumeConservation(std::shared_ptr<SystemDefinition> sysdef,
-                                               std::shared_ptr<MeshDefinition> meshdef)
+VolumeConservationMeshForceCompute::VolumeConservationMeshForceCompute(
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<MeshDefinition> meshdef)
     : ForceCompute(sysdef), m_K(NULL), m_V0(NULL), m_mesh_data(meshdef), m_volume(0)
     {
-    m_exec_conf->msg->notice(5) << "Constructing MeshVolumeConservation" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing VolumeConservationMeshForceCompute" << endl;
 
     // allocate the parameters
     m_K = new Scalar[m_pdata->getNTypes()];
@@ -37,9 +35,9 @@ MeshVolumeConservation::MeshVolumeConservation(std::shared_ptr<SystemDefinition>
     m_V0 = new Scalar[m_pdata->getNTypes()];
     }
 
-MeshVolumeConservation::~MeshVolumeConservation()
+VolumeConservationMeshForceCompute::~VolumeConservationMeshForceCompute()
     {
-    m_exec_conf->msg->notice(5) << "Destroying MeshVolumeConservation" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying VolumeConservationMeshForceCompute" << endl;
 
     delete[] m_K;
     delete[] m_V0;
@@ -52,7 +50,7 @@ MeshVolumeConservation::~MeshVolumeConservation()
 
     Sets parameters for the potential of a particular angle type
 */
-void MeshVolumeConservation::setParams(unsigned int type, Scalar K, Scalar V0)
+void VolumeConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar V0)
     {
     m_K[type] = K;
     m_V0[type] = V0;
@@ -64,20 +62,20 @@ void MeshVolumeConservation::setParams(unsigned int type, Scalar K, Scalar V0)
         m_exec_conf->msg->warning() << "volume: specified V0 <= 0" << endl;
     }
 
-void MeshVolumeConservation::setParamsPython(std::string type, pybind11::dict params)
+void VolumeConservationMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
     {
     auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
     auto _params = vconstraint_params(params);
     setParams(typ, _params.k, _params.V0);
     }
 
-pybind11::dict MeshVolumeConservation::getParams(std::string type)
+pybind11::dict VolumeConservationMeshForceCompute::getParams(std::string type)
     {
     auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
     if (typ >= m_mesh_data->getMeshBondData()->getNTypes())
         {
         m_exec_conf->msg->error() << "mesh.helfrich: Invalid mesh type specified" << endl;
-        throw runtime_error("Error setting parameters in MeshVolumeConservation");
+        throw runtime_error("Error setting parameters in VolumeConservationMeshForceCompute");
         }
     pybind11::dict params;
     params["k"] = m_K[typ];
@@ -88,12 +86,12 @@ pybind11::dict MeshVolumeConservation::getParams(std::string type)
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void MeshVolumeConservation::computeForces(uint64_t timestep)
+void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push("Harmonic Angle");
 
-    computeVolume(); // precompute sigmas
+    computeVolume(); // precompute volume
 
     assert(m_pdata);
     // access the particle data arrays
@@ -145,26 +143,30 @@ void MeshVolumeConservation::computeForces(uint64_t timestep)
         // lookup the tag of each of the particles participating in the bond
         const typename MeshTriangle::members_t& triangle = h_triangles.data[i];
 
-        unsigned int btag_a = bond.tag[0];
-        assert(btag_a < m_pdata->getMaximumTag() + 1);
-        unsigned int btag_b = bond.tag[1];
-        assert(btag_b < m_pdata->getMaximumTag() + 1);
-        unsigned int btag_c = bond.tag[2];
-        assert(btag_c < m_pdata->getMaximumTag() + 1);
+        unsigned int ttag_a = triangle.tag[0];
+        assert(ttag_a < m_pdata->getMaximumTag() + 1);
+        unsigned int ttag_b = triangle.tag[1];
+        assert(ttag_b < m_pdata->getMaximumTag() + 1);
+        unsigned int ttag_c = triangle.tag[2];
+        assert(ttag_c < m_pdata->getMaximumTag() + 1);
 
         // transform a and b into indices into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[btag_a];
-        unsigned int idx_b = h_rtag.data[btag_b];
-        unsigned int idx_c = h_rtag.data[btag_c];
+        unsigned int idx_a = h_rtag.data[ttag_a];
+        unsigned int idx_b = h_rtag.data[ttag_b];
+        unsigned int idx_c = h_rtag.data[ttag_c];
 
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
 
-        vec3<Scalar> pos_a = box.shift(h_pos.data[idx_a], h_image.data[idx_a]);
-        vec3<Scalar> pos_b = box.shift(h_pos.data[idx_b], h_image.data[idx_b]);
-        vec3<Scalar> pos_c = box.shift(h_pos.data[idx_c], h_image.data[idx_c]);
+        vec3<Scalar> pos_a(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
+        vec3<Scalar> pos_b(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
+        vec3<Scalar> pos_c(h_pos.data[idx_c].x, h_pos.data[idx_c].y, h_pos.data[idx_c].z);
+
+        pos_a = box.shift(pos_a, h_image.data[idx_a]);
+        pos_b = box.shift(pos_b, h_image.data[idx_b]);
+        pos_c = box.shift(pos_c, h_image.data[idx_c]);
 
         vec3<Scalar> dVol_a = cross(pos_c, pos_b);
 
@@ -253,8 +255,9 @@ void MeshVolumeConservation::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-void MeshVolumeConservation::computeVolume()
+void VolumeConservationMeshForceCompute::computeVolume()
     {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
@@ -265,10 +268,6 @@ void MeshVolumeConservation::computeVolume()
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
-
-    ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::overwrite);
-
     m_volume = 0;
 
     // for each of the angles
@@ -278,26 +277,30 @@ void MeshVolumeConservation::computeVolume()
         // lookup the tag of each of the particles participating in the bond
         const typename MeshTriangle::members_t& triangle = h_triangles.data[i];
 
-        unsigned int btag_a = bond.tag[0];
-        assert(btag_a < m_pdata->getMaximumTag() + 1);
-        unsigned int btag_b = bond.tag[1];
-        assert(btag_b < m_pdata->getMaximumTag() + 1);
-        unsigned int btag_c = bond.tag[2];
-        assert(btag_c < m_pdata->getMaximumTag() + 1);
+        unsigned int ttag_a = triangle.tag[0];
+        assert(ttag_a < m_pdata->getMaximumTag() + 1);
+        unsigned int ttag_b = triangle.tag[1];
+        assert(ttag_b < m_pdata->getMaximumTag() + 1);
+        unsigned int ttag_c = triangle.tag[2];
+        assert(ttag_c < m_pdata->getMaximumTag() + 1);
 
         // transform a and b into indices into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[btag_a];
-        unsigned int idx_b = h_rtag.data[btag_b];
-        unsigned int idx_c = h_rtag.data[btag_c];
+        unsigned int idx_a = h_rtag.data[ttag_a];
+        unsigned int idx_b = h_rtag.data[ttag_b];
+        unsigned int idx_c = h_rtag.data[ttag_c];
 
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
 
-        vec3<Scalar> pos_a = box.shift(h_pos.data[idx_a], h_image.data[idx_a]);
-        vec3<Scalar> pos_b = box.shift(h_pos.data[idx_b], h_image.data[idx_b]);
-        vec3<Scalar> pos_c = box.shift(h_pos.data[idx_c], h_image.data[idx_c]);
+        vec3<Scalar> pos_a(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
+        vec3<Scalar> pos_b(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
+        vec3<Scalar> pos_c(h_pos.data[idx_c].x, h_pos.data[idx_c].y, h_pos.data[idx_c].z);
+
+        pos_a = box.shift(pos_a, h_image.data[idx_a]);
+        pos_b = box.shift(pos_b, h_image.data[idx_b]);
+        pos_c = box.shift(pos_c, h_image.data[idx_c]);
 
         Scalar vol_tri = dot(cross(pos_c, pos_b), pos_a) / 6.0;
 
@@ -307,14 +310,16 @@ void MeshVolumeConservation::computeVolume()
 
 namespace detail
     {
-void export_MeshVolumeConservation(pybind11::module& m)
+void export_VolumeConservationMeshForceCompute(pybind11::module& m)
     {
-    pybind11::class_<MeshVolumeConservation, ForceCompute, std::shared_ptr<MeshVolumeConservation>>(
+    pybind11::class_<VolumeConservationMeshForceCompute,
+                     ForceCompute,
+                     std::shared_ptr<VolumeConservationMeshForceCompute>>(
         m,
-        "MeshVolumeConservation")
+        "VolumeConservationMeshForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
-        .def("setParams", &MeshVolumeConservation::setParamsPython)
-        .def("getParams", &MeshVolumeConservation::getParams);
+        .def("setParams", &VolumeConservationMeshForceCompute::setParamsPython)
+        .def("getParams", &VolumeConservationMeshForceCompute::getParams);
     }
 
     } // end namespace detail

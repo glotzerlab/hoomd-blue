@@ -8,7 +8,7 @@
 
 #include <vector>
 
-/*! \file MeshVolumeConservation.h
+/*! \file VolumeConservationMeshForceCompute.h
     \brief Declares a class for computing volume constraint forces
 */
 
@@ -18,8 +18,8 @@
 
 #include <pybind11/pybind11.h>
 
-#ifndef __MESHVOLUMECONSERVATION_H__
-#define __MESHVOLUMECONSERVATION_H__
+#ifndef __VOLUMECONSERVATIONMESHFORCECOMPUTE_H__
+#define __VOLUMECONSERVATIONMESHFORCECOMPUTE_H__
 
 namespace hoomd
     {
@@ -34,7 +34,7 @@ struct vconstraint_params
     vconstraint_params() : k(0), V0(0) { }
 
     vconstraint_params(pybind11::dict params)
-        : k(params["k"].cast<Scalar>(), V0(params["V0"].cast<Scalar>())
+        : k(params["k"].cast<Scalar>()), V0(params["V0"].cast<Scalar>())
         {
         }
 
@@ -58,15 +58,15 @@ struct vconstraint_params
 
     \ingroup computes
 */
-class PYBIND11_EXPORT MeshVolumeConservation : public ForceCompute
+class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
     {
     public:
     //! Constructs the compute
-    MeshVolumeConservation(std::shared_ptr<SystemDefinition> sysdef,
-                           std::shared_ptr<MeshDefinition> meshdef);
+    VolumeConservationMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                       std::shared_ptr<MeshDefinition> meshdef);
 
     //! Destructor
-    virtual ~MeshVolumeConservation();
+    virtual ~VolumeConservationMeshForceCompute();
 
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar V0);
@@ -106,8 +106,8 @@ class PYBIND11_EXPORT MeshVolumeConservation : public ForceCompute
 
 namespace detail
     {
-//! Exports the MeshVolumeConservation class to python
-void export_MeshVolumeConservation(pybind11::module& m);
+//! Exports the VolumeConservationMeshForceCompute class to python
+void export_VolumeConservationMeshForceCompute(pybind11::module& m);
 
     } // end namespace detail
     } // end namespace md

@@ -10,7 +10,7 @@ set(_md_sources module-md.cc
                    CosineSqAngleForceCompute.cc
                    CustomForceCompute.cc
                    EvaluatorWalls.cc
-                       FIREEnergyMinimizer.cc
+                   FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
                    HarmonicAngleForceCompute.cc
@@ -43,6 +43,7 @@ set(_md_sources module-md.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
                    WallData.cc
+		   VolumeConservationMeshForceCompute.cc
                    ZeroMomentumUpdater.cc
                    )
 
@@ -190,6 +191,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVE.h
                 TwoStepNVTMTKGPU.h
                 TwoStepNVTMTK.h
+		VolumeConservationMeshForceCompute.h
                 WallData.h
                 ZeroMomentumUpdater.h
                 )

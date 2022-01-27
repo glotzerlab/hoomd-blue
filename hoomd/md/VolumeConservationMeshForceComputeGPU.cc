@@ -98,7 +98,7 @@ void MeshVolumeConservationGPU::computeForces(uint64_t timestep)
         access_location::device,
         access_mode::read);
 
-    m_tuner_sigma->begin();
+    m_tuner_volume->begin();
     kernel::gpu_compute_volume_constraint_volume(m_volume,
                                                  m_pdata->getN(),
                                                  d_pos.data,
@@ -115,7 +115,7 @@ void MeshVolumeConservationGPU::computeForces(uint64_t timestep)
         CHECK_CUDA_ERROR();
         }
 
-    m_tuner_sigma->end();
+    m_tuner_volume->end();
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
@@ -130,6 +130,7 @@ void MeshVolumeConservationGPU::computeForces(uint64_t timestep)
                                                 m_virial.getPitch(),
                                                 m_pdata->getN(),
                                                 d_pos.data,
+                                                d_image.data,
                                                 box,
                                                 m_volume,
                                                 d_gpu_meshtrianglelist.data,

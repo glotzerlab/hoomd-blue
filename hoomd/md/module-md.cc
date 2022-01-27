@@ -60,6 +60,7 @@
 #include "TwoStepRATTLEBD.h"
 #include "TwoStepRATTLELangevin.h"
 #include "TwoStepRATTLENVE.h"
+#include "VolumeConservationMeshForceCompute.h"
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
 
@@ -435,6 +436,9 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVE<ManifoldXYPlane>(m, "TwoStepRATTLENVEPlane");
     export_TwoStepRATTLENVE<ManifoldPrimitive>(m, "TwoStepRATTLENVEPrimitive");
     export_TwoStepRATTLENVE<ManifoldSphere>(m, "TwoStepRATTLENVESphere");
+
+    // mesh
+    export_VolumeConservationMeshForceCompute(m);
 
 #ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
