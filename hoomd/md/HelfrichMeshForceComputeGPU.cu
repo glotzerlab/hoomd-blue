@@ -132,8 +132,7 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         Scalar rbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
         rbd = sqrt(rbd);
 
-        Scalar3 nab, nac, nad, nbc, nbd;
-        nab = dab / rab;
+        Scalar3 nac, nad, nbc, nbd;
         nac = dac / rac;
         nad = dad / rad;
         nbc = dbc / rbc;
@@ -152,24 +151,6 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
             c_addb = 1.0;
         if (c_addb < -1.0)
             c_addb = -1.0;
-
-        vec3<Scalar> nbac
-            = cross(vec3<Scalar>(nab.x, nab.y, nab.z), vec3<Scalar>(nac.x, nac.y, nac.z));
-
-        Scalar inv_nbac = 1.0 / sqrt(dot(nbac, nbac));
-
-        vec3<Scalar> nbad
-            = cross(vec3<Scalar>(nab.x, nab.y, nab.z), vec3<Scalar>(nad.x, nad.y, nad.z));
-
-        Scalar inv_nbad = 1.0 / sqrt(dot(nbad, nbad));
-
-        if (dot(nbac, nbad) * inv_nbad * inv_nbac > 0.9)
-            {
-            this->m_exec_conf->msg->error() << "helfrich calculations : triangles " << tr_idx1
-                                            << " " << tr_idx2 << " overlap." << std::endl
-                                            << std::endl;
-            throw std::runtime_error("Error in bending energy calculation");
-            }
 
         Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
         if (inv_s_accb < SMALL)
