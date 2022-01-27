@@ -141,7 +141,12 @@ Molecular dynamics:
     tutorial/02-Logging/00-index
     tutorial/03-Parallel-Simulations-With-MPI/00-index
     tutorial/04-Custom-Actions-In-Python/00-index
-    howto/howto
+
+.. toctree::
+    :maxdepth: 1
+    :caption: How to guides
+
+    howto/molecular
 
 .. toctree::
    :maxdepth: 3

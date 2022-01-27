@@ -1,11 +1,8 @@
 .. Copyright (c) 2009-2022 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-How to guides
-=============
-
 How to model molecular systems
-------------------------------
+==============================
 
 To model molecular systems using molecular dynamics in HOOMD-blue:
 
@@ -16,7 +13,7 @@ To model molecular systems using molecular dynamics in HOOMD-blue:
 
 This code demonstrates bonds by modelling a Gaussian chain:
 
-.. literalinclude:: howto_molecular.py
+.. literalinclude:: molecular.py
     :language: python
 
 Consider using a tool to build systems, such as the `Molecular Simulation Design Framework
