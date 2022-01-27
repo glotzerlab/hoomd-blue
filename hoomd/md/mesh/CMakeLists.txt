@@ -1,6 +1,7 @@
 set(files __init__.py
-          potential.py
           bond.py
+          conservation.py
+          potential.py
    )
 
 install(FILES ${files}

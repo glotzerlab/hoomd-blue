@@ -242,9 +242,9 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         if (idx_c < m_pdata->getN())
             {
-            h_force.data[idx_c].x -= Fc.x;
-            h_force.data[idx_c].y -= Fc.y;
-            h_force.data[idx_c].z -= Fc.z;
+            h_force.data[idx_c].x += Fc.x;
+            h_force.data[idx_c].y += Fc.y;
+            h_force.data[idx_c].z += Fc.z;
             h_force.data[idx_c].w = energy;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_c] += helfrich_virial[j];
