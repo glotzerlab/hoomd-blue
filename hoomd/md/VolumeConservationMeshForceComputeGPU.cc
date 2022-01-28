@@ -30,7 +30,7 @@ VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
         }
 
     // allocate and zero device memory
-    GPUArray<Scalar2> params(this->m_angle_data->getNTypes(), m_exec_conf);
+    GPUArray<Scalar2> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
     // allocate flags storage on the GPU
@@ -64,7 +64,7 @@ void VolumeConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar 
     {
     VolumeConservationMeshForceCompute::setParams(type, K, V0);
 
-    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
     h_params.data[type] = make_scalar2(K, V0);
     }
@@ -105,7 +105,7 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_params(m_params, access_location::device, access_mode::read);
+    ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
 
     // access the flags array for overwriting
     ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
@@ -188,13 +188,14 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
                                          access_mode::overwrite);
     ArrayHandle<Scalar> d_sumVol(m_sum, access_location::device, access_mode::overwrite);
 
-    kernel::gpu_compute_volume_constraint_volume(d_sumVol,
-                                                 d_partial_sumVol m_pdata->getN(),
+    kernel::gpu_compute_volume_constraint_volume(d_sumVol.data,
+                                                 d_partial_sumVol.data, 
+						 m_pdata->getN(),
                                                  d_pos.data,
                                                  d_image.data,
                                                  box,
                                                  d_gpu_meshtrianglelist.data,
-                                                 d_gpu_meshtriangle_pos_list,
+                                                 d_gpu_meshtriangle_pos_list.data,
                                                  gpu_table_indexer,
                                                  d_gpu_n_meshtriangle.data,
                                                  m_block_size,

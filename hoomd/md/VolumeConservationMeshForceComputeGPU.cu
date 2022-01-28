@@ -5,7 +5,7 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#include "MeshVolumeConservationGPU.cuh"
+#include "VolumeConservationMeshForceComputeGPU.cuh"
 #include "hoomd/TextureTools.h"
 
 #include <assert.h>
@@ -35,10 +35,10 @@ namespace kernel
     \param d_triangles device array of mesh triangles
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
 */
-__global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_volume_partial_sum,
+__global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_sum_volume,
                                                             const unsigned int N,
                                                             const Scalar4* d_pos,
-                                                            const unsigned int* d_rtag,
+                                                            const int3* d_image,
                                                             const BoxDim& box,
                                                             const group_storage<6>* tlist,
                                                             const unsigned int* tpos_list,
@@ -47,7 +47,6 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_volume_par
     {
     // start by identifying which particle we are to handle
     HIP_DYNAMIC_SHARED(char, s_data)
-    Scalar* s_gammas = (Scalar*)s_data;
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -57,9 +56,9 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_volume_par
         {
         int n_triangles = n_triangles_list[idx];
         Scalar4 postype = d_pos[idx];
-        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+        vec3<Scalar> pos(postype.x, postype.y, postype.z);
 
-        int3 image_a = d_image[dx];
+        int3 image_a = d_image[idx];
 
         vec3<Scalar> pos_a = box.shift(pos, image_a);
 
@@ -74,13 +73,15 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_volume_par
 
             // get the b-particle's position (MEM TRANSFER: 16 bytes)
             Scalar4 bb_postype = d_pos[cur_triangle_b];
-            Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
-            int3 image_b = d_image[cur_triangle_b] vec3<Scalar> pos_b = box.shift(bb_pos, image_b);
+            vec3<Scalar> bb_pos(bb_postype.x, bb_postype.y, bb_postype.z);
+            int3 image_b = d_image[cur_triangle_b]; 
+	    vec3<Scalar> pos_b = box.shift(bb_pos, image_b);
 
             // get the c-particle's position (MEM TRANSFER: 16 bytes)
             Scalar4 cc_postype = d_pos[cur_triangle_c];
-            Scalar3 cc_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
-            int3 image_c = d_image[cur_triangle_c] vec3<Scalar> pos_c = box.shift(cc_pos, image_c);
+            vec3<Scalar> cc_pos(cc_postype.x, cc_postype.y, cc_postype.z);
+            int3 image_c = d_image[cur_triangle_c]; 
+	    vec3<Scalar> pos_c = box.shift(cc_pos, image_c);
 
             Scalar Vol;
             if (cur_triangle_abc == 1)
@@ -213,8 +214,8 @@ hipError_t gpu_compute_volume_constraint_volume(Scalar* d_sum_volume,
                        dim3(threads1),
                        block_size * sizeof(Scalar),
                        0,
-                       d_sum_volume[0],
-                       d_partial_sum_volume,
+                       &d_sum_volume[0],
+                       d_sum_partial_volume,
                        num_blocks);
 
     return hipSuccess;
@@ -249,9 +250,9 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
                                                            const unsigned int* tpos_list,
                                                            const Index2D tlist_idx,
                                                            const unsigned int* n_triangles_list,
-                                                           Scalar* d_params,
+                                                           Scalar2* d_params,
                                                            const unsigned int n_triangle_type,
-                                                           unsigned int* d_flags);
+                                                           unsigned int* d_flags)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -264,9 +265,9 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
 
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
     Scalar4 postype = __ldg(d_pos + idx);
-    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+    vec3<Scalar> pos(postype.x, postype.y, postype.z);
 
-    int3 image_a = __ldg(d_image + idx);
+    int3 image_a = d_image[idx];
 
     vec3<Scalar> pos_a = box.shift(pos, image_a);
 
@@ -301,13 +302,15 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
 
         // get the b-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 bb_postype = d_pos[cur_triangle_b];
-        Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
-        int3 image_b = d_image[cur_triangle_b] vec3<Scalar> pos_b = box.shift(bb_pos, image_b);
+        vec3<Scalar> bb_pos(bb_postype.x, bb_postype.y, bb_postype.z);
+        int3 image_b = d_image[cur_triangle_b]; 
+	vec3<Scalar> pos_b = box.shift(bb_pos, image_b);
 
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 cc_postype = d_pos[cur_triangle_c];
-        Scalar3 cc_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
-        int3 image_c = d_image[cur_triangle_c] vec3<Scalar> pos_c = box.shift(cc_pos, image_c);
+        vec3<Scalar> cc_pos(cc_postype.x, cc_postype.y, cc_postype.z);
+        int3 image_c = d_image[cur_triangle_c]; 
+	vec3<Scalar> pos_c = box.shift(cc_pos, image_c);
 
         vec3<Scalar> dVol;
         if (cur_triangle_abc == 1)
@@ -371,17 +374,16 @@ hipError_t gpu_compute_volume_constraint_force(Scalar4* d_force,
                                                const unsigned int N,
                                                const Scalar4* d_pos,
                                                const int3* d_image,
-                                               const unsigned int* d_rtag,
                                                const BoxDim& box,
                                                const Scalar volume,
                                                const group_storage<6>* tlist,
                                                const unsigned int* tpos_list,
                                                const Index2D tlist_idx,
                                                const unsigned int* n_triangles_list,
-                                               Scalar* d_params,
+                                               Scalar2* d_params,
                                                const unsigned int n_triangle_type,
                                                int block_size,
-                                               unsigned int* d_flags);
+                                               unsigned int* d_flags)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;

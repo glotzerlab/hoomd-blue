@@ -52,12 +52,13 @@ class PYBIND11_EXPORT VolumeConservationMeshForceComputeGPU
 
     protected:
     unsigned int m_block_size; //!< block size for partial sum memory
+    unsigned int m_num_blocks;       //!< number of memory blocks reserved for partial sum memory
 
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size of force loop
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
-    GPUArray<Scalar> m_params;          //!< Parameters stored on the GPU
+    GPUArray<Scalar2> m_params;          //!< Parameters stored on the GPU
 
-    GPUVector<Scalar> m_partial_sum; //!< memory space for partial sum over volume
+    GPUArray<Scalar> m_partial_sum; //!< memory space for partial sum over volume
     GPUArray<Scalar> m_sum;          //!< memory space for sum over volume
 
     //! Actually compute the forces
