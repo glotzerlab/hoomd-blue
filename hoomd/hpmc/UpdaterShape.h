@@ -14,6 +14,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+namespace hoomd {
+
 namespace hpmc
     {
 
@@ -833,6 +835,7 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
                       &UpdaterShape<Shape>::setNumPhase);
     }
 
-    } // namespace hpmc
+} // namespace hpmc
+} // namespace hoomd
 
 #endif

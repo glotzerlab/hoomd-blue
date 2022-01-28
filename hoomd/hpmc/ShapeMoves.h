@@ -13,6 +13,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+namespace hoomd {
+
 namespace hpmc
     {
 
@@ -1076,6 +1078,7 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
 
 template<class Shape> void export_ConstantShapeMove(pybind11::module& m, const std::string& name);
 
-    } // namespace hpmc
+} // namespace hpmc
+} // namespace hpmc
 
 #endif
