@@ -3,6 +3,9 @@
 
 """Version and build information.
 
+See Also:
+    `features`
+
 Attributes:
     build_dir (str): The directory where this build was compiled.
 
@@ -18,6 +21,10 @@ Attributes:
         HOOMD.
 
     dem_built (bool): ``True`` when the ``dem`` component is built.
+
+    floating_point_precision (tuple[int, int]): The **high precision** floating
+        point width in bits  (element 0) and the **reduced precision** width in
+        bits (element 1).
 
     git_branch (str):  Name of the git branch used when compiling this build.
 
@@ -78,3 +85,4 @@ tbb_enabled = _hoomd.BuildInfo.getEnableTBB()
 mpi_enabled = _hoomd.BuildInfo.getEnableMPI()
 source_dir = _hoomd.BuildInfo.getSourceDir()
 install_dir = _hoomd.BuildInfo.getInstallDir()
+floating_point_precision = _hoomd.BuildInfo.getFloatingPointPrecision()

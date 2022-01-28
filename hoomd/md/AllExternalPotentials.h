@@ -32,7 +32,6 @@ typedef PotentialExternal<EvaluatorExternalPeriodic> PotentialExternalPeriodic;
 //! Electric field
 typedef PotentialExternal<EvaluatorExternalElectricField> PotentialExternalElectricField;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairLJ>> WallsPotentialLJ;
-typedef PotentialExternal<EvaluatorWalls<EvaluatorPairSLJ>> WallsPotentialSLJ;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairExpandedMie>> WallsPotentialExpandedMie;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairForceShiftedLJ>> WallsPotentialForceShiftedLJ;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMie>> WallsPotentialMie;
@@ -45,7 +44,6 @@ typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMorse>> WallsPotentialMors
 typedef PotentialExternalGPU<EvaluatorExternalPeriodic> PotentialExternalPeriodicGPU;
 typedef PotentialExternalGPU<EvaluatorExternalElectricField> PotentialExternalElectricFieldGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairLJ>> WallsPotentialLJGPU;
-typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairSLJ>> WallsPotentialSLJGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairExpandedMie>> WallsPotentialExpandedMieGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairForceShiftedLJ>>
     WallsPotentialForceShiftedLJGPU;
