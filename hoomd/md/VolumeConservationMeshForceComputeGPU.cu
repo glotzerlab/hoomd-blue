@@ -35,7 +35,7 @@ namespace kernel
     \param d_triangles device array of mesh triangles
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
 */
-__global__ void gpu_compute_volume_constraint_volume_kernel(Scalar volume,
+__global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_volume_partial_sum,
                                                             const unsigned int N,
                                                             const Scalar4* d_pos,
                                                             const unsigned int* d_rtag,
@@ -46,159 +46,116 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar volume,
                                                             const unsigned int* n_triangles_list)
     {
     // start by identifying which particle we are to handle
+    HIP_DYNAMIC_SHARED(char, s_data)
+    Scalar* s_gammas = (Scalar*)s_data;
+
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= N)
-        return;
+    Scalar volume_transfer = 0;
 
-    // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-    int n_bonds = n_bonds_list[idx];
-
-    // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-    Scalar4 postype = __ldg(d_pos + idx);
-    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-
-    // initialize the force to 0
-    Scalar3 sigma_dash = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
-    Scalar sigma = 0.0;
-
-    // loop over all angles
-    for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+    if (idx < N)
         {
-        group_storage<4> cur_bond = blist[blist_idx(idx, bond_idx)];
+        int n_triangles = n_triangles_list[idx];
+        Scalar4 postype = d_pos[idx];
+        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
-        int cur_bond_idx = cur_bond.idx[0];
-        int cur_tr1_idx = cur_bond.idx[1];
-        int cur_tr2_idx = cur_bond.idx[2];
+        int3 image_a = d_image[dx];
 
-        if (cur_tr1_idx == cur_tr2_idx)
-            continue;
+        vec3<Scalar> pos_a = box.shift(pos, image_a);
 
-        const group_storage<6>& triangle1 = d_triangles[cur_tr1_idx];
-
-        unsigned int cur_idx_c = d_rtag[triangle1.tag[0]];
-
-        unsigned int iterator = 1;
-        while (idx == cur_idx_c || cur_bond_idx == cur_idx_c)
+        for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
             {
-            cur_idx_c = d_rtag[triangle1.tag[iterator]];
-            iterator++;
+            group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
+
+            int cur_triangle_b = cur_triangle.idx[0];
+            int cur_triangle_c = cur_triangle.idx[1];
+
+            int cur_triangle_abc = tpos_list[tlist_idx(idx, triangle_idx)];
+
+            // get the b-particle's position (MEM TRANSFER: 16 bytes)
+            Scalar4 bb_postype = d_pos[cur_triangle_b];
+            Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
+            int3 image_b = d_image[cur_triangle_b] vec3<Scalar> pos_b = box.shift(bb_pos, image_b);
+
+            // get the c-particle's position (MEM TRANSFER: 16 bytes)
+            Scalar4 cc_postype = d_pos[cur_triangle_c];
+            Scalar3 cc_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
+            int3 image_c = d_image[cur_triangle_c] vec3<Scalar> pos_c = box.shift(cc_pos, image_c);
+
+            Scalar Vol;
+            if (cur_triangle_abc == 1)
+                {
+                Vol = dot(cross(pos_b, pos_c), pos_a);
+                }
+            else
+                {
+                Vol = dot(cross(pos_c, pos_b), pos_a);
+                }
+            volume_transfer += Vol / 6;
             }
-
-        const group_storage<6>& triangle2 = d_triangles[cur_tr2_idx];
-
-        unsigned int cur_idx_d = d_rtag[triangle2.tag[0]];
-
-        iterator = 1;
-        while (idx == cur_idx_d || cur_bond_idx == cur_idx_d)
-            {
-            cur_idx_d = d_rtag[triangle2.tag[iterator]];
-            iterator++;
-            }
-
-        // get the b-particle's position (MEM TRANSFER: 16 bytes)
-        Scalar4 bb_postype = d_pos[cur_bond_idx];
-        Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
-        // get the c-particle's position (MEM TRANSFER: 16 bytes)
-        Scalar4 cc_postype = d_pos[cur_idx_c];
-        Scalar3 cc_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
-        // get the c-particle's position (MEM TRANSFER: 16 bytes)
-        Scalar4 dd_postype = d_pos[cur_idx_d];
-        Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
-
-        Scalar3 dab = pos - bb_pos;
-        Scalar3 dac = pos - cc_pos;
-        Scalar3 dad = pos - dd_pos;
-        Scalar3 dbc = bb_pos - cc_pos;
-        Scalar3 dbd = bb_pos - dd_pos;
-
-        dab = box.minImage(dab);
-        dac = box.minImage(dac);
-        dad = box.minImage(dad);
-        dbc = box.minImage(dbc);
-        dbd = box.minImage(dbd);
-
-        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
-        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-        Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-        rac = sqrt(rac);
-        Scalar rad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
-        rad = sqrt(rad);
-
-        Scalar rbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
-        rbc = sqrt(rbc);
-        Scalar rbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
-        rbd = sqrt(rbd);
-
-        Scalar3 nab, nac, nad, nbc, nbd;
-        nab = dab / rab;
-        nac = dac / rac;
-        nad = dad / rad;
-        nbc = dbc / rbc;
-        nbd = dbd / rbd;
-
-        Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
-
-        if (c_accb > 1.0)
-            c_accb = 1.0;
-        if (c_accb < -1.0)
-            c_accb = -1.0;
-
-        Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
-
-        if (c_addb > 1.0)
-            c_addb = 1.0;
-        if (c_addb < -1.0)
-            c_addb = -1.0;
-
-        vec3<Scalar> nbac
-            = cross(vec3<Scalar>(nab.x, nab.y, nab.z), vec3<Scalar>(nac.x, nac.y, nac.z));
-
-        Scalar inv_nbac = 1.0 / sqrt(dot(nbac, nbac));
-
-        vec3<Scalar> nbad
-            = cross(vec3<Scalar>(nab.x, nab.y, nab.z), vec3<Scalar>(nad.x, nad.y, nad.z));
-
-        Scalar inv_nbad = 1.0 / sqrt(dot(nbad, nbad));
-
-        if (dot(nbac, nbad) * inv_nbad * inv_nbac > 0.9)
-            {
-            this->m_exec_conf->msg->error() << "volume_constraint calculations : triangles "
-                                            << tr_idx1 << " " << tr_idx2 << " overlap." << std::endl
-                                            << std::endl;
-            throw std::runtime_error("Error in bending energy calculation");
-            }
-
-        Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
-        if (inv_s_accb < SMALL)
-            inv_s_accb = SMALL;
-        inv_s_accb = 1.0 / inv_s_accb;
-
-        Scalar inv_s_addb = sqrt(1.0 - c_addb * c_addb);
-        if (inv_s_addb < SMALL)
-            inv_s_addb = SMALL;
-        inv_s_addb = 1.0 / inv_s_addb;
-
-        Scalar cot_accb = c_accb * inv_s_accb;
-        Scalar cot_addb = c_addb * inv_s_addb;
-
-        Scalar sigma_hat_ab = (cot_accb + cot_addb) / 2;
-
-        Scalar sigma_a = sigma_hat_ab * rsqab * 0.25;
-
-        Scalar3 sigma_dash_a = sigma_hat_ab * dab;
-
-        sigma += sigma_a;
-        sigma_dash += sigma_dash_a;
         }
 
-    // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    d_sigma[idx] = sigma;
-    d_sigma_dash[idx] = sigma_dash;
+    Scalar* volume_sdata = (Scalar*)&s_data[0];
+
+    __syncthreads();
+    volume_sdata[threadIdx.x] = volume_transfer;
+    __syncthreads();
+
+    // reduce the sum in parallel
+    int offs = blockDim.x >> 1;
+    while (offs > 0)
+        {
+        if (threadIdx.x < offs)
+            volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
+        offs >>= 1;
+        __syncthreads();
+        }
+
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        {
+        d_partial_sum_volume[blockIdx.x] = volume_sdata[0];
+        }
+    }
+
+//! Kernel function for reducing a partial sum to a full sum (one value)
+/*! \param d_sum Placeholder for the sum
+    \param d_partial_sum Array containing the partial sum
+    \param num_blocks Number of blocks to execute
+*/
+__global__ void
+gpu_volume_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigned int num_blocks)
+    {
+    Scalar sum = Scalar(0.0);
+    HIP_DYNAMIC_SHARED(char, s_data)
+    Scalar* volume_sdata = (Scalar*)&s_data[0];
+
+    // sum up the values in the partial sum via a sliding window
+    for (int start = 0; start < num_blocks; start += blockDim.x)
+        {
+        __syncthreads();
+        if (start + threadIdx.x < num_blocks)
+            volume_sdata[threadIdx.x] = d_partial_sum[start + threadIdx.x];
+        else
+            volume_sdata[threadIdx.x] = Scalar(0.0);
+        __syncthreads();
+
+        // reduce the sum in parallel
+        int offs = blockDim.x >> 1;
+        while (offs > 0)
+            {
+            if (threadIdx.x < offs)
+                volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
+            offs >>= 1;
+            __syncthreads();
+            }
+
+        // everybody sums up sum2K
+        sum += volume_sdata[0];
+        }
+
+    if (threadIdx.x == 0)
+        *d_sum = sum;
     }
 
 /*! \param d_sigma Device memory to write per paricle sigma
@@ -216,7 +173,8 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar volume,
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
-hipError_t gpu_compute_volume_constraint_volume(Scalar volume,
+hipError_t gpu_compute_volume_constraint_volume(Scalar* d_sum_volume,
+                                                Scalar* d_sum_partial_volume,
                                                 const unsigned int N,
                                                 const Scalar4* d_pos,
                                                 const int3* d_image,
@@ -225,34 +183,39 @@ hipError_t gpu_compute_volume_constraint_volume(Scalar volume,
                                                 const unsigned int* tpos_list,
                                                 const Index2D tlist_idx,
                                                 const unsigned int* n_triangles_list,
-                                                int block_size)
+                                                unsigned int block_size,
+                                                unsigned int num_blocks)
     {
-    unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_compute_volume_constraint_volume_kernel);
-    max_block_size = attr.maxThreadsPerBlock;
-
-    unsigned int run_block_size = min(block_size, max_block_size);
-
-    // setup the grid to run the kernel
-    dim3 grid(N / run_block_size + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    dim3 grid(num_blocks, 1, 1);
+    dim3 grid1(1, 1, 1);
+    dim3 threads(block_size, 1, 1);
+    dim3 threads1(256, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_volume_constraint_volume_kernel),
-                       dim3(grid),
-                       dim3(threads),
+    hipLaunchKernelGGL(
+        (gpu_compute_volume_constraint_volume_kernel),
+        grid,
+        threads,
+        max((unsigned int)(sizeof(Scalar)), (unsigned int)(block_size * sizeof(Scalar))),
+        0,
+        d_sum_partial_volume,
+        N,
+        d_pos,
+        d_image,
+        box,
+        tlist,
+        tpos_list,
+        tlist_idx,
+        n_triangles_list);
+
+    hipLaunchKernelGGL((gpu_volume_reduce_partial_sum_kernel),
+                       dim3(grid1),
+                       dim3(threads1),
+                       block_size * sizeof(Scalar),
                        0,
-                       0,
-                       volume,
-                       N,
-                       d_pos,
-                       d_image,
-                       box,
-                       tlist,
-                       tpos_list,
-                       tlist_idx,
-                       n_triangles_list);
+                       d_sum_volume[0],
+                       d_partial_sum_volume,
+                       num_blocks);
 
     return hipSuccess;
     }
@@ -297,7 +260,7 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
         return;
 
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-    int n_bonds = n_bonds_list[idx];
+    int n_triangles = n_triangles_list[idx];
 
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
     Scalar4 postype = __ldg(d_pos + idx);
@@ -314,7 +277,7 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
     for (int i = 0; i < 6; i++)
         virial[i] = Scalar(0.0);
 
-    // loop over all angles
+    // loop over all triangles
     for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
         {
         group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
