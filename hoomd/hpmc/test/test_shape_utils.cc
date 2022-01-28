@@ -1,10 +1,10 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hoomd/hpmc/ShapeUtils.h"
 #include "hoomd/hpmc/ShapeConvexPolyhedron.h"
 #include "hoomd/hpmc/ShapeEllipsoid.h"
 #include "hoomd/hpmc/ShapeSphere.h"
+#include "hoomd/hpmc/ShapeUtils.h"
 
 #include "hoomd/extern/quickhull/QuickHull.hpp"
 
@@ -21,10 +21,8 @@ using namespace hpmc;
 using namespace std;
 using namespace hpmc::detail;
 
-
 UP_TEST(convex_polyhedron_mass_properties)
     {
-
     vector<vec3<OverlapReal>> vlist;
     vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
     vlist.push_back(vec3<OverlapReal>(0.5, -0.5, -0.5));
@@ -38,9 +36,9 @@ UP_TEST(convex_polyhedron_mass_properties)
 
     Scalar V = 1.0;
     Scalar S = 6.0;
-    Scalar Q = 36.0*M_PI*V*V/(S*S*S);
-    Scalar I = 1/6;
-    Scalar detI = I*I*I;
+    Scalar Q = 36.0 * M_PI * V * V / (S * S * S);
+    Scalar I = 1 / 6;
+    Scalar detI = I * I * I;
 
     MassProperties<ShapeConvexPolyhedron> mp(verts, true);
 
@@ -64,7 +62,7 @@ UP_TEST(convex_polyhedron_mass_properties)
     MY_CHECK_CLOSE(mp.getDetInertiaTensor(), detI, tol);
 
     vec3<Scalar> new_com(0.1, -0.2, 0.5);
-    for ( unsigned int i = 0; i < vlist.size(); i++)
+    for (unsigned int i = 0; i < vlist.size(); i++)
         {
         vlist[i] += new_com;
         }
@@ -73,7 +71,6 @@ UP_TEST(convex_polyhedron_mass_properties)
     MY_CHECK_CLOSE(com.x, new_com.x, tol);
     MY_CHECK_CLOSE(com.y, new_com.y, tol);
     MY_CHECK_CLOSE(com.z, new_com.z, tol);
-
     }
 
 UP_TEST(convex_spheropolyhedron_mass_properties)
@@ -92,5 +89,4 @@ UP_TEST(ellipsoid_mass_properties)
     axes.x = 1;
     axes.y = 1.3;
     axes.z = 1;
-
     }

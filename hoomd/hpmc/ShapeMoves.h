@@ -1,315 +1,332 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef _SHAPE_MOVES_H
 #define _SHAPE_MOVES_H
 
-#include "ShapeUtils.h"
-#include <hoomd/Variant.h>
-#include "Moves.h"
 #include "GSDHPMCSchema.h"
+#include "Moves.h"
+#include "ShapeUtils.h"
+#include "hoomd/extern/quickhull/QuickHull.hpp"
 #include <Eigen/Dense>
+#include <hoomd/Variant.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "hoomd/extern/quickhull/QuickHull.hpp"
 
-namespace hpmc {
+namespace hpmc
+    {
 
-
-template <typename Shape>
-class ShapeMoveBase
+template<typename Shape> class ShapeMoveBase
     {
     public:
-        ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef, unsigned int ntypes) :
-            m_det_inertia_tensor(0),
-            m_step_size(ntypes),
-            m_sysdef(sysdef)
+    ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef, unsigned int ntypes)
+        : m_det_inertia_tensor(0), m_step_size(ntypes), m_sysdef(sysdef)
+        {
+        }
+
+    ShapeMoveBase(const ShapeMoveBase& src)
+        : m_det_inertia_tensor(src.getDeterminantInertiaTensor()),
+          m_step_size(src.getStepSizeArray())
+        {
+        }
+
+    virtual ~ShapeMoveBase() {};
+
+    //! prepare is called at the beginning of every update()
+    virtual void prepare(unsigned int timestep)
+        {
+        throw std::runtime_error("Shape move function not implemented.");
+        }
+
+    //! construct is called for each particle type that will be changed in update()
+    virtual void construct(const unsigned int&,
+                           const unsigned int&,
+                           typename Shape::param_type&,
+                           hoomd::RandomGenerator&)
+        {
+        throw std::runtime_error("Shape move function not implemented.");
+        }
+
+    //! retreat whenever the proposed move is rejected.
+    virtual void retreat(const unsigned int)
+        {
+        throw std::runtime_error("Shape move function not implemented.");
+        }
+
+    Scalar getDetInertiaTensor() const
+        {
+        return m_det_inertia_tensor;
+        }
+
+    // Get the isoperimetric quotient of the shape
+    Scalar getIsoperimetricQuotient() const
+        {
+        return m_isoperimetric_quotient;
+        }
+
+    //! Get the stepsize
+    pybind11::dict getStepsize()
+        {
+        pybind11::dict stepsize;
+        for (int i = 0; i < m_step_size.size(); i++)
             {
+            pybind11::str type_name = m_sysdef->getParticleData()->getNameByType(i);
+            stepsize[type_name] = m_step_size[i];
+            }
+        return stepsize;
+        }
+
+    //! Get all of the stepsizes
+    const std::vector<Scalar>& getStepSizeArray() const
+        {
+        return m_step_size;
+        }
+
+    //! Set the step size
+    void setStepsize(pybind11::dict stepsize)
+        {
+        std::vector<Scalar> stepsize_vector(m_step_size.size());
+        for (auto name_and_stepsize : stepsize)
+            {
+            std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
+            Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
+            unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
+            stepsize_vector[type_i] = type_stepsize;
+            }
+        m_step_size = stepsize_vector;
+        }
+
+    //! Method that is called whenever the GSD file is written if connected to a GSD file.
+    virtual int writeGSD(gsd_handle& handle,
+                         std::string name,
+                         const std::shared_ptr<const ExecutionConfiguration> exec_conf,
+                         bool mpi) const
+        {
+        if (!exec_conf->isRoot())
+            return 0;
+        std::string path = name + "stepsize";
+        exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: " << name
+                                  << std::endl;
+        std::vector<float> d;
+        d.resize(m_step_size.size());
+        std::transform(m_step_size.begin(),
+                       m_step_size.end(),
+                       d.begin(),
+                       [](const Scalar& s) -> float { return s; });
+        int retval
+            = gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, d.size(), 1, 0, (void*)&d[0]);
+        return retval;
+        }
+
+    //! Method that is called to connect to the gsd write state signal
+    virtual bool restoreStateGSD(std::shared_ptr<GSDReader> reader,
+                                 std::string name,
+                                 const std::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                 bool mpi)
+        {
+        bool success;
+        std::string path = name + "stepsize";
+        std::vector<float> d;
+        unsigned int Ntypes = this->m_step_size.size();
+        uint64_t frame = reader->getFrame();
+        if (exec_conf->isRoot())
+            {
+            d.resize(Ntypes, 0.0);
+            exec_conf->msg->notice(2)
+                << "shape_move reading from GSD File from name: " << name << std::endl;
+            success = reader->readChunk((void*)&d[0],
+                                        frame,
+                                        path.c_str(),
+                                        Ntypes * gsd_sizeof_type(GSD_TYPE_FLOAT),
+                                        Ntypes);
+            exec_conf->msg->notice(2)
+                << "stepsize: " << d[0] << " success: " << std::boolalpha << success << std::endl;
             }
 
-        ShapeMoveBase(const ShapeMoveBase& src) :
-            m_det_inertia_tensor(src.getDeterminantInertiaTensor()),
-            m_step_size(src.getStepSizeArray())
+#ifdef ENABLE_MPI
+        if (mpi)
             {
+            bcast(d, 0, exec_conf->getMPICommunicator()); // broadcast the data
             }
+#endif
 
-        virtual ~ShapeMoveBase() {};
+        for (unsigned int i = 0; i < d.size(); i++)
+            m_step_size[i] = Scalar(d[i]);
 
-        //! prepare is called at the beginning of every update()
-        virtual void prepare(unsigned int timestep)
+        return success;
+        }
+
+    //! Returns all of the provided log quantities for the shape move.
+    std::vector<std::string> getProvidedLogQuantities()
+        {
+        return m_provided_quantities;
+        }
+
+    //! Calculates the requested log value and returns it
+    virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        {
+        return 0.0;
+        }
+
+    //! Checks if the requested log value is provided
+    virtual bool isProvidedQuantity(const std::string& quantity)
+        {
+        if (std::find(m_provided_quantities.begin(), m_provided_quantities.end(), quantity)
+            != m_provided_quantities.end())
             {
-            throw std::runtime_error("Shape move function not implemented.");
+            return true;
             }
+        return false;
+        }
 
-        //! construct is called for each particle type that will be changed in update()
-        virtual void construct(const unsigned int&, const unsigned int&, typename Shape::param_type&, hoomd::RandomGenerator&)
+    virtual Scalar operator()(const unsigned int& timestep,
+                              const unsigned int& N,
+                              const unsigned int type_id,
+                              const typename Shape::param_type& shape_new,
+                              const Scalar& inew,
+                              const typename Shape::param_type& shape_old,
+                              const Scalar& iold)
+        {
+        Scalar newdivold = inew / iold;
+        if (newdivold < 0.0)
             {
-            throw std::runtime_error("Shape move function not implemented.");
-            }
+            newdivold = -1.0 * newdivold;
+            } // MOI may be negative depending on order of vertices
+        return (Scalar(N) / Scalar(2.0)) * log(newdivold);
+        }
 
-        //! retreat whenever the proposed move is rejected.
-        virtual void retreat(const unsigned int)
-            {
-            throw std::runtime_error("Shape move function not implemented.");
-            }
-
-        Scalar getDetInertiaTensor() const
-            {
-            return m_det_inertia_tensor;
-            }
-
-        // Get the isoperimetric quotient of the shape
-        Scalar getIsoperimetricQuotient() const
-            {
-            return m_isoperimetric_quotient;
-            }
-
-        //! Get the stepsize
-        pybind11::dict getStepsize()
-            {
-            pybind11::dict stepsize;
-            for (int i = 0; i < m_step_size.size(); i++)
-                {
-                pybind11::str type_name = m_sysdef->getParticleData()->getNameByType(i);
-                stepsize[type_name] = m_step_size[i];
-                }
-            return stepsize;
-            }
-
-        //! Get all of the stepsizes
-        const std::vector<Scalar>& getStepSizeArray() const
-            {
-            return m_step_size;
-            }
-
-        //! Set the step size
-        void setStepsize(pybind11::dict stepsize)
-            {
-            std::vector<Scalar> stepsize_vector(m_step_size.size());
-            for (auto name_and_stepsize : stepsize)
-                {
-                std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
-                Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
-                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
-                stepsize_vector[type_i] = type_stepsize;
-                }
-            m_step_size = stepsize_vector;
-            }
-
-        //! Method that is called whenever the GSD file is written if connected to a GSD file.
-        virtual int writeGSD(gsd_handle& handle, std::string name, const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) const
-            {
-            if(!exec_conf->isRoot())
-                return 0;
-            std::string path = name + "stepsize";
-            exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: "<< name << std::endl;
-            std::vector<float> d;
-            d.resize(m_step_size.size());
-            std::transform(m_step_size.begin(), m_step_size.end(), d.begin(), [](const Scalar& s)->float{ return s; });
-            int retval = gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, d.size(), 1, 0, (void *)&d[0]);
-            return retval;
-            }
-
-        //! Method that is called to connect to the gsd write state signal
-        virtual bool restoreStateGSD(   std::shared_ptr<GSDReader> reader,
-                                        std::string name,
-                                        const std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                                        bool mpi)
-            {
-            bool success;
-            std::string path = name + "stepsize";
-            std::vector<float> d;
-            unsigned int Ntypes = this->m_step_size.size();
-            uint64_t frame = reader->getFrame();
-            if(exec_conf->isRoot())
-                {
-                d.resize(Ntypes, 0.0);
-                exec_conf->msg->notice(2) << "shape_move reading from GSD File from name: "<< name << std::endl;
-                success = reader->readChunk((void *)&d[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes);
-                exec_conf->msg->notice(2) << "stepsize: "<< d[0] << " success: " << std::boolalpha << success << std::endl;
-                }
-
-            #ifdef ENABLE_MPI
-            if(mpi)
-                {
-                bcast(d, 0, exec_conf->getMPICommunicator()); // broadcast the data
-                }
-            #endif
-
-            for(unsigned int i = 0; i < d.size(); i++)
-                m_step_size[i] = Scalar(d[i]);
-
-            return success;
-
-            }
-
-        //! Returns all of the provided log quantities for the shape move.
-        std::vector< std::string > getProvidedLogQuantities()
-            {
-            return m_provided_quantities;
-            }
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-            {
-            return 0.0;
-            }
-
-        //! Checks if the requested log value is provided
-        virtual bool isProvidedQuantity(const std::string& quantity)
-            {
-            if(std::find(m_provided_quantities.begin(), m_provided_quantities.end(), quantity)
-               != m_provided_quantities.end())
-                {
-                return true;
-                }
-            return false;
-            }
-
-        virtual Scalar operator()(const unsigned int& timestep,
-                                  const unsigned int& N,
-                                  const unsigned int type_id,
-                                  const typename Shape::param_type& shape_new,
-                                  const Scalar& inew,
-                                  const typename Shape::param_type& shape_old,
-                                  const Scalar& iold)
-            {
-            Scalar newdivold = inew/iold;
-            if (newdivold < 0.0) {newdivold = -1.0*newdivold;} // MOI may be negative depending on order of vertices
-            return (Scalar(N)/Scalar(2.0))*log(newdivold);
-            }
-
-        virtual Scalar computeEnergy(const unsigned int& timestep,
-                                     const unsigned int& N,
-                                     const unsigned int type_id,
-                                     const typename Shape::param_type& shape,
-                                     const Scalar& inertia)
-            {
-            return 0.0;
-            }
+    virtual Scalar computeEnergy(const unsigned int& timestep,
+                                 const unsigned int& N,
+                                 const unsigned int type_id,
+                                 const typename Shape::param_type& shape,
+                                 const Scalar& inertia)
+        {
+        return 0.0;
+        }
 
     protected:
-        std::vector< std::string >      m_provided_quantities;    // provided log quantities for the shape move
-        Scalar                          m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
-        Scalar                          m_isoperimetric_quotient; // isoperimetric quotient of the shape
-        std::vector<Scalar>             m_step_size;              // maximum stepsize
-        std::shared_ptr<SystemDefinition> m_sysdef;
-    };   // end class ShapeMoveBase
-
+    std::vector<std::string> m_provided_quantities; // provided log quantities for the shape move
+    Scalar m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
+    Scalar m_isoperimetric_quotient; // isoperimetric quotient of the shape
+    std::vector<Scalar> m_step_size; // maximum stepsize
+    std::shared_ptr<SystemDefinition> m_sysdef;
+    }; // end class ShapeMoveBase
 
 // TODO: make this class more general and make python function a spcialization.
-template < typename Shape >
-class PythonShapeMove : public ShapeMoveBase<Shape>
+template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     {
     public:
-        PythonShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                        unsigned int ntypes,
-                        pybind11::object python_function,
-                        pybind11::dict params,
-                        pybind11::dict stepsize,
-                        Scalar mixratio)
-            :  ShapeMoveBase<Shape>(sysdef, ntypes), m_num_params(0), m_python_callback(python_function)
+    PythonShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                    unsigned int ntypes,
+                    pybind11::object python_function,
+                    pybind11::dict params,
+                    pybind11::dict stepsize,
+                    Scalar mixratio)
+        : ShapeMoveBase<Shape>(sysdef, ntypes), m_num_params(0), m_python_callback(python_function)
+        {
+        std::vector<Scalar> stepsize_vector(ntypes);
+        for (auto name_and_stepsize : stepsize)
             {
-            std::vector<Scalar> stepsize_vector(ntypes);
-            for (auto name_and_stepsize : stepsize)
-                {
-                std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
-                Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
-                unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
-                stepsize_vector[type_i] = type_stepsize;
-                }
-            this->m_step_size = stepsize_vector;
-            m_select_ratio = fmin(mixratio, 1.0)*65535;
-            this->m_det_inertia_tensor = 1.0;
-            for(size_t i = 0; i < getNumParam(); i++)
-                {
-                this->m_provided_quantities.push_back(getParamName(i));
-                }
-            std::vector<std::vector<Scalar>> params_vector(ntypes);
-            for (auto name_and_params : params)
-                {
-                std::string type_name = pybind11::cast<std::string>(name_and_params.first);
-                std::vector<Scalar> type_params = pybind11::cast<std::vector<Scalar>>(name_and_params.second);
-                unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
-                params_vector[type_i] = type_params;
-                }
-            m_params = params_vector;
+            std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
+            Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
+            unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
+            stepsize_vector[type_i] = type_stepsize;
             }
-
-        void prepare(unsigned int timestep)
+        this->m_step_size = stepsize_vector;
+        m_select_ratio = fmin(mixratio, 1.0) * 65535;
+        this->m_det_inertia_tensor = 1.0;
+        for (size_t i = 0; i < getNumParam(); i++)
             {
-            m_params_backup = m_params;
+            this->m_provided_quantities.push_back(getParamName(i));
             }
-
-        void construct(const unsigned int& timestep,
-                       const unsigned int& type_id,
-                       typename Shape::param_type& shape,
-                       hoomd::RandomGenerator& rng)
+        std::vector<std::vector<Scalar>> params_vector(ntypes);
+        for (auto name_and_params : params)
             {
-            for(size_t i = 0; i < m_params[type_id].size(); i++)
-                {
-                hoomd::UniformDistribution<Scalar> uniform(
-                        fmax(-this->m_step_size[type_id], -(m_params[type_id][i])),
-                        fmin(this->m_step_size[type_id], (1.0-m_params[type_id][i])));
-                Scalar x = (hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio) ? uniform(rng) : 0.0;
-                m_params[type_id][i] += x;
-                }
-            pybind11::object shape_data = m_python_callback(m_params[type_id]);
-            shape = pybind11::cast< typename Shape::param_type >(shape_data);
-            detail::MassProperties<Shape> mp(shape);
-            this->m_det_inertia_tensor = mp.getDetInertiaTensor();
+            std::string type_name = pybind11::cast<std::string>(name_and_params.first);
+            std::vector<Scalar> type_params
+                = pybind11::cast<std::vector<Scalar>>(name_and_params.second);
+            unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
+            params_vector[type_i] = type_params;
             }
+        m_params = params_vector;
+        }
 
-        void retreat(unsigned int timestep)
+    void prepare(unsigned int timestep)
+        {
+        m_params_backup = m_params;
+        }
+
+    void construct(const unsigned int& timestep,
+                   const unsigned int& type_id,
+                   typename Shape::param_type& shape,
+                   hoomd::RandomGenerator& rng)
+        {
+        for (size_t i = 0; i < m_params[type_id].size(); i++)
             {
-            // move has been rejected.
-            std::swap(m_params, m_params_backup);
+            hoomd::UniformDistribution<Scalar> uniform(
+                fmax(-this->m_step_size[type_id], -(m_params[type_id][i])),
+                fmin(this->m_step_size[type_id], (1.0 - m_params[type_id][i])));
+            Scalar x = (hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio) ? uniform(rng)
+                                                                                     : 0.0;
+            m_params[type_id][i] += x;
             }
+        pybind11::object shape_data = m_python_callback(m_params[type_id]);
+        shape = pybind11::cast<typename Shape::param_type>(shape_data);
+        detail::MassProperties<Shape> mp(shape);
+        this->m_det_inertia_tensor = mp.getDetInertiaTensor();
+        }
 
-        Scalar getParam(size_t k)
+    void retreat(unsigned int timestep)
+        {
+        // move has been rejected.
+        std::swap(m_params, m_params_backup);
+        }
+
+    Scalar getParam(size_t k)
+        {
+        size_t n = 0;
+        for (size_t i = 0; i < m_params.size(); i++)
             {
-            size_t n = 0;
-            for (size_t i = 0; i < m_params.size(); i++)
-                {
-                size_t next = n + m_params[i].size();
-                if(k < next)
-                    return m_params[i][k - n];
-                n = next;
-                }
-            throw std::out_of_range("Error: Could not get parameter, index out of range.\n");
-            return Scalar(0.0);
+            size_t next = n + m_params[i].size();
+            if (k < next)
+                return m_params[i][k - n];
+            n = next;
             }
+        throw std::out_of_range("Error: Could not get parameter, index out of range.\n");
+        return Scalar(0.0);
+        }
 
-        size_t getNumParam()
-            {
-            if(m_num_params > 0 )
-                return m_num_params;
-            m_num_params = 0;
-            for (size_t i = 0; i < m_params.size(); i++)
-                m_num_params += m_params[i].size();
+    size_t getNumParam()
+        {
+        if (m_num_params > 0)
             return m_num_params;
-            }
+        m_num_params = 0;
+        for (size_t i = 0; i < m_params.size(); i++)
+            m_num_params += m_params[i].size();
+        return m_num_params;
+        }
 
-        static std::string getParamName(size_t i)
-            {
-            std::stringstream ss;
-            std::string snum;
-            ss << i;
-            ss>>snum;
-            return "shape_param-" + snum;
-            }
+    static std::string getParamName(size_t i)
+        {
+        std::stringstream ss;
+        std::string snum;
+        ss << i;
+        ss >> snum;
+        return "shape_param-" + snum;
+        }
 
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+    //! Calculates the requested log value and returns it
+    virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        {
+        for (size_t i = 0; i < m_num_params; i++)
             {
-            for(size_t i = 0; i < m_num_params; i++)
+            if (quantity == getParamName(i))
                 {
-                if(quantity == getParamName(i))
-                    {
-                    return getParam(i);
-                    }
+                return getParam(i);
                 }
-            return 0.0;
             }
+        return 0.0;
+        }
 
     pybind11::dict getParams()
         {
@@ -328,7 +345,8 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
         for (auto name_and_params : params)
             {
             std::string type_name = pybind11::cast<std::string>(name_and_params.first);
-            std::vector<Scalar> type_params = pybind11::cast<std::vector<Scalar>>(name_and_params.second);
+            std::vector<Scalar> type_params
+                = pybind11::cast<std::vector<Scalar>>(name_and_params.second);
             unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
             params_vector[type_i] = type_params;
             }
@@ -342,7 +360,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
 
     void setParamRatio(Scalar select_ratio)
         {
-        m_select_ratio = fmin(select_ratio, 1.0)*65535;
+        m_select_ratio = fmin(select_ratio, 1.0) * 65535;
         }
 
     pybind11::object getCallback()
@@ -356,672 +374,708 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
         }
 
     private:
-        std::vector<Scalar>                     m_step_size_backup; // maximum step size
-        unsigned int                            m_select_ratio;     // fraction of parameters to change in each move. internal use
-        unsigned int                            m_num_params;       // cache the number of parameters.
-        Scalar                                  m_scale;            // the scale needed to keep the particle at constant volume. internal use
-        std::vector< std::vector<Scalar> >      m_params_backup;    // all params are from 0,1
-        std::vector< std::vector<Scalar> >      m_params;           // all params are from 0,1
-        pybind11::object                        m_python_callback;  // callback that takes m_params as an argiment and returns (shape, det(I))
+    std::vector<Scalar> m_step_size_backup; // maximum step size
+    unsigned int m_select_ratio; // fraction of parameters to change in each move. internal use
+    unsigned int m_num_params;   // cache the number of parameters.
+    Scalar m_scale; // the scale needed to keep the particle at constant volume. internal use
+    std::vector<std::vector<Scalar>> m_params_backup; // all params are from 0,1
+    std::vector<std::vector<Scalar>> m_params;        // all params are from 0,1
+    pybind11::object m_python_callback; // callback that takes m_params as an argiment and returns
+                                        // (shape, det(I))
     };
 
-template< typename Shape >
-class ConstantShapeMove : public ShapeMoveBase<Shape>
+template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
     {
     public:
-        ConstantShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                          const unsigned int& ntypes,
-                          pybind11::dict shape_params)
-            : ShapeMoveBase<Shape>(sysdef, ntypes), m_shape_moves({})
+    ConstantShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                      const unsigned int& ntypes,
+                      pybind11::dict shape_params)
+        : ShapeMoveBase<Shape>(sysdef, ntypes), m_shape_moves({})
+        {
+        std::vector<pybind11::dict> shape_params_vector(ntypes);
+        for (auto name_and_params : shape_params)
             {
-            std::vector<pybind11::dict> shape_params_vector(ntypes);
-            for (auto name_and_params: shape_params)
-                {
-                std::string type_name = pybind11::cast<std::string>(name_and_params.first);
-                pybind11::dict type_params = pybind11::cast<pybind11::dict>(name_and_params.second);
-                unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
-                shape_params_vector[type_i] = type_params;
-                }
-            m_shape_params = shape_params_vector;
-            for (int i = 0; i < ntypes; i++)
-                {
-                typename Shape::param_type pt(m_shape_params[i]);
-                m_shape_moves.push_back(pt);
-                }
-            if(ntypes != m_shape_moves.size())
-                throw std::runtime_error("Must supply a shape move for each type");
-            for(size_t i = 0; i < m_shape_moves.size(); i++)
-                {
-                detail::MassProperties<Shape> mp(m_shape_moves[i]);
-                m_determinants.push_back(mp.getDetInertiaTensor());
-                }
+            std::string type_name = pybind11::cast<std::string>(name_and_params.first);
+            pybind11::dict type_params = pybind11::cast<pybind11::dict>(name_and_params.second);
+            unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
+            shape_params_vector[type_i] = type_params;
             }
-
-        void prepare(unsigned int timestep) {}
-
-        void construct(const unsigned int& timestep,
-                       const unsigned int& type_id,
-                       typename Shape::param_type& shape,
-                       hoomd::RandomGenerator& rng)
+        m_shape_params = shape_params_vector;
+        for (int i = 0; i < ntypes; i++)
             {
-            shape = m_shape_moves[type_id];
-            this->m_det_inertia_tensor = m_determinants[type_id];
+            typename Shape::param_type pt(m_shape_params[i]);
+            m_shape_moves.push_back(pt);
             }
-
-        void retreat(unsigned int timestep)
+        if (ntypes != m_shape_moves.size())
+            throw std::runtime_error("Must supply a shape move for each type");
+        for (size_t i = 0; i < m_shape_moves.size(); i++)
             {
-            // move has been rejected.
+            detail::MassProperties<Shape> mp(m_shape_moves[i]);
+            m_determinants.push_back(mp.getDetInertiaTensor());
             }
+        }
 
-        pybind11::dict getShapeParams()
-            {
-            pybind11::dict shape_params;
-            for (int i = 0; i < m_shape_params.size(); i++)
-                {
-                pybind11::str type_name = this->m_sysdef->getParticleData()->getNameByType(i);
-                shape_params[type_name] = m_shape_params[i];
-                }
-            return shape_params;
-            }
+    void prepare(unsigned int timestep) { }
 
-        void setShapeParams(pybind11::dict shape_params)
+    void construct(const unsigned int& timestep,
+                   const unsigned int& type_id,
+                   typename Shape::param_type& shape,
+                   hoomd::RandomGenerator& rng)
+        {
+        shape = m_shape_moves[type_id];
+        this->m_det_inertia_tensor = m_determinants[type_id];
+        }
+
+    void retreat(unsigned int timestep)
+        {
+        // move has been rejected.
+        }
+
+    pybind11::dict getShapeParams()
+        {
+        pybind11::dict shape_params;
+        for (int i = 0; i < m_shape_params.size(); i++)
             {
-            std::vector<pybind11::dict> shape_params_vector(m_shape_params.size());
-            for (auto name_and_params : shape_params)
-                {
-                std::string type_name = pybind11::cast<std::string>(name_and_params.first);
-                pybind11::dict type_params = pybind11::cast<pybind11::dict>(name_and_params.second);
-                unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
-                shape_params_vector[type_i] = type_params;
-                typename Shape::param_type pt(type_params);
-                m_shape_moves[type_i] = pt;
-                }
-            m_shape_params = shape_params_vector;
+            pybind11::str type_name = this->m_sysdef->getParticleData()->getNameByType(i);
+            shape_params[type_name] = m_shape_params[i];
             }
+        return shape_params;
+        }
+
+    void setShapeParams(pybind11::dict shape_params)
+        {
+        std::vector<pybind11::dict> shape_params_vector(m_shape_params.size());
+        for (auto name_and_params : shape_params)
+            {
+            std::string type_name = pybind11::cast<std::string>(name_and_params.first);
+            pybind11::dict type_params = pybind11::cast<pybind11::dict>(name_and_params.second);
+            unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
+            shape_params_vector[type_i] = type_params;
+            typename Shape::param_type pt(type_params);
+            m_shape_moves[type_i] = pt;
+            }
+        m_shape_params = shape_params_vector;
+        }
 
     private:
-        std::vector< typename Shape::param_type >   m_shape_moves;
-        std::vector< Scalar >                       m_determinants;
-        std::vector< pybind11::dict > m_shape_params;
+    std::vector<typename Shape::param_type> m_shape_moves;
+    std::vector<Scalar> m_determinants;
+    std::vector<pybind11::dict> m_shape_params;
     };
-
 
 class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedron>
     {
     public:
-        ConvexPolyhedronVertexShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                                        unsigned int ntypes,
-                                        pybind11::dict step_size,
-                                        Scalar mixratio,
-                                        Scalar volume)
-            : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef, ntypes), m_volume(volume)
+    ConvexPolyhedronVertexShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                                    unsigned int ntypes,
+                                    pybind11::dict step_size,
+                                    Scalar mixratio,
+                                    Scalar volume)
+        : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef, ntypes), m_volume(volume)
+        {
+        this->m_det_inertia_tensor = 1.0;
+        m_scale = 1.0;
+        std::vector<Scalar> stepsize_vector(ntypes);
+        for (auto name_and_stepsize : step_size)
             {
-            this->m_det_inertia_tensor = 1.0;
-            m_scale = 1.0;
-            std::vector<Scalar> stepsize_vector(ntypes);
-            for (auto name_and_stepsize : step_size)
-                {
-                std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
-                Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
-                unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
-                stepsize_vector[type_i] = type_stepsize;
-                }
-            this->m_step_size = stepsize_vector;
-            m_calculated.resize(ntypes, false);
-            m_centroids.resize(ntypes, vec3<Scalar>(0,0,0));
-            m_select_ratio = fmin(mixratio, 1.0)*65535;
-            m_step_size_backup = this->m_step_size;
+            std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
+            Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
+            unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
+            stepsize_vector[type_i] = type_stepsize;
             }
+        this->m_step_size = stepsize_vector;
+        m_calculated.resize(ntypes, false);
+        m_centroids.resize(ntypes, vec3<Scalar>(0, 0, 0));
+        m_select_ratio = fmin(mixratio, 1.0) * 65535;
+        m_step_size_backup = this->m_step_size;
+        }
 
-        Scalar getParamRatio()
+    Scalar getParamRatio()
+        {
+        return (Scalar)m_select_ratio / 65535.0;
+        }
+
+    void setParamRatio(Scalar param_ratio)
+        {
+        m_select_ratio = fmin(param_ratio, 1.0) * 65535;
+        }
+
+    Scalar getVolume()
+        {
+        return m_volume;
+        }
+
+    void setVolume(Scalar volume)
+        {
+        m_volume = volume;
+        }
+
+    void prepare(unsigned int timestep)
+        {
+        m_step_size_backup = m_step_size;
+        }
+
+    void construct(const unsigned int& timestep,
+                   const unsigned int& type_id,
+                   typename ShapeConvexPolyhedron::param_type& shape,
+                   hoomd::RandomGenerator& rng)
+        {
+        if (!m_calculated[type_id])
             {
-            return (Scalar)m_select_ratio / 65535.0;
-            }
-
-        void setParamRatio(Scalar param_ratio)
-            {
-            m_select_ratio = fmin(param_ratio, 1.0)*65535;
-            }
-
-        Scalar getVolume()
-            {
-            return m_volume;
-            }
-
-        void setVolume(Scalar volume)
-            {
-            m_volume = volume;
-            }
-
-        void prepare(unsigned int timestep)
-            {
-            m_step_size_backup = m_step_size;
-            }
-
-        void construct(const unsigned int& timestep,
-                       const unsigned int& type_id,
-                       typename ShapeConvexPolyhedron::param_type& shape,
-                       hoomd::RandomGenerator& rng)
-            {
-            if(!m_calculated[type_id])
-                {
-                detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
-                m_centroids[type_id] = mp.getCenterOfMass();
-                m_calculated[type_id] = true;
-                }
-            // mix the shape.
-            for(size_t i = 0; i < shape.N; i++)
-                {
-                if( hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio )
-                    {
-                    vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
-                    move_translate(vert, rng,  m_step_size[type_id], 3);
-                    shape.x[i] = vert.x;
-                    shape.y[i] = vert.y;
-                    shape.z[i] = vert.z;
-                    }
-                }
-
             detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
-            Scalar volume = mp.getVolume();
-            vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();
-            m_scale = fast::pow(m_volume/volume, 1.0/3.0);
-            Scalar rsq = 0.0;
-            std::vector< vec3<Scalar> > points(shape.N);
-            for(size_t i = 0; i < shape.N; i++)
+            m_centroids[type_id] = mp.getCenterOfMass();
+            m_calculated[type_id] = true;
+            }
+        // mix the shape.
+        for (size_t i = 0; i < shape.N; i++)
+            {
+            if (hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio)
                 {
-                shape.x[i] += dr.x;
-                shape.x[i] *= m_scale;
-                shape.y[i] += dr.y;
-                shape.y[i] *= m_scale;
-                shape.z[i] += dr.z;
-                shape.z[i] *= m_scale;
                 vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
-                rsq = fmax(rsq, dot(vert, vert));
-                points[i] = vert;
+                move_translate(vert, rng, m_step_size[type_id], 3);
+                shape.x[i] = vert.x;
+                shape.y[i] = vert.y;
+                shape.z[i] = vert.z;
                 }
-            std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>> p;
-            p = mp.getQuickHullVertsAndFaces(shape);
-            std::vector<std::vector<unsigned int>> faces = p.second;
-            detail::MassProperties<ShapeConvexPolyhedron> mp2(points, faces);
-            this->m_det_inertia_tensor = mp2.getDetInertiaTensor();
-            m_isoperimetric_quotient = mp2.getIsoperimetricQuotient();
-            shape.diameter = 2.0*fast::sqrt(rsq);
-            m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
             }
 
-        void retreat(unsigned int timestep)
+        detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
+        Scalar volume = mp.getVolume();
+        vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();
+        m_scale = fast::pow(m_volume / volume, 1.0 / 3.0);
+        Scalar rsq = 0.0;
+        std::vector<vec3<Scalar>> points(shape.N);
+        for (size_t i = 0; i < shape.N; i++)
             {
-            // move has been rejected.
-            std::swap(m_step_size, m_step_size_backup);
+            shape.x[i] += dr.x;
+            shape.x[i] *= m_scale;
+            shape.y[i] += dr.y;
+            shape.y[i] *= m_scale;
+            shape.z[i] += dr.z;
+            shape.z[i] *= m_scale;
+            vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
+            rsq = fmax(rsq, dot(vert, vert));
+            points[i] = vert;
             }
+        std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>> p;
+        p = mp.getQuickHullVertsAndFaces(shape);
+        std::vector<std::vector<unsigned int>> faces = p.second;
+        detail::MassProperties<ShapeConvexPolyhedron> mp2(points, faces);
+        this->m_det_inertia_tensor = mp2.getDetInertiaTensor();
+        m_isoperimetric_quotient = mp2.getIsoperimetricQuotient();
+        shape.diameter = 2.0 * fast::sqrt(rsq);
+        m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
+        }
+
+    void retreat(unsigned int timestep)
+        {
+        // move has been rejected.
+        std::swap(m_step_size, m_step_size_backup);
+        }
 
     private:
-        std::vector<Scalar>     m_step_size_backup; // maximum step size
-        unsigned int            m_select_ratio;     // probability of a vertex being selected for a move
-        Scalar                  m_scale;            // factor to scale the shape by to achieve desired constant volume
-        Scalar                  m_volume;           // desired constant volume of each shape
-        std::vector< vec3<Scalar> > m_centroids;    // centroid of each type of shape
-        std::vector<bool>       m_calculated;       // whether or not mass properties has been calculated
-    };   // end class ConvexPolyhedronVertexShapeMove
+    std::vector<Scalar> m_step_size_backup; // maximum step size
+    unsigned int m_select_ratio;            // probability of a vertex being selected for a move
+    Scalar m_scale;  // factor to scale the shape by to achieve desired constant volume
+    Scalar m_volume; // desired constant volume of each shape
+    std::vector<vec3<Scalar>> m_centroids; // centroid of each type of shape
+    std::vector<bool> m_calculated;        // whether or not mass properties has been calculated
+    };                                     // end class ConvexPolyhedronVertexShapeMove
 
-template<class Shape>
-class ElasticShapeMove : public ShapeMoveBase<Shape>
+template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     {
-
     public:
-        ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                         unsigned int ntypes,
-                         Scalar stepsize,
-                         Scalar move_ratio,
-                         std::shared_ptr<Variant> k,
-                         pybind11::dict shape_params)
-            : ShapeMoveBase<Shape>(sysdef, ntypes), m_mass_props(ntypes), m_k(k)
+    ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                     unsigned int ntypes,
+                     Scalar stepsize,
+                     Scalar move_ratio,
+                     std::shared_ptr<Variant> k,
+                     pybind11::dict shape_params)
+        : ShapeMoveBase<Shape>(sysdef, ntypes), m_mass_props(ntypes), m_k(k)
+        {
+        m_select_ratio = fmin(move_ratio, 1.0) * 65535;
+        this->m_step_size.resize(ntypes);
+        std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
+        m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
+        m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
+        this->m_det_inertia_tensor = 1.0;
+        typename Shape::param_type shape(shape_params);
+        m_reference_shape = shape;
+        detail::MassProperties<Shape> mp(m_reference_shape);
+        m_volume = mp.getVolume();
+        this->m_provided_quantities.push_back("shape_move_stiffness");
+        }
+
+    void prepare(unsigned int timestep)
+        {
+        m_Fbar_last = m_Fbar;
+        }
+
+    //! construct is called at the beginning of every update()
+    void construct(const unsigned int& timestep,
+                   const unsigned int& type_id,
+                   typename Shape::param_type& param,
+                   hoomd::RandomGenerator& rng)
+        {
+        using Eigen::Matrix3d;
+        Matrix3d transform;
+        if (hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio) // perform a scaling move
             {
-            m_select_ratio = fmin(move_ratio, 1.0)*65535;
-            this->m_step_size.resize(ntypes);
-            std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
-            m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
-            m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
-            this->m_det_inertia_tensor = 1.0;
-            typename Shape::param_type shape(shape_params);
-            m_reference_shape = shape;
-            detail::MassProperties<Shape> mp(m_reference_shape);
-            m_volume = mp.getVolume();
-            this->m_provided_quantities.push_back("shape_move_stiffness");
+            generateExtentional(transform, rng, this->m_step_size[type_id] + 1.0);
+            }
+        else // perform a rotation-scale-rotation move
+            {
+            quat<Scalar> q(1.0, vec3<Scalar>(0.0, 0.0, 0.0));
+            move_rotate<3>(q, rng, 0.5);
+            Matrix3d rot, rot_inv, scale;
+            Eigen::Quaternion<double> eq(q.s, q.v.x, q.v.y, q.v.z);
+            rot = eq.toRotationMatrix();
+            rot_inv = rot.transpose();
+            generateExtentional(scale, rng, this->m_step_size[type_id] + 1.0);
+            transform = rot * scale * rot_inv;
             }
 
-        void prepare(unsigned int timestep)
+        m_Fbar[type_id] = transform * m_Fbar[type_id];
+        Scalar dsq = 0.0;
+        for (unsigned int i = 0; i < param.N; i++)
             {
-            m_Fbar_last = m_Fbar;
+            vec3<Scalar> vert(param.x[i], param.y[i], param.z[i]);
+            param.x[i]
+                = transform(0, 0) * vert.x + transform(0, 1) * vert.y + transform(0, 2) * vert.z;
+            param.y[i]
+                = transform(1, 0) * vert.x + transform(1, 1) * vert.y + transform(1, 2) * vert.z;
+            param.z[i]
+                = transform(2, 0) * vert.x + transform(2, 1) * vert.y + transform(2, 2) * vert.z;
+            vert = vec3<Scalar>(param.x[i], param.y[i], param.z[i]);
+            dsq = fmax(dsq, dot(vert, vert));
             }
+        param.diameter = 2.0 * fast::sqrt(dsq);
+        m_mass_props[type_id].updateParam(
+            param,
+            false); // update allows caching since for some shapes a full compute is not necessary.
+        this->m_det_inertia_tensor = m_mass_props[type_id].getDetInertiaTensor();
+#ifdef DEBUG
+        detail::MassProperties<Shape> mp(param);
+        this->m_det_inertia_tensor = mp.getDetInertiaTensor();
+        assert(fabs(this->m_det_inertia_tensor - mp.getDetInertiaTensor()) < 1e-5);
+#endif
+        }
 
-        //! construct is called at the beginning of every update()
-        void construct(const unsigned int& timestep,
-                       const unsigned int& type_id,
-                       typename Shape::param_type& param,
-                       hoomd::RandomGenerator& rng)
+    Eigen::Matrix3d getEps(unsigned int type_id)
+        {
+        return 0.5
+               * ((m_Fbar[type_id].transpose() * m_Fbar[type_id]) - Eigen::Matrix3d::Identity());
+        }
+
+    Eigen::Matrix3d getEpsLast(unsigned int type_id)
+        {
+        return 0.5
+               * ((m_Fbar_last[type_id].transpose() * m_Fbar_last[type_id])
+                  - Eigen::Matrix3d::Identity());
+        }
+
+    //! retreat whenever the proposed move is rejected.
+    void retreat(unsigned int timestep)
+        {
+        m_Fbar.swap(
+            m_Fbar_last); // we can swap because m_Fbar_last will be reset on the next prepare
+        }
+
+    Scalar getParamRatio()
+        {
+        return (Scalar)m_select_ratio / 65535.0;
+        }
+
+    void setParamRatio(Scalar param_ratio)
+        {
+        m_select_ratio = fmin(param_ratio, 1.0) * 65535;
+        }
+
+    //! Get the stepsize
+    Scalar getStepsizeValue()
+        {
+        return this->m_step_size[0];
+        }
+
+    //! Set the step size
+    void setStepsizeValue(Scalar stepsize)
+        {
+        std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
+        }
+
+    void setStiffness(std::shared_ptr<Variant> stiff)
+        {
+        m_k = stiff;
+        }
+
+    std::shared_ptr<Variant> getStiffness() const
+        {
+        return m_k;
+        }
+
+    void setReference(pybind11::dict reference)
+        {
+        typename Shape::param_type shape(reference);
+        m_reference_shape = shape;
+        detail::MassProperties<Shape> mp(m_reference_shape);
+        m_volume = mp.getVolume();
+        }
+
+    pybind11::dict getReference()
+        {
+        std::vector<pybind11::dict> references;
+        return m_reference_shape.asDict();
+        }
+
+    //! Method that is called whenever the GSD file is written if connected to a GSD file.
+    int writeGSD(gsd_handle& handle,
+                 std::string name,
+                 const std::shared_ptr<const ExecutionConfiguration> exec_conf,
+                 bool mpi) const
+        {
+        if (!exec_conf->isRoot())
+            return 0;
+
+        // Call base method for stepsize
+        int retval = ShapeMoveBase<Shape>::writeGSD(handle, name, exec_conf, mpi);
+        // flatten deformation matrix before writting to GSD
+        unsigned int Ntypes = this->m_step_size.size();
+        int rows = Ntypes * 3;
+        std::vector<float> data(rows * 3);
+        size_t count = 0;
+        for (unsigned int i = 0; i < Ntypes; i++)
             {
-            using Eigen::Matrix3d;
-            Matrix3d transform;
-            if( hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio ) // perform a scaling move
+            for (unsigned int j = 0; j < 3; j++)
                 {
-                generateExtentional(transform, rng, this->m_step_size[type_id]+1.0);
-                }
-            else                                        // perform a rotation-scale-rotation move
-                {
-                quat<Scalar> q(1.0,vec3<Scalar>(0.0,0.0,0.0));
-                move_rotate<3>(q, rng, 0.5);
-                Matrix3d rot, rot_inv, scale;
-                Eigen::Quaternion<double> eq(q.s, q.v.x, q.v.y, q.v.z);
-                rot = eq.toRotationMatrix();
-                rot_inv = rot.transpose();
-                generateExtentional(scale, rng, this->m_step_size[type_id]+1.0);
-                transform = rot*scale*rot_inv;
-                }
-
-            m_Fbar[type_id] = transform*m_Fbar[type_id];
-            Scalar dsq = 0.0;
-            for(unsigned int i = 0; i < param.N; i++)
-                {
-                vec3<Scalar> vert(param.x[i], param.y[i], param.z[i]);
-                param.x[i] = transform(0,0)*vert.x + transform(0,1)*vert.y + transform(0,2)*vert.z;
-                param.y[i] = transform(1,0)*vert.x + transform(1,1)*vert.y + transform(1,2)*vert.z;
-                param.z[i] = transform(2,0)*vert.x + transform(2,1)*vert.y + transform(2,2)*vert.z;
-                vert = vec3<Scalar>( param.x[i], param.y[i], param.z[i]);
-                dsq = fmax(dsq, dot(vert, vert));
-                }
-            param.diameter = 2.0*fast::sqrt(dsq);
-            m_mass_props[type_id].updateParam(param, false); // update allows caching since for some shapes a full compute is not necessary.
-            this->m_det_inertia_tensor = m_mass_props[type_id].getDetInertiaTensor();
-            #ifdef DEBUG
-                detail::MassProperties<Shape> mp(param);
-                this->m_det_inertia_tensor = mp.getDetInertiaTensor();
-                assert(fabs(this->m_det_inertia_tensor-mp.getDetInertiaTensor()) < 1e-5);
-            #endif
-            }
-
-        Eigen::Matrix3d getEps(unsigned int type_id)
-            {
-            return 0.5*((m_Fbar[type_id].transpose()*m_Fbar[type_id]) - Eigen::Matrix3d::Identity());
-            }
-
-        Eigen::Matrix3d getEpsLast(unsigned int type_id)
-            {
-            return 0.5*((m_Fbar_last[type_id].transpose()*m_Fbar_last[type_id]) - Eigen::Matrix3d::Identity());
-            }
-
-        //! retreat whenever the proposed move is rejected.
-        void retreat(unsigned int timestep)
-            {
-            m_Fbar.swap(m_Fbar_last); // we can swap because m_Fbar_last will be reset on the next prepare
-            }
-
-        Scalar getParamRatio()
-            {
-            return (Scalar)m_select_ratio / 65535.0;
-            }
-
-        void setParamRatio(Scalar param_ratio)
-            {
-            m_select_ratio = fmin(param_ratio, 1.0)*65535;
-            }
-
-        //! Get the stepsize
-       Scalar getStepsizeValue()
-            {
-            return this->m_step_size[0];
-            }
-
-        //! Set the step size
-        void setStepsizeValue(Scalar stepsize)
-            {
-            std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
-            }
-
-        void setStiffness(std::shared_ptr<Variant> stiff)
-            {
-            m_k = stiff;
-            }
-
-        std::shared_ptr<Variant> getStiffness() const
-            {
-            return m_k;
-            }
-
-        void setReference(pybind11::dict reference)
-            {
-            typename Shape::param_type shape(reference);
-            m_reference_shape = shape;
-            detail::MassProperties<Shape> mp(m_reference_shape);
-            m_volume = mp.getVolume();
-            }
-
-        pybind11::dict getReference()
-            {
-            std::vector<pybind11::dict> references;
-            return m_reference_shape.asDict();
-            }
-
-        //! Method that is called whenever the GSD file is written if connected to a GSD file.
-        int writeGSD(gsd_handle& handle, std::string name, const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) const
-            {
-
-            if(!exec_conf->isRoot())
-                return 0;
-
-            // Call base method for stepsize
-            int retval = ShapeMoveBase<Shape>::writeGSD(handle, name, exec_conf, mpi);
-            // flatten deformation matrix before writting to GSD
-            unsigned int Ntypes = this->m_step_size.size();
-            int rows = Ntypes*3;
-            std::vector<float> data(rows*3);
-            size_t count = 0;
-            for(unsigned int i = 0; i < Ntypes; i++)
-                {
-                for (unsigned int j = 0; j < 3; j++)
-                    {
-                    data[count*3+0] = float(m_Fbar[i](0,j));
-                    data[count*3+1] = float(m_Fbar[i](1,j));
-                    data[count*3+2] = float(m_Fbar[i](2,j));
-                    count++;
-                  };
+                data[count * 3 + 0] = float(m_Fbar[i](0, j));
+                data[count * 3 + 1] = float(m_Fbar[i](1, j));
+                data[count * 3 + 2] = float(m_Fbar[i](2, j));
+                count++;
                 };
+            };
+        std::string path = name + "defmat";
+        exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: " << name
+                                  << std::endl;
+        retval
+            |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, rows, 3, 0, (void*)&data[0]);
+        return retval;
+        };
+
+    //! Method that is called to connect to the gsd write state signal
+    virtual bool restoreStateGSD(std::shared_ptr<GSDReader> reader,
+                                 std::string name,
+                                 const std::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                 bool mpi)
+        {
+        // Call base method for stepsize
+        bool success = ShapeMoveBase<Shape>::restoreStateGSD(reader, name, exec_conf, mpi);
+        unsigned int Ntypes = this->m_step_size.size();
+        uint64_t frame = reader->getFrame();
+        std::vector<float> defmat(Ntypes * 3 * 3, 0.0);
+        if (exec_conf->isRoot())
+            {
             std::string path = name + "defmat";
-            exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: "<< name << std::endl;
-            retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, rows, 3, 0, (void *)&data[0]);
-            return retval;
-            };
+            exec_conf->msg->notice(2)
+                << "shape_move reading from GSD File from name: " << name << std::endl;
+            success = reader->readChunk((void*)&defmat[0],
+                                        frame,
+                                        path.c_str(),
+                                        3 * 3 * Ntypes * gsd_sizeof_type(GSD_TYPE_FLOAT),
+                                        3 * Ntypes)
+                      && success;
+            exec_conf->msg->notice(2)
+                << "defmat success: " << std::boolalpha << success << std::endl;
+            }
 
-        //! Method that is called to connect to the gsd write state signal
-        virtual bool restoreStateGSD(   std::shared_ptr<GSDReader> reader,
-                                        std::string name,
-                                        const std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                                        bool mpi)
+#ifdef ENABLE_MPI
+        if (mpi)
             {
-            // Call base method for stepsize
-            bool success = ShapeMoveBase<Shape>::restoreStateGSD(reader, name, exec_conf, mpi);
-            unsigned int Ntypes = this->m_step_size.size();
-            uint64_t frame = reader->getFrame();
-            std::vector<float> defmat(Ntypes*3*3,0.0);
-            if(exec_conf->isRoot())
+            bcast(defmat, 0, exec_conf->getMPICommunicator());
+            }
+#endif
+
+        if (defmat.size() != (this->m_Fbar).size() * 3 * 3)
+            {
+            throw std::runtime_error("Error occured while attempting to restore from gsd file.");
+            }
+
+        size_t count = 0;
+        for (unsigned int i = 0; i < (this->m_Fbar).size(); i++)
+            {
+            for (unsigned int j = 0; j < 3; j++)
                 {
-                std::string path = name + "defmat";
-                exec_conf->msg->notice(2) << "shape_move reading from GSD File from name: "<< name << std::endl;
-                success = reader->readChunk((void *)&defmat[0], frame, path.c_str(), 3*3*Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), 3*Ntypes) && success;
-                exec_conf->msg->notice(2) << "defmat success: " << std::boolalpha << success << std::endl;
+                this->m_Fbar[i](0, j) = defmat[count * 3 + 0];
+                this->m_Fbar[i](1, j) = defmat[count * 3 + 1];
+                this->m_Fbar[i](2, j) = defmat[count * 3 + 2];
+                count++;
                 }
-
-            #ifdef ENABLE_MPI
-            if(mpi)
-                {
-                bcast(defmat, 0, exec_conf->getMPICommunicator());
-                }
-            #endif
-
-            if(defmat.size() != (this->m_Fbar).size()*3*3)
-                {
-                throw std::runtime_error("Error occured while attempting to restore from gsd file.");
-                }
-
-            size_t count = 0;
-            for(unsigned int i = 0; i < (this->m_Fbar).size(); i++)
-                {
-                for (unsigned int j = 0; j < 3; j++)
-                    {
-                    this->m_Fbar[i](0,j) = defmat[count*3+0];
-                    this->m_Fbar[i](1,j) = defmat[count*3+1];
-                    this->m_Fbar[i](2,j) = defmat[count*3+2];
-                    count++;
-                    }
-                }
-
-            return success;
-            };
-
-        Scalar operator()(const unsigned int& timestep, const unsigned int& N, const unsigned int type_id ,const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
-            {
-            Scalar newdivold = inew/iold;
-            if (newdivold < 0.0) {newdivold = -1.0*newdivold;} // MOI may be negative depending on order of vertices
-            Scalar inertia_term = (Scalar(N)/Scalar(2.0))*log(newdivold);
-            Scalar stiff = this->m_k->operator()(timestep);
-            Eigen::Matrix3d eps = this->getEps(type_id);
-            Eigen::Matrix3d eps_last = this->getEpsLast(type_id);
-            Scalar e_ddot_e = (eps*eps.transpose()).trace();
-            Scalar e_ddot_e_last = (eps_last*eps_last.transpose()).trace();
-            // TODO: To make this more correct we need to calculate the previous volume and multiply accodingly.
-            return N*stiff*(e_ddot_e_last-e_ddot_e)*this->m_volume + inertia_term;
             }
 
-        Scalar computeEnergy(const unsigned int &timestep, const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia)
+        return success;
+        };
+
+    Scalar operator()(const unsigned int& timestep,
+                      const unsigned int& N,
+                      const unsigned int type_id,
+                      const typename Shape::param_type& shape_new,
+                      const Scalar& inew,
+                      const typename Shape::param_type& shape_old,
+                      const Scalar& iold)
+        {
+        Scalar newdivold = inew / iold;
+        if (newdivold < 0.0)
             {
-            Scalar stiff = this->m_k->operator()(timestep);
-            Eigen::Matrix3d eps = this->getEps(type_id);
-            Scalar e_ddot_e = (eps*eps.transpose()).trace();
-            return N*stiff*e_ddot_e*this->m_volume;
-            }
+            newdivold = -1.0 * newdivold;
+            } // MOI may be negative depending on order of vertices
+        Scalar inertia_term = (Scalar(N) / Scalar(2.0)) * log(newdivold);
+        Scalar stiff = this->m_k->operator()(timestep);
+        Eigen::Matrix3d eps = this->getEps(type_id);
+        Eigen::Matrix3d eps_last = this->getEpsLast(type_id);
+        Scalar e_ddot_e = (eps * eps.transpose()).trace();
+        Scalar e_ddot_e_last = (eps_last * eps_last.transpose()).trace();
+        // TODO: To make this more correct we need to calculate the previous volume and multiply
+        // accodingly.
+        return N * stiff * (e_ddot_e_last - e_ddot_e) * this->m_volume + inertia_term;
+        }
 
-        //! Calculates the requested log value and returns it
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+    Scalar computeEnergy(const unsigned int& timestep,
+                         const unsigned int& N,
+                         const unsigned int type_id,
+                         const typename Shape::param_type& shape,
+                         const Scalar& inertia)
+        {
+        Scalar stiff = this->m_k->operator()(timestep);
+        Eigen::Matrix3d eps = this->getEps(type_id);
+        Scalar e_ddot_e = (eps * eps.transpose()).trace();
+        return N * stiff * e_ddot_e * this->m_volume;
+        }
+
+    //! Calculates the requested log value and returns it
+    Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        {
+        if (quantity == "shape_move_stiffness")
             {
-            if(quantity == "shape_move_stiffness")
-                {
-                return (*m_k)(timestep);
-                }
-            else {return 0.0;}
+            return (*m_k)(timestep);
             }
-
-        protected:
-            unsigned int m_select_ratio;                               // probability of performing a scaling move vs a rotation-scale-rotation move
-            std::vector< detail::MassProperties<Shape> > m_mass_props; // mass properties of the shape
-            std::vector <Eigen::Matrix3d> m_Fbar_last;                 // matrix representing shape deformation at the last step
-            std::vector <Eigen::Matrix3d> m_Fbar;                      // matrix representing shape deformation at the current step
-            Scalar m_volume;                                           // volume of shape
-            typename Shape::param_type m_reference_shape; // shape to reference shape move against
-            std::shared_ptr<Variant> m_k;                              // shape move stiffness
-
-        private:
-
-            // These are ElasticShapeMove specific helper functions to randomly
-            // sample point on the XYZ=1 surface from a uniform distribution
-
-            //! Check if a point (x,y) lies in the projection of xyz=1 surface
-            //! on the xy plane
-            inline bool inInSurfaceProjection(Scalar x, Scalar y, Scalar alpha)
-                {
-                if(x < Scalar(1.0) && y > Scalar(1.0)/(alpha*x))
-                    return true;
-                else if(x >= Scalar(1.0) && y < alpha/x)
-                    return true;
-                else
-                    return false;
-                }
-
-             //! Sample points on the projection of xyz=1
-            inline void sampleOnSurfaceProjection(Scalar& x,
-                                                  Scalar& y,
-                                                  hoomd::RandomGenerator& rng,
-                                                  Scalar alpha)
-                {
-                hoomd::UniformDistribution<Scalar> uniform(Scalar(1)/alpha, alpha);
-                do
-                    {
-                    x = uniform(rng);
-                    y = uniform(rng);
-                    }while(!inInSurfaceProjection(x,y,alpha));
-                }
-
-            //! Sample points on the projection of xyz=1 surface
-            inline void sampleOnSurface(Scalar& x, Scalar& y, hoomd::RandomGenerator& rng, Scalar alpha)
-                {
-                Scalar sigma_max = 0.0, sigma = 0.0, U = 0.0;
-                Scalar alpha2 = alpha*alpha;
-                Scalar alpha4 = alpha2*alpha2;
-                sigma_max = fast::sqrt(alpha4 + alpha2 + 1);
-                do
-                    {
-                    sampleOnSurfaceProjection(x,y,rng,alpha);
-                    sigma = fast::sqrt((1.0/(x*x*x*x*y*y)) + (1.0/(x*x*y*y*y*y)) + 1);
-                    U = hoomd::detail::generate_canonical<Scalar>(rng);
-                    }while(U > sigma/sigma_max);
-                }
-
-            //! Generate an volume conserving extentional deformation matrix
-            inline void generateExtentional(Eigen::Matrix3d& S, hoomd::RandomGenerator& rng, Scalar alpha)
-                {
-                Scalar x = 0.0, y = 0.0, z = 0.0;
-                sampleOnSurface(x, y, rng, alpha);
-                z = Scalar(1.0)/x/y;
-                S << x, 0.0, 0.0,
-                     0.0, y, 0.0,
-                     0.0, 0.0, z;
-                }
-    };
-
-template <>
-class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
-    {
-
-    public:
-
-        ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                         unsigned int ntypes,
-                         Scalar stepsize,
-                         Scalar move_ratio,
-                         std::shared_ptr<Variant> k,
-                         pybind11::dict shape_params)
-                         : ShapeMoveBase<ShapeEllipsoid>(sysdef, ntypes),
-                         m_mass_props(ntypes), m_k(k)
+        else
             {
-            m_step_size.resize(ntypes, stepsize);
-            std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
-            m_select_ratio = fmin(move_ratio, 1.0)*65535;
-            typename ShapeEllipsoid::param_type shape(shape_params);
-            m_reference_shape = shape;
-            detail::MassProperties<ShapeEllipsoid> mp(m_reference_shape);
-            m_volume = mp.getVolume();
-            m_provided_quantities.push_back("shape_move_stiffness");
+            return 0.0;
             }
+        }
 
-        Scalar getParamRatio()
-            {
-            return (Scalar)m_select_ratio / 65535.0;
-            }
-
-        void setParamRatio(Scalar param_ratio)
-            {
-            m_select_ratio = fmin(param_ratio, 1.0)*65535;
-            }
-
-        //! Get the stepsize
-       Scalar getStepsizeValue()
-            {
-            return this->m_step_size[0];
-            }
-
-        //! Set the step size
-        void setStepsizeValue(Scalar stepsize)
-            {
-            std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
-            }
-
-        void setStiffness(std::shared_ptr<Variant> stiff)
-            {
-            m_k = stiff;
-            }
-
-        std::shared_ptr<Variant> getStiffness() const
-            {
-            return m_k;
-            }
-
-        void setReference(pybind11::dict reference)
-            {
-            typename ShapeEllipsoid::param_type shape(reference);
-            m_reference_shape = shape;
-            detail::MassProperties<ShapeEllipsoid> mp(m_reference_shape);
-            m_volume = mp.getVolume();
-            }
-
-        pybind11::dict getReference()
-            {
-            std::vector<pybind11::dict> references;
-            return m_reference_shape.asDict();
-            }
-
-        void construct(const unsigned int& timestep, const unsigned int& type_id,
-                       typename ShapeEllipsoid::param_type& param, hoomd::RandomGenerator& rng)
-            {
-            Scalar lnx = log(param.x/param.y);
-            Scalar dlnx = hoomd::UniformDistribution<Scalar>(-m_step_size[type_id], m_step_size[type_id])(rng);
-            Scalar x = fast::exp(lnx+dlnx);
-            m_mass_props[type_id].updateParam(param);
-            Scalar volume = m_mass_props[type_id].getVolume();
-            Scalar vol_factor = detail::MassProperties<ShapeEllipsoid>::m_vol_factor;
-            Scalar b = fast::pow(volume/vol_factor/x, 1.0/3.0);
-            param.x = x*b;
-            param.y = b;
-            param.z = b;
-            }
-
-        void prepare(unsigned int timestep)
-            {
-            }
-
-        void retreat(unsigned int timestep)
-            {
-            }
-
-        //! Calculates the requested log value and returns it
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-            {
-            if(quantity == "shape_move_stiffness")
-                {
-                return (*m_k)(timestep);
-                }
-            else {return 0.0;}
-            }
-
-        virtual Scalar operator()(const unsigned int& timestep, const unsigned int& N, const unsigned int type_id ,const typename ShapeEllipsoid::param_type& shape_new, const Scalar& inew, const typename ShapeEllipsoid::param_type& shape_old, const Scalar& iold)
-            {
-            Scalar stiff = this->m_k->operator()(timestep);
-            Scalar x_new = shape_new.x/shape_new.y;
-            Scalar x_old = shape_old.x/shape_old.y;
-            return stiff*(log(x_old)*log(x_old) - log(x_new)*log(x_new));
-            }
-
-        virtual Scalar computeEnergy(const unsigned int &timestep, const unsigned int& N, const unsigned int type_id, const typename ShapeEllipsoid::param_type& shape, const Scalar& inertia)
-            {
-            Scalar stiff = (*m_k)(timestep);
-            Scalar logx = log(shape.x/shape.y);
-            return N*stiff*logx*logx;
-            }
-
+    protected:
+    unsigned int m_select_ratio; // probability of performing a scaling move vs a
+                                 // rotation-scale-rotation move
+    std::vector<detail::MassProperties<Shape>> m_mass_props; // mass properties of the shape
+    std::vector<Eigen::Matrix3d>
+        m_Fbar_last; // matrix representing shape deformation at the last step
+    std::vector<Eigen::Matrix3d>
+        m_Fbar;      // matrix representing shape deformation at the current step
+    Scalar m_volume; // volume of shape
+    typename Shape::param_type m_reference_shape; // shape to reference shape move against
+    std::shared_ptr<Variant> m_k;                 // shape move stiffness
 
     private:
-        std::vector< detail::MassProperties<ShapeEllipsoid> > m_mass_props; // mass properties of the shape
-        Scalar m_select_ratio;
-        Scalar m_volume;                                               // volume of shape
-        typename ShapeEllipsoid::param_type m_reference_shape; // shape to reference shape move against
-        std::shared_ptr<Variant> m_k;                                  // shape move stiffness
+    // These are ElasticShapeMove specific helper functions to randomly
+    // sample point on the XYZ=1 surface from a uniform distribution
+
+    //! Check if a point (x,y) lies in the projection of xyz=1 surface
+    //! on the xy plane
+    inline bool inInSurfaceProjection(Scalar x, Scalar y, Scalar alpha)
+        {
+        if (x < Scalar(1.0) && y > Scalar(1.0) / (alpha * x))
+            return true;
+        else if (x >= Scalar(1.0) && y < alpha / x)
+            return true;
+        else
+            return false;
+        }
+
+    //! Sample points on the projection of xyz=1
+    inline void
+    sampleOnSurfaceProjection(Scalar& x, Scalar& y, hoomd::RandomGenerator& rng, Scalar alpha)
+        {
+        hoomd::UniformDistribution<Scalar> uniform(Scalar(1) / alpha, alpha);
+        do
+            {
+            x = uniform(rng);
+            y = uniform(rng);
+            } while (!inInSurfaceProjection(x, y, alpha));
+        }
+
+    //! Sample points on the projection of xyz=1 surface
+    inline void sampleOnSurface(Scalar& x, Scalar& y, hoomd::RandomGenerator& rng, Scalar alpha)
+        {
+        Scalar sigma_max = 0.0, sigma = 0.0, U = 0.0;
+        Scalar alpha2 = alpha * alpha;
+        Scalar alpha4 = alpha2 * alpha2;
+        sigma_max = fast::sqrt(alpha4 + alpha2 + 1);
+        do
+            {
+            sampleOnSurfaceProjection(x, y, rng, alpha);
+            sigma
+                = fast::sqrt((1.0 / (x * x * x * x * y * y)) + (1.0 / (x * x * y * y * y * y)) + 1);
+            U = hoomd::detail::generate_canonical<Scalar>(rng);
+            } while (U > sigma / sigma_max);
+        }
+
+    //! Generate an volume conserving extentional deformation matrix
+    inline void generateExtentional(Eigen::Matrix3d& S, hoomd::RandomGenerator& rng, Scalar alpha)
+        {
+        Scalar x = 0.0, y = 0.0, z = 0.0;
+        sampleOnSurface(x, y, rng, alpha);
+        z = Scalar(1.0) / x / y;
+        S << x, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, z;
+        }
     };
 
+template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
+    {
+    public:
+    ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                     unsigned int ntypes,
+                     Scalar stepsize,
+                     Scalar move_ratio,
+                     std::shared_ptr<Variant> k,
+                     pybind11::dict shape_params)
+        : ShapeMoveBase<ShapeEllipsoid>(sysdef, ntypes), m_mass_props(ntypes), m_k(k)
+        {
+        m_step_size.resize(ntypes, stepsize);
+        std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
+        m_select_ratio = fmin(move_ratio, 1.0) * 65535;
+        typename ShapeEllipsoid::param_type shape(shape_params);
+        m_reference_shape = shape;
+        detail::MassProperties<ShapeEllipsoid> mp(m_reference_shape);
+        m_volume = mp.getVolume();
+        m_provided_quantities.push_back("shape_move_stiffness");
+        }
 
-template<class Shape>
-void export_ShapeMoveInterface(pybind11::module& m, const std::string& name);
+    Scalar getParamRatio()
+        {
+        return (Scalar)m_select_ratio / 65535.0;
+        }
 
-template<class Shape>
-void export_ElasticShapeMove(pybind11::module& m, const std::string& name);
+    void setParamRatio(Scalar param_ratio)
+        {
+        m_select_ratio = fmin(param_ratio, 1.0) * 65535;
+        }
+
+    //! Get the stepsize
+    Scalar getStepsizeValue()
+        {
+        return this->m_step_size[0];
+        }
+
+    //! Set the step size
+    void setStepsizeValue(Scalar stepsize)
+        {
+        std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
+        }
+
+    void setStiffness(std::shared_ptr<Variant> stiff)
+        {
+        m_k = stiff;
+        }
+
+    std::shared_ptr<Variant> getStiffness() const
+        {
+        return m_k;
+        }
+
+    void setReference(pybind11::dict reference)
+        {
+        typename ShapeEllipsoid::param_type shape(reference);
+        m_reference_shape = shape;
+        detail::MassProperties<ShapeEllipsoid> mp(m_reference_shape);
+        m_volume = mp.getVolume();
+        }
+
+    pybind11::dict getReference()
+        {
+        std::vector<pybind11::dict> references;
+        return m_reference_shape.asDict();
+        }
+
+    void construct(const unsigned int& timestep,
+                   const unsigned int& type_id,
+                   typename ShapeEllipsoid::param_type& param,
+                   hoomd::RandomGenerator& rng)
+        {
+        Scalar lnx = log(param.x / param.y);
+        Scalar dlnx
+            = hoomd::UniformDistribution<Scalar>(-m_step_size[type_id], m_step_size[type_id])(rng);
+        Scalar x = fast::exp(lnx + dlnx);
+        m_mass_props[type_id].updateParam(param);
+        Scalar volume = m_mass_props[type_id].getVolume();
+        Scalar vol_factor = detail::MassProperties<ShapeEllipsoid>::m_vol_factor;
+        Scalar b = fast::pow(volume / vol_factor / x, 1.0 / 3.0);
+        param.x = x * b;
+        param.y = b;
+        param.z = b;
+        }
+
+    void prepare(unsigned int timestep) { }
+
+    void retreat(unsigned int timestep) { }
+
+    //! Calculates the requested log value and returns it
+    Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        {
+        if (quantity == "shape_move_stiffness")
+            {
+            return (*m_k)(timestep);
+            }
+        else
+            {
+            return 0.0;
+            }
+        }
+
+    virtual Scalar operator()(const unsigned int& timestep,
+                              const unsigned int& N,
+                              const unsigned int type_id,
+                              const typename ShapeEllipsoid::param_type& shape_new,
+                              const Scalar& inew,
+                              const typename ShapeEllipsoid::param_type& shape_old,
+                              const Scalar& iold)
+        {
+        Scalar stiff = this->m_k->operator()(timestep);
+        Scalar x_new = shape_new.x / shape_new.y;
+        Scalar x_old = shape_old.x / shape_old.y;
+        return stiff * (log(x_old) * log(x_old) - log(x_new) * log(x_new));
+        }
+
+    virtual Scalar computeEnergy(const unsigned int& timestep,
+                                 const unsigned int& N,
+                                 const unsigned int type_id,
+                                 const typename ShapeEllipsoid::param_type& shape,
+                                 const Scalar& inertia)
+        {
+        Scalar stiff = (*m_k)(timestep);
+        Scalar logx = log(shape.x / shape.y);
+        return N * stiff * logx * logx;
+        }
+
+    private:
+    std::vector<detail::MassProperties<ShapeEllipsoid>>
+        m_mass_props; // mass properties of the shape
+    Scalar m_select_ratio;
+    Scalar m_volume;                                       // volume of shape
+    typename ShapeEllipsoid::param_type m_reference_shape; // shape to reference shape move against
+    std::shared_ptr<Variant> m_k;                          // shape move stiffness
+    };
+
+template<class Shape> void export_ShapeMoveInterface(pybind11::module& m, const std::string& name);
+
+template<class Shape> void export_ElasticShapeMove(pybind11::module& m, const std::string& name);
 
 template<class Shape>
 void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std::string& name);
 
-template<class Shape>
-void export_PythonShapeMove(pybind11::module& m, const std::string& name);
+template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std::string& name);
 
-template<class Shape>
-void export_ConstantShapeMove(pybind11::module& m, const std::string& name);
+template<class Shape> void export_ConstantShapeMove(pybind11::module& m, const std::string& name);
 
-}
+    } // namespace hpmc
 
 #endif
