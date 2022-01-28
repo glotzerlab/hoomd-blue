@@ -70,7 +70,7 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
     for (int i = 0; i < 6; i++)
         virial[i] = Scalar(0.0);
     
-    Scalar area = 0.0;
+    // Scalar area = 0.0;
     // loop over all triangles
     for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
         {
@@ -132,7 +132,7 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
         ds_drc = - 1.0 * c_baac * inv_s_baac * dc_drc;
 
         Scalar numerator_base;
-        area += rab * rac * s_baac / 2;
+        // area += rab * rac * s_baac / 2;
         numerator_base = rab * rac * s_baac / 2 - At;
 
         Scalar3 Fa = - K / (2 * At) * numerator_base * (-nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
@@ -153,7 +153,7 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force;
-    d_area[idx] = area;
+    // d_area[idx] = area;
 
     for (unsigned int i = 0; i < 6; i++)
         d_virial[i * virial_pitch + idx] = virial[i];
@@ -207,7 +207,7 @@ hipError_t gpu_compute_AreaConservation_force(Scalar4* d_force,
                        dim3(threads),
                        0,
                        0,
-                       d_area,
+                    //    d_area,
                        d_force,
                        d_virial,
                        virial_pitch,
