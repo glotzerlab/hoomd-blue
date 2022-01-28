@@ -42,34 +42,15 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(std::sh
     h_flags.data[0] = 0;
 
     unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    m_tuner_force.reset(
+    m_tuner.reset(
         new Autotuner(warp_size, 1024, warp_size, 5, 100000, "AreaConservation_forces", this->m_exec_conf));
-    // m_tuner_area.reset(
-    //     new Autotuner(warp_size, 1024, warp_size, 5, 100000, "AreaConservation_area", this->m_exec_conf));
-
-    // GlobalVector<Scalar> tmp_area(m_pdata->getN(), m_exec_conf);
-
-    //     {
-    //     ArrayHandle<Scalar> old_area(m_area, access_location::host);
-
-    //     ArrayHandle<Scalar> area(tmp_area, access_location::host);
-
-    //     // for each type of the particles in the group
-    //     for (unsigned int i = 0; i < m_pdata->getN(); i++)
-    //         {
-    //         area.data[i] = old_area.data[i];
-    //         }
-    //     }
-
-    // m_area.swap(tmp_area);
-
     }
 
 void AreaConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar A0)
     {
     AreaConservationMeshForceCompute::setParams(type, K, A0);
 
-    ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
     h_params.data[type] = make_scalar2(K, A0);
     }
@@ -85,7 +66,6 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
 
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    // ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
 
     const GPUArray<typename MeshTriangle::members_t>& gpu_meshtriangle_list = this->m_mesh_data->getMeshTriangleData()->getGPUTable();
     const Index2D& gpu_table_indexer = this->m_mesh_data->getMeshTriangleData()->getGPUTableIndexer();
@@ -97,26 +77,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                                   access_location::device,
                                                   access_mode::read);                                                                         
     
-    ArrayHandle<Scalar> d_area(m_area, access_location::device, access_mode::overwrite); //access_mode::readwrite
-
     BoxDim box = this->m_pdata->getGlobalBox();
-
-    // m_tuner_area->begin();
-    // kernel::gpu_compute_AreaConservation_area(d_area.data,
-    //                                           m_pdata->getN(),
-    //                                           d_pos.data,
-    //                                           box,
-    //                                           d_gpu_meshtrianglelist.data,
-    //                                           gpu_table_indexer,
-    //                                           d_gpu_n_meshtriangle.data,
-    //                                           m_tuner_area->getParam());
-
-    // if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-    //     {
-    //     CHECK_CUDA_ERROR();
-	// }
-
-    // m_tuner_area->end();
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
@@ -126,7 +87,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
 
-    m_tuner_force->begin();
+    m_tuner->begin();
     kernel::gpu_compute_AreaConservation_force(d_force.data,
                                                d_virial.data,
                                                m_virial.getPitch(),
@@ -138,7 +99,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                                d_gpu_n_meshtriangle.data,
                                                d_params.data,
                                                m_mesh_data->getMeshTriangleData()->getNTypes(),
-                                               m_tuner_force->getParam(),
+                                               m_tuner->getParam(),
                                                d_flags.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -157,7 +118,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
             throw std::runtime_error("Error in meshtriangle calculation");
             }
         }
-    m_tuner_force->end();
+    m_tuner->end();
 
     if (this->m_prof)
         this->m_prof->pop(this->m_exec_conf);
