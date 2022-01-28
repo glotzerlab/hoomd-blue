@@ -34,13 +34,6 @@ AreaConservationMeshForceCompute::AreaConservationMeshForceCompute(std::shared_p
     // allocate the parameters
     m_K = new Scalar[m_pdata->getNTypes()];
     m_A0 = new Scalar[m_pdata->getNTypes()];
-
-// #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-//     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-//         {
-
-//         }
-// #endif
     }
 
 AreaConservationMeshForceCompute::~AreaConservationMeshForceCompute()
@@ -55,12 +48,12 @@ AreaConservationMeshForceCompute::~AreaConservationMeshForceCompute()
 
 /*! \param type Type of the angle to set parameters for
     \param K Stiffness parameter for the force computation
-    Sets parameters for the potential of a particular angle type
     \param A0 desired surface area to maintain for the force computation
+
+    Sets parameters for the potential of a particular angle type
 */
 void AreaConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar A0)
     {
-
     m_K[type] = K;
     m_A0[type] = A0;
 
@@ -141,7 +134,9 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
     // from whole surface area A0 to the surface of individual triangle A0 -> At
     Scalar At = m_A0[0] / size;
+
     m_area = 0;
+    
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the triangle

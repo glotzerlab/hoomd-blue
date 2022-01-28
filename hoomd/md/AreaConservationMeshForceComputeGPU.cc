@@ -97,7 +97,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                                   access_location::device,
                                                   access_mode::read);                                                                         
     
-    ArrayHandle<Scalar> d_area(m_area, access_location::device, access_mode::overwrite); //access_mode::readwrite
+    // ArrayHandle<Scalar> d_area(m_area, access_location::device, access_mode::overwrite); //access_mode::readwrite
 
     BoxDim box = this->m_pdata->getGlobalBox();
 
@@ -127,7 +127,8 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
 
 
     m_tuner_force->begin();
-    kernel::gpu_compute_AreaConservation_force(d_force.data,
+    kernel::gpu_compute_AreaConservation_force( //d_area.data,
+                                               d_force.data,
                                                d_virial.data,
                                                m_virial.getPitch(),
                                                m_pdata->getN(),

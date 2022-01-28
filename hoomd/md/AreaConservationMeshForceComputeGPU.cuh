@@ -32,7 +32,7 @@ namespace kernel
 
 
 //! Kernel driver that computes the forces for AreaConservationMeshForceComputeGPU
-hipError_t gpu_compute_areaconservation_force(Scalar* d_area,
+hipError_t gpu_compute_areaconservation_force(//Scalar* d_area,
                                               Scalar4* d_force,
                                               Scalar* d_virial,
                                               const size_t virial_pitch,

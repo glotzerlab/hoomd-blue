@@ -51,7 +51,7 @@ class PYBIND11_EXPORT AreaConservationMeshForceComputeGPU : public AreaConservat
 
     protected:
     std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for block size of force loop
-    GPUArray<Scalar> m_area; //!<Area stored on the GPU
+    // GPUArray<Scalar> m_area; //!<Area stored on the GPU
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
     GPUArray<Scalar> m_params;         //!< Parameters stored on the GPU
 
