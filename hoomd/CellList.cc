@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CellList.cc
     \brief Defines CellList
@@ -13,8 +11,9 @@
 #include <algorithm>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 /*! \param sysdef system to compute the cell list of
  */
 CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
@@ -685,17 +684,23 @@ uint3 CellList::readConditions()
     return *h_conditions.data;
     }
 
-void export_CellList(py::module& m)
+namespace detail
     {
-    py::class_<CellList, Compute, std::shared_ptr<CellList>>(m, "CellList")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_CellList(pybind11::module& m)
+    {
+    pybind11::class_<CellList, Compute, std::shared_ptr<CellList>>(m, "CellList")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)
         .def("setComputeTDB", &CellList::setComputeTDB)
         .def("setFlagCharge", &CellList::setFlagCharge)
         .def("setFlagIndex", &CellList::setFlagIndex)
         .def("setSortCellList", &CellList::setSortCellList)
-        .def("getDim", &CellList::getDim, py::return_value_policy::reference_internal)
+        .def("getDim", &CellList::getDim, pybind11::return_value_policy::reference_internal)
         .def("getNmax", &CellList::getNmax)
         .def("benchmark", &CellList::benchmark);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

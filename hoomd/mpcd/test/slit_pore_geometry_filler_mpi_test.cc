@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/Communicator.h"
 #include "hoomd/mpcd/SlitPoreGeometryFiller.h"
@@ -13,6 +11,8 @@
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN()
+
+using namespace hoomd;
 
 template<class F> void slit_pore_fill_mpi_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
@@ -46,7 +46,7 @@ template<class F> void slit_pore_fill_mpi_test(std::shared_ptr<ExecutionConfigur
         = std::make_shared<const mpcd::detail::SlitPoreGeometry>(5.0,
                                                                  8.0,
                                                                  mpcd::detail::boundary::no_slip);
-    std::shared_ptr<::Variant> kT = std::make_shared<::VariantConstant>(1.0);
+    std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.0);
     std::shared_ptr<mpcd::SlitPoreGeometryFiller> filler
         = std::make_shared<F>(mpcd_sys, 2.0, 0, kT, 42, slit);
 

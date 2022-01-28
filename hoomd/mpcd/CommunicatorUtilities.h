@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CommunicatorUtilities.h
@@ -12,6 +10,8 @@
 #ifndef MPCD_COMMUNICATOR_UTILITIES_H_
 #define MPCD_COMMUNICATOR_UTILITIES_H_
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace detail
@@ -36,8 +36,8 @@ enum struct send_mask : unsigned int
     down = 32
     };
 
-    } // end namespace detail
-    } // end namespace mpcd
-
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_COMMUNICATOR_UTILITIES_H_
 #endif // ENABLE_MPI

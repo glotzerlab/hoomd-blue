@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: pschoenhoefer
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevinBase.h"
 #include "TwoStepRATTLENVE.h"
@@ -22,10 +20,10 @@
 
 #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
-using namespace std;
-using namespace hoomd;
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps with Langevin dynamics
 /*! Implements Langevin dynamics.
 
@@ -134,7 +132,7 @@ TwoStepRATTLELangevin<Manifold>::TwoStepRATTLELangevin(std::shared_ptr<SystemDef
       m_extra_energy_overdeltaT(0), m_tally(false), m_noiseless_t(false), m_noiseless_r(false),
       m_tolerance(tolerance), m_box_changed(false)
     {
-    m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLELangevin" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLELangevin" << std::endl;
 
     m_pdata->getBoxChangeSignal()
         .template connect<TwoStepRATTLELangevin<Manifold>,
@@ -151,7 +149,7 @@ template<class Manifold> TwoStepRATTLELangevin<Manifold>::~TwoStepRATTLELangevin
     m_pdata->getBoxChangeSignal()
         .template disconnect<TwoStepRATTLELangevin<Manifold>,
                              &TwoStepRATTLELangevin<Manifold>::setBoxChange>(this);
-    m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLELangevin" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLELangevin" << std::endl;
     }
 
 /*! \param timestep Current time step
@@ -250,9 +248,9 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepOne(
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -504,9 +502,9 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(
         if (iteration == maxiteration)
             {
             m_exec_conf->msg->warning()
-                << "The RATTLE integrator needed an unusual high number of iterations!" << endl
+                << "The RATTLE integrator needed an unusual high number of iterations!" << std::endl
                 << "It is recomended to change the initial configuration or lower the step size."
-                << endl;
+                << std::endl;
             }
 
         // then, update the velocity
@@ -557,9 +555,9 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(
 
                 // check for degenerate moment of inertia
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 bf_torque.x = rand_x - gamma_r.x * (s.x / I.x);
                 bf_torque.y = rand_y - gamma_r.y * (s.y / I.y);
@@ -600,9 +598,9 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -715,9 +713,9 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::includeRATTLEForc
         if (iteration == maxiteration)
             {
             m_exec_conf->msg->warning()
-                << "The RATTLE integrator needed an unusual high number of iterations!" << endl
+                << "The RATTLE integrator needed an unusual high number of iterations!" << std::endl
                 << "It is recomended to change the initial configuration or lower the step size."
-                << endl;
+                << std::endl;
             }
 
         h_net_force.data[j].x -= alpha * normal.x;
@@ -740,16 +738,19 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::includeRATTLEForc
         }
     }
 
-template<class Manifold> void export_TwoStepRATTLELangevin(py::module& m, const std::string& name)
+namespace detail
     {
-    py::class_<TwoStepRATTLELangevin<Manifold>,
-               TwoStepLangevinBase,
-               std::shared_ptr<TwoStepRATTLELangevin<Manifold>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Manifold,
-                      std::shared_ptr<Variant>,
-                      Scalar>())
+template<class Manifold>
+void export_TwoStepRATTLELangevin(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<TwoStepRATTLELangevin<Manifold>,
+                     TwoStepLangevinBase,
+                     std::shared_ptr<TwoStepRATTLELangevin<Manifold>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            Manifold,
+                            std::shared_ptr<Variant>,
+                            Scalar>())
         .def_property("tally_reservoir_energy",
                       &TwoStepRATTLELangevin<Manifold>::getTallyReservoirEnergy,
                       &TwoStepRATTLELangevin<Manifold>::setTallyReservoirEnergy)
@@ -757,5 +758,8 @@ template<class Manifold> void export_TwoStepRATTLELangevin(py::module& m, const 
                       &TwoStepRATTLELangevin<Manifold>::getTolerance,
                       &TwoStepRATTLELangevin<Manifold>::setTolerance);
     }
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_RATTLE_LANGEVIN_H__

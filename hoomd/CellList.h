@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "GlobalArray.h"
 #include "HOOMDMath.h"
@@ -25,6 +23,8 @@
 #ifndef __CELLLIST_H__
 #define __CELLLIST_H__
 
+namespace hoomd
+    {
 //! Computes a cell list from the particles in the system
 /*! \b Overview:
     Cell lists are useful data structures when working with locality queries on particles. The most
@@ -301,9 +301,6 @@ class PYBIND11_EXPORT CellList : public Compute
         {
         if (!m_compute_adj_list)
             {
-            m_exec_conf->msg->error() << "Cell adjacency list is not computed!" << std::endl;
-            m_exec_conf->msg->error()
-                << "Use setComputeAdjList(true) to calculate it on the next compute()" << std::endl;
             throw std::runtime_error("Cell adjacency list not available");
             }
         return m_cell_adj;
@@ -432,9 +429,13 @@ class PYBIND11_EXPORT CellList : public Compute
     Nano::Signal<void()> m_width_change; //!< Signal that is triggered when the cell width changes
     };
 
+namespace detail
+    {
 //! Export the CellList class to python
 #ifndef __HIPCC__
 void export_CellList(pybind11::module& m);
 #endif
+    } // end namespace detail
 
+    } // end namespace hoomd
 #endif

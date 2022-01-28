@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
@@ -12,7 +12,6 @@
 #include "HalfStepHook.h"
 #include "ParticleGroup.h"
 #include "Updater.h"
-#include "md/ForceComposite.h"
 #include <pybind11/pybind11.h>
 #include <string>
 #include <vector>
@@ -21,6 +20,8 @@
 #include <hip/hip_runtime.h>
 #endif
 
+namespace hoomd
+    {
 /// Base class that defines an integrator
 /** An Integrator steps the entire simulation forward one time step in time.
     Prior to calling update(timestep), the system is at time step \a timestep.
@@ -170,5 +171,11 @@ class PYBIND11_EXPORT Integrator : public Updater
     virtual bool areForcesAnisotropic();
     };
 
+namespace detail
+    {
 /// Exports the NVEUpdater class to python
 void export_Integrator(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd

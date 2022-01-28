@@ -1,11 +1,8 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TableAngleForceComputeGPU.h"
 
-namespace py = pybind11;
 #include <stdexcept>
 
 /*! \file TableAngleForceComputeGPU.cc
@@ -14,6 +11,10 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -75,20 +76,20 @@ void TableAngleForceComputeGPU::computeForces(uint64_t timestep)
 
         // run the kernel on all GPUs in parallel
         m_tuner->begin();
-        gpu_compute_table_angle_forces(d_force.data,
-                                       d_virial.data,
-                                       m_virial.getPitch(),
-                                       m_pdata->getN(),
-                                       d_pos.data,
-                                       box,
-                                       d_gpu_anglelist.data,
-                                       d_gpu_angle_pos_list.data,
-                                       m_angle_data->getGPUTableIndexer().getW(),
-                                       d_gpu_n_angles.data,
-                                       d_tables.data,
-                                       m_table_width,
-                                       m_table_value,
-                                       m_tuner->getParam());
+        kernel::gpu_compute_table_angle_forces(d_force.data,
+                                               d_virial.data,
+                                               m_virial.getPitch(),
+                                               m_pdata->getN(),
+                                               d_pos.data,
+                                               box,
+                                               d_gpu_anglelist.data,
+                                               d_gpu_angle_pos_list.data,
+                                               m_angle_data->getGPUTableIndexer().getW(),
+                                               d_gpu_n_angles.data,
+                                               d_tables.data,
+                                               m_table_width,
+                                               m_table_value,
+                                               m_tuner->getParam());
         }
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -101,10 +102,16 @@ void TableAngleForceComputeGPU::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_TableAngleForceComputeGPU(py::module& m)
+namespace detail
     {
-    py::class_<TableAngleForceComputeGPU,
-               TableAngleForceCompute,
-               std::shared_ptr<TableAngleForceComputeGPU>>(m, "TableAngleForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>());
+void export_TableAngleForceComputeGPU(pybind11::module& m)
+    {
+    pybind11::class_<TableAngleForceComputeGPU,
+                     TableAngleForceCompute,
+                     std::shared_ptr<TableAngleForceComputeGPU>>(m, "TableAngleForceComputeGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

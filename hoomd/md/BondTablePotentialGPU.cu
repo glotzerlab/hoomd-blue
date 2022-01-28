@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
 
 #include "BondTablePotentialGPU.cuh"
 #include "hoomd/TextureTools.h"
@@ -14,6 +15,12 @@
    BondTablePotentialGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 /*!  This kernel is called to calculate the table pair forces on all N particles
 
     \param d_force Device memory to write computed forces
@@ -238,4 +245,6 @@ hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
     return hipSuccess;
     }
 
-// vim:syntax=cpp
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

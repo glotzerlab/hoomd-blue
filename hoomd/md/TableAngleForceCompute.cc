@@ -1,11 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: phillicl
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TableAngleForceCompute.h"
-
-namespace py = pybind11;
 
 #include <stdexcept>
 
@@ -21,6 +17,10 @@ using namespace std;
 // SMALL a relatively small number
 #define SMALL 0.001f
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -38,14 +38,12 @@ TableAngleForceCompute::TableAngleForceCompute(std::shared_ptr<SystemDefinition>
     // check for some silly errors a user could make
     if (m_angle_data->getNTypes() == 0)
         {
-        m_exec_conf->msg->error() << "angle.table: No angle types specified" << endl;
-        throw runtime_error("Error initializing TableAngleForceCompute");
+        throw runtime_error("No angle types defined.");
         }
 
     if (table_width == 0)
         {
-        m_exec_conf->msg->error() << "angle.table: Table width of 0 is invalid" << endl;
-        throw runtime_error("Error initializing TableAngleForceCompute");
+        throw runtime_error("Angle table must have width greater than 0.");
         }
 
     // allocate storage for the tables and parameters
@@ -75,8 +73,7 @@ void TableAngleForceCompute::setTable(unsigned int type,
     // make sure the type is valid
     if (type >= m_angle_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "angle.table: Invalid angle type specified" << endl << endl;
-        throw runtime_error("Error setting parameters in TableAngleForceCompute");
+        throw runtime_error("Invalid angle type.");
         }
 
     // access the arrays
@@ -294,12 +291,18 @@ void TableAngleForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-//! Exports the TableAngleForceCompute class to python
-void export_TableAngleForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<TableAngleForceCompute, ForceCompute, std::shared_ptr<TableAngleForceCompute>>(
+//! Exports the TableAngleForceCompute class to python
+void export_TableAngleForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<TableAngleForceCompute, ForceCompute, std::shared_ptr<TableAngleForceCompute>>(
         m,
         "TableAngleForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
         .def("setTable", &TableAngleForceCompute::setTable);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

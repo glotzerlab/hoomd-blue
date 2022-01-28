@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
 #include "hoomd/HOOMDMath.h"
@@ -20,6 +18,12 @@
 #ifndef __POTENTIAL_BOND_GPU_CUH__
 #define __POTENTIAL_BOND_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Wraps arguments to gpu_cgbf
 struct bond_args_t
     {
@@ -229,7 +233,6 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
         d_virial[i * virial_pitch + idx] = virial[i];
     }
 
-#include <iostream>
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
 /*! \param bond_args Other arguments to pass onto the kernel
     \param d_params Parameters for the potential, stored per bond type
@@ -239,7 +242,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     This is just a driver function for gpu_compute_bond_forces_kernel(), see it for details.
 */
 template<class evaluator>
-hipError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
+hipError_t gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
                                    const typename evaluator::param_type* d_params,
                                    unsigned int* d_flags)
     {
@@ -287,5 +290,9 @@ hipError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     return hipSuccess;
     }
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_BOND_GPU_CUH__

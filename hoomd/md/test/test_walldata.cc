@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
@@ -13,6 +13,9 @@ HOOMD_UP_MAIN();
 #include <cstdlib>
 #include <memory>
 #include <vector>
+
+using namespace hoomd;
+using namespace hoomd::md;
 
 UP_TEST(construction)
     {
@@ -77,20 +80,20 @@ UP_TEST(sphere_wall_math)
     bool inside = true;
 
     // test inside
-    vec3<Scalar> x = vec3<Scalar>(1.2, 1.6, 2.0);
-    vec3<Scalar> vx = vecPtToWall(Sphere, x, inside);
+    auto x = vec3<Scalar>(1.2, 1.6, 2.0);
+    auto vx = distVectorWallToPoint(Sphere, x, inside);
     Scalar dx = distWall(Sphere, x);
-    MY_CHECK_CLOSE(vx.x, -1.30818511, tol);
-    MY_CHECK_CLOSE(vx.y, -2.28932394, tol);
-    MY_CHECK_CLOSE(vx.z, 1.63523138, tol);
+    MY_CHECK_CLOSE(vx.x, 1.30818511, tol);
+    MY_CHECK_CLOSE(vx.y, 2.28932394, tol);
+    MY_CHECK_CLOSE(vx.z, -1.63523138, tol);
     MY_CHECK_CLOSE(dx, 3.1026334, tol);
     UP_ASSERT(inside == true);
 
     // test outside
     x = vec3<Scalar>(13.2, 3.0, 1.0);
-    vx = vecPtToWall(Sphere, x, inside);
+    vx = distVectorWallToPoint(Sphere, x, inside);
     dx = distWall(Sphere, x);
-    MY_CHECK_CLOSE(vx.x, -6.2, tol);
+    MY_CHECK_CLOSE(vx.x, 6.2, tol);
     MY_CHECK_SMALL(vx.y, tol_small);
     MY_CHECK_SMALL(vx.z, tol_small);
     MY_CHECK_CLOSE(dx, -6.2, tol);
@@ -98,7 +101,7 @@ UP_TEST(sphere_wall_math)
 
     // test center
     x = vec3<Scalar>(2.0, 3.0, 1.0);
-    vx = vecPtToWall(Sphere, x, inside);
+    vx = distVectorWallToPoint(Sphere, x, inside);
     dx = distWall(Sphere, x);
     MY_CHECK_SMALL(vx.x, tol_small);
     MY_CHECK_SMALL(vx.y, tol_small);
@@ -108,7 +111,7 @@ UP_TEST(sphere_wall_math)
 
     // test on surface
     x = vec3<Scalar>(2.0, 3.0, 6.0);
-    vx = vecPtToWall(Sphere, x, inside);
+    vx = distVectorWallToPoint(Sphere, x, inside);
     dx = distWall(Sphere, x);
     MY_CHECK_SMALL(vx.x, tol_small);
     MY_CHECK_SMALL(vx.y, tol_small);
@@ -119,27 +122,27 @@ UP_TEST(sphere_wall_math)
 
     // test "inside"
     x = vec3<Scalar>(1.2, 3.6, 2.0);
-    vx = vecPtToWall(invSphere, x, inside);
+    vx = distVectorWallToPoint(invSphere, x, inside);
     dx = distWall(invSphere, x);
-    MY_CHECK_CLOSE(vx.x, -0.14729537, tol);
-    MY_CHECK_CLOSE(vx.y, -1.17836298, tol);
-    MY_CHECK_CLOSE(vx.z, 0.73647686, tol);
+    MY_CHECK_CLOSE(vx.x, 0.14729537, tol);
+    MY_CHECK_CLOSE(vx.y, 1.17836298, tol);
+    MY_CHECK_CLOSE(vx.z, -0.73647686, tol);
     MY_CHECK_CLOSE(dx, 1.3973666, tol);
     UP_ASSERT(inside == true);
 
     // test "outside"
     x = vec3<Scalar>(1.2, 2.1, 3.0);
-    vx = vecPtToWall(invSphere, x, inside);
+    vx = distVectorWallToPoint(invSphere, x, inside);
     dx = distWall(invSphere, x);
-    MY_CHECK_CLOSE(vx.x, 0.2472136, tol);
-    MY_CHECK_CLOSE(vx.y, 0.1236068, tol);
+    MY_CHECK_CLOSE(vx.x, -0.2472136, tol);
+    MY_CHECK_CLOSE(vx.y, -0.1236068, tol);
     MY_CHECK_SMALL(vx.z, tol_small);
     MY_CHECK_CLOSE(dx, -0.2763932073, tol);
     UP_ASSERT(inside == false);
 
     // test on surface
     x = vec3<Scalar>(1.0, 2.5, 3.0);
-    vx = vecPtToWall(invSphere, x, inside);
+    vx = distVectorWallToPoint(invSphere, x, inside);
     dx = distWall(invSphere, x);
     MY_CHECK_SMALL(vx.x, tol_small);
     MY_CHECK_SMALL(vx.y, tol_small);
@@ -153,28 +156,28 @@ UP_TEST(cylinder_wall_math)
     bool inside = true;
 
     // test inside
-    vec3<Scalar> x = vec3<Scalar>(30.2, 1.6, 2.0);
-    vec3<Scalar> vx = vecPtToWall(Cylinder, x, inside);
+    auto x = vec3<Scalar>(30.2, 1.6, 2.0);
+    auto vx = distVectorWallToPoint(Cylinder, x, inside);
     Scalar dx = distWall(Cylinder, x);
     MY_CHECK_SMALL(vx.x, tol_small);
-    MY_CHECK_CLOSE(vx.y, 0.75642678, tol);
-    MY_CHECK_CLOSE(vx.z, 1.96670962, tol);
+    MY_CHECK_CLOSE(vx.y, -0.75642678, tol);
+    MY_CHECK_CLOSE(vx.z, -1.96670962, tol);
     MY_CHECK_CLOSE(dx, 2.10716117, tol);
     UP_ASSERT(inside == true);
 
     // test outside
     x = vec3<Scalar>(2.2, 5.6, 1.0);
-    vx = vecPtToWall(Cylinder, x, inside);
+    vx = distVectorWallToPoint(Cylinder, x, inside);
     dx = distWall(Cylinder, x);
     MY_CHECK_SMALL(vx.x, tol_small);
-    MY_CHECK_CLOSE(vx.y, -1.00775195, tol);
-    MY_CHECK_CLOSE(vx.z, -0.06718346, tol);
+    MY_CHECK_CLOSE(vx.y, 1.00775195, tol);
+    MY_CHECK_CLOSE(vx.z, 0.06718346, tol);
     MY_CHECK_CLOSE(dx, -1.00998891, tol);
     UP_ASSERT(inside == false);
 
     // test center
     x = vec3<Scalar>(2.1, 1.1, 0.7);
-    vx = vecPtToWall(Cylinder, x, inside);
+    vx = distVectorWallToPoint(Cylinder, x, inside);
     dx = distWall(Cylinder, x);
     MY_CHECK_SMALL(vx.x, tol_small);
     MY_CHECK_SMALL(vx.y, tol_small);
@@ -184,7 +187,7 @@ UP_TEST(cylinder_wall_math)
 
     // test on surface
     x = vec3<Scalar>(2.1, 4.6, 0.7);
-    vx = vecPtToWall(Cylinder, x, inside);
+    vx = distVectorWallToPoint(Cylinder, x, inside);
     dx = distWall(Cylinder, x);
     MY_CHECK_SMALL(vx.x, tol_small);
     MY_CHECK_SMALL(vx.y, tol_small);
@@ -197,27 +200,27 @@ UP_TEST(cylinder_wall_math)
 
     // test "inside"
     x = vec3<Scalar>(2.2, 5.6, 1.0);
-    vx = vecPtToWall(invCylinder, x, inside);
+    vx = distVectorWallToPoint(invCylinder, x, inside);
     dx = distWall(invCylinder, x);
     MY_CHECK_SMALL(vx.x, tol_small);
-    MY_CHECK_CLOSE(vx.y, -1.00775195, tol);
-    MY_CHECK_CLOSE(vx.z, -0.06718346, tol);
+    MY_CHECK_CLOSE(vx.y, 1.00775195, tol);
+    MY_CHECK_CLOSE(vx.z, 0.06718346, tol);
     MY_CHECK_CLOSE(dx, 1.00998891, tol);
     UP_ASSERT(inside == true);
 
     // test "outside"
     x = vec3<Scalar>(30.2, 1.6, 2.0);
-    vx = vecPtToWall(invCylinder, x, inside);
+    vx = distVectorWallToPoint(invCylinder, x, inside);
     dx = distWall(invCylinder, x);
     MY_CHECK_SMALL(vx.x, tol_small);
-    MY_CHECK_CLOSE(vx.y, 0.75642678, tol);
-    MY_CHECK_CLOSE(vx.z, 1.96670962, tol);
+    MY_CHECK_CLOSE(vx.y, -0.75642678, tol);
+    MY_CHECK_CLOSE(vx.z, -1.96670962, tol);
     MY_CHECK_CLOSE(dx, -2.10716117, tol);
     UP_ASSERT(inside == false);
 
     // test on surface
     x = vec3<Scalar>(2.1, 1.1, 4.2);
-    vx = vecPtToWall(invCylinder, x, inside);
+    vx = distVectorWallToPoint(invCylinder, x, inside);
     dx = distWall(invCylinder, x);
     MY_CHECK_SMALL(vx.x, tol_small);
     MY_CHECK_SMALL(vx.y, tol_small);
@@ -228,32 +231,32 @@ UP_TEST(cylinder_wall_math)
 
 UP_TEST(plane_wall_math)
     {
-    PlaneWall Plane = PlaneWall(make_scalar3(4.1, 2.1, 8.7), make_scalar3(-1.1, -0.3, -5.0), true);
+    PlaneWall Plane = PlaneWall(make_scalar3(4.1, 2.1, 8.7), make_scalar3(-1.1, -0.3, -5.0));
     bool inside = true;
 
     // test inside
-    vec3<Scalar> x = vec3<Scalar>(30.2, 1.6, 2.0);
-    vec3<Scalar> vx = vecPtToWall(Plane, x, inside);
+    auto x = vec3<Scalar>(30.2, 1.6, 2.0);
+    auto vx = distVectorWallToPoint(Plane, x, inside);
     Scalar dx = distWall(Plane, x);
-    MY_CHECK_CLOSE(vx.x, 0.20661597, tol);
-    MY_CHECK_CLOSE(vx.y, 0.05634981, tol);
-    MY_CHECK_CLOSE(vx.z, 0.9391635, tol);
+    MY_CHECK_CLOSE(vx.x, -0.20661597, tol);
+    MY_CHECK_CLOSE(vx.y, -0.05634981, tol);
+    MY_CHECK_CLOSE(vx.z, -0.9391635, tol);
     MY_CHECK_CLOSE(dx, 0.963272306319, tol);
     UP_ASSERT(inside == true);
 
     // test outside
     x = vec3<Scalar>(5.1, 2.2, 8.9);
-    vx = vecPtToWall(Plane, x, inside);
+    vx = distVectorWallToPoint(Plane, x, inside);
     dx = distWall(Plane, x);
-    MY_CHECK_CLOSE(vx.x, -0.08908745, tol);
-    MY_CHECK_CLOSE(vx.y, -0.02429658, tol);
-    MY_CHECK_CLOSE(vx.z, -0.40494297, tol);
+    MY_CHECK_CLOSE(vx.x, 0.08908745, tol);
+    MY_CHECK_CLOSE(vx.y, 0.02429658, tol);
+    MY_CHECK_CLOSE(vx.z, 0.40494297, tol);
     MY_CHECK_CLOSE(dx, -0.4153380592, tol);
     UP_ASSERT(inside == false);
 
     // test on surface
     x = vec3<Scalar>(4.1, 2.1, 8.7);
-    vx = vecPtToWall(Plane, x, inside);
+    vx = distVectorWallToPoint(Plane, x, inside);
     dx = distWall(Plane, x);
     MY_CHECK_SMALL(vx.x, tol_small);
     MY_CHECK_SMALL(vx.y, tol_small);
@@ -261,12 +264,11 @@ UP_TEST(plane_wall_math)
     MY_CHECK_SMALL(dx, tol_small);
     UP_ASSERT(inside == true);
 
-    PlaneWall invPlane
-        = PlaneWall(make_scalar3(4.1, 2.1, 8.7), make_scalar3(-1.1, -0.3, -5.0), false);
+    PlaneWall invPlane = PlaneWall(make_scalar3(4.1, 2.1, 8.7), make_scalar3(1.1, 0.3, 5.0));
 
     // test on surface
     x = vec3<Scalar>(4.1, 2.1, 8.7);
-    vx = vecPtToWall(invPlane, x, inside);
+    vx = distVectorWallToPoint(invPlane, x, inside);
     dx = distWall(invPlane, x);
     MY_CHECK_SMALL(vx.x, tol_small);
     MY_CHECK_SMALL(vx.y, tol_small);

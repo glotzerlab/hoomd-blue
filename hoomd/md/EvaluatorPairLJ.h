@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_LJ_H__
 #define __PAIR_EVALUATOR_LJ_H__
@@ -29,6 +27,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the LJ pair potential
 /*! <b>General Overview</b>
 
@@ -58,9 +60,7 @@
     All other arguments are common among all pair potentials and passed into the constructor.
    Coefficients are handled in a special way: the pair evaluator class (and PotentialPair) manage
    only a single parameter variable for each type pair. Pair potentials that need more than 1
-   parameter can specify that their param_type be a compound structure and reference that. For
-   coalesced read performance on G200 GPUs, it is highly recommended that param_type is one of the
-   following types: Scalar, Scalar2, Scalar4.
+   parameter can specify that their param_type be a compound structure and reference that.
 
     The program flow will proceed like this: When a potential between a pair of particles is to be
    evaluated, a PairEvaluator is instantiated, passing the common parameters to the constructor and
@@ -93,10 +93,11 @@
             \left( 12 \cdot 4 \varepsilon \sigma^{12} \cdot r^{-6} - 6 \cdot 4 \varepsilon
    \sigma^{6} \right) \f]
 
-    The LJ potential does not need diameter or charge. Two parameters are specified and stored in a
-   Scalar2. \a lj1 is placed in \a params.x and \a lj2 is in \a params.y.
+    The LJ potential does not need diameter or charge. Two parameters are specified and stored in
+    the parameter structure. It stores precomputed 4 * epsilon and sigma**6 which can be converted
+    back to epsilon and sigma for the user.
 
-    These are related to the standard lj parameters sigma and epsilon by:
+    The force computation later precomputes:
     - \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
     - \a lj2 = 4.0 * epsilon * pow(sigma,6.0);
 
@@ -107,8 +108,8 @@ class EvaluatorPairLJ
     //! Define the parameter type used by this pair potential evaluator
     struct param_type
         {
-        Scalar lj1;
-        Scalar lj2;
+        Scalar sigma_6;
+        Scalar epsilon_x_4;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -123,37 +124,44 @@ class EvaluatorPairLJ
 #endif
 
 #ifndef __HIPCC__
-        param_type() : lj1(0), lj2(0) { }
+        param_type() : sigma_6(0), epsilon_x_4(0) { }
 
         param_type(pybind11::dict v, bool managed = false)
             {
             auto sigma(v["sigma"].cast<Scalar>());
             auto epsilon(v["epsilon"].cast<Scalar>());
-            lj1 = 4.0 * epsilon * pow(sigma, 12.0);
-            lj2 = 4.0 * epsilon * pow(sigma, 6.0);
+
+            sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
+            epsilon_x_4 = Scalar(4.0) * epsilon;
+
+            // parameters used in implementation
+            // lj1 = 4.0 * epsilon * pow(sigma, 12.0);
+            // - > lj1 = epsilon_x_4 * sigma_6 * sigma_6
+
+            // lj2 = 4.0 * epsilon * pow(sigma, 6.0);
+            // - > lj2 = epsilon_x_4 * sigma_6
             }
 
         // this constructor facilitates unit testing
         param_type(Scalar sigma, Scalar epsilon, bool managed = false)
             {
-            lj1 = 4.0 * epsilon * pow(sigma, 12.0);
-            lj2 = 4.0 * epsilon * pow(sigma, 6.0);
+            sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
+            epsilon_x_4 = Scalar(4.0) * epsilon;
             }
 
         pybind11::dict asDict()
             {
             pybind11::dict v;
-            auto sigma6 = lj1 / lj2;
-            v["sigma"] = pow(sigma6, 1. / 6.);
-            v["epsilon"] = lj2 / (sigma6 * 4);
+            v["sigma"] = pow(sigma_6, 1. / 6.);
+            v["epsilon"] = epsilon_x_4 / 4.0;
             return v;
             }
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -162,7 +170,8 @@ class EvaluatorPairLJ
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
+        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
+          lj2(_params.epsilon_x_4 * _params.sigma_6)
         {
         }
 
@@ -243,5 +252,8 @@ class EvaluatorPairLJ
     Scalar lj1;    //!< lj1 parameter extracted from the params passed to the constructor
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_LJ_H__

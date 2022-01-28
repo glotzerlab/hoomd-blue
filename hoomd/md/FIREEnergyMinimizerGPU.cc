@@ -1,18 +1,19 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: askeys
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "FIREEnergyMinimizerGPU.h"
 #include "FIREEnergyMinimizerGPU.cuh"
 
-namespace py = pybind11;
 using namespace std;
 
 /*! \file FIREEnergyMinimizerGPU.h
     \brief Contains code for the FIREEnergyMinimizerGPU class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param dt Default step size
@@ -23,8 +24,7 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a FIREEnergyMinimizer with CUDA disabled" << endl;
-        throw std::runtime_error("Error initializing FIREEnergyMinimizer");
+        throw std::runtime_error("FIREEnergyMinimizerGPU requires a GPU device.");
         }
 
     // allocate the sum arrays
@@ -116,13 +116,13 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
             ArrayHandle<Scalar> d_sumE(m_sum, access_location::device, access_mode::overwrite);
 
             unsigned int num_blocks = group_size / m_block_size + 1;
-            gpu_fire_compute_sum_pe(d_index_array.data,
-                                    group_size,
-                                    d_net_force.data,
-                                    d_sumE.data,
-                                    d_partial_sumE.data,
-                                    m_block_size,
-                                    num_blocks);
+            kernel::gpu_fire_compute_sum_pe(d_index_array.data,
+                                            group_size,
+                                            d_net_force.data,
+                                            d_sumE.data,
+                                            d_partial_sumE.data,
+                                            m_block_size,
+                                            num_blocks);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -200,17 +200,17 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
 
             unsigned int num_blocks = group_size / m_block_size + 1;
 
-            gpu_fire_compute_sum_all(m_pdata->getN(),
-                                     d_vel.data,
-                                     d_accel.data,
-                                     d_index_array.data,
-                                     group_size,
-                                     d_sum.data,
-                                     d_partial_sum_P.data,
-                                     d_partial_sum_vsq.data,
-                                     d_partial_sum_fsq.data,
-                                     m_block_size,
-                                     num_blocks);
+            kernel::gpu_fire_compute_sum_all(m_pdata->getN(),
+                                             d_vel.data,
+                                             d_accel.data,
+                                             d_index_array.data,
+                                             group_size,
+                                             d_sum.data,
+                                             d_partial_sum_P.data,
+                                             d_partial_sum_vsq.data,
+                                             d_partial_sum_fsq.data,
+                                             m_block_size,
+                                             num_blocks);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -253,19 +253,19 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
 
                 unsigned int num_blocks = group_size / m_block_size + 1;
 
-                gpu_fire_compute_sum_all_angular(m_pdata->getN(),
-                                                 d_orientation.data,
-                                                 d_inertia.data,
-                                                 d_angmom.data,
-                                                 d_net_torque.data,
-                                                 d_index_array.data,
-                                                 group_size,
-                                                 d_sum.data,
-                                                 d_partial_sum_Pr.data,
-                                                 d_partial_sum_wnorm.data,
-                                                 d_partial_sum_tsq.data,
-                                                 m_block_size,
-                                                 num_blocks);
+                kernel::gpu_fire_compute_sum_all_angular(m_pdata->getN(),
+                                                         d_orientation.data,
+                                                         d_inertia.data,
+                                                         d_angmom.data,
+                                                         d_net_torque.data,
+                                                         d_index_array.data,
+                                                         group_size,
+                                                         d_sum.data,
+                                                         d_partial_sum_Pr.data,
+                                                         d_partial_sum_wnorm.data,
+                                                         d_partial_sum_tsq.data,
+                                                         m_block_size,
+                                                         num_blocks);
 
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
@@ -352,14 +352,14 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
         m_prof->push(m_exec_conf, "FIRE update velocities");
 
     Scalar factor_t;
-    if (fabs(fnorm) > EPSILON)
+    if (fabs(fnorm) > 0)
         factor_t = m_alpha * vnorm / fnorm;
     else
         factor_t = 1.0;
 
     Scalar factor_r = 0.0;
 
-    if (fabs(tnorm) > EPSILON)
+    if (fabs(tnorm) > 0)
         factor_r = m_alpha * wnorm / tnorm;
     else
         factor_r = 1.0;
@@ -380,12 +380,12 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
                                      access_location::device,
                                      access_mode::read);
 
-        gpu_fire_update_v(d_vel.data,
-                          d_accel.data,
-                          d_index_array.data,
-                          group_size,
-                          m_alpha,
-                          factor_t);
+        kernel::gpu_fire_update_v(d_vel.data,
+                                  d_accel.data,
+                                  d_index_array.data,
+                                  group_size,
+                                  m_alpha,
+                                  factor_t);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -405,14 +405,14 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
                                            access_location::device,
                                            access_mode::read);
 
-            gpu_fire_update_angmom(d_net_torque.data,
-                                   d_orientation.data,
-                                   d_inertia.data,
-                                   d_angmom.data,
-                                   d_index_array.data,
-                                   group_size,
-                                   m_alpha,
-                                   factor_r);
+            kernel::gpu_fire_update_angmom(d_net_torque.data,
+                                           d_orientation.data,
+                                           d_inertia.data,
+                                           d_angmom.data,
+                                           d_index_array.data,
+                                           group_size,
+                                           m_alpha,
+                                           factor_r);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -455,7 +455,7 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
                                        access_location::device,
                                        access_mode::readwrite);
 
-            gpu_fire_zero_v(d_vel.data, d_index_array.data, group_size);
+            kernel::gpu_fire_zero_v(d_vel.data, d_index_array.data, group_size);
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
 
@@ -464,7 +464,7 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
                 ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(),
                                               access_location::device,
                                               access_mode::readwrite);
-                gpu_fire_zero_angmom(d_angmom.data, d_index_array.data, group_size);
+                kernel::gpu_fire_zero_angmom(d_angmom.data, d_index_array.data, group_size);
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 }
@@ -478,10 +478,16 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
     m_old_energy = energy;
     }
 
-void export_FIREEnergyMinimizerGPU(py::module& m)
+namespace detail
     {
-    py::class_<FIREEnergyMinimizerGPU,
-               FIREEnergyMinimizer,
-               std::shared_ptr<FIREEnergyMinimizerGPU>>(m, "FIREEnergyMinimizerGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>());
+void export_FIREEnergyMinimizerGPU(pybind11::module& m)
+    {
+    pybind11::class_<FIREEnergyMinimizerGPU,
+                     FIREEnergyMinimizer,
+                     std::shared_ptr<FIREEnergyMinimizerGPU>>(m, "FIREEnergyMinimizerGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

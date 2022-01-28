@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/CellList.h"
 #include "hoomd/mpcd/CellThermoCompute.h"
@@ -15,6 +13,8 @@
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN()
+
+using namespace hoomd;
 
 //! Test for correct calculation of MPCD grid dimensions
 template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -167,7 +167,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
         CHECK_CLOSE(thermo->getTemperature(), 2.0, tol);
         }
 
-    // scale all particles so that they move into one common cell
+        // scale all particles so that they move into one common cell
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,

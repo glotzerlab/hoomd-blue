@@ -1,21 +1,116 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Change Log
 ==========
 
 v3.x
 ----
 
-v3.0.0-beta.10 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*Added*
+
+* ``hoomd.hpmc.external.field.Harmonic`` - harmonic potential of particles to specific sites in
+  the simulation box and orientations.
+
+v3.0.0-beta.13 (2022-01-18)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
-- ``hoomd.md.minimize.FIRE`` - MD integrator that minimized the system's potential energy.
-- AKMA and MD unit conversion factors to the documentation.
+* ``md.pair.ExpandedLJ`` - A Lennard-Jones potential where ``r`` is replaced with ``r-delta``.
+* Support nested modification of operation parameters.
+* ``wall`` - Define wall surfaces in the simulation box.
+* ``md.external.wall`` - Pair interactions between particles and wall surfaces.
+* ``Communicator.walltime`` - the wall clock time since creating the ``Communicator``.
+* ``hoomd.md.force.Custom`` - user defined forces in Python.
 
 *Changed*
 
+* Call ``update_group_dof`` implicitly in ``set_snapshot``, when changing integrators or integration
+  methods, and on steps where ``FilterUpdater`` acts on the system.
+* [breaking] ``update_group_dof`` defers counting the degrees of freedom until the next timestep or
+  the next call to ``Simulation.run``.
+* [breaking] Renamed ``md.bond.FENE`` to ``md.bond.FENEWCA``.
+* ``md.bond.FENEWCA`` takes a user provided ``delta`` parameter and ignores the particle diameters.
+* [breaking] ``md.pair.DLVO`` takes user provided ``a1`` and ``a2`` parameters and ignores the
+  particle diameters.
+* Removed invalid linker options when using gcc on Apple systems.
+* Removed the ``r_on`` attribute and ``default_r_on`` constructor argument from pair potentials that
+  do not use it.
+* Building from source requires a C++17 compatible compiler.
+
+*Fixed*
+
+* Compile error with ``Apple clang clang-1300.0.29.30``.
+* Incorrect OPLS dihedral forces when compiled with ``Apple clang clang-1300.0.29.30``.
+
+*Deprecated*
+
+* ``md.pair.SLJ`` - Replaced with ``md.pair.ExpandedLJ``.
+
+*Removed*
+
+* Leftover ``state`` logging category.
+
+v3.0.0-beta.12 (2021-12-14)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support simulations with arbitrarily large or small scales (within the limits of the floating
+  point representation).
+
+*Changed*
+
+* Report full error details in the exception message.
+* Improved documentation.
+* [breaking]: ``buffer`` is now a required argument when constructing a neighbor list.
+* [breaking]: ``force_tol``, ``angmom_tol``, and ``energy_tol`` are now required arguments to
+  ``md.minimize.FIRE``
+
+*Fixed*
+
+* Allow neighbor lists to store more than ``2**32-1`` total neighbors.
+* Return expected parameter values instead of ``NaN`` when potential parameters are set to 0.
+
+v3.0.0-beta.11 (2021-11-18)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- Support Python 3.10.
+- Support clang 13.
+
+*Changed*
+
+- [developers] Place all all HOOMD C++ classes in the ``hoomd`` and nested namespaces.
+- [developers] Use official pre-commit clang-format repository.
+
+v3.0.0-beta.10 (2021-10-25)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``hoomd.md.minimize.FIRE`` - MD integrator that minimizes the system's potential energy.
+- Include example AKMA and MD unit conversion factors in the documentation.
+- ``BUILD_LLVM`` CMake option  (defaults off) to enable features that require LLVM.
+- ``hoomd.hpmc.pair.user.CPPPotential`` - user-defined pair potentials between particles in HPMC.
+- ``hoomd.hpmc.pair.user.CPPPotentialUnion`` - user-defined site-site pair potentials between shapes
+  in HPMC.
+- ``hoomd.hpmc.external.user.CPPExternalPotential`` - user-defined external potentials in HPMC.
+- Support user-defined pair potentials in HPMC on the GPU.
+
+*Changed*
+
+- Improved documentation.
 - Improved error messages when setting operation parameters.
-- Added note on dependencies for building the documentation.
+- Noted some dependencies of dependencies for building documentation.
+- [developers] Removed ``m_comm`` from most classes. Use ``m_sysdef->isDomainDecomposed()`` instead.
+- Add support for LLVM 12
+- ``ENABLE_LLVM=on`` requires the clang development libraries.
+- [breaking] Renamed the Integrator attribute ``aniso`` to ``integrate_rotational_dof`` and removed
+  the ``'auto'`` option. Users must now explicitly choose ``integrate_rotational_dof=True`` to
+  integrate the rotational degrees of freedom in the system.
 
 *Fixed*
 
@@ -23,10 +118,14 @@ v3.0.0-beta.10 (not yet released)
 - RATTLE integration methods execute on the GPU.
 - Include ``EvaluatorPairDLVO.h`` in the installation for plugins.
 - Bug in setting zero sized ``ManagedArrays``.
-
-*Deprecated*
+- Kernel launch errors when one process uses different GPU devices.
+- Race condition that lead to incorrect simulations with ``md.pair.Table``.
+- Bug where some particle filers would have 0 rotational degrees of freedom.
 
 *Removed*
+
+- The ``BUILD_JIT`` CMake option.
+- Support for LLVM <= 9.
 
 v3.0.0-beta.9 (2021-09-08)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -443,6 +542,7 @@ functionality.
 - ``COPY_HEADERS`` *CMake* option.
 - Many other python modules have been removed or re-implemented with new names.
   See the migration guide and new API documentation for a complete list.
+- Support for NVIDIA GPUS with compute capability < 6.0.
 
 v2.x
 ----
@@ -453,7 +553,7 @@ v2.9.7 (2021-08-03)
 *Bug fixes*
 
 * Support CUDA 11.5. A bug in CUDA 11.4 may result in the error
-  `__global__ function call is not configure` when running HOOMD.
+  ``__global__ function call is not configured`` when running HOOMD.
 
 v2.9.6 (2021-03-16)
 ^^^^^^^^^^^^^^^^^^^

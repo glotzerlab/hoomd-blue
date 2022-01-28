@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef __PAIR_EVALUATOR_OPP_H__
 #define __PAIR_EVALUATOR_OPP_H__
 
@@ -22,6 +25,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the oscillating pair potential
 /*! <b>General Overview</b>
 
@@ -187,5 +194,8 @@ class EvaluatorPairOPP
     Scalar rcutsq;     /// Stored rcutsq from the constructor
     param_type params; /// Stored pair parameters for a given type pair
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_OPP_H__

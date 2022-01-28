@@ -1,4 +1,4 @@
-# Maintainer: joaander
+
 
 set(_hpmc_gpu_shapes ShapeSphere
                  ShapeConvexPolygon
@@ -61,7 +61,7 @@ set(_hpmc_headers
     ComputeSDF.h
     ExternalFieldComposite.h
     ExternalField.h
-    ExternalFieldLattice.h
+    ExternalFieldHarmonic.h
     ExternalFieldWall.h
     GSDHPMCSchema.h
     GPUHelpers.cuh
@@ -133,7 +133,7 @@ if(ENABLE_HIP)
             set(SHAPE_INCLUDE ${SHAPE}.h)
             set(IS_UNION_SHAPE FALSE)
             set(_kernel_cu ${KERNEL}_${SHAPE}.cu)
-            configure_file(${KERNEL}.cu.in ${_kernel_cu} @ONLY)
+            configure_file(${KERNEL}.cu.inc ${_kernel_cu} @ONLY)
             set(_hpmc_cu_sources ${_hpmc_cu_sources} ${_kernel_cu})
         endforeach()
 
@@ -141,7 +141,7 @@ if(ENABLE_HIP)
             set(SHAPE_INCLUDE ${SHAPE}.h)
             set(_kernel_cu ${KERNEL}_union_${SHAPE}.cu)
             set(IS_UNION_SHAPE TRUE)
-            configure_file(${KERNEL}.cu.in ${_kernel_cu} @ONLY)
+            configure_file(${KERNEL}.cu.inc ${_kernel_cu} @ONLY)
             set(_hpmc_cu_sources ${_hpmc_cu_sources} ${_kernel_cu})
         endforeach()
     endforeach()

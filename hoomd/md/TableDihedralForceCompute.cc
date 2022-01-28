@@ -1,12 +1,8 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: phillicl
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TableDihedralForceCompute.h"
 #include "hoomd/VectorMath.h"
-
-namespace py = pybind11;
 
 #include <stdexcept>
 
@@ -22,6 +18,10 @@ using namespace std;
 // SMALL a relatively small number
 #define SMALL 0.001f
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -38,8 +38,7 @@ TableDihedralForceCompute::TableDihedralForceCompute(std::shared_ptr<SystemDefin
 
     if (table_width == 0)
         {
-        m_exec_conf->msg->error() << "dihedral.table: Table width of 0 is invalid" << endl;
-        throw runtime_error("Error initializing TableDihedralForceCompute");
+        throw runtime_error("Dihedral table must have width greater than 0.");
         }
 
     // allocate storage for the tables and parameters
@@ -70,8 +69,7 @@ void TableDihedralForceCompute::setTable(unsigned int type,
     // make sure the type is valid
     if (type >= m_dihedral_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "dihedral.table: Invalid dihedral type specified" << endl;
-        throw runtime_error("Error setting parameters in PotentialDihedral");
+        throw runtime_error("Invalid dihedral type.");
         }
 
     // access the arrays
@@ -335,13 +333,19 @@ void TableDihedralForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-//! Exports the TableDihedralForceCompute class to python
-void export_TableDihedralForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<TableDihedralForceCompute, ForceCompute, std::shared_ptr<TableDihedralForceCompute>>(
-        m,
-        "TableDihedralForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>())
+//! Exports the TableDihedralForceCompute class to python
+void export_TableDihedralForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<TableDihedralForceCompute,
+                     ForceCompute,
+                     std::shared_ptr<TableDihedralForceCompute>>(m, "TableDihedralForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
         .def("setTable", &TableDihedralForceCompute::setTable)
         .def("getEntry", &TableDihedralForceCompute::getEntry);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

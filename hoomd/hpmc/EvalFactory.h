@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #pragma once
 
 // do not include python headers
@@ -7,6 +10,10 @@
 
 #include "KaleidoscopeJIT.h"
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 class EvalFactory
     {
     public:
@@ -68,3 +75,6 @@ class EvalFactory
     float** m_alpha_union;                             // Pointer to alpha array for union
     std::string m_error_msg; //!< The error message if initialization fails
     };
+
+    } // end namespace hpmc
+    } // end namespace hoomd

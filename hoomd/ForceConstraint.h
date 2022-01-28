@@ -1,7 +1,6 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: joaander
 #include "ForceCompute.h"
 
 #include <memory>
@@ -19,6 +18,8 @@
 #ifndef __ForceConstraint_H__
 #define __ForceConstraint_H__
 
+namespace hoomd
+    {
 //! Base class for all constraint forces
 /*! See Integrator for detailed documentation on constraint force implementation.
     \ingroup computes
@@ -43,7 +44,11 @@ class PYBIND11_EXPORT ForceConstraint : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the ForceConstraint to python
 void export_ForceConstraint(pybind11::module& m);
+    } // end namespace detail
 
+    } // end namespace hoomd
 #endif

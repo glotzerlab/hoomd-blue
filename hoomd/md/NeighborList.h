@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/Compute.h"
 #include "hoomd/GPUFlags.h"
@@ -31,6 +29,10 @@
 #include "hoomd/Communicator.h"
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes a Neighborlist from the particles
 /*! \b Overview:
 
@@ -303,7 +305,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         }
 
     //! Get the head list
-    const GlobalArray<unsigned int>& getHeadList()
+    const GlobalArray<size_t>& getHeadList()
         {
         return m_head_list;
         }
@@ -511,7 +513,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
     Scalar3 m_last_L;                    //!< Box lengths at last update
     Scalar3 m_last_L_local;              //!< Local Box lengths at last update
 
-    GlobalArray<unsigned int> m_head_list; //!< Indexes for particles to read from the neighbor list
+    GlobalArray<size_t> m_head_list; //!< Indexes for particles to read from the neighbor list
     GlobalArray<unsigned int>
         m_Nmax; //!< Holds the maximum number of neighbors for each particle type
     GlobalArray<unsigned int>
@@ -675,7 +677,13 @@ class PYBIND11_EXPORT NeighborList : public Compute
 #endif
     };
 
+namespace detail
+    {
 //! Exports NeighborList to python
 void export_NeighborList(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

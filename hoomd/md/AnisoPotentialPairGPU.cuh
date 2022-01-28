@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer:  jglaser
 
 #include "hoomd/GPUPartition.cuh"
 #include "hoomd/HOOMDMath.h"
@@ -30,6 +31,12 @@ const int gpu_aniso_pair_force_max_tpp = 32;
 const int gpu_aniso_pair_force_max_tpp = 64;
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Wraps arguments to gpu_cgpf
 struct a_pair_args_t
     {
@@ -48,7 +55,7 @@ struct a_pair_args_t
                   const BoxDim& _box,
                   const unsigned int* _d_n_neigh,
                   const unsigned int* _d_nlist,
-                  const unsigned int* _d_head_list,
+                  const size_t* _d_head_list,
                   const Scalar* _d_rcutsq,
                   const unsigned int _ntypes,
                   const unsigned int _block_size,
@@ -81,12 +88,11 @@ struct a_pair_args_t
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
-    const unsigned int*
-        d_head_list;               //!< Device array listing beginning of each particle's neighbors
-    const Scalar* d_rcutsq;        //!< Device array listing r_cut squared per particle type pair
-    const unsigned int ntypes;     //!< Number of particle types in the simulation
-    const unsigned int block_size; //!< Block size to execute
-    const unsigned int shift_mode; //!< The potential energy shift mode
+    const size_t* d_head_list;   //!< Device array listing beginning of each particle's neighbors
+    const Scalar* d_rcutsq;      //!< Device array listing r_cut squared per particle type pair
+    const unsigned int ntypes;   //!< Number of particle types in the simulation
+    const unsigned int block_size;           //!< Block size to execute
+    const unsigned int shift_mode;           //!< The potential energy shift mode
     const unsigned int compute_virial;       //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads to launch per particle
     const GPUPartition& gpu_partition; //!< The load balancing partition of particles between GPUs
@@ -152,7 +158,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                                      const BoxDim box,
                                      const unsigned int* d_n_neigh,
                                      const unsigned int* d_nlist,
-                                     const unsigned int* d_head_list,
+                                     const size_t* d_head_list,
                                      const typename evaluator::param_type* d_params,
                                      const typename evaluator::shape_type* d_shape_params,
                                      const Scalar* d_rcutsq,
@@ -252,7 +258,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
         if (evaluator::needsCharge())
             qi = __ldg(d_charge + idx);
 
-        unsigned int my_head = d_head_list[idx];
+        size_t my_head = d_head_list[idx];
         unsigned int cur_j = 0;
 
         unsigned int next_j(0);
@@ -596,5 +602,9 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
     return hipSuccess;
     }
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __ANISO_POTENTIAL_PAIR_GPU_CUH__

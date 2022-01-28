@@ -1,17 +1,17 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "UpdaterBoxMC.h"
 #include "hoomd/RNGIdentifiers.h"
 #include <numeric>
 #include <vector>
 
-namespace py = pybind11;
-
 /*! \file UpdaterBoxMC.cc
     \brief Definition of UpdaterBoxMC
 */
 
+namespace hoomd
+    {
 namespace hpmc
     {
 UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
@@ -169,7 +169,7 @@ inline bool UpdaterBoxMC::remove_overshear()
         newBox.setTiltFactors(xy, xz, yz);
         m_pdata->setGlobalBox(newBox);
 
-        // Use lexical scope to make sure ArrayHandles get cleaned up
+            // Use lexical scope to make sure ArrayHandles get cleaned up
             {
             // Get particle positions and images
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
@@ -281,7 +281,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
         }
     else
         {
-        // Restore original box and particle positions
+            // Restore original box and particle positions
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                        access_location::host,
@@ -836,12 +836,14 @@ hpmc_boxmc_counters_t UpdaterBoxMC::getCounters(unsigned int mode)
     return result;
     }
 
-void export_UpdaterBoxMC(py::module& m)
+namespace detail
     {
-    py::class_<UpdaterBoxMC, Updater, std::shared_ptr<UpdaterBoxMC>>(m, "UpdaterBoxMC")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<IntegratorHPMC>,
-                      std::shared_ptr<Variant>>())
+void export_UpdaterBoxMC(pybind11::module& m)
+    {
+    pybind11::class_<UpdaterBoxMC, Updater, std::shared_ptr<UpdaterBoxMC>>(m, "UpdaterBoxMC")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<IntegratorHPMC>,
+                            std::shared_ptr<Variant>>())
         .def_property("volume", &UpdaterBoxMC::getVolumeParams, &UpdaterBoxMC::setVolumeParams)
         .def_property("length", &UpdaterBoxMC::getLengthParams, &UpdaterBoxMC::setLengthParams)
         .def_property("shear", &UpdaterBoxMC::getShearParams, &UpdaterBoxMC::setShearParams)
@@ -850,7 +852,7 @@ void export_UpdaterBoxMC(py::module& m)
         .def("getCounters", &UpdaterBoxMC::getCounters)
         .def_property("instance", &UpdaterBoxMC::getInstance, &UpdaterBoxMC::setInstance);
 
-    py::class_<hpmc_boxmc_counters_t>(m, "hpmc_boxmc_counters_t")
+    pybind11::class_<hpmc_boxmc_counters_t>(m, "hpmc_boxmc_counters_t")
         .def_property_readonly("volume",
                                [](const hpmc_boxmc_counters_t& a)
                                {
@@ -885,6 +887,8 @@ void export_UpdaterBoxMC(py::module& m)
                                });
     }
 
+    } // end namespace detail
+
 void UpdaterBoxMC::updateChangedWeights()
     {
     // This line will need to be rewritten or updated when move types are added to the updater.
@@ -898,3 +902,4 @@ void UpdaterBoxMC::updateChangedWeights()
     }
 
     } // end namespace hpmc
+    } // end namespace hoomd

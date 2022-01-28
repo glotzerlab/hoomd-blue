@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mspells
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __WCAPOTENTIAL_CC__
 #define __WCAPOTENTIAL_CC__
@@ -9,6 +7,10 @@
 #include "WCAPotential.h"
 #include "DEMEvaluator.h"
 
+namespace hoomd
+    {
+namespace dem
+    {
 /*! Evaluate the potential between two points
 
   Parameters:
@@ -58,5 +60,8 @@ DEVICE inline void WCAPotential<Real, Real4, FrictionModel>::evaluate(const Vec&
         torque_j += cross(rjPrime, -force);
         }
     }
+
+    } // end namespace dem
+    } // end namespace hoomd
 
 #endif

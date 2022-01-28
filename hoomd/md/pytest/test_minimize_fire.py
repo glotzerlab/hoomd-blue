@@ -1,8 +1,12 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import numpy as np
 import pytest
 
 import hoomd
-from hoomd.conftest import operation_pickling_check
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import operation_pickling_check, logging_check
 from hoomd import md
 
 
@@ -55,14 +59,25 @@ def _assert_error_if_nonpositive(fire):
 def test_constructor_validation():
     """Make sure constructor validates arguments."""
     with pytest.raises(ValueError):
-        md.minimize.FIRE(dt=0.01, min_steps_conv=-5)
+        md.minimize.FIRE(dt=0.01,
+                         force_tol=1e-1,
+                         angmom_tol=1e-1,
+                         energy_tol=1e-5,
+                         min_steps_conv=-5)
     with pytest.raises(ValueError):
-        md.minimize.FIRE(dt=0.01, min_steps_adapt=0)
+        md.minimize.FIRE(dt=0.01,
+                         force_tol=1e-1,
+                         angmom_tol=1e-1,
+                         energy_tol=1e-5,
+                         min_steps_adapt=0)
 
 
 def test_get_set_params(simulation_factory, two_particle_snapshot_factory):
     """Assert we can get/set params when not attached and when attached."""
-    fire = md.minimize.FIRE(dt=0.01)
+    fire = md.minimize.FIRE(dt=0.01,
+                            force_tol=1e-1,
+                            angmom_tol=1e-1,
+                            energy_tol=1e-5)
     default_params = {
         'dt': 0.01,
         'integrate_rotational_dof': False,
@@ -101,11 +116,14 @@ def test_run_minimization(lattice_snapshot_factory, simulation_factory):
     snap = lattice_snapshot_factory(a=1.5, n=8)
     sim = simulation_factory(snap)
 
-    lj = md.pair.LJ(default_r_cut=2.5, nlist=md.nlist.Cell())
+    lj = md.pair.LJ(default_r_cut=2.5, nlist=md.nlist.Cell(buffer=0.4))
     lj.params[('A', 'A')] = dict(sigma=1.0, epsilon=1.0)
     nve = md.methods.NVE(hoomd.filter.All())
 
     fire = md.minimize.FIRE(dt=0.0025,
+                            force_tol=1e-1,
+                            angmom_tol=1e-1,
+                            energy_tol=1e-5,
                             methods=[nve],
                             forces=[lj],
                             min_steps_conv=3)
@@ -132,14 +150,21 @@ def test_pickling(lattice_snapshot_factory, simulation_factory):
 
     nve = md.methods.NVE(hoomd.filter.All())
 
-    fire = md.minimize.FIRE(dt=0.0025, methods=[nve])
+    fire = md.minimize.FIRE(dt=0.0025,
+                            force_tol=1e-1,
+                            angmom_tol=1e-1,
+                            energy_tol=1e-5,
+                            methods=[nve])
 
     operation_pickling_check(fire, sim)
 
 
 def _try_add_to_fire(sim, method, should_error=False):
     """Try adding method to FIRE's method list."""
-    fire = md.minimize.FIRE(dt=0.0025)
+    fire = md.minimize.FIRE(dt=0.0025,
+                            force_tol=1e-1,
+                            angmom_tol=1e-1,
+                            energy_tol=1e-5)
     sim.operations.integrator = fire
     if should_error:
         with pytest.raises(ValueError):
@@ -164,3 +189,17 @@ def test_validate_methods(lattice_snapshot_factory, simulation_factory):
     for method, should_error in methods:
         sim = simulation_factory(snap)
         _try_add_to_fire(sim, method, should_error)
+
+
+def test_logging():
+    logging_check(
+        hoomd.md.minimize.FIRE, ('md', 'minimize', 'fire'), {
+            'converged': {
+                'category': LoggerCategories.scalar,
+                'default': False
+            },
+            'energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })

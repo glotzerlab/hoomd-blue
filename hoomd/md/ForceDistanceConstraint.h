@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MolecularForceCompute.h"
 
@@ -24,6 +22,10 @@
 #include <Eigen/Dense>
 #include <Eigen/SparseLU>
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Implements a pairwise distance constraint using the algorithm of
 
     [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, “A Non-Iterative Matrix Method for
@@ -140,7 +142,13 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
                std::vector<Scalar>& length);
     };
 
+namespace detail
+    {
 //! Exports the ForceDistanceConstraint to python
 void export_ForceDistanceConstraint(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

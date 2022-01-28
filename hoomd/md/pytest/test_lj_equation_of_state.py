@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
 import pytest
 import hoomd.conftest
@@ -50,7 +53,7 @@ def test_lj_equation_of_state(
 
     # set the simulation parameters
     integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(),
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(buffer=0.4),
                           default_r_cut=r_cut,
                           mode='shift')
     lj.params.default = {'sigma': 1, 'epsilon': 1}

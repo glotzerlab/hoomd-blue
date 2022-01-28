@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __BOND_EVALUATOR_FENE_H__
 #define __BOND_EVALUATOR_FENE_H__
@@ -25,34 +23,36 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 struct fene_params
     {
     Scalar k;
     Scalar r_0;
-    Scalar lj1;
-    Scalar lj2;
+    Scalar epsilon_x_4;
+    Scalar sigma_6;
+    Scalar delta;
 
 #ifndef __HIPCC__
     fene_params()
         {
         k = 0;
         r_0 = 0;
-        lj1 = 0;
-        lj2 = 0;
-        }
-
-    fene_params(Scalar k, Scalar r_0, Scalar lj1, Scalar lj2) : k(k), r_0(r_0), lj1(lj1), lj2(lj2)
-        {
+        epsilon_x_4 = 0;
+        sigma_6 = 0;
         }
 
     fene_params(pybind11::dict v)
         {
         k = v["k"].cast<Scalar>();
         r_0 = v["r0"].cast<Scalar>();
+        delta = v["delta"].cast<Scalar>();
         Scalar epsilon = v["epsilon"].cast<Scalar>();
         Scalar sigma = v["sigma"].cast<Scalar>();
-        lj1 = 4.0 * epsilon * std::pow(sigma, 12.0);
-        lj2 = 4.0 * epsilon * std::pow(sigma, 6.0);
+        sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
+        epsilon_x_4 = Scalar(4.0) * epsilon;
         }
 
     pybind11::dict asDict()
@@ -60,13 +60,13 @@ struct fene_params
         pybind11::dict v;
         v["k"] = k;
         v["r0"] = r_0;
-        Scalar sigma = std::pow(lj1 / lj2, 1.0 / 6.0);
-        v["sigma"] = sigma;
-        v["epsilon"] = lj1 / 4.0 / std::pow(sigma, 12.0);
+        v["sigma"] = pow(sigma_6, 1. / 6.);
+        v["epsilon"] = epsilon_x_4 / 4.0;
+        v["delta"] = delta;
         return v;
         }
 #endif
-    } __attribute__((aligned(32)));
+    } __attribute__((aligned(16)));
 
 //! Class for evaluating the FENE bond potential
 /*! The parameters are:
@@ -88,25 +88,23 @@ class EvaluatorBondFENE
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorBondFENE(Scalar _rsq, const param_type& _params)
-        : rsq(_rsq), K(_params.k), r_0(_params.r_0), lj1(_params.lj1), lj2(_params.lj2)
+        : rsq(_rsq), K(_params.k), r_0(_params.r_0),
+          lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
+          lj2(_params.epsilon_x_4 * _params.sigma_6), delta(_params.delta)
         {
         }
 
     //! This evaluator uses diameter information
     DEVICE static bool needsDiameter()
         {
-        return true;
+        return false;
         }
 
     //! Accept the optional diameter values
     /*! \param da Diameter of particle a
         \param db Diameter of particle b
     */
-    DEVICE void setDiameter(Scalar da, Scalar db)
-        {
-        diameter_a = da;
-        diameter_b = db;
-        }
+    DEVICE void setDiameter(Scalar da, Scalar db) { }
 
     //! FENE  doesn't use charge
     DEVICE static bool needsCharge()
@@ -132,7 +130,7 @@ class EvaluatorBondFENE
         Scalar rmdoverr = Scalar(1.0);
 
         // Correct the rsq for particles that are not unit in size.
-        Scalar rtemp = sqrt(rsq) - diameter_a / 2 - diameter_b / 2 + Scalar(1.0);
+        Scalar rtemp = sqrt(rsq) - delta;
         rmdoverr = rtemp / sqrt(rsq);
         rsq = rtemp * rtemp;
 
@@ -146,8 +144,7 @@ class EvaluatorBondFENE
         Scalar sigma6inv = lj2 / lj1;
         Scalar epsilon = lj2 * lj2 / Scalar(4.0) / lj1;
 
-        // add != Scalar(0.0) check to allow epsilon=0 FENE bonds to go to r=0
-        if (r6inv > sigma6inv / Scalar(2.0)) // wcalimit 2^(1/6))^6 sigma^6
+        if (lj1 != 0 && r6inv > sigma6inv / Scalar(2.0)) // wcalimit 2^(1/6))^6 sigma^6
             {
             WCAforcemag_divr = r2inv * r6inv * (Scalar(12.0) * lj1 * r6inv - Scalar(6.0) * lj2);
             pair_eng = (r6inv * (lj1 * r6inv - lj2) + epsilon);
@@ -181,13 +178,15 @@ class EvaluatorBondFENE
 #endif
 
     protected:
-    Scalar rsq;        //!< Stored rsq from the constructor
-    Scalar K;          //!< K parameter
-    Scalar r_0;        //!< r_0 parameter
-    Scalar lj1;        //!< lj1 parameter
-    Scalar lj2;        //!< lj2 parameter
-    Scalar diameter_a; //!< diameter of particle A
-    Scalar diameter_b; //!< diameter of particle B
+    Scalar rsq;   //!< Stored rsq from the constructor
+    Scalar K;     //!< K parameter
+    Scalar r_0;   //!< r_0 parameter
+    Scalar lj1;   //!< lj1 parameter
+    Scalar lj2;   //!< lj2 parameter
+    Scalar delta; //!< Radial shift
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_FENE_H__

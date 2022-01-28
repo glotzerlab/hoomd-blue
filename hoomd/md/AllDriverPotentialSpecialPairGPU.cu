@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser / Anyone is free to add their own pair potentials here
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file AllDriverPotentialSpecialPairGPU.cu
     \brief Defines the driver functions for computing all types of special pair forces on the GPU
@@ -10,6 +8,12 @@
 
 #include "AllDriverPotentialSpecialPairGPU.cuh"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! LJ special pair potential, internal
 hipError_t gpu_compute_lj_forces(const bond_args_t& bond_args,
                                  const special_lj_params* d_params,
@@ -25,3 +29,7 @@ hipError_t gpu_compute_coulomb_forces(const bond_args_t& bond_args,
     {
     return gpu_compute_bond_forces<EvaluatorSpecialPairCoulomb>(bond_args, d_params, d_flags);
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

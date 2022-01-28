@@ -1,9 +1,15 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceConstraintComputeGPU.cuh"
 #include "ManifoldGyroid.h"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 template hipError_t
 gpu_compute_active_force_set_constraints<ManifoldGyroid>(const unsigned int group_size,
                                                          unsigned int* d_index_array,
@@ -25,3 +31,7 @@ template hipError_t gpu_compute_active_force_constraint_rotational_diffusion<Man
     const uint64_t timestep,
     const uint16_t seed,
     unsigned int block_size);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

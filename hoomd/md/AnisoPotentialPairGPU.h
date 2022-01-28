@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __ANISO_POTENTIAL_PAIR_GPU_H__
 #define __ANISO_POTENTIAL_PAIR_GPU_H__
@@ -23,6 +21,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing anisotropic pair potentials on the GPU
 /*! Derived from AnisoPotentialPair, this class provides exactly the same interface for computing
    anisotropic pair potentials, forces and torques.  In the same way as PotentialPair, this class
@@ -35,7 +37,7 @@
     \sa export_AnisoPotentialPairGPU()
 */
 template<class evaluator,
-         hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::a_pair_args_t& pair_args,
                              const typename evaluator::param_type* d_params,
                              const typename evaluator::shape_type* d_shape_params)>
 class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
@@ -77,7 +79,7 @@ class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
     };
 
 template<class evaluator,
-         hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::a_pair_args_t& pair_args,
                              const typename evaluator::param_type* d_params,
                              const typename evaluator::shape_type* d_shape_params)>
 AnisoPotentialPairGPU<evaluator, gpu_cgpf>::AnisoPotentialPairGPU(
@@ -121,7 +123,7 @@ AnisoPotentialPairGPU<evaluator, gpu_cgpf>::AnisoPotentialPairGPU(
     }
 
 template<class evaluator,
-         hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::a_pair_args_t& pair_args,
                              const typename evaluator::param_type* d_params,
                              const typename evaluator::shape_type* d_shape_params)>
 void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
@@ -150,9 +152,9 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(),
                                       access_location::device,
                                       access_mode::read);
-    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(),
-                                          access_location::device,
-                                          access_mode::read);
+    ArrayHandle<size_t> d_head_list(this->m_nlist->getHeadList(),
+                                    access_location::device,
+                                    access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
@@ -201,30 +203,30 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
     // could track this between calls to avoid extra copying.
     bool first = true;
 
-    gpu_cgpf(a_pair_args_t(d_force.data,
-                           d_torque.data,
-                           d_virial.data,
-                           this->m_virial.getPitch(),
-                           this->m_pdata->getN(),
-                           this->m_pdata->getMaxN(),
-                           d_pos.data,
-                           d_diameter.data,
-                           d_charge.data,
-                           d_orientation.data,
-                           d_tag.data,
-                           box,
-                           d_n_neigh.data,
-                           d_nlist.data,
-                           d_head_list.data,
-                           d_rcutsq.data,
-                           this->m_pdata->getNTypes(),
-                           block_size,
-                           this->m_shift_mode,
-                           flags[pdata_flag::pressure_tensor],
-                           threads_per_particle,
-                           this->m_pdata->getGPUPartition(),
-                           this->m_exec_conf->dev_prop,
-                           first),
+    gpu_cgpf(kernel::a_pair_args_t(d_force.data,
+                                   d_torque.data,
+                                   d_virial.data,
+                                   this->m_virial.getPitch(),
+                                   this->m_pdata->getN(),
+                                   this->m_pdata->getMaxN(),
+                                   d_pos.data,
+                                   d_diameter.data,
+                                   d_charge.data,
+                                   d_orientation.data,
+                                   d_tag.data,
+                                   box,
+                                   d_n_neigh.data,
+                                   d_nlist.data,
+                                   d_head_list.data,
+                                   d_rcutsq.data,
+                                   this->m_pdata->getNTypes(),
+                                   block_size,
+                                   this->m_shift_mode,
+                                   flags[pdata_flag::pressure_tensor],
+                                   threads_per_particle,
+                                   this->m_pdata->getGPUPartition(),
+                                   this->m_exec_conf->dev_prop,
+                                   first),
              d_params.data,
              d_shape_params.data);
     if (!m_param)
@@ -239,6 +241,8 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
         this->m_prof->pop(this->m_exec_conf);
     }
 
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated AnisoPotentialPairGPU class template.
@@ -252,6 +256,10 @@ void export_AnisoPotentialPairGPU(pybind11::module& m, const std::string& name)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setTuningParam", &T::setTuningParam);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __ANISO_POTENTIAL_PAIR_GPU_H__

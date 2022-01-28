@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mspells
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/md/NeighborList.h"
@@ -23,6 +21,10 @@
 #ifndef __DEM3DFORCECOMPUTE_H__
 #define __DEM3DFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace dem
+    {
 //! Computes DEM 3D forces on each particle
 /*! The total pair force is summed for each particle when compute() is called. Forces are only
   summed between neighboring particles with a separation distance less than \c r_cut. A NeighborList
@@ -66,7 +68,7 @@ class DEM3DForceCompute : public ForceCompute
     public:
     //! Constructs the compute
     DEM3DForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<NeighborList> nlist,
+                      std::shared_ptr<md::NeighborList> nlist,
                       Real r_cut,
                       Potential potential);
 
@@ -131,8 +133,8 @@ class DEM3DForceCompute : public ForceCompute
         }
 
     protected:
-    std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
-    Real m_r_cut;                          //!< Cutoff radius beyond which the force is set to 0
+    std::shared_ptr<md::NeighborList> m_nlist; //!< The neighborlist to use for the computation
+    Real m_r_cut;                              //!< Cutoff radius beyond which the force is set to 0
     DEMEvaluator<Real, Real4, Potential>
         m_evaluator; //!< Object holding parameters and computation method for the potential
     GPUArray<unsigned int> m_nextFace;      //! face->next face
@@ -159,6 +161,9 @@ class DEM3DForceCompute : public ForceCompute
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
+
+    } // end namespace dem
+    } // end namespace hoomd
 
 #include "DEM3DForceCompute.cc"
 

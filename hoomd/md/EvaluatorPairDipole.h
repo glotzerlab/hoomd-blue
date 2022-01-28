@@ -1,9 +1,8 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // $Id$
 // $URL$
-// Maintainer: ndtrung
 
 #ifndef __PAIR_EVALUATOR_DIPOLE_H__
 #define __PAIR_EVALUATOR_DIPOLE_H__
@@ -31,6 +30,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 class EvaluatorPairDipole
     {
     public:
@@ -75,9 +78,9 @@ class EvaluatorPairDipole
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     struct shape_type
@@ -334,5 +337,8 @@ class EvaluatorPairDipole
     Scalar kappa;
     // const param_type &params;   //!< The pair potential parameters
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DIPOLE_H__

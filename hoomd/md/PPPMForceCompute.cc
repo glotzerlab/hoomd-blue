@@ -1,11 +1,13 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
 #include <map>
 
-namespace py = pybind11;
-
+namespace hoomd
+    {
+namespace md
+    {
 bool is_pow2(unsigned int n)
     {
     while (n && n % 2 == 0)
@@ -72,9 +74,7 @@ void PPPMForceCompute::setParams(unsigned int nx,
 
     if (order < 1 || order > PPPM_MAX_ORDER)
         {
-        m_exec_conf->msg->error() << "charge.pppm: Interpolation order has to be between 1 and "
-                                  << PPPM_MAX_ORDER << std::endl;
-        throw std::runtime_error("Error initializing PPPMForceCompute.");
+        throw std::runtime_error("Invalid interpolation order.");
         }
 
     m_order = order;
@@ -89,38 +89,30 @@ void PPPMForceCompute::setParams(unsigned int nx,
 
         if (!is_pow2(m_mesh_points.x) || !is_pow2(m_mesh_points.y) || !is_pow2(m_mesh_points.z))
             {
-            m_exec_conf->msg->error()
-                << "The number of mesh points along the every direction must be a power of two!"
-                << std::endl;
-            throw std::runtime_error("Error initializing charge.pppm");
+            throw std::runtime_error(
+                "The number of mesh points along the every direction must be a power of two!");
             }
 
         if (nx % didx.getW())
             {
-            m_exec_conf->msg->error() << "The number of mesh points along the x-direction (" << nx
-                                      << ") is not" << std::endl
-                                      << "a multiple of the width (" << didx.getW()
-                                      << ") of the processor grid!" << std::endl
-                                      << std::endl;
-            throw std::runtime_error("Error initializing charge.pppm");
+            std::ostringstream s;
+            s << "The number of mesh points along the x-direction (" << nx << ") is not"
+              << "a multiple of the width (" << didx.getW() << ") of the processor grid!";
+            throw std::runtime_error(s.str());
             }
         if (ny % didx.getH())
             {
-            m_exec_conf->msg->error() << "The number of mesh points along the y-direction (" << ny
-                                      << ") is not" << std::endl
-                                      << "a multiple of the height (" << didx.getH()
-                                      << ") of the processor grid!" << std::endl
-                                      << std::endl;
-            throw std::runtime_error("Error initializing charge.pppm");
+            std::ostringstream s;
+            s << "The number of mesh points along the y-direction (" << ny << ") is not"
+              << "a multiple of the height (" << didx.getH() << ") of the processor grid!";
+            throw std::runtime_error(s.str());
             }
         if (nz % didx.getD())
             {
-            m_exec_conf->msg->error() << "The number of mesh points along the z-direction (" << nz
-                                      << ") is not" << std::endl
-                                      << "a multiple of the depth (" << didx.getD()
-                                      << ") of the processor grid!" << std::endl
-                                      << std::endl;
-            throw std::runtime_error("Error initializing charge.pppm");
+            std::ostringstream s;
+            s << "The number of mesh points along the z-direction (" << nz << ") is not"
+              << "a multiple of the depth (" << didx.getD() << ") of the processor grid!";
+            throw std::runtime_error(s.str());
             }
 
         m_mesh_points.x /= didx.getW();
@@ -1832,14 +1824,16 @@ Scalar PPPMForceCompute::getQ2Sum()
     return q2;
     }
 
-void export_PPPMForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<PPPMForceCompute, ForceCompute, std::shared_ptr<PPPMForceCompute>>(
+void export_PPPMForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<PPPMForceCompute, ForceCompute, std::shared_ptr<PPPMForceCompute>>(
         m,
         "PPPMForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<NeighborList>,
-                      std::shared_ptr<ParticleGroup>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<NeighborList>,
+                            std::shared_ptr<ParticleGroup>>())
         .def("setParams", &PPPMForceCompute::setParams)
         .def("getQSum", &PPPMForceCompute::getQSum)
         .def("getQ2Sum", &PPPMForceCompute::getQ2Sum)
@@ -1849,3 +1843,7 @@ void export_PPPMForceCompute(py::module& m)
         .def_property_readonly("r_cut", &PPPMForceCompute::getRCut)
         .def_property_readonly("alpha", &PPPMForceCompute::getAlpha);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file SnapshotSystemData.cc
     \brief Implements SnapshotSystemData related functions
@@ -9,8 +7,9 @@
 
 #include "SnapshotSystemData.h"
 #include <pybind11/pybind11.h>
-namespace py = pybind11;
 
+namespace hoomd
+    {
 template<class Real>
 void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsigned int nz)
     {
@@ -121,12 +120,14 @@ void SnapshotSystemData<Real>::broadcast_all(unsigned int root,
 template struct PYBIND11_EXPORT SnapshotSystemData<float>;
 template struct PYBIND11_EXPORT SnapshotSystemData<double>;
 
-void export_SnapshotSystemData(py::module& m)
+namespace detail
     {
-    py::class_<SnapshotSystemData<float>, std::shared_ptr<SnapshotSystemData<float>>>(
+void export_SnapshotSystemData(pybind11::module& m)
+    {
+    pybind11::class_<SnapshotSystemData<float>, std::shared_ptr<SnapshotSystemData<float>>>(
         m,
         "SnapshotSystemData_float")
-        .def(py::init<>())
+        .def(pybind11::init<>())
         .def_readwrite("_dimensions", &SnapshotSystemData<float>::dimensions)
         .def_readwrite("_global_box", &SnapshotSystemData<float>::global_box)
         .def_readonly("particles", &SnapshotSystemData<float>::particle_data)
@@ -142,10 +143,10 @@ void export_SnapshotSystemData(py::module& m)
         .def("_broadcast", &SnapshotSystemData<float>::broadcast)
         .def("_broadcast_all", &SnapshotSystemData<float>::broadcast_all);
 
-    py::class_<SnapshotSystemData<double>, std::shared_ptr<SnapshotSystemData<double>>>(
+    pybind11::class_<SnapshotSystemData<double>, std::shared_ptr<SnapshotSystemData<double>>>(
         m,
         "SnapshotSystemData_double")
-        .def(py::init<>())
+        .def(pybind11::init<>())
         .def_readwrite("_dimensions", &SnapshotSystemData<double>::dimensions)
         .def_readwrite("_global_box", &SnapshotSystemData<double>::global_box)
         .def_readonly("particles", &SnapshotSystemData<double>::particle_data)
@@ -161,3 +162,7 @@ void export_SnapshotSystemData(py::module& m)
         .def("_broadcast", &SnapshotSystemData<double>::broadcast)
         .def("_broadcast_all", &SnapshotSystemData<double>::broadcast_all);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

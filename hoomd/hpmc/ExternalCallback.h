@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_CALLBACK_H_
 #define _EXTERNAL_CALLBACK_H_
@@ -18,6 +18,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 template<class Shape>
@@ -145,6 +147,8 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
     pybind11::object callback; //! The python callback
     };
 
+namespace detail
+    {
 template<class Shape> void export_ExternalCallback(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ExternalCallback<Shape>,
@@ -153,6 +157,7 @@ template<class Shape> void export_ExternalCallback(pybind11::module& m, const st
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, pybind11::object>());
     }
 
-    } // namespace hpmc
-
+    }  // end namespace detail
+    }  // namespace hpmc
+    }  // end namespace hoomd
 #endif // _EXTERNAL_FIELD_LATTICE_H_

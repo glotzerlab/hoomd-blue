@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/Communicator.cc
@@ -17,8 +15,9 @@
 #include <pybind11/stl.h>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 // 27 neighbors is the maximum in 3 dimensions
 const unsigned int mpcd::Communicator::neigh_max = 27;
 
@@ -414,8 +413,8 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                                 * sizeof(mpcd::detail::pdata_element));
             }
 
-        // now we pass through and unpack the particles, either by holding onto them in the receive
-        // buffer or by passing them back into the send buffer for the next stage
+            // now we pass through and unpack the particles, either by holding onto them in the
+            // receive buffer or by passing them back into the send buffer for the next stage
             {
             // partition the receive buffer so that particles that need to be sent are at the end
             ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf,
@@ -442,7 +441,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                 }
             }
         m_recvbuf.resize(n_recv); // free up memory from the end of the receive buffer
-        }                             // end dir loop
+        }                         // end dir loop
 
     // fill particle data with wrapped, received particles
     if (m_prof)
@@ -697,9 +696,11 @@ BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_Communicator(py::module& m)
+void mpcd::detail::export_Communicator(pybind11::module& m)
     {
-    py::class_<mpcd::Communicator, std::shared_ptr<mpcd::Communicator>>(m, "Communicator")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>>());
+    pybind11::class_<mpcd::Communicator, std::shared_ptr<mpcd::Communicator>>(m, "Communicator")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>());
     }
+
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

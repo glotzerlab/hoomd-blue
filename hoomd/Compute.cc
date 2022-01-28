@@ -1,12 +1,8 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Compute.h"
 #include "Communicator.h"
-
-namespace py = pybind11;
 
 #include <iostream>
 #include <stdexcept>
@@ -16,6 +12,8 @@ using namespace std;
     \brief Contains code for the Compute class
 */
 
+namespace hoomd
+    {
 /*! \param sysdef SystemDefinition this compute will act on. Must not be NULL.
     \post The Compute is constructed with the given particle data and a NULL profiler.
 */
@@ -34,8 +32,7 @@ Compute::Compute(std::shared_ptr<SystemDefinition> sysdef)
     Derived classes can optionally implement this method. */
 double Compute::benchmark(unsigned int num_iters)
     {
-    m_exec_conf->msg->error() << "This compute doesn't support benchmarking" << endl;
-    throw runtime_error("Error benchmarking compute");
+    throw runtime_error("Benchmarking not supported.");
     return 0.0;
     }
 
@@ -115,12 +112,17 @@ void Compute::forceCompute(uint64_t timestep)
     compute(timestep);
     }
 
-void export_Compute(py::module& m)
+namespace detail
     {
-    py::class_<Compute, std::shared_ptr<Compute>>(m, "Compute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_Compute(pybind11::module& m)
+    {
+    pybind11::class_<Compute, std::shared_ptr<Compute>>(m, "Compute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("compute", &Compute::compute)
         .def("benchmark", &Compute::benchmark)
         .def("setProfiler", &Compute::setProfiler)
         .def("notifyDetach", &Compute::notifyDetach);
     }
+    } // end namespace detail
+
+    } // end namespace hoomd

@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_TERSOFF_H__
 #define __POTENTIAL_TERSOFF_H__
@@ -27,6 +27,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing three-body potentials
 /*! <b>Overview:</b>
     PotentialTersoff computes standard three-body potentials and forces between all particles in the
@@ -287,9 +291,9 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
-                                              access_location::host,
-                                              access_mode::read);
+        ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+                                        access_location::host,
+                                        access_mode::read);
 
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
@@ -316,7 +320,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
             // access the particle's position and type (MEM TRANSFER: 4 scalars)
             Scalar3 posi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
             unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-            const unsigned int head_i = h_head_list.data[i];
+            const size_t head_i = h_head_list.data[i];
             // sanity check
             assert(typei < m_pdata->getNTypes());
 
@@ -554,9 +558,9 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
-                                              access_location::host,
-                                              access_mode::read);
+        ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+                                        access_location::host,
+                                        access_mode::read);
 
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
@@ -585,7 +589,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
             // access the particle's position and type (MEM TRANSFER: 4 scalars)
             Scalar3 posi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
             unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-            const unsigned int head_i = h_head_list.data[i];
+            const size_t head_i = h_head_list.data[i];
             // sanity check
             assert(typei < m_pdata->getNTypes());
 
@@ -988,6 +992,8 @@ CommFlags PotentialTersoff<evaluator>::getRequestedCommFlags(uint64_t timestep)
     }
 #endif
 
+namespace detail
+    {
 //! Export this triplet potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialTersoff class template.
@@ -1001,5 +1007,9 @@ template<class T> void export_PotentialTersoff(pybind11::module& m, const std::s
         .def("setRCut", &T::setRCutPython)
         .def("getRCut", &T::getRCut);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

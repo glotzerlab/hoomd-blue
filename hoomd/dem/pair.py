@@ -1,5 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 R"""DEM pair potentials.
 """
@@ -290,10 +290,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         d_max (float): maximum rounding diameter among all particles in the system
 
     The SWCA potential enables simulation of particles with
-    heterogeneous rounding radii. The effect is as if a
-    :py:class:`hoomd.md.pair.SLJ` interaction with
-    :math:`r_{cut}=2^{1/6}\sigma` and :math:`\sigma=2\cdot r` were
-    applied between the contact points of each pair of particles.
+    heterogeneous rounding radii.
 
     Examples::
 

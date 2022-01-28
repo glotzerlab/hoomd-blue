@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __GETAR_DUMPER_H_
 #define __GETAR_DUMPER_H_
@@ -19,6 +19,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 namespace getardump
     {
 typedef SnapshotSystemData<Scalar> SystemSnapshot;
@@ -322,5 +324,6 @@ class PYBIND11_EXPORT GetarDumpWriter : public Analyzer
 void export_GetarDumpWriter(pybind11::module& m);
 
     } // namespace getardump
+    } // end namespace hoomd
 
 #endif

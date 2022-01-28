@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
@@ -17,12 +20,16 @@
 #include <thrust/transform.h>
 #pragma GCC diagnostic pop
 
-// Maintainer: jglaser
-
 /*! \file ForceComposite.cu
     \brief Defines GPU kernel code for the composite particle integration on the GPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Calculates the body forces and torques by summing the constituent particle forces using a fixed
 //! sliding window size
 /*  Compute the force and torque sum on all bodies in the system from their constituent particles.
@@ -851,3 +858,7 @@ hipError_t gpu_find_rigid_centers(const unsigned int* d_body,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

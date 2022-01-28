@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMCMonoGPUDepletants.cuh"
 #include "hoomd/CachedAllocator.h"
@@ -11,6 +11,8 @@
 #include <thrust/execution_policy.h>
 #include <thrust/reduce.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -408,3 +410,4 @@ void hpmc_depletants_accept(const uint16_t seed,
     }
     } // end namespace gpu
     } // end namespace hpmc
+    } // end namespace hoomd

@@ -1,11 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: dnlebard
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HarmonicAngleForceCompute.h"
-
-namespace py = pybind11;
 
 #include <iostream>
 #include <math.h>
@@ -21,6 +17,10 @@ using namespace std;
     \brief Contains code for the HarmonicAngleForceCompute class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
@@ -35,8 +35,7 @@ HarmonicAngleForceCompute::HarmonicAngleForceCompute(std::shared_ptr<SystemDefin
     // check for some silly errors a user could make
     if (m_angle_data->getNTypes() == 0)
         {
-        m_exec_conf->msg->error() << "angle.harmonic: No angle types specified" << endl;
-        throw runtime_error("Error initializing HarmonicAngleForceCompute");
+        throw runtime_error("No angle types in the system.");
         }
 
     // allocate the parameters
@@ -65,8 +64,7 @@ void HarmonicAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_
     // make sure the type is valid
     if (type >= m_angle_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "angle.harmonic: Invalid angle type specified" << endl;
-        throw runtime_error("Error setting parameters in HarmonicAngleForceCompute");
+        throw runtime_error("Invalid angle type.");
         }
 
     m_K[type] = K;
@@ -91,8 +89,7 @@ pybind11::dict HarmonicAngleForceCompute::getParams(std::string type)
     auto typ = m_angle_data->getTypeByName(type);
     if (typ >= m_angle_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "angle.harmonic: Invalid angle type specified" << endl;
-        throw runtime_error("Error setting parameters in HarmonicAngleForceCompute");
+        throw runtime_error("Invalid angle type.");
         }
     pybind11::dict params;
     params["k"] = m_K[typ];
@@ -273,12 +270,18 @@ void HarmonicAngleForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-void export_HarmonicAngleForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<HarmonicAngleForceCompute, ForceCompute, std::shared_ptr<HarmonicAngleForceCompute>>(
-        m,
-        "HarmonicAngleForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_HarmonicAngleForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<HarmonicAngleForceCompute,
+                     ForceCompute,
+                     std::shared_ptr<HarmonicAngleForceCompute>>(m, "HarmonicAngleForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &HarmonicAngleForceCompute::setParamsPython)
         .def("getParams", &HarmonicAngleForceCompute::getParams);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

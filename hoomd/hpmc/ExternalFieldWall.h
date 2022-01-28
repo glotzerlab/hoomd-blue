@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_FIELD_WALL_H_
 #define _EXTERNAL_FIELD_WALL_H_
@@ -28,6 +28,8 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 struct SphereWall
@@ -816,7 +818,7 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
                                            access_location::host,
                                            access_mode::readwrite);
         const std::vector<typename Shape::param_type,
-                          managed_allocator<typename Shape::param_type>>& params
+                          hoomd::detail::managed_allocator<typename Shape::param_type>>& params
             = m_mc->getParams();
 
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -959,6 +961,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
     BoxDim m_box;                                    //!< the current box
     };
 
+namespace detail
+    {
 template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ExternalFieldWall<Shape>,
@@ -993,7 +997,8 @@ template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const s
         .def("SetCurrBox", &ExternalFieldWall<Shape>::SetCurrBox);
     }
 
+    } // end namespace detail
     } // namespace hpmc
-
+    } // end namespace hoomd
 #undef DEVICE
 #endif // inclusion guard

@@ -1,4 +1,6 @@
-// inclusion guard
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef _UPDATER_HPMC_CLUSTERS_
 #define _UPDATER_HPMC_CLUSTERS_
 
@@ -30,6 +32,8 @@
 #endif
 
 #endif
+
+namespace hoomd {
 
 namespace hpmc
 {
@@ -368,7 +372,7 @@ class UpdaterClusters : public Updater
 
         detail::Graph m_G; //!< The graph
 
-        detail::AABBTree m_aabb_tree_old;              //!< Locality lookup for old configuration
+        hoomd::detail::AABBTree m_aabb_tree_old;              //!< Locality lookup for old configuration
 
         GlobalVector<Scalar4> m_postype_backup;        //!< Old local positions
         GlobalVector<Scalar4> m_orientation_backup;    //!< Old local orientations
@@ -470,7 +474,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
     Index2D overlap_idx = m_mc->getOverlapIndexer();
 
-    detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+    hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
     const uint16_t seed = this->m_sysdef->getSeed();
 
@@ -540,13 +544,13 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
             vec3<Scalar> upper = aabb_i_local.getUpper();
             lower.x -= d_dep_search; lower.y -= d_dep_search; lower.z -= d_dep_search;
             upper.x += d_dep_search; upper.y += d_dep_search; upper.z += d_dep_search;
-            detail::AABB aabb_local = detail::AABB(lower,upper);
+            hoomd::detail::AABB aabb_local = hoomd::detail::AABB(lower,upper);
 
             // All image boxes (including the primary)
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
-                detail::AABB aabb = aabb_local;
+                hoomd::detail::AABB aabb = aabb_local;
                 aabb.translate(pos_i_image);
 
                 // stackless search
@@ -886,13 +890,13 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                     bool overlap_old = false;
 
                     // get AABB
-                    detail::AABB aabb_a_local = shape_test_transf_a.getAABB(vec3<Scalar>(0,0,0));
+                    hoomd::detail::AABB aabb_a_local = shape_test_transf_a.getAABB(vec3<Scalar>(0,0,0));
 
                     // All image boxes (including the primary)
                     for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                         {
                         vec3<Scalar> pos_test_image = pos_test_transf + image_list[cur_image];
-                        detail::AABB aabb = aabb_a_local;
+                        hoomd::detail::AABB aabb = aabb_a_local;
                         aabb.translate(pos_test_image);
 
                         // stackless search
@@ -941,11 +945,11 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
                     if (type_a != type_b)
                         {
-                        detail::AABB aabb_b_local = shape_test_transf_b.getAABB(vec3<Scalar>(0,0,0));
+                        hoomd::detail::AABB aabb_b_local = shape_test_transf_b.getAABB(vec3<Scalar>(0,0,0));
                         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                             {
                             vec3<Scalar> pos_test_image = pos_test_transf + image_list[cur_image];
-                            detail::AABB aabb = aabb_b_local;
+                            hoomd::detail::AABB aabb = aabb_b_local;
                             aabb.translate(pos_test_image);
 
                             // stackless search
@@ -1216,7 +1220,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
             // subtract minimum AABB extent from search radius
             Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
             Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
-            detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0), R_query);
+            hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0), R_query);
 
             const unsigned int n_images = (unsigned int) image_list.size();
 
@@ -1224,7 +1228,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
                 {
                 vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
 
-                detail::AABB aabb_i_image = aabb_local;
+                hoomd::detail::AABB aabb_i_image = aabb_local;
                 aabb_i_image.translate(pos_i_image);
 
                 // stackless search
@@ -1314,7 +1318,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
         Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
 
         // check for overlap at mirrored position, with other particles in old configuration
-        detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+        hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
         // All image boxes (including the primary)
         const unsigned int n_images = (unsigned int) image_list.size();
@@ -1324,7 +1328,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
             {
             vec3<Scalar> pos_i_image = pos_i_new + image_list[cur_image];
 
-            detail::AABB aabb_i_image = aabb_i_local;
+            hoomd::detail::AABB aabb_i_image = aabb_i_local;
             aabb_i_image.translate(pos_i_image);
 
             // stackless search
@@ -1382,14 +1386,14 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
             // subtract minimum AABB extent from search radius
             Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
             Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
-            detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0), R_query);
+            hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0), R_query);
 
             // compute V(r'-r)
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_i_image = pos_i_new + image_list[cur_image];
 
-                detail::AABB aabb_i_image = aabb_local;
+                hoomd::detail::AABB aabb_i_image = aabb_local;
                 aabb_i_image.translate(pos_i_image);
 
                 // stackless search
@@ -1771,6 +1775,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
     m_mc->invalidateAABBTree();
     }
 
+namespace detail {
 
 template < class Shape> void export_UpdaterClusters(pybind11::module& m, const std::string& name)
     {
@@ -1790,6 +1795,8 @@ inline void export_hpmc_clusters_counters(pybind11::module &m)
         ;
     }
 
+} // end namespace detail
 } // end namespace hpmc
+} // end namespace hoomd
 
 #endif // _UPDATER_HPMC_CLUSTERS_

@@ -1,17 +1,20 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MuellerPlatheFlow.h"
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/HOOMDMath.h"
 
-namespace py = pybind11;
 using namespace std;
 
+//! \file MuellerPlatheFlow.cc Implementation of CPU version of MuellerPlatheFlow.
+
+namespace hoomd
+    {
+namespace md
+    {
 const unsigned int INVALID_TAG = UINT_MAX;
 const Scalar INVALID_VEL = FLT_MAX; // should be ok, even for double.
-
-//! \file MuellerPlatheFlow.cc Implementation of CPU version of MuellerPlatheFlow.
 
 MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
                                      std::shared_ptr<ParticleGroup> group,
@@ -169,9 +172,10 @@ void MuellerPlatheFlow::setMinSlab(const unsigned int min_slab)
     {
     if (min_slab >= m_N_slabs)
         {
-        m_exec_conf->msg->error() << "MuellerPlatheFlow is initialized with invalid min_slab: "
-                                  << min_slab << "/" << m_N_slabs << endl;
-        throw runtime_error("ERROR: Invalid min_slab.\n");
+        ostringstream s;
+        s << "MuellerPlatheFlow is initialized with invalid min_slab: " << min_slab << "/"
+          << m_N_slabs << ".";
+        throw runtime_error(s.str());
         }
     if (min_slab != m_min_slab)
         this->updateDomainDecomposition();
@@ -181,9 +185,10 @@ void MuellerPlatheFlow::setMaxSlab(const unsigned int max_slab)
     {
     if (max_slab >= m_N_slabs)
         {
-        m_exec_conf->msg->error() << "MuellerPlatheFlow is initialized with invalid max_slab: "
-                                  << max_slab << "/" << m_N_slabs << endl;
-        throw runtime_error("ERROR: Invalid max_slab.\n");
+        ostringstream s;
+        s << "MuellerPlatheFlow is initialized with invalid max_slab: " << max_slab << "/"
+          << m_N_slabs << ".";
+        throw runtime_error(s.str());
         }
     if (max_slab != m_max_slab)
         this->updateDomainDecomposition();
@@ -371,9 +376,7 @@ void MuellerPlatheFlow::verifyOrthorhombicBox(void)
 
     if (not valid)
         {
-        m_exec_conf->msg->error() << " MuellerPlatheFlow can only be used with orthorhombic boxes. "
-                                  << endl;
-        throw runtime_error("MuellerPlatheFlow non orthorhombic box.");
+        throw runtime_error("MuellerPlatheFlow can only be used with orthorhombic boxes.");
         }
     // Disable check for the next update call.
     m_needs_orthorhombic_check = false;
@@ -466,20 +469,22 @@ void MuellerPlatheFlow::mpiExchangeVelocity(void)
 
 #endif // ENABLE_MPI
 
-void export_MuellerPlatheFlow(py::module& m)
+namespace detail
     {
-    py::class_<MuellerPlatheFlow, Updater, std::shared_ptr<MuellerPlatheFlow>> flow(
+void export_MuellerPlatheFlow(pybind11::module& m)
+    {
+    pybind11::class_<MuellerPlatheFlow, Updater, std::shared_ptr<MuellerPlatheFlow>> flow(
         m,
         "MuellerPlatheFlow");
-    flow.def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>,
-                      std::string,
-                      std::string,
-                      const unsigned int,
-                      const unsigned int,
-                      const unsigned int,
-                      Scalar>())
+    flow.def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
+                            std::string,
+                            std::string,
+                            const unsigned int,
+                            const unsigned int,
+                            const unsigned int,
+                            Scalar>())
         .def_property_readonly("n_slabs", &MuellerPlatheFlow::getNSlabs)
         .def_property_readonly("min_slab", &MuellerPlatheFlow::getMinSlab)
         .def_property_readonly("max_slab", &MuellerPlatheFlow::getMaxSlab)
@@ -492,3 +497,7 @@ void export_MuellerPlatheFlow(py::module& m)
         .def_property_readonly("summed_exchanged_momentum",
                                &MuellerPlatheFlow::getSummedExchangedMomentum);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: phillicl
 
 /*! \file PotentialPairDPDThermoGPU.cuh
     \brief Declares driver functions for computing all types of pair forces on the GPU
@@ -20,6 +21,12 @@
 #endif // __HIPCC__
 #include <cassert>
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 // currently this is hardcoded, we should set it to the max of platforms
 #if defined(__HIP_PLATFORM_NVCC__)
 const int gpu_dpd_pair_force_max_tpp = 32;
@@ -42,7 +49,7 @@ struct dpd_pair_args_t
                     const BoxDim& _box,
                     const unsigned int* _d_n_neigh,
                     const unsigned int* _d_nlist,
-                    const unsigned int* _d_head_list,
+                    const size_t* _d_head_list,
                     const Scalar* _d_rcutsq,
                     const size_t _size_nlist,
                     const unsigned int _ntypes,
@@ -73,16 +80,16 @@ struct dpd_pair_args_t
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
-    const unsigned int* d_head_list; //!< Indexes for accessing d_nlist
-    const Scalar* d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const size_t size_nlist;         //!< Total length of the neighbor list
-    const unsigned int ntypes;       //!< Number of particle types in the simulation
-    const unsigned int block_size;   //!< Block size to execute
-    const uint16_t seed;             //!< user provided seed for PRNG
-    const uint64_t timestep;         //!< timestep of simulation
-    const Scalar deltaT;             //!< timestep size
-    const Scalar T;                  //!< temperature
-    const unsigned int shift_mode;   //!< The potential energy shift mode
+    const size_t* d_head_list;   //!< Indexes for accessing d_nlist
+    const Scalar* d_rcutsq;      //!< Device array listing r_cut squared per particle type pair
+    const size_t size_nlist;     //!< Total length of the neighbor list
+    const unsigned int ntypes;   //!< Number of particle types in the simulation
+    const unsigned int block_size;     //!< Block size to execute
+    const uint16_t seed;               //!< user provided seed for PRNG
+    const uint64_t timestep;           //!< timestep of simulation
+    const Scalar deltaT;               //!< timestep size
+    const Scalar T;                    //!< temperature
+    const unsigned int shift_mode;     //!< The potential energy shift mode
     const unsigned int compute_virial; //!< Flag to indicate if virials should be computed
     const unsigned int
         threads_per_particle; //!< Number of threads per particle (maximum: 32==1 warp)
@@ -145,7 +152,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                                               BoxDim box,
                                               const unsigned int* d_n_neigh,
                                               const unsigned int* d_nlist,
-                                              const unsigned int* d_head_list,
+                                              const size_t* d_head_list,
                                               const typename evaluator::param_type* d_params,
                                               const Scalar* d_rcutsq,
                                               const uint16_t d_seed,
@@ -206,7 +213,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
         Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
 
         // prefetch neighbor index
-        const unsigned int head_idx = d_head_list[idx];
+        const size_t head_idx = d_head_list[idx];
         unsigned int cur_j = 0;
         unsigned int next_j(0);
         next_j = (threadIdx.x % tpp < n_neigh) ? __ldg(d_nlist + head_idx + threadIdx.x % tpp) : 0;
@@ -490,5 +497,9 @@ hipError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
     return hipSuccess;
     }
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_CUH__

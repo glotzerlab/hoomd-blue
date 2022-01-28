@@ -1,9 +1,11 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "UpdaterQuickCompress.h"
 #include "hoomd/RNGIdentifiers.h"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sysdef,
@@ -191,6 +193,8 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     return new_box;
     }
 
+namespace detail
+    {
 void export_UpdaterQuickCompress(pybind11::module& m)
     {
     pybind11::class_<UpdaterQuickCompress, Updater, std::shared_ptr<UpdaterQuickCompress>>(
@@ -215,5 +219,6 @@ void export_UpdaterQuickCompress(pybind11::module& m)
                       &UpdaterQuickCompress::getInstance,
                       &UpdaterQuickCompress::setInstance);
     }
-
+    } // end namespace detail
     } // end namespace hpmc
+    } // end namespace hoomd

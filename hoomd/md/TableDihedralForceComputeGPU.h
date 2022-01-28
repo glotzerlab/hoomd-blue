@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: phillicl
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TableDihedralForceCompute.h"
 #include "TableDihedralForceGPU.cuh"
@@ -20,6 +18,10 @@
 #ifndef __TABLEDIHEDRALFORCECOMPUTEGPU_H__
 #define __TABLEDIHEDRALFORCECOMPUTEGPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Compute table based bond potentials on the GPU
 /*! Calculates exactly the same thing as TableDihedralForceCompute, but on the GPU
 
@@ -54,7 +56,13 @@ class PYBIND11_EXPORT TableDihedralForceComputeGPU : public TableDihedralForceCo
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the TableDihedralForceComputeGPU class to python
 void export_TableDihedralForceComputeGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

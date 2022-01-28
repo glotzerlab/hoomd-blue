@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.conftest import pickling_check
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
@@ -121,7 +124,7 @@ def test_apply_param_dict(full_op):
 @fixture(scope='function')
 def attached(full_op):
     cp = deepcopy(full_op)
-    op = test_apply_param_dict(test_apply_typeparam_dict(cp))
+    op = test_apply_param_dict(cp)
     op._add(1)
     return op
 

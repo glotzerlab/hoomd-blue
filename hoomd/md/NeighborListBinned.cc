@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file NeighborListBinned.cc
     \brief Defines NeighborListBinned
@@ -14,8 +12,11 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
+namespace md
+    {
 NeighborListBinned::NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
     : NeighborList(sysdef, r_buff), m_cl(std::make_shared<CellList>(sysdef))
     {
@@ -80,7 +81,7 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
                                          access_mode::read);
 
     // access the neighbor list data
-    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_conditions(m_conditions,
                                            access_location::host,
@@ -109,7 +110,7 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
         const Scalar diam_i = h_diameter.data[i];
 
         const unsigned int Nmax_i = h_Nmax.data[type_i];
-        const unsigned int head_idx_i = h_head_list.data[i];
+        const size_t head_idx_i = h_head_list.data[i];
 
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(my_pos, ghost_width);
@@ -199,13 +200,19 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListBinned(py::module& m)
+namespace detail
     {
-    py::class_<NeighborListBinned, NeighborList, std::shared_ptr<NeighborListBinned>>(
+void export_NeighborListBinned(pybind11::module& m)
+    {
+    pybind11::class_<NeighborListBinned, NeighborList, std::shared_ptr<NeighborListBinned>>(
         m,
         "NeighborListBinned")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property("deterministic",
                       &NeighborListBinned::getDeterministic,
                       &NeighborListBinned::setDeterministic);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

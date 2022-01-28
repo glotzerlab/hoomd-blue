@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Communicator.h"
 #include "HOOMDMath.h"
@@ -37,6 +35,8 @@
 /*! @}
  */
 
+namespace hoomd
+    {
 //! Performs updates of ParticleData structures
 /*! The Updater is an abstract concept that takes a particle data structure and changes it in some
    way. For example, an updater may make a verlet step and update the particle positions to the next
@@ -124,6 +124,12 @@ class PYBIND11_EXPORT Updater
     /// Python will notify C++ objects when they are detached from Simulation
     virtual void notifyDetach() {};
 
+    /// Return true if updating should trigger a recount of the degrees of freedom.
+    virtual bool mayChangeDegreesOfFreedom(uint64_t timestep)
+        {
+        return false;
+        }
+
     protected:
     const std::shared_ptr<SystemDefinition>
         m_sysdef; //!< The system definition this compute is associated with
@@ -136,7 +142,13 @@ class PYBIND11_EXPORT Updater
         m_slots; //!< Stored shared ptr to the system signals
     };
 
+namespace detail
+    {
 //! Export the Updater class to python
 void export_Updater(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

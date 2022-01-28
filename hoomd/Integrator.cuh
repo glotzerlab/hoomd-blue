@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Integrator.cuh
     \brief Declares methods and data structures used by the Integrator class on the GPU
@@ -14,6 +12,10 @@
 #include "HOOMDMath.h"
 #include "ParticleData.cuh"
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! struct to pack up several force and virial arrays for addition
 /*! To keep the argument count down to gpu_integrator_sum_accel, up to 6 force/virial array pairs
    are packed up in this struct for addition to the net force/virial in a single kernel call. If
@@ -69,5 +71,9 @@ hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
                                         bool clear,
                                         bool compute_virial,
                                         const GPUPartition& gpu_partition);
+
+    } // end namespace kernel
+
+    } // end namespace hoomd
 
 #endif

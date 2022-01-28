@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "CellList.h"
 
@@ -15,6 +13,8 @@
  * \brief Definition of mpcd::CellList
  */
 
+namespace hoomd
+    {
 mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
     : Compute(sysdef), m_mpcd_pdata(mpcd_pdata), m_cell_size(1.0), m_cell_np_max(4),
@@ -942,11 +942,12 @@ const int3 mpcd::CellList::wrapGlobalCell(const int3& cell) const
 
 void mpcd::detail::export_CellList(pybind11::module& m)
     {
-    namespace py = pybind11;
-
-    py::class_<mpcd::CellList, Compute, std::shared_ptr<mpcd::CellList>>(m, "CellList")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData>>())
+    pybind11::class_<mpcd::CellList, Compute, std::shared_ptr<mpcd::CellList>>(m, "CellList")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<mpcd::ParticleData>>())
         .def_property("cell_size", &mpcd::CellList::getCellSize, &mpcd::CellList::setCellSize)
         .def("setEmbeddedGroup", &mpcd::CellList::setEmbeddedGroup)
         .def("removeEmbeddedGroup", &mpcd::CellList::removeEmbeddedGroup);
     }
+
+    } // end namespace hoomd

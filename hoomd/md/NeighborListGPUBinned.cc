@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file NeighborListGPUBinned.cc
     \brief Defines NeighborListGPUBinned
@@ -10,12 +8,14 @@
 #include "NeighborListGPUBinned.h"
 #include "NeighborListGPUBinned.cuh"
 
-namespace py = pybind11;
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> sysdef,
                                              Scalar r_buff)
     : NeighborListGPU(sysdef, r_buff), m_cl(std::make_shared<CellListGPU>(sysdef)), m_param(0)
@@ -61,9 +61,7 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
     {
     if (m_storage_mode != full)
         {
-        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU"
-                                  << std::endl;
-        throw std::runtime_error("Error computing neighbor list");
+        throw std::runtime_error("GPU neighbor lists require a full storage mode.");
         }
 
     // update the cell list size if needed
@@ -125,7 +123,7 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
                                                            access_location::device,
                                                            access_mode::read);
 
-    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
+    ArrayHandle<size_t> d_head_list(m_head_list, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_conditions(m_conditions,
                                            access_location::device,
@@ -163,35 +161,36 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
-    gpu_compute_nlist_binned(d_nlist.data,
-                             d_n_neigh.data,
-                             d_last_pos.data,
-                             d_conditions.data,
-                             d_Nmax.data,
-                             d_head_list.data,
-                             d_pos.data,
-                             d_body.data,
-                             d_diameter.data,
-                             m_pdata->getN(),
-                             m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
-                             d_cell_xyzf.data,
-                             m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
-                             d_cell_tdb.data,
-                             d_cell_adj.data,
-                             m_cl->getCellIndexer(),
-                             m_cl->getCellListIndexer(),
-                             m_cl->getCellAdjIndexer(),
-                             box,
-                             d_r_cut.data,
-                             m_r_buff,
-                             m_pdata->getNTypes(),
-                             threads_per_particle,
-                             block_size,
-                             m_filter_body,
-                             m_diameter_shift,
-                             m_cl->getGhostWidth(),
-                             m_pdata->getGPUPartition(),
-                             m_use_index);
+    kernel::gpu_compute_nlist_binned(
+        d_nlist.data,
+        d_n_neigh.data,
+        d_last_pos.data,
+        d_conditions.data,
+        d_Nmax.data,
+        d_head_list.data,
+        d_pos.data,
+        d_body.data,
+        d_diameter.data,
+        m_pdata->getN(),
+        m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
+        d_cell_xyzf.data,
+        m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
+        d_cell_tdb.data,
+        d_cell_adj.data,
+        m_cl->getCellIndexer(),
+        m_cl->getCellListIndexer(),
+        m_cl->getCellAdjIndexer(),
+        box,
+        d_r_cut.data,
+        m_r_buff,
+        m_pdata->getNTypes(),
+        threads_per_particle,
+        block_size,
+        m_filter_body,
+        m_diameter_shift,
+        m_cl->getGhostWidth(),
+        m_pdata->getGPUPartition(),
+        m_use_index);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -203,14 +202,20 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListGPUBinned(py::module& m)
+namespace detail
     {
-    py::class_<NeighborListGPUBinned, NeighborListGPU, std::shared_ptr<NeighborListGPUBinned>>(
-        m,
-        "NeighborListGPUBinned")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+void export_NeighborListGPUBinned(pybind11::module& m)
+    {
+    pybind11::class_<NeighborListGPUBinned,
+                     NeighborListGPU,
+                     std::shared_ptr<NeighborListGPUBinned>>(m, "NeighborListGPUBinned")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
         .def_property("deterministic",
                       &NeighborListGPUBinned::getDeterministic,
                       &NeighborListGPUBinned::setDeterministic);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

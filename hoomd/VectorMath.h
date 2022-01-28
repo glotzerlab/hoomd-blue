@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HOOMDMath.h"
 
@@ -24,6 +24,8 @@
     @{
 */
 
+namespace hoomd
+    {
 /////////////////////////////// vec3 ///////////////////////////////////
 
 //! 3 element vector
@@ -1191,5 +1193,7 @@ template<class Vec> DEVICE inline Vec project(const Vec& a, const Vec& b)
 /*! @}*/
 
 #undef DEVICE
+
+    } // end namespace hoomd
 
 #endif //__VECTOR_MATH_H__

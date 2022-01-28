@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CommunicatorGPU.cuh
@@ -13,6 +11,8 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/Index1D.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -46,7 +46,7 @@ void reduce_comm_flags(unsigned int* d_req_flags,
 void wrap_particles(const unsigned int n_recv,
                     mpcd::detail::pdata_element* d_in,
                     const BoxDim& box);
-    } // end namespace gpu
-    } // end namespace mpcd
-
+    }  // end namespace gpu
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

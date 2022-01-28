@@ -1,11 +1,10 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <iostream>
 
 #include <functional>
 
-#include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/ComputeThermo.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
 #ifdef ENABLE_HIP
@@ -24,6 +23,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file nvt_updater_test.cc
     \brief Implements unit tests for NVTUpdater and descendants

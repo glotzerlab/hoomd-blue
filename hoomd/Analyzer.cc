@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Analyzer.cc
     \brief Defines the base class Analyzer
@@ -9,8 +7,8 @@
 
 #include "Analyzer.h"
 
-namespace py = pybind11;
-
+namespace hoomd
+    {
 /*! \param sysdef System definition this analyzer will act on. Must not be NULL.
     \post The Analyzer is constructed with the given particle data and a NULL profiler.
 */
@@ -36,11 +34,17 @@ void Analyzer::setProfiler(std::shared_ptr<Profiler> prof)
     m_prof = prof;
     }
 
-void export_Analyzer(py::module& m)
+namespace detail
     {
-    py::class_<Analyzer, std::shared_ptr<Analyzer>>(m, "Analyzer")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_Analyzer(pybind11::module& m)
+    {
+    pybind11::class_<Analyzer, std::shared_ptr<Analyzer>>(m, "Analyzer")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("analyze", &Analyzer::analyze)
         .def("setProfiler", &Analyzer::setProfiler)
         .def("notifyDetach", &Analyzer::notifyDetach);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

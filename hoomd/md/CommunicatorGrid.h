@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMMUNICATOR_GRID_H__
 #define __COMMUNICATOR_GRID_H__
@@ -13,6 +11,10 @@
 
 #ifdef ENABLE_MPI
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Class to communicate the boundary layer of a regular grid
  */
 template<typename T> class CommunicatorGrid
@@ -52,6 +54,9 @@ template<typename T> class CommunicatorGrid
     //! Initialize grid communication
     virtual void initGridComm();
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI
 #endif // __COMMUNICATOR_GRID_H__

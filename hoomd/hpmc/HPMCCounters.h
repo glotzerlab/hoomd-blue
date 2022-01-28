@@ -1,11 +1,13 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _HPMC_COUNTERS_H_
 #define _HPMC_COUNTERS_H_
 
 #include "hoomd/HOOMDMath.h"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 /*! \file IntegratorHPMCMonoGPU.cuh
@@ -414,5 +416,6 @@ DEVICE inline hpmc_clusters_counters_t operator-(const hpmc_clusters_counters_t&
     }
 
     } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // _HPMC_COUNTERS_H_

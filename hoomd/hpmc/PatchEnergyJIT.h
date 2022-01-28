@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef _PATCH_ENERGY_JIT_H_
 #define _PATCH_ENERGY_JIT_H_
 
@@ -11,6 +14,10 @@
 
 #include <pybind11/numpy.h>
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Evaluate patch energies via runtime generated code
 /*! This class enables the widest possible use-cases of patch energies in HPMC with low energy
    barriers for users to add custom interactions that execute with high performance. It provides a
@@ -115,11 +122,18 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     Scalar m_r_cut_isotropic;               //!< Cutoff radius
     std::shared_ptr<EvalFactory> m_factory; //!< The factory for the evaluator function
     EvalFactory::EvalFnPtr m_eval;          //!< Pointer to evaluator function inside the JIT module
-    std::vector<float, managed_allocator<float>>
+    std::vector<float, hoomd::detail::managed_allocator<float>>
         m_param_array; //!< Array containing adjustable parameters
     const bool m_is_union;
     };
 
+namespace detail
+    {
 //! Exports the PatchEnergyJIT class to python
 void export_PatchEnergyJIT(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
+
 #endif // _PATCH_ENERGY_JIT_H_

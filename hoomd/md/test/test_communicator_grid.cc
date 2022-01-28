@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_MPI
 
@@ -18,6 +18,9 @@ HOOMD_UP_MAIN()
 #endif
 
 #include <algorithm>
+
+using namespace hoomd;
+using namespace hoomd::md;
 
 // first test, to ensure that all the ghost cells are updated from the correct neighbors
 template<class CG_uint>

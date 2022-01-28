@@ -1,5 +1,5 @@
-# -*- coding: iso-8859-1 -*-
-# this file exists to mark this directory as a python module
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Hard particle Monte Carlo.
 
@@ -11,7 +11,6 @@ shapes.
 from hoomd.hpmc import integrate
 from hoomd.hpmc import update
 from hoomd.hpmc import compute
-from hoomd.hpmc import field
 from hoomd.hpmc import tune
 from hoomd.hpmc import pair
 from hoomd.hpmc import external

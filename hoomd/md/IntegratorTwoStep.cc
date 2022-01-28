@@ -1,19 +1,21 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorTwoStep.h"
-
-namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
 
 #include <pybind11/stl_bind.h>
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<IntegrationMethodTwoStep>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::md::IntegrationMethodTwoStep>>);
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
     : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false)
     {
@@ -257,6 +259,7 @@ const bool IntegratorTwoStep::getIntegrateRotationalDOF()
 */
 void IntegratorTwoStep::prepRun(uint64_t timestep)
     {
+    Integrator::prepRun(timestep);
     if (m_integrate_rotational_dof && !areForcesAnisotropic())
         {
         m_exec_conf->msg->warning() << "Requested integration of orientations, but no forces"
@@ -404,19 +407,25 @@ bool IntegratorTwoStep::areForcesAnisotropic()
     return is_anisotropic;
     }
 
-void export_IntegratorTwoStep(py::module& m)
+namespace detail
     {
-    py::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
+void export_IntegratorTwoStep(pybind11::module& m)
+    {
+    pybind11::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
         m,
         "IntegrationMethodList");
 
-    py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
+    pybind11::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
         m,
         "IntegratorTwoStep")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
         .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
         .def_property("integrate_rotational_dof",
                       &IntegratorTwoStep::getIntegrateRotationalDOF,
                       &IntegratorTwoStep::setIntegrateRotationalDOF);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

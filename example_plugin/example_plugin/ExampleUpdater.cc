@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ExampleUpdater.h"
 #ifdef ENABLE_HIP
@@ -13,6 +13,8 @@
 // ********************************
 // here follows the code for ExampleUpdater on the CPU
 
+namespace hoomd
+    {
 /*! \param sysdef System to zero the velocities of
  */
 ExampleUpdater::ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef) : Updater(sysdef) { }
@@ -44,6 +46,8 @@ void ExampleUpdater::update(uint64_t timestep)
         m_prof->pop();
     }
 
+namespace detail
+    {
 /* Export the CPU updater to be visible in the python module
  */
 void export_ExampleUpdater(pybind11::module& m)
@@ -51,6 +55,8 @@ void export_ExampleUpdater(pybind11::module& m)
     pybind11::class_<ExampleUpdater, Updater, std::shared_ptr<ExampleUpdater>>(m, "ExampleUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
+
+    } // end namespace detail
 
 // ********************************
 // here follows the code for ExampleUpdater on the GPU
@@ -79,7 +85,7 @@ void ExampleUpdaterGPU::update(uint64_t timestep)
                                access_mode::readwrite);
 
     // call the kernel defined in ExampleUpdater.cu
-    gpu_zero_velocities(d_vel.data, m_pdata->getN());
+    kernel::gpu_zero_velocities(d_vel.data, m_pdata->getN());
 
     // check for error codes from the GPU if error checking is enabled
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -89,6 +95,8 @@ void ExampleUpdaterGPU::update(uint64_t timestep)
         m_prof->pop();
     }
 
+namespace detail
+    {
 /* Export the GPU updater to be visible in the python module
  */
 void export_ExampleUpdaterGPU(pybind11::module& m)
@@ -99,4 +107,8 @@ void export_ExampleUpdaterGPU(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
+    } // end namespace detail
+
 #endif // ENABLE_HIP
+
+    } // end namespace hoomd

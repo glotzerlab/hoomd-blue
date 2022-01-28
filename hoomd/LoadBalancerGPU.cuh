@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file LoadBalancerGPU.cuh
     \brief Defines the GPU functions for load balancing
@@ -12,6 +10,10 @@
 #include "Index1D.h"
 #include "ParticleData.cuh"
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! Kernel drive to mark the current rank of each particle
 void gpu_load_balance_mark_rank(unsigned int* d_ranks,
                                 const Scalar4* d_pos,
@@ -27,4 +29,9 @@ unsigned int gpu_load_balance_select_off_rank(unsigned int* d_off_rank,
                                               unsigned int* d_ranks,
                                               const unsigned int N,
                                               const unsigned int cur_rank);
+
+    } // end namespace kernel
+
+    } // end namespace hoomd
+
 #endif // ENABLE_MPI

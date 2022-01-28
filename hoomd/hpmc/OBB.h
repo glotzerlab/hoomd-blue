@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/AABB.h"
 #include "hoomd/HOOMDMath.h"
@@ -54,6 +52,8 @@
 // Check against zero with absolute tolerance
 #define CHECK_ZERO(x, abs_tol) ((x < abs_tol && x >= 0) || (-x < abs_tol && x < 0))
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -116,7 +116,7 @@ struct OBB
         is_sphere = 1;
         }
 
-    DEVICE OBB(const detail::AABB& aabb)
+    DEVICE OBB(const hoomd::detail::AABB& aabb)
         {
         lengths = OverlapReal(0.5)
                   * (vec3<OverlapReal>(aabb.getUpper()) - vec3<OverlapReal>(aabb.getLower()));
@@ -160,7 +160,7 @@ struct OBB
     //! Rotate OBB, then translate the given vector
     DEVICE void affineTransform(const quat<OverlapReal>& q, const vec3<OverlapReal>& v)
         {
-        center = ::rotate(q, center) + v;
+        center = rotate(q, center) + v;
         rotation = q * rotation;
         }
 
@@ -179,7 +179,7 @@ struct OBB
         }
 
     //! tightly fit an AABB to the OBB
-    DEVICE AABB getAABB()
+    DEVICE hoomd::detail::AABB getAABB()
         {
         rotmat3<OverlapReal> M(rotation);
 
@@ -200,7 +200,7 @@ struct OBB
         update_bounds(lower_b.z, upper_b.z, M.row2.y * lower_a.y, M.row2.y * upper_a.y);
         update_bounds(lower_b.z, upper_b.z, M.row2.z * lower_a.z, M.row2.z * upper_a.z);
 
-        return detail::AABB(lower_b, upper_b);
+        return hoomd::detail::AABB(lower_b, upper_b);
         }
     };
 
@@ -1084,9 +1084,10 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<OverlapReal>>& pts,
     return res;
     }
 #endif
-    }; // end namespace detail
+    } // end namespace detail
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef DEFAULT_MASK

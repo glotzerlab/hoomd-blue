@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -19,6 +19,8 @@
 // base data types
 #include "IntegratorHPMCMonoGPUTypes.cuh"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -61,7 +63,7 @@ __global__ void hpmc_gen_moves(const Scalar4* d_postype,
     Scalar* s_d = (Scalar*)(s_params + num_types);
     Scalar* s_a = (Scalar*)(s_d + num_types);
 
-    // copy over parameters one int per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -431,3 +433,4 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
     } // end namespace gpu
 
     } // end namespace hpmc
+    } // end namespace hoomd

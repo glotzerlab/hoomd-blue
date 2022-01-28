@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Angle potentials."""
 
@@ -18,6 +17,9 @@ class Angle(Force):
         :py:class:`Angle` is the base class for all angular potentials.
         Users should not instantiate this class directly.
     """
+
+    def __init__(self):
+        super().__init__()
 
     def _attach(self):
         # check that some angles are defined
@@ -69,6 +71,7 @@ class Harmonic(Angle):
     _cpp_class_name = 'HarmonicAngleForceCompute'
 
     def __init__(self):
+        super().__init__()
         params = TypeParameter('params', 'angle_types',
                                TypeParameterDict(t0=float, k=float, len_keys=1))
         self._add_typeparam(params)
@@ -115,6 +118,7 @@ class Cosinesq(Angle):
     _cpp_class_name = 'CosineSqAngleForceCompute'
 
     def __init__(self):
+        super().__init__()
         params = TypeParameter('params', 'angle_types',
                                TypeParameterDict(t0=float, k=float, len_keys=1))
         self._add_typeparam(params)

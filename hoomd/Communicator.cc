@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Communicator.cc
     \brief Implements the Communicator class
@@ -17,10 +15,11 @@
 #include <pybind11/stl.h>
 
 using namespace std;
-namespace py = pybind11;
 
 #include <vector>
 
+namespace hoomd
+    {
 template<class group_data>
 Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm,
                                                                std::shared_ptr<group_data> gdata)
@@ -1366,26 +1365,26 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
                               MPI_HOOMD_SCALAR};
     MPI_Aint offsets[14];
 
-    offsets[0] = offsetof(pdata_element, pos);
-    offsets[1] = offsetof(pdata_element, vel);
-    offsets[2] = offsetof(pdata_element, accel);
-    offsets[3] = offsetof(pdata_element, charge);
-    offsets[4] = offsetof(pdata_element, diameter);
-    offsets[5] = offsetof(pdata_element, image);
-    offsets[6] = offsetof(pdata_element, body);
-    offsets[7] = offsetof(pdata_element, orientation);
-    offsets[8] = offsetof(pdata_element, angmom);
-    offsets[9] = offsetof(pdata_element, inertia);
-    offsets[10] = offsetof(pdata_element, tag);
-    offsets[11] = offsetof(pdata_element, net_force);
-    offsets[12] = offsetof(pdata_element, net_torque);
-    offsets[13] = offsetof(pdata_element, net_virial);
+    offsets[0] = offsetof(detail::pdata_element, pos);
+    offsets[1] = offsetof(detail::pdata_element, vel);
+    offsets[2] = offsetof(detail::pdata_element, accel);
+    offsets[3] = offsetof(detail::pdata_element, charge);
+    offsets[4] = offsetof(detail::pdata_element, diameter);
+    offsets[5] = offsetof(detail::pdata_element, image);
+    offsets[6] = offsetof(detail::pdata_element, body);
+    offsets[7] = offsetof(detail::pdata_element, orientation);
+    offsets[8] = offsetof(detail::pdata_element, angmom);
+    offsets[9] = offsetof(detail::pdata_element, inertia);
+    offsets[10] = offsetof(detail::pdata_element, tag);
+    offsets[11] = offsetof(detail::pdata_element, net_force);
+    offsets[12] = offsetof(detail::pdata_element, net_torque);
+    offsets[13] = offsetof(detail::pdata_element, net_virial);
 
     MPI_Datatype tmp;
     MPI_Type_create_struct(nitems, blocklengths, offsets, types, &tmp);
     MPI_Type_commit(&tmp);
 
-    MPI_Type_create_resized(tmp, 0, sizeof(pdata_element), &m_mpi_pdata_element);
+    MPI_Type_create_resized(tmp, 0, sizeof(detail::pdata_element), &m_mpi_pdata_element);
     MPI_Type_commit(&m_mpi_pdata_element);
     MPI_Type_free(&tmp);
     }
@@ -1733,7 +1732,7 @@ void Communicator::migrateParticles()
         const BoxDim shifted_box = getShiftedBox();
         for (unsigned int idx = 0; idx < n_recv_ptls; idx++)
             {
-            pdata_element& p = m_recvbuf[idx];
+            detail::pdata_element& p = m_recvbuf[idx];
             Scalar4& postype = p.pos;
             int3& image = p.image;
 
@@ -2432,7 +2431,7 @@ void Communicator::exchangeGhosts()
                 }
             }
 
-        // Invert the plans to construct the reverse plans
+            // Invert the plans to construct the reverse plans
             {
             ArrayHandle<unsigned int> h_plan_reverse(m_plan_reverse,
                                                      access_location::host,
@@ -2479,7 +2478,7 @@ void Communicator::exchangeGhosts()
             m_plan_reverse_copybuf[dir].resize(max_copy_ghosts);
             m_forward_ghosts_reverse[dir].resize(max_copy_ghosts);
 
-            // Determine which ghosts need to be forwarded
+                // Determine which ghosts need to be forwarded
                 {
                 ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
                                                 access_location::host,
@@ -2612,7 +2611,7 @@ void Communicator::exchangeGhosts()
                 m_prof->push("MPI send/recv");
                 }
 
-            // Now forward the ghosts
+                // Now forward the ghosts
                 {
                 ArrayHandle<unsigned int> h_plan_reverse_copybuf(m_plan_reverse_copybuf[dir],
                                                                  access_location::host,
@@ -3494,11 +3493,17 @@ const BoxDim Communicator::getShiftedBox() const
     return shifted_box;
     }
 
-//! Export Communicator class to python
-void export_Communicator(py::module& m)
+namespace detail
     {
-    py::class_<Communicator, std::shared_ptr<Communicator>>(m, "Communicator")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition>>())
+//! Export Communicator class to python
+void export_Communicator(pybind11::module& m)
+    {
+    pybind11::class_<Communicator, std::shared_ptr<Communicator>>(m, "Communicator")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<DomainDecomposition>>())
         .def_property_readonly("domain_decomposition", &Communicator::getDomainDecomposition);
     }
+    } // end namespace detail
+
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

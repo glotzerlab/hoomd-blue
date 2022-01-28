@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __BOND_EVALUATOR_HARMONIC_H__
 #define __BOND_EVALUATOR_HARMONIC_H__
@@ -25,6 +23,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 struct harmonic_params
     {
     Scalar k;
@@ -55,9 +57,9 @@ struct harmonic_params
 #endif
     }
 #ifdef SINGLE_PRECISION
-__attribute__((aligned(8)));
+    __attribute__((aligned(8)));
 #else
-__attribute__((aligned(16)));
+    __attribute__((aligned(16)));
 #endif
 
 //! Class for evaluating the harmonic bond potential
@@ -147,5 +149,8 @@ class EvaluatorBondHarmonic
     Scalar K;   //!< K parameter
     Scalar r_0; //!< r_0 parameter
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_HARMONIC_H__

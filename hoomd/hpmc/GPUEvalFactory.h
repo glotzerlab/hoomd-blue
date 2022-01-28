@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #pragma once
 
 #ifdef ENABLE_HIP
@@ -34,6 +37,10 @@
 #include <map>
 #include <vector>
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Evaluate patch energies via runtime generated code, GPU version
 /*! This class encapsulates a JIT compiled kernel and provides the API necessary to query kernel
     parameters and launch the kernel into a stream.
@@ -240,7 +247,7 @@ class GPUEvalFactory
                     CUdeviceptr ptr = m_program[idev]
                                           .kernel(m_kernel_name)
                                           .instantiate(e, l)
-                                          .get_global_ptr("jit::d_r_cut_constituent");
+                                          .get_global_ptr("hoomd::hpmc::jit::d_r_cut_constituent");
 
                     // copy the array pointer to the device
                     char* error;
@@ -271,7 +278,7 @@ class GPUEvalFactory
                     CUdeviceptr ptr = m_program[idev]
                                           .kernel(m_kernel_name)
                                           .instantiate(e, l)
-                                          .get_global_ptr("jit::d_union_params");
+                                          .get_global_ptr("hoomd::hpmc::jit::d_union_params");
 
                     // copy the array pointer to the device
                     char* error;
@@ -305,4 +312,7 @@ class GPUEvalFactory
     std::vector<jitify::Program> m_program; //!< The kernel object, one per GPU
 #endif
     };
+
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif

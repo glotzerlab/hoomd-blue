@@ -1,11 +1,15 @@
-#ifndef __PARTICLE_FILTER_H__
-#define __PARTICLE_FILTER_H__
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
+#pragma once
 
 #include "../SystemDefinition.h"
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <vector>
 
+namespace hoomd
+    {
 /// Utility class to select particles based on given conditions
 /** \b Overview
 
@@ -44,4 +48,5 @@ class PYBIND11_EXPORT ParticleFilter
         return std::vector<unsigned int>();
         }
     };
-#endif
+
+    } // end namespace hoomd

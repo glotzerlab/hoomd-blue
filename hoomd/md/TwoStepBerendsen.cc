@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBerendsen.h"
 #ifdef ENABLE_HIP
@@ -9,15 +7,15 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
 
 /*! \file TwoStepBerendsen.cc
     \brief Definition of Berendsen thermostat
 */
 
-// ********************************
-// here follows the code for Berendsen on the CPU
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to zero the velocities of
     \param group Group of particles on which this method will act
     \param thermo compute for thermodynamic quantities
@@ -158,16 +156,22 @@ void TwoStepBerendsen::integrateStepTwo(uint64_t timestep)
         }
     }
 
-void export_Berendsen(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepBerendsen, IntegrationMethodTwoStep, std::shared_ptr<TwoStepBerendsen>>(
+void export_Berendsen(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepBerendsen, IntegrationMethodTwoStep, std::shared_ptr<TwoStepBerendsen>>(
         m,
         "TwoStepBerendsen")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<ComputeThermo>,
-                      Scalar,
-                      std::shared_ptr<Variant>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            std::shared_ptr<Variant>>())
         .def_property("kT", &TwoStepBerendsen::getT, &TwoStepBerendsen::setT)
         .def_property("tau", &TwoStepBerendsen::getTau, &TwoStepBerendsen::setTau);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

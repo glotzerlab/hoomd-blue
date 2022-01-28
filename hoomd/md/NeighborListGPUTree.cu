@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborListGPUTree.cuh"
 #include "hip/hip_runtime.h"
@@ -16,6 +14,12 @@
 
 #include <neighbor/neighbor.h>
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel to mark particles by type
 /*!
  * \param d_types Type of each particle.
@@ -639,7 +643,7 @@ struct NeighborListOp
     NeighborListOp(unsigned int* neigh_list_,
                    unsigned int* nneigh_,
                    unsigned int* new_max_neigh_,
-                   const unsigned int* first_neigh_,
+                   const size_t* first_neigh_,
                    unsigned int max_neigh_)
         : nneigh(nneigh_), new_max_neigh(new_max_neigh_), first_neigh(first_neigh_),
           max_neigh(max_neigh_)
@@ -676,7 +680,7 @@ struct NeighborListOp
             }
 
         unsigned int idx;       //!< Index of primitive
-        unsigned int first;     //!< First index to use for writing neighbors
+        size_t first;           //!< First index to use for writing neighbors
         unsigned int num_neigh; //!< Number of neighbors for this thread
         unsigned int stack[4];  //!< Internal stack of neighbors
         };
@@ -695,7 +699,7 @@ struct NeighborListOp
     template<class QueryDataT>
     DEVICE ThreadData setup(const unsigned int idx, const QueryDataT& q) const
         {
-        const unsigned int first = __ldg(first_neigh + q.idx);
+        const size_t first = __ldg(first_neigh + q.idx);
         const unsigned int num_neigh = nneigh[q.idx]; // no __ldg, since this is writeable
 
         // prefetch from the stack if current number of neighbors does not align with a boundary
@@ -771,11 +775,11 @@ struct NeighborListOp
             }
         }
 
-    uint4* neigh_list;               //!< Neighbors of each sphere
-    unsigned int* nneigh;            //!< Number of neighbors per search sphere
-    unsigned int* new_max_neigh;     //!< New maximum number of neighbors
-    const unsigned int* first_neigh; //!< Index of first neighbor
-    unsigned int max_neigh;          //!< Maximum number of neighbors allocated
+    uint4* neigh_list;           //!< Neighbors of each sphere
+    unsigned int* nneigh;        //!< Number of neighbors per search sphere
+    unsigned int* new_max_neigh; //!< New maximum number of neighbors
+    const size_t* first_neigh;   //!< Index of first neighbor
+    unsigned int max_neigh;      //!< Maximum number of neighbors allocated
     };
 
 //! Host function to convert a double to a float in round-down mode
@@ -805,7 +809,12 @@ float double2float_ru(double x)
  */
 LBVHWrapper::LBVHWrapper()
     {
-    lbvh_ = std::make_shared<neighbor::LBVH>();
+    lbvh_ = new neighbor::LBVH();
+    }
+
+LBVHWrapper::~LBVHWrapper()
+    {
+    delete lbvh_;
     }
 
 /*!
@@ -880,8 +889,13 @@ std::vector<unsigned int> LBVHWrapper::getTunableParameters() const
  */
 LBVHTraverserWrapper::LBVHTraverserWrapper()
     {
-    trav_ = std::make_shared<neighbor::LBVHTraverser>();
+    trav_ = new neighbor::LBVHTraverser();
     };
+
+LBVHTraverserWrapper::~LBVHTraverserWrapper()
+    {
+    delete trav_;
+    }
 
 /*!
  * \param map Mapping operation for the primitives for efficient traversal
@@ -1008,3 +1022,7 @@ std::vector<unsigned int> LBVHTraverserWrapper::getTunableParameters() const
     {
     return trav_->getTunableParameters();
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

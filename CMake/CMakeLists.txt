@@ -1,4 +1,4 @@
-# Maintainer: joaander
+
 
 # Specify cmake modules path to use our custom modules
 set(CMAKE_MODULE_PATH

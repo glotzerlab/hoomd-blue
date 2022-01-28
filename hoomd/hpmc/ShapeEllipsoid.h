@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -29,6 +29,8 @@
 #define ELLIPSOID_OVERLAP_PRECISION 1e-6
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 /** Ellipsoid parameters
@@ -144,7 +146,7 @@ struct ShapeEllipsoid
         }
 
     /// Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         OverlapReal max_axis = detail::max(axes.x, detail::max(axes.y, axes.z));
 
@@ -164,9 +166,9 @@ struct ShapeEllipsoid
         // // the furthest extent is symmetrical
         // vec3<Scalar> lower(pos.x - s_x.x, pos.y - s_y.y, pos.z - s_z.z);
 
-        // return detail::AABB(lower, upper);
+        // return hoomd::detail::AABB(lower, upper);
         // ^^^^^^^^^ The above method is slow, just use the circumsphere
-        return detail::AABB(pos, max_axis);
+        return hoomd::detail::AABB(pos, max_axis);
         }
 
     /** Returns true if this shape splits the overlap check over several threads of a warp using
@@ -488,7 +490,8 @@ template<> inline std::string getShapeSpec(const ShapeEllipsoid& ellipsoid)
     }
 #endif
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

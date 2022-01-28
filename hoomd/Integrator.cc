@@ -1,9 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Integrator.h"
-
-namespace py = pybind11;
 
 #ifdef ENABLE_HIP
 #include "Integrator.cuh"
@@ -14,11 +12,13 @@ namespace py = pybind11;
 #endif
 
 #include <pybind11/stl_bind.h>
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceConstraint>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceCompute>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceConstraint>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceCompute>>);
 
 using namespace std;
 
+namespace hoomd
+    {
 /** @param sysdef System to update
     @param deltaT Time step to use
 */
@@ -259,9 +259,9 @@ void Integrator::computeNetForce(uint64_t timestep)
 
         for (const auto& force : m_forces)
             {
-            GlobalArray<Scalar4>& h_force_array = force->getForceArray();
-            GlobalArray<Scalar>& h_virial_array = force->getVirialArray();
-            GlobalArray<Scalar4>& h_torque_array = force->getTorqueArray();
+            const GlobalArray<Scalar4>& h_force_array = force->getForceArray();
+            const GlobalArray<Scalar>& h_virial_array = force->getVirialArray();
+            const GlobalArray<Scalar4>& h_torque_array = force->getTorqueArray();
 
             assert(nparticles <= h_force_array.getNumElements());
             assert(6 * nparticles <= h_virial_array.getNumElements());
@@ -356,9 +356,9 @@ void Integrator::computeNetForce(uint64_t timestep)
         assert(6 * nparticles <= net_virial.getNumElements());
         for (const auto& constraint_force : m_constraint_forces)
             {
-            GlobalArray<Scalar4>& h_force_array = constraint_force->getForceArray();
-            GlobalArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
-            GlobalArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
+            const GlobalArray<Scalar4>& h_force_array = constraint_force->getForceArray();
+            const GlobalArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
+            const GlobalArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
             ArrayHandle<Scalar4> h_force(h_force_array, access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array, access_location::host, access_mode::read);
@@ -418,9 +418,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Cannot compute net force on the GPU if CUDA is disabled"
-                                  << endl;
-        throw runtime_error("Error computing accelerations");
+        throw runtime_error("Cannot compute net force on the GPU if CUDA is disabled.");
         }
 
     // compute all the normal forces first
@@ -487,7 +485,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force += 6)
             {
             // grab the device pointers for the current set
-            gpu_force_list force_list;
+            kernel::gpu_force_list force_list;
 
             const GlobalArray<Scalar4>& d_force_array0 = m_forces[cur_force]->getForceArray();
             ArrayHandle<Scalar4> d_force0(d_force_array0,
@@ -711,7 +709,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force += 6)
             {
             // grab the device pointers for the current set
-            gpu_force_list force_list;
+            kernel::gpu_force_list force_list;
             const GlobalArray<Scalar4>& d_force_array0
                 = m_constraint_forces[cur_force]->getForceArray();
             ArrayHandle<Scalar4> d_force0(d_force_array0,
@@ -919,7 +917,20 @@ void Integrator::update(uint64_t timestep)
 
     The base class does nothing, it is up to derived classes to implement the correct behavior.
 */
-void Integrator::prepRun(uint64_t timestep) { }
+void Integrator::prepRun(uint64_t timestep)
+    {
+    // ensure that all forces have updated delta t values at the start of step 0
+
+    for (auto& force : m_forces)
+        {
+        force->setDeltaT(m_deltaT);
+        }
+
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        constraint_force->setDeltaT(m_deltaT);
+        }
+    }
 
 #ifdef ENABLE_MPI
 /** @param tstep Time step for which to determine the flags
@@ -973,15 +984,20 @@ bool Integrator::areForcesAnisotropic()
     return aniso;
     }
 
-void export_Integrator(py::module& m)
+namespace detail
     {
-    py::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
-    py::bind_vector<std::vector<std::shared_ptr<ForceConstraint>>>(m, "ForceConstraintList");
-
-    py::class_<Integrator, Updater, std::shared_ptr<Integrator>>(m, "Integrator")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+void export_Integrator(pybind11::module& m)
+    {
+    pybind11::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<ForceConstraint>>>(m, "ForceConstraintList");
+    pybind11::class_<Integrator, Updater, std::shared_ptr<Integrator>>(m, "Integrator")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("updateGroupDOF", &Integrator::updateGroupDOF)
         .def_property("dt", &Integrator::getDeltaT, &Integrator::setDeltaT)
         .def_property_readonly("forces", &Integrator::getForces)
         .def_property_readonly("constraints", &Integrator::getConstraintForces);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

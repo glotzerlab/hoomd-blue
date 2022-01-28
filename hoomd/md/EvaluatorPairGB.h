@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_PAIR_GB_H__
 #define __EVALUATOR_PAIR_GB_H__
@@ -32,6 +30,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 /*!
  * Gay-Berne potential as formulated by Allen and Germano,
  * with shape-independent energy parameter, for identical uniaxial particles.
@@ -89,9 +91,9 @@ class EvaluatorPairGB
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     // Nullary structure required by AnisoPotentialPair.
@@ -310,6 +312,9 @@ class EvaluatorPairGB
     Scalar lpar;
     // const param_type &params;  //!< The pair potential parameters
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #undef HOOMD_GB_MIN
 #undef HOOMD_GB_MAX

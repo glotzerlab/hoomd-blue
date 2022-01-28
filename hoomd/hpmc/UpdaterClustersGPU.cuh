@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file UpdaterClustersGPU.cuh
     \brief Implements the overlap kernels for the geometric cluster algorithm the GPU
@@ -30,6 +30,8 @@
 #define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -744,6 +746,6 @@ void transform_particles(const clusters_transform_args_t& args,
 
     } // end namespace gpu
     } // end namespace hpmc
-
+    } // end namespace hoomd
 #undef MAX_BLOCK_SIZE
 #undef MIN_BLOCK_SIZE

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborList.h"
 #include "hoomd/AABBTree.h"
@@ -20,6 +18,10 @@
 #ifndef __NEIGHBORLISTTREE_H__
 #define __NEIGHBORLISTTREE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Efficient neighbor list build on the CPU using BVH trees
 /*!
  * A bounding volume hierarchy (BVH) tree is a binary search tree. It is constructed from
@@ -79,9 +81,9 @@ class PYBIND11_EXPORT NeighborListTree : public NeighborList
 
     // we use stl vectors here because these tree data structures should *never* be
     // accessed on the GPU, they were optimized for the CPU with SIMD support
-    std::vector<hpmc::detail::AABBTree> m_aabb_trees; //!< Flat array of AABB trees of all types
-    GPUVector<hpmc::detail::AABB> m_aabbs;            //!< Flat array of AABBs of all types
-    std::vector<unsigned int> m_num_per_type;         //!< Total number of particles per type
+    std::vector<hoomd::detail::AABBTree> m_aabb_trees; //!< Flat array of AABB trees of all types
+    GPUVector<hoomd::detail::AABB> m_aabbs;            //!< Flat array of AABBs of all types
+    std::vector<unsigned int> m_num_per_type;          //!< Total number of particles per type
     std::vector<unsigned int> m_type_head; //!< Index of first particle of each type, after sorting
     std::vector<unsigned int>
         m_map_pid_tree; //!< Maps the particle id to its tag in tree for sorting
@@ -105,7 +107,13 @@ class PYBIND11_EXPORT NeighborListTree : public NeighborList
     void traverseTree();
     };
 
+namespace detail
+    {
 //! Exports NeighborListTree to python
 void export_NeighborListTree(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __NEIGHBORLISTTREE_H__

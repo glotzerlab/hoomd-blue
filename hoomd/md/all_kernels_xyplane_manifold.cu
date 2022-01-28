@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepRATTLEBDGPU.cuh"
 #include "TwoStepRATTLELangevinGPU.cuh"
@@ -7,6 +7,12 @@
 
 #include "ManifoldXYPlane.h"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 template hipError_t
 gpu_rattle_brownian_step_one<ManifoldXYPlane>(Scalar4* d_pos,
                                               int3* d_image,
@@ -87,3 +93,7 @@ template hipError_t gpu_include_rattle_force_nve<ManifoldXYPlane>(const Scalar4*
                                                                   Scalar deltaT,
                                                                   bool zero_force,
                                                                   unsigned int block_size);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

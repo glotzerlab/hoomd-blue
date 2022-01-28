@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef _EXTERNAL_FIELD_ENERGY_JIT_H_
 #define _EXTERNAL_FIELD_ENERGY_JIT_H_
 
@@ -11,6 +14,10 @@
 
 #define EXTERNAL_FIELD_JIT_LOG_NAME "jit_energy"
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Evaluate external field forces via runtime generated code
 /*! This class enables the widest possible use-cases of external fields in HPMC with low energy
    barriers for users to add custom forces that execute with high performance. It provides a generic
@@ -48,8 +55,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
 
         if (!m_eval)
             {
-            exec_conf->msg->error() << factory->getError() << std::endl;
-            throw std::runtime_error("Error compiling JIT code.");
+            throw std::runtime_error("Error compiling JIT code.\n" + factory->getError());
             }
         m_factory = std::shared_ptr<ExternalFieldEvalFactory>(factory);
         }
@@ -248,4 +254,7 @@ template<class Shape> void export_ExternalFieldJIT(pybind11::module& m, std::str
                             const std::vector<std::string>&>())
         .def("computeEnergy", &ExternalFieldJIT<Shape>::computeEnergy);
     }
+
+    }  // end namespace hpmc
+    }  // end namespace hoomd
 #endif // _EXTERNAL_FIELD_ENERGY_JIT_H_

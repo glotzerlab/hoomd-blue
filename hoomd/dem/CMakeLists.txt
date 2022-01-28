@@ -1,4 +1,4 @@
-# Maintainer: mspells
+
 
 set(_dem_sources module.cc)
 

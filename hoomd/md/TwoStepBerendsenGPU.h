@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBerendsen.h"
 
@@ -18,6 +16,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Implements the Berendsen thermostat on the GPU
  */
 class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen
@@ -41,7 +43,13 @@ class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen
     unsigned int m_block_size; //!< Block size to launch on the GPU
     };
 
+namespace detail
+    {
 //! Export the Berendsen GPU class to python
 void export_BerendsenGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BERENDSEN_GPU_H__

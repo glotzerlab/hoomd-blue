@@ -1,14 +1,21 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
 
 #include "TwoStepRATTLENVEGPU.cuh"
 #include "hoomd/VectorMath.h"
 
 #include <assert.h>
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Takes the first half-step forward in the velocity-verlet NVE integration on a group of particles
 /*! \param d_pos array of particle positions
     \param d_vel array of particle velocities
@@ -31,17 +38,17 @@
    transactions on compute 1.3 hardware and more cache hits on Fermi.
 */
 
-extern "C" __global__ void gpu_rattle_nve_step_one_kernel(Scalar4* d_pos,
-                                                          Scalar4* d_vel,
-                                                          const Scalar3* d_accel,
-                                                          int3* d_image,
-                                                          unsigned int* d_group_members,
-                                                          const unsigned int nwork,
-                                                          const unsigned int offset,
-                                                          BoxDim box,
-                                                          Scalar deltaT,
-                                                          bool limit,
-                                                          Scalar limit_val)
+__global__ void gpu_rattle_nve_step_one_kernel(Scalar4* d_pos,
+                                               Scalar4* d_vel,
+                                               const Scalar3* d_accel,
+                                               int3* d_image,
+                                               unsigned int* d_group_members,
+                                               const unsigned int nwork,
+                                               const unsigned int offset,
+                                               BoxDim box,
+                                               Scalar deltaT,
+                                               bool limit,
+                                               Scalar limit_val)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -175,16 +182,15 @@ hipError_t gpu_rattle_nve_step_one(Scalar4* d_pos,
     \param group_size Number of members in the group
     \param deltaT timestep
 */
-extern "C" __global__ void
-gpu_rattle_nve_angular_step_one_kernel(Scalar4* d_orientation,
-                                       Scalar4* d_angmom,
-                                       const Scalar3* d_inertia,
-                                       const Scalar4* d_net_torque,
-                                       const unsigned int* d_group_members,
-                                       const unsigned int nwork,
-                                       const unsigned int offset,
-                                       Scalar deltaT,
-                                       Scalar scale)
+__global__ void gpu_rattle_nve_angular_step_one_kernel(Scalar4* d_orientation,
+                                                       Scalar4* d_angmom,
+                                                       const Scalar3* d_inertia,
+                                                       const Scalar4* d_net_torque,
+                                                       const unsigned int* d_group_members,
+                                                       const unsigned int nwork,
+                                                       const unsigned int offset,
+                                                       Scalar deltaT,
+                                                       Scalar scale)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -205,9 +211,9 @@ gpu_rattle_nve_angular_step_one_kernel(Scalar4* d_orientation,
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x < Scalar(EPSILON));
-        y_zero = (I.y < Scalar(EPSILON));
-        z_zero = (I.z < Scalar(EPSILON));
+        x_zero = (I.x == 0);
+        y_zero = (I.y == 0);
+        z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
         if (x_zero)
@@ -362,15 +368,15 @@ hipError_t gpu_rattle_nve_angular_step_one(Scalar4* d_orientation,
     \param deltaT timestep
 */
 
-extern "C" __global__ void gpu_rattle_nve_angular_step_two_kernel(const Scalar4* d_orientation,
-                                                                  Scalar4* d_angmom,
-                                                                  const Scalar3* d_inertia,
-                                                                  const Scalar4* d_net_torque,
-                                                                  unsigned int* d_group_members,
-                                                                  const unsigned int nwork,
-                                                                  const unsigned int offset,
-                                                                  Scalar deltaT,
-                                                                  Scalar scale)
+__global__ void gpu_rattle_nve_angular_step_two_kernel(const Scalar4* d_orientation,
+                                                       Scalar4* d_angmom,
+                                                       const Scalar3* d_inertia,
+                                                       const Scalar4* d_net_torque,
+                                                       unsigned int* d_group_members,
+                                                       const unsigned int nwork,
+                                                       const unsigned int offset,
+                                                       Scalar deltaT,
+                                                       Scalar scale)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -391,9 +397,9 @@ extern "C" __global__ void gpu_rattle_nve_angular_step_two_kernel(const Scalar4*
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x < Scalar(EPSILON));
-        y_zero = (I.y < Scalar(EPSILON));
-        z_zero = (I.z < Scalar(EPSILON));
+        x_zero = (I.x == 0);
+        y_zero = (I.y == 0);
+        z_zero = (I.z == 0);
 
         // ignore torque component along an axis for which the moment of inertia zero
         if (x_zero)
@@ -468,3 +474,6 @@ hipError_t gpu_rattle_nve_angular_step_two(const Scalar4* d_orientation,
 
     return hipSuccess;
     }
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

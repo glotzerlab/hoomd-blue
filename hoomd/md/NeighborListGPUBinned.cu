@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
 
 #include "NeighborListGPUBinned.cuh"
 #include "hoomd/TextureTools.h"
@@ -12,6 +13,12 @@
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel call for generating neighbor list on the GPU (Kepler optimized version)
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
     \param d_nlist Neighbor list data structure to write
@@ -48,7 +55,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
                                                 Scalar4* d_last_updated_pos,
                                                 unsigned int* d_conditions,
                                                 const unsigned int* d_Nmax,
-                                                const unsigned int* d_head_list,
+                                                const size_t* d_head_list,
                                                 const Scalar4* d_pos,
                                                 const unsigned int* d_body,
                                                 const Scalar* d_diameter,
@@ -119,7 +126,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
     unsigned int my_type = __scalar_as_int(my_postype.w);
     unsigned int my_body = d_body[my_pidx];
     Scalar my_diam = d_diameter[my_pidx];
-    unsigned int my_head = d_head_list[my_pidx];
+    size_t my_head = d_head_list[my_pidx];
 
     Scalar3 f = box.makeFraction(my_pos, ghost_width);
 
@@ -309,7 +316,7 @@ inline void launcher(unsigned int* d_nlist,
                      Scalar4* d_last_updated_pos,
                      unsigned int* d_conditions,
                      const unsigned int* d_Nmax,
-                     const unsigned int* d_head_list,
+                     const size_t* d_head_list,
                      const Scalar4* d_pos,
                      const unsigned int* d_body,
                      const Scalar* d_diameter,
@@ -714,7 +721,7 @@ inline void launcher<min_threads_per_particle / 2>(unsigned int* d_nlist,
                                                    Scalar4* d_last_updated_pos,
                                                    unsigned int* d_conditions,
                                                    const unsigned int* d_Nmax,
-                                                   const unsigned int* d_head_list,
+                                                   const size_t* d_head_list,
                                                    const Scalar4* d_pos,
                                                    const unsigned int* d_body,
                                                    const Scalar* d_diameter,
@@ -747,7 +754,7 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     Scalar4* d_last_updated_pos,
                                     unsigned int* d_conditions,
                                     const unsigned int* d_Nmax,
-                                    const unsigned int* d_head_list,
+                                    const size_t* d_head_list,
                                     const Scalar4* d_pos,
                                     const unsigned int* d_body,
                                     const Scalar* d_diameter,
@@ -812,3 +819,7 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
         }
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

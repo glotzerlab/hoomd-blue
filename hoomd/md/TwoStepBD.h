@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevinBase.h"
 
@@ -11,6 +11,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 /** Integrates part of the system forward in two steps with Brownian dynamics
 
     Brownian dynamics modifies the Langevin equation by setting the acceleration term to 0 and
@@ -39,5 +43,11 @@ class PYBIND11_EXPORT TwoStepBD : public TwoStepLangevinBase
     bool m_noiseless_r;
     };
 
+namespace detail
+    {
 //! Exports the TwoStepLangevin class to python
 void export_TwoStepBD(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

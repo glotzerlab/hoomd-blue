@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file TwoStepBerendsenGPU.cc
     \brief Defines TwoStepBerendsenGPU
@@ -10,11 +8,14 @@
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepBerendsenGPU.cuh"
 
-namespace py = pybind11;
 #include <functional>
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to which the Berendsen thermostat will be applied
     \param group Group of particles to which the Berendsen thermostat will be applied
     \param thermo Compute for thermodynamic properties
@@ -30,8 +31,7 @@ TwoStepBerendsenGPU::TwoStepBerendsenGPU(std::shared_ptr<SystemDefinition> sysde
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a BerendsenGPU when CUDA is disabled" << endl;
-        throw std::runtime_error("Error initializing BerendsenGPU");
+        throw std::runtime_error("Cannot create BerendsenGPU on a CPU device.");
         }
 
     m_block_size = 256;
@@ -75,16 +75,16 @@ void TwoStepBerendsenGPU::integrateStepOne(uint64_t timestep)
                                             access_mode::read);
 
     // perform the integration on the GPU
-    gpu_berendsen_step_one(d_pos.data,
-                           d_vel.data,
-                           d_accel.data,
-                           d_image.data,
-                           d_index_array.data,
-                           group_size,
-                           box,
-                           m_block_size,
-                           lambda,
-                           m_deltaT);
+    kernel::gpu_berendsen_step_one(d_pos.data,
+                                   d_vel.data,
+                                   d_accel.data,
+                                   d_image.data,
+                                   d_index_array.data,
+                                   group_size,
+                                   box,
+                                   m_block_size,
+                                   lambda,
+                                   m_deltaT);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -117,13 +117,13 @@ void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
                                             access_mode::read);
 
     // perform the second step of the integration on the GPU
-    gpu_berendsen_step_two(d_vel.data,
-                           d_accel.data,
-                           d_index_array.data,
-                           group_size,
-                           d_net_force.data,
-                           m_block_size,
-                           m_deltaT);
+    kernel::gpu_berendsen_step_two(d_vel.data,
+                                   d_accel.data,
+                                   d_index_array.data,
+                                   group_size,
+                                   d_net_force.data,
+                                   m_block_size,
+                                   m_deltaT);
 
     // check if an error occurred
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -133,14 +133,20 @@ void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
         m_prof->pop();
     }
 
-void export_BerendsenGPU(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepBerendsenGPU, TwoStepBerendsen, std::shared_ptr<TwoStepBerendsenGPU>>(
+void export_BerendsenGPU(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepBerendsenGPU, TwoStepBerendsen, std::shared_ptr<TwoStepBerendsenGPU>>(
         m,
         "TwoStepBerendsenGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<ComputeThermo>,
-                      Scalar,
-                      std::shared_ptr<Variant>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            std::shared_ptr<Variant>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

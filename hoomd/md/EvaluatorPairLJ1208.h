@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: unassigned
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_LJ1208_H__
 #define __PAIR_EVALUATOR_LJ1208_H__
@@ -29,6 +27,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the LJ-12-8 pair potential
 /*! <b>General Overview</b>
 
@@ -62,8 +64,8 @@ class EvaluatorPairLJ1208
     //! Define the parameter type used by this pair potential evaluator
     struct param_type
         {
-        Scalar lj1;
-        Scalar lj2;
+        Scalar sigma_4;
+        Scalar epsilon_x_4;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -75,30 +77,36 @@ class EvaluatorPairLJ1208
 #endif
 
 #ifndef __HIPCC__
-        param_type() : lj1(0), lj2(0) { }
+        param_type() : sigma_4(0), epsilon_x_4(0) { }
 
         param_type(pybind11::dict v, bool managed = false)
             {
             auto sigma(v["sigma"].cast<Scalar>());
             auto epsilon(v["epsilon"].cast<Scalar>());
-            lj1 = 4.0 * epsilon * pow(sigma, Scalar(12.0));
-            lj2 = 4.0 * epsilon * pow(sigma, Scalar(8.0));
+
+            sigma_4 = sigma * sigma * sigma * sigma;
+            epsilon_x_4 = Scalar(4.0) * epsilon;
+
+            // parameters used in implementation
+            // lj1 = 4.0 * epsilon * pow(sigma, Scalar(12.0));
+            // -> lj1 = epsilon_x_4 * sigma_4 * sigma_4 * sigma_4
+            // lj2 = 4.0 * epsilon * pow(sigma, Scalar(8.0));
+            // -> lj2 = epsilon_x_4 * sigma_4 * sigma_4
             }
 
         pybind11::dict asDict()
             {
             pybind11::dict v;
-            auto sigma4 = lj1 / lj2;
-            v["sigma"] = pow(sigma4, Scalar(1. / 4.));
-            v["epsilon"] = lj2 / (4 * pow(sigma4, Scalar(2.0)));
+            v["sigma"] = pow(sigma_4, 1. / 4.);
+            v["epsilon"] = epsilon_x_4 / 4.0;
             return v;
             }
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -107,7 +115,9 @@ class EvaluatorPairLJ1208
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairLJ1208(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
+        : rsq(_rsq), rcutsq(_rcutsq),
+          lj1(_params.epsilon_x_4 * _params.sigma_4 * _params.sigma_4 * _params.sigma_4),
+          lj2(_params.epsilon_x_4 * _params.sigma_4 * _params.sigma_4)
         {
         }
 
@@ -189,5 +199,8 @@ class EvaluatorPairLJ1208
     Scalar lj1;    //!< lj1 parameter extracted from the params passed to the constructor
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_LJ1208_H__
