@@ -102,6 +102,7 @@
 #include "TwoStepRATTLEBDGPU.h"
 #include "TwoStepRATTLELangevinGPU.h"
 #include "TwoStepRATTLENVEGPU.h"
+#include "VolumeConservationMeshForceComputeGPU.h"
 #endif
 
 #include <pybind11/pybind11.h>
@@ -473,6 +474,8 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVEGPU<ManifoldXYPlane>(m, "TwoStepRATTLENVEPlaneGPU");
     export_TwoStepRATTLENVEGPU<ManifoldPrimitive>(m, "TwoStepRATTLENVEPrimitiveGPU");
     export_TwoStepRATTLENVEGPU<ManifoldSphere>(m, "TwoStepRATTLENVESphereGPU");
+
+    export_VolumeConservationMeshForceComputeGPU(m);
 #endif
 
     // manifolds

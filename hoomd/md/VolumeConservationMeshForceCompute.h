@@ -100,7 +100,7 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
 
-    //! compute normals
+    //! compute volumes
     virtual void computeVolume();
     };
 

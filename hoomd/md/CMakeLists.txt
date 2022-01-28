@@ -192,6 +192,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVTMTKGPU.h
                 TwoStepNVTMTK.h
 		VolumeConservationMeshForceCompute.h
+		VolumeConservationMeshForceComputeGPU.h
                 WallData.h
                 ZeroMomentumUpdater.h
                 )
@@ -223,6 +224,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TwoStepNPTMTKGPU.cc
                            TwoStepNVEGPU.cc
                            TwoStepNVTMTKGPU.cc
+			   VolumeConservationMeshForceComputeGPU.cc
                            MuellerPlatheFlowGPU.cc
                            CosineSqAngleForceComputeGPU.cc
                            )
@@ -284,6 +286,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepRATTLENVEGPU.cu
                       TwoStepNVTMTKGPU.cu
+		      VolumeConservationMeshForceComputeGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
                       all_kernels_diamond_manifold.cu

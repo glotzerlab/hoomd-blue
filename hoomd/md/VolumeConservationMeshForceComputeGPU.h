@@ -15,8 +15,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __MESHVOLUMECONSERVATION_GPU_H__
-#define __MESHVOLUMECONSERVATION_GPU_H__
+#ifndef __VOLUMECONSERVATIONMESHFORCECOMPUTE_GPU_H__
+#define __VOLUMECONSERVATIONMESHFORCECOMPUTE_GPU_H__
 
 namespace hoomd
     {
