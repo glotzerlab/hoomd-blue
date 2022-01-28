@@ -196,7 +196,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairLJ1208>(m, "PotentialPairLJ1208");
     export_PotentialPair<PotentialPairLJ0804>(m, "PotentialPairLJ0804");
     export_PotentialPair<PotentialPairGauss>(m, "PotentialPairGauss");
-    export_PotentialPair<PotentialPairSLJ>(m, "PotentialPairSLJ");
     export_PotentialPair<PotentialPairExpandedLJ>(m, "PotentialPairExpandedLJ");
     export_PotentialPair<PotentialPairExpandedMie>(m, "PotentialPairExpandedMie");
     export_PotentialPair<PotentialPairYukawa>(m, "PotentialPairYukawa");
@@ -245,7 +244,6 @@ PYBIND11_MODULE(_md, m)
     export_wall_field(m);
     export_WallPotential<EvaluatorPairLJ>(m, "WallsPotentialLJ");
     export_WallPotential<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
-    export_WallPotential<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
     export_WallPotential<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
     export_WallPotential<EvaluatorPairMie>(m, "WallsPotentialMie");
     export_WallPotential<EvaluatorPairGauss>(m, "WallsPotentialGauss");
@@ -266,7 +264,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairLJ0804GPU, PotentialPairLJ0804>(m,
                                                                          "PotentialPairLJ0804GPU");
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>(m, "PotentialPairGaussGPU");
-    export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>(m, "PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairExpandedLJGPU, PotentialPairExpandedLJ>(
         m,
         "PotentialPairExpandedLJGPU");
@@ -372,7 +369,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
         m,
         "WallsPotentialYukawaGPU");
-    export_PotentialExternalGPU<WallsPotentialSLJGPU, WallsPotentialSLJ>(m, "WallsPotentialSLJGPU");
     export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU, WallsPotentialForceShiftedLJ>(
         m,
         "WallsPotentialForceShiftedLJGPU");
