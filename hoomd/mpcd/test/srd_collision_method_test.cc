@@ -20,7 +20,7 @@ template<class CM>
 void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -177,7 +177,7 @@ void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> ex
     {
     // initialize a big empty system
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(50.0);
+    snap->global_box = std::make_shared<BoxDim>(50.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     // mpcd system, thermo, srd collision method
@@ -264,7 +264,7 @@ template<class CM>
 void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
         {
         SnapshotParticleData<Scalar>& pdata_snap = snap->particle_data;
