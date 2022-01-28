@@ -66,10 +66,6 @@ class PYBIND11_EXPORT VolumeConservationMeshForceComputeGPU
 
     //! compute volumes
     virtual void computeVolume();
-
-    private:
-    //! allocate the memory needed to store partial sums
-    void resizePartialSumArrays();
     };
 
 namespace detail

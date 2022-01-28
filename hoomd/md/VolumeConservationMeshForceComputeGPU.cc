@@ -19,7 +19,7 @@ namespace md
 VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef)
-    : VolumeConservationMeshForceCompute(sysdef, meshdef), m_block_size(256)
+    : VolumeConservationMeshForceCompute(sysdef, meshdef)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -37,18 +37,19 @@ VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
-    GPUArray<Scalar> sum(1, m_exec_conf);
-    m_sum.swap(sum);
-
-    unsigned int group_size = m_pdata->getN();
-
-    m_num_blocks = group_size / m_block_size + 1;
-    GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
-    m_partial_sum.swap(partial_sum);
-
     // reset flags
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
+
+
+    GPUArray<Scalar> sum(1, m_exec_conf);
+    m_sum.swap(sum);
+
+    m_block_size=256;
+    unsigned int group_size = m_pdata->getN();
+    m_num_blocks = group_size / m_block_size + 1;
+    GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
+    m_partial_sum.swap(partial_sum);
 
     unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
     m_tuner.reset(new Autotuner(warp_size,
@@ -74,11 +75,12 @@ void VolumeConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar 
  */
 void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
+
+    computeVolume();
+
     // start the profile
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "VolumeConstraint");
-
-    computeVolume();
 
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);

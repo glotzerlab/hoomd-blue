@@ -5,14 +5,15 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/MeshGroupData.cuh"
 #include "hoomd/ParticleData.cuh"
+#include <hip/hip_runtime.h>
 
 /*! \file MeshVolumeConservationGPU.cuh
     \brief Declares GPU kernel code for calculating the volume cnstraint forces. Used by
    MeshVolumeConservationGPU.
 */
 
-#ifndef __MESHVOLUMECONSERVATION_CUH__
-#define __MESHVOLUMECONSERVATION_CUH__
+#ifndef __VOLUMECONSERVATIONMESHFORCECOMPUTE_CUH__
+#define __VOLUMECONSERVATIONMESHFORCECOMPUTE_CUH__
 
 namespace hoomd
     {
