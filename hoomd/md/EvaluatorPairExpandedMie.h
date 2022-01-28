@@ -31,7 +31,7 @@ namespace md
 //! Class for evaluating the Expanded Mie pair potential
 /*! <b>General Overview</b>
 
-    See EvaluatorPairSLJ and EvaluatorPairMie
+    See EvaluatorPairMie
 
     <b>ExpandedMie specifics</b>
 
