@@ -67,6 +67,9 @@ class Harmonic(ExternalField):
     quantities, and :math:`\mathbf{q}_{\mathrm{symmetry}}` is the given set of
     symmetric orientations from the ``symmetries`` parameter.
 
+    Note:
+        `Harmonic` does not support execution on GPUs.
+
     Attributes:
         k_translational (`hoomd.variant.Variant` or `float`): The translational
             spring constant :math:`[\mathrm{energy} \cdot

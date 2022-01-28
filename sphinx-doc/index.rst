@@ -59,6 +59,14 @@ Related tools
   Analyze HOOMD-blue simulation results with the **freud** Python library.
 - `signac <https://signac.io/>`_:
   Manage your workflow with **signac**.
+- `Molecular Simulation Design Framework (MoSDeF)`_ tools:
+
+  - `mbuild`_: Assemble reusable components into complex molecular systems.
+  - `foyer`_: perform atom-typing and define classical molecular modeling force fields.
+
+.. _Molecular Simulation Design Framework (MoSDeF): https://mosdef.org/
+.. _mbuild: https://mbuild.mosdef.org/
+.. _foyer: https://foyer.mosdef.org/
 
 Example scripts
 ===============
@@ -118,6 +126,7 @@ Molecular dynamics:
     :maxdepth: 1
     :caption: Getting started
 
+    features
     installation
     building
     migrating
@@ -133,6 +142,12 @@ Molecular dynamics:
     tutorial/02-Logging/00-index
     tutorial/03-Parallel-Simulations-With-MPI/00-index
     tutorial/04-Custom-Actions-In-Python/00-index
+
+.. toctree::
+    :maxdepth: 1
+    :caption: How to guides
+
+    howto/molecular
 
 .. toctree::
    :maxdepth: 3
