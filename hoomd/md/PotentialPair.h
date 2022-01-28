@@ -369,36 +369,42 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
     nlist->addRCutMatrix(m_r_cut_nlist);
 
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_pdata->getExecConf()->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
+    if (m_pdata->getExecConf()->isCUDAEnabled())
         {
-        cudaMemAdvise(m_rcutsq.get(),
-                      m_rcutsq.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        cudaMemAdvise(m_ronsq.get(),
-                      m_ronsq.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
+        // m_params is _always_ in unified memory, so memadvise and prefetch
         cudaMemAdvise(m_params.data(),
                       m_params.size() * sizeof(param_type),
                       cudaMemAdviseSetReadMostly,
                       0);
-
-        // prefetch
         auto& gpu_map = m_exec_conf->getGPUIds();
-
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            // prefetch data on all GPUs
-            cudaMemPrefetchAsync(m_rcutsq.get(),
-                                 sizeof(Scalar) * m_rcutsq.getNumElements(),
-                                 gpu_map[idev]);
-            cudaMemPrefetchAsync(m_ronsq.get(),
-                                 sizeof(Scalar) * m_ronsq.getNumElements(),
-                                 gpu_map[idev]);
             cudaMemPrefetchAsync(m_params.data(),
                                  sizeof(param_type) * m_params.size(),
                                  gpu_map[idev]);
+            }
+
+        // m_rcutsq and m_ronsq only in unified memory if allConcurrentManagedAccess
+        if (m_exec_conf->allConcurrentManagedAccess())
+            {
+            cudaMemAdvise(m_rcutsq.get(),
+                          m_rcutsq.getNumElements() * sizeof(Scalar),
+                          cudaMemAdviseSetReadMostly,
+                          0);
+            cudaMemAdvise(m_ronsq.get(),
+                          m_ronsq.getNumElements() * sizeof(Scalar),
+                          cudaMemAdviseSetReadMostly,
+                          0);
+            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+                {
+                // prefetch data on all GPUs
+                cudaMemPrefetchAsync(m_rcutsq.get(),
+                                     sizeof(Scalar) * m_rcutsq.getNumElements(),
+                                     gpu_map[idev]);
+                cudaMemPrefetchAsync(m_ronsq.get(),
+                                     sizeof(Scalar) * m_ronsq.getNumElements(),
+                                     gpu_map[idev]);
+                }
             }
         }
 #endif
