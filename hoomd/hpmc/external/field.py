@@ -71,10 +71,9 @@ class Harmonic(ExternalField):
         `Harmonic` does not support execution on GPUs.
 
     Attributes:
-        k_translational (`hoomd.variant.Variant` or `float`): The translational
-            spring constant :math:`[\mathrm{energy} \cdot
-            \mathrm{length}^{-2}]`.
-        k_rotational (`hoomd.variant.Variant` or `float`): The rotational spring
+        k_translational (`hoomd.variant.Variant`): The translational spring
+            constant :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
+        k_rotational (`hoomd.variant.Variant`): The rotational spring
             constant :math:`[\mathrm{energy}]`.
         reference_positions ((*N_particles*, 3) `numpy.ndarray` of `float`):
             The reference positions to which particles are restrained
