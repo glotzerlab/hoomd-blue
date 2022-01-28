@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: dnlebard
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "AreaConservationMeshForceCompute.h"
 
@@ -26,7 +24,9 @@ namespace md
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-AreaConservationMeshForceCompute::AreaConservationMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<MeshDefinition> meshdef)
+AreaConservationMeshForceCompute::AreaConservationMeshForceCompute(
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<MeshDefinition> meshdef)
     : ForceCompute(sysdef), m_K(NULL), m_A0(NULL), m_mesh_data(meshdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing AreaConservationhMeshForceCompute" << endl;
@@ -104,9 +104,10 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
 
-    ArrayHandle<typename MeshTriangle::members_t> h_triangles(m_mesh_data->getMeshTriangleData()->getMembersArray(),
-                                                   access_location::host,
-                                                   access_mode::read);
+    ArrayHandle<typename MeshTriangle::members_t> h_triangles(
+        m_mesh_data->getMeshTriangleData()->getMembersArray(),
+        access_location::host,
+        access_mode::read);
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -136,7 +137,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     Scalar At = m_A0[0] / size;
 
     m_area = 0;
-    
+
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the triangle
@@ -157,14 +158,14 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         // calculate d\vec{r}
         Scalar3 dab;
-        dab.x =  h_pos.data[idx_b].x - h_pos.data[idx_a].x;
-        dab.y =  h_pos.data[idx_b].y - h_pos.data[idx_a].y;
-        dab.z =  h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+        dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
+        dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
+        dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
 
         Scalar3 dac;
-        dac.x =  h_pos.data[idx_c].x - h_pos.data[idx_a].x;
-        dac.y =  h_pos.data[idx_c].y - h_pos.data[idx_a].y;
-        dac.z =  h_pos.data[idx_c].z - h_pos.data[idx_a].z;
+        dac.x = h_pos.data[idx_c].x - h_pos.data[idx_a].x;
+        dac.y = h_pos.data[idx_c].y - h_pos.data[idx_a].y;
+        dac.z = h_pos.data[idx_c].z - h_pos.data[idx_a].z;
 
         // apply minimum image conventions to all 3 vectors
         dab = box.minImage(dab);
@@ -190,8 +191,8 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         Scalar rac = sqrt(rsqac);
 
         Scalar3 nab, nac;
-        nab = dab/rab;
-        nac = dac/rac;
+        nab = dab / rab;
+        nac = dac / rac;
 
         Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
 
@@ -201,34 +202,36 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             c_baac = -1.0;
 
         Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
-        
-        Scalar3 dc_dra, dc_drb, dc_drc; // dcos_baac / dr_a 
-        dc_dra = nac / rab * (-1.0) + nab /rac * (-1.0) - dot(nab, nac) / rab * (-1.0 * nab) - dot(nab, nac) / rac * (-1.0 * nac);
-        dc_drb = nac / rab - dot(nab, nac) / rab * nab;
-        dc_drc = nac / rac - dot(nab, nac) / rac * nac;
+        Scalar inv_s_baac = 1.0 / s_baac;
 
-        Scalar3 ds_dra, ds_drb, ds_drc; // dsin_baac / dr_a 
-        ds_dra = - 1.0 * c_baac / sqrt(1.0 - c_baac * c_baac) * dc_dra;
-        ds_drb = - 1.0 * c_baac / sqrt(1.0 - c_baac * c_baac) * dc_drb;
-        ds_drc = - 1.0 * c_baac / sqrt(1.0 - c_baac * c_baac) * dc_drc;
+        Scalar3 dc_dra, dc_drb, dc_drc; // dcos_baac / dr_a
+        dc_dra = -nac / rab - nab / rac + c_baac / rab * nab + c_baac / rac * nac;
+        dc_drb = nac / rab - c_baac / rab * nab;
+        dc_drc = nac / rac - c_baac / rac * nac;
+
+        Scalar3 ds_dra, ds_drb, ds_drc; // dsin_baac / dr_a
+        ds_dra = -1.0 * c_baac * inv_s_baac * dc_dra;
+        ds_drb = -1.0 * c_baac * inv_s_baac * dc_drb;
+        ds_drc = -1.0 * c_baac * inv_s_baac * dc_drc;
 
         Scalar Ut;
         m_area += rab * rac * s_baac / 2;
         Ut = rab * rac * s_baac / 2 - At;
 
         Scalar3 Fa, Fb, Fc;
-        Fa = - m_K[0] / (2 * At) * Ut * (- 1.0 * nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
-        Fb = - m_K[0] / (2 * At) * Ut * (nab * rac * s_baac + ds_drb * rab * rac);
-        Fc = - m_K[0] / (2 * At) * Ut * (nac * rab * s_baac + ds_drc * rab * rac);
+        Fa = -m_K[0] / (2 * At) * Ut
+             * (-1.0 * nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
+        Fb = -m_K[0] / (2 * At) * Ut * (nab * rac * s_baac + ds_drb * rab * rac);
+        Fc = -m_K[0] / (2 * At) * Ut * (nac * rab * s_baac + ds_drc * rab * rac);
 
         if (compute_virial)
             {
-            area_conservation_virial[0] = Scalar(1. / 2.) * da.x * Fa.x;// xx
-            area_conservation_virial[1] = Scalar(1. / 2.) * da.y * Fa.x;// xy
-            area_conservation_virial[2] = Scalar(1. / 2.) * da.z * Fa.x;// xz
-            area_conservation_virial[3] = Scalar(1. / 2.) * da.y * Fa.y;// yy
-            area_conservation_virial[4] = Scalar(1. / 2.) * da.z * Fa.y;// yz
-            area_conservation_virial[5] = Scalar(1. / 2.) * da.z * Fa.z;// zz
+            area_conservation_virial[0] = Scalar(1. / 2.) * da.x * Fa.x; // xx
+            area_conservation_virial[1] = Scalar(1. / 2.) * da.y * Fa.x; // xy
+            area_conservation_virial[2] = Scalar(1. / 2.) * da.z * Fa.x; // xz
+            area_conservation_virial[3] = Scalar(1. / 2.) * da.y * Fa.y; // yy
+            area_conservation_virial[4] = Scalar(1. / 2.) * da.z * Fa.y; // yz
+            area_conservation_virial[5] = Scalar(1. / 2.) * da.z * Fa.z; // zz
             }
 
         // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
@@ -238,8 +241,8 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w += m_K[0]/(6.0*At)*Ut*Ut; // divided by 3 because of three 
-                                                           // particles sharing the energy
+            h_force.data[idx_a].w += m_K[0] / (6.0 * At) * Ut * Ut; // divided by 3 because of three
+                                                                    // particles sharing the energy
 
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += area_conservation_virial[j];
@@ -247,12 +250,12 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         if (compute_virial)
             {
-            area_conservation_virial[0] = Scalar(1. / 2.) * db.x * Fb.x;// xx
-            area_conservation_virial[1] = Scalar(1. / 2.) * db.y * Fb.x;// xy
-            area_conservation_virial[2] = Scalar(1. / 2.) * db.z * Fb.x;// xz
-            area_conservation_virial[3] = Scalar(1. / 2.) * db.y * Fb.y;// yy
-            area_conservation_virial[4] = Scalar(1. / 2.) * db.z * Fb.y;// yz
-            area_conservation_virial[5] = Scalar(1. / 2.) * db.z * Fb.z;// zz
+            area_conservation_virial[0] = Scalar(1. / 2.) * db.x * Fb.x; // xx
+            area_conservation_virial[1] = Scalar(1. / 2.) * db.y * Fb.x; // xy
+            area_conservation_virial[2] = Scalar(1. / 2.) * db.z * Fb.x; // xz
+            area_conservation_virial[3] = Scalar(1. / 2.) * db.y * Fb.y; // yy
+            area_conservation_virial[4] = Scalar(1. / 2.) * db.z * Fb.y; // yz
+            area_conservation_virial[5] = Scalar(1. / 2.) * db.z * Fb.z; // zz
             }
 
         if (idx_b < m_pdata->getN())
@@ -260,19 +263,19 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x += Fb.x;
             h_force.data[idx_b].y += Fb.y;
             h_force.data[idx_b].z += Fb.z;
-            h_force.data[idx_b].w += m_K[0]/(6.0*At)*Ut*Ut;
+            h_force.data[idx_b].w += m_K[0] / (6.0 * At) * Ut * Ut;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += area_conservation_virial[j];
             }
 
         if (compute_virial)
             {
-            area_conservation_virial[0] = Scalar(1. / 2.) * dc.x * Fc.x;// xx
-            area_conservation_virial[1] = Scalar(1. / 2.) * dc.y * Fc.x;// xchy
-            area_conservation_virial[2] = Scalar(1. / 2.) * dc.z * Fc.x;// xz
-            area_conservation_virial[3] = Scalar(1. / 2.) * dc.y * Fc.y;// yy
-            area_conservation_virial[4] = Scalar(1. / 2.) * dc.z * Fc.y;// yz
-            area_conservation_virial[5] = Scalar(1. / 2.) * dc.z * Fc.z;// zz
+            area_conservation_virial[0] = Scalar(1. / 2.) * dc.x * Fc.x; // xx
+            area_conservation_virial[1] = Scalar(1. / 2.) * dc.y * Fc.x; // xchy
+            area_conservation_virial[2] = Scalar(1. / 2.) * dc.z * Fc.x; // xz
+            area_conservation_virial[3] = Scalar(1. / 2.) * dc.y * Fc.y; // yy
+            area_conservation_virial[4] = Scalar(1. / 2.) * dc.z * Fc.y; // yz
+            area_conservation_virial[5] = Scalar(1. / 2.) * dc.z * Fc.z; // zz
             }
 
         if (idx_c < m_pdata->getN())
@@ -280,11 +283,10 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_c].x += Fc.x;
             h_force.data[idx_c].y += Fc.y;
             h_force.data[idx_c].z += Fc.z;
-            h_force.data[idx_c].w += m_K[0]/(6.0*At)*Ut*Ut;
+            h_force.data[idx_c].w += m_K[0] / (6.0 * At) * Ut * Ut;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_c] += area_conservation_virial[j];
             }
-
         }
 
     if (m_prof)
@@ -297,7 +299,9 @@ void export_AreaConservationMeshForceCompute(pybind11::module& m)
     {
     pybind11::class_<AreaConservationMeshForceCompute,
                      ForceCompute,
-                     std::shared_ptr<AreaConservationMeshForceCompute>>(m, "AreaConservationMeshForceCompute")
+                     std::shared_ptr<AreaConservationMeshForceCompute>>(
+        m,
+        "AreaConservationMeshForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
         .def("setParams", &AreaConservationMeshForceCompute::setParamsPython)
         .def("getParams", &AreaConservationMeshForceCompute::getParams)
