@@ -208,15 +208,15 @@ void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
                                  this->m_exec_conf->dev_prop),
              this->m_params.data());
 
-    // energy and pressure corrections
-    this->computeTailCorrection();
-
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     if (!m_param)
         this->m_tuner->end();
 
     this->m_exec_conf->endMultiGPU();
+
+    // energy and pressure corrections
+    this->computeTailCorrection();
 
     if (this->m_prof)
         this->m_prof->pop(this->m_exec_conf);
