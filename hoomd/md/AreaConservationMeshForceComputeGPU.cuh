@@ -21,7 +21,7 @@ namespace md
 namespace kernel
     {
 //! Kernel driver that computes the forces for AreaConservationMeshForceComputeGPU
-hipError_t gpu_compute_areaconservation_force(Scalar4* d_force,
+hipError_t gpu_compute_AreaConservation_force(Scalar4* d_force,
                                               Scalar* d_virial,
                                               const size_t virial_pitch,
                                               const unsigned int N,
@@ -30,7 +30,7 @@ hipError_t gpu_compute_areaconservation_force(Scalar4* d_force,
                                               const group_storage<6>* tlist,
                                               const Index2D tlist_idx,
                                               const unsigned int* n_triangles_list,
-                                              Scalar* d_params,
+                                              Scalar2* d_params,
                                               const unsigned int n_triangle_type,
                                               int block_size,
                                               unsigned int* d_flags);

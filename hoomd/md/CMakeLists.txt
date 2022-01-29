@@ -11,7 +11,7 @@ set(_md_sources module-md.cc
                    CosineSqAngleForceCompute.cc
                    CustomForceCompute.cc
                    EvaluatorWalls.cc
-                       FIREEnergyMinimizer.cc
+                   FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
                    HarmonicAngleForceCompute.cc
@@ -200,7 +200,7 @@ set(_md_headers ActiveForceComputeGPU.h
 
 if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
-                        AreaConservationMeshForceComputeGPU.cc
+                           AreaConservationMeshForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
                            ComputeThermoGPU.cc

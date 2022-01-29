@@ -29,7 +29,7 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(std::sh
         }
 
     // allocate and zero device memory
-    GPUArray<Scalar> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(),
+    GPUArray<Scalar2> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(),
                                                     this->m_exec_conf);
     m_params.swap(params);
 
@@ -73,7 +73,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<typename MeshTriangle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
                                                                          access_location::device,
                                                                          access_mode::read);
-    ArrayHandle<unsigned int> d_gpu_n_meshriangle(this->m_mesh_data->getMeshTriangleData()->getNGroupsArray(),
+    ArrayHandle<unsigned int> d_gpu_n_meshtriangle(this->m_mesh_data->getMeshTriangleData()->getNGroupsArray(),
                                                   access_location::device,
                                                   access_mode::read);                                                                         
     
@@ -81,7 +81,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_params(m_params, access_location::device, access_mode::read);
+    ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
 
     // access the flags array for overwriting
     ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);

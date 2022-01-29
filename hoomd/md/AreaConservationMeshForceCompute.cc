@@ -210,9 +210,9 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         dc_drc = nac / rac - c_baac / rac * nac;
 
         Scalar3 ds_dra, ds_drb, ds_drc; // dsin_baac / dr_a
-        ds_dra = -1.0 * c_baac * inv_s_baac * dc_dra;
-        ds_drb = -1.0 * c_baac * inv_s_baac * dc_drb;
-        ds_drc = -1.0 * c_baac * inv_s_baac * dc_drc;
+        ds_dra = -c_baac * inv_s_baac * dc_dra;
+        ds_drb = -c_baac * inv_s_baac * dc_drb;
+        ds_drc = -c_baac * inv_s_baac * dc_drc;
 
         Scalar Ut;
         m_area += rab * rac * s_baac / 2;
@@ -220,7 +220,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         Scalar3 Fa, Fb, Fc;
         Fa = -m_K[0] / (2 * At) * Ut
-             * (-1.0 * nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
+             * (-nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
         Fb = -m_K[0] / (2 * At) * Ut * (nab * rac * s_baac + ds_drb * rab * rac);
         Fc = -m_K[0] / (2 * At) * Ut * (nac * rab * s_baac + ds_drc * rab * rac);
 

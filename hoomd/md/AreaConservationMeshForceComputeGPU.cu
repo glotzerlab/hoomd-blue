@@ -46,7 +46,7 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
                                                           const group_storage<6>* tlist,
                                                           const Index2D tlist_idx,
                                                           const unsigned int* n_triangles_list,
-                                                          Scalar* d_params,
+                                                          Scalar2* d_params,
                                                           const unsigned int n_triangle_type,
                                                           unsigned int* d_flags)
     {
@@ -76,13 +76,14 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
         {
         group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
 
-        // int cur_mem1_idx = cur_triangle.idx[0];
         int cur_mem2_idx = cur_triangle.idx[0];
         int cur_mem3_idx = cur_triangle.idx[1];
+	int cur_triangle_type = cur_triangle.idx[5];
 
         // get the b-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 bb_postype = d_pos[cur_mem2_idx];
         Scalar3 pos_b = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
+
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 cc_postype = d_pos[cur_mem3_idx];
         Scalar3 pos_c = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
@@ -116,23 +117,16 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
         Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
         Scalar inv_s_baac = 1.0 / s_baac;
 
-        Scalar2 params = __ldg(d_params); // Todo: + cur_angle_type
+        Scalar2 params = __ldg(d_params + cur_triangle_type);
         Scalar K = params.x;
         Scalar A0 = params.y;
         Scalar At = A0 / N;
 
-        Scalar3 dc_dra, dc_drb, dc_drc; // dcos_baac / dr_a 
-        dc_dra = - nac / rab - nab /rac + c_baac / rab * nab + c_baac / rac * nac;
-        dc_drb = nac / rab - c_baac / rab * nab;
-        dc_drc = nac / rac - c_baac / rac * nac;
+        Scalar3 dc_dra = - nac / rab - nab /rac + c_baac / rab * nab + c_baac / rac * nac;
 
-        Scalar3 ds_dra, ds_drb, ds_drc; // dsin_baac / dr_a 
-        ds_dra = - 1.0 * c_baac * inv_s_baac * dc_dra;
-        ds_drb = - 1.0 * c_baac * inv_s_baac * dc_drb;
-        ds_drc = - 1.0 * c_baac * inv_s_baac * dc_drc;
+        Scalar3 ds_dra = - 1.0 * c_baac * inv_s_baac * dc_dra;
 
         Scalar numerator_base;
-        // area += rab * rac * s_baac / 2;
         numerator_base = rab * rac * s_baac / 2 - At;
 
         Scalar3 Fa = - K / (2 * At) * numerator_base * (-nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
@@ -153,7 +147,6 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force;
-    // d_area[idx] = area;
 
     for (unsigned int i = 0; i < 6; i++)
         d_virial[i * virial_pitch + idx] = virial[i];
@@ -185,7 +178,7 @@ hipError_t gpu_compute_AreaConservation_force(Scalar4* d_force,
                                               const group_storage<6>* tlist,
                                               const Index2D tlist_idx,
                                               const unsigned int* n_triangles_list,
-                                              Scalar* d_params,
+                                              Scalar2* d_params,
                                               const unsigned int n_triangle_type,
                                               int block_size,
                                               unsigned int* d_flags)
@@ -207,7 +200,6 @@ hipError_t gpu_compute_AreaConservation_force(Scalar4* d_force,
                        dim3(threads),
                        0,
                        0,
-                    //    d_area,
                        d_force,
                        d_virial,
                        virial_pitch,
