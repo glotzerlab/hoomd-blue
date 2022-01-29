@@ -207,7 +207,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         Scalar3 dc_dra, dc_drb, dc_drc; // dcos_baac / dr_a
         dc_dra = -nac / rab - nab / rac + c_baac / rab * nab + c_baac / rac * nac;
         dc_drb = nac / rab - c_baac / rab * nab;
-        dc_drc = nac / rac - c_baac / rac * nac;
+        dc_drc = nab / rac - c_baac / rac * nac;
 
         Scalar3 ds_dra, ds_drb, ds_drc; // dsin_baac / dr_a
         ds_dra = -c_baac * inv_s_baac * dc_dra;

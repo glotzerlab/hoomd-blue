@@ -69,16 +69,16 @@ def get_mesh_potential_args_forces_and_energies():
     Tether_energies = [0, 0.000926, 0.294561]
     AreaConservation_forces = [[[0.94380349, 0., -0.66736985],
                                 [-0.94380349, 0.,  -0.66736985],
-                                [-0.11797544, 0.82582805, 0.50052739],
-                                [-0.11797544, -0.35392631, 0.50052739]],
-                               [[18.17566447, 0., -12.8521356 ],
+                                [0., 0.94380349, 0.66736985],
+                                [0, -0.94380349, 0.66736985]],
+                               [[ 18.17566447, 0., -12.8521356 ],
                                 [-18.17566447, 0., -12.8521356 ],
-                                [-2.27195806, 15.90370641, 9.6391017 ],
-                                [-2.27195806, -6.81587418, 9.6391017 ]],
+                                [0., 18.17566447, 12.8521356 ],
+                                [0., -18.17566447, 12.8521356 ]],
                                [[96.88179659, 0., -68.50577534],
                                 [-96.88179659, 0., -68.50577534],
-                                [-12.11022457, 84.77157202, 51.37933151],
-                                [-12.11022457, -36.33067372, 51.37933151]]]
+                                [0., 96.88179659, 68.50577534],
+                                [0.,-96.88179659, 68.50577534]]]
     AreaConservation_energies = [3.69707, 57.13009, 454.492529]
 
     harmonic_args_and_vals = []
@@ -150,7 +150,7 @@ def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
 
     mesh = hoomd.mesh.Mesh(name=["triags"])
     mesh.size = 4
-    mesh.triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["triags"] = potential_kwargs
@@ -187,7 +187,7 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
 
     mesh = hoomd.mesh.Mesh()
     mesh.size = 1
-    mesh.triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["mesh"] = potential_kwargs

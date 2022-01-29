@@ -44,6 +44,7 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
                                                           const Scalar4* d_pos,
                                                           BoxDim box,
                                                           const group_storage<6>* tlist,
+					      		  const unsigned int* tpos_list,
                                                           const Index2D tlist_idx,
                                                           const unsigned int* n_triangles_list,
                                                           Scalar2* d_params,
@@ -76,6 +77,8 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
         {
         group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
 
+	int cur_triangle_abc = tpos_list[tlist_idx(idx, triangle_idx)];
+
         int cur_mem2_idx = cur_triangle.idx[0];
         int cur_mem3_idx = cur_triangle.idx[1];
 	int cur_triangle_type = cur_triangle.idx[5];
@@ -88,8 +91,25 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
         Scalar4 cc_postype = d_pos[cur_mem3_idx];
         Scalar3 pos_c = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
 
-        Scalar3 dab = pos_b - pos_a;
-        Scalar3 dac = pos_c - pos_a;
+	Scalar3 dab,dac;
+	if(cur_triangle_abc == 0)
+	    {
+            dab = pos_b - pos_a;
+            dac = pos_c - pos_a;
+	    }
+	else
+	    {
+	    if(cur_triangle_abc == 1)
+                {
+                dab = pos_a - pos_b;
+                dac = pos_c - pos_b;
+		}
+	    else
+                {
+                dab = pos_b - pos_c;
+                dac = pos_a - pos_c;
+		}
+	    }
 
         dab = box.minImage(dab);
         dac = box.minImage(dac);
@@ -122,15 +142,54 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
         Scalar A0 = params.y;
         Scalar At = A0 / N;
 
-        Scalar3 dc_dra = - nac / rab - nab /rac + c_baac / rab * nab + c_baac / rac * nac;
-
-        Scalar3 ds_dra = - 1.0 * c_baac * inv_s_baac * dc_dra;
+        Scalar3 dc_dra;
+	if(cur_triangle_abc == 0)
+	    {
+	     dc_dra = - nac / rab - nab /rac + c_baac / rab * nab + c_baac / rac * nac;
+	    }
+	else
+	    {
+	    if(cur_triangle_abc == 1)
+                {
+	        dc_dra = nac / rab - c_baac / rab * nab;
+		}
+	    else
+                {
+	        dc_dra = nab / rac - c_baac / rac * nac;
+		}
+	    }
+       
+        Scalar3 ds_dra = - c_baac * inv_s_baac * dc_dra;
 
         Scalar numerator_base;
         numerator_base = rab * rac * s_baac / 2 - At;
 
-        Scalar3 Fa = - K / (2 * At) * numerator_base * (-nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
+        Scalar3 Fa; 
 
+
+	if(cur_triangle_abc == 0)
+	    {
+             Fa = -K / (2 * At) * numerator_base * (-nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
+             Fa = -nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac;
+	    }
+	else
+	    {
+	    if(cur_triangle_abc == 1)
+                {
+                Fa = -K / (2 * At) * numerator_base * (nab * rac * s_baac + ds_dra * rab * rac);
+                Fa = nab * rac * s_baac + ds_dra * rab * rac;
+		}
+	    else
+                {
+                Fa = -K / (2 * At) * numerator_base * (nac * rab * s_baac + ds_dra * rab * rac);
+                Fa = nac * rab * s_baac + ds_dra * rab * rac;
+		}
+	    }
+
+	printf("%d %d %d %d | %f %f %f | %f\n",idx,cur_mem2_idx,cur_mem3_idx,cur_triangle_abc,Fa.x,Fa.y,Fa.z,  -K / (2 * At) * numerator_base );
+
+	Fa =  -K / (2 * At) * numerator_base * Fa; 
+	
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
@@ -176,6 +235,7 @@ hipError_t gpu_compute_AreaConservation_force(Scalar4* d_force,
                                               const Scalar4* d_pos,
                                               const BoxDim& box,
                                               const group_storage<6>* tlist,
+					      const unsigned int* tpos_list,
                                               const Index2D tlist_idx,
                                               const unsigned int* n_triangles_list,
                                               Scalar2* d_params,
@@ -207,6 +267,7 @@ hipError_t gpu_compute_AreaConservation_force(Scalar4* d_force,
                        d_pos,
                        box,
                        tlist,
+		       tpos_list,
                        tlist_idx,
                        n_triangles_list,
                        d_params,

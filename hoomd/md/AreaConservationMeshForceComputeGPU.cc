@@ -73,6 +73,11 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<typename MeshTriangle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
                                                                          access_location::device,
                                                                          access_mode::read);
+
+     ArrayHandle<unsigned int> d_gpu_meshtriangle_pos_list(m_mesh_data->getMeshTriangleData()->getGPUPosTable(),
+                                                           access_location::device,
+                                                           access_mode::read);
+
     ArrayHandle<unsigned int> d_gpu_n_meshtriangle(this->m_mesh_data->getMeshTriangleData()->getNGroupsArray(),
                                                   access_location::device,
                                                   access_mode::read);                                                                         
@@ -95,6 +100,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                                d_pos.data,
                                                box,
                                                d_gpu_meshtrianglelist.data,
+					       d_gpu_meshtriangle_pos_list.data,
                                                gpu_table_indexer,
                                                d_gpu_n_meshtriangle.data,
                                                d_params.data,

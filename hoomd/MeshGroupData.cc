@@ -432,6 +432,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
         this->m_gpu_table_indexer
             = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(), num_groups_max);
         this->m_gpu_table.resize(this->m_gpu_table_indexer.getNumElements());
+        this->m_gpu_pos_table.resize(this->m_gpu_table_indexer.getNumElements());
 
             {
             ArrayHandle<unsigned int> h_n_groups(this->m_gpu_n_groups,
@@ -440,6 +441,10 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
             ArrayHandle<members_t> h_gpu_table(this->m_gpu_table,
                                                access_location::host,
                                                access_mode::overwrite);
+
+            ArrayHandle<unsigned int> h_gpu_pos_table(this->m_gpu_pos_table,
+                                                      access_location::host,
+                                                      access_mode::overwrite);
 
             // now, update the actual table
             // zero the number of bonded groups counter (again)
@@ -469,10 +474,12 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
 
                     // list all group members j!=i in p.idx
                     unsigned int n = 0;
+                    unsigned int gpos = 0;
                     for (unsigned int j = 0; j < group_size_half; ++j)
                         {
                         if (j == i)
                             {
+                            gpos = j;
                             continue;
                             }
                         unsigned int tag2 = g.tag[j];
@@ -481,6 +488,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
                         }
 
                     h_gpu_table.data[this->m_gpu_table_indexer(idx1, num)] = h;
+                    h_gpu_pos_table.data[this->m_gpu_table_indexer(idx1, num)] = gpos;
                     }
                 }
             }
@@ -529,6 +537,9 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
             ArrayHandle<members_t> d_gpu_table(this->m_gpu_table,
                                                access_location::device,
                                                access_mode::overwrite);
+            ArrayHandle<unsigned int> d_gpu_pos_table(this->m_gpu_pos_table,
+                                                      access_location::device,
+                                                      access_mode::overwrite);
             ArrayHandle<unsigned int> d_condition(this->m_condition,
                                                   access_location::device,
                                                   access_mode::readwrite);
@@ -553,6 +564,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
                                                          this->m_next_flag,
                                                          flag,
                                                          d_gpu_table.data,
+                                                         d_gpu_pos_table.data,
                                                          this->m_gpu_table_indexer.getW(),
                                                          d_scratch_g.data,
                                                          d_scratch_idx.data,
