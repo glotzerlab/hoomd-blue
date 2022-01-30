@@ -2,12 +2,66 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.hpmc.external.field import ExternalField
 
 
 def _to_hpmc_walls(wall):
     #todo: convert to _hpmc wall class object
     # md walls has similar function
     pass
+
+
+class Wall(ExternalField):
+    """Base class for walls.
+
+    Provides common methods for all wall subclasses.
+
+    Note:
+        Users should use the subclasses and not instantiate `ExternalField`
+        directly.
+
+    """
+    pass
+
+
+class PlaneWall(Wall):
+    """Plane wall.
+
+    """
+
+    def __init__(self, *args):
+        param_dict = ParameterDict()
+        self._param_dict.update(param_dict)
+
+    def _attach():
+        pass
+
+
+class SphereWall(Wall):
+    """Spherical wall.
+
+    """
+
+    def __init__(self, *args):
+        parameter_dict = ParameterDict()
+        self._param_dict.update(param_dict)
+
+    def _attach():
+        pass
+
+
+class CylinderWall(Wall):
+    """Cylindrical wall.
+
+    """
+
+    def __init__(self, *args):
+        param_dict = ParameterDict()
+        self._param_dict.update(param_dict)
+
+    def _atach():
+        pass
 
 
 class Walls(hoomd.hpmc.external.field.ExternalField):
