@@ -35,11 +35,6 @@ template<typename Shape> class UpdaterShape : public Updater
 
     ~UpdaterShape();
 
-    std::vector<std::string> getProvidedLogQuantities();
-
-    //! Calculates the requested log value and returns it
-    Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-
     virtual void update(uint64_t timestep);
 
     void initialize();
@@ -70,11 +65,6 @@ template<typename Shape> class UpdaterShape : public Updater
                                                      h_det.data[ndx]);
             }
         return energy;
-        }
-
-    float getShapeParam(std::string quantity, unsigned int timestep)
-        {
-        return m_move_function->getLogValue(quantity, timestep);
         }
 
     unsigned int getAcceptedCount()
@@ -207,7 +197,6 @@ template<typename Shape> class UpdaterShape : public Updater
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
     GPUArray<Scalar> m_determinant;  // determinant of the shape's moment of inertia tensor
     GPUArray<unsigned int> m_ntypes; // number of particle types in the simulation
-    std::vector<std::string> m_provided_quantities; // provided log quantities
     size_t m_num_params;                            // number of shape parameters to calculate
     bool m_pretend;                     // whether or not to pretend or actually perform shape move
     bool m_initialized;                 // whether or not the updater has been initialized
@@ -239,17 +228,10 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_box_accepted.resize(m_pdata->getNTypes(), 0);
     m_box_total.resize(m_pdata->getNTypes(), 0);
     m_type_select = (m_pdata->getNTypes() < m_type_select) ? m_pdata->getNTypes() : m_type_select;
-    m_provided_quantities.push_back("shape_move_acceptance_ratio");
-    m_provided_quantities.push_back("shape_move_particle_volume");
-    m_provided_quantities.push_back("shape_move_multi_phase_box");
-
-    std::vector<std::string> quantities(m_move_function->getProvidedLogQuantities());
-    m_provided_quantities.reserve(m_provided_quantities.size() + quantities.size());
-    m_provided_quantities.insert(m_provided_quantities.end(), quantities.begin(), quantities.end());
 
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-    m_provided_quantities.push_back("shape_move_energy");
+
     for (size_t i = 0; i < m_pdata->getNTypes(); i++)
         {
         h_det.data[i] = 0.0;
@@ -272,81 +254,12 @@ template<class Shape> UpdaterShape<Shape>::~UpdaterShape()
     m_exec_conf->msg->notice(5) << "Destroying UpdaterShape " << std::endl;
     }
 
-/*! hpmc::UpdaterShape provides:
-\returns a list of provided quantities
-*/
-template<class Shape> std::vector<std::string> UpdaterShape<Shape>::getProvidedLogQuantities()
-    {
-    return m_provided_quantities;
-    }
-
-//! Calculates the requested log value and returns it
-template<class Shape>
-Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
-    {
-    if (m_move_function->isProvidedQuantity(quantity))
-        {
-        return m_move_function->getLogValue(quantity, timestep);
-        }
-    else if (quantity == "shape_move_acceptance_ratio")
-        {
-        unsigned int ctAccepted = 0, ctTotal = 0;
-        ctAccepted = std::accumulate(m_count_accepted.begin(), m_count_accepted.end(), 0);
-        ctTotal = std::accumulate(m_count_total.begin(), m_count_total.end(), 0);
-        return ctTotal ? Scalar(ctAccepted) / Scalar(ctTotal) : 0;
-        }
-    else if (quantity == "shape_move_particle_volume")
-        {
-        ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::read);
-        auto params = m_mc->getParams();
-        double volume = 0.0;
-        for (size_t i = 0; i < m_pdata->getNTypes(); i++)
-            {
-            detail::MassProperties<Shape> mp(params[i]);
-            volume += mp.getVolume() * Scalar(h_ntypes.data[i]);
-            }
-        return volume;
-        }
-    else if (quantity == "shape_move_multi_phase_box")
-        {
-        unsigned int boxAccepted = 0, boxTotal = 0;
-        boxAccepted = std::accumulate(m_box_accepted.begin(), m_box_accepted.end(), 0);
-        boxTotal = std::accumulate(m_box_total.begin(), m_box_total.end(), 0);
-        return boxTotal ? Scalar(boxAccepted) / Scalar(boxTotal) : 0;
-        }
-    else if (quantity == "shape_move_energy")
-        {
-        Scalar energy = 0.0;
-        ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-        for (unsigned int i = 0; i < m_pdata->getNTypes(); i++)
-            {
-            energy += m_move_function->computeEnergy(timestep,
-                                                     h_ntypes.data[i],
-                                                     i,
-                                                     m_mc->getParams()[i],
-                                                     h_det.data[i]);
-            }
-        return energy;
-        }
-    else if (quantity.compare(0, 11, "shape_param") == 0)
-        {
-        return m_move_function->getLogValue(quantity, timestep);
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity"
-                                  << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
-    }
-
 /*! Perform Metropolis Monte Carlo shape deformations
 \param timestep Current time step of the simulation
 */
 template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
     {
-    typedef std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type>>
+    typedef std::vector<typename Shape::param_type, hoomd::detail::managed_allocator<typename Shape::param_type>>
         param_vector;
     m_exec_conf->msg->notice(4) << "UpdaterShape update: " << timestep
                                 << ", initialized: " << std::boolalpha << m_initialized << " @ "
@@ -485,7 +398,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             m_exec_conf->msg->notice(10) << "HPMCMono count overlaps: " << timestep << std::endl;
 
             // build an up to date AABB tree
-            const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+            const hoomd::detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
             // update the image list
             std::vector<vec3<Scalar>> image_list = m_mc->updateImageList();
 
@@ -528,13 +441,13 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                         Shape shape_i(quat<Scalar>(orientation_i), m_mc->getParams()[typ_i]);
                         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
                         // Check particle against AABB tree for neighbors
-                        detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
+                        hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
 
                         const unsigned int n_images = image_list.size();
                         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                             {
                             vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
-                            detail::AABB aabb = aabb_i_local;
+                            hoomd::detail::AABB aabb = aabb_i_local;
                             aabb.translate(pos_i_image);
 
                             // stackless search
@@ -814,7 +727,7 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
         .def_property_readonly("total_count", &UpdaterShape<Shape>::getTotalCount)
         .def_property_readonly("particle_volume", &UpdaterShape<Shape>::getParticleVolume)
         .def("getShapeMoveEnergy", &UpdaterShape<Shape>::getShapeMoveEnergy)
-        .def("getShapeParam", &UpdaterShape<Shape>::getShapeParam)
+        // .def("getShapeParam", &UpdaterShape<Shape>::getShapeParam)
         .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)
         .def("connectGSDStateSignal", &UpdaterShape<Shape>::connectGSDStateSignal)
         .def("restoreStateGSD", &UpdaterShape<Shape>::restoreStateGSD)

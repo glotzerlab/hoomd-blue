@@ -20,6 +20,10 @@
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
+#include "ShapeMoves.h"
+#include "ShapeUtils.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
@@ -40,6 +44,17 @@ void export_convex_polyhedron(pybind11::module& m)
     export_ComputeSDF<ShapeConvexPolyhedron>(m, "ComputeSDFConvexPolyhedron");
     export_UpdaterMuVT<ShapeConvexPolyhedron>(m, "UpdaterMuVTConvexPolyhedron");
     export_UpdaterClusters<ShapeConvexPolyhedron>(m, "UpdaterClustersConvexPolyhedron");
+
+    export_MassProperties<ShapeConvexPolyhedron>(m, "MassPropertiesConvexPolyhedron");
+    // export_ShapeMoveInterface<ShapeConvexPolyhedron>(m, "ShapeMoveConvexPolyhedron");
+    export_ElasticShapeMove<ShapeConvexPolyhedron>(m, "ElasticShapeMoveConvexPolyhedron");
+    export_ConvexPolyhedronVertexShapeMove(m, "VertexShapeMoveConvexPolyhedron");
+    // export_ConvexPolyhedronGeneralizedShapeMove<ShapeConvexPolyhedron>(
+    //     m,
+    //     "GeneralizedShapeMoveConvexPolyhedron");
+    export_UpdaterShape<ShapeConvexPolyhedron>(m, "UpdaterShapeConvexPolyhedron");
+    export_PythonShapeMove<ShapeConvexPolyhedron>(m, "PythonShapeMoveConvexPolyhedron");
+    export_ConstantShapeMove<ShapeConvexPolyhedron>(m, "ConstantShapeMoveConvexPolyhedron");
 
     export_ExternalFieldInterface<ShapeConvexPolyhedron>(m, "ExternalFieldConvexPolyhedron");
     export_HarmonicField<ShapeConvexPolyhedron>(m, "ExternalFieldHarmonicConvexPolyhedron");

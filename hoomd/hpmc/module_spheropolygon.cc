@@ -20,6 +20,9 @@
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
@@ -40,6 +43,11 @@ void export_spheropolygon(pybind11::module& m)
     export_ComputeSDF<ShapeSpheropolygon>(m, "ComputeSDFConvexSpheropolygon");
     export_UpdaterMuVT<ShapeSpheropolygon>(m, "UpdaterMuVTConvexSpheropolygon");
     export_UpdaterClusters<ShapeSpheropolygon>(m, "UpdaterClustersConvexSpheropolygon");
+
+    // export_ShapeMoveInterface<ShapeSpheropolygon>(m, "ShapeMoveSpheropolygon");
+    export_UpdaterShape<ShapeSpheropolygon>(m, "UpdaterShapeSpheropolygon");
+    export_PythonShapeMove<ShapeSpheropolygon>(m, "PythonShapeMoveSpheropolygon");
+    export_ConstantShapeMove<ShapeSpheropolygon>(m, "ConstantShapeMoveSpheropolygon");
 
     export_ExternalFieldInterface<ShapeSpheropolygon>(m, "ExternalFieldSpheropolygon");
     export_HarmonicField<ShapeSpheropolygon>(m, "ExternalFieldHarmonicSpheropolygon");

@@ -20,6 +20,9 @@
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
@@ -40,6 +43,11 @@ void export_polyhedron(pybind11::module& m)
     export_ComputeSDF<ShapePolyhedron>(m, "ComputeSDFPolyhedron");
     export_UpdaterMuVT<ShapePolyhedron>(m, "UpdaterMuVTPolyhedron");
     export_UpdaterClusters<ShapePolyhedron>(m, "UpdaterClustersPolyhedron");
+
+    // export_ShapeMoveInterface<ShapePolyhedron>(m, "ShapeMovePolyhedron");
+    export_UpdaterShape<ShapePolyhedron>(m, "UpdaterShapePolyhedron");
+    export_PythonShapeMove<ShapePolyhedron>(m, "PythonShapeMovePolyhedron");
+    export_ConstantShapeMove<ShapePolyhedron>(m, "ConstantShapeMovePolyhedron");
 
     export_ExternalFieldInterface<ShapePolyhedron>(m, "ExternalFieldPolyhedron");
     export_HarmonicField<ShapePolyhedron>(m, "ExternalFieldHarmonicPolyhedron");

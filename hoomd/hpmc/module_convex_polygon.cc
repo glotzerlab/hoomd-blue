@@ -20,6 +20,9 @@
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
@@ -40,6 +43,11 @@ void export_convex_polygon(pybind11::module& m)
     export_ComputeSDF<ShapeConvexPolygon>(m, "ComputeSDFConvexPolygon");
     export_UpdaterMuVT<ShapeConvexPolygon>(m, "UpdaterMuVTConvexPolygon");
     export_UpdaterClusters<ShapeConvexPolygon>(m, "UpdaterClustersConvexPolygon");
+
+    // export_ShapeMoveInterface<ShapeConvexPolygon>(m, "ShapeMoveConvexPolygon");
+    export_UpdaterShape<ShapeConvexPolygon>(m, "UpdaterShapeConvexPolygon");
+    export_PythonShapeMove<ShapeConvexPolygon>(m, "PythonShapeMoveConvexPolygon");
+    export_ConstantShapeMove<ShapeConvexPolygon>(m, "ConstantShapeMoveConvexPolygon");
 
     export_ExternalFieldInterface<ShapeConvexPolygon>(m, "ExternalFieldConvexPolygon");
     export_HarmonicField<ShapeConvexPolygon>(m, "ExternalFieldHarmonicConvexPolygon");

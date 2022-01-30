@@ -20,6 +20,9 @@
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
@@ -40,6 +43,11 @@ void export_simple_polygon(pybind11::module& m)
     export_ComputeSDF<ShapeSimplePolygon>(m, "ComputeSDFSimplePolygon");
     export_UpdaterMuVT<ShapeSimplePolygon>(m, "UpdaterMuVTSimplePolygon");
     export_UpdaterClusters<ShapeSimplePolygon>(m, "UpdaterClustersSimplePolygon");
+
+    // export_ShapeMoveInterface<ShapeSimplePolygon>(m, "ShapeMoveSimplePolygon");
+    export_UpdaterShape<ShapeSimplePolygon>(m, "UpdaterShapeSimplePolygon");
+    export_PythonShapeMove<ShapeSimplePolygon>(m, "PythonShapeMoveSimplePolygon");
+    export_ConstantShapeMove<ShapeSimplePolygon>(m, "ConstantShapeMoveSimplePolygon");
 
     export_ExternalFieldInterface<ShapeSimplePolygon>(m, "ExternalFieldSimplePolygon");
     export_HarmonicField<ShapeSimplePolygon>(m, "ExternalFieldHarmonicSimplePolygon");

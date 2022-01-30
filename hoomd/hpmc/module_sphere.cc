@@ -19,6 +19,10 @@
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
+
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
@@ -40,12 +44,18 @@ void export_sphere(pybind11::module& m)
     export_UpdaterMuVT<ShapeSphere>(m, "UpdaterMuVTSphere");
     export_UpdaterClusters<ShapeSphere>(m, "UpdaterClustersSphere");
 
+    export_UpdaterShape<ShapeSphere>(m, "UpdaterShapeSphere");
+    // export_ShapeMoveInterface<ShapeSphere>(m, "ShapeMoveSphere");
+    export_PythonShapeMove<ShapeSphere>(m, "PythonShapeMoveSphere");
+    export_ConstantShapeMove<ShapeSphere>(m, "ConstantShapeMoveSphere");
+
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
     export_HarmonicField<ShapeSphere>(m, "ExternalFieldHarmonicSphere");
     export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
     export_UpdaterExternalFieldWall<ShapeSphere>(m, "UpdaterExternalFieldWallSphere");
     export_ExternalCallback<ShapeSphere>(m, "ExternalCallbackSphere");
+
 
 #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU<ShapeSphere>(m, "IntegratorHPMCMonoSphereGPU");

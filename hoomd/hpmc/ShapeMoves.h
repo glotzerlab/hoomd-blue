@@ -35,7 +35,7 @@ template<typename Shape> class ShapeMoveBase
     virtual ~ShapeMoveBase() {};
 
     //! prepare is called at the beginning of every update()
-    virtual void prepare(unsigned int timestep)
+    virtual void prepare(uint64_t timestep)
         {
         throw std::runtime_error("Shape move function not implemented.");
         }
@@ -158,30 +158,7 @@ template<typename Shape> class ShapeMoveBase
         return success;
         }
 
-    //! Returns all of the provided log quantities for the shape move.
-    std::vector<std::string> getProvidedLogQuantities()
-        {
-        return m_provided_quantities;
-        }
-
-    //! Calculates the requested log value and returns it
-    virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-        {
-        return 0.0;
-        }
-
-    //! Checks if the requested log value is provided
-    virtual bool isProvidedQuantity(const std::string& quantity)
-        {
-        if (std::find(m_provided_quantities.begin(), m_provided_quantities.end(), quantity)
-            != m_provided_quantities.end())
-            {
-            return true;
-            }
-        return false;
-        }
-
-    virtual Scalar operator()(const unsigned int& timestep,
+    virtual Scalar operator()(const uint64_t& timestep,
                               const unsigned int& N,
                               const unsigned int type_id,
                               const typename Shape::param_type& shape_new,
@@ -197,7 +174,7 @@ template<typename Shape> class ShapeMoveBase
         return (Scalar(N) / Scalar(2.0)) * log(newdivold);
         }
 
-    virtual Scalar computeEnergy(const unsigned int& timestep,
+    virtual Scalar computeEnergy(const uint64_t& timestep,
                                  const unsigned int& N,
                                  const unsigned int type_id,
                                  const typename Shape::param_type& shape,
@@ -207,7 +184,6 @@ template<typename Shape> class ShapeMoveBase
         }
 
     protected:
-    std::vector<std::string> m_provided_quantities; // provided log quantities for the shape move
     Scalar m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
     Scalar m_isoperimetric_quotient; // isoperimetric quotient of the shape
     std::vector<Scalar> m_step_size; // maximum stepsize
@@ -237,10 +213,6 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         this->m_step_size = stepsize_vector;
         m_select_ratio = fmin(mixratio, 1.0) * 65535;
         this->m_det_inertia_tensor = 1.0;
-        for (size_t i = 0; i < getNumParam(); i++)
-            {
-            this->m_provided_quantities.push_back(getParamName(i));
-            }
         std::vector<std::vector<Scalar>> params_vector(ntypes);
         for (auto name_and_params : params)
             {
@@ -253,12 +225,12 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         m_params = params_vector;
         }
 
-    void prepare(unsigned int timestep)
+    void prepare(uint64_t timestep)
         {
         m_params_backup = m_params;
         }
 
-    void construct(const unsigned int& timestep,
+    void construct(const uint64_t& timestep,
                    const unsigned int& type_id,
                    typename Shape::param_type& shape,
                    hoomd::RandomGenerator& rng)
@@ -278,7 +250,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         this->m_det_inertia_tensor = mp.getDetInertiaTensor();
         }
 
-    void retreat(unsigned int timestep)
+    void retreat(uint64_t timestep)
         {
         // move has been rejected.
         std::swap(m_params, m_params_backup);
@@ -315,19 +287,6 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         ss << i;
         ss >> snum;
         return "shape_param-" + snum;
-        }
-
-    //! Calculates the requested log value and returns it
-    virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-        {
-        for (size_t i = 0; i < m_num_params; i++)
-            {
-            if (quantity == getParamName(i))
-                {
-                return getParam(i);
-                }
-            }
-        return 0.0;
         }
 
     pybind11::dict getParams()
@@ -417,9 +376,9 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
             }
         }
 
-    void prepare(unsigned int timestep) { }
+    void prepare(uint64_t timestep) { }
 
-    void construct(const unsigned int& timestep,
+    void construct(const uint64_t& timestep,
                    const unsigned int& type_id,
                    typename Shape::param_type& shape,
                    hoomd::RandomGenerator& rng)
@@ -428,7 +387,7 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
         this->m_det_inertia_tensor = m_determinants[type_id];
         }
 
-    void retreat(unsigned int timestep)
+    void retreat(uint64_t timestep)
         {
         // move has been rejected.
         }
@@ -512,12 +471,12 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         m_volume = volume;
         }
 
-    void prepare(unsigned int timestep)
+    void prepare(uint64_t timestep)
         {
         m_step_size_backup = m_step_size;
         }
 
-    void construct(const unsigned int& timestep,
+    void construct(const uint64_t& timestep,
                    const unsigned int& type_id,
                    typename ShapeConvexPolyhedron::param_type& shape,
                    hoomd::RandomGenerator& rng)
@@ -569,7 +528,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
         }
 
-    void retreat(unsigned int timestep)
+    void retreat(uint64_t timestep)
         {
         // move has been rejected.
         std::swap(m_step_size, m_step_size_backup);
@@ -605,16 +564,15 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         m_reference_shape = shape;
         detail::MassProperties<Shape> mp(m_reference_shape);
         m_volume = mp.getVolume();
-        this->m_provided_quantities.push_back("shape_move_stiffness");
         }
 
-    void prepare(unsigned int timestep)
+    void prepare(uint64_t timestep)
         {
         m_Fbar_last = m_Fbar;
         }
 
     //! construct is called at the beginning of every update()
-    void construct(const unsigned int& timestep,
+    void construct(const uint64_t& timestep,
                    const unsigned int& type_id,
                    typename Shape::param_type& param,
                    hoomd::RandomGenerator& rng)
@@ -677,7 +635,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
 
     //! retreat whenever the proposed move is rejected.
-    void retreat(unsigned int timestep)
+    void retreat(uint64_t timestep)
         {
         m_Fbar.swap(
             m_Fbar_last); // we can swap because m_Fbar_last will be reset on the next prepare
@@ -816,7 +774,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         return success;
         };
 
-    Scalar operator()(const unsigned int& timestep,
+    Scalar operator()(const uint64_t& timestep,
                       const unsigned int& N,
                       const unsigned int type_id,
                       const typename Shape::param_type& shape_new,
@@ -840,7 +798,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         return N * stiff * (e_ddot_e_last - e_ddot_e) * this->m_volume + inertia_term;
         }
 
-    Scalar computeEnergy(const unsigned int& timestep,
+    Scalar computeEnergy(const uint64_t& timestep,
                          const unsigned int& N,
                          const unsigned int type_id,
                          const typename Shape::param_type& shape,
@@ -850,19 +808,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         Eigen::Matrix3d eps = this->getEps(type_id);
         Scalar e_ddot_e = (eps * eps.transpose()).trace();
         return N * stiff * e_ddot_e * this->m_volume;
-        }
-
-    //! Calculates the requested log value and returns it
-    Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-        {
-        if (quantity == "shape_move_stiffness")
-            {
-            return (*m_k)(timestep);
-            }
-        else
-            {
-            return 0.0;
-            }
         }
 
     protected:
@@ -949,7 +894,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         m_reference_shape = shape;
         detail::MassProperties<ShapeEllipsoid> mp(m_reference_shape);
         m_volume = mp.getVolume();
-        m_provided_quantities.push_back("shape_move_stiffness");
         }
 
     Scalar getParamRatio()
@@ -998,7 +942,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         return m_reference_shape.asDict();
         }
 
-    void construct(const unsigned int& timestep,
+    void construct(const uint64_t& timestep,
                    const unsigned int& type_id,
                    typename ShapeEllipsoid::param_type& param,
                    hoomd::RandomGenerator& rng)
@@ -1016,24 +960,11 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         param.z = b;
         }
 
-    void prepare(unsigned int timestep) { }
+    void prepare(uint64_t timestep) { }
 
-    void retreat(unsigned int timestep) { }
+    void retreat(uint64_t timestep) { }
 
-    //! Calculates the requested log value and returns it
-    Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-        {
-        if (quantity == "shape_move_stiffness")
-            {
-            return (*m_k)(timestep);
-            }
-        else
-            {
-            return 0.0;
-            }
-        }
-
-    virtual Scalar operator()(const unsigned int& timestep,
+    virtual Scalar operator()(const uint64_t& timestep,
                               const unsigned int& N,
                               const unsigned int type_id,
                               const typename ShapeEllipsoid::param_type& shape_new,
@@ -1047,7 +978,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         return stiff * (log(x_old) * log(x_old) - log(x_new) * log(x_new));
         }
 
-    virtual Scalar computeEnergy(const unsigned int& timestep,
+    virtual Scalar computeEnergy(const uint64_t& timestep,
                                  const unsigned int& N,
                                  const unsigned int type_id,
                                  const typename ShapeEllipsoid::param_type& shape,
@@ -1067,18 +998,104 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
     std::shared_ptr<Variant> m_k;                          // shape move stiffness
     };
 
-template<class Shape> void export_ShapeMoveInterface(pybind11::module& m, const std::string& name);
 
-template<class Shape> void export_ElasticShapeMove(pybind11::module& m, const std::string& name);
+template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<PythonShapeMove<Shape>,
+                     std::shared_ptr<PythonShapeMove<Shape>>,
+                     ShapeMoveBase<Shape>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            unsigned int,
+                            pybind11::object,
+                            pybind11::dict,
+                            pybind11::dict,
+                            Scalar>())
+        .def_property("params",
+                      &PythonShapeMove<Shape>::getParams,
+                      &PythonShapeMove<Shape>::setParams)
+        .def_property("stepsize",
+                      &PythonShapeMove<Shape>::getStepsize,
+                      &PythonShapeMove<Shape>::setStepsize)
+        .def_property("param_ratio",
+                      &PythonShapeMove<Shape>::getParamRatio,
+                      &PythonShapeMove<Shape>::setParamRatio)
+        .def_property("callback",
+                      &PythonShapeMove<Shape>::getCallback,
+                      &PythonShapeMove<Shape>::setCallback);
+    }
+
+// template<class Shape>
+inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<ConvexPolyhedronVertexShapeMove,
+                     std::shared_ptr<ConvexPolyhedronVertexShapeMove>,
+                     ShapeMoveBase<ShapeConvexPolyhedron>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            unsigned int,
+                            pybind11::dict,
+                            Scalar,
+                            Scalar>())
+        .def_property("volume",
+                      &ConvexPolyhedronVertexShapeMove::getVolume,
+                      &ConvexPolyhedronVertexShapeMove::setVolume)
+        .def_property("stepsize",
+                      &ConvexPolyhedronVertexShapeMove::getStepsize,
+                      &ConvexPolyhedronVertexShapeMove::setStepsize)
+        .def_property("param_ratio",
+                      &ConvexPolyhedronVertexShapeMove::getParamRatio,
+                      &ConvexPolyhedronVertexShapeMove::setParamRatio);
+    }
 
 template<class Shape>
-void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std::string& name);
+inline void export_ConstantShapeMove(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<ConstantShapeMove<Shape>,
+                     std::shared_ptr<ConstantShapeMove<Shape>>,
+                     ShapeMoveBase<Shape>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, pybind11::dict>())
+        .def_property("shape_params",
+                      &ConstantShapeMove<Shape>::getShapeParams,
+                      &ConstantShapeMove<Shape>::setShapeParams);
+    }
 
-template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std::string& name);
+template<class Shape>
+inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<ElasticShapeMove<Shape>,
+                     std::shared_ptr<ElasticShapeMove<Shape>>,
+                     ShapeMoveBase<Shape>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            unsigned int,
+                            Scalar,
+                            Scalar,
+                            std::shared_ptr<Variant>,
+                            pybind11::dict>())
+        .def_property("stepsize",
+                      &ElasticShapeMove<Shape>::getStepsizeValue,
+                      &ElasticShapeMove<Shape>::setStepsizeValue)
+        .def_property("param_ratio",
+                      &ElasticShapeMove<Shape>::getParamRatio,
+                      &ElasticShapeMove<Shape>::setParamRatio)
+        .def_property("stiffness",
+                      &ElasticShapeMove<Shape>::getStiffness,
+                      &ElasticShapeMove<Shape>::setStiffness)
+        .def_property("reference",
+                      &ElasticShapeMove<Shape>::getReference,
+                      &ElasticShapeMove<Shape>::setReference);
+    }
 
-template<class Shape> void export_ConstantShapeMove(pybind11::module& m, const std::string& name);
+// template<class Shape> void export_ShapeMoveInterface(pybind11::module& m, const std::string& name);
+
+// template<class Shape> void export_ElasticShapeMove(pybind11::module& m, const std::string& name);
+
+// template<class Shape>
+// void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std::string& name);
+
+// template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std::string& name);
+
+// template<class Shape> void export_ConstantShapeMove(pybind11::module& m, const std::string& name);
 
 } // namespace hpmc
-} // namespace hpmc
+} // namespace hoomd
 
 #endif

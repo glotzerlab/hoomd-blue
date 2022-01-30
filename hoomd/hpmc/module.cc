@@ -47,28 +47,28 @@ PYBIND11_MODULE(_hpmc, m)
     export_external_fields(m);
 
     export_sphere(m);
-    export_sphere_alchemy(m);
+    // export_sphere_alchemy(m);
     export_convex_polygon(m);
-    export_convex_polygon_alchemy(m);
+    // export_convex_polygon_alchemy(m);
     export_simple_polygon(m);
-    export_simple_polygon_alchemy(m);
+    // export_simple_polygon_alchemy(m);
     export_spheropolygon(m);
-    export_spheropolygon_alchemy(m);
+    // export_spheropolygon_alchemy(m);
     export_polyhedron(m);
-    export_polyhedron_alchemy(m);
+    // export_polyhedron_alchemy(m);
     export_ellipsoid(m);
-    export_ellipsoid_alchemy(m);
+    // export_ellipsoid_alchemy(m);
     export_faceted_ellipsoid(m);
     export_sphinx(m);
-    export_sphinx_alchemy(m);
+    // export_sphinx_alchemy(m);
     export_union_convex_polyhedron(m);
     export_union_faceted_ellipsoid(m);
     export_union_sphere(m);
-    export_union_sphere_alchemy(m);
+    // export_union_sphere_alchemy(m);
     export_convex_polyhedron(m);
-    export_convex_polyhedron_alchemy(m);
+    // export_convex_polyhedron_alchemy(m);
     export_convex_spheropolyhedron(m);
-    export_convex_spheropolyhedron_alchemy(m);
+    // export_convex_spheropolyhedron_alchemy(m);
 
     pybind11::class_<SphereParams, std::shared_ptr<SphereParams>>(m, "SphereParams")
         .def(pybind11::init<pybind11::dict>())
