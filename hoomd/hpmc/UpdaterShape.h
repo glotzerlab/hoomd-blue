@@ -168,6 +168,18 @@ template<typename Shape> class UpdaterShape : public Updater
         m_num_phase = num_phase;
         }
 
+    /// Set the RNG instance
+    void setInstance(unsigned int instance)
+        {
+        m_instance = instance;
+        }
+
+    /// Get the RNG instance
+    unsigned int getInstance()
+        {
+        return m_instance;
+        }
+
     void countTypes();
 
     //! Method that is called whenever the GSD file is written if connected to a GSD file.
@@ -180,28 +192,29 @@ template<typename Shape> class UpdaterShape : public Updater
     bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
 
     private:
-    int m_global_partition;     // number of MPI partitions
-    unsigned int m_type_select; // number of particle types to update in each move
-    unsigned int m_nsweeps;     // number of sweeps to run the updater each time it is called
-    std::vector<unsigned int> m_count_accepted; // number of accepted updater moves
-    std::vector<unsigned int> m_count_total;    // number of attempted updater moves
-    std::vector<unsigned int>
-        m_box_accepted; // number of accepted moves between boxes in multi-phase simulations
-    std::vector<unsigned int>
-        m_box_total;           // number of attempted moves between boxes in multi-phase simulations
-    unsigned int m_move_ratio; // probability of performing a shape move
-    std::shared_ptr<ShapeMoveBase<Shape>>
-        m_move_function;                             // shape move function to apply in the updater
-    std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
-    GPUArray<Scalar> m_determinant;  // determinant of the shape's moment of inertia tensor
-    GPUArray<unsigned int> m_ntypes; // number of particle types in the simulation
-    unsigned int m_num_params;                            // number of shape parameters to calculate
-    bool m_pretend;                     // whether or not to pretend or actually perform shape move
-    bool m_initialized;                 // whether or not the updater has been initialized
-    bool m_multi_phase;                 // whether or not the simulation is multi-phase
-    unsigned int m_num_phase;           // number of phases in a multi-phase simulation
-    detail::UpdateOrder m_update_order; // order of particle types to apply the updater to
-    static constexpr Scalar m_tol = 0.00001; // minimum move size required to not be ignored.
+        unsigned int m_instance=0;                  //!< Unique ID for RNG seeding
+        int m_global_partition;     // number of MPI partitions
+        unsigned int m_type_select; // number of particle types to update in each move
+        unsigned int m_nsweeps;     // number of sweeps to run the updater each time it is called
+        std::vector<unsigned int> m_count_accepted; // number of accepted updater moves
+        std::vector<unsigned int> m_count_total;    // number of attempted updater moves
+        std::vector<unsigned int>
+            m_box_accepted; // number of accepted moves between boxes in multi-phase simulations
+        std::vector<unsigned int>
+            m_box_total;           // number of attempted moves between boxes in multi-phase simulations
+        unsigned int m_move_ratio; // probability of performing a shape move
+        std::shared_ptr<ShapeMoveBase<Shape>>
+            m_move_function;                             // shape move function to apply in the updater
+        std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
+        GPUArray<Scalar> m_determinant;  // determinant of the shape's moment of inertia tensor
+        GPUArray<unsigned int> m_ntypes; // number of particle types in the simulation
+        unsigned int m_num_params;                            // number of shape parameters to calculate
+        bool m_pretend;                     // whether or not to pretend or actually perform shape move
+        bool m_initialized;                 // whether or not the updater has been initialized
+        bool m_multi_phase;                 // whether or not the simulation is multi-phase
+        unsigned int m_num_phase;           // number of phases in a multi-phase simulation
+        detail::UpdateOrder m_update_order; // order of particle types to apply the updater to
+        static constexpr Scalar m_tol = 0.00001; // minimum move size required to not be ignored.
     };
 
 template<class Shape>
@@ -276,7 +289,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
 
     hoomd::RandomGenerator rng(
         hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, seed),
-        hoomd::Counter(m_exec_conf->getRank(), m_move_ratio));
+        hoomd::Counter(m_instance));
     unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
     bool move = (move_type_select < m_move_ratio);
     if (!move)
@@ -716,7 +729,6 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             std::shared_ptr<ShapeMoveBase<Shape>>,
                             Scalar,
-                            unsigned int,
                             unsigned int,
                             unsigned int,
                             bool,
