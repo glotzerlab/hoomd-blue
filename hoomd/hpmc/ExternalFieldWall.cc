@@ -7,6 +7,12 @@ PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::SphereWall>);
 PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::CylinderWall>);
 PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::PlaneWall>);
 
+namespace hoomd
+    {
+namespace hpmc
+    {
+namespace detail
+    {
 void export_wall_classes(pybind11::module& m)
     {
     pybind11::class_<hoomd::hpmc::SphereWall>(m, "SphereWall")
@@ -90,3 +96,7 @@ void export_wall_list(pybind11::module& m)
     pybind11::bind_vector<std::vector<hoomd::hpmc::CylinderWall>>(m, "CylinderWallList");
     pybind11::bind_vector<std::vector<hoomd::hpmc::PlaneWall>>(m, "PlaneWallList");
     }
+
+    }  // end namespace detail
+    }  // end namespace hpmc
+    }  // end namespace hoomd
