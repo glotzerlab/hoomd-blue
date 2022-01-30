@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "AreaConservationMeshForceCompute.h"
 #include "AreaConservationMeshForceComputeGPU.cuh"
@@ -49,13 +49,27 @@ class PYBIND11_EXPORT AreaConservationMeshForceComputeGPU : public AreaConservat
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar A0);
 
+    virtual Scalar getArea(){
+	{
+	computeArea();
+	return m_area;
+	}
+
     protected:
+    unsigned int m_block_size; //!< block size for partial sum memory
+    unsigned int m_num_blocks;       //!< number of memory blocks reserved for partial sum memory
+
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size of force loop
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
     GPUArray<Scalar2> m_params;         //!< Parameters stored on the GPU
 
+    GPUArray<Scalar> m_partial_sum; //!< memory space for partial sum over volume
+    GPUArray<Scalar> m_sum;          //!< memory space for sum over volume
+
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
+
+    virtual void computeArea();
     };
 
 namespace detail
