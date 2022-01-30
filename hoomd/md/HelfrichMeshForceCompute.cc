@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: dnlebard
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceCompute.h"
 
@@ -188,25 +186,21 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         const typename MeshTriangle::members_t& triangle1 = h_triangles.data[tr_idx1];
         const typename MeshTriangle::members_t& triangle2 = h_triangles.data[tr_idx2];
 
-        unsigned int btag_c = triangle1.tag[0];
         unsigned int idx_c = h_rtag.data[triangle1.tag[0]];
 
         unsigned int iterator = 1;
         while (idx_a == idx_c || idx_b == idx_c)
             {
             idx_c = h_rtag.data[triangle1.tag[iterator]];
-            btag_c = triangle1.tag[iterator];
             iterator++;
             }
 
         unsigned int idx_d = h_rtag.data[triangle2.tag[0]];
-        unsigned int btag_d = triangle2.tag[0];
 
         iterator = 1;
         while (idx_a == idx_d || idx_b == idx_d)
             {
             idx_d = h_rtag.data[triangle2.tag[iterator]];
-            btag_d = triangle2.tag[iterator];
             iterator++;
             }
 
