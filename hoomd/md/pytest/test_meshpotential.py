@@ -3,8 +3,8 @@
 
 import copy as cp
 import hoomd
-from hoomd.md.mesh.conservation import AreaConservation
 import pytest
+import math
 import numpy as np
 
 _harmonic_args = {'k': [30.0, 25.0, 20.0], 'r0': [1.6, 1.7, 1.8]}
@@ -36,9 +36,9 @@ _AreaConservation_args = {
     'k': [1.0, 20.0, 100.0],
     'A0': [6 * np.sqrt(3), 5 * np.sqrt(3), 7 * np.sqrt(3)]
 }
-_AreaConservation_arg_list = [(hoomd.md.mesh.conservation.AreaConservation,
+_AreaConservation_arg_list = [(hoomd.md.mesh.conservation.Area,
                                dict(zip(_AreaConservation_args, val)))
-                               for val in zip(*_AreaConservation_args.values())]
+                              for val in zip(*_AreaConservation_args.values())]
 
 
 def get_mesh_potential_and_args():
@@ -54,8 +54,10 @@ def get_mesh_potential_args_forces_and_energies():
                        [[33.24, 0., -23.504229], [-33.24, 0., -23.504229],
                         [0., 33.24, 23.504229], [0., -33.24, 23.504229]]]
     harmonic_energies = [35.83449, 40.077075, 41.43366]
-    FENE_forces = [[[221.113071, 0.,-156.350552], [-221.113071, 0., -156.350552],
-                    [0., 221.113071, 156.350552], [0., -221.113071,156.350552]],
+    FENE_forces = [[[221.113071, 0.,
+                     -156.350552], [-221.113071, 0., -156.350552],
+                    [0., 221.113071, 156.350552], [0., -221.113071,
+                                                   156.350552]],
                    [[12.959825, 0., -9.16398], [-12.959825, 0., -9.16398],
                     [0., 12.959825, 9.16398], [0., -12.959825, 9.16398]],
                    [[-44.644347, 0., 31.568321], [44.644347, 0., 31.568321],
@@ -68,17 +70,17 @@ def get_mesh_potential_args_forces_and_energies():
                       [0., 7.144518, 5.051937], [0., -7.144518, 5.051937]]]
     Tether_energies = [0, 0.000926, 0.294561]
     AreaConservation_forces = [[[0.94380349, 0., -0.66736985],
-                                [-0.94380349, 0.,  -0.66736985],
+                                [-0.94380349, 0., -0.66736985],
                                 [0., 0.94380349, 0.66736985],
                                 [0, -0.94380349, 0.66736985]],
-                               [[ 18.17566447, 0., -12.8521356 ],
-                                [-18.17566447, 0., -12.8521356 ],
-                                [0., 18.17566447, 12.8521356 ],
-                                [0., -18.17566447, 12.8521356 ]],
+                               [[18.17566447, 0., -12.8521356],
+                                [-18.17566447, 0., -12.8521356],
+                                [0., 18.17566447, 12.8521356],
+                                [0., -18.17566447, 12.8521356]],
                                [[96.88179659, 0., -68.50577534],
                                 [-96.88179659, 0., -68.50577534],
                                 [0., 96.88179659, 68.50577534],
-                                [0.,-96.88179659, 68.50577534]]]
+                                [0., -96.88179659, 68.50577534]]]
     AreaConservation_energies = [3.69707, 57.13009, 454.492529]
 
     harmonic_args_and_vals = []
@@ -177,6 +179,34 @@ def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
         mesh_potential.mesh = mesh1
 
 
+def test_area(simulation_factory, tetrahedron_snapshot_factory):
+    snap = tetrahedron_snapshot_factory(d=0.969, L=5)
+    sim = simulation_factory(snap)
+
+    mesh = hoomd.mesh.Mesh(name=["tetrahedron"])
+    mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
+
+    mesh_potential = hoomd.md.mesh.conservation.Area(mesh)
+    mesh_potential.params["tetrahedron"] = dict(k=1, A0=1)
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+
+    integrator.forces.append(mesh_potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         alpha=0.1)
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+
+    assert math.isclose(mesh_potential.area,
+                        1.62633,
+                        rel_tol=1e-2,
+                        abs_tol=1e-5)
+
+
 @pytest.mark.parametrize("mesh_potential_cls, potential_kwargs, force, energy",
                          get_mesh_potential_args_forces_and_energies())
 def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
@@ -217,3 +247,23 @@ def test_auto_detach_simulation(simulation_factory,
     sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
     mesh = hoomd.mesh.Mesh()
     mesh.triangles = [[0, 1, 2], [0, 2, 3]]
+
+    harmonic = hoomd.md.mesh.bond.Harmonic(mesh)
+    harmonic.params["mesh"] = dict(k=1, r0=1)
+
+    harmonic_2 = cp.deepcopy(harmonic)
+    harmonic_2.mesh = mesh
+
+    integrator = hoomd.md.Integrator(dt=0.005, forces=[harmonic, harmonic_2])
+
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All()))
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+    del integrator.forces[1]
+    assert mesh._attached
+    assert hasattr(mesh, "_cpp_obj")
+    del integrator.forces[0]
+    assert not mesh._attached
+    assert mesh._cpp_obj is None
