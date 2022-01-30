@@ -41,7 +41,7 @@ template<typename Shape> class ShapeMoveBase
         }
 
     //! construct is called for each particle type that will be changed in update()
-    virtual void construct(const unsigned int&,
+    virtual void construct(uint64_t,
                            const unsigned int&,
                            typename Shape::param_type&,
                            hoomd::RandomGenerator&)
@@ -50,7 +50,7 @@ template<typename Shape> class ShapeMoveBase
         }
 
     //! retreat whenever the proposed move is rejected.
-    virtual void retreat(const unsigned int)
+    virtual void retreat(uint64_t timestep)
         {
         throw std::runtime_error("Shape move function not implemented.");
         }
@@ -70,7 +70,7 @@ template<typename Shape> class ShapeMoveBase
     pybind11::dict getStepsize()
         {
         pybind11::dict stepsize;
-        for (int i = 0; i < m_step_size.size(); i++)
+        for (unsigned int i = 0; i < m_step_size.size(); i++)
             {
             pybind11::str type_name = m_sysdef->getParticleData()->getNameByType(i);
             stepsize[type_name] = m_step_size[i];
@@ -129,7 +129,7 @@ template<typename Shape> class ShapeMoveBase
         bool success;
         std::string path = name + "stepsize";
         std::vector<float> d;
-        unsigned int Ntypes = this->m_step_size.size();
+        unsigned int Ntypes = (unsigned int)this->m_step_size.size();
         uint64_t frame = reader->getFrame();
         if (exec_conf->isRoot())
             {
@@ -158,7 +158,7 @@ template<typename Shape> class ShapeMoveBase
         return success;
         }
 
-    virtual Scalar operator()(const uint64_t& timestep,
+    virtual Scalar operator()(uint64_t timestep,
                               const unsigned int& N,
                               const unsigned int type_id,
                               const typename Shape::param_type& shape_new,
@@ -174,7 +174,7 @@ template<typename Shape> class ShapeMoveBase
         return (Scalar(N) / Scalar(2.0)) * log(newdivold);
         }
 
-    virtual Scalar computeEnergy(const uint64_t& timestep,
+    virtual Scalar computeEnergy(uint64_t timestep,
                                  const unsigned int& N,
                                  const unsigned int type_id,
                                  const typename Shape::param_type& shape,
@@ -230,7 +230,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         m_params_backup = m_params;
         }
 
-    void construct(const uint64_t& timestep,
+    void construct(uint64_t timestep,
                    const unsigned int& type_id,
                    typename Shape::param_type& shape,
                    hoomd::RandomGenerator& rng)
@@ -292,7 +292,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     pybind11::dict getParams()
         {
         pybind11::dict params;
-        for (int i = 0; i < m_params.size(); i++)
+        for (unsigned int i = 0; i < m_params.size(); i++)
             {
             pybind11::str type_name = this->m_sysdef->getParticleData()->getNameByType(i);
             params[type_name] = m_params[i];
@@ -362,7 +362,7 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
             shape_params_vector[type_i] = type_params;
             }
         m_shape_params = shape_params_vector;
-        for (int i = 0; i < ntypes; i++)
+        for (unsigned int i = 0; i < ntypes; i++)
             {
             typename Shape::param_type pt(m_shape_params[i]);
             m_shape_moves.push_back(pt);
@@ -378,7 +378,7 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
 
     void prepare(uint64_t timestep) { }
 
-    void construct(const uint64_t& timestep,
+    void construct(uint64_t timestep,
                    const unsigned int& type_id,
                    typename Shape::param_type& shape,
                    hoomd::RandomGenerator& rng)
@@ -395,7 +395,7 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
     pybind11::dict getShapeParams()
         {
         pybind11::dict shape_params;
-        for (int i = 0; i < m_shape_params.size(); i++)
+        for (unsigned int i = 0; i < m_shape_params.size(); i++)
             {
             pybind11::str type_name = this->m_sysdef->getParticleData()->getNameByType(i);
             shape_params[type_name] = m_shape_params[i];
@@ -476,7 +476,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         m_step_size_backup = m_step_size;
         }
 
-    void construct(const uint64_t& timestep,
+    void construct(uint64_t timestep,
                    const unsigned int& type_id,
                    typename ShapeConvexPolyhedron::param_type& shape,
                    hoomd::RandomGenerator& rng)
@@ -572,7 +572,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
 
     //! construct is called at the beginning of every update()
-    void construct(const uint64_t& timestep,
+    void construct(uint64_t timestep,
                    const unsigned int& type_id,
                    typename Shape::param_type& param,
                    hoomd::RandomGenerator& rng)
@@ -729,7 +729,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         {
         // Call base method for stepsize
         bool success = ShapeMoveBase<Shape>::restoreStateGSD(reader, name, exec_conf, mpi);
-        unsigned int Ntypes = this->m_step_size.size();
+        unsigned int Ntypes = (unsigned int)this->m_step_size.size();
         uint64_t frame = reader->getFrame();
         std::vector<float> defmat(Ntypes * 3 * 3, 0.0);
         if (exec_conf->isRoot())
@@ -774,7 +774,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         return success;
         };
 
-    Scalar operator()(const uint64_t& timestep,
+    Scalar operator()(uint64_t timestep,
                       const unsigned int& N,
                       const unsigned int type_id,
                       const typename Shape::param_type& shape_new,
@@ -798,7 +798,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         return N * stiff * (e_ddot_e_last - e_ddot_e) * this->m_volume + inertia_term;
         }
 
-    Scalar computeEnergy(const uint64_t& timestep,
+    Scalar computeEnergy(uint64_t timestep,
                          const unsigned int& N,
                          const unsigned int type_id,
                          const typename Shape::param_type& shape,
@@ -942,7 +942,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         return m_reference_shape.asDict();
         }
 
-    void construct(const uint64_t& timestep,
+    void construct(uint64_t timestep,
                    const unsigned int& type_id,
                    typename ShapeEllipsoid::param_type& param,
                    hoomd::RandomGenerator& rng)
@@ -964,7 +964,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
 
     void retreat(uint64_t timestep) { }
 
-    virtual Scalar operator()(const uint64_t& timestep,
+    virtual Scalar operator()(uint64_t timestep,
                               const unsigned int& N,
                               const unsigned int type_id,
                               const typename ShapeEllipsoid::param_type& shape_new,
@@ -978,7 +978,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         return stiff * (log(x_old) * log(x_old) - log(x_new) * log(x_new));
         }
 
-    virtual Scalar computeEnergy(const uint64_t& timestep,
+    virtual Scalar computeEnergy(uint64_t timestep,
                                  const unsigned int& N,
                                  const unsigned int type_id,
                                  const typename ShapeEllipsoid::param_type& shape,

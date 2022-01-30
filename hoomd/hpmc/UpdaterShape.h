@@ -50,7 +50,7 @@ template<typename Shape> class UpdaterShape : public Updater
         return volume;
         }
 
-    float getShapeMoveEnergy(unsigned int timestep)
+    float getShapeMoveEnergy(uint64_t timestep)
         {
         Scalar energy = 0.0;
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
@@ -334,7 +334,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
         for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
             {
             // make a trial move for i
-            int typ_i = m_update_order[cur_type];
+            unsigned int typ_i = m_update_order[cur_type];
             // Skip move if step size is smaller than tolerance
             if (stepsize[typ_i] < m_tol)
                 {
@@ -440,7 +440,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
                 Scalar4 postype_i = h_postype.data[i];
-                int typ_i = __scalar_as_int(postype_i.w);
+                unsigned int typ_i = __scalar_as_int(postype_i.w);
                 if (stepsize[typ_i] < m_tol)
                     continue;
                 for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
@@ -455,7 +455,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                         // Check particle against AABB tree for neighbors
                         hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
 
-                        const unsigned int n_images = image_list.size();
+                        const unsigned int n_images = (unsigned int)image_list.size();
                         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                             {
                             vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
@@ -567,7 +567,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                     {
                     for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
                         {
-                        int typ_i = m_update_order[cur_type];
+                        unsigned int typ_i = m_update_order[cur_type];
                         m_box_accepted[typ_i]++;
                         }
                     }
@@ -591,7 +591,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             m_move_function->retreat(timestep);
             for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
                 {
-                int typ_i = m_update_order[cur_type];
+                unsigned int typ_i = m_update_order[cur_type];
                 m_count_accepted[typ_i]++;
                 }
             }
@@ -600,7 +600,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             m_exec_conf->msg->notice(5) << " UpdaterShape move accepted" << std::endl;
             for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
                 {
-                int typ_i = m_update_order[cur_type];
+                unsigned int typ_i = m_update_order[cur_type];
                 m_count_accepted[typ_i]++;
                 }
             reject = false;
