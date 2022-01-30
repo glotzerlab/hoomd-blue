@@ -31,6 +31,7 @@ hipError_t gpu_compute_AreaConservation_area(Scalar* d_sum_area,
                                              const unsigned int* n_triangles_list,
                                              unsigned int block_size,
                                              unsigned int num_blocks);
+
 //! Kernel driver that computes the forces for AreaConservationMeshForceComputeGPU
 hipError_t gpu_compute_AreaConservation_force(Scalar4* d_force,
                                               Scalar* d_virial,

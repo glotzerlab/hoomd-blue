@@ -177,7 +177,7 @@ void AreaConservationMeshForceComputeGPU::computeArea()
                                        access_mode::overwrite);
     ArrayHandle<Scalar> d_sumA(m_sum, access_location::device, access_mode::overwrite);
 
-    kernel::gpu_compute_AreaConservation_force(d_sumA.data,
+    kernel::gpu_compute_AreaConservation_area(d_sumA.data,
                                                d_partial_sumA.data,
                                                m_pdata->getN(),
                                                d_pos.data,

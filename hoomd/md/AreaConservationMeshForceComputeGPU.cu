@@ -25,7 +25,7 @@ namespace md
 namespace kernel
     {
 
-__global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_area,
+__global__ void gpu_compute_AreaConservation_area_kernel(Scalar* d_partial_sum_area,
                                                         const unsigned int N,
                                                         const Scalar4* d_pos,
                                                         BoxDim box,
@@ -50,11 +50,8 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
             {
             group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
 
-            int cur_triangle_abc = tpos_list[tlist_idx(idx, triangle_idx)];
-
             int cur_mem2_idx = cur_triangle.idx[0];
             int cur_mem3_idx = cur_triangle.idx[1];
-            int cur_triangle_type = cur_triangle.idx[5];
 
             // get the b-particle's position (MEM TRANSFER: 16 bytes)
             Scalar4 bb_postype = d_pos[cur_mem2_idx];
@@ -86,7 +83,7 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
             if (c_baac < -1.0)
                 c_baac = -1.0;
 
-            Scalar inv_s_baac = 1.0 / sqrt(1.0 - c_baac * c_baac);
+            Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
 
             Scalar Area = rab * rac * s_baac;
             area_transfer += Area / 6.0;
@@ -168,7 +165,7 @@ gpu_area_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigne
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
-hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
+hipError_t gpu_compute_AreaConservation_area(Scalar* d_sum_area,
                                             Scalar* d_sum_partial_area,
                                             const unsigned int N,
                                             const Scalar4* d_pos,
@@ -184,7 +181,7 @@ hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_area_constraint_area_kernel),
+    hipLaunchKernelGGL((gpu_compute_AreaConservation_area_kernel),
                        dim3(grid),
                        dim3(threads),
                        block_size * sizeof(Scalar),

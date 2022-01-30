@@ -49,7 +49,7 @@ class PYBIND11_EXPORT AreaConservationMeshForceComputeGPU : public AreaConservat
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar A0);
 
-    virtual Scalar getArea(){
+    virtual Scalar getArea()
 	{
 	computeArea();
 	return m_area;
