@@ -84,7 +84,7 @@ void HelfrichMeshForceComputeGPU::setParams(unsigned int type, Scalar K)
  */
 void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
-    computeSigmas();
+    computeSigma();
 
     // start the profile
     if (this->m_prof)
@@ -168,11 +168,11 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void HelfrichMeshForceComputeGPU::computeSigmas()
+void HelfrichMeshForceComputeGPU::computeSigma()
     {
     // start the profile
     if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "HelfrichSigmas");
+        this->m_prof->push(this->m_exec_conf, "HelfrichSigma");
 
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
