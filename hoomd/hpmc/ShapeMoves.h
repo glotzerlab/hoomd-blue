@@ -235,7 +235,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
                    typename Shape::param_type& shape,
                    hoomd::RandomGenerator& rng)
         {
-        for (size_t i = 0; i < m_params[type_id].size(); i++)
+        for (unsigned int i = 0; i < m_params[type_id].size(); i++)
             {
             hoomd::UniformDistribution<Scalar> uniform(
                 fmax(-this->m_step_size[type_id], -(m_params[type_id][i])),
@@ -256,12 +256,12 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         std::swap(m_params, m_params_backup);
         }
 
-    Scalar getParam(size_t k)
+    Scalar getParam(unsigned int k)
         {
-        size_t n = 0;
-        for (size_t i = 0; i < m_params.size(); i++)
+        unsigned int n = 0;
+        for (unsigned int i = 0; i < m_params.size(); i++)
             {
-            size_t next = n + m_params[i].size();
+            unsigned int next = n + m_params[i].size();
             if (k < next)
                 return m_params[i][k - n];
             n = next;
@@ -270,17 +270,17 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         return Scalar(0.0);
         }
 
-    size_t getNumParam()
+    unsigned int getNumParam()
         {
         if (m_num_params > 0)
             return m_num_params;
         m_num_params = 0;
-        for (size_t i = 0; i < m_params.size(); i++)
+        for (unsigned int i = 0; i < m_params.size(); i++)
             m_num_params += m_params[i].size();
         return m_num_params;
         }
 
-    static std::string getParamName(size_t i)
+    static std::string getParamName(unsigned int i)
         {
         std::stringstream ss;
         std::string snum;
@@ -369,7 +369,7 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
             }
         if (ntypes != m_shape_moves.size())
             throw std::runtime_error("Must supply a shape move for each type");
-        for (size_t i = 0; i < m_shape_moves.size(); i++)
+        for (unsigned int i = 0; i < m_shape_moves.size(); i++)
             {
             detail::MassProperties<Shape> mp(m_shape_moves[i]);
             m_determinants.push_back(mp.getDetInertiaTensor());
@@ -488,7 +488,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
             m_calculated[type_id] = true;
             }
         // mix the shape.
-        for (size_t i = 0; i < shape.N; i++)
+        for (unsigned int i = 0; i < shape.N; i++)
             {
             if (hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio)
                 {
@@ -506,7 +506,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         m_scale = fast::pow(m_volume / volume, 1.0 / 3.0);
         Scalar rsq = 0.0;
         std::vector<vec3<Scalar>> points(shape.N);
-        for (size_t i = 0; i < shape.N; i++)
+        for (unsigned int i = 0; i < shape.N; i++)
             {
             shape.x[i] += dr.x;
             shape.x[i] *= m_scale;
@@ -702,7 +702,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         unsigned int Ntypes = this->m_step_size.size();
         int rows = Ntypes * 3;
         std::vector<float> data(rows * 3);
-        size_t count = 0;
+        unsigned int count = 0;
         for (unsigned int i = 0; i < Ntypes; i++)
             {
             for (unsigned int j = 0; j < 3; j++)
@@ -759,7 +759,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             throw std::runtime_error("Error occured while attempting to restore from gsd file.");
             }
 
-        size_t count = 0;
+        unsigned int count = 0;
         for (unsigned int i = 0; i < (this->m_Fbar).size(); i++)
             {
             for (unsigned int j = 0; j < 3; j++)

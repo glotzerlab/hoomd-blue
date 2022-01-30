@@ -197,7 +197,7 @@ template<typename Shape> class UpdaterShape : public Updater
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
     GPUArray<Scalar> m_determinant;  // determinant of the shape's moment of inertia tensor
     GPUArray<unsigned int> m_ntypes; // number of particle types in the simulation
-    size_t m_num_params;                            // number of shape parameters to calculate
+    unsigned int m_num_params;                            // number of shape parameters to calculate
     bool m_pretend;                     // whether or not to pretend or actually perform shape move
     bool m_initialized;                 // whether or not the updater has been initialized
     bool m_multi_phase;                 // whether or not the simulation is multi-phase
@@ -232,7 +232,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
 
-    for (size_t i = 0; i < m_pdata->getNTypes(); i++)
+    for (unsigned int i = 0; i < m_pdata->getNTypes(); i++)
         {
         h_det.data[i] = 0.0;
         h_ntypes.data[i] = 0;
@@ -601,7 +601,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             // m_mc->swapParams(param_copy);
             // ArrayHandle<typename Shape::param_type> h_param_copy(param_copy,
             // access_location::host, access_mode::readwrite);
-            for (size_t typ = 0; typ < m_type_select; typ++)
+            for (unsigned int typ = 0; typ < m_type_select; typ++)
                 {
                 m_mc->setParam(m_update_order[typ], param_copy[typ]); // set the params.
                 }
@@ -621,7 +621,7 @@ template<typename Shape> void UpdaterShape<Shape>::initialize()
     // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host,
     // access_mode::readwrite);
     auto params = m_mc->getParams();
-    for (size_t i = 0; i < m_pdata->getNTypes(); i++)
+    for (unsigned int i = 0; i < m_pdata->getNTypes(); i++)
         {
         detail::MassProperties<Shape> mp(params[i]);
         h_det.data[i] = mp.getDetInertiaTensor();
@@ -644,7 +644,7 @@ template<typename Shape> void UpdaterShape<Shape>::countTypes()
     {
     // zero the array.
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-    for (size_t i = 0; i < m_pdata->getNTypes(); i++)
+    for (unsigned int i = 0; i < m_pdata->getNTypes(); i++)
         {
         h_ntypes.data[i] = 0;
         }
@@ -652,7 +652,7 @@ template<typename Shape> void UpdaterShape<Shape>::countTypes()
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::read);
-    for (size_t j = 0; j < m_pdata->getN(); j++)
+    for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
         int typ_j = __scalar_as_int(h_postype.data[j].w);
         h_ntypes.data[typ_j]++;

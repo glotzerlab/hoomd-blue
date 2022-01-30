@@ -152,7 +152,7 @@ class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeCon
     getQuickHullVertsAndFaces(const typename ShapeConvexPolyhedron::param_type& param)
         {
         std::vector<quickhull::Vector3<OverlapReal>> verts;
-        for (size_t i = 0; i < param.N; i++)
+        for (unsigned int i = 0; i < param.N; i++)
             {
             quickhull::Vector3<OverlapReal> vert(param.x[i], param.y[i], param.z[i]);
             verts.push_back(vert);
@@ -161,14 +161,14 @@ class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeCon
         auto hull = qh.getConvexHull(&verts[0].x, verts.size(), true, true, 0.0000001);
         auto verts2 = hull.getVertexBuffer();
         std::vector<vec3<Scalar>> v;
-        for (size_t i = 0; i < verts2.size(); i++)
+        for (unsigned int i = 0; i < verts2.size(); i++)
             {
             vec3<Scalar> vert(verts2[i].x, verts2[i].y, verts2[i].z);
             v.push_back(vert);
             }
         auto face_inds = hull.getIndexBuffer();
         std::vector<std::vector<unsigned int>> faces;
-        for (size_t i = 0; i < face_inds.size(); i += 3)
+        for (unsigned int i = 0; i < face_inds.size(); i += 3)
             {
             std::vector<unsigned int> face {static_cast<unsigned int>(face_inds[i]),
                                             static_cast<unsigned int>(face_inds[i + 1]),
