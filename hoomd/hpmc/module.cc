@@ -6,6 +6,7 @@
 #include "IntegratorHPMCMono.h"
 
 #include "ComputeSDF.h"
+#include "ExternalFieldWall.h"
 #include "ShapeConvexPolygon.h"
 #include "ShapeConvexPolyhedron.h"
 #include "ShapeEllipsoid.h"
@@ -21,7 +22,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterQuickCompress.h"
-#include "ExternalFieldWall.h"
 
 #include "GPUTree.h"
 

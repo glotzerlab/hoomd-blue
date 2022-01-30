@@ -97,6 +97,6 @@ void export_wall_list(pybind11::module& m)
     pybind11::bind_vector<std::vector<hoomd::hpmc::PlaneWall>>(m, "PlaneWallList");
     }
 
-    }  // end namespace detail
-    }  // end namespace hpmc
-    }  // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
