@@ -11,6 +11,7 @@
 #include "AllSpecialPairPotentials.h"
 #include "AllTripletPotentials.h"
 #include "AnisoPotentialPair.h"
+#include "AreaConservationMeshForceCompute.h"
 #include "BondTablePotential.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoHMA.h"
@@ -71,6 +72,7 @@
 #include "ActiveForceComputeGPU.h"
 #include "ActiveForceConstraintComputeGPU.h"
 #include "AnisoPotentialPairGPU.h"
+#include "AreaConservationMeshForceComputeGPU.h"
 #include "BondTablePotentialGPU.h"
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoHMAGPU.h"
@@ -241,6 +243,7 @@ PYBIND11_MODULE(_md, m)
 
     export_HelfrichMeshForceCompute(m);
     export_MeshDynamicBondUpdater(m);
+    export_AreaConservationMeshForceCompute(m);
     export_CustomForceCompute(m);
     export_NeighborList(m);
     export_NeighborListBinned(m);
@@ -404,6 +407,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(
         m,
         "WallsPotentialMorseGPU");
+    export_AreaConservationMeshForceComputeGPU(m);
 #endif
 
     // updaters

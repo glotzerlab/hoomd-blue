@@ -3,6 +3,7 @@
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    ActiveRotationalDiffusionUpdater.cc
+                   AreaConservationMeshForceCompute.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
@@ -64,6 +65,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
                 AnisoPotentialPair.h
+                AreaConservationMeshForceCompute.h
+                AreaConservationMeshForceComputeGPU.h
+                AreaConservationMeshForceComputeGPU.cuh
                 BondTablePotentialGPU.h
                 BondTablePotential.h
                 CommunicatorGridGPU.h
@@ -204,6 +208,7 @@ set(_md_headers ActiveForceComputeGPU.h
 
 if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
+                           AreaConservationMeshForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
                            ComputeThermoGPU.cc
@@ -240,6 +245,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AllDriverAnisoPotentialPairGPU.cu
                       AllDriverPotentialBondGPU.cu
                       AllDriverPotentialSpecialPairGPU.cu
+                      AreaConservationMeshForceComputeGPU.cu
                       BuckinghamDriverPotentialPairGPU.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu

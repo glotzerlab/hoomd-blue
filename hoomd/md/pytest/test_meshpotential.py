@@ -39,15 +39,26 @@ _Helfrich_arg_list = [(hoomd.md.mesh.bending.Helfrich,
                        dict(zip(_Helfrich_args, val)))
                       for val in zip(*_Helfrich_args.values())]
 
-_volume_args = {'k': [20.0, 50.0, 100.0], 'V0': [0.107227, 1, 0.01]}
-_volume_arg_list = [(hoomd.md.mesh.conservation.Volume,
-                     dict(zip(_volume_args, val)))
-                    for val in zip(*_volume_args.values())]
+_VolumeConservation_args = {'k': [20.0, 50.0, 100.0], 'V0': [0.107227, 1, 0.01]}
+_VolumeConservation_arg_list = [
+    (hoomd.md.mesh.conservation.Volume, dict(zip(_VolumeConservation_args,
+                                                 val)))
+    for val in zip(*_VolumeConservation_args.values())
+]
+
+_AreaConservation_args = {
+    'k': [1.0, 20.0, 100.0],
+    'A0': [6 * np.sqrt(3), 5 * np.sqrt(3), 7 * np.sqrt(3)]
+}
+_AreaConservation_arg_list = [(hoomd.md.mesh.conservation.Area,
+                               dict(zip(_AreaConservation_args, val)))
+                              for val in zip(*_AreaConservation_args.values())]
 
 
 def get_mesh_potential_and_args():
     return (_harmonic_arg_list + _FENE_arg_list + _Tether_arg_list
-            + _Helfrich_arg_list + _volume_arg_list)
+            + _Helfrich_arg_list + _VolumeConservation_arg_list
+            + _AreaConservation_arg_list)
 
 
 def get_mesh_potential_args_forces_and_energies():
@@ -73,7 +84,6 @@ def get_mesh_potential_args_forces_and_energies():
                      [[7.144518, 0., -5.051937], [-7.144518, 0., -5.051937],
                       [0., 7.144518, 5.051937], [0., -7.144518, 5.051937]]]
     Tether_energies = [0, 0.000926, 0.294561]
-
     Helfrich_forces = [[[-12.710842, 0., 8.987922], [12.710842, 0., 8.987922],
                         [0., -12.710842, -8.987922], [0., 12.710842,
                                                       -8.987922]],
@@ -87,22 +97,36 @@ def get_mesh_potential_args_forces_and_energies():
                         [0., 1271.084184, -898.792246]]]
     Helfrich_energies = [9.237604, 184.752086, 923.760431]
 
-    volume_forces = [[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
-                     [[4.93960528, 0,
-                       -3.49282839], [-4.93960528, 0, -3.49282839],
-                      [0, 4.93960528, 3.49282839], [0, -4.93960528,
-                                                    3.49282839]],
-                     [[-107.5893328, 0, 76.0771468],
-                      [107.5893328, 0, 76.0771468],
-                      [0, -107.5893328, -76.0771468],
-                      [0, 107.5893328, -76.0771468]]]
-    volume_energies = [0, 19.92608051621174, 47.2656702899458]
+    VolumeConservation_forces = [[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                                 [[4.93960528, 0, -3.49282839],
+                                  [-4.93960528, 0, -3.49282839],
+                                  [0, 4.93960528, 3.49282839],
+                                  [0, -4.93960528, 3.49282839]],
+                                 [[-107.5893328, 0, 76.0771468],
+                                  [107.5893328, 0, 76.0771468],
+                                  [0, -107.5893328, -76.0771468],
+                                  [0, 107.5893328, -76.0771468]]]
+    VolumeConservation_energies = [0, 19.92608051621174, 47.2656702899458]
+    AreaConservation_forces = [[[0.94380349, 0., -0.66736985],
+                                [-0.94380349, 0., -0.66736985],
+                                [0., 0.94380349, 0.66736985],
+                                [0, -0.94380349, 0.66736985]],
+                               [[18.17566447, 0., -12.8521356],
+                                [-18.17566447, 0., -12.8521356],
+                                [0., 18.17566447, 12.8521356],
+                                [0., -18.17566447, 12.8521356]],
+                               [[96.88179659, 0., -68.50577534],
+                                [-96.88179659, 0., -68.50577534],
+                                [0., 96.88179659, 68.50577534],
+                                [0., -96.88179659, 68.50577534]]]
+    AreaConservation_energies = [3.69707, 57.13009, 454.492529]
 
     harmonic_args_and_vals = []
     FENE_args_and_vals = []
     Tether_args_and_vals = []
     Helfrich_args_and_vals = []
-    volume_args_and_vals = []
+    VolumeConservation_args_and_vals = []
+    AreaConservation_args_and_vals = []
     for i in range(3):
         harmonic_args_and_vals.append(
             (*_harmonic_arg_list[i], harmonic_forces[i], harmonic_energies[i]))
@@ -112,10 +136,15 @@ def get_mesh_potential_args_forces_and_energies():
             (*_Tether_arg_list[i], Tether_forces[i], Tether_energies[i]))
         Helfrich_args_and_vals.append(
             (*_Helfrich_arg_list[i], Helfrich_forces[i], Helfrich_energies[i]))
-        volume_args_and_vals.append(
-            (*_volume_arg_list[i], volume_forces[i], volume_energies[i]))
+        VolumeConservation_args_and_vals.append(
+            (*_VolumeConservation_arg_list[i], VolumeConservation_forces[i],
+             VolumeConservation_energies[i]))
+        AreaConservation_args_and_vals.append(
+            (*_AreaConservation_arg_list[i], AreaConservation_forces[i],
+             AreaConservation_energies[i]))
     return (harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
-            + Helfrich_args_and_vals + volume_args_and_vals)
+            + Helfrich_args_and_vals + VolumeConservation_args_and_vals
+            + AreaConservation_args_and_vals)
 
 
 @pytest.fixture(scope='session')
@@ -181,6 +210,7 @@ def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
     langevin = hoomd.md.methods.Langevin(kT=1,
                                          filter=hoomd.filter.All(),
                                          alpha=0.1)
+
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -219,9 +249,7 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
                                          alpha=0.1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
-
     sim.run(0)
-
     sim_energies = sim.operations.integrator.forces[0].energies
     sim_forces = sim.operations.integrator.forces[0].forces
     if sim.device.communicator.rank == 0:
@@ -256,6 +284,34 @@ def test_volume(simulation_factory, tetrahedron_snapshot_factory):
 
     assert math.isclose(mesh_potential.volume,
                         0.107227,
+                        rel_tol=1e-2,
+                        abs_tol=1e-5)
+
+
+def test_area(simulation_factory, tetrahedron_snapshot_factory):
+    snap = tetrahedron_snapshot_factory(d=0.969, L=5)
+    sim = simulation_factory(snap)
+
+    mesh = hoomd.mesh.Mesh(name=["tetrahedron"])
+    mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
+
+    mesh_potential = hoomd.md.mesh.conservation.Area(mesh)
+    mesh_potential.params["tetrahedron"] = dict(k=1, A0=1)
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+
+    integrator.forces.append(mesh_potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         alpha=0.1)
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+
+    assert math.isclose(mesh_potential.area,
+                        1.62633,
                         rel_tol=1e-2,
                         abs_tol=1e-5)
 
