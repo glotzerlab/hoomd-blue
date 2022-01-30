@@ -65,6 +65,7 @@ struct SphereWall
     bool inside;
     vec3<Scalar> origin;
     std::shared_ptr<detail::PolyhedronVertices> verts;
+    bool open;
     };
 
 struct CylinderWall
