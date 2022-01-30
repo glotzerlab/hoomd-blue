@@ -181,7 +181,6 @@ template<typename Shape> class UpdaterShape : public Updater
     bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
 
     private:
-    unsigned int m_seed;        // random number seed of the shape updater
     int m_global_partition;     // number of MPI partitions
     unsigned int m_type_select; // number of particle types to update in each move
     unsigned int m_nsweeps;     // number of sweeps to run the updater each time it is called
@@ -217,11 +216,11 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   bool pretend,
                                   bool multiphase,
                                   unsigned int numphase)
-    : Updater(sysdef), m_seed(seed), m_global_partition(0), m_type_select(tselect),
+    : Updater(sysdef), m_global_partition(0), m_type_select(tselect),
       m_nsweeps(nsweeps), m_move_ratio(move_ratio * 65535), m_mc(mc),
       m_determinant(m_pdata->getNTypes(), m_exec_conf), m_move_function(move),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0), m_pretend(pretend),
-      m_initialized(false), m_multi_phase(multiphase), m_num_phase(numphase), m_update_order(seed)
+      m_initialized(false), m_multi_phase(multiphase), m_num_phase(numphase)
     {
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
@@ -275,8 +274,10 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
         return;
         }
 
+    uint16_t seed = this->m_sysdef->getSeed();
+
     hoomd::RandomGenerator rng(
-        hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, m_seed),
+        hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, seed),
         hoomd::Counter(m_exec_conf->getRank(), m_move_ratio));
     unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
     bool move = (move_type_select < m_move_ratio);
@@ -293,7 +294,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
         // Shuffle the order of particles for this sweep
         // TODO: should these be better random numbers?
         m_update_order.shuffle(timestep + 40591,
-                               m_seed); // order of the list doesn't matter the probability of each
+                               seed); // order of the list doesn't matter the probability of each
                                         // combination is the same.
         if (this->m_prof)
             this->m_prof->pop();
@@ -349,7 +350,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                                                access_mode::readwrite);
 
             hoomd::RandomGenerator rng_i(
-                hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, m_seed),
+                hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, seed),
                 hoomd::Counter(m_exec_conf->getRank(), sweep));
             m_move_function->construct(timestep, typ_i, param, rng_i);
             h_det.data[typ_i] = m_move_function->getDetInertiaTensor(); // new determinant
