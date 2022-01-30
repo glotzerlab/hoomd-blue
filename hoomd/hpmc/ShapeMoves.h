@@ -13,7 +13,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-namespace hoomd {
+namespace hoomd
+    {
 
 namespace hpmc
     {
@@ -41,10 +42,8 @@ template<typename Shape> class ShapeMoveBase
         }
 
     //! construct is called for each particle type that will be changed in update()
-    virtual void construct(uint64_t,
-                           const unsigned int&,
-                           typename Shape::param_type&,
-                           hoomd::RandomGenerator&)
+    virtual void
+    construct(uint64_t, const unsigned int&, typename Shape::param_type&, hoomd::RandomGenerator&)
         {
         throw std::runtime_error("Shape move function not implemented.");
         }
@@ -998,7 +997,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
     std::shared_ptr<Variant> m_k;                          // shape move stiffness
     };
 
-
 template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<PythonShapeMove<Shape>,
@@ -1084,7 +1082,8 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
                       &ElasticShapeMove<Shape>::setReference);
     }
 
-// template<class Shape> void export_ShapeMoveInterface(pybind11::module& m, const std::string& name);
+// template<class Shape> void export_ShapeMoveInterface(pybind11::module& m, const std::string&
+// name);
 
 // template<class Shape> void export_ElasticShapeMove(pybind11::module& m, const std::string& name);
 
@@ -1093,9 +1092,10 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
 
 // template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std::string& name);
 
-// template<class Shape> void export_ConstantShapeMove(pybind11::module& m, const std::string& name);
+// template<class Shape> void export_ConstantShapeMove(pybind11::module& m, const std::string&
+// name);
 
-} // namespace hpmc
-} // namespace hoomd
+    } // namespace hpmc
+    } // namespace hoomd
 
 #endif

@@ -20,7 +20,8 @@
 #include "ShapeSphinx.h"
 #include "hoomd/extern/quickhull/QuickHull.hpp"
 
-namespace hoomd {
+namespace hoomd
+    {
 
 namespace hpmc
     {
@@ -391,6 +392,6 @@ template<class Shape> void export_MassPropertiesBase(pybind11::module& m, std::s
 
 template<class Shape> void export_MassProperties(pybind11::module& m, std::string name);
 
-}  // end namespace hpmc
-} // namespace hpmc
+    }  // end namespace hpmc
+    }  // namespace hoomd
 #endif // end inclusion guard

@@ -14,7 +14,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-namespace hoomd {
+namespace hoomd
+    {
 
 namespace hpmc
     {
@@ -192,29 +193,29 @@ template<typename Shape> class UpdaterShape : public Updater
     bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
 
     private:
-        unsigned int m_instance=0;                  //!< Unique ID for RNG seeding
-        int m_global_partition;     // number of MPI partitions
-        unsigned int m_type_select; // number of particle types to update in each move
-        unsigned int m_nsweeps;     // number of sweeps to run the updater each time it is called
-        std::vector<unsigned int> m_count_accepted; // number of accepted updater moves
-        std::vector<unsigned int> m_count_total;    // number of attempted updater moves
-        std::vector<unsigned int>
-            m_box_accepted; // number of accepted moves between boxes in multi-phase simulations
-        std::vector<unsigned int>
-            m_box_total;           // number of attempted moves between boxes in multi-phase simulations
-        unsigned int m_move_ratio; // probability of performing a shape move
-        std::shared_ptr<ShapeMoveBase<Shape>>
-            m_move_function;                             // shape move function to apply in the updater
-        std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
-        GPUArray<Scalar> m_determinant;  // determinant of the shape's moment of inertia tensor
-        GPUArray<unsigned int> m_ntypes; // number of particle types in the simulation
-        unsigned int m_num_params;                            // number of shape parameters to calculate
-        bool m_pretend;                     // whether or not to pretend or actually perform shape move
-        bool m_initialized;                 // whether or not the updater has been initialized
-        bool m_multi_phase;                 // whether or not the simulation is multi-phase
-        unsigned int m_num_phase;           // number of phases in a multi-phase simulation
-        detail::UpdateOrder m_update_order; // order of particle types to apply the updater to
-        static constexpr Scalar m_tol = 0.00001; // minimum move size required to not be ignored.
+    unsigned int m_instance = 0; //!< Unique ID for RNG seeding
+    int m_global_partition;      // number of MPI partitions
+    unsigned int m_type_select;  // number of particle types to update in each move
+    unsigned int m_nsweeps;      // number of sweeps to run the updater each time it is called
+    std::vector<unsigned int> m_count_accepted; // number of accepted updater moves
+    std::vector<unsigned int> m_count_total;    // number of attempted updater moves
+    std::vector<unsigned int>
+        m_box_accepted; // number of accepted moves between boxes in multi-phase simulations
+    std::vector<unsigned int>
+        m_box_total;           // number of attempted moves between boxes in multi-phase simulations
+    unsigned int m_move_ratio; // probability of performing a shape move
+    std::shared_ptr<ShapeMoveBase<Shape>>
+        m_move_function;                             // shape move function to apply in the updater
+    std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
+    GPUArray<Scalar> m_determinant;     // determinant of the shape's moment of inertia tensor
+    GPUArray<unsigned int> m_ntypes;    // number of particle types in the simulation
+    unsigned int m_num_params;          // number of shape parameters to calculate
+    bool m_pretend;                     // whether or not to pretend or actually perform shape move
+    bool m_initialized;                 // whether or not the updater has been initialized
+    bool m_multi_phase;                 // whether or not the simulation is multi-phase
+    unsigned int m_num_phase;           // number of phases in a multi-phase simulation
+    detail::UpdateOrder m_update_order; // order of particle types to apply the updater to
+    static constexpr Scalar m_tol = 0.00001; // minimum move size required to not be ignored.
     };
 
 template<class Shape>
@@ -227,11 +228,10 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   bool pretend,
                                   bool multiphase,
                                   unsigned int numphase)
-    : Updater(sysdef), m_global_partition(0), m_type_select(tselect),
-      m_nsweeps(nsweeps), m_move_ratio(move_ratio * 65535), m_mc(mc),
-      m_determinant(m_pdata->getNTypes(), m_exec_conf), m_move_function(move),
-      m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0), m_pretend(pretend),
-      m_initialized(false), m_multi_phase(multiphase), m_num_phase(numphase)
+    : Updater(sysdef), m_global_partition(0), m_type_select(tselect), m_nsweeps(nsweeps),
+      m_move_ratio(move_ratio * 65535), m_mc(mc), m_determinant(m_pdata->getNTypes(), m_exec_conf),
+      m_move_function(move), m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
+      m_pretend(pretend), m_initialized(false), m_multi_phase(multiphase), m_num_phase(numphase)
     {
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
@@ -269,7 +269,8 @@ template<class Shape> UpdaterShape<Shape>::~UpdaterShape()
 */
 template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
     {
-    typedef std::vector<typename Shape::param_type, hoomd::detail::managed_allocator<typename Shape::param_type>>
+    typedef std::vector<typename Shape::param_type,
+                        hoomd::detail::managed_allocator<typename Shape::param_type>>
         param_vector;
     m_exec_conf->msg->notice(4) << "UpdaterShape update: " << timestep
                                 << ", initialized: " << std::boolalpha << m_initialized << " @ "
@@ -306,7 +307,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
         // TODO: should these be better random numbers?
         m_update_order.shuffle(timestep + 40591,
                                seed); // order of the list doesn't matter the probability of each
-                                        // combination is the same.
+                                      // combination is the same.
         if (this->m_prof)
             this->m_prof->pop();
 
@@ -759,7 +760,7 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
                       &UpdaterShape<Shape>::setNumPhase);
     }
 
-} // namespace hpmc
-} // namespace hoomd
+    } // namespace hpmc
+    } // namespace hoomd
 
 #endif

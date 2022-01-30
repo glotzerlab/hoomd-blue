@@ -37,5 +37,5 @@ template<class Shape> void export_MassProperties(pybind11::module& m, std::strin
 
 template void export_MassProperties<ShapeConvexPolyhedron>(pybind11::module& m, std::string name);
 
-} // end namespace hpmc
-} // end namespace hoomd
+    } // end namespace hpmc
+    } // end namespace hoomd
