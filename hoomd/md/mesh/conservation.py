@@ -6,6 +6,7 @@
 from hoomd.md.mesh.potential import MeshPotential
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.logging import log
 
 
 class Volume(MeshPotential):
@@ -42,3 +43,8 @@ class Volume(MeshPotential):
         self._add_typeparam(params)
 
         super().__init__(mesh)
+
+    @log(requires_run=True)
+    def volume(self):
+        """Volume of the mesh triangulation."""
+        return self._cpp_obj.getVolume()

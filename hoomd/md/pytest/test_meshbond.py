@@ -4,6 +4,7 @@
 import copy as cp
 import hoomd
 import pytest
+import math
 import numpy as np
 
 _harmonic_args = {'k': [30.0, 25.0, 20.0], 'r0': [1.6, 1.7, 1.8]}
@@ -206,6 +207,34 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
                                    rtol=1e-2,
                                    atol=1e-5)
         np.testing.assert_allclose(sim_forces, force, rtol=1e-2, atol=1e-5)
+
+
+def test_volume(simulation_factory, tetrahedron_snapshot_factory):
+    snap = tetrahedron_snapshot_factory(d=0.969, L=5)
+    sim = simulation_factory(snap)
+
+    mesh = hoomd.mesh.Mesh(name=["tetrahedron"])
+    mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
+
+    mesh_potential = hoomd.md.mesh.conservation.Volume(mesh)
+    mesh_potential.params["tetrahedron"] = dict(k=1, V0=1)
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+
+    integrator.forces.append(mesh_potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         alpha=0.1)
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+
+    assert math.isclose(mesh_potential.volume,
+                        0.107227,
+                        rel_tol=1e-2,
+                        abs_tol=1e-5)
 
 
 def test_auto_detach_simulation(simulation_factory,

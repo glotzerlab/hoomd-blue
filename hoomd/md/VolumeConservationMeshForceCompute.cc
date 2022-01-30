@@ -319,7 +319,8 @@ void export_VolumeConservationMeshForceCompute(pybind11::module& m)
         "VolumeConservationMeshForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
         .def("setParams", &VolumeConservationMeshForceCompute::setParamsPython)
-        .def("getParams", &VolumeConservationMeshForceCompute::getParams);
+        .def("getParams", &VolumeConservationMeshForceCompute::getParams)
+        .def("getVolume", &VolumeConservationMeshForceCompute::getVolume);
     }
 
     } // end namespace detail
