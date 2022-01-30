@@ -10,7 +10,7 @@ set(_md_sources module-md.cc
                    CosineSqAngleForceCompute.cc
                    CustomForceCompute.cc
                    EvaluatorWalls.cc
-                       FIREEnergyMinimizer.cc
+                   FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
                    HarmonicAngleForceCompute.cc
@@ -45,6 +45,7 @@ set(_md_sources module-md.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
                    WallData.cc
+		   VolumeConservationMeshForceCompute.cc
                    ZeroMomentumUpdater.cc
                    )
 
@@ -195,6 +196,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVE.h
                 TwoStepNVTMTKGPU.h
                 TwoStepNVTMTK.h
+		VolumeConservationMeshForceCompute.h
+		VolumeConservationMeshForceComputeGPU.h
                 WallData.h
                 ZeroMomentumUpdater.h
                 )
@@ -227,6 +230,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TwoStepNPTMTKGPU.cc
                            TwoStepNVEGPU.cc
                            TwoStepNVTMTKGPU.cc
+			   VolumeConservationMeshForceComputeGPU.cc
                            MuellerPlatheFlowGPU.cc
                            CosineSqAngleForceComputeGPU.cc
                            )
@@ -289,6 +293,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepRATTLENVEGPU.cu
                       TwoStepNVTMTKGPU.cu
+		      VolumeConservationMeshForceComputeGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
                       all_kernels_diamond_manifold.cu

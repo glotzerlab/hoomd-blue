@@ -62,6 +62,7 @@
 #include "TwoStepRATTLEBD.h"
 #include "TwoStepRATTLELangevin.h"
 #include "TwoStepRATTLENVE.h"
+#include "VolumeConservationMeshForceCompute.h"
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
 
@@ -104,6 +105,7 @@
 #include "TwoStepRATTLEBDGPU.h"
 #include "TwoStepRATTLELangevinGPU.h"
 #include "TwoStepRATTLENVEGPU.h"
+#include "VolumeConservationMeshForceComputeGPU.h"
 #endif
 
 #include <pybind11/pybind11.h>
@@ -443,6 +445,9 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVE<ManifoldPrimitive>(m, "TwoStepRATTLENVEPrimitive");
     export_TwoStepRATTLENVE<ManifoldSphere>(m, "TwoStepRATTLENVESphere");
 
+    // mesh
+    export_VolumeConservationMeshForceCompute(m);
+
 #ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
     export_TwoStepNVTMTKGPU(m);
@@ -476,6 +481,8 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVEGPU<ManifoldXYPlane>(m, "TwoStepRATTLENVEPlaneGPU");
     export_TwoStepRATTLENVEGPU<ManifoldPrimitive>(m, "TwoStepRATTLENVEPrimitiveGPU");
     export_TwoStepRATTLENVEGPU<ManifoldSphere>(m, "TwoStepRATTLENVESphereGPU");
+
+    export_VolumeConservationMeshForceComputeGPU(m);
 #endif
 
     // manifolds

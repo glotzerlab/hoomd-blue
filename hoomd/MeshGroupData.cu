@@ -70,6 +70,7 @@ __global__ void gpu_mesh_scatter_kernel(unsigned int n_scratch,
                                         const typeval_union* d_group_typeval,
                                         const unsigned int* d_rtag,
                                         group_t* d_pidx_group_table,
+                                        unsigned int* d_pidx_gpos_table,
                                         unsigned int pidx_group_table_pitch)
     {
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -98,12 +99,15 @@ __global__ void gpu_mesh_scatter_kernel(unsigned int n_scratch,
 
     unsigned int j = 0;
 
+    unsigned int gpos = 0;
+
     for (unsigned int k = 0; k < group_size_half; ++k)
         {
         unsigned int tag_k = g.tag[k];
         unsigned int pidx_k = d_rtag[tag_k];
         if (pidx_k == pidx)
             {
+            gpos = k;
             continue;
             }
 
@@ -111,6 +115,7 @@ __global__ void gpu_mesh_scatter_kernel(unsigned int n_scratch,
         }
 
     d_pidx_group_table[offset] = p;
+    d_pidx_gpos_table[offset] = gpos;
     }
 
 template<unsigned int group_size, typename group_t>
@@ -125,6 +130,7 @@ void gpu_update_mesh_table(const unsigned int n_groups,
                            unsigned int next_flag,
                            unsigned int& flag,
                            group_t* d_pidx_group_table,
+                           unsigned int* d_pidx_gpos_table,
                            const unsigned int pidx_group_table_pitch,
                            unsigned int* d_scratch_g,
                            unsigned int* d_scratch_idx,
@@ -203,6 +209,7 @@ void gpu_update_mesh_table(const unsigned int n_groups,
                            d_group_typeval,
                            d_rtag,
                            d_pidx_group_table,
+                           d_pidx_gpos_table,
                            pidx_group_table_pitch);
         }
     }
@@ -223,6 +230,7 @@ template void gpu_update_mesh_table<4>(const unsigned int n_groups,
                                        unsigned int next_flag,
                                        unsigned int& flag,
                                        group_storage<4>* d_pidx_group_table,
+                                       unsigned int* d_pidx_gpos_table,
                                        const unsigned int pidx_group_table_pitch,
                                        unsigned int* d_scratch_g,
                                        unsigned int* d_scratch_idx,
@@ -241,6 +249,7 @@ template void gpu_update_mesh_table<6>(const unsigned int n_groups,
                                        unsigned int next_flag,
                                        unsigned int& flag,
                                        group_storage<6>* d_pidx_group_table,
+                                       unsigned int* d_pidx_gpos_table,
                                        const unsigned int pidx_group_table_pitch,
                                        unsigned int* d_scratch_g,
                                        unsigned int* d_scratch_idx,

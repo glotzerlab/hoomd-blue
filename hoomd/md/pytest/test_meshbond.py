@@ -4,6 +4,7 @@
 import copy as cp
 import hoomd
 import pytest
+import math
 import numpy as np
 
 _harmonic_args = {'k': [30.0, 25.0, 20.0], 'r0': [1.6, 1.7, 1.8]}
@@ -38,10 +39,15 @@ _Helfrich_arg_list = [(hoomd.md.mesh.bending.Helfrich,
                        dict(zip(_Helfrich_args, val)))
                       for val in zip(*_Helfrich_args.values())]
 
+_volume_args = {'k': [20.0, 50.0, 100.0], 'V0': [0.107227, 1, 0.01]}
+_volume_arg_list = [(hoomd.md.mesh.conservation.Volume,
+                     dict(zip(_volume_args, val)))
+                    for val in zip(*_volume_args.values())]
+
 
 def get_mesh_potential_and_args():
     return (_harmonic_arg_list + _FENE_arg_list + _Tether_arg_list
-            + _Helfrich_arg_list)
+            + _Helfrich_arg_list + _volume_arg_list)
 
 
 def get_mesh_potential_args_forces_and_energies():
@@ -81,10 +87,22 @@ def get_mesh_potential_args_forces_and_energies():
                         [0., 1271.084184, -898.792246]]]
     Helfrich_energies = [9.237604, 184.752086, 923.760431]
 
+    volume_forces = [[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                     [[4.93960528, 0,
+                       -3.49282839], [-4.93960528, 0, -3.49282839],
+                      [0, 4.93960528, 3.49282839], [0, -4.93960528,
+                                                    3.49282839]],
+                     [[-107.5893328, 0, 76.0771468],
+                      [107.5893328, 0, 76.0771468],
+                      [0, -107.5893328, -76.0771468],
+                      [0, 107.5893328, -76.0771468]]]
+    volume_energies = [0, 19.92608051621174, 47.2656702899458]
+
     harmonic_args_and_vals = []
     FENE_args_and_vals = []
     Tether_args_and_vals = []
     Helfrich_args_and_vals = []
+    volume_args_and_vals = []
     for i in range(3):
         harmonic_args_and_vals.append(
             (*_harmonic_arg_list[i], harmonic_forces[i], harmonic_energies[i]))
@@ -94,8 +112,10 @@ def get_mesh_potential_args_forces_and_energies():
             (*_Tether_arg_list[i], Tether_forces[i], Tether_energies[i]))
         Helfrich_args_and_vals.append(
             (*_Helfrich_arg_list[i], Helfrich_forces[i], Helfrich_energies[i]))
+        volume_args_and_vals.append(
+            (*_volume_arg_list[i], volume_forces[i], volume_energies[i]))
     return (harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
-            + Helfrich_args_and_vals)
+            + Helfrich_args_and_vals + volume_args_and_vals)
 
 
 @pytest.fixture(scope='session')
@@ -149,7 +169,7 @@ def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
 
     mesh = hoomd.mesh.Mesh(name=["triags"])
     mesh.size = 4
-    mesh.triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["triags"] = potential_kwargs
@@ -185,7 +205,7 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
 
     mesh = hoomd.mesh.Mesh()
     mesh.size = 1
-    mesh.triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["mesh"] = potential_kwargs
@@ -210,6 +230,34 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
                                    rtol=1e-2,
                                    atol=1e-5)
         np.testing.assert_allclose(sim_forces, force, rtol=1e-2, atol=1e-5)
+
+
+def test_volume(simulation_factory, tetrahedron_snapshot_factory):
+    snap = tetrahedron_snapshot_factory(d=0.969, L=5)
+    sim = simulation_factory(snap)
+
+    mesh = hoomd.mesh.Mesh(name=["tetrahedron"])
+    mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
+
+    mesh_potential = hoomd.md.mesh.conservation.Volume(mesh)
+    mesh_potential.params["tetrahedron"] = dict(k=1, V0=1)
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+
+    integrator.forces.append(mesh_potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         alpha=0.1)
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+
+    assert math.isclose(mesh_potential.volume,
+                        0.107227,
+                        rel_tol=1e-2,
+                        abs_tol=1e-5)
 
 
 def test_auto_detach_simulation(simulation_factory,
