@@ -517,12 +517,9 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
             rsq = fmax(rsq, dot(vert, vert));
             points[i] = vert;
             }
-        std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>> p;
-        p = mp.getQuickHullVertsAndFaces(shape);
-        std::vector<std::vector<unsigned int>> faces = p.second;
-        detail::MassProperties<ShapeConvexPolyhedron> mp2(points, faces);
-        this->m_det_inertia_tensor = mp2.getDetInertiaTensor();
-        m_isoperimetric_quotient = mp2.getIsoperimetricQuotient();
+        mp.updateParam(shape, true);
+        this->m_det_inertia_tensor = mp.getDetInertiaTensor();
+        m_isoperimetric_quotient = mp.getIsoperimetricQuotient();
         shape.diameter = 2.0 * fast::sqrt(rsq);
         m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
         }

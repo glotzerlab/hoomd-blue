@@ -128,8 +128,7 @@ class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeCon
     MassProperties(const typename ShapeConvexPolyhedron::param_type& param, bool compute = true)
         : MassPropertiesBase()
         {
-        std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>> p;
-        p = getQuickHullVertsAndFaces(param);
+        auto p = getQuickHullVertsAndFaces(param);
         points = p.first;
         faces = p.second;
         if (compute)
@@ -183,8 +182,7 @@ class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeCon
         {
         if (force || param.N != points.size())
             {
-            std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>> p;
-            p = getQuickHullVertsAndFaces(param);
+            auto p = getQuickHullVertsAndFaces(param);
             points = p.first;
             faces = p.second;
             }
