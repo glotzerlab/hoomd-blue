@@ -308,6 +308,46 @@ void VolumeConservationMeshForceCompute::precomputeParameter()
         }
     }
 
+Scalar VolumeConservationMeshForceCompute::energyDiff(unsigned int idx_a,
+                                                      unsigned int idx_b,
+                                                      unsigned int idx_c,
+                                                      unsigned int idx_d,
+                                                      unsigned int type_id)
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
+
+    vec3<Scalar> pos_a(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
+    vec3<Scalar> pos_b(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
+    vec3<Scalar> pos_c(h_pos.data[idx_c].x, h_pos.data[idx_c].y, h_pos.data[idx_c].z);
+    vec3<Scalar> pos_d(h_pos.data[idx_d].x, h_pos.data[idx_d].y, h_pos.data[idx_d].z);
+
+    pos_a = box.shift(pos_a, h_image.data[idx_a]);
+    pos_b = box.shift(pos_b, h_image.data[idx_b]);
+    pos_c = box.shift(pos_c, h_image.data[idx_c]);
+    pos_d = box.shift(pos_d, h_image.data[idx_d]);
+
+    vec3<Scalar> nab = cross(pos_a, pos_b);
+    vec3<Scalar> ncd = cross(pos_c, pos_d);
+
+    m_volume_diff = dot(nab, pos_c) - dot(nab, pos_d);
+    m_volume_diff += (dot(ncd, pos_a) - dot(ncd, pos_b));
+
+    m_volume_diff /= 6.0;
+
+    Scalar energy_old = m_volume - m_V0[type_id];
+
+    Scalar energy_new = energy_old + m_volume_diff;
+
+    energy_old = energy_old * energy_old;
+
+    energy_new = energy_new * energy_new;
+
+    return m_K[type_id] / (2.0 * m_V0[type_id]) * (energy_new - energy_old);
+    }
+
 namespace detail
     {
 void export_VolumeConservationMeshForceCompute(pybind11::module& m)

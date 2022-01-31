@@ -103,11 +103,25 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
 
     Scalar m_volume; //! sum of the triangle areas within the mesh
 
+    Scalar m_volume_diff;
+
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
 
     //! compute volumes
     virtual void precomputeParameter();
+
+    virtual void
+    postcompute(unsigned int idx_a, unsigned int idx_b, unsigned int idx_c, unsigned int idx_d)
+        {
+        m_volume += m_volume_diff;
+        };
+
+    virtual Scalar energyDiff(unsigned int idx_a,
+                              unsigned int idx_b,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              unsigned int type_id);
     };
 
 namespace detail

@@ -103,6 +103,12 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
+
+    virtual Scalar energyDiff(unsigned int idx_a,
+                              unsigned int idx_b,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              unsigned int type_id);
     };
 
 namespace detail

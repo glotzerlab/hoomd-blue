@@ -88,10 +88,22 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
         const typename MeshTriangle::members_t& triangle1 = h_triangles.data[tr_idx1];
         const typename MeshTriangle::members_t& triangle2 = h_triangles.data[tr_idx2];
 
+        unsigned int iterator = 0;
+
+        bool a_before_b = true;
+
+        while (idx_b == h_rtag.data[triangle1.tag[iterator]])
+            iterator++;
+
+        iterator = (iterator + 1) % 3;
+
+        if (idx_a == h_rtag.data[triangle1.tag[iterator]])
+            a_before_b = false;
+
         unsigned int tag_c = triangle1.tag[0];
         unsigned int idx_c = h_rtag.data[tag_c];
 
-        unsigned int iterator = 0;
+        iterator = 0;
         while (idx_a == idx_c || idx_b == idx_c)
             {
             iterator++;
@@ -114,9 +126,19 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
         Scalar energyDifference = 0;
 
-        for (auto& force : forces)
+        if (a_before_b)
             {
-            energyDifference += force->energyDiff(idx_a, idx_b, idx_c, idx_d, type_id);
+            for (auto& force : forces)
+                {
+                energyDifference += force->energyDiff(idx_a, idx_b, idx_c, idx_d, type_id);
+                }
+            }
+        else
+            {
+            for (auto& force : forces)
+                {
+                energyDifference += force->energyDiff(idx_a, idx_b, idx_d, idx_c, type_id);
+                }
             }
 
         if (energyDifference < 0)
@@ -221,9 +243,19 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             h_triangles.data[tr_idx1] = triangle1_n;
             h_triangles.data[tr_idx2] = triangle2_n;
 
-            for (auto& force : forces)
+            if (a_before_b)
                 {
-                force->postcompute(idx_a, idx_b, idx_c, idx_d);
+                for (auto& force : forces)
+                    {
+                    force->postcompute(idx_a, idx_b, idx_c, idx_d);
+                    }
+                }
+            else
+                {
+                for (auto& force : forces)
+                    {
+                    force->postcompute(idx_a, idx_b, idx_d, idx_c);
+                    }
                 }
             }
         }
