@@ -55,7 +55,7 @@ AreaConservationMeshForceCompute::~AreaConservationMeshForceCompute()
 void AreaConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar A0)
     {
     m_K[type] = K;
-    m_A0[type] = A0;
+    m_A0[type] = A0 / m_mesh_data->getMeshTriangleData()->getN();
 
     // check for some silly errors a user could make
     if (K <= 0)
@@ -82,7 +82,7 @@ pybind11::dict AreaConservationMeshForceCompute::getParams(std::string type)
         }
     pybind11::dict params;
     params["k"] = m_K[typ];
-    params["A0"] = m_A0[typ];
+    params["A0"] = m_A0[typ] * m_mesh_data->getMeshTriangleData()->getN();
     return params;
     }
 
@@ -133,8 +133,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     // for each of the triangles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
 
-    // from whole surface area A0 to the surface of individual triangle A0 -> At
-    Scalar At = m_A0[0] / size;
+    Scalar At = m_A0[0];
 
     m_area = 0;
 

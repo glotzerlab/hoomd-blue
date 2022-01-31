@@ -112,7 +112,6 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                                d_virial.data,
                                                m_virial.getPitch(),
                                                m_pdata->getN(),
-                                               m_mesh_data->getMeshTriangleData()->getN(),
                                                d_pos.data,
                                                box,
                                                d_gpu_meshtrianglelist.data,
@@ -178,15 +177,15 @@ void AreaConservationMeshForceComputeGPU::computeArea()
     ArrayHandle<Scalar> d_sumA(m_sum, access_location::device, access_mode::overwrite);
 
     kernel::gpu_compute_AreaConservation_area(d_sumA.data,
-                                               d_partial_sumA.data,
-                                               m_pdata->getN(),
-                                               d_pos.data,
-                                               box,
-                                               d_gpu_meshtrianglelist.data,
-                                               gpu_table_indexer,
-                                               d_gpu_n_meshtriangle.data,
-                                               m_block_size,
-                                               m_num_blocks);
+                                              d_partial_sumA.data,
+                                              m_pdata->getN(),
+                                              d_pos.data,
+                                              box,
+                                              d_gpu_meshtrianglelist.data,
+                                              gpu_table_indexer,
+                                              d_gpu_n_meshtriangle.data,
+                                              m_block_size,
+                                              m_num_blocks);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {

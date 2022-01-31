@@ -26,12 +26,12 @@ namespace kernel
     {
 
 __global__ void gpu_compute_AreaConservation_area_kernel(Scalar* d_partial_sum_area,
-                                                        const unsigned int N,
-                                                        const Scalar4* d_pos,
-                                                        BoxDim box,
-                                                        const group_storage<6>* tlist,
-                                                        const Index2D tlist_idx,
-                                                        const unsigned int* n_triangles_list)
+                                                         const unsigned int N,
+                                                         const Scalar4* d_pos,
+                                                         BoxDim box,
+                                                         const group_storage<6>* tlist,
+                                                         const Index2D tlist_idx,
+                                                         const unsigned int* n_triangles_list)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
     Scalar* area_sdata = (Scalar*)&s_data[0];
@@ -166,15 +166,15 @@ gpu_area_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigne
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
 hipError_t gpu_compute_AreaConservation_area(Scalar* d_sum_area,
-                                            Scalar* d_sum_partial_area,
-                                            const unsigned int N,
-                                            const Scalar4* d_pos,
-                                            const BoxDim& box,
-                                            const group_storage<6>* tlist,
-                                            const Index2D tlist_idx,
-                                            const unsigned int* n_triangles_list,
-                                            unsigned int block_size,
-                                            unsigned int num_blocks)
+                                             Scalar* d_sum_partial_area,
+                                             const unsigned int N,
+                                             const Scalar4* d_pos,
+                                             const BoxDim& box,
+                                             const group_storage<6>* tlist,
+                                             const Index2D tlist_idx,
+                                             const unsigned int* n_triangles_list,
+                                             unsigned int block_size,
+                                             unsigned int num_blocks)
     {
     dim3 grid(num_blocks, 1, 1);
     dim3 grid1(1, 1, 1);
@@ -225,7 +225,6 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
                                                           Scalar* d_virial,
                                                           const size_t virial_pitch,
                                                           const unsigned int N,
-                                                          const unsigned int N_tri,
                                                           const Scalar4* d_pos,
                                                           BoxDim box,
                                                           const group_storage<6>* tlist,
@@ -325,7 +324,6 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
         Scalar2 params = __ldg(d_params + cur_triangle_type);
         Scalar K = params.x;
         Scalar A0 = params.y;
-        Scalar At = A0 / N_tri;
 
         Scalar3 dc_dra;
         if (cur_triangle_abc == 0)
@@ -347,13 +345,13 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
         Scalar3 ds_dra = -c_baac * inv_s_baac * dc_dra;
 
         Scalar numerator_base;
-        numerator_base = rab * rac * s_baac / 2 - At;
+        numerator_base = rab * rac * s_baac / 2 - A0;
 
         Scalar3 Fa;
 
         if (cur_triangle_abc == 0)
             {
-            Fa = -K / (2 * At) * numerator_base
+            Fa = -K / (2 * A0) * numerator_base
                  * (-nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
             Fa = -nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac;
             }
@@ -361,12 +359,12 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
             {
             if (cur_triangle_abc == 1)
                 {
-                Fa = -K / (2 * At) * numerator_base * (nab * rac * s_baac + ds_dra * rab * rac);
+                Fa = -K / (2 * A0) * numerator_base * (nab * rac * s_baac + ds_dra * rab * rac);
                 Fa = nab * rac * s_baac + ds_dra * rab * rac;
                 }
             else
                 {
-                Fa = -K / (2 * At) * numerator_base * (nac * rab * s_baac + ds_dra * rab * rac);
+                Fa = -K / (2 * A0) * numerator_base * (nac * rab * s_baac + ds_dra * rab * rac);
                 Fa = nac * rab * s_baac + ds_dra * rab * rac;
                 }
             }
@@ -379,15 +377,15 @@ __global__ void gpu_compute_AreaConservation_force_kernel(Scalar4* d_force,
                Fa.x,
                Fa.y,
                Fa.z,
-               -K / (2 * At) * numerator_base);
+               -K / (2 * A0) * numerator_base);
 
-        Fa = -K / (2 * At) * numerator_base * Fa;
+        Fa = -K / (2 * A0) * numerator_base * Fa;
 
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
         force.w
-            += K / (6.0 * At) * numerator_base * numerator_base; // divided by 3 because of three
+            += K / (6.0 * A0) * numerator_base * numerator_base; // divided by 3 because of three
                                                                  // particles sharing the energy
 
         virial[0] += Scalar(1. / 2.) * pos_a.x * Fa.x; // xx
@@ -426,7 +424,6 @@ hipError_t gpu_compute_AreaConservation_force(Scalar4* d_force,
                                               Scalar* d_virial,
                                               const size_t virial_pitch,
                                               const unsigned int N,
-                                              const unsigned int N_tri,
                                               const Scalar4* d_pos,
                                               const BoxDim& box,
                                               const group_storage<6>* tlist,
@@ -459,7 +456,6 @@ hipError_t gpu_compute_AreaConservation_force(Scalar4* d_force,
                        d_virial,
                        virial_pitch,
                        N,
-                       N_tri,
                        d_pos,
                        box,
                        tlist,
