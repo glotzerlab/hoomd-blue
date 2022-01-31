@@ -493,9 +493,9 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
                 {
                 vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
                 move_translate(vert, rng, m_step_size[type_id], 3);
-                shape.x[i] = vert.x;
-                shape.y[i] = vert.y;
-                shape.z[i] = vert.z;
+                shape.x[i] = (OverlapReal) vert.x;
+                shape.y[i] = (OverlapReal) vert.y;
+                shape.z[i] = (OverlapReal) vert.z;
                 }
             }
 
@@ -536,8 +536,8 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     private:
     std::vector<Scalar> m_step_size_backup; // maximum step size
     Scalar m_select_ratio;   ;            // probability of a vertex being selected for a move
-    Scalar m_scale;  // factor to scale the shape by to achieve desired constant volume
-    Scalar m_volume; // desired constant volume of each shape
+    OverlapReal m_scale;  // factor to scale the shape by to achieve desired constant volume
+    OverlapReal m_volume; // desired constant volume of each shape
     std::vector<vec3<Scalar>> m_centroids; // centroid of each type of shape
     std::vector<bool> m_calculated;        // whether or not mass properties has been calculated
     };                                     // end class ConvexPolyhedronVertexShapeMove
@@ -699,8 +699,8 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         // Call base method for stepsize
         int retval = ShapeMoveBase<Shape>::writeGSD(handle, name, exec_conf, mpi);
         // flatten deformation matrix before writting to GSD
-        unsigned int Ntypes = this->m_step_size.size();
-        int rows = Ntypes * 3;
+        unsigned int Ntypes = (unsigned int) this->m_step_size.size();
+        unsigned int rows = Ntypes * 3;
         std::vector<float> data(rows * 3);
         unsigned int count = 0;
         for (unsigned int i = 0; i < Ntypes; i++)
