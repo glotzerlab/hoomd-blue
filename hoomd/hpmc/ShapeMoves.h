@@ -240,7 +240,8 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
                 fmax(-this->m_step_size[type_id], -(m_params[type_id][i])),
                 fmin(this->m_step_size[type_id], (1.0 - m_params[type_id][i])));
             Scalar x = (hoomd::detail::generate_canonical<double>(rng) < m_select_ratio)
-                           ? uniform(rng) : 0.0;
+                           ? uniform(rng)
+                           : 0.0;
             m_params[type_id][i] += x;
             }
         pybind11::object shape_data = m_python_callback(m_params[type_id]);
@@ -335,8 +336,9 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
 
     private:
     std::vector<Scalar> m_step_size_backup; // maximum step size
-    Scalar m_select_ratio;   ; // fraction of parameters to change in each move. internal use
-    unsigned int m_num_params;   // cache the number of parameters.
+    Scalar m_select_ratio;
+    ;                          // fraction of parameters to change in each move. internal use
+    unsigned int m_num_params; // cache the number of parameters.
     Scalar m_scale; // the scale needed to keep the particle at constant volume. internal use
     std::vector<std::vector<Scalar>> m_params_backup; // all params are from 0,1
     std::vector<std::vector<Scalar>> m_params;        // all params are from 0,1
@@ -493,25 +495,25 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
                 {
                 vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
                 move_translate(vert, rng, m_step_size[type_id], 3);
-                shape.x[i] = (OverlapReal) vert.x;
-                shape.y[i] = (OverlapReal) vert.y;
-                shape.z[i] = (OverlapReal) vert.z;
+                shape.x[i] = (OverlapReal)vert.x;
+                shape.y[i] = (OverlapReal)vert.y;
+                shape.z[i] = (OverlapReal)vert.z;
                 }
             }
 
         detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
         Scalar volume = mp.getVolume();
         vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();
-        m_scale = (OverlapReal) fast::pow(m_volume / volume, 1.0 / 3.0);
+        m_scale = (OverlapReal)fast::pow(m_volume / volume, 1.0 / 3.0);
         Scalar rsq = 0.0;
         std::vector<vec3<Scalar>> points(shape.N);
         for (unsigned int i = 0; i < shape.N; i++)
             {
-            shape.x[i] += (OverlapReal) dr.x;
+            shape.x[i] += (OverlapReal)dr.x;
             shape.x[i] *= m_scale;
-            shape.y[i] += (OverlapReal) dr.y;
+            shape.y[i] += (OverlapReal)dr.y;
             shape.y[i] *= m_scale;
-            shape.z[i] += (OverlapReal) dr.z;
+            shape.z[i] += (OverlapReal)dr.z;
             shape.z[i] *= m_scale;
             vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
             rsq = fmax(rsq, dot(vert, vert));
@@ -532,9 +534,10 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
 
     private:
     std::vector<Scalar> m_step_size_backup; // maximum step size
-    Scalar m_select_ratio;   ;            // probability of a vertex being selected for a move
-    OverlapReal m_scale;  // factor to scale the shape by to achieve desired constant volume
-    Scalar m_volume; // desired constant volume of each shape
+    Scalar m_select_ratio;
+    ;                    // probability of a vertex being selected for a move
+    OverlapReal m_scale; // factor to scale the shape by to achieve desired constant volume
+    Scalar m_volume;     // desired constant volume of each shape
     std::vector<vec3<Scalar>> m_centroids; // centroid of each type of shape
     std::vector<bool> m_calculated;        // whether or not mass properties has been calculated
     };                                     // end class ConvexPolyhedronVertexShapeMove
@@ -696,7 +699,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         // Call base method for stepsize
         int retval = ShapeMoveBase<Shape>::writeGSD(handle, name, exec_conf, mpi);
         // flatten deformation matrix before writting to GSD
-        unsigned int Ntypes = (unsigned int) this->m_step_size.size();
+        unsigned int Ntypes = (unsigned int)this->m_step_size.size();
         unsigned int rows = Ntypes * 3;
         std::vector<float> data(rows * 3);
         unsigned int count = 0;
@@ -808,8 +811,9 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
 
     protected:
-    Scalar m_select_ratio;   ; // probability of performing a scaling move vs a
-                                 // rotation-scale-rotation move
+    Scalar m_select_ratio;
+    ; // probability of performing a scaling move vs a
+      // rotation-scale-rotation move
     std::vector<detail::MassProperties<Shape>> m_mass_props; // mass properties of the shape
     std::vector<Eigen::Matrix3d>
         m_Fbar_last; // matrix representing shape deformation at the last step
@@ -953,9 +957,9 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         Scalar vol_factor = detail::MassProperties<ShapeEllipsoid>::m_vol_factor;
         Scalar b = fast::pow(volume / vol_factor / x, 1.0 / 3.0);
         x *= b;
-        param.x = (OverlapReal) x;
-        param.y = (OverlapReal) b;
-        param.z = (OverlapReal) b;
+        param.x = (OverlapReal)x;
+        param.y = (OverlapReal)b;
+        param.z = (OverlapReal)b;
         }
 
     void prepare(uint64_t timestep) { }
@@ -1000,7 +1004,7 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
     {
     pybind11::class_<PythonShapeMove<Shape>,
                      ShapeMoveBase<Shape>,
-                     std::shared_ptr<PythonShapeMove<Shape>> >(m, name.c_str())
+                     std::shared_ptr<PythonShapeMove<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
                             pybind11::object,
@@ -1026,7 +1030,7 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
     {
     pybind11::class_<ConvexPolyhedronVertexShapeMove,
                      ShapeMoveBase<ShapeConvexPolyhedron>,
-                     std::shared_ptr<ConvexPolyhedronVertexShapeMove> >(m, name.c_str())
+                     std::shared_ptr<ConvexPolyhedronVertexShapeMove>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
                             pybind11::dict,
@@ -1046,7 +1050,9 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
 template<class Shape>
 inline void export_ConstantShapeMove(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<ConstantShapeMove<Shape>, ShapeMoveBase<Shape>, std::shared_ptr<ConstantShapeMove<Shape>> >(m, name.c_str())
+    pybind11::class_<ConstantShapeMove<Shape>,
+                     ShapeMoveBase<Shape>,
+                     std::shared_ptr<ConstantShapeMove<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, pybind11::dict>())
         .def_property("shape_params",
                       &ConstantShapeMove<Shape>::getShapeParams,
@@ -1056,8 +1062,9 @@ inline void export_ConstantShapeMove(pybind11::module& m, const std::string& nam
 template<class Shape>
 inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<ElasticShapeMove<Shape>, ShapeMoveBase<Shape>,
-                     std::shared_ptr<ElasticShapeMove<Shape>> >(m, name.c_str())
+    pybind11::class_<ElasticShapeMove<Shape>,
+                     ShapeMoveBase<Shape>,
+                     std::shared_ptr<ElasticShapeMove<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
                             Scalar,
