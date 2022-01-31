@@ -67,7 +67,7 @@ void AreaConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K,
 
     ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    h_params.data[type] = make_scalar2(K, A0);
+    h_params.data[type] = make_scalar2(K, A0 / m_mesh_data->getMeshTriangleData()->getN());
     }
 
 void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
