@@ -17,7 +17,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
@@ -45,7 +44,6 @@ void export_polyhedron(pybind11::module& m)
     export_HarmonicField<ShapePolyhedron>(m, "ExternalFieldHarmonicPolyhedron");
     export_ExternalFieldComposite<ShapePolyhedron>(m, "ExternalFieldCompositePolyhedron");
     export_ExternalFieldWall<ShapePolyhedron>(m, "WallPolyhedron");
-    export_UpdaterExternalFieldWall<ShapePolyhedron>(m, "UpdaterExternalFieldWallPolyhedron");
     export_ExternalCallback<ShapePolyhedron>(m, "ExternalCallbackPolyhedron");
 
 #ifdef ENABLE_HIP

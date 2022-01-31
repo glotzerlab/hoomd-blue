@@ -17,7 +17,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
@@ -45,7 +44,6 @@ void export_ellipsoid(pybind11::module& m)
     export_HarmonicField<ShapeEllipsoid>(m, "ExternalFieldHarmonicEllipsoid");
     export_ExternalFieldComposite<ShapeEllipsoid>(m, "ExternalFieldCompositeEllipsoid");
     export_ExternalFieldWall<ShapeEllipsoid>(m, "WallEllipsoid");
-    export_UpdaterExternalFieldWall<ShapeEllipsoid>(m, "UpdaterExternalFieldWallEllipsoid");
     export_ExternalCallback<ShapeEllipsoid>(m, "ExternalCallbackEllipsoid");
 
 #ifdef ENABLE_HIP

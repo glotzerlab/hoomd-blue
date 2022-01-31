@@ -90,7 +90,6 @@ set(_hpmc_headers
     UpdaterClusters.h
     UpdaterClustersGPU.cuh
     UpdaterClustersGPUDepletants.cuh
-    UpdaterExternalFieldWall.h
     UpdaterMuVT.h
     UpdaterQuickCompress.h
     XenoCollide2D.h

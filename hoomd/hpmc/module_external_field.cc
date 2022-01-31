@@ -25,8 +25,6 @@
 #include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
-#include "UpdaterExternalFieldWall.h"
-
 namespace hoomd
     {
 namespace hpmc
