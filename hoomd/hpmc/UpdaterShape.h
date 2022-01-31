@@ -202,7 +202,7 @@ template<typename Shape> class UpdaterShape : public Updater
     std::vector<unsigned int>
         m_box_accepted; // number of accepted moves between boxes in multi-phase simulations
     std::vector<unsigned int>
-        m_box_total;           // number of attempted moves between boxes in multi-phase simulations
+        m_box_total;     // number of attempted moves between boxes in multi-phase simulations
     Scalar m_move_ratio; // probability of performing a shape move
     std::shared_ptr<ShapeMoveBase<Shape>>
         m_move_function;                             // shape move function to apply in the updater

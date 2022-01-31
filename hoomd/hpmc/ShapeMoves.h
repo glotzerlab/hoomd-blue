@@ -239,8 +239,9 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
             hoomd::UniformDistribution<Scalar> uniform(
                 fmax(-this->m_step_size[type_id], -(m_params[type_id][i])),
                 fmin(this->m_step_size[type_id], (1.0 - m_params[type_id][i])));
-            Scalar x = (hoomd::detail::generate_canonical<double>(rng) < m_select_ratio) ? uniform(rng)
-                                                                                     : 0.0;
+            Scalar x = (hoomd::detail::generate_canonical<double>(rng) < m_select_ratio)
+                           ? uniform(rng)
+                           : 0.0;
             m_params[type_id][i] += x;
             }
         pybind11::object shape_data = m_python_callback(m_params[type_id]);
@@ -578,7 +579,8 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         {
         using Eigen::Matrix3d;
         Matrix3d transform;
-        if (hoomd::detail::generate_canonical<double>(rng) < m_select_ratio) // perform a scaling move
+        if (hoomd::detail::generate_canonical<double>(rng)
+            < m_select_ratio) // perform a scaling move
             {
             generateExtentional(transform, rng, this->m_step_size[type_id] + 1.0);
             }
