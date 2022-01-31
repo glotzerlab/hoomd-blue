@@ -111,12 +111,12 @@ template<typename Shape> class UpdaterShape : public Updater
 
     Scalar getMoveRatio()
         {
-        return (Scalar)m_move_ratio / 65535.0;
+        return m_move_ratio;
         }
 
     void setMoveRatio(Scalar move_ratio)
         {
-        m_move_ratio = fmin(move_ratio, 1.0) * 65535;
+        m_move_ratio = fmin(move_ratio, 1.0);
         }
 
     bool getPretend()
@@ -203,7 +203,7 @@ template<typename Shape> class UpdaterShape : public Updater
         m_box_accepted; // number of accepted moves between boxes in multi-phase simulations
     std::vector<unsigned int>
         m_box_total;           // number of attempted moves between boxes in multi-phase simulations
-    unsigned int m_move_ratio; // probability of performing a shape move
+    Scalar m_move_ratio; // probability of performing a shape move
     std::shared_ptr<ShapeMoveBase<Shape>>
         m_move_function;                             // shape move function to apply in the updater
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
@@ -229,7 +229,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   bool multiphase,
                                   unsigned int numphase)
     : Updater(sysdef), m_global_partition(0), m_type_select(tselect), m_nsweeps(nsweeps),
-      m_move_ratio(move_ratio * 65535), m_mc(mc), m_determinant(m_pdata->getNTypes(), m_exec_conf),
+      m_move_ratio(move_ratio), m_mc(mc), m_determinant(m_pdata->getNTypes(), m_exec_conf),
       m_move_function(move), m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
       m_pretend(pretend), m_initialized(false), m_multi_phase(multiphase), m_num_phase(numphase)
     {
@@ -291,7 +291,8 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
     hoomd::RandomGenerator rng(
         hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, seed),
         hoomd::Counter(m_instance));
-    unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
+
+    double move_type_select = hoomd::detail::generate_canonical<double>(rng);
     bool move = (move_type_select < m_move_ratio);
     if (!move)
         return;

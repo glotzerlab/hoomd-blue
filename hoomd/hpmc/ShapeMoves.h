@@ -210,7 +210,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
             stepsize_vector[type_i] = type_stepsize;
             }
         this->m_step_size = stepsize_vector;
-        m_select_ratio = fmin(mixratio, 1.0) * 65535;
+        m_select_ratio = fmin(mixratio, 1.0);
         this->m_det_inertia_tensor = 1.0;
         std::vector<std::vector<Scalar>> params_vector(ntypes);
         for (auto name_and_params : params)
@@ -239,7 +239,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
             hoomd::UniformDistribution<Scalar> uniform(
                 fmax(-this->m_step_size[type_id], -(m_params[type_id][i])),
                 fmin(this->m_step_size[type_id], (1.0 - m_params[type_id][i])));
-            Scalar x = (hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio) ? uniform(rng)
+            Scalar x = (hoomd::detail::generate_canonical<double>(rng) < m_select_ratio) ? uniform(rng)
                                                                                      : 0.0;
             m_params[type_id][i] += x;
             }
@@ -315,12 +315,12 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
 
     Scalar getParamRatio()
         {
-        return (Scalar)m_select_ratio / 65535.0;
+        return m_select_ratio;
         }
 
     void setParamRatio(Scalar select_ratio)
         {
-        m_select_ratio = fmin(select_ratio, 1.0) * 65535;
+        m_select_ratio = fmin(select_ratio, 1.0);
         }
 
     pybind11::object getCallback()
@@ -446,18 +446,18 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         this->m_step_size = stepsize_vector;
         m_calculated.resize(ntypes, false);
         m_centroids.resize(ntypes, vec3<Scalar>(0, 0, 0));
-        m_select_ratio = fmin(mixratio, 1.0) * 65535;
+        m_select_ratio = fmin(mixratio, 1.0);
         m_step_size_backup = this->m_step_size;
         }
 
     Scalar getParamRatio()
         {
-        return (Scalar)m_select_ratio / 65535.0;
+        return m_select_ratio;
         }
 
     void setParamRatio(Scalar param_ratio)
         {
-        m_select_ratio = fmin(param_ratio, 1.0) * 65535;
+        m_select_ratio = fmin(param_ratio, 1.0);
         }
 
     Scalar getVolume()
@@ -489,7 +489,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         // mix the shape.
         for (unsigned int i = 0; i < shape.N; i++)
             {
-            if (hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio)
+            if (hoomd::detail::generate_canonical<double>(rng) < m_select_ratio)
                 {
                 vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
                 move_translate(vert, rng, m_step_size[type_id], 3);
@@ -553,7 +553,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
                      pybind11::dict shape_params)
         : ShapeMoveBase<Shape>(sysdef, ntypes), m_mass_props(ntypes), m_k(k)
         {
-        m_select_ratio = fmin(move_ratio, 1.0) * 65535;
+        m_select_ratio = fmin(move_ratio, 1.0);
         this->m_step_size.resize(ntypes);
         std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
         m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
@@ -578,7 +578,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         {
         using Eigen::Matrix3d;
         Matrix3d transform;
-        if (hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio) // perform a scaling move
+        if (hoomd::detail::generate_canonical<double>(rng) < m_select_ratio) // perform a scaling move
             {
             generateExtentional(transform, rng, this->m_step_size[type_id] + 1.0);
             }
@@ -642,12 +642,12 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
 
     Scalar getParamRatio()
         {
-        return (Scalar)m_select_ratio / 65535.0;
+        return m_select_ratio;
         }
 
     void setParamRatio(Scalar param_ratio)
         {
-        m_select_ratio = fmin(param_ratio, 1.0) * 65535;
+        m_select_ratio = fmin(param_ratio, 1.0);
         }
 
     //! Get the stepsize
@@ -888,7 +888,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         {
         m_step_size.resize(ntypes, stepsize);
         std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
-        m_select_ratio = fmin(move_ratio, 1.0) * 65535;
+        m_select_ratio = fmin(move_ratio, 1.0);
         typename ShapeEllipsoid::param_type shape(shape_params);
         m_reference_shape = shape;
         detail::MassProperties<ShapeEllipsoid> mp(m_reference_shape);
@@ -897,12 +897,12 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
 
     Scalar getParamRatio()
         {
-        return (Scalar)m_select_ratio / 65535.0;
+        return m_select_ratio;
         }
 
     void setParamRatio(Scalar param_ratio)
         {
-        m_select_ratio = fmin(param_ratio, 1.0) * 65535;
+        m_select_ratio = fmin(param_ratio, 1.0);
         }
 
     //! Get the stepsize
