@@ -113,7 +113,7 @@ template<typename Shape> class ShapeMoveBase
         std::transform(m_step_size.begin(),
                        m_step_size.end(),
                        d.begin(),
-                       [](const Scalar& s) -> float { return s; });
+                       [](const Scalar& s) -> Scalar { return s; });
         int retval
             = gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, d.size(), 1, 0, (void*)&d[0]);
         return retval;
@@ -125,7 +125,7 @@ template<typename Shape> class ShapeMoveBase
                                  const std::shared_ptr<const ExecutionConfiguration> exec_conf,
                                  bool mpi)
         {
-        bool success;
+        bool success = true;
         std::string path = name + "stepsize";
         std::vector<float> d;
         unsigned int Ntypes = (unsigned int)this->m_step_size.size();
@@ -502,16 +502,16 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
         Scalar volume = mp.getVolume();
         vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();
-        m_scale = fast::pow(m_volume / volume, 1.0 / 3.0);
+        m_scale = (OverlapReal) fast::pow(m_volume / volume, 1.0 / 3.0);
         Scalar rsq = 0.0;
         std::vector<vec3<Scalar>> points(shape.N);
         for (unsigned int i = 0; i < shape.N; i++)
             {
-            shape.x[i] += dr.x;
+            shape.x[i] += (OverlapReal) dr.x;
             shape.x[i] *= m_scale;
-            shape.y[i] += dr.y;
+            shape.y[i] += (OverlapReal) dr.y;
             shape.y[i] *= m_scale;
-            shape.z[i] += dr.z;
+            shape.z[i] += (OverlapReal) dr.z;
             shape.z[i] *= m_scale;
             vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
             rsq = fmax(rsq, dot(vert, vert));
@@ -520,7 +520,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         mp.updateParam(shape, true);
         this->m_det_inertia_tensor = mp.getDetInertiaTensor();
         m_isoperimetric_quotient = mp.getIsoperimetricQuotient();
-        shape.diameter = 2.0 * fast::sqrt(rsq);
+        shape.diameter = OverlapReal(2.0 * fast::sqrt(rsq));
         m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
         }
 
@@ -534,7 +534,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     std::vector<Scalar> m_step_size_backup; // maximum step size
     Scalar m_select_ratio;   ;            // probability of a vertex being selected for a move
     OverlapReal m_scale;  // factor to scale the shape by to achieve desired constant volume
-    OverlapReal m_volume; // desired constant volume of each shape
+    Scalar m_volume; // desired constant volume of each shape
     std::vector<vec3<Scalar>> m_centroids; // centroid of each type of shape
     std::vector<bool> m_calculated;        // whether or not mass properties has been calculated
     };                                     // end class ConvexPolyhedronVertexShapeMove
@@ -596,7 +596,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         Scalar dsq = 0.0;
         for (unsigned int i = 0; i < param.N; i++)
             {
-            vec3<Scalar> vert(param.x[i], param.y[i], param.z[i]);
+            vec3<OverlapReal> vert(param.x[i], param.y[i], param.z[i]);
             param.x[i]
                 = transform(0, 0) * vert.x + transform(0, 1) * vert.y + transform(0, 2) * vert.z;
             param.y[i]
@@ -606,7 +606,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             vert = vec3<Scalar>(param.x[i], param.y[i], param.z[i]);
             dsq = fmax(dsq, dot(vert, vert));
             }
-        param.diameter = 2.0 * fast::sqrt(dsq);
+        param.diameter = OverlapReal(2.0 * fast::sqrt(dsq));
         m_mass_props[type_id].updateParam(
             param,
             false); // update allows caching since for some shapes a full compute is not necessary.
@@ -952,9 +952,10 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         Scalar volume = m_mass_props[type_id].getVolume();
         Scalar vol_factor = detail::MassProperties<ShapeEllipsoid>::m_vol_factor;
         Scalar b = fast::pow(volume / vol_factor / x, 1.0 / 3.0);
-        param.x = x * b;
-        param.y = b;
-        param.z = b;
+        x *= b;
+        param.x = (OverlapReal) x;
+        param.y = (OverlapReal) b;
+        param.z = (OverlapReal) b;
         }
 
     void prepare(uint64_t timestep) { }

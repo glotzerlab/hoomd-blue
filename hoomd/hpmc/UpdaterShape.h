@@ -39,7 +39,7 @@ template<typename Shape> class UpdaterShape : public Updater
 
     void initialize();
 
-    float getParticleVolume()
+    Scalar getParticleVolume()
         {
         Scalar volume = 0.0;
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::read);
@@ -51,7 +51,7 @@ template<typename Shape> class UpdaterShape : public Updater
         return volume;
         }
 
-    float getShapeMoveEnergy(uint64_t timestep)
+    Scalar getShapeMoveEnergy(uint64_t timestep)
         {
         Scalar energy = 0.0;
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
