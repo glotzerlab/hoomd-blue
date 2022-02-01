@@ -118,7 +118,8 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
 
     std::vector<std::string> getTypeShapeMapping(
         const std::vector<param_type, hoomd::detail::managed_allocator<param_type>>& params,
-        const std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>>& shape_params) const
+        const std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>>& shape_params)
+        const
         {
         std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
         Scalar4 q = make_scalar4(1, 0, 0, 0);
