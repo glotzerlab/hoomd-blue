@@ -23,7 +23,6 @@ set(_hpmc_gpu_union_shapes ShapeSphere
    )
 
 set(_hpmc_sources   module.cc
-                    module_external_field.cc
                     module_sphere.cc
                     module_convex_polygon.cc
                     module_simple_polygon.cc

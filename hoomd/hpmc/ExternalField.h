@@ -36,10 +36,12 @@ class ExternalField : public Compute
         // make a move updating m_pdata and any other system info (shape, position, orientation,
        etc.) Scalar bw2 = external->calculateBoltzmannWeight(timestep); pacc = min(1, bw2/bw1);
     */
+    /*
     virtual Scalar calculateBoltzmannWeight(uint64_t timestep)
         {
         return 0;
         }
+    */
     /*! Calculate deltaE for the whole system
         Used for box resizing
     */
@@ -98,7 +100,7 @@ template<class Shape> void export_ExternalFieldInterface(pybind11::module& m, st
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("compute", &ExternalFieldMono<Shape>::compute)
         .def("energydiff", &ExternalFieldMono<Shape>::energydiff)
-        .def("calculateBoltzmannWeight", &ExternalFieldMono<Shape>::calculateBoltzmannWeight)
+        //.def("calculateBoltzmannWeight", &ExternalFieldMono<Shape>::calculateBoltzmannWeight)
         .def("calculateDeltaE", &ExternalFieldMono<Shape>::calculateDeltaE);
     }
 

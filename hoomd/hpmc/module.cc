@@ -45,7 +45,6 @@ PYBIND11_MODULE(_hpmc, m)
 
     export_UpdaterBoxMC(m);
     export_UpdaterQuickCompress(m);
-    export_external_fields(m);
     export_wall_classes(m);
     export_wall_list(m);
 

@@ -573,6 +573,7 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         return double(0.0);
         }
 
+    /*
     Scalar calculateBoltzmannWeight(uint64_t timestep)
         {
         unsigned int numOverlaps = countOverlaps(timestep, false);
@@ -585,6 +586,7 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
             return Scalar(1.0);
             }
         }
+    */
 
     double calculateDeltaE(const Scalar4* const position_old,
                            const Scalar4* const orientation_old,
@@ -987,7 +989,10 @@ template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const s
         .def("GetCurrBoxTiltFactorXY", &ExternalFieldWall<Shape>::GetCurrBoxTiltFactorXY)
         .def("GetCurrBoxTiltFactorXZ", &ExternalFieldWall<Shape>::GetCurrBoxTiltFactorXZ)
         .def("GetCurrBoxTiltFactorYZ", &ExternalFieldWall<Shape>::GetCurrBoxTiltFactorYZ)
-        .def("SetCurrBox", &ExternalFieldWall<Shape>::SetCurrBox);
+        .def("SetCurrBox", &ExternalFieldWall<Shape>::SetCurrBox)
+        .def_property_readonly("SphereWalls", &ExternalFieldWall<Shape>::GetSphereWalls)
+        .def_property_readonly("CylinderWalls", &ExternalFieldWall<Shape>::GetCylinderWalls)
+        .def_property_readonly("PlaneWalls", &ExternalFieldWall<Shape>::GetPlaneWalls);
     }
 
 void export_wall_list(pybind11::module& m);

@@ -3,9 +3,9 @@
 
 #include "ExternalFieldWall.h"
 
-PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::SphereWall>);
-PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::CylinderWall>);
-PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::PlaneWall>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::hpmc::SphereWall>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::hpmc::CylinderWall>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::hpmc::PlaneWall>>);
 
 namespace hoomd
     {
@@ -15,7 +15,9 @@ namespace detail
     {
 void export_wall_classes(pybind11::module& m)
     {
-    pybind11::class_<hoomd::hpmc::SphereWall>(m, "SphereWall")
+    pybind11::class_<hoomd::hpmc::SphereWall, std::shared_ptr<hoomd::hpmc::SphereWall>>(
+        m,
+        "SphereWall")
         .def(pybind11::init(
                  [](hoomd::Scalar radius, pybind11::tuple origin)
                  {
@@ -37,7 +39,9 @@ void export_wall_classes(pybind11::module& m)
         .def_property_readonly("open",
                                [](const hoomd::hpmc::SphereWall& wall) { return wall.open; });
 
-    pybind11::class_<hoomd::hpmc::CylinderWall>(m, "CylinderWall")
+    pybind11::class_<hoomd::hpmc::CylinderWall, std::shared_ptr<hoomd::hpmc::CylinderWall>>(
+        m,
+        "CylinderWall")
         .def(pybind11::init(
                  [](hoomd::Scalar radius, pybind11::tuple origin, pybind11::tuple z_orientation)
                  {
@@ -66,7 +70,8 @@ void export_wall_classes(pybind11::module& m)
                                                                wall.orientation.z);
                                });
 
-    pybind11::class_<hoomd::hpmc::PlaneWall>(m, "PlaneWall")
+    pybind11::class_<hoomd::hpmc::PlaneWall, std::shared_ptr<hoomd::hpmc::PlaneWall>>(m,
+                                                                                      "PlaneWall")
         .def(pybind11::init(
                  [](pybind11::tuple origin, pybind11::tuple normal)
                  {
@@ -92,9 +97,12 @@ void export_wall_classes(pybind11::module& m)
 
 void export_wall_list(pybind11::module& m)
     {
-    pybind11::bind_vector<std::vector<hoomd::hpmc::SphereWall>>(m, "SphereWallList");
-    pybind11::bind_vector<std::vector<hoomd::hpmc::CylinderWall>>(m, "CylinderWallList");
-    pybind11::bind_vector<std::vector<hoomd::hpmc::PlaneWall>>(m, "PlaneWallList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<hoomd::hpmc::SphereWall>>>(m,
+                                                                                 "SphereWallList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<hoomd::hpmc::CylinderWall>>>(
+        m,
+        "CylinderWallList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<hoomd::hpmc::PlaneWall>>>(m, "PlaneWallList");
     }
 
     } // end namespace detail
