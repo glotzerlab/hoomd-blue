@@ -645,175 +645,19 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         m_box = newBox;
         }
 
-    std::tuple<Scalar, vec3<Scalar>, bool> GetSphereWallParameters(size_t index)
-        {
-        SphereWall w = GetSphereWall(index);
-        return std::make_tuple(w.rsq, w.origin, w.inside);
-        }
-
-    pybind11::tuple GetSphereWallParametersPy(size_t index)
-        {
-        Scalar rsq;
-        vec3<Scalar> origin;
-        bool inside;
-        pybind11::list pyorigin;
-        std::tuple<Scalar, vec3<Scalar>, bool> t = GetSphereWallParameters(index);
-        std::tie(rsq, origin, inside) = t;
-        pyorigin.append(pybind11::cast(origin.x));
-        pyorigin.append(pybind11::cast(origin.y));
-        pyorigin.append(pybind11::cast(origin.z));
-        return pybind11::make_tuple(rsq, pyorigin, inside);
-        }
-
-    std::tuple<Scalar, vec3<Scalar>, vec3<Scalar>, bool> GetCylinderWallParameters(size_t index)
-        {
-        CylinderWall w = GetCylinderWall(index);
-        return std::make_tuple(w.rsq, w.origin, w.orientation, w.inside);
-        }
-
-    pybind11::tuple GetCylinderWallParametersPy(size_t index)
-        {
-        Scalar rsq;
-        vec3<Scalar> origin;
-        vec3<Scalar> orientation;
-        bool inside;
-        pybind11::list pyorigin;
-        pybind11::list pyorientation;
-        std::tuple<Scalar, vec3<Scalar>, vec3<Scalar>, bool> t = GetCylinderWallParameters(index);
-        std::tie(rsq, origin, orientation, inside) = t;
-        pyorigin.append(pybind11::cast(origin.x));
-        pyorigin.append(pybind11::cast(origin.y));
-        pyorigin.append(pybind11::cast(origin.z));
-        pyorientation.append(pybind11::cast(orientation.x));
-        pyorientation.append(pybind11::cast(orientation.y));
-        pyorientation.append(pybind11::cast(orientation.z));
-        return pybind11::make_tuple(rsq, pyorigin, pyorientation, inside);
-        }
-
-    std::tuple<vec3<Scalar>, vec3<Scalar>> GetPlaneWallParameters(size_t index)
-        {
-        PlaneWall w = GetPlaneWall(index);
-        return std::make_tuple(w.normal, w.origin);
-        }
-
-    pybind11::tuple GetPlaneWallParametersPy(size_t index)
-        {
-        vec3<Scalar> normal;
-        vec3<Scalar> origin;
-        pybind11::list pynormal;
-        pybind11::list pyorigin;
-        std::tuple<vec3<Scalar>, vec3<Scalar>> t = GetPlaneWallParameters(index);
-        std::tie(normal, origin) = t;
-        pynormal.append(pybind11::cast(normal.x));
-        pynormal.append(pybind11::cast(normal.y));
-        pynormal.append(pybind11::cast(normal.z));
-        pyorigin.append(pybind11::cast(origin.x));
-        pyorigin.append(pybind11::cast(origin.y));
-        pyorigin.append(pybind11::cast(origin.z));
-        return pybind11::make_tuple(pynormal, pyorigin);
-        }
-
-    const std::vector<SphereWall>& GetSphereWalls()
+    std::vector<SphereWall>& GetSphereWalls()
         {
         return m_Spheres;
         }
 
-    const SphereWall& GetSphereWall(size_t index)
-        {
-        if (index >= m_Spheres.size())
-            throw std::runtime_error("Out of bounds of sphere walls.");
-        return m_Spheres[index];
-        }
-
-    const std::vector<CylinderWall>& GetCylinderWalls()
+    std::vector<CylinderWall>& GetCylinderWalls()
         {
         return m_Cylinders;
         }
 
-    const CylinderWall& GetCylinderWall(size_t index)
-        {
-        if (index >= m_Cylinders.size())
-            throw std::runtime_error("Out of bounds of cylinder walls.");
-        return m_Cylinders[index];
-        }
-
-    const std::vector<PlaneWall>& GetPlaneWalls()
+    std::vector<PlaneWall>& GetPlaneWalls()
         {
         return m_Planes;
-        }
-
-    const PlaneWall& GetPlaneWall(size_t index)
-        {
-        if (index >= m_Planes.size())
-            throw std::runtime_error("Out of bounds of plane walls.");
-        return m_Planes[index];
-        }
-
-    void SetSphereWallParameter(size_t index, const SphereWall& wall)
-        {
-        if (index >= m_Spheres.size())
-            throw std::runtime_error("Out of bounds of sphere walls.");
-        m_Spheres[index] = wall;
-        }
-
-    void SetCylinderWallParameter(size_t index, const CylinderWall& wall)
-        {
-        if (index >= m_Cylinders.size())
-            throw std::runtime_error("Out of bounds of cylinder walls.");
-        m_Cylinders[index] = wall;
-        }
-
-    void SetPlaneWallParameter(size_t index, const PlaneWall& wall)
-        {
-        if (index >= m_Planes.size())
-            throw std::runtime_error("Out of bounds of plane walls.");
-        m_Planes[index] = wall;
-        }
-
-    void SetSphereWalls(const std::vector<SphereWall>& Spheres)
-        {
-        m_Spheres = Spheres;
-        }
-
-    void SetCylinderWalls(const std::vector<CylinderWall>& Cylinders)
-        {
-        m_Cylinders = Cylinders;
-        }
-
-    void SetPlaneWalls(const std::vector<PlaneWall>& Planes)
-        {
-        m_Planes = Planes;
-        }
-
-    void AddSphereWall(const SphereWall& wall)
-        {
-        m_Spheres.push_back(wall);
-        }
-
-    void AddCylinderWall(const CylinderWall& wall)
-        {
-        m_Cylinders.push_back(wall);
-        }
-
-    void AddPlaneWall(const PlaneWall& wall)
-        {
-        m_Planes.push_back(wall);
-        }
-
-    // is this messy ...
-    void RemoveSphereWall(size_t index)
-        {
-        m_Spheres.erase(m_Spheres.begin() + index);
-        }
-
-    void RemoveCylinderWall(size_t index)
-        {
-        m_Cylinders.erase(m_Cylinders.begin() + index);
-        }
-
-    void RemovePlaneWall(size_t index)
-        {
-        m_Planes.erase(m_Planes.begin() + index);
         }
 
     bool wall_overlap(const unsigned int& index,
@@ -888,19 +732,6 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         return m_Volume;
         }
 
-    size_t getNumSphereWalls()
-        {
-        return m_Spheres.size();
-        }
-    size_t getNumCylinderWalls()
-        {
-        return m_Cylinders.size();
-        }
-    size_t getNumPlaneWalls()
-        {
-        return m_Planes.size();
-        }
-
     bool hasVolume()
         {
         return true;
@@ -951,22 +782,6 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         wall.verts->z[1] = OverlapReal(v0.z);
         wall.verts->diameter
             = OverlapReal(2.0 * (shape.getCircumsphereDiameter() + wall.verts->sweep_radius));
-        }
-    std::string getSphWallParamName(size_t i)
-        {
-        std::stringstream ss;
-        std::string snum;
-        ss << i;
-        ss >> snum;
-        return "hpmc_wall_sph_rsq-" + snum;
-        }
-    std::string getCylWallParamName(size_t i)
-        {
-        std::stringstream ss;
-        std::string snum;
-        ss << i;
-        ss >> snum;
-        return "hpmc_wall_cyl_rsq-" + snum;
         }
 
     protected:
