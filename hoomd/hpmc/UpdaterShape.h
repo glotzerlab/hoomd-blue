@@ -26,7 +26,6 @@ template<typename Shape> class UpdaterShape : public Updater
     UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                  std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                  std::shared_ptr<ShapeMoveBase<Shape>> move,
-                 Scalar move_ratio,
                  unsigned int tselect,
                  unsigned int nsweeps,
                  bool pretend,
@@ -109,16 +108,6 @@ template<typename Shape> class UpdaterShape : public Updater
 
     std::shared_ptr<ShapeMoveBase<Shape>> getShapeMove();
 
-    Scalar getMoveRatio()
-        {
-        return m_move_ratio;
-        }
-
-    void setMoveRatio(Scalar move_ratio)
-        {
-        m_move_ratio = fmin(move_ratio, 1.0);
-        }
-
     bool getPretend()
         {
         return m_pretend;
@@ -195,7 +184,6 @@ template<typename Shape> class UpdaterShape : public Updater
     private:
         std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
         std::shared_ptr<ShapeMoveBase<Shape>> m_move_function; // shape move function to apply in the updater
-        Scalar m_move_ratio; // probability of performing a shape move
         unsigned int m_type_select;  // number of particle types to update in each move
         unsigned int m_nsweeps;      // number of sweeps to run the updater each time it is called
         bool m_pretend;                     // whether or not to pretend or actually perform shape move
@@ -221,13 +209,12 @@ template<class Shape>
 UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                                   std::shared_ptr<ShapeMoveBase<Shape>> move,
-                                  Scalar move_ratio,
                                   unsigned int tselect,
                                   unsigned int nsweeps,
                                   bool pretend,
                                   bool multiphase,
                                   unsigned int numphase)
-    : Updater(sysdef), m_mc(mc), m_move_function(move), m_move_ratio(move_ratio), m_type_select(tselect),
+    : Updater(sysdef), m_mc(mc), m_move_function(move), m_type_select(tselect),
       m_nsweeps(nsweeps), m_pretend(pretend), m_multi_phase(multiphase), m_num_phase(numphase), m_global_partition(0),
       m_determinant(m_pdata->getNTypes(), m_exec_conf), m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0), m_initialized(false)
     {
@@ -290,10 +277,6 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
         hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, seed),
         hoomd::Counter(m_instance));
 
-    double move_type_select = hoomd::detail::generate_canonical<double>(rng);
-    bool move = (move_type_select < m_move_ratio);
-    if (!move)
-        return;
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "UpdaterShape update");
 
@@ -728,7 +711,6 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             std::shared_ptr<ShapeMoveBase<Shape>>,
-                            Scalar,
                             unsigned int,
                             unsigned int,
                             bool,
@@ -739,15 +721,12 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
         .def_property_readonly("particle_volume", &UpdaterShape<Shape>::getParticleVolume)
         .def("getShapeMoveEnergy", &UpdaterShape<Shape>::getShapeMoveEnergy)
         // .def("getShapeParam", &UpdaterShape<Shape>::getShapeParam)
-        .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)
+        // .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)
         .def("connectGSDStateSignal", &UpdaterShape<Shape>::connectGSDStateSignal)
         .def("restoreStateGSD", &UpdaterShape<Shape>::restoreStateGSD)
         .def_property("shape_move",
                       &UpdaterShape<Shape>::getShapeMove,
                       &UpdaterShape<Shape>::setShapeMove)
-        .def_property("move_ratio",
-                      &UpdaterShape<Shape>::getMoveRatio,
-                      &UpdaterShape<Shape>::setMoveRatio)
         .def_property("pretend", &UpdaterShape<Shape>::getPretend, &UpdaterShape<Shape>::setPretend)
         .def_property("nselect", &UpdaterShape<Shape>::getNselect, &UpdaterShape<Shape>::setNselect)
         .def_property("nsweeps", &UpdaterShape<Shape>::getNsweeps, &UpdaterShape<Shape>::setNsweeps)

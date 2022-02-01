@@ -480,8 +480,6 @@ class Shape(Updater):
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
 
-        move_ratio (float): Fraction of steps to run the updater.
-
         trigger (Trigger): Call the updater on triggered time steps.
 
         pretend (bool): When True the updater will not actually update the shape
@@ -509,7 +507,6 @@ class Shape(Updater):
                                                    param_ratio=0.2,
                                                    volume=1.0)
         updater = hoomd.hpmc.update.Shape(shape_move=vertex_move,
-                                          move_ratio=1.0,
                                           trigger=hoomd.trigger.Periodic(1),
                                           nselect=1,
                                           nsweeps=1,
@@ -520,8 +517,6 @@ class Shape(Updater):
 
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
-
-        move_ratio (float): Fraction of steps to run the updater.
 
         trigger (Trigger): Call the updater on triggered time steps.
 
@@ -544,7 +539,6 @@ class Shape(Updater):
 
     def __init__(self,
                  shape_move,
-                 move_ratio,
                  trigger=hoomd.trigger.Periodic(1),
                  pretend=False,
                  nselect=1,
@@ -553,7 +547,6 @@ class Shape(Updater):
                  num_phase=1):
         super().__init__(trigger)
         param_dict = ParameterDict(shape_move=hoomd.hpmc.shape_move.ShapeMove,
-                                   move_ratio=float(move_ratio),
                                    pretend=bool(pretend),
                                    nselect=int(nselect),
                                    nsweeps=int(nsweeps),
@@ -618,7 +611,7 @@ class Shape(Updater):
         self._attach_shape_move(self._simulation)
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     integrator._cpp_obj,
-                                    self.shape_move._cpp_obj, self.move_ratio,
+                                    self.shape_move._cpp_obj,
                                     self._simulation.seed, self.nselect,
                                     self.nsweeps, self.pretend,
                                     self.multi_phase, self.num_phase)
