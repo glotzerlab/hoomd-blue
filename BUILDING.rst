@@ -8,7 +8,7 @@ To build the **HOOMD-blue** Python package from source:
 
 1. `Install prerequisites`_::
 
-   $ <package-manager> install cmake eigen git python numpy pybind11
+   $ <package-manager> install cmake eigen git python numpy pybind11 coxeter
 
 2. `Obtain the source`_::
 
