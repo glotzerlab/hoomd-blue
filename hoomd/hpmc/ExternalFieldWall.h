@@ -115,6 +115,7 @@ struct CylinderWall
 
 struct PlaneWall
     {
+    // Todo have consistent signature with MD (origin, normal, inside)
     PlaneWall(vec3<Scalar> nvec, vec3<Scalar> pt, bool ins = true)
         : normal(nvec), origin(pt), inside(ins)
         {

@@ -67,12 +67,12 @@ void export_wall_classes(pybind11::module& m)
                  [](pybind11::tuple origin, pybind11::tuple normal)
                  {
                      return hoomd::hpmc::PlaneWall(
-                         hoomd::vec3<hoomd::Scalar>(origin[0].cast<hoomd::Scalar>(),
-                                                    origin[1].cast<hoomd::Scalar>(),
-                                                    origin[2].cast<hoomd::Scalar>()),
                          hoomd::vec3<hoomd::Scalar>(normal[0].cast<hoomd::Scalar>(),
                                                     normal[1].cast<hoomd::Scalar>(),
-                                                    normal[2].cast<hoomd::Scalar>()));
+                                                    normal[2].cast<hoomd::Scalar>()),
+                         hoomd::vec3<hoomd::Scalar>(origin[0].cast<hoomd::Scalar>(),
+                                                    origin[1].cast<hoomd::Scalar>(),
+                                                    origin[2].cast<hoomd::Scalar>()));
                  }),
              pybind11::arg("origin"),
              pybind11::arg("normal"))
