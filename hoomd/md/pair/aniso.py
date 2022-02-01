@@ -340,7 +340,7 @@ class ALJ(AnisotropicPair):
     .. py:attribute:: shape
 
         The shape of a given type. The dictionary has the following keys per
-        type.
+        type:
 
         * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
           **required**) - The vertices of a convex polytope in 2 or 3
@@ -437,9 +437,7 @@ class ALJ(AnisotropicPair):
         """Compute vertices and faces of a convex hull of given vertices.
 
         Warning:
-            This method requires the ``coxeter`` package which is available on
-            PyPi and conda-forge by that name, and can be found on GitHub under
-            ``glotzerlab/coxeter``.
+            This method requires the `coxeter <https://coxeter.readthedocs.io/>`_ package.
 
         Args:
             vertices (:math:`(N_v, 3)` numpy.ndarray of float): The vertices to
