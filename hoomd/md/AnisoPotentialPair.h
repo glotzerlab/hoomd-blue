@@ -32,8 +32,6 @@
 
 #include <pybind11/pybind11.h>
 
-using namespace hoomd::detail;
-
 namespace hoomd
     {
 namespace md
@@ -119,8 +117,8 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     virtual void setShapePython(std::string typ, const pybind11::object shape_param);
 
     std::vector<std::string> getTypeShapeMapping(
-        const std::vector<param_type, managed_allocator<param_type>>& params,
-        const std::vector<shape_type, managed_allocator<shape_type>>& shape_params) const
+        const std::vector<param_type, hoomd::detail::managed_allocator<param_type>>& params,
+        const std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>>& shape_params) const
         {
         std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
         Scalar4 q = make_scalar4(1, 0, 0, 0);
@@ -216,9 +214,9 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut
     Index2D m_typpair_idx;        //!< Helper class for indexing per type pair arrays
     GlobalArray<Scalar> m_rcutsq; //!< Cutoff radius squared per type pair
-    std::vector<param_type, managed_allocator<param_type>>
+    std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_params; //!< Pair parameters per type pair
-    std::vector<shape_type, managed_allocator<shape_type>>
+    std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>>
         m_shape_params;      //!< Shape paramters per type
     std::string m_prof_name; //!< Cached profiler name
 
@@ -270,16 +268,16 @@ AnisoPotentialPair<aniso_evaluator>::AnisoPotentialPair(std::shared_ptr<SystemDe
     GlobalArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
     GlobalArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
-    std::vector<param_type, managed_allocator<param_type>> params(
+    std::vector<param_type, hoomd::detail::managed_allocator<param_type>> params(
         static_cast<size_t>(m_typpair_idx.getNumElements()),
         param_type(),
-        managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
+        hoomd::detail::managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
     m_params.swap(params);
 
-    std::vector<shape_type, managed_allocator<shape_type>> shape_params(
+    std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>> shape_params(
         static_cast<size_t>(m_pdata->getNTypes()),
         shape_type(),
-        managed_allocator<shape_type>(m_exec_conf->isCUDAEnabled()));
+        hoomd::detail::managed_allocator<shape_type>(m_exec_conf->isCUDAEnabled()));
     m_shape_params.swap(shape_params);
 
     m_r_cut_nlist
