@@ -135,7 +135,21 @@ struct PlaneWall
     bool inside;         // not used
     Scalar d;            // ax + by + cz + d =  0
     };
+    } // namespace hpmc
+    } // namespace hoomd
 
+#ifndef __HIPCC__
+// This is required to be here before any uses of these vectors to work
+// correctly.
+PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::SphereWall>);
+PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::CylinderWall>);
+PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::PlaneWall>);
+#endif
+
+namespace hoomd
+    {
+namespace hpmc
+    {
 template<class WallShape, class ParticleShape>
 DEVICE inline bool test_confined(const WallShape& wall,
                                  const ParticleShape& shape,
@@ -967,6 +981,7 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
     } // namespace hpmc
     } // namespace hoomd
 
+#ifndef __HIPCC__
 namespace hoomd
     {
 namespace hpmc
@@ -1000,5 +1015,6 @@ void export_wall_classes(pybind11::module& m);
     } // end namespace detail
     } // namespace hpmc
     } // end namespace hoomd
+#endif
 #undef DEVICE
 #endif // inclusion guard
