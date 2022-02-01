@@ -194,6 +194,7 @@ template<typename Shape> class UpdaterShape : public Updater
         GPUArray<unsigned int> m_ntypes;    // number of particle types in the simulation
         unsigned int m_num_params;          // number of shape parameters to calculate
         bool m_initialized;                 // whether or not the updater has been initialized
+        std::vector<Scalar> m_step_size; // shape move stepsize
         std::vector<unsigned int> m_count_accepted; // number of accepted updater moves
         std::vector<unsigned int> m_count_total;    // number of attempted updater moves
         std::vector<unsigned int>
@@ -218,6 +219,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
       m_nsweeps(nsweeps), m_pretend(pretend), m_multi_phase(multiphase), m_num_phase(numphase), m_global_partition(0),
       m_determinant(m_pdata->getNTypes(), m_exec_conf), m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0), m_initialized(false)
     {
+    m_step_size.resize(m_pdata->getNTypes(), 0);
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
     m_box_accepted.resize(m_pdata->getNTypes(), 0);
@@ -312,14 +314,14 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
         GPUArray<Scalar> determinant_backup(m_determinant);
         m_move_function->prepare(timestep);
 
-        std::vector<Scalar> stepsize = m_move_function->getStepSizeArray();
+        // std::vector<Scalar> stepsize = m_move_function->getStepSizeArray();
 
         for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
             {
             // make a trial move for i
             unsigned int typ_i = m_update_order[cur_type];
             // Skip move if step size is smaller than tolerance
-            if (stepsize[typ_i] < m_tol)
+            if (m_step_size[typ_i] < m_tol)
                 {
                 m_exec_conf->msg->notice(5) << " Skipping moves for particle typeid=" << typ_i
                                             << ", " << cur_type << std::endl;
@@ -417,14 +419,14 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                                                  access_location::host,
                                                  access_mode::read);
 
-            std::vector<Scalar> stepsize = m_move_function->getStepSizeArray();
+            // std::vector<Scalar> stepsize = m_move_function->getStepSizeArray();
 
             // Loop over particles corresponding to m_type_select
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
                 Scalar4 postype_i = h_postype.data[i];
                 unsigned int typ_i = __scalar_as_int(postype_i.w);
-                if (stepsize[typ_i] < m_tol)
+                if (m_step_size[typ_i] < m_tol)
                     continue;
                 for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
                     {
