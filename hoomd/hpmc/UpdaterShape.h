@@ -182,28 +182,29 @@ template<typename Shape> class UpdaterShape : public Updater
     bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
 
     private:
-        std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
-        std::shared_ptr<ShapeMoveBase<Shape>> m_move_function; // shape move function to apply in the updater
-        unsigned int m_type_select;  // number of particle types to update in each move
-        unsigned int m_nsweeps;      // number of sweeps to run the updater each time it is called
-        bool m_pretend;                     // whether or not to pretend or actually perform shape move
-        bool m_multi_phase;                 // whether or not the simulation is multi-phase
-        unsigned int m_num_phase;           // number of phases in a multi-phase simulation
-        int m_global_partition;      // number of MPI partitions
-        GPUArray<Scalar> m_determinant;     // determinant of the shape's moment of inertia tensor
-        GPUArray<unsigned int> m_ntypes;    // number of particle types in the simulation
-        unsigned int m_num_params;          // number of shape parameters to calculate
-        bool m_initialized;                 // whether or not the updater has been initialized
-        std::vector<Scalar> m_step_size; // shape move stepsize
-        std::vector<unsigned int> m_count_accepted; // number of accepted updater moves
-        std::vector<unsigned int> m_count_total;    // number of attempted updater moves
-        std::vector<unsigned int>
-            m_box_accepted; // number of accepted moves between boxes in multi-phase simulations
-        std::vector<unsigned int>
-            m_box_total;     // number of attempted moves between boxes in multi-phase simulations
-        detail::UpdateOrder m_update_order; // order of particle types to apply the updater to
-        unsigned int m_instance = 0; //!< Unique ID for RNG seeding
-        static constexpr Scalar m_tol = 0.00001; // minimum move size required to not be ignored.
+    std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
+    std::shared_ptr<ShapeMoveBase<Shape>>
+        m_move_function;             // shape move function to apply in the updater
+    unsigned int m_type_select;      // number of particle types to update in each move
+    unsigned int m_nsweeps;          // number of sweeps to run the updater each time it is called
+    bool m_pretend;                  // whether or not to pretend or actually perform shape move
+    bool m_multi_phase;              // whether or not the simulation is multi-phase
+    unsigned int m_num_phase;        // number of phases in a multi-phase simulation
+    int m_global_partition;          // number of MPI partitions
+    GPUArray<Scalar> m_determinant;  // determinant of the shape's moment of inertia tensor
+    GPUArray<unsigned int> m_ntypes; // number of particle types in the simulation
+    unsigned int m_num_params;       // number of shape parameters to calculate
+    bool m_initialized;              // whether or not the updater has been initialized
+    std::vector<Scalar> m_step_size; // shape move stepsize
+    std::vector<unsigned int> m_count_accepted; // number of accepted updater moves
+    std::vector<unsigned int> m_count_total;    // number of attempted updater moves
+    std::vector<unsigned int>
+        m_box_accepted; // number of accepted moves between boxes in multi-phase simulations
+    std::vector<unsigned int>
+        m_box_total; // number of attempted moves between boxes in multi-phase simulations
+    detail::UpdateOrder m_update_order;      // order of particle types to apply the updater to
+    unsigned int m_instance = 0;             //!< Unique ID for RNG seeding
+    static constexpr Scalar m_tol = 0.00001; // minimum move size required to not be ignored.
     };
 
 template<class Shape>
@@ -215,9 +216,10 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   bool pretend,
                                   bool multiphase,
                                   unsigned int numphase)
-    : Updater(sysdef), m_mc(mc), m_move_function(move), m_type_select(tselect),
-      m_nsweeps(nsweeps), m_pretend(pretend), m_multi_phase(multiphase), m_num_phase(numphase), m_global_partition(0),
-      m_determinant(m_pdata->getNTypes(), m_exec_conf), m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0), m_initialized(false)
+    : Updater(sysdef), m_mc(mc), m_move_function(move), m_type_select(tselect), m_nsweeps(nsweeps),
+      m_pretend(pretend), m_multi_phase(multiphase), m_num_phase(numphase), m_global_partition(0),
+      m_determinant(m_pdata->getNTypes(), m_exec_conf), m_ntypes(m_pdata->getNTypes(), m_exec_conf),
+      m_num_params(0), m_initialized(false)
     {
     m_step_size.resize(m_pdata->getNTypes(), 0);
     m_count_accepted.resize(m_pdata->getNTypes(), 0);

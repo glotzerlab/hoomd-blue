@@ -42,8 +42,10 @@ template<typename Shape> class ShapeMoveBase
         }
 
     //! construct is called for each particle type that will be changed in update()
-    virtual void
-    update_shape(uint64_t, const unsigned int&, typename Shape::param_type&, hoomd::RandomGenerator&)
+    virtual void update_shape(uint64_t,
+                              const unsigned int&,
+                              typename Shape::param_type&,
+                              hoomd::RandomGenerator&)
         {
         throw std::runtime_error("Shape move function not implemented.");
         }
@@ -230,9 +232,9 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         }
 
     void update_shape(uint64_t timestep,
-                   const unsigned int& type_id,
-                   typename Shape::param_type& shape,
-                   hoomd::RandomGenerator& rng)
+                      const unsigned int& type_id,
+                      typename Shape::param_type& shape,
+                      hoomd::RandomGenerator& rng)
         {
         for (unsigned int i = 0; i < m_params[type_id].size(); i++)
             {
@@ -380,9 +382,9 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
     void prepare(uint64_t timestep) { }
 
     void update_shape(uint64_t timestep,
-                   const unsigned int& type_id,
-                   typename Shape::param_type& shape,
-                   hoomd::RandomGenerator& rng)
+                      const unsigned int& type_id,
+                      typename Shape::param_type& shape,
+                      hoomd::RandomGenerator& rng)
         {
         shape = m_shape_moves[type_id];
         this->m_det_inertia_tensor = m_determinants[type_id];
@@ -478,9 +480,9 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         }
 
     void update_shape(uint64_t timestep,
-                   const unsigned int& type_id,
-                   typename ShapeConvexPolyhedron::param_type& shape,
-                   hoomd::RandomGenerator& rng)
+                      const unsigned int& type_id,
+                      typename ShapeConvexPolyhedron::param_type& shape,
+                      hoomd::RandomGenerator& rng)
         {
         if (!m_calculated[type_id])
             {
@@ -572,9 +574,9 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
 
     //! construct is called at the beginning of every update()
     void update_shape(uint64_t timestep,
-                   const unsigned int& type_id,
-                   typename Shape::param_type& param,
-                   hoomd::RandomGenerator& rng)
+                      const unsigned int& type_id,
+                      typename Shape::param_type& param,
+                      hoomd::RandomGenerator& rng)
         {
         using Eigen::Matrix3d;
         Matrix3d transform;
@@ -944,9 +946,9 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         }
 
     void update_shape(uint64_t timestep,
-                   const unsigned int& type_id,
-                   typename ShapeEllipsoid::param_type& param,
-                   hoomd::RandomGenerator& rng)
+                      const unsigned int& type_id,
+                      typename ShapeEllipsoid::param_type& param,
+                      hoomd::RandomGenerator& rng)
         {
         Scalar lnx = log(param.x / param.y);
         Scalar dlnx
