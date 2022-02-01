@@ -31,44 +31,6 @@ namespace hpmc
     {
 namespace detail
     {
-// NOTE: I am only exporting 3d shapes for now because I think the 2d ones need some tweaking (how
-// to do this generally?)
-
-SphereWall make_sphere_wall(Scalar r, pybind11::list origin, bool inside)
-    {
-    vec3<Scalar> orig;
-    orig.x = pybind11::cast<Scalar>(origin[0]);
-    orig.y = pybind11::cast<Scalar>(origin[1]);
-    orig.z = pybind11::cast<Scalar>(origin[2]);
-    return SphereWall(r, orig, inside);
-    }
-
-CylinderWall
-make_cylinder_wall(Scalar r, pybind11::list origin, pybind11::list orientation, bool inside)
-    {
-    vec3<Scalar> orig;
-    orig.x = pybind11::cast<Scalar>(origin[0]);
-    orig.y = pybind11::cast<Scalar>(origin[1]);
-    orig.z = pybind11::cast<Scalar>(origin[2]);
-    vec3<Scalar> orient;
-    orient.x = pybind11::cast<Scalar>(orientation[0]);
-    orient.y = pybind11::cast<Scalar>(orientation[1]);
-    orient.z = pybind11::cast<Scalar>(orientation[2]);
-    return CylinderWall(r, orig, orient, inside);
-    }
-
-PlaneWall make_plane_wall(pybind11::list norm, pybind11::list origin, bool inside)
-    {
-    vec3<Scalar> orig;
-    orig.x = pybind11::cast<Scalar>(origin[0]);
-    orig.y = pybind11::cast<Scalar>(origin[1]);
-    orig.z = pybind11::cast<Scalar>(origin[2]);
-    vec3<Scalar> normal;
-    normal.x = pybind11::cast<Scalar>(norm[0]);
-    normal.y = pybind11::cast<Scalar>(norm[1]);
-    normal.z = pybind11::cast<Scalar>(norm[2]);
-    return PlaneWall(normal, orig, inside);
-    }
 
 void export_walls(pybind11::module& m)
     {
