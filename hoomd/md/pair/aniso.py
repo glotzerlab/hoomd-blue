@@ -437,7 +437,8 @@ class ALJ(AnisotropicPair):
         """Compute vertices and faces of a convex hull of given vertices.
 
         Warning:
-            This method requires the `coxeter <https://coxeter.readthedocs.io/>`_ package.
+            This method requires the
+            `coxeter <https://coxeter.readthedocs.io/>`_ package.
 
         Args:
             vertices (:math:`(N_v, 3)` numpy.ndarray of float): The vertices to
