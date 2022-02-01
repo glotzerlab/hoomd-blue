@@ -43,7 +43,7 @@ template<typename Shape> class ShapeMoveBase
 
     //! construct is called for each particle type that will be changed in update()
     virtual void
-    construct(uint64_t, const unsigned int&, typename Shape::param_type&, hoomd::RandomGenerator&)
+    update_shape(uint64_t, const unsigned int&, typename Shape::param_type&, hoomd::RandomGenerator&)
         {
         throw std::runtime_error("Shape move function not implemented.");
         }
@@ -229,7 +229,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         m_params_backup = m_params;
         }
 
-    void construct(uint64_t timestep,
+    void update_shape(uint64_t timestep,
                    const unsigned int& type_id,
                    typename Shape::param_type& shape,
                    hoomd::RandomGenerator& rng)
@@ -377,7 +377,7 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
 
     void prepare(uint64_t timestep) { }
 
-    void construct(uint64_t timestep,
+    void update_shape(uint64_t timestep,
                    const unsigned int& type_id,
                    typename Shape::param_type& shape,
                    hoomd::RandomGenerator& rng)
@@ -475,7 +475,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         m_step_size_backup = m_step_size;
         }
 
-    void construct(uint64_t timestep,
+    void update_shape(uint64_t timestep,
                    const unsigned int& type_id,
                    typename ShapeConvexPolyhedron::param_type& shape,
                    hoomd::RandomGenerator& rng)
@@ -568,7 +568,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
 
     //! construct is called at the beginning of every update()
-    void construct(uint64_t timestep,
+    void update_shape(uint64_t timestep,
                    const unsigned int& type_id,
                    typename Shape::param_type& param,
                    hoomd::RandomGenerator& rng)
@@ -939,7 +939,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         return m_reference_shape.asDict();
         }
 
-    void construct(uint64_t timestep,
+    void update_shape(uint64_t timestep,
                    const unsigned int& type_id,
                    typename ShapeEllipsoid::param_type& param,
                    hoomd::RandomGenerator& rng)
