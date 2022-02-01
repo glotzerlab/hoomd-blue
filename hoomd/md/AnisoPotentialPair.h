@@ -286,12 +286,8 @@ AnisoPotentialPair<aniso_evaluator>::AnisoPotentialPair(std::shared_ptr<SystemDe
     nlist->addRCutMatrix(m_r_cut_nlist);
 
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
+    if (m_exec_conf->isCUDAEnabled())
         {
-        cudaMemAdvise(m_rcutsq.get(),
-                      m_rcutsq.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
         cudaMemAdvise(m_params.data(),
                       m_params.size() * sizeof(param_type),
                       cudaMemAdviseSetReadMostly,
@@ -307,15 +303,28 @@ AnisoPotentialPair<aniso_evaluator>::AnisoPotentialPair(std::shared_ptr<SystemDe
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
             // prefetch data on all GPUs
-            cudaMemPrefetchAsync(m_rcutsq.get(),
-                                 sizeof(Scalar) * m_rcutsq.getNumElements(),
-                                 gpu_map[idev]);
             cudaMemPrefetchAsync(m_params.data(),
                                  sizeof(param_type) * m_params.size(),
                                  gpu_map[idev]);
             cudaMemPrefetchAsync(m_shape_params.data(),
                                  sizeof(shape_type) * m_shape_params.size(),
                                  gpu_map[idev]);
+            }
+
+        if (m_exec_conf->allConcurrentManagedAccess())
+            {
+            cudaMemAdvise(m_rcutsq.get(),
+                          m_rcutsq.getNumElements() * sizeof(Scalar),
+                          cudaMemAdviseSetReadMostly,
+                          0);
+
+            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+                {
+                // prefetch data on all GPUs
+                cudaMemPrefetchAsync(m_rcutsq.get(),
+                                     sizeof(Scalar) * m_rcutsq.getNumElements(),
+                                     gpu_map[idev]);
+                }
             }
         }
 #endif
