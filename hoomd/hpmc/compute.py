@@ -52,6 +52,11 @@ class FreeVolume(Compute):
         `FreeVolume` respects the ``interaction_matrix`` set in the HPMC
         integrator.
 
+    .. rubric:: Mixed precision
+
+    `FreeVolume` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
+
     Examples::
 
         fv = hoomd.hpmc.compute.FreeVolume(test_particle_type='B',
@@ -144,6 +149,11 @@ class SDF(Compute):
 
     Note:
         `SDF` runs on the CPU even in GPU simulations.
+
+    .. rubric:: Mixed precision
+
+    `SDF` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
 
     Attributes:
         xmax (float): Maximum *x* value at the right hand side of the rightmost
