@@ -9,6 +9,31 @@ import hoomd.conftest
 from hoomd import md
 
 
+class ConservationDataStorer(hoomd.custom.Action):
+    """Store energy and velocities from a simulation."""
+
+    def __init__(self, sim, thermo):
+        self._sim = sim
+        self._thermo = thermo
+        self._velocities = []
+        self._energies = []
+
+    def act(self, timestep):
+        with self._sim.state.cpu_local_snapshot as snap:
+            self._energies.append(self._thermo.potential_energy
+                                  + self._thermo.kinetic_energy)
+            self._velocities.append(np.array(snap.particles.velocity,
+                                             copy=True))
+
+    @property
+    def velocities(self):
+        return np.array(self._velocities)
+
+    @property
+    def total_energies(self):
+        return np.array(self._energies)
+
+
 @pytest.mark.validate
 def test_conservation(simulation_factory, lattice_snapshot_factory):
     # For test, use a unit area hexagon.
@@ -29,7 +54,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
         lattice_snapshot_factory(a=4 * circumcircle_diameter,
                                  n=10,
                                  dimensions=2))
-    sim.seed = 123
+    sim.seed = 175
 
     # Initialize moments of inertia since original simulation was HPMC.
     mass = hexagon.area
@@ -57,7 +82,6 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
     n_compression_start = int(1e4)
     n_compression_end = int(1e5)
     n_compression_total = n_compression_end - n_compression_start
-    n_total = int(1e6)
 
     box_resize = hoomd.update.BoxResize(
         box1=sim.state.box,
@@ -106,20 +130,20 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
 
     # Reset velocities after the compression, and equilibriate
     sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT)
-    velocities = []
-    total_energies = []
-    while sim.timestep < n_total:
-        sim.run(1_000)
-        with sim.state.cpu_local_snapshot as snapshot:
-            velocities.append(np.array(snapshot.particles.velocity, copy=True))
-            total_energies.append(thermo.kinetic_energy
-                                  + thermo.potential_energy)
+    sim.run(1000)
 
-    # Ensure energy conservation up to the 4 digit per-particle.
-    assert np.std(total_energies) / sim.state.N_particles < 1e-4
+    # run sim and get values back
+    storer = ConservationDataStorer(sim, thermo)
+    writer = hoomd.write.CustomWriter(action=storer, trigger=1)
+    sim.operations.writers.append(writer)
+    sim.run(1000)
+    total_energies = storer.total_energies
+    velocities = storer.velocities
+
+    # Ensure energy conservation up to the 3 digit per-particle.
+    assert np.std(total_energies) / sim.state.N_particles < 1e-3
 
     # Test momentum conservation.
-    velocities = np.asarray(velocities)
     assert np.std(np.linalg.norm(np.sum(velocities, axis=1), axis=-1)) < 1e-6
 
 
