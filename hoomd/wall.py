@@ -229,7 +229,7 @@ class Plane(WallGeometry):
             A point that lies on the plane used with ``normal`` to fully specify
             the plane :math:`[\mathrm{length}]`.
         normal (`tuple` [`float`, `float`, `float`]):
-            The normal vector to the plane. The vector will be converted to an
+            The normal vector to the plane. The vector will be converted to a
             unit vector.
         open (`bool`, optional):
             Whether to include the surface of the plane in the space. ``True``
