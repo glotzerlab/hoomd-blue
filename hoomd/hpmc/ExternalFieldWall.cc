@@ -36,20 +36,22 @@ void export_wall_classes(pybind11::module& m)
 
     pybind11::class_<hoomd::hpmc::CylinderWall>(m, "CylinderWall")
         .def(pybind11::init(
-                 [](hoomd::Scalar radius, pybind11::tuple origin, pybind11::tuple z_orientation)
+                 [](hoomd::Scalar radius, pybind11::tuple origin, pybind11::tuple axis, bool inside)
                  {
                      return hoomd::hpmc::CylinderWall(
                          radius,
                          hoomd::vec3<hoomd::Scalar>(origin[0].cast<hoomd::Scalar>(),
                                                     origin[1].cast<hoomd::Scalar>(),
                                                     origin[2].cast<hoomd::Scalar>()),
-                         hoomd::vec3<hoomd::Scalar>(z_orientation[0].cast<hoomd::Scalar>(),
-                                                    z_orientation[1].cast<hoomd::Scalar>(),
-                                                    z_orientation[2].cast<hoomd::Scalar>()));
+                         hoomd::vec3<hoomd::Scalar>(axis[0].cast<hoomd::Scalar>(),
+                                                    axis[1].cast<hoomd::Scalar>(),
+                                                    axis[2].cast<hoomd::Scalar>()),
+                         inside);
                  }),
              pybind11::arg("radius"),
              pybind11::arg("origin"),
-             pybind11::arg("axis"))
+             pybind11::arg("axis"),
+             pybind11::arg("inside"))
         .def_property_readonly("radius",
                                [](const hoomd::hpmc::CylinderWall& wall) { return sqrt(wall.rsq); })
         .def_property_readonly(

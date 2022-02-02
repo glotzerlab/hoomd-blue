@@ -71,20 +71,21 @@ struct SphereWall
 struct CylinderWall
     {
     CylinderWall()
-        : rsq(0), inside(false), origin(0, 0, 0), orientation(origin),
+        : rsq(0), inside(true), origin(0, 0, 0), orientation(0, 0, 1),
           verts(new detail::PolyhedronVertices)
         {
         }
-    CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> orient, bool inside = true)
-        : rsq(0), inside(false), origin(0, 0, 0), orientation(origin),
+    CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> axis, bool inside = true)
+        : rsq(r * r), inside(inside), origin(orig), orientation(axis),
           verts(new detail::PolyhedronVertices(2, false))
         {
         rsq = r * r;
         inside = inside;
         origin = orig;
-        orientation = orient;
+        orientation = axis;
 
-        Scalar len = sqrt(dot(orientation, orientation)); // normalize the orientation vector
+        // normalize the orientation vector
+        Scalar len = sqrt(dot(orientation, orientation));
         orientation /= len;
 
         // set the position of the vertices and the diameter later
