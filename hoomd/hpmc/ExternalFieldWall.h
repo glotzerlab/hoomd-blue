@@ -662,7 +662,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         return m_Planes;
         }
 
-    bool wall_overlap(const unsigned int& index,
+    bool wall_overlap(uint64_t timestep,
+                      const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
