@@ -39,8 +39,8 @@ struct SphereWall
         : rsq(0), inside(true), origin(0, 0, 0), verts(new detail::PolyhedronVertices(1, false))
         {
         }
-    SphereWall(Scalar r, vec3<Scalar> orig, bool ins = true)
-        : rsq(r * r), inside(ins), origin(orig), verts(new detail::PolyhedronVertices(1, false))
+    SphereWall(Scalar r, vec3<Scalar> orig, bool inside = true)
+        : rsq(r * r), inside(inside), origin(orig), verts(new detail::PolyhedronVertices(1, false))
         {
         verts->N = 0; // case for sphere (can be 0 or 1)
         verts->diameter = OverlapReal(r + r);
@@ -75,12 +75,12 @@ struct CylinderWall
           verts(new detail::PolyhedronVertices)
         {
         }
-    CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> orient, bool ins = true)
+    CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> orient, bool inside = true)
         : rsq(0), inside(false), origin(0, 0, 0), orientation(origin),
           verts(new detail::PolyhedronVertices(2, false))
         {
         rsq = r * r;
-        inside = ins;
+        inside = inside;
         origin = orig;
         orientation = orient;
 
@@ -116,8 +116,8 @@ struct CylinderWall
 struct PlaneWall
     {
     // Todo have consistent signature with MD (origin, normal, inside)
-    PlaneWall(vec3<Scalar> nvec, vec3<Scalar> pt, bool ins = true)
-        : normal(nvec), origin(pt), inside(ins)
+    PlaneWall(vec3<Scalar> nvec, vec3<Scalar> pt, bool inside = true)
+        : normal(nvec), origin(pt), inside(inside)
         {
         Scalar len = sqrt(dot(normal, normal));
         normal /= len;
