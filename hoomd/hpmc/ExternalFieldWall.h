@@ -551,7 +551,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
                 this);
         }
 
-    double energydiff(const unsigned int& index,
+    double energydiff(uint64_t timestep,
+                      const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
@@ -603,7 +604,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         }
     */
 
-    double calculateDeltaE(const Scalar4* const position_old,
+    double calculateDeltaE(uint64_t timestep,
+                           const Scalar4* const position_old,
                            const Scalar4* const orientation_old,
                            const BoxDim* const box_old)
         {
@@ -666,7 +668,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
                       const vec3<Scalar>& position_new,
                       const Shape& shape_new)
         {
-        double energy = energydiff(index, position_old, shape_old, position_new, shape_new);
+        double energy
+            = energydiff(timestep, index, position_old, shape_old, position_new, shape_new);
         return (energy == INFINITY);
         }
 
@@ -693,7 +696,7 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), params[typ_i]);
 
-            if (wall_overlap(i, pos_i, shape_i, pos_i, shape_i))
+            if (wall_overlap(timestep, i, pos_i, shape_i, pos_i, shape_i))
                 {
                 numOverlaps++;
                 }

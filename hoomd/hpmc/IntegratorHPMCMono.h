@@ -971,7 +971,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
             // Add external energetic contribution if there are no overlaps
             if (m_external && !overlap)
                 {
-                patch_field_energy_diff -= m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+                patch_field_energy_diff -= m_external->energydiff(timestep, i, pos_old, shape_old, pos_i, shape_i);
                 }
 
             bool accept = !overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff);

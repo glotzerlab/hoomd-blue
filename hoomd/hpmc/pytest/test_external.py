@@ -10,23 +10,23 @@ import numpy as np
 valid_constructor_args = [
     dict(reference_positions=[[0, 0, 0]],
          reference_orientations=[[1, 0, 0, 0]],
-         k_translational=1.0,
-         k_rotational=1.0,
+         k_translational=hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15),
+         k_rotational=hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15),
          symmetries=[[1, 0, 0, 0]]),
     dict(reference_positions=[[0, 0, 0]],
          reference_orientations=[[1, 0, 0, 0]],
-         k_translational=0.0,
-         k_rotational=1.0,
+         k_translational=hoomd.variant.Power(1, 5, 3, 0, 100),
+         k_rotational=hoomd.variant.Power(1, 5, 3, 0, 100),
          symmetries=[[1, 0, 0, 0]]),
     dict(reference_positions=[[0, 0, 0]],
          reference_orientations=[[1, 0, 0, 0]],
-         k_translational=1.0,
-         k_rotational=0.0,
+         k_translational=hoomd.variant.Ramp(100, 0, 0, 1000),
+         k_rotational=hoomd.variant.Ramp(10, 0, 0, 500),
          symmetries=[[1, 0, 0, 0]]),
     dict(reference_positions=[[0, 0, 0]],
          reference_orientations=[[1, 0, 0, 0]],
-         k_translational=0.0,
-         k_rotational=0.0,
+         k_translational=hoomd.variant.Constant(10),
+         k_rotational=hoomd.variant.Constant(0),
          symmetries=[[1, 0, 0, 0]]),
 ]
 
@@ -115,9 +115,9 @@ def test_harmonic_displacement_energy(simulation_factory,
 
     # run and check energy
     sim.run(0)
-    assert np.allclose(
-        lattice.energy,
-        0.5 * dx**2 * lattice.k_translational * sim.state.N_particles)
+    k_translational = lattice.k_translational(sim.timestep)
+    assert np.allclose(lattice.energy,
+                       0.5 * dx**2 * k_translational * sim.state.N_particles)
 
     # make some moves and make sure the different energies are not zero
     sim.run(10)
