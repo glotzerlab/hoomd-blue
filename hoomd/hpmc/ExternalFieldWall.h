@@ -113,7 +113,7 @@ struct CylinderWall
 struct PlaneWall
     {
     PlaneWall(vec3<Scalar> origin_, vec3<Scalar> normal_, bool inside_ = true)
-        : origin(origin_), normal(normal_), inside(inside_)
+        : normal(normal_), origin(origin_), inside(inside_)
         {
         Scalar len = sqrt(dot(normal, normal));
         normal /= len;
