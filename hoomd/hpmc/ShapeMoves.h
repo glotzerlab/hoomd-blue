@@ -43,6 +43,7 @@ template<typename Shape> class ShapeMoveBase
 
     //! construct is called for each particle type that will be changed in update()
     virtual void update_shape(uint64_t,
+                              Scalar& stepsize,
                               const unsigned int&,
                               typename Shape::param_type&,
                               hoomd::RandomGenerator&)
@@ -232,6 +233,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         }
 
     void update_shape(uint64_t timestep,
+                      Scalar& stepsize,
                       const unsigned int& type_id,
                       typename Shape::param_type& shape,
                       hoomd::RandomGenerator& rng)
@@ -239,8 +241,8 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         for (unsigned int i = 0; i < m_params[type_id].size(); i++)
             {
             hoomd::UniformDistribution<Scalar> uniform(
-                fmax(-this->m_step_size[type_id], -(m_params[type_id][i])),
-                fmin(this->m_step_size[type_id], (1.0 - m_params[type_id][i])));
+                fmax(-stepsize, -(m_params[type_id][i])),
+                fmin(stepsize, (1.0 - m_params[type_id][i])));
             Scalar x = (hoomd::detail::generate_canonical<double>(rng) < m_select_ratio)
                            ? uniform(rng)
                            : 0.0;
@@ -382,6 +384,7 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
     void prepare(uint64_t timestep) { }
 
     void update_shape(uint64_t timestep,
+                      Scalar& stepsize,
                       const unsigned int& type_id,
                       typename Shape::param_type& shape,
                       hoomd::RandomGenerator& rng)
@@ -480,6 +483,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         }
 
     void update_shape(uint64_t timestep,
+                      Scalar& stepsize,
                       const unsigned int& type_id,
                       typename ShapeConvexPolyhedron::param_type& shape,
                       hoomd::RandomGenerator& rng)
@@ -574,6 +578,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
 
     //! construct is called at the beginning of every update()
     void update_shape(uint64_t timestep,
+                      Scalar& stepsize,
                       const unsigned int& type_id,
                       typename Shape::param_type& param,
                       hoomd::RandomGenerator& rng)
@@ -583,7 +588,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         if (hoomd::detail::generate_canonical<double>(rng)
             < m_select_ratio) // perform a scaling move
             {
-            generateExtentional(transform, rng, this->m_step_size[type_id] + 1.0);
+            generateExtentional(transform, rng, stepsize + 1.0);
             }
         else // perform a rotation-scale-rotation move
             {
@@ -593,7 +598,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             Eigen::Quaternion<double> eq(q.s, q.v.x, q.v.y, q.v.z);
             rot = eq.toRotationMatrix();
             rot_inv = rot.transpose();
-            generateExtentional(scale, rng, this->m_step_size[type_id] + 1.0);
+            generateExtentional(scale, rng, stepsize + 1.0);
             transform = rot * scale * rot_inv;
             }
 
@@ -890,8 +895,8 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
                      pybind11::dict shape_params)
         : ShapeMoveBase<ShapeEllipsoid>(sysdef, ntypes), m_mass_props(ntypes), m_k(k)
         {
-        m_step_size.resize(ntypes, stepsize);
-        std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
+        // m_step_size.resize(ntypes, stepsize);
+        // std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
         m_select_ratio = fmin(move_ratio, 1.0);
         typename ShapeEllipsoid::param_type shape(shape_params);
         m_reference_shape = shape;
@@ -946,13 +951,14 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         }
 
     void update_shape(uint64_t timestep,
+                      Scalar& stepsize,
                       const unsigned int& type_id,
                       typename ShapeEllipsoid::param_type& param,
                       hoomd::RandomGenerator& rng)
         {
         Scalar lnx = log(param.x / param.y);
         Scalar dlnx
-            = hoomd::UniformDistribution<Scalar>(-m_step_size[type_id], m_step_size[type_id])(rng);
+            = hoomd::UniformDistribution<Scalar>(-stepsize, stepsize)(rng);
         Scalar x = fast::exp(lnx + dlnx);
         m_mass_props[type_id].updateParam(param);
         Scalar volume = m_mass_props[type_id].getVolume();

@@ -350,7 +350,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             hoomd::RandomGenerator rng_i(
                 hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, seed),
                 hoomd::Counter(m_exec_conf->getRank(), sweep));
-            m_move_function->update_shape(timestep, typ_i, param, rng_i);
+            m_move_function->update_shape(timestep, m_step_size[typ_i], typ_i, param, rng_i);
             h_det.data[typ_i] = m_move_function->getDetInertiaTensor(); // new determinant
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", "
                                         << h_det_backup.data[typ_i] << std::endl;
