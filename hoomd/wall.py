@@ -315,9 +315,9 @@ class _WallsMetaList(MutableSequence):
 
     The class redirects and manages each contained object into one of a number
     of 'backend' lists based on some condition (here object type). This is to
-    proivde the interface of a single list while allowing for the necessity of
+    provide the interface of a single list while allowing for the necessity of
     separate lists for a given set of items (e.g. for C++ type checking). This
-    is managed by mantaining the frontend list, mutliple backend lists, and an
+    is managed by mantaining the frontend list, multiple backend lists, and an
     index list of `_MetaListIndex` which links items in the frontend list to
     their equivalent in the backend list. Most mutative operations on the list
     require the careful manipulation of the backend indices.
@@ -329,7 +329,7 @@ class _WallsMetaList(MutableSequence):
     unreasonably slow, and should be asymptotically comparable to a standard
     Python list.
 
-    `_WallsMetaList` maintains ordering of the constitutent objects between
+    `_WallsMetaList` maintains ordering of the constituent objects between
     lists (e.g. for two backend list chosen on whether a character is a vowel,
     the order of the backend lists for the sequence "abdefg" would be "bdfg" and
     "ae"). If this is not necessary, the class could be sped up and simplified
