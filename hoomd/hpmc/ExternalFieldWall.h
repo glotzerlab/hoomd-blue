@@ -39,8 +39,8 @@ struct SphereWall
         : rsq(0), inside(true), origin(0, 0, 0), verts(new detail::PolyhedronVertices(1, false))
         {
         }
-    SphereWall(Scalar r, vec3<Scalar> orig, bool inside = true)
-        : rsq(r * r), inside(inside), origin(orig), verts(new detail::PolyhedronVertices(1, false))
+    SphereWall(Scalar r, vec3<Scalar> origin_, bool inside_ = true)
+        : rsq(r * r), inside(inside_), origin(origin_), verts(new detail::PolyhedronVertices(1, false))
         {
         verts->N = 0; // case for sphere (can be 0 or 1)
         verts->diameter = OverlapReal(r + r);
@@ -75,15 +75,10 @@ struct CylinderWall
           verts(new detail::PolyhedronVertices)
         {
         }
-    CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> axis, bool inside = true)
-        : rsq(r * r), inside(inside), origin(orig), orientation(axis),
+    CylinderWall(Scalar r, vec3<Scalar> origin_, vec3<Scalar> axis_, bool inside_ = true)
+        : rsq(r * r), inside(inside_), origin(origin_), orientation(axis_),
           verts(new detail::PolyhedronVertices(2, false))
         {
-        rsq = r * r;
-        inside = inside;
-        origin = orig;
-        orientation = axis;
-
         // normalize the orientation vector
         Scalar len = sqrt(dot(orientation, orientation));
         orientation /= len;
