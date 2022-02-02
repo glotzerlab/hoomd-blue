@@ -590,21 +590,6 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         return double(0.0);
         }
 
-    /*
-    Scalar calculateBoltzmannWeight(uint64_t timestep)
-        {
-        unsigned int numOverlaps = countOverlaps(timestep, false);
-        if (numOverlaps > 0)
-            {
-            return Scalar(0.0);
-            }
-        else
-            {
-            return Scalar(1.0);
-            }
-        }
-    */
-
     double calculateDeltaE(uint64_t timestep,
                            const Scalar4* const position_old,
                            const Scalar4* const orientation_old,
@@ -727,52 +712,6 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         return numOverlaps;
         }
 
-    void setVolume(Scalar volume)
-        {
-        m_Volume = volume;
-        }
-
-    Scalar getVolume()
-        {
-        return m_Volume;
-        }
-
-    bool hasVolume()
-        {
-        return true;
-        }
-
-    Scalar GetCurrBoxLx()
-        {
-        return m_box.getL().x;
-        }
-    Scalar GetCurrBoxLy()
-        {
-        return m_box.getL().y;
-        }
-    Scalar GetCurrBoxLz()
-        {
-        return m_box.getL().z;
-        }
-    Scalar GetCurrBoxTiltFactorXY()
-        {
-        return m_box.getTiltFactorXY();
-        }
-    Scalar GetCurrBoxTiltFactorXZ()
-        {
-        return m_box.getTiltFactorXZ();
-        }
-    Scalar GetCurrBoxTiltFactorYZ()
-        {
-        return m_box.getTiltFactorYZ();
-        }
-
-    void SetCurrBox(Scalar Lx, Scalar Ly, Scalar Lz, Scalar xy, Scalar xz, Scalar yz)
-        {
-        m_box.setL(make_scalar3(Lx, Ly, Lz));
-        m_box.setTiltFactors(xy, xz, yz);
-        }
-
     protected:
     void set_cylinder_wall_verts(CylinderWall& wall, const Shape& shape)
         {
@@ -816,16 +755,6 @@ template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const s
                      std::shared_ptr<ExternalFieldWall<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>>())
-        .def("countOverlaps", &ExternalFieldWall<Shape>::countOverlaps)
-        .def("setVolume", &ExternalFieldWall<Shape>::setVolume)
-        .def("getVolume", &ExternalFieldWall<Shape>::getVolume)
-        .def("GetCurrBoxLx", &ExternalFieldWall<Shape>::GetCurrBoxLx)
-        .def("GetCurrBoxLy", &ExternalFieldWall<Shape>::GetCurrBoxLy)
-        .def("GetCurrBoxLz", &ExternalFieldWall<Shape>::GetCurrBoxLz)
-        .def("GetCurrBoxTiltFactorXY", &ExternalFieldWall<Shape>::GetCurrBoxTiltFactorXY)
-        .def("GetCurrBoxTiltFactorXZ", &ExternalFieldWall<Shape>::GetCurrBoxTiltFactorXZ)
-        .def("GetCurrBoxTiltFactorYZ", &ExternalFieldWall<Shape>::GetCurrBoxTiltFactorYZ)
-        .def("SetCurrBox", &ExternalFieldWall<Shape>::SetCurrBox)
         .def_property_readonly("SphereWalls", &ExternalFieldWall<Shape>::GetSphereWalls)
         .def_property_readonly("CylinderWalls", &ExternalFieldWall<Shape>::GetCylinderWalls)
         .def_property_readonly("PlaneWalls", &ExternalFieldWall<Shape>::GetPlaneWalls);
