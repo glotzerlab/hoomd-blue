@@ -37,7 +37,6 @@ optional requirements are missing.
 - pytest
 - rowan (optional)
 - CuPy (optional)
-- coxeter
 
 Running tests
 -------------

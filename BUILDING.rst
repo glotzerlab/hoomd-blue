@@ -8,7 +8,7 @@ To build the **HOOMD-blue** Python package from source:
 
 1. `Install prerequisites`_::
 
-   $ <package-manager> install cmake eigen git python numpy pybind11 coxeter
+   $ <package-manager> install cmake eigen git python numpy pybind11
 
 2. `Obtain the source`_::
 
@@ -119,6 +119,10 @@ Install prerequisites
 **For runtime code generation** (required when ``ENABLE_LLVM=on``):
 
 - LLVM >= 10.0, < 13
+
+**To use** `md.pair.aniso.ALJ.get_ordered_vertices`:
+
+- coxeter
 
 **To build the documentation:**
 
