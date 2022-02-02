@@ -21,13 +21,31 @@ def _to_hpmc_cpp_wall(wall):
 
 
 class WallPotential(ExternalField):
-    """Base class for walls.
+    """HPMC wall potential.
 
-    Provides common methods for all wall subclasses.
+    Args:
+        walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
+            to use to confine particles to specific regions of a simulation box.
 
-    Note:
-        Users should use the subclasses and not instantiate `WallPotential`
-        directly.
+    This class is used to add walls to HPMC simulations by acting as a container
+    for a collection of `hoomd.wall.WallGeometry` objects.  In HPMC, walls break
+    space into forbidden and allowed regions, controlled by the ``inside``
+    argument for spherical and cylindrical walls and the ``normal`` arguement
+    for planar walls. See `hoomd.wall.WallGeometry` for more details on the
+    different wall geometries available.
+
+    To use walls in HPMC, first make a list of `hoomd.wall.WallGeometry`
+    objects, and add them to a `hoomd.hpmc.external.wall.WallPotential` object.
+    The ``external_potential`` attribute of the MC integrator can then be set to
+    the `hoomd.hpmc.external.wall.WallPotential` object.
+
+    Example::
+
+        # assume mc defined as a hoomd.hpmc.integrate.HPMCIntegrator object
+        walls = [hoomd.wall.Sphere(radius=4.0)]
+        wall_potential = hoomd.hpmc.external.wall.WallPotential(walls)
+        # add WallPotential to the integrator
+        mc.external_potential = wall_potential
 
     """
 
