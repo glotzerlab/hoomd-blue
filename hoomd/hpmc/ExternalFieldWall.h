@@ -116,9 +116,8 @@ struct CylinderWall
 
 struct PlaneWall
     {
-    // Todo have consistent signature with MD (origin, normal, inside)
-    PlaneWall(vec3<Scalar> nvec, vec3<Scalar> pt, bool inside = true)
-        : normal(nvec), origin(pt), inside(inside)
+    PlaneWall(vec3<Scalar> origin_, vec3<Scalar> normal_, bool inside_ = true)
+        : origin(origin_), normal(normal_), inside(inside_)
         {
         Scalar len = sqrt(dot(normal, normal));
         normal /= len;
