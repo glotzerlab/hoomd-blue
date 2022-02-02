@@ -36,7 +36,7 @@ namespace hpmc
 struct SphereWall
     {
     SphereWall()
-        : rsq(0), inside(false), origin(0, 0, 0), verts(new detail::PolyhedronVertices(1, false))
+        : rsq(0), inside(true), origin(0, 0, 0), verts(new detail::PolyhedronVertices(1, false))
         {
         }
     SphereWall(Scalar r, vec3<Scalar> orig, bool ins = true)
