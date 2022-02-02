@@ -40,7 +40,8 @@ struct SphereWall
         {
         }
     SphereWall(Scalar r, vec3<Scalar> origin_, bool inside_ = true)
-        : rsq(r * r), inside(inside_), origin(origin_), verts(new detail::PolyhedronVertices(1, false))
+        : rsq(r * r), inside(inside_), origin(origin_),
+          verts(new detail::PolyhedronVertices(1, false))
         {
         verts->N = 0; // case for sphere (can be 0 or 1)
         verts->diameter = OverlapReal(r + r);
