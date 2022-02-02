@@ -41,6 +41,14 @@ MeshDynamicBondUpdater::~MeshDynamicBondUpdater()
 */
 void MeshDynamicBondUpdater::update(uint64_t timestep)
     {
+
+    std::vector<std::shared_ptr<ForceCompute>> forces = m_integrator->getForces();
+
+    for (auto& force : forces)
+        {
+        force->precomputeParameter();
+        }
+
     ArrayHandle<typename MeshBond::members_t> h_bonds(m_mesh->getMeshBondData()->getMembersArray(),
                                                       access_location::host,
                                                       access_mode::readwrite);
@@ -55,15 +63,9 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                                      access_location::host,
                                      access_mode::read);
 
-    std::vector<std::shared_ptr<ForceCompute>> forces = m_integrator->getForces();
-
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh->getMeshBondData()->getN();
 
-    for (auto& force : forces)
-        {
-        force->precomputeParameter();
-        }
 
     unsigned int zahl = 0;
     for (unsigned int i = 0; i < size; i++)
@@ -242,6 +244,10 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
             h_triangles.data[tr_idx1] = triangle1_n;
             h_triangles.data[tr_idx2] = triangle2_n;
+
+            m_mesh->getMeshBondData()->setDirty();
+            m_mesh->getMeshTriangleData()->setDirty();
+
 
             if (a_before_b)
                 {
