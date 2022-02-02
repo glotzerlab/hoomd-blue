@@ -141,7 +141,6 @@ class HPMCIntegrator(BaseIntegrator):
         self._param_dict.update(param_dict)
         self._pair_potential = None
         self._external_potential = None
-        self._walls = None
 
         # Set standard typeparameters for hpmc integrators
         typeparam_d = TypeParameter('d',
@@ -186,8 +185,6 @@ class HPMCIntegrator(BaseIntegrator):
             self._external_potential._add(simulation)
         if self._pair_potential is not None:
             self._pair_potential._add(simulation)
-        if self._walls is not None:
-            pass
 
     def _attach(self):
         """Initialize the reflected c++ class."""
