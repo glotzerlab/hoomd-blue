@@ -8,11 +8,16 @@ import hoomd.md as md
 import numpy
 
 
+@pytest.fixture
 def make_simulation(simulation_factory, two_particle_snapshot_factory):
 
     def sim_factory(particle_types=['A'], dimensions=3, d=1, L=20):
-        return simulation_factory(
-            two_particle_snapshot_factory(particle_types, dimensions, d, L))
+        snap = two_particle_snapshot_factory()
+        if snap.communicator.rank == 0:
+            snap.constraints.N = 1
+            snap.constraints.value[0] = 1.0
+            snap.constraints.group[0] = [0, 1]
+        return simulation_factory(snap)
 
     return sim_factory
 
@@ -39,10 +44,10 @@ def test_attaching(make_simulation, integrator_elements):
     assert integrator._attached
     assert integrator._forces._synced
     assert integrator._methods._synced
-    assert integrator._contraints._synced
+    assert integrator._constraints._synced
 
 
-def test_detaching(make_simulation, methods, forces):
+def test_detaching(make_simulation, integrator_elements):
     sim = make_simulation()
     integrator = hoomd.md.Integrator(0.005, **integrator_elements)
     sim.operations.integrator = integrator
@@ -51,7 +56,7 @@ def test_detaching(make_simulation, methods, forces):
     assert not integrator._attached
     assert not integrator._forces._synced
     assert not integrator._methods._synced
-    assert not integrator._contraints._synced
+    assert not integrator._constraints._synced
 
 
 def test_linear_momentum(simulation_factory, lattice_snapshot_factory):
