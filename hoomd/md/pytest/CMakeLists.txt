@@ -10,6 +10,7 @@ set(files __init__.py
     test_custom_force.py
     test_external.py
     test_filter_md.py
+    test_integrate.py
     test_bond.py
     test_dihedral.py
     test_flags.py
@@ -29,6 +30,7 @@ set(files __init__.py
     test_rigid.py
     test_zero_momentum.py
     test_gsd.py
+    test_special_pair.py
     test_update_group_dof.py
     test_wall_data.py
     test_wall_potential.py

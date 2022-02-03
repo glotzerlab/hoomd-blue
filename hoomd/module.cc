@@ -192,7 +192,8 @@ PYBIND11_MODULE(_hoomd, m)
         .def_static("getEnableTBB", BuildInfo::getEnableTBB)
         .def_static("getEnableMPI", BuildInfo::getEnableMPI)
         .def_static("getSourceDir", BuildInfo::getSourceDir)
-        .def_static("getInstallDir", BuildInfo::getInstallDir);
+        .def_static("getInstallDir", BuildInfo::getInstallDir)
+        .def_static("getFloatingPointPrecision", BuildInfo::getFloatingPointPrecision);
 
     pybind11::bind_vector<std::vector<Scalar>>(m, "std_vector_scalar");
     pybind11::bind_vector<std::vector<string>>(m, "std_vector_string");

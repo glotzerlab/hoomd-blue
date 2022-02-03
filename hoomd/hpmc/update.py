@@ -36,6 +36,11 @@ class BoxMC(Updater):
     new box. Trial moves are then accepted, if they do not produce an overlap,
     according to standard Metropolis criterion and rejected otherwise.
 
+    .. rubric:: Mixed precision
+
+    `BoxMC` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
+
     Attributes:
         volume (dict):
             Parameters for isobaric volume moves that scale the box lengths
@@ -496,10 +501,10 @@ class Clusters(Updater):
     algorithm is then no longer ergodic for those and needs to be combined with
     local moves.
 
+    .. rubric:: Mixed precision
 
-    .. rubric:: Threading
-
-    The `Clusters` updater support threaded execution on multiple CPU cores.
+    `Clusters` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
 
     Attributes:
         pivot_move_probability (float): Set the probability for attempting a
@@ -622,6 +627,11 @@ class QuickCompress(Updater):
     Warning:
         When the smallest MC translational move size is 0, `QuickCompress`
         will scale the box by 1.0 and not progress toward the target box.
+
+    .. rubric:: Mixed precision
+
+    `QuickCompress` uses reduced precision floating point arithmetic when
+    checking for particle overlaps in the local particle reference frame.
 
     Attributes:
         trigger (Trigger): Update the box dimensions on triggered time steps.
