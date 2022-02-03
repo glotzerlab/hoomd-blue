@@ -29,6 +29,7 @@ set(files __init__.py
     test_rigid.py
     test_zero_momentum.py
     test_gsd.py
+    test_special_pair.py
     test_update_group_dof.py
     test_wall_data.py
     test_wall_potential.py
