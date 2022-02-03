@@ -12,17 +12,7 @@ namespace detail
 void export_wall_classes(pybind11::module& m)
     {
     pybind11::class_<hoomd::hpmc::SphereWall>(m, "SphereWall")
-        .def(pybind11::init(
-                 [](hoomd::Scalar radius, pybind11::tuple origin, bool inside)
-                 {
-                     hoomd::vec3<hoomd::Scalar> orig(origin[0].cast<hoomd::Scalar>(),
-                                                     origin[1].cast<hoomd::Scalar>(),
-                                                     origin[2].cast<hoomd::Scalar>());
-                     return hoomd::hpmc::SphereWall(radius, orig, inside);
-                 }),
-             pybind11::arg("radius"),
-             pybind11::arg("origin"),
-             pybind11::arg("inside"))
+        .def(pybind11::init<hoomd::Scalar, pybind11::tuple, bool>())
         .def_property_readonly("radius",
                                [](const hoomd::hpmc::SphereWall& wall) { return sqrt(wall.rsq); })
         .def_property_readonly(

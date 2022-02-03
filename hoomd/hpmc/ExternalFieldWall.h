@@ -48,6 +48,13 @@ struct SphereWall
         verts->sweep_radius = OverlapReal(r);
         verts->ignore = 0;
         }
+    SphereWall(Scalar r_, pybind11::tuple origin_, bool inside_ = true)
+        {
+        vec3<Scalar> origin(origin_[0].cast<Scalar>(),
+                            origin_[1].cast<Scalar>(),
+                            origin_[2].cast<Scalar>());
+        SphereWall(r_, origin, inside_);
+        }
     SphereWall(const SphereWall& src)
         : rsq(src.rsq), inside(src.inside), origin(src.origin),
           verts(new detail::PolyhedronVertices(*src.verts))
