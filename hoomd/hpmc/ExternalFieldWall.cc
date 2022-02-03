@@ -13,70 +13,21 @@ void export_wall_classes(pybind11::module& m)
     {
     pybind11::class_<hoomd::hpmc::SphereWall>(m, "SphereWall")
         .def(pybind11::init<hoomd::Scalar, pybind11::tuple, bool>())
-        .def_property_readonly("radius",
-                               [](const hoomd::hpmc::SphereWall& wall) { return sqrt(wall.rsq); })
-        .def_property_readonly(
-            "origin",
-            [](const hoomd::hpmc::SphereWall& wall)
-            { return pybind11::make_tuple(wall.origin.x, wall.origin.y, wall.origin.z); })
-        .def_property_readonly("inside",
-                               [](const hoomd::hpmc::SphereWall& wall) { return wall.inside; })
-        .def_property_readonly("open",
-                               [](const hoomd::hpmc::SphereWall& wall) { return wall.open; });
+        .def_property_readonly("radius", &hoomd::hpmc::SphereWall::getRadius)
+        .def_property_readonly("origin", &hoomd::hpmc::SphereWall::getOrigin)
+        .def_property_readonly("inside", &hoomd::hpmc::SphereWall::getInside)
+        .def_property_readonly("open", &hoomd::hpmc::SphereWall::getOpen);
 
     pybind11::class_<hoomd::hpmc::CylinderWall>(m, "CylinderWall")
-        .def(pybind11::init(
-                 [](hoomd::Scalar radius, pybind11::tuple origin, pybind11::tuple axis, bool inside)
-                 {
-                     return hoomd::hpmc::CylinderWall(
-                         radius,
-                         hoomd::vec3<hoomd::Scalar>(origin[0].cast<hoomd::Scalar>(),
-                                                    origin[1].cast<hoomd::Scalar>(),
-                                                    origin[2].cast<hoomd::Scalar>()),
-                         hoomd::vec3<hoomd::Scalar>(axis[0].cast<hoomd::Scalar>(),
-                                                    axis[1].cast<hoomd::Scalar>(),
-                                                    axis[2].cast<hoomd::Scalar>()),
-                         inside);
-                 }),
-             pybind11::arg("radius"),
-             pybind11::arg("origin"),
-             pybind11::arg("axis"),
-             pybind11::arg("inside"))
-        .def_property_readonly("radius",
-                               [](const hoomd::hpmc::CylinderWall& wall) { return sqrt(wall.rsq); })
-        .def_property_readonly(
-            "origin",
-            [](const hoomd::hpmc::CylinderWall& wall)
-            { return pybind11::make_tuple(wall.origin.x, wall.origin.y, wall.origin.z); })
-        .def_property_readonly("axis",
-                               [](const hoomd::hpmc::CylinderWall& wall) {
-                                   return pybind11::make_tuple(wall.orientation.x,
-                                                               wall.orientation.y,
-                                                               wall.orientation.z);
-                               });
+        .def(pybind11::init<hoomd::Scalar, pybind11::tuple, pybind11::tuple, bool>())
+        .def_property_readonly("radius", &hoomd::hpmc::CylinderWall::getRadius)
+        .def_property_readonly("origin", &hoomd::hpmc::CylinderWall::getOrigin)
+        .def_property_readonly("axis", &hoomd::hpmc::CylinderWall::getAxis);
 
     pybind11::class_<hoomd::hpmc::PlaneWall>(m, "PlaneWall")
-        .def(pybind11::init(
-                 [](pybind11::tuple origin, pybind11::tuple normal)
-                 {
-                     return hoomd::hpmc::PlaneWall(
-                         hoomd::vec3<hoomd::Scalar>(normal[0].cast<hoomd::Scalar>(),
-                                                    normal[1].cast<hoomd::Scalar>(),
-                                                    normal[2].cast<hoomd::Scalar>()),
-                         hoomd::vec3<hoomd::Scalar>(origin[0].cast<hoomd::Scalar>(),
-                                                    origin[1].cast<hoomd::Scalar>(),
-                                                    origin[2].cast<hoomd::Scalar>()));
-                 }),
-             pybind11::arg("origin"),
-             pybind11::arg("normal"))
-        .def_property_readonly(
-            "origin",
-            [](const hoomd::hpmc::PlaneWall& wall)
-            { return pybind11::make_tuple(wall.origin.x, wall.origin.y, wall.origin.z); })
-        .def_property_readonly(
-            "normal",
-            [](const hoomd::hpmc::PlaneWall& wall)
-            { return pybind11::make_tuple(wall.normal.x, wall.normal.y, wall.normal.z); });
+        .def(pybind11::init<pybind11::tuple, pybind11::tuple>())
+        .def_property_readonly("origin", &hoomd::hpmc::PlaneWall::getOrigin)
+        .def_property_readonly("normal", &hoomd::hpmc::PlaneWall::getNormal);
     }
 
 void export_wall_list(pybind11::module& m)

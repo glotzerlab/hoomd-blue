@@ -48,6 +48,7 @@ struct SphereWall
         verts->sweep_radius = OverlapReal(r);
         verts->ignore = 0;
         }
+#ifndef __HIPCC__
     SphereWall(Scalar r_, pybind11::tuple origin_, bool inside_ = true)
         {
         vec3<Scalar> origin(origin_[0].cast<Scalar>(),
@@ -55,10 +56,33 @@ struct SphereWall
                             origin_[2].cast<Scalar>());
         SphereWall(r_, origin, inside_);
         }
+#endif
     SphereWall(const SphereWall& src)
         : rsq(src.rsq), inside(src.inside), origin(src.origin),
           verts(new detail::PolyhedronVertices(*src.verts))
         {
+        }
+
+    Scalar getRadius()
+        {
+        return sqrt(rsq);
+        }
+
+#ifndef __HIPCC__
+    pybind11::tuple getOrigin()
+        {
+        return pybind11::make_tuple(origin.x, origin.y, origin.z);
+        }
+#endif
+
+    bool getInside()
+        {
+        return inside;
+        }
+
+    bool getOpen()
+        {
+        return open;
         }
 
     Scalar rsq;
@@ -88,11 +112,40 @@ struct CylinderWall
         verts->sweep_radius = OverlapReal(r);
         verts->ignore = 0;
         }
+#ifndef __HIPCC__
+    CylinderWall(Scalar r, pybind11::tuple origin_, pybind11::tuple axis_, bool inside_ = true)
+        {
+        vec3<Scalar> origin(origin_[0].cast<Scalar>(),
+                            origin_[1].cast<Scalar>(),
+                            origin_[2].cast<Scalar>());
+        vec3<Scalar> axis(axis_[0].cast<Scalar>(),
+                          axis_[1].cast<Scalar>(),
+                          axis_[2].cast<Scalar>());
+        CylinderWall(r, origin, axis, inside_);
+        }
+#endif
     CylinderWall(const CylinderWall& src)
         : rsq(src.rsq), inside(src.inside), origin(src.origin), orientation(src.orientation),
           verts(new detail::PolyhedronVertices(*src.verts))
         {
         }
+
+    Scalar getRadius()
+        {
+        return sqrt(rsq);
+        }
+
+#ifndef __HIPCC__
+    pybind11::tuple getOrigin()
+        {
+        return pybind11::make_tuple(origin.x, origin.y, origin.z);
+        }
+
+    pybind11::tuple getAxis()
+        {
+        return pybind11::make_tuple(orientation.x, orientation.y, orientation.z);
+        }
+#endif
 
     Scalar rsq;
     bool inside;
@@ -111,6 +164,28 @@ struct PlaneWall
         normal /= len;
         d = -dot(normal, origin);
         }
+#ifndef __HIPCC__
+    PlaneWall(pybind11::tuple origin_, pybind11::tuple normal_, bool inside_ = true)
+        {
+        vec3<Scalar> origin(origin_[0].cast<Scalar>(),
+                            origin_[1].cast<Scalar>(),
+                            origin_[2].cast<Scalar>());
+        vec3<Scalar> normal(normal_[0].cast<Scalar>(),
+                            normal_[1].cast<Scalar>(),
+                            normal_[2].cast<Scalar>());
+        PlaneWall(origin, normal, inside_);
+        }
+
+    pybind11::tuple getOrigin()
+        {
+        return pybind11::make_tuple(origin.x, origin.y, origin.z);
+        }
+
+    pybind11::tuple getNormal()
+        {
+        return pybind11::make_tuple(normal.x, normal.y, normal.z);
+        }
+#endif
 
     vec3<Scalar> normal; // unit normal n = (a, b, c)
     vec3<Scalar> origin; // we could remove this.
