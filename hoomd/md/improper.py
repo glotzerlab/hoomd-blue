@@ -34,9 +34,9 @@ class Improper(md.force.Force):
 
         # Instantiate the c++ implementation.
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cpp_class = getattr(hoomd._md, self._cpp_class_name)
+            cpp_class = getattr(hoomd.md._md, self._cpp_class_name)
         else:
-            cpp_class = getattr(hoomd._md, self._cpp_class_name + "GPU")
+            cpp_class = getattr(hoomd.md._md, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_class(self._simulation.state._cpp_sys_def)
         super()._attach()
@@ -73,7 +73,7 @@ class Harmonic(Improper):
 
     def __init__(self):
         super().__init__()
-        params = hoomd.data.typeparamTypeParameter(
+        params = hoomd.data.typeparam.TypeParameter(
             'params', 'improper_types',
             hoomd.data.parameterdicts.TypeParameterDict(k=float,
                                                         chi0=float,
