@@ -27,30 +27,31 @@ class WallPotential(ExternalField):
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
             that confine particles to specific regions of space.
 
-    This class is used to add walls to HPMC simulations by acting as a container
-    for a collection of `hoomd.wall.WallGeometry` objects.  In HPMC, walls break
+    `WallPotential` adds hard walls to HPMC simulations. Define the wall geometry
+    with a collection of `wall.WallGeometry` objects.  These walls break
     space into forbidden and allowed regions, controlled by the ``inside``
-    argument for spherical and cylindrical walls and the ``normal`` arguement
-    for planar walls. See `hoomd.wall.WallGeometry` for more details on the
-    different wall geometries available.
+    argument for spherical and cylindrical walls and the ``normal`` argument
+    for planar walls. HPMC rejects trial moves that cause any part of the particle's
+    shape to enter the the space defined by the points with a negative signed distance 
+    from any wall in the collection.
 
-    To use walls in HPMC, first make a list of `hoomd.wall.WallGeometry`
-    objects, and add them to a `hoomd.hpmc.external.wall.WallPotential` object.
-    The ``external_potential`` attribute of the MC integrator can then be set to
-    the `hoomd.hpmc.external.wall.WallPotential` object.
+    Walls are enforced by the HPMC integrator. Assign a `WallPotential` instance
+    to the `hpmc.integrate.HPMCIntegrator.external_potential` to activate the wall
+    potential.
+
+    See Also:
+        `wall`
 
     Example::
 
-        # assume mc defined as a hoomd.hpmc.integrate.HPMCIntegrator object
+        mc = hoomd.hpmc.integrate.Sphere()
         walls = [hoomd.wall.Sphere(radius=4.0)]
         wall_potential = hoomd.hpmc.external.wall.WallPotential(walls)
-        # add WallPotential to the integrator
         mc.external_potential = wall_potential
 
     """
 
     def __init__(self, walls):
-        self._walls = None
         self._walls = hoomd.wall._WallsMetaList(walls, _to_hpmc_cpp_wall)
 
     def _attach(self):
@@ -76,7 +77,7 @@ class WallPotential(ExternalField):
     @property
     def walls(self):
         """`list` [`hoomd.wall.WallGeometry`]: \
-            The walls associated with this wall potential."""
+            The wall geometries associated with this potential."""
         return self._walls
 
     @walls.setter
