@@ -5,6 +5,7 @@ set(files __init__.py
           test_compute_sdf.py
           test_external_field.py
           test_external_user.py
+          test_external_wall.py
           test_muvt.py
           test_boxmc.py
           test_shape.py
