@@ -57,7 +57,7 @@ class PYBIND11_EXPORT SystemData
     //! Get the current global simulation box
     const BoxDim& getGlobalBox() const
         {
-        return m_global_box;
+        return *m_global_box;
         }
 
     //! Return a snapshot of the current system data
@@ -90,22 +90,22 @@ class PYBIND11_EXPORT SystemData
     std::shared_ptr<hoomd::SystemDefinition> m_sysdef; //!< HOOMD system definition
     std::shared_ptr<mpcd::ParticleData> m_particles;   //!< MPCD particle data
     std::shared_ptr<mpcd::CellList> m_cl;              //!< MPCD cell list
-    const BoxDim m_global_box;                         //!< Global simulation box
+    std::shared_ptr<const BoxDim> m_global_box;        //!< Global simulation box
 
     //! Check that the simulation box has not changed from the cached value on initialization
     void checkBox() const
         {
-        const BoxDim& new_box = m_sysdef->getParticleData()->getGlobalBox();
+        auto& new_box = m_sysdef->getParticleData()->getGlobalBox();
 
-        const Scalar3 cur_L = m_global_box.getL();
+        const Scalar3 cur_L = m_global_box->getL();
         const Scalar3 new_L = new_box.getL();
 
         const Scalar tol = 1.e-6;
         if (std::fabs(new_L.x - cur_L.x) > tol || std::fabs(new_L.y - cur_L.y) > tol
             || std::fabs(new_L.z - cur_L.z) > tol
-            || std::fabs(new_box.getTiltFactorXY() - m_global_box.getTiltFactorXY()) > tol
-            || std::fabs(new_box.getTiltFactorXZ() - m_global_box.getTiltFactorXZ()) > tol
-            || std::fabs(new_box.getTiltFactorYZ() - m_global_box.getTiltFactorYZ()) > tol)
+            || std::fabs(new_box.getTiltFactorXY() - m_global_box->getTiltFactorXY()) > tol
+            || std::fabs(new_box.getTiltFactorXZ() - m_global_box->getTiltFactorXZ()) > tol
+            || std::fabs(new_box.getTiltFactorYZ() - m_global_box->getTiltFactorYZ()) > tol)
             {
             m_sysdef->getParticleData()->getExecConf()->msg->error()
                 << "mpcd: changing simulation box not supported" << std::endl;
