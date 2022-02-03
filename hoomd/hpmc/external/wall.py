@@ -32,7 +32,7 @@ class WallPotential(ExternalField):
     space into forbidden and allowed regions, controlled by the ``inside``
     argument for spherical and cylindrical walls and the ``normal`` argument
     for planar walls. HPMC rejects trial moves that cause any part of the particle's
-    shape to enter the the space defined by the points with a negative signed distance 
+    shape to enter the the space defined by the points with a negative signed distance
     from any wall in the collection.
 
     Walls are enforced by the HPMC integrator. Assign a `WallPotential` instance
