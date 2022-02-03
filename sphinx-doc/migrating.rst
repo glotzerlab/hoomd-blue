@@ -186,7 +186,6 @@ The following v2 functionalities have not yet been ported to the v3 API. They ma
 future 3.x release:
 
 - Tabulated bond, angle, and dihedral potentials.
-- Harmonic external potential in HPMC.
 - Walls in HPMC.
 - HPMC box volume move size tuner.
 - Harmonic improper potential.
