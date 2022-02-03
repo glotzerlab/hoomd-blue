@@ -43,7 +43,7 @@ void export_simple_polygon(pybind11::module& m)
     export_ExternalFieldInterface<ShapeSimplePolygon>(m, "ExternalFieldSimplePolygon");
     export_HarmonicField<ShapeSimplePolygon>(m, "ExternalFieldHarmonicSimplePolygon");
     export_ExternalFieldComposite<ShapeSimplePolygon>(m, "ExternalFieldCompositeSimplePolygon");
-    // export_ExternalFieldWall<ShapeSimplePolygon>(m, "WallSimplePolygon");
+    export_ExternalFieldWall<ShapeSimplePolygon>(m, "WallSimplePolygon");
     export_ExternalCallback<ShapeSimplePolygon>(m, "ExternalCallbackSimplePolygon");
 
 #ifdef ENABLE_HIP
