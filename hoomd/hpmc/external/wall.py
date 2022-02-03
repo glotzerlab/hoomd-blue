@@ -61,6 +61,26 @@ class WallPotential(ExternalField):
         if not isinstance(integrator, hoomd.hpmc.integrate.HPMCIntegrator):
             raise RuntimeError('Walls require a valid HPMC integrator.')
 
+        # check that shape-wall overlap checks are implemented, error if not
+        supported_shape_wall_overlap_checks = {
+            hoomd.hpmc.integrate.Sphere: [
+                hoomd.wall.Sphere, hoomd.wall.Cylinder, hoomd.wall.Plane
+            ],
+            hoomd.hpmc.integrate.ConvexPolyhedron: [
+                hoomd.wall.Sphere, hoomd.wall.Cylinder, hoomd.wall.Plane
+            ],
+            hoomd.hpmc.integrate.ConvexSpheropolyhedron: [
+                hoomd.wall.Sphere, hoomd.wall.Plane
+            ]
+        }
+        integrator_type = type(integrator)
+        for wt in [type(w) for w in self.walls]:
+            if wt not in supported_shape_wall_overlap_checks.get(
+                    integrator_type, []):
+                msg = f'Overlap checks between {wt} and {integrator_type} are '
+                msg += 'not supported.'
+                raise NotImplementedError(msg)
+
         cpp_cls_name = "Wall"
         cpp_cls_name += integrator.__class__.__name__
         cpp_cls = getattr(hoomd.hpmc._hpmc, cpp_cls_name)
