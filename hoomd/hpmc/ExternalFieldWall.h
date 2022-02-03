@@ -53,14 +53,6 @@ struct SphereWall
           verts(new detail::PolyhedronVertices(*src.verts))
         {
         }
-    // scale all distances associated with the sphere wall by some factor alpha
-    void scale(const Scalar alpha)
-        {
-        rsq *= alpha * alpha;
-        origin *= alpha;
-        verts->diameter = OverlapReal(verts->diameter * alpha);
-        verts->sweep_radius = OverlapReal(verts->diameter * alpha);
-        }
 
     Scalar rsq;
     bool inside;
@@ -94,13 +86,6 @@ struct CylinderWall
           verts(new detail::PolyhedronVertices(*src.verts))
         {
         }
-    // scale all distances associated with the sphere wall by some factor alpha
-    void scale(const Scalar alpha)
-        {
-        rsq *= alpha * alpha;
-        origin *= alpha;
-        verts->sweep_radius = OverlapReal(verts->sweep_radius * alpha);
-        }
 
     Scalar rsq;
     bool inside;
@@ -118,13 +103,6 @@ struct PlaneWall
         Scalar len = sqrt(dot(normal, normal));
         normal /= len;
         d = -dot(normal, origin);
-        }
-
-    // scale all distances associated with the sphere wall by some factor alpha
-    void scale(const Scalar alpha)
-        {
-        origin *= alpha;
-        d *= alpha;
         }
 
     vec3<Scalar> normal; // unit normal n = (a, b, c)
@@ -534,18 +512,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
                       std::shared_ptr<IntegratorHPMCMono<Shape>> mc)
         : ExternalFieldMono<Shape>(sysdef), m_mc(mc)
         {
-        m_box = m_pdata->getGlobalBox();
-        //! scale the container walls every time the box changes
-        m_pdata->getBoxChangeSignal()
-            .template connect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(
-                this);
         }
-    ~ExternalFieldWall()
-        {
-        m_pdata->getBoxChangeSignal()
-            .template disconnect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(
-                this);
-        }
+    ~ExternalFieldWall() { }
 
     double energydiff(uint64_t timestep,
                       const unsigned int& index,
@@ -599,33 +567,6 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
             {
             return double(0.0);
             }
-        }
-
-    // assumes cubic box
-    void scaleWalls()
-        {
-        BoxDim newBox = m_pdata->getGlobalBox();
-        Scalar newVol = newBox.getVolume();
-        Scalar oldVol = m_box.getVolume();
-        double alpha = pow((newVol / oldVol), Scalar(1.0 / 3.0));
-        m_Volume *= (newVol / oldVol);
-
-        for (size_t i = 0; i < m_Spheres.size(); i++)
-            {
-            m_Spheres[i].scale(alpha);
-            }
-
-        for (size_t i = 0; i < m_Cylinders.size(); i++)
-            {
-            m_Cylinders[i].scale(alpha);
-            }
-
-        for (size_t i = 0; i < m_Planes.size(); i++)
-            {
-            m_Planes[i].scale(alpha);
-            }
-
-        m_box = newBox;
         }
 
     std::vector<SphereWall>& GetSphereWalls()
@@ -731,7 +672,6 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
 
     private:
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< integrator
-    BoxDim m_box;                                    //!< the current box
     };
     } // namespace hpmc
     } // namespace hoomd
