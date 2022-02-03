@@ -4,6 +4,7 @@
 import pytest
 
 import hoomd
+import hoomd.conftest
 import hoomd.md as md
 import numpy
 
@@ -85,3 +86,9 @@ def test_linear_momentum(simulation_factory, lattice_snapshot_factory):
                               * snapshot.particles.velocity,
                               axis=0)
         numpy.testing.assert_allclose(linear_momentum, reference)
+
+
+def test_pickling(make_simulation, integrator_elements):
+    sim = make_simulation()
+    integrator = hoomd.md.Integrator(0.005, **integrator_elements)
+    hoomd.conftest.operation_pickling_check(integrator, sim)
