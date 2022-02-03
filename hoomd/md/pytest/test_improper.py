@@ -107,5 +107,5 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, improper_cls,
     sim_forces = potential.forces
 
     if sim.device.communicator.rank == 0:
-        assert sum(sim_energies) == pytest.approx(energy, rtol=1e-5)
+        assert sum(sim_energies) == pytest.approx(energy, rel=1e-5)
         numpy.testing.assert_allclose(sim_forces, force, rtol=1e-4, atol=1e-4)
