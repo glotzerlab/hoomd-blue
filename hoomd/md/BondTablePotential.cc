@@ -102,6 +102,52 @@ void BondTablePotential::setTable(unsigned int type,
         }
     }
 
+void BondTablePotential::setParamsPython(std::string type, pybind11::dict params)
+    {
+    auto type_id = m_bond_data->getTypeByName(type);
+    Scalar r_min = params["r_min"].cast<Scalar>();
+    Scalar r_max = params["r_max"].cast<Scalar>();
+
+    const auto V_py = params["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+    const auto F_py = params["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+
+    std::vector<Scalar> V(V_py.size());
+    std::vector<Scalar> F(F_py.size());
+
+    std::copy(V_py.data(0), V_py.data(0) + V_py.size(), V.data());
+    std::copy(F_py.data(0), F_py.data(0) + F_py.size(), F.data());
+
+    setTable(type_id, V, F, r_min, r_max);
+    }
+
+/// Get the parameters for a particular type.
+pybind11::dict BondTablePotential::getParams(std::string type)
+    {
+    ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
+
+    auto type_id = m_bond_data->getTypeByName(type);
+    pybind11::dict params;
+    params["r_min"] = h_params.data[type_id].x;
+    params["r_max"] = h_params.data[type_id].y;
+
+    auto V = pybind11::array_t<Scalar>(m_table_width);
+    auto V_unchecked = V.mutable_unchecked<1>();
+    auto F = pybind11::array_t<Scalar>(m_table_width);
+    auto F_unchecked = F.mutable_unchecked<1>();
+
+    for (unsigned int i = 0; i < m_table_width; i++)
+        {
+        V_unchecked(i) = h_tables.data[m_table_value(i, type_id)].x;
+        F_unchecked(i) = h_tables.data[m_table_value(i, type_id)].y;
+        }
+
+    params["V"] = V;
+    params["F"] = F;
+
+    return params;
+    }
+
 /*! \post The table based forces are computed for the given timestep.
 \param timestep specifies the current time step of the simulation
 */
@@ -254,7 +300,8 @@ void export_BondTablePotential(pybind11::module& m)
         m,
         "BondTablePotential")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
-        .def("setTable", &BondTablePotential::setTable);
+        .def("setParams", &BondTablePotential::setParamsPython)
+        .def("getParams", &BondTablePotential::getParams);
     }
 
     } // end namespace detail
