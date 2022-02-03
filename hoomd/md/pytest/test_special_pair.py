@@ -34,6 +34,7 @@ def test_before_attaching(special_pair_cls, params, r_cut, force, energy):
     potential = special_pair_cls()
     potential.params['A-A'] = params
     potential.r_cut['A-A'] = r_cut
+    assert potential.r_cut['A-A'] == r_cut
     for key in params:
         assert potential.params['A-A'][key] == pytest.approx(params[key])
 
@@ -74,6 +75,7 @@ def test_after_attaching(snapshot_factory, simulation_factory, special_pair_cls,
     sim.operations.integrator = integrator
 
     sim.run(0)
+    potential.r_cut['A-A'] = r_cut
     for key in params:
         assert potential.params['A-A'][key] == pytest.approx(params[key])
 
