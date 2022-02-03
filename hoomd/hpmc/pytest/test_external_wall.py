@@ -26,7 +26,8 @@ def test_valid_construction(device, wall_list):
     walls = hoomd.hpmc.external.wall.WallPotential(wall_list)
 
     # validate the params were set properly
-    for wall_input, wall_in_object in itertools.zip_longest(wall_list, walls.walls):
+    for wall_input, wall_in_object in itertools.zip_longest(
+            wall_list, walls.walls):
         assert wall_input == wall_in_object
 
 
