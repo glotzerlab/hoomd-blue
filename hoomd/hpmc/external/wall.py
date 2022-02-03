@@ -54,14 +54,7 @@ class WallPotential(ExternalField):
     def __init__(self, walls):
         self._walls = hoomd.wall._WallsMetaList(walls, _to_hpmc_cpp_wall)
 
-    def _attach(self):
-        if isinstance(self._simulation.device, hoomd.device.GPU):
-            raise RuntimeError('HPMC walls are not supported on the GPU.')
-        integrator = self._simulation.operations.integrator
-        if not isinstance(integrator, hoomd.hpmc.integrate.HPMCIntegrator):
-            raise RuntimeError('Walls require a valid HPMC integrator.')
-
-        # check that shape-wall overlap checks are implemented, error if not
+    def _check_valid_shape_wall_pairs(self, walls, integrator):
         supported_shape_wall_overlap_checks = {
             hoomd.hpmc.integrate.Sphere: [
                 hoomd.wall.Sphere, hoomd.wall.Cylinder, hoomd.wall.Plane
@@ -74,12 +67,21 @@ class WallPotential(ExternalField):
             ]
         }
         integrator_type = type(integrator)
-        for wt in [type(w) for w in self.walls]:
+        for wt in [type(w) for w in walls]:
             if wt not in supported_shape_wall_overlap_checks.get(
                     integrator_type, []):
                 msg = f'Overlap checks between {wt} and {integrator_type} are '
                 msg += 'not supported.'
                 raise NotImplementedError(msg)
+
+    def _attach(self):
+        if isinstance(self._simulation.device, hoomd.device.GPU):
+            raise RuntimeError('HPMC walls are not supported on the GPU.')
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, hoomd.hpmc.integrate.HPMCIntegrator):
+            raise RuntimeError('Walls require a valid HPMC integrator.')
+
+        self._check_valid_shape_wall_pairs(self._walls, integrator)
 
         cpp_cls_name = "Wall"
         cpp_cls_name += integrator.__class__.__name__
@@ -104,4 +106,5 @@ class WallPotential(ExternalField):
     def walls(self, wall_list):
         if self._walls is wall_list:
             return
+        self._check_valid_shape_wall_pairs(wall_list, integrator)
         self._walls = hoomd.wall._WallsMetaList(wall_list, _to_hpmc_cpp_wall)
