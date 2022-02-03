@@ -5,6 +5,7 @@ import pytest
 
 import hoomd
 import hoomd.md as md
+import numpy
 
 
 def make_simulation(simulation_factory, two_particle_snapshot_factory):
@@ -51,3 +52,31 @@ def test_detaching(make_simulation, methods, forces):
     assert not integrator._forces._synced
     assert not integrator._methods._synced
     assert not integrator._contraints._synced
+
+
+def test_linear_momentum(simulation_factory, lattice_snapshot_factory):
+    snapshot = lattice_snapshot_factory()
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.mass[:] = numpy.linspace(1, 5, snapshot.particles.N)
+        snapshot.particles.velocity[:,
+                                    0] = numpy.linspace(-5, 5,
+                                                        snapshot.particles.N)
+        snapshot.particles.velocity[:,
+                                    1] = numpy.linspace(1, 10,
+                                                        snapshot.particles.N)
+        snapshot.particles.velocity[:,
+                                    2] = numpy.linspace(5, 20,
+                                                        snapshot.particles.N)
+
+    sim = simulation_factory(snapshot)
+    integrator = hoomd.md.Integrator(dt=0.005)
+    sim.operations.integrator = integrator
+    sim.run(0)
+
+    linear_momentum = integrator.linear_momentum
+
+    if snapshot.communicator.rank == 0:
+        reference = numpy.sum(snapshot.particles.mass[numpy.newaxis, :].T
+                              * snapshot.particles.velocity,
+                              axis=0)
+        numpy.testing.assert_allclose(linear_momentum, reference)
