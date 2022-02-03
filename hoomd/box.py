@@ -156,8 +156,8 @@ class Box:
         if not np.allclose(box_matrix, np.triu(box_matrix)):
             raise ValueError("Box matrix must be upper triangular.")
         L = np.diag(box_matrix)
-        return cls(_make_scalar3(L), box_matrix[0, 1] / L[1],
-                   box_matrix[0, 2] / L[2], box_matrix[1, 2] / L[2])
+        return cls(*L, box_matrix[0, 1] / L[1], box_matrix[0, 2] / L[2],
+                   box_matrix[1, 2] / L[2])
 
     @classmethod
     def _from_cpp(cls, cpp_obj):
