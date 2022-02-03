@@ -25,7 +25,7 @@ class WallPotential(ExternalField):
 
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use to confine particles to specific regions of a simulation box.
+            that confine particles to specific regions of space.
 
     This class is used to add walls to HPMC simulations by acting as a container
     for a collection of `hoomd.wall.WallGeometry` objects.  In HPMC, walls break
