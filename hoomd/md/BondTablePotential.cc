@@ -300,6 +300,7 @@ void export_BondTablePotential(pybind11::module& m)
         m,
         "BondTablePotential")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
+        .def_property_readonly("width", &BondTablePotential::getWidth)
         .def("setParams", &BondTablePotential::setParamsPython)
         .def("getParams", &BondTablePotential::getParams);
     }
