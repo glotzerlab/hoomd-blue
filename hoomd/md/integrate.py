@@ -45,9 +45,9 @@ class _DynamicIntegrator(BaseIntegrator):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self.forces._sync(self._simulation, self._cpp_obj.forces)
-        self.constraints._sync(self._simulation, self._cpp_obj.constraints)
-        self.methods._sync(self._simulation, self._cpp_obj.methods)
+        self._forces._sync(self._simulation, self._cpp_obj.forces)
+        self._constraints._sync(self._simulation, self._cpp_obj.constraints)
+        self._methods._sync(self._simulation, self._cpp_obj.methods)
         if self.rigid is not None:
             self.rigid._attach()
         super()._attach()
