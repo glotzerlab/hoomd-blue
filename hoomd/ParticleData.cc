@@ -248,10 +248,10 @@ void ParticleData::setGlobalBox(const BoxDim& box)
     assert(box.getPeriodic().x);
     assert(box.getPeriodic().y);
     assert(box.getPeriodic().z);
-    auto global_box = box;
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
+        auto global_box = box;
         bcast(global_box, 0, m_exec_conf->getMPICommunicator());
         m_global_box = std::make_shared<const BoxDim>(box);
         m_box = std::make_shared<const BoxDim>(m_decomposition->calculateLocalBox(box));
