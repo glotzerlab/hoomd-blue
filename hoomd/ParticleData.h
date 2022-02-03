@@ -450,7 +450,7 @@ class PYBIND11_EXPORT ParticleData
     public:
     //! Construct with N particles in the given box
     ParticleData(unsigned int N,
-                 const std::shared_ptr<BoxDim> global_box,
+                 const std::shared_ptr<const BoxDim>& global_box,
                  unsigned int n_types,
                  std::shared_ptr<ExecutionConfiguration> exec_conf,
                  std::shared_ptr<DomainDecomposition> decomposition
@@ -459,7 +459,7 @@ class PYBIND11_EXPORT ParticleData
     //! Construct using a ParticleDataSnapshot
     template<class Real>
     ParticleData(const SnapshotParticleData<Real>& snapshot,
-                 const std::shared_ptr<BoxDim> global_box,
+                 const std::shared_ptr<const BoxDim>& global_box,
                  std::shared_ptr<ExecutionConfiguration> exec_conf,
                  std::shared_ptr<DomainDecomposition> decomposition
                  = std::shared_ptr<DomainDecomposition>());
@@ -471,10 +471,10 @@ class PYBIND11_EXPORT ParticleData
     const BoxDim getBox() const;
 
     //! Set the global simulation box
-    void setGlobalBox(BoxDim box);
+    void setGlobalBox(const BoxDim& box);
 
     //! Set the global simulation box
-    void setGlobalBox(const std::shared_ptr<BoxDim>& box);
+    void setGlobalBox(const std::shared_ptr<const BoxDim>& box);
 
     //! Set the global simulation box Lengths
     void setGlobalBoxL(const Scalar3& L)

@@ -73,7 +73,7 @@ std::string getDefaultTypeName(unsigned int id)
     Type mappings assign particle types "A", "B", "C", ....
 */
 ParticleData::ParticleData(unsigned int N,
-                           const std::shared_ptr<BoxDim> global_box,
+                           const std::shared_ptr<const BoxDim>& global_box,
                            unsigned int n_types,
                            std::shared_ptr<ExecutionConfiguration> exec_conf,
                            std::shared_ptr<DomainDecomposition> decomposition)
@@ -139,7 +139,7 @@ ParticleData::ParticleData(unsigned int N,
  */
 template<class Real>
 ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
-                           const std::shared_ptr<BoxDim> global_box,
+                           const std::shared_ptr<const BoxDim>& global_box,
                            std::shared_ptr<ExecutionConfiguration> exec_conf,
                            std::shared_ptr<DomainDecomposition> decomposition)
     : m_exec_conf(exec_conf), m_nparticles(0), m_nghosts(0), m_max_nparticles(0), m_nglobal(0),
@@ -209,7 +209,7 @@ const BoxDim ParticleData::getBox() const
         it is the responsibility of the caller to ensure that all particles lie within
         the new box.
 */
-void ParticleData::setGlobalBox(const std::shared_ptr<BoxDim>& box)
+void ParticleData::setGlobalBox(const std::shared_ptr<const BoxDim>& box)
     {
     assert(box->getPeriodic().x);
     assert(box->getPeriodic().y);
@@ -243,16 +243,16 @@ void ParticleData::setGlobalBox(const std::shared_ptr<BoxDim>& box)
         it is the responsibility of the caller to ensure that all particles lie within
         the new box.
 */
-void ParticleData::setGlobalBox(BoxDim box)
+void ParticleData::setGlobalBox(const BoxDim& box)
     {
     assert(box.getPeriodic().x);
     assert(box.getPeriodic().y);
     assert(box.getPeriodic().z);
-
+    auto global_box = box;
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
-        bcast(box, 0, m_exec_conf->getMPICommunicator());
+        bcast(global_box, 0, m_exec_conf->getMPICommunicator());
         m_global_box = std::make_shared<const BoxDim>(box);
         m_box = std::make_shared<const BoxDim>(m_decomposition->calculateLocalBox(box));
         }
@@ -271,7 +271,11 @@ void ParticleData::setGlobalBox(BoxDim box)
  */
 const BoxDim ParticleData::getGlobalBox() const
     {
-    return *m_global_box;
+    if (m_global_box)
+        {
+        return *m_global_box;
+        }
+    return BoxDim();
     }
 
 /*! \b ANY time particles are rearranged in memory, this function must be called.
@@ -2745,7 +2749,7 @@ string print_ParticleData(ParticleData* pdata)
 
 // instantiate both float and double methods for snapshots
 template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot,
-                                    const std::shared_ptr<BoxDim> global_box,
+                                    const std::shared_ptr<const BoxDim>& global_box,
                                     std::shared_ptr<ExecutionConfiguration> exec_conf,
                                     std::shared_ptr<DomainDecomposition> decomposition);
 template void
@@ -2755,7 +2759,7 @@ template std::map<unsigned int, unsigned int>
 ParticleData::takeSnapshot<double>(SnapshotParticleData<double>& snapshot);
 
 template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
-                                    const std::shared_ptr<BoxDim> global_box,
+                                    const std::shared_ptr<const BoxDim>& global_box,
                                     std::shared_ptr<ExecutionConfiguration> exec_conf,
                                     std::shared_ptr<DomainDecomposition> decomposition);
 template void
@@ -2768,11 +2772,11 @@ namespace detail
     {
 void export_ParticleData(pybind11::module& m)
     {
-    void (ParticleData::*setGlobalBox_overload)(const std::shared_ptr<BoxDim>&)
+    void (ParticleData::*setGlobalBox_overload)(const std::shared_ptr<const BoxDim>&)
         = &ParticleData::setGlobalBox;
     pybind11::class_<ParticleData, std::shared_ptr<ParticleData>>(m, "ParticleData")
         .def(pybind11::init<unsigned int,
-                            const std::shared_ptr<BoxDim>,
+                            const std::shared_ptr<const BoxDim>,
                             unsigned int,
                             std::shared_ptr<ExecutionConfiguration>>())
         .def("getGlobalBox",
