@@ -260,7 +260,7 @@ class Integrator(_DynamicIntegrator):
 
     @hoomd.logging.log(requires_run=True)
     def linear_momentum(self):
-        """float: The linear momentum vector of the system \
+        """tuple(float,float,float): The linear momentum vector of the system \
             :math:`[\\mathrm{mass} \\cdot \\mathrm{velocity}]`.
 
         .. math::
