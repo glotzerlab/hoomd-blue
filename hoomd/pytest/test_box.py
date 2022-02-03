@@ -161,7 +161,7 @@ def test_square():
 
 def test_from_matrix(new_box_matrix_dict):
     box = Box.from_matrix(new_box_matrix_dict['matrix'])
-    assert np.allclose(new_box_matrix_dict['matrix'], box.matrix)
+    assert np.allclose(new_box_matrix_dict['matrix'], box.to_matrix())
     assert np.allclose(box.L, [
         new_box_matrix_dict['Lx'], new_box_matrix_dict['Ly'],
         new_box_matrix_dict['Lz']
