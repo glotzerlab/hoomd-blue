@@ -28,3 +28,30 @@ def test_valid_construction(device, wall_list):
     for wall_input, wall_in_object in itertools.zip_longest(
             wall_list, walls.walls):
         assert wall_input == wall_in_object
+
+
+@pytest.fixture(scope="module")
+def add_default_integrator():
+
+    def add(simulation):
+        mc = hoomd.hpmc.integrate.Sphere()
+        mc.shape['A'] = dict(diameter=0)
+        wall_list = [hoomd.wall.Sphere(1.0)]
+        walls = hoomd.hpmc.external.wall.WallPotential(wall_list)
+        mc.external_potential = walls
+        simulation.operations.integrator = mc
+        return mc, walls
+
+    return add
+
+
+# TODO: parameterize over all shapes and wall geometries
+@pytest.mark.cpu
+def test_attaching(simulation_factory, two_particle_snapshot_factory,
+                   add_default_integrator):
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    mc, lattice = add_default_integrator(sim)
+
+    # create C++ mirror classes and set parameters
+    sim.run(0)
