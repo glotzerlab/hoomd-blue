@@ -57,6 +57,11 @@ struct SphereWall
                      inside)
         {
         }
+
+    pybind11::tuple getOrigin()
+        {
+        return pybind11::make_tuple(origin.x, origin.y, origin.z);
+        }
 #endif
     SphereWall(const SphereWall& src)
         : rsq(src.rsq), inside(src.inside), origin(src.origin),
@@ -68,13 +73,6 @@ struct SphereWall
         {
         return sqrt(rsq);
         }
-
-#ifndef __HIPCC__
-    pybind11::tuple getOrigin()
-        {
-        return pybind11::make_tuple(origin.x, origin.y, origin.z);
-        }
-#endif
 
     bool getInside()
         {
@@ -124,6 +122,16 @@ struct CylinderWall
             inside)
         {
         }
+
+    pybind11::tuple getOrigin()
+        {
+        return pybind11::make_tuple(origin.x, origin.y, origin.z);
+        }
+
+    pybind11::tuple getAxis()
+        {
+        return pybind11::make_tuple(orientation.x, orientation.y, orientation.z);
+        }
 #endif
     CylinderWall(const CylinderWall& src)
         : rsq(src.rsq), inside(src.inside), origin(src.origin), orientation(src.orientation),
@@ -135,18 +143,6 @@ struct CylinderWall
         {
         return sqrt(rsq);
         }
-
-#ifndef __HIPCC__
-    pybind11::tuple getOrigin()
-        {
-        return pybind11::make_tuple(origin.x, origin.y, origin.z);
-        }
-
-    pybind11::tuple getAxis()
-        {
-        return pybind11::make_tuple(orientation.x, orientation.y, orientation.z);
-        }
-#endif
 
     Scalar rsq;
     bool inside;
