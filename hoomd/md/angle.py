@@ -8,6 +8,7 @@ from hoomd.md.force import Force
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 import hoomd
+import numpy
 
 
 class Angle(Force):
@@ -122,3 +123,73 @@ class Cosinesq(Angle):
         params = TypeParameter('params', 'angle_types',
                                TypeParameterDict(t0=float, k=float, len_keys=1))
         self._add_typeparam(params)
+
+
+class Table(Angle):
+    """Tabulated bond potential.
+
+    Args:
+        width (int): Number of points in the table.
+
+    `Table` computes a user-defined potential and force applied to each angle.
+
+    The torque :math:`\\tau` is:
+
+    .. math::
+        \\tau(\\theta) = \\tau_\\mathrm{table}(\\theta)
+
+    and the potential :math:`V(\\theta)` is:
+
+    .. math::
+        V(\\theta) =V_\\mathrm{table}(\\theta)
+
+    where :math:`\\theta` is the angle between the vectors
+    :math:`\\vec{r}_A - \\vec{r}_B` and :math:`\\vec{r}_C - \\vec{r}_B` for
+    particles A,B,C in the angle.
+
+    Provide :math:`\\tau_\\mathrm{table}(\\theta)` and
+    :math:`V_\\mathrm{table}(\\theta)` on evenly spaced grid points points
+    in the range :math:`\\theta \\in [0,\\pi]`. `Table` linearly
+    interpolates values when :math:`\\theta` lies between grid points. The
+    torque must be specificed commensurate with the potential: :math:`\\tau =
+    -\\frac{\\partial V}{\\partial \\theta}`.
+
+    Attributes:
+        params (`TypeParameter` [``angle type``, `dict`]):
+          The potential parameters. The dictionary has the following keys:
+
+          * ``V`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
+            the tabulated energy values :math:`[\\mathrm{energy}]`. Must have
+            a size equal to `width`.
+
+          * ``tau`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
+            the tabulated torque values :math:`[\\mathrm{force} \\cdot
+            \\mathrm{length}]`. Must have a size equal to `width`.
+
+        width (int): Number of points in the table.
+    """
+
+    def __init__(self, width):
+        super().__init__()
+        param_dict = hoomd.data.parameterdicts.ParameterDict(width=int)
+        param_dict['width'] = width
+        self._param_dict = param_dict
+
+        params = TypeParameter(
+            "params", "angle_types",
+            TypeParameterDict(
+                V=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                tau=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                len_keys=1))
+        self._add_typeparam(params)
+
+    def _attach(self):
+        """Create the c++ mirror class."""
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cpp_cls = _md.TableAngleForceCompute
+        else:
+            cpp_cls = _md.TableAngleForceComputeGPU
+
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.width)
+
+        Force._attach(self)
