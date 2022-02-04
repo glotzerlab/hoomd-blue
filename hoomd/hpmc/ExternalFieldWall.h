@@ -158,22 +158,20 @@ struct CylinderWall
 
 struct PlaneWall
     {
-    PlaneWall(vec3<Scalar> origin_, vec3<Scalar> normal_, bool inside_ = true)
-        : origin(origin_), normal(normal_), inside(inside_)
+    PlaneWall(vec3<Scalar> origin_, vec3<Scalar> normal_) : origin(origin_), normal(normal_)
         {
         Scalar len = sqrt(dot(normal, normal));
         normal /= len;
         d = -dot(normal, origin);
         }
 #ifndef __HIPCC__
-    PlaneWall(pybind11::tuple origin, pybind11::tuple normal, bool inside = true)
+    PlaneWall(pybind11::tuple origin, pybind11::tuple normal)
         : PlaneWall(vec3<Scalar>(origin[0].cast<Scalar>(),
                                  origin[1].cast<Scalar>(),
                                  origin[2].cast<Scalar>()),
                     vec3<Scalar>(normal[0].cast<Scalar>(),
                                  normal[1].cast<Scalar>(),
-                                 normal[2].cast<Scalar>()),
-                    inside)
+                                 normal[2].cast<Scalar>()))
         {
         }
 
