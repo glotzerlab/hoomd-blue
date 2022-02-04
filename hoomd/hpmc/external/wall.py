@@ -106,6 +106,7 @@ class WallPotential(ExternalField):
     def walls(self, wall_list):
         if self._walls is wall_list:
             return
-        integrator = self._simulation.operations.integrator
-        self._check_valid_shape_wall_pairs(wall_list, integrator)
+        if self._attached:
+            integrator = self._simulation.operations.integrator
+            self._check_valid_shape_wall_pairs(wall_list, integrator)
         self._walls = hoomd.wall._WallsMetaList(wall_list, _to_hpmc_cpp_wall)
