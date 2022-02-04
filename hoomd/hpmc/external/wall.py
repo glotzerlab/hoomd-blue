@@ -40,7 +40,7 @@ class WallPotential(ExternalField):
     potential.
 
     See Also:
-        `wall`
+        `hoomd.wall`
 
     Example::
 
