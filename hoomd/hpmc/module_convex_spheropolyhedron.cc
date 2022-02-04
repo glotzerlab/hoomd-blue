@@ -44,7 +44,7 @@ void export_convex_spheropolyhedron(pybind11::module& m)
     export_HarmonicField<ShapeSpheropolyhedron>(m, "ExternalFieldHarmonicSpheropolyhedron");
     export_ExternalFieldComposite<ShapeSpheropolyhedron>(m,
                                                          "ExternalFieldCompositeSpheropolyhedron");
-    export_ExternalFieldWall<ShapeSpheropolyhedron>(m, "WallSpheropolyhedron");
+    export_ExternalFieldWall<ShapeSpheropolyhedron>(m, "WallConvexSpheropolyhedron");
     export_ExternalCallback<ShapeSpheropolyhedron>(m, "ExternalCallbackSpheropolyhedron");
 
 #ifdef ENABLE_HIP
