@@ -49,12 +49,13 @@ struct SphereWall
         verts->ignore = 0;
         }
 #ifndef __HIPCC__
-    SphereWall(Scalar r_, pybind11::tuple origin_, bool inside_ = true)
+    SphereWall(Scalar r, pybind11::tuple origin, bool inside = true)
+        : SphereWall(r,
+                     vec3<Scalar>(origin[0].cast<Scalar>(),
+                                  origin[1].cast<Scalar>(),
+                                  origin[2].cast<Scalar>()),
+                     inside)
         {
-        vec3<Scalar> origin(origin_[0].cast<Scalar>(),
-                            origin_[1].cast<Scalar>(),
-                            origin_[2].cast<Scalar>());
-        SphereWall(r_, origin, inside_);
         }
 #endif
     SphereWall(const SphereWall& src)
@@ -113,15 +114,15 @@ struct CylinderWall
         verts->ignore = 0;
         }
 #ifndef __HIPCC__
-    CylinderWall(Scalar r, pybind11::tuple origin_, pybind11::tuple axis_, bool inside_ = true)
+    CylinderWall(Scalar r, pybind11::tuple origin, pybind11::tuple axis, bool inside = true)
+        : CylinderWall(
+            r,
+            vec3<Scalar>(origin[0].cast<Scalar>(),
+                         origin[1].cast<Scalar>(),
+                         origin[2].cast<Scalar>()),
+            vec3<Scalar>(axis[0].cast<Scalar>(), axis[1].cast<Scalar>(), axis[2].cast<Scalar>()),
+            inside)
         {
-        vec3<Scalar> origin(origin_[0].cast<Scalar>(),
-                            origin_[1].cast<Scalar>(),
-                            origin_[2].cast<Scalar>());
-        vec3<Scalar> axis(axis_[0].cast<Scalar>(),
-                          axis_[1].cast<Scalar>(),
-                          axis_[2].cast<Scalar>());
-        CylinderWall(r, origin, axis, inside_);
         }
 #endif
     CylinderWall(const CylinderWall& src)
@@ -165,15 +166,15 @@ struct PlaneWall
         d = -dot(normal, origin);
         }
 #ifndef __HIPCC__
-    PlaneWall(pybind11::tuple origin_, pybind11::tuple normal_, bool inside_ = true)
+    PlaneWall(pybind11::tuple origin, pybind11::tuple normal, bool inside = true)
+        : PlaneWall(vec3<Scalar>(origin[0].cast<Scalar>(),
+                                 origin[1].cast<Scalar>(),
+                                 origin[2].cast<Scalar>()),
+                    vec3<Scalar>(normal[0].cast<Scalar>(),
+                                 normal[1].cast<Scalar>(),
+                                 normal[2].cast<Scalar>()),
+                    inside)
         {
-        vec3<Scalar> origin(origin_[0].cast<Scalar>(),
-                            origin_[1].cast<Scalar>(),
-                            origin_[2].cast<Scalar>());
-        vec3<Scalar> normal(normal_[0].cast<Scalar>(),
-                            normal_[1].cast<Scalar>(),
-                            normal_[2].cast<Scalar>());
-        PlaneWall(origin, normal, inside_);
         }
 
     pybind11::tuple getOrigin()
