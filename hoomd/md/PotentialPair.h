@@ -180,6 +180,17 @@ template<class evaluator> class PotentialPair : public ForceCompute
         m_attached = false;
         }
 
+    //! Set whether analytical tail correction is enabled
+    void setTailCorrectionEnabled(bool enable)
+        {
+        m_tail_correction_enabled = enable;
+        }
+
+    bool getTailCorrectionEnabled()
+        {
+        return m_tail_correction_enabled;
+        }
+
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     virtual CommFlags getRequestedCommFlags(uint64_t timestep);
@@ -222,8 +233,12 @@ template<class evaluator> class PotentialPair : public ForceCompute
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
 
+    bool m_tail_correction_enabled = false;
     /// r_cut (not squared) given to the neighbor list
     std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
+
+    /// Keep track of number of each type of particle
+    std::vector<unsigned int> m_num_particles_by_type;
 
 #ifdef ENABLE_MPI
     /// The system's communicator.
@@ -232,7 +247,98 @@ template<class evaluator> class PotentialPair : public ForceCompute
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
-    };
+
+    //! Compute the long-range corrections to energy and pressure to account for truncating the pair
+    //! potentials
+    virtual void computeTailCorrection()
+        {
+        // early exit if tail correction not enabled
+        if (!m_tail_correction_enabled)
+            {
+            return;
+            }
+
+        // tail correction only valid with no potential shifting, throw error if shift and tail
+        // correction enabled
+        if (m_shift_mode != no_shift)
+            {
+            throw std::runtime_error(
+                "Pair potential shift mode must be \"none\" to apply tail corrections.");
+            }
+
+        // Only compute pressure correction if we need pressure on this timestep
+        PDataFlags flags = this->m_pdata->getFlags();
+        bool compute_virial = flags[pdata_flag::pressure_tensor];
+
+        BoxDim box = m_pdata->getGlobalBox();
+        int dimension = m_sysdef->getNDimensions();
+        bool is_two_dimensions = dimension == 2;
+        Scalar volume = box.getVolume(is_two_dimensions);
+        ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+
+        // compute energy correction and store in m_external_energy; this is done on every step
+        m_external_energy = Scalar(0.0);
+        const unsigned int my_rank = m_exec_conf->getRank();
+        if (my_rank == 0)
+            {
+            for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
+                {
+                for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                    {
+                    // rho is the number density
+                    Scalar rho_j = m_num_particles_by_type[type_j] / volume;
+                    evaluator eval(Scalar(0.0),
+                                   h_rcutsq.data[m_typpair_idx(type_i, type_j)],
+                                   m_params[m_typpair_idx(type_i, type_j)]);
+                    m_external_energy += Scalar(2.0) * m_num_particles_by_type[type_i] * M_PI
+                                         * rho_j * eval.evalEnergyLRCIntegral();
+                    }
+                }
+            }
+
+        // compute the virial
+        if (compute_virial)
+            {
+            // zero out the entire external virial tensor
+            for (unsigned int i = 0; i < 6; i++)
+                {
+                m_external_virial[i] = Scalar(0.0);
+                }
+
+            if (my_rank == 0)
+                {
+                for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
+                    {
+                    // rho is the number density
+                    Scalar rho_i = m_num_particles_by_type[type_i] / volume;
+                    for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                        {
+                        Scalar rho_j = m_num_particles_by_type[type_j] / volume;
+                        evaluator eval(Scalar(0.0),
+                                       h_rcutsq.data[m_typpair_idx(type_i, type_j)],
+                                       m_params[m_typpair_idx(type_i, type_j)]);
+                        // The pressure LRC, where
+                        // P = \frac{2 \cdot K_{trans} + W}{D \cdot  V}
+                        Scalar delta_pressure = Scalar(4.0) / Scalar(6.0) * rho_i * rho_j * M_PI
+                                                * eval.evalPressureLRCIntegral();
+                        // \Delta W = \Delta P (D \cdot V)
+                        // We will assume that the contribution to pressure is equal
+                        // in x, y, and z, so we will add 1/3 \Delta W on the diagonal
+                        // Note that 0, 3, and 5 are the indices of m_external_virial corresponding
+                        // to the diagonal elements
+                        Scalar delta_virial = dimension * volume * delta_pressure / Scalar(3.0);
+                        m_external_virial[0] += delta_virial;
+                        m_external_virial[3] += delta_virial;
+                        m_external_virial[5] += delta_virial;
+                        }
+                    }
+                }
+
+            } // end if (compute_virial)
+
+        } // end void computeTailCorrection()
+
+    }; // end class PotentialPair
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
@@ -263,42 +369,73 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
     nlist->addRCutMatrix(m_r_cut_nlist);
 
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_pdata->getExecConf()->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
+    if (m_pdata->getExecConf()->isCUDAEnabled())
         {
-        cudaMemAdvise(m_rcutsq.get(),
-                      m_rcutsq.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        cudaMemAdvise(m_ronsq.get(),
-                      m_ronsq.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
+        // m_params is _always_ in unified memory, so memadvise and prefetch
         cudaMemAdvise(m_params.data(),
                       m_params.size() * sizeof(param_type),
                       cudaMemAdviseSetReadMostly,
                       0);
-
-        // prefetch
         auto& gpu_map = m_exec_conf->getGPUIds();
-
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            // prefetch data on all GPUs
-            cudaMemPrefetchAsync(m_rcutsq.get(),
-                                 sizeof(Scalar) * m_rcutsq.getNumElements(),
-                                 gpu_map[idev]);
-            cudaMemPrefetchAsync(m_ronsq.get(),
-                                 sizeof(Scalar) * m_ronsq.getNumElements(),
-                                 gpu_map[idev]);
             cudaMemPrefetchAsync(m_params.data(),
                                  sizeof(param_type) * m_params.size(),
                                  gpu_map[idev]);
+            }
+
+        // m_rcutsq and m_ronsq only in unified memory if allConcurrentManagedAccess
+        if (m_exec_conf->allConcurrentManagedAccess())
+            {
+            cudaMemAdvise(m_rcutsq.get(),
+                          m_rcutsq.getNumElements() * sizeof(Scalar),
+                          cudaMemAdviseSetReadMostly,
+                          0);
+            cudaMemAdvise(m_ronsq.get(),
+                          m_ronsq.getNumElements() * sizeof(Scalar),
+                          cudaMemAdviseSetReadMostly,
+                          0);
+            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+                {
+                // prefetch data on all GPUs
+                cudaMemPrefetchAsync(m_rcutsq.get(),
+                                     sizeof(Scalar) * m_rcutsq.getNumElements(),
+                                     gpu_map[idev]);
+                cudaMemPrefetchAsync(m_ronsq.get(),
+                                     sizeof(Scalar) * m_ronsq.getNumElements(),
+                                     gpu_map[idev]);
+                }
             }
         }
 #endif
 
     // initialize name
     m_prof_name = std::string("Pair ") + evaluator::getName();
+
+    // get number of each type of particle, needed for energy and pressure correction
+    m_num_particles_by_type.resize(m_pdata->getNTypes());
+    std::fill(m_num_particles_by_type.begin(), m_num_particles_by_type.end(), 0);
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
+        m_num_particles_by_type[typeid_i] += 1;
+        }
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        // reduce number of each type of particle on all processors
+        MPI_Allreduce(MPI_IN_PLACE,
+                      m_num_particles_by_type.data(),
+                      m_pdata->getNTypes(),
+                      MPI_UNSIGNED,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
+#endif
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
@@ -689,6 +826,8 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
             }
         }
 
+    computeTailCorrection();
+
     if (m_prof)
         m_prof->pop();
     }
@@ -933,6 +1072,7 @@ template<class T> void export_PotentialPair(pybind11::module& m, const std::stri
         .def("setROn", &T::setROnPython)
         .def("getROn", &T::getROn)
         .def_property("mode", &T::getShiftMode, &T::setShiftModePython)
+        .def_property("tail_correction", &T::getTailCorrectionEnabled, &T::setTailCorrectionEnabled)
         .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
         .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec);
