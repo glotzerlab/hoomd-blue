@@ -78,10 +78,10 @@ class Harmonic(Angle):
         self._add_typeparam(params)
 
 
-class Cosinesq(Angle):
+class CosineSquared(Angle):
     r"""Cosine squared angle potential.
 
-    :py:class:`Cosinesq` specifies a cosine squared potential energy
+    :py:class:`CosineSquared` specifies a cosine squared potential energy
     between every triplet of particles with an angle specified between them.
 
     .. math::
@@ -111,7 +111,7 @@ class Cosinesq(Angle):
 
     Examples::
 
-        cosinesq = angle.Cosinesq()
+        cosinesq = angle.CosineSquared()
         cosinesq.params['polymer'] = dict(k=3.0, t0=0.7851)
         cosinesq.params['backbone'] = dict(k=100.0, t0=1.0)
     """
