@@ -190,7 +190,6 @@ struct PlaneWall
 
     vec3<Scalar> origin; // we could remove this.
     vec3<Scalar> normal; // unit normal n = (a, b, c)
-    bool inside;         // not used
     Scalar d;            // ax + by + cz + d =  0
     };
     } // namespace hpmc
