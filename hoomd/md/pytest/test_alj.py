@@ -2,36 +2,12 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import hoomd
 import hoomd.conftest
 from hoomd import md
-
-
-class ConservationDataStorer(hoomd.custom.Action):
-    """Store energy and velocities from a simulation."""
-
-    def __init__(self, sim, thermo):
-        self._sim = sim
-        self._thermo = thermo
-        self._velocities = []
-        self._energies = []
-
-    def act(self, timestep):
-        with self._sim.state.cpu_local_snapshot as snap:
-            self._energies.append(self._thermo.potential_energy
-                                  + self._thermo.kinetic_energy)
-            self._velocities.append(np.array(snap.particles.velocity,
-                                             copy=True))
-
-    @property
-    def velocities(self):
-        return np.array(self._velocities)
-
-    @property
-    def total_energies(self):
-        return np.array(self._energies)
 
 
 @pytest.mark.validate
@@ -133,18 +109,23 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
     sim.run(1000)
 
     # run sim and get values back
-    storer = ConservationDataStorer(sim, thermo)
-    writer = hoomd.write.CustomWriter(action=storer, trigger=1)
+    w = hoomd.conftest.ManyListWriter([(thermo, 'potential_energy'),
+                                       (thermo, 'kinetic_energy'),
+                                       (integrator, 'linear_momentum')])
+    writer = hoomd.write.CustomWriter(action=w, trigger=1)
     sim.operations.writers.append(writer)
     sim.run(1000)
-    total_energies = storer.total_energies
-    velocities = storer.velocities
+    pe, ke, momentum = w.data
+    total_energies = np.array(pe) + np.array(ke)
 
     # Ensure energy conservation up to the 3 digit per-particle.
-    assert np.std(total_energies) / sim.state.N_particles < 1e-3
+    npt.assert_allclose(total_energies,
+                        total_energies[0],
+                        atol=0.003 * sim.state.N_particles)
 
     # Test momentum conservation.
-    assert np.std(np.linalg.norm(np.sum(velocities, axis=1), axis=-1)) < 1e-6
+    p_magnitude = np.linalg.norm(momentum, axis=-1)
+    npt.assert_allclose(p_magnitude, p_magnitude[0], atol=1e-13)
 
 
 def test_type_shapes(simulation_factory, two_particle_snapshot_factory):
