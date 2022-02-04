@@ -158,7 +158,7 @@ struct CylinderWall
 struct PlaneWall
     {
     PlaneWall(vec3<Scalar> origin_, vec3<Scalar> normal_, bool inside_ = true)
-        : normal(normal_), origin(origin_), inside(inside_)
+        : origin(origin_), normal(normal_), inside(inside_)
         {
         Scalar len = sqrt(dot(normal, normal));
         normal /= len;
@@ -187,8 +187,8 @@ struct PlaneWall
         }
 #endif
 
-    vec3<Scalar> normal; // unit normal n = (a, b, c)
     vec3<Scalar> origin; // we could remove this.
+    vec3<Scalar> normal; // unit normal n = (a, b, c)
     bool inside;         // not used
     Scalar d;            // ax + by + cz + d =  0
     };
