@@ -51,7 +51,26 @@ def test_attaching(simulation_factory, two_particle_snapshot_factory,
                    add_default_integrator):
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc, lattice = add_default_integrator(sim)
+    mc, walls = add_default_integrator(sim)
 
     # create C++ mirror classes and set parameters
     sim.run(0)
+    assert mc._attached
+    assert walls._attached
+
+
+# TODO: parameterize over all shapes and wall geometries
+@pytest.mark.cpu
+def test_detaching(simulation_factory, two_particle_snapshot_factory,
+                   add_default_integrator):
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    mc, walls = add_default_integrator(sim)
+
+    # create C++ mirror classes and set parameters
+    sim.run(0)
+
+    # make sure objecst are attached
+    sim.operations.remove(mc)
+    assert not mc._attached
+    assert not walls._attached
