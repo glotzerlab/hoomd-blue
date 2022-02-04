@@ -67,7 +67,8 @@ def test_after_attaching(snapshot_factory, simulation_factory, special_pair_cls,
     potential.params['A-A'] = params
     potential.r_cut['A-A'] = r_cut
 
-    sim.operations.integrator = hoomd.md.Integrator(dt=0.005, forces=[potential])
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    forces=[potential])
 
     sim.run(0)
     potential.r_cut['A-A'] = r_cut
@@ -86,7 +87,8 @@ def test_forces_and_energies(snapshot_factory, simulation_factory,
     potential.params['A-A'] = params
     potential.r_cut['A-A'] = r_cut
 
-    sim.operations.integrator = hoomd.md.Integrator(dt=0.005, forces=[potential])
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    forces=[potential])
 
     sim.run(0)
 
