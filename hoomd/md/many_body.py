@@ -56,7 +56,7 @@ class Triplet(Force):
 
         Neighbor list used to compute the triplet potential.
 
-        Type: `hoomd.md.nlist.Nlist`
+        Type: `hoomd.md.nlist.NList`
 
     Warning:
         Currently HOOMD does not support reverse force communication between MPI

@@ -157,7 +157,7 @@ class Pair(force.Force):
 
         Neighbor list used to compute the pair potential.
 
-        Type: `hoomd.md.nlist.Nlist`
+        Type: `hoomd.md.nlist.NList`
     """
 
     # The accepted modes for the potential. Should be reset by subclasses with
