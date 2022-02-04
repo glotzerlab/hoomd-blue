@@ -67,7 +67,7 @@ class WallPotential(ExternalField):
             ]
         }
         integrator_type = type(integrator)
-        for wt in [type(w) for w in walls]:
+        for wt in (type(w) for w in walls):
             if wt not in supported_shape_wall_overlap_checks.get(
                     integrator_type, []):
                 msg = f'Overlap checks between {wt} and {integrator_type} are '
