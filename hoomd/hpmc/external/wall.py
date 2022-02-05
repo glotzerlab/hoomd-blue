@@ -64,8 +64,13 @@ class WallPotential(ExternalField):
 
 
     Walls are enforced by the HPMC integrator. Assign a `WallPotential` instance
-    to the `hpmc.integrate.HPMCIntegrator.external_potential` to activate the wall
-    potential.
+    to the `hpmc.integrate.HPMCIntegrator.external_potential` to activate the
+    wall potential. Not all combinations of HPMC integrators and wall geometries
+    have overlap checks implemented, and a `NotImplementedError` is raised if a
+    wall geometry is attached to a simulation with a specific HPMC integrator
+    attached and the overlap checks between the specific shape and wall geometry
+    are not implemented. See the individual subclasses of
+    `hoomd.hpmc.integrate.HPMCIntegrator` for their wall support.
 
     See Also:
         `hoomd.wall`
