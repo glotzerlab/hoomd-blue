@@ -21,19 +21,47 @@ def _to_hpmc_cpp_wall(wall):
 
 
 class WallPotential(ExternalField):
-    """HPMC wall potential.
+    r"""HPMC wall potential.
 
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
             that confine particles to specific regions of space.
 
-    `WallPotential` adds hard walls to HPMC simulations. Define the wall geometry
-    with a collection of `wall.WallGeometry` objects.  These walls break
-    space into forbidden and allowed regions, controlled by the ``inside``
-    argument for spherical and cylindrical walls and the ``normal`` argument
-    for planar walls. HPMC rejects trial moves that cause any part of the particle's
-    shape to enter the the space defined by the points with a negative signed distance
-    from any wall in the collection.
+    `WallPotential` adds hard walls to HPMC simulations. Define the wall
+    geometry with a collection of `wall.WallGeometry` objects.  These walls
+    break space into forbidden and allowed regions, controlled by the ``inside``
+    argument for spherical and cylindrical walls and the ``normal`` argument for
+    planar walls. HPMC rejects trial moves that cause any part of the particle's
+    shape to enter the the space defined by the points with a negative signed
+    distance from any wall in the collection. Formally, the contribution of the
+    particle-wall interactions to the potential energy of the system is given by
+
+    .. math::
+
+        U_{\mathrm{walls}} = \sum_{i=0}^{N_{\mathrm{particles}}}
+        \sum_{j=0}^{N_{\mathrm{walls}}} U_{i,j},
+
+
+    where the energy of interaction :math:`U_{i,j}` between particle :math:`i`
+    and wall :math:`j` is given by
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        U_{i,j} &=& \infty \,\,\,\text{if } \,\, d_{i,j} <= 0 \\
+                &=& 0; \,\,\, \text{if } \,\, d_{i,j} > 0,
+        \end{eqnarray*}
+
+
+    where :math:`d_{i,j} = \min{\{(\vec{r}_i - \vec{r}_j) \cdot \vec{n}_j :
+    \vec{r}_i \in V_I, \vec{r}_j \in W_J\}}` is the minimum signed distance
+    between all pairs of points :math:`\vec{r}_i` on the body of the particle
+    :math:`V_I` and :math:`\vec{r}_j` on the surface of the wall :math:`W_J` and
+    :math:`\vec{n}_j` is the vector normal to the surface of the wall at
+    :math:`\vec{r}_j` pointing to the allowed region of space defined by the
+    wall.
+
 
     Walls are enforced by the HPMC integrator. Assign a `WallPotential` instance
     to the `hpmc.integrate.HPMCIntegrator.external_potential` to activate the wall
