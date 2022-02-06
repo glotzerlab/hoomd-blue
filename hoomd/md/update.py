@@ -229,9 +229,13 @@ class MeshDynamicalBonding(Updater):
 
     """
 
-    def __init__(self, trigger, mesh):
+    def __init__(self, trigger, mesh, kT):
         # initialize base class
         super().__init__(trigger)
+
+        param_dict = ParameterDict(kT=float(kT))
+
+        self._param_dict.update(param_dict)
 
         self._mesh = mesh
 
@@ -241,7 +245,7 @@ class MeshDynamicalBonding(Updater):
         self._cpp_obj = _md.MeshDynamicBondUpdater(
             self._simulation.state._cpp_sys_def,
             self._simulation.operations.integrator._cpp_obj,
-            self._mesh._cpp_obj)
+            self._mesh._cpp_obj, self.kT)
         super()._attach()
 
 

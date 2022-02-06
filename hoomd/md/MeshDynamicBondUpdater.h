@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ActiveRotationalDiffusionUpdater.h
     \brief Declares an updater that actively diffuses particle orientations
@@ -41,7 +41,8 @@ class PYBIND11_EXPORT MeshDynamicBondUpdater : public Updater
     /// Constructor
     MeshDynamicBondUpdater(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<Integrator> integrator,
-                           std::shared_ptr<MeshDefinition> mesh);
+                           std::shared_ptr<MeshDefinition> mesh,
+                           Scalar T);
 
     /// Destructor
     virtual ~MeshDynamicBondUpdater();
@@ -49,9 +50,20 @@ class PYBIND11_EXPORT MeshDynamicBondUpdater : public Updater
     /// Update box interpolation based on provided timestep
     virtual void update(uint64_t timestep);
 
+    Scalar getT()
+        {
+        return 1.0 / m_inv_T;
+        };
+
+    void setT(Scalar T)
+        {
+        m_inv_T = 1.0 / T;
+        };
+
     private:
     std::shared_ptr<Integrator> m_integrator; //!< Integrator that advances time in this System
     std::shared_ptr<MeshDefinition> m_mesh;   //!< Active force to call rotationalDiffusion on
+    Scalar m_inv_T;
     };
 
 namespace detail

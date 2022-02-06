@@ -6,6 +6,8 @@
 */
 
 #include "MeshDynamicBondUpdater.h"
+#include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
 
 #include <iostream>
 
@@ -22,8 +24,9 @@ namespace md
 
 MeshDynamicBondUpdater::MeshDynamicBondUpdater(std::shared_ptr<SystemDefinition> sysdef,
                                                std::shared_ptr<Integrator> integrator,
-                                               std::shared_ptr<MeshDefinition> mesh)
-    : Updater(sysdef), m_integrator(integrator), m_mesh(mesh)
+                                               std::shared_ptr<MeshDefinition> mesh,
+                                               Scalar T)
+    : Updater(sysdef), m_integrator(integrator), m_mesh(mesh), m_inv_T(1.0 / T)
     {
     assert(m_pdata);
     assert(m_integrator);
@@ -41,8 +44,9 @@ MeshDynamicBondUpdater::~MeshDynamicBondUpdater()
 */
 void MeshDynamicBondUpdater::update(uint64_t timestep)
     {
-
     std::vector<std::shared_ptr<ForceCompute>> forces = m_integrator->getForces();
+
+    uint16_t seed = m_sysdef->getSeed();
 
     for (auto& force : forces)
         {
@@ -65,7 +69,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh->getMeshBondData()->getN();
-
 
     unsigned int zahl = 0;
     for (unsigned int i = 0; i < size; i++)
@@ -143,7 +146,14 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                 }
             }
 
-        if (energyDifference < 0)
+        // Initialize the RNG
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::MeshDynamicBondUpdater, timestep, seed),
+                            hoomd::Counter(i));
+
+        // compute the random force
+        UniformDistribution<Scalar> uniform(0, Scalar(1));
+
+        if (exp(-m_inv_T * energyDifference) > uniform(rng))
             {
             zahl++;
 
@@ -248,7 +258,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             m_mesh->getMeshBondData()->setDirty();
             m_mesh->getMeshTriangleData()->setDirty();
 
-
             if (a_before_b)
                 {
                 for (auto& force : forces)
@@ -277,7 +286,9 @@ void export_MeshDynamicBondUpdater(pybind11::module& m)
         "MeshDynamicBondUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<Integrator>,
-                            std::shared_ptr<MeshDefinition>>());
+                            std::shared_ptr<MeshDefinition>,
+                            Scalar>())
+        .def_property("kT", &MeshDynamicBondUpdater::getT, &MeshDynamicBondUpdater::setT);
     }
 
     } // end namespace detail

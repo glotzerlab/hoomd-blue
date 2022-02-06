@@ -335,7 +335,8 @@ void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
         else
             {
             this->m_exec_conf->msg->error()
-                << "bond." << evaluator::getName() << ": bond out of bounds" << std::endl
+                << "bond." << evaluator::getName() << ": bond out of bounds " << bond.tag[0] << " "
+                << bond.tag[1] << " " << rsq << std::endl
                 << std::endl;
             throw std::runtime_error("Error in bond calculation");
             }
