@@ -10,9 +10,11 @@ if (ENABLE_HIP)
         set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcudafe --diag_suppress=code_is_unreachable -Xcompiler=-Wall -Xcompiler=-Wconversion")
 
         # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
-        if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER 8.99)
+        if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0)
+            set(CUDA_ARCH_LIST 60 70 80 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+        elseif (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 9.0)
             set(CUDA_ARCH_LIST 60 70 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-        elseif (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER 7.99)
+        elseif (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
             set(CUDA_ARCH_LIST 60 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
         endif()
 

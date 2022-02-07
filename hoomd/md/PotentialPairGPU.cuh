@@ -283,7 +283,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 unsigned int typpair
                     = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
                 Scalar rcutsq = s_rcutsq[typpair];
-                typename evaluator::param_type param = s_params[typpair];
+                const typename evaluator::param_type& param = s_params[typpair];
                 Scalar ronsq = Scalar(0.0);
                 if (shift_mode == 2)
                     ronsq = s_ronsq[typpair];
