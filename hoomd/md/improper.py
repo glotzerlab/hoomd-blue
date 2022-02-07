@@ -75,7 +75,8 @@ class Harmonic(Improper):
         super().__init__()
         params = hoomd.data.typeparam.TypeParameter(
             'params', 'improper_types',
-            hoomd.data.parameterdicts.TypeParameterDict(k=float,
-                                                        chi0=float,
-                                                        len_keys=1))
+            hoomd.data.parameterdicts.TypeParameterDict(
+                k=float,
+                chi0=hoomd.data.typeconverter.nonnegative_real,
+                len_keys=1))
         self._add_typeparam(params)
