@@ -3,14 +3,17 @@
 
 """Anisotropic potentials."""
 
+from collections.abc import Sequence
 import json
+from numbers import Number
 
 from hoomd import md
 from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyTypes, OnlyFrom, positive_real
+from hoomd.data.typeconverter import (OnlyTypes, OnlyFrom, positive_real,
+                                      OnlyIf, to_type_converter)
 
 
 class AnisotropicPair(Pair):
@@ -47,7 +50,7 @@ class AnisotropicPair(Pair):
         self._add_typeparam(tp_r_cut)
 
     def _return_type_shapes(self):
-        type_shapes = self.cpp_force.getTypeShapesPy()
+        type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
@@ -247,3 +250,247 @@ class GayBerne(AnisotropicPair):
             A list of dictionaries, one for each particle type in the system.
         """
         return super()._return_type_shapes()
+
+
+class ALJ(AnisotropicPair):
+    r"""Anistropic LJ potential.
+
+    Args:
+        nlist (hoomd.md.nlist.NList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[length]`.
+        mode (`str`, optional) : the energy shifting mode, defaults to "none".
+
+    `ALJ` computes the Lennard-Jones potential between anisotropic particles as
+    described in `Ramasubramani, V.  et. al. 2020`_. Specifically we implement
+    the formula:
+
+    .. _Ramasubramani, V.  et. al. 2020: https://doi.org/10.1063/5.0019735
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{ALJ}}(r, r_c)
+            = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+            \left( \frac{\sigma}{r} \right)^{6} \right] +
+            4 \varepsilon_c \left[ \left( \frac{\sigma_c}{r_c} \right)^{12} -
+            \left( \frac{\sigma_c}{r_c} \right)^{6} \right] \\
+        \end{eqnarray*}
+
+    The first term is the standard center-center interaction between two
+    Lennard-Jones spheres. The second term is a contact interaction computed
+    based on the smallest distance between the surfaces of the two shapes,
+    :math:`r_c`. The total potential energy can thus be viewed as the sum of
+    two interactions, a central Lennard-Jones potential and a shifted
+    Lennard-Jones potential where the shift is anisotroipc and depends on the
+    extent of the shape in each direction.
+
+    Like a standard LJ potential, each term has an independent cutoff beyond
+    which it decays to zero the behavior of these cutoffs is dependendent on
+    whether a user requires LJ or Weeks-Chandler-Anderson (WCA)-like
+    (repulsive-only) behavior. This behavior is controlled using the ``alpha``
+    parameter, which can take on the following values:
+
+    * 0:
+      All interactions are WCA (no attraction).
+
+    * 1:
+      Center-center interactions include attraction,
+      contact-contact interactions are solely repulsive.
+
+    * 2:
+      Center-center interactions are solely repulsive,
+      contact-contact interactions include attraction.
+
+    * 3:
+      All interactions include attractive and repulsive components.
+
+    For polytopes, computing interactions using a single contact point leads to
+    significant instabilities in the torques because the contact point can jump
+    from one end of a face to another in an arbitrarily small time interval. To
+    ameliorate this, the ALJ potential performs a local averaging over all the
+    features associated with the closest simplices on two polytopes. This
+    averaging can be turned off by setting the ``average_simplices`` key for the
+    type pair to ``False``.
+
+    .. py:attribute:: params
+
+        The ALJ potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) - base energy scale
+          :math:`\varepsilon` :math:`[energy]`.
+        * ``sigma_i`` (`float`, **required**) - the insphere radius of the first
+          particle type, :math:`[length]`.
+        * ``sigma_j`` (`float`, **required**) - the insphere radius of the
+          second particle type, :math:`[length]`.
+        * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
+          not to include the attractive component of the interaction (see
+          above for details).
+        * ``contact_ratio_i`` (`float`, **optional**) - the ratio of the contact
+          sphere radius of the first type with ``sigma_i``. Defaults to 0.15.
+        * ``contact_ratio_j`` (`float`, **optional**) - the ratio of the contact
+          sphere radius of the second type with ``sigma_j``. Defaults to 0.15.
+        * ``average_simplices`` (`bool`, **optional**) - Whether to average over
+          simplices. Defaults to ``True``. See class documentation for more
+          information.
+
+        Type: `hoomd.data.typeparam.TypeParameter` [`tuple` [``particle_types``,
+        ``particle_types``], `dict`]
+
+    .. py:attribute:: shape
+
+        The shape of a given type. The dictionary has the following keys per
+        type:
+
+        * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
+          **required**) - The vertices of a convex polytope in 2 or 3
+          dimensions. The third dimension in 2D is ignored.
+        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
+          **required**) - The semimajor axes of a rounding ellipsoid. If a
+          single value is specified, the rounding ellipsoid is a sphere.
+        * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
+          polyhedron specified as a list of list of integers.  The vertices
+          must be ordered (see `get_ordered_vertices` for more information).
+
+        Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
+
+    Specifying only ``rounding_radii`` creates an ellipsoid, while specifying
+    only ``vertices`` creates a convex polytope (set ``vertices`` and ``faces``
+    to empty list to create the ellipsoid). To automate the computation of
+    faces, the convenience class method `get_ordered_vertices` can be used.
+    However, because merging of faces requires applying a numerical threshold to
+    find coplanar faces, in some cases `get_ordered_vertices` may result in not
+    all coplanar faces actually being merged. In such cases, users can
+    precompute the faces and provide them.
+
+    Example::
+
+        nl = hoomd.md.nlist.Cell()
+        alj = hoomd.md.pair.aniso.ALJ(nl, r_cut=2.5)
+
+        cube_verts = [(-0.5, -0.5, -0.5),
+                      (-0.5, -0.5, 0.5),
+                      (-0.5, 0.5, -0.5),
+                      (-0.5, 0.5, 0.5),
+                      (0.5, -0.5, -0.5),
+                      (0.5, -0.5, 0.5),
+                      (0.5, 0.5, -0.5),
+                      (0.5, 0.5, 0.5)];
+
+        cube_faces = [[0, 2, 6],
+                      [6, 4, 0],
+                      [5, 0, 4],
+                      [5,1,0],
+                      [5,4,6],
+                      [5,6,7],
+                      [3,2,0],
+                      [3,0,1],
+                      [3,6,2],
+                      [3,7,6],
+                      [3,1,5],
+                      [3,5,7]]
+
+        alj.params[("A", "A")] = dict(epsilon=2.0,
+                                      sigma_i=1.0,
+                                      sigma_j=1.0,
+                                      alpha=1,
+                                      )
+        alj.shape["A"] = dict(vertices=cube_verts,
+                              faces=cube_faces,
+                              rounding_radii=1)
+
+    Warning:
+        Changing dimension in a simulation will invalidate this force and will
+        lead to error or unrealistic behavior.
+    """
+
+    # We don't define a _cpp_class_name since the dimension is a template
+    # parameter in C++, so use an instance level attribute instead that is
+    # created in _attach based on the dimension of the associated simulation.
+
+    def __init__(self, nlist, default_r_cut=None, mode='none'):
+        super().__init__(nlist, default_r_cut, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float,
+                              sigma_i=float,
+                              sigma_j=float,
+                              alpha=int,
+                              contact_ratio_i=0.15,
+                              contact_ratio_j=0.15,
+                              average_simplices=True,
+                              len_keys=2))
+
+        shape = TypeParameter(
+            'shape', 'particle_types',
+            TypeParameterDict(vertices=[(float, float, float)],
+                              faces=[[int]],
+                              rounding_radii=OnlyIf(
+                                  to_type_converter((float, float, float)),
+                                  preprocess=self._to_three_tuple),
+                              len_keys=1))
+
+        self._extend_typeparam((params, shape))
+
+    @staticmethod
+    def get_ordered_vertices(vertices, return_faces=True):
+        """Compute vertices and faces of a convex hull of given vertices.
+
+        Warning:
+            This method requires the
+            `coxeter <https://coxeter.readthedocs.io/>`_ package.
+
+        Args:
+            vertices (:math:`(N_v, 3)` numpy.ndarray of float): The vertices to
+                take the convex hull of and get ordered vertices and faces from.
+            return_faces (`bool`, optional): Whether to return faces as a list
+                of list of int which index into the returned vertices. Defaults
+                to ``True``. If ``False`` only vertices are returned and the
+                return type is not a tuple.
+
+        Returns:
+            tuple: A tuple containing:
+
+                * ``vertices`` (:math:`(N_v, 3)` `numpy.ndarray` of `float`) -
+                  The vertices of the convex hull.
+                * ``faces`` (`list` [`list` [`int`]]) - The indices into the
+                  vertices of vertices defining the faces.
+        """
+        try:
+            import coxeter
+        except ImportError as error:
+            raise RuntimeError(
+                "Method requires coxeter as a dependency.") from error
+
+        shape = coxeter.shapes.ConvexPolyhedron(vertices)
+
+        if return_faces:
+            return shape.vertices, shape.faces
+        else:
+            return shape.vertices
+
+    def _attach(self):
+        self._cpp_class_name = "AnisoPotentialPairALJ{}".format(
+            "2D" if self._simulation.state.box.is2D else "3D")
+
+        super()._attach()
+
+    @staticmethod
+    def _to_three_tuple(value):
+        if isinstance(value, Sequence):
+            return value
+        if isinstance(value, Number):
+            return (value, value, value)
+        else:
+            raise ValueError(f"Expected a float or tuple object got {value}")
+
+    @log(category="object", requires_run=True)
+    def type_shapes(self):
+        """`list` [`dict` [`str`, ``any``]]: The shape specification for use \
+                with GSD files for visualization.
+
+        This is not meant to be used for access to shape information in Python.
+        See the attribute ``shape`` for programatic assess. Use this property to
+        log shape for visualization and storage through the GSD file type.
+        """
+        return self._return_type_shapes()
