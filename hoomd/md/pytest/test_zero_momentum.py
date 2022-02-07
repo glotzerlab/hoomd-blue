@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
 import numpy as np
 
@@ -32,7 +35,7 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory):
 
 def test_momentum_is_zero(simulation_factory, two_particle_snapshot_factory):
     snap = two_particle_snapshot_factory()
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.velocity[0] = [0, 0, 0]
         snap.particles.velocity[1] = [2, 0, 0]
         snap.particles.mass[0] = 1
@@ -45,8 +48,8 @@ def test_momentum_is_zero(simulation_factory, two_particle_snapshot_factory):
     sim.operations.add(zm)
 
     sim.run(1)
-    snap = sim.state.snapshot
-    if snap.exists:
+    snap = sim.state.get_snapshot()
+    if snap.communicator.rank == 0:
         masses = snap.particles.mass
         velocities = snap.particles.velocity
         for i in range(3):

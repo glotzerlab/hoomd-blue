@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mspells
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <hoomd/HOOMDMath.h>
 #include <hoomd/VectorMath.h>
@@ -19,6 +17,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace dem
+    {
 template<typename Real> DEVICE vec2<Real> vec_from_scalar2(const Scalar2& v)
     {
     return vec2<Real>(v.x, v.y);
@@ -34,5 +36,8 @@ template<class Real> DEVICE inline Real cross(const vec2<Real>& a, const vec2<Re
     {
     return a.x * b.y - a.y * b.x;
     }
+
+    } // end namespace dem
+    } // end namespace hoomd
 
 #endif //__DEM_VECTOR_MATH_H__

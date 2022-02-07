@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceCompute.h"
 #include "hoomd/RNGIdentifiers.h"
@@ -9,27 +7,20 @@
 
 #include <vector>
 
-using namespace std;
-using namespace hoomd;
-namespace py = pybind11;
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \file ActiveForceCompute.cc
     \brief Contains code for the ActiveForceCompute class
 */
 
 /*! \param rotation_diff rotational diffusion constant for all particles.
-    \param constraint specifies a constraint surface, to which particles are confined,
-    such as update.constraint_ellipsoid. Have to replace it with manifolds when implemented
-*/
+ */
 ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                                       std::shared_ptr<ParticleGroup> group,
-                                       Scalar rotation_diff,
-                                       Scalar3 P,
-                                       Scalar rx,
-                                       Scalar ry,
-                                       Scalar rz)
-    : ForceCompute(sysdef), m_group(group), m_rotationDiff(rotation_diff), m_P(P), m_rx(rx),
-      m_ry(ry), m_rz(rz)
+                                       std::shared_ptr<ParticleGroup> group)
+
+    : ForceCompute(sysdef), m_group(group)
     {
     // allocate memory for the per-type active_force storage and initialize them to (1.0,0,0)
     GlobalVector<Scalar4> tmp_f_activeVec(m_pdata->getNTypes(), m_exec_conf);
@@ -73,7 +64,7 @@ ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
 
 ActiveForceCompute::~ActiveForceCompute()
     {
-    m_exec_conf->msg->notice(5) << "Destroying ActiveForceCompute" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying ActiveForceCompute" << std::endl;
     }
 
 void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::tuple v)
@@ -82,13 +73,13 @@ void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::
 
     if (pybind11::len(v) != 3)
         {
-        throw invalid_argument("gamma_r values must be 3-tuples");
+        throw std::invalid_argument("gamma_r values must be 3-tuples");
         }
 
     // check for user errors
     if (typ >= m_pdata->getNTypes())
         {
-        throw invalid_argument("Type does not exist");
+        throw std::invalid_argument("Type does not exist");
         }
 
     Scalar4 f_activeVec;
@@ -108,7 +99,7 @@ void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::
         }
     else
         {
-        f_activeVec.x = 0;
+        f_activeVec.x = 1;
         f_activeVec.y = 0;
         f_activeVec.z = 0;
         f_activeVec.w = 0;
@@ -140,13 +131,13 @@ void ActiveForceCompute::setActiveTorque(const std::string& type_name, pybind11:
 
     if (pybind11::len(v) != 3)
         {
-        throw invalid_argument("gamma_r values must be 3-tuples");
+        throw std::invalid_argument("gamma_r values must be 3-tuples");
         }
 
     // check for user errors
     if (typ >= m_pdata->getNTypes())
         {
-        throw invalid_argument("Type does not exist");
+        throw std::invalid_argument("Type does not exist");
         }
 
     Scalar4 t_activeVec;
@@ -240,7 +231,7 @@ void ActiveForceCompute::setForces()
  * relative to the force vector is preserved
     \param timestep Current timestep
 */
-void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
+void ActiveForceCompute::rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
@@ -255,38 +246,34 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
     assert(h_orientation.data != NULL);
     assert(h_tag.data != NULL);
 
+    const auto rotation_constant = slow::sqrt(2.0 * rotational_diffusion * m_deltaT);
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
         unsigned int idx = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);
-        unsigned int ptag = h_tag.data[idx];
-        hoomd::RandomGenerator rng(
-            hoomd::Seed(hoomd::RNGIdentifier::ActiveForceCompute, timestep, m_sysdef->getSeed()),
-            hoomd::Counter(ptag));
 
-        quat<Scalar> quati(h_orientation.data[idx]);
-
-        if (m_sysdef->getNDimensions() == 2) // 2D
+        if (h_f_actVec.data[type].w != 0)
             {
-            Scalar delta_theta; // rotational diffusion angle
-            delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-            Scalar theta
-                = delta_theta
-                  / 2.0; // half angle to calculate the quaternion which represents the rotation
-            vec3<Scalar> b(0, 0, slow::sin(theta));
+            unsigned int ptag = h_tag.data[idx];
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ActiveForceCompute,
+                                                   timestep,
+                                                   m_sysdef->getSeed()),
+                                       hoomd::Counter(ptag));
 
-            quat<Scalar> rot_quat(slow::cos(theta), b); // rotational diffusion quaternion
+            quat<Scalar> quati(h_orientation.data[idx]);
 
-            quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
-            h_orientation.data[idx].x = quati.s;
-            h_orientation.data[idx].y = quati.v.x;
-            h_orientation.data[idx].z = quati.v.y;
-            h_orientation.data[idx].w = quati.v.z;
-            // In 2D, the only meaningful torque vector is out of plane and should not change
-            }
-        else // 3D: Following Stenhammar, Soft Matter, 2014
-            {
-            if (m_rx == 0) // if no constraint
+            if (m_sysdef->getNDimensions() == 2) // 2D
+                {
+                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotation_constant)(rng);
+
+                vec3<Scalar> b(0, 0, 1.0);
+                quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(b, delta_theta);
+
+                quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
+                h_orientation.data[idx] = quat_to_scalar4(quati);
+                // In 2D, the only meaningful torque vector is out of plane and should not change
+                }
+            else // 3D: Following Stenhammar, Soft Matter, 2014
                 {
                 hoomd::SpherePointGenerator<Scalar> unit_vec;
                 vec3<Scalar> rand_vec;
@@ -298,46 +285,12 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
                 vec3<Scalar> fi
                     = rotate(quati, f); // rotate active force vector from local to global frame
 
-                vec3<Scalar> aux_vec; // rotation axis
-                aux_vec.x = fi.y * rand_vec.z - fi.z * rand_vec.y;
-                aux_vec.y = fi.z * rand_vec.x - fi.x * rand_vec.z;
-                aux_vec.z = fi.x * rand_vec.y - fi.y * rand_vec.x;
-                Scalar aux_vec_mag = 1.0
-                                     / slow::sqrt(aux_vec.x * aux_vec.x + aux_vec.y * aux_vec.y
-                                                  + aux_vec.z * aux_vec.z);
-                aux_vec.x *= aux_vec_mag;
-                aux_vec.y *= aux_vec_mag;
-                aux_vec.z *= aux_vec_mag;
+                vec3<Scalar> aux_vec = cross(fi, rand_vec); // rotation axis
+                Scalar aux_vec_mag = slow::rsqrt(dot(aux_vec, aux_vec));
+                aux_vec *= aux_vec_mag;
 
-                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-                Scalar theta
-                    = delta_theta
-                      / 2.0; // half angle to calculate the quaternion which represents the rotation
-                quat<Scalar> rot_quat(slow::cos(theta),
-                                      slow::sin(theta)
-                                          * aux_vec); // rotational diffusion quaternion
-
-                quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
-                h_orientation.data[idx] = quat_to_scalar4(quati);
-                }
-            else // if constraint exists
-                {
-                EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
-
-                Scalar3 current_pos
-                    = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
-                Scalar3 norm_scalar3 = Ellipsoid.evalNormal(
-                    current_pos); // the normal vector to which the particles are confined.
-
-                vec3<Scalar> norm;
-                norm = vec3<Scalar>(norm_scalar3);
-
-                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-                Scalar theta
-                    = delta_theta
-                      / 2.0; // half angle to calculate the quaternion which represents the rotation
-                quat<Scalar> rot_quat(slow::cos(theta),
-                                      slow::sin(theta) * norm); // rotational diffusion quaternion
+                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotation_constant)(rng);
+                quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(aux_vec, delta_theta);
 
                 quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
                 h_orientation.data[idx] = quat_to_scalar4(quati);
@@ -346,96 +299,15 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
         }
     }
 
-/*! This function sets an ellipsoid surface constraint for all active particles. Torque is not
- * considered here
- */
-void ActiveForceCompute::setConstraint()
-    {
-    EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
-
-    //  array handles
-    ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
-                                       access_location::host,
-                                       access_mode::readwrite);
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-
-    assert(h_f_actVec.data != NULL);
-    assert(h_pos.data != NULL);
-    assert(h_orientation.data != NULL);
-
-    for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
-        {
-        unsigned int idx = m_group->getMemberIndex(i);
-        unsigned int type = __scalar_as_int(h_pos.data[idx].w);
-
-        Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
-
-        Scalar3 norm_scalar3 = Ellipsoid.evalNormal(
-            current_pos); // the normal vector to which the particles are confined.
-        vec3<Scalar> norm = vec3<Scalar>(norm_scalar3);
-
-        Scalar3 f = make_scalar3(h_f_actVec.data[type].x,
-                                 h_f_actVec.data[type].y,
-                                 h_f_actVec.data[type].z);
-        quat<Scalar> quati(h_orientation.data[idx]);
-        vec3<Scalar> fi
-            = rotate(quati,
-                     vec3<Scalar>(f)); // rotate active force vector from local to global frame
-
-        Scalar dot_prod = fi.x * norm.x + fi.y * norm.y + fi.z * norm.z;
-
-        Scalar dot_perp_prod = slow::sqrt(1 - dot_prod * dot_prod);
-
-        Scalar phi_half = slow::atan(dot_prod / dot_perp_prod) / 2.0;
-
-        fi.x -= norm.x * dot_prod;
-        fi.y -= norm.y * dot_prod;
-        fi.z -= norm.z * dot_prod;
-
-        Scalar new_norm = 1.0 / slow::sqrt(fi.x * fi.x + fi.y * fi.y + fi.z * fi.z);
-
-        fi.x *= new_norm;
-        fi.y *= new_norm;
-        fi.z *= new_norm;
-
-        vec3<Scalar> rot_vec = cross(norm, fi);
-        rot_vec.x *= slow::sin(phi_half);
-        rot_vec.y *= slow::sin(phi_half);
-        rot_vec.z *= slow::sin(phi_half);
-
-        quat<Scalar> rot_quat(cos(phi_half), rot_vec);
-
-        quati = rot_quat * quati;
-
-        h_orientation.data[idx] = quat_to_scalar4(quati);
-        }
-    }
-
-/*! This function applies constraints, rotational diffusion, and sets forces for all active
-   particles \param timestep Current timestep
+/*! This function applies rotational diffusion and sets forces for all active particles
+    \param timestep Current timestep
 */
 void ActiveForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push(m_exec_conf, "ActiveForceCompute");
 
-    if (last_computed != timestep)
-        {
-        m_rotationConst = slow::sqrt(2.0 * m_rotationDiff * m_deltaT);
-
-        last_computed = timestep;
-
-        if (m_rx != 0)
-            {
-            setConstraint(); // apply surface constraints to active particles active force vectors
-            }
-        if (m_rotationDiff != 0)
-            {
-            rotationalDiffusion(timestep); // apply rotational diffusion to active particles
-            }
-        setForces(); // set forces for particles
-        }
+    setForces(); // set forces for particles
 
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -446,21 +318,23 @@ void ActiveForceCompute::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_ActiveForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute>>(
+void export_ActiveForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute>>(
         m,
         "ActiveForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Scalar,
-                      Scalar3,
-                      Scalar,
-                      Scalar,
-                      Scalar>())
-        .def_property("rotation_diff", &ActiveForceCompute::getRdiff, &ActiveForceCompute::setRdiff)
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
         .def("setActiveForce", &ActiveForceCompute::setActiveForce)
         .def("getActiveForce", &ActiveForceCompute::getActiveForce)
         .def("setActiveTorque", &ActiveForceCompute::setActiveTorque)
-        .def("getActiveTorque", &ActiveForceCompute::getActiveTorque);
+        .def("getActiveTorque", &ActiveForceCompute::getActiveTorque)
+        .def_property_readonly("filter",
+                               [](ActiveForceCompute& force)
+                               { return force.getGroup()->getFilter(); });
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

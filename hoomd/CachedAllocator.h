@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CachedAllocator.h
     \brief Declares a cached allocator for temporary allocations and a helper class
@@ -36,6 +34,8 @@
             }                                                                \
         }
 
+namespace hoomd
+    {
 //! CachedAllocator: a simple allocator for caching allocation requests
 class __attribute__((visibility("default"))) CachedAllocator
     {
@@ -245,6 +245,8 @@ template<typename T> ScopedAllocation<T>::~ScopedAllocation()
     {
     m_alloc.deallocate((char*)data);
     }
+
+    } // end namespace hoomd
 
 #undef CHECK_CUDA
 #endif // ENABLE_HIP

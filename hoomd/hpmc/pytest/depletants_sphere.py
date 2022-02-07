@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import pytest
 
 import math
@@ -92,7 +95,7 @@ def test_sphere(simulation_factory, lattice_snapshot_factory, phi, eta_p,
                                  a=a,
                                  n=n))
 
-    mc = hoomd.hpmc.integrate.Sphere(seed=1, d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(seed=1, default_d=0.1, default_a=0.1)
     sim.operations.integrator = mc
 
     mc.shape['A'] = dict(diameter=d_sphere)

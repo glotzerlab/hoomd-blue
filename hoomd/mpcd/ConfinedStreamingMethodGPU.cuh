@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef MPCD_CONFINED_STREAMING_METHOD_GPU_CUH_
 #define MPCD_CONFINED_STREAMING_METHOD_GPU_CUH_
@@ -16,6 +14,8 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -141,13 +141,10 @@ __global__ void confined_stream(Scalar4* d_pos,
 template<class Geometry>
 cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::confined_stream<Geometry>);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::confined_stream<Geometry>);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(args.block_size, max_block_size);
     dim3 grid(args.N / run_block_size + 1);
@@ -164,7 +161,7 @@ cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom)
     }
 #endif // __HIPCC__
 
-    } // end namespace gpu
-    } // end namespace mpcd
-
+    }  // end namespace gpu
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_CONFINED_STREAMING_METHOD_GPU_CUH_

@@ -1,35 +1,10 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-/*! \file MuellerPlatheFlow.h
+#pragma once
 
-    \brief Declares a class to exchange velocities of
-           different spatial region, to create a flow.
-*/
-
-//! Indicate a direction in a simulation box.
+#include "MuellerPlatheFlowEnum.h"
 #include "hoomd/HOOMDMath.h"
-
-#ifndef __MUELLER_PLATHE_FLOW_H__
-#define __MUELLER_PLATHE_FLOW_H__
-
-extern const unsigned int INVALID_TAG;
-extern const Scalar INVALID_VEL;
-
-//! Dummy struct to keep the enums out of global scope
-struct flow_enum
-    {
-    //! Enum for dimensions
-    enum Direction
-        {
-        X = 0, //!< X-direction
-        Y,     //!< Y-direction
-        Z      //!< Z-direction
-        };
-    };
-
-// Above this line shared constructs can be declared.
-#ifndef __HIPCC__
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
 #include "hoomd/Variant.h"
@@ -37,6 +12,13 @@ struct flow_enum
 
 #include <cfloat>
 #include <memory>
+
+namespace hoomd
+    {
+namespace md
+    {
+extern const unsigned int INVALID_TAG;
+extern const Scalar INVALID_VEL;
 
 //! By exchanging velocities based on their spatial position a flow is created.
 /*! \ingroup computes
@@ -55,11 +37,12 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr<ParticleGroup> group,
                       std::shared_ptr<Variant> flow_target,
-                      const flow_enum::Direction slab_direction,
-                      const flow_enum::Direction flow_direction,
+                      std::string slab_direction_str,
+                      std::string flow_direction_str,
                       const unsigned int N_slabs,
                       const unsigned int min_slab,
-                      const unsigned int max_slab);
+                      const unsigned int max_slab,
+                      Scalar flow_epsilon);
 
     //! Destructor
     virtual ~MuellerPlatheFlow(void);
@@ -67,69 +50,121 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     //! Take one timestep forward
     virtual void update(uint64_t timestep);
 
-    Scalar summed_exchanged_momentum(void) const
+    Scalar getSummedExchangedMomentum(void) const
         {
         return m_exchanged_momentum;
         }
 
-    unsigned int get_N_slabs(void) const
+    unsigned int getNSlabs(void) const
         {
         return m_N_slabs;
         }
-    unsigned int get_min_slab(void) const
+    unsigned int getMinSlab(void) const
         {
         return m_min_slab;
         }
-    unsigned int get_max_slab(void) const
+    unsigned int getMaxSlab(void) const
         {
         return m_max_slab;
         }
+    std::shared_ptr<Variant> getFlowTarget(void) const
+        {
+        return m_flow_target;
+        }
+    std::string getSlabDirectionPython(void) const
+        {
+        return getStringFromDirection(m_slab_direction);
+        }
+    std::string getFlowDirectionPython(void) const
+        {
+        return getStringFromDirection(m_flow_direction);
+        }
 
-    void set_min_slab(const unsigned int slab_id);
-    void set_max_slab(const unsigned int slab_id);
+    static std::string getStringFromDirection(const enum flow_enum::Direction direction)
+        {
+        if (direction == flow_enum::Direction::X)
+            {
+            return "x";
+            }
+        else if (direction == flow_enum::Direction::Y)
+            {
+            return "y";
+            }
+        else if (direction == flow_enum::Direction::Z)
+            {
+            return "z";
+            }
+        else
+            {
+            throw std::runtime_error("Direction must be x, y, or z");
+            }
+        }
+
+    static enum flow_enum::Direction getDirectionFromString(std::string direction_str)
+        {
+        if (direction_str == "x")
+            {
+            return flow_enum::Direction::X;
+            }
+        else if (direction_str == "y")
+            {
+            return flow_enum::Direction::Y;
+            }
+        else if (direction_str == "z")
+            {
+            return flow_enum::Direction::Z;
+            }
+        else
+            {
+            throw std::runtime_error("Direction must be x, y, or z");
+            }
+        }
+
+    void setMinSlab(const unsigned int slab_id);
+    void setMaxSlab(const unsigned int slab_id);
 
     //! Determine, whether this part of the domain decomposition
     //! has particles in the min slab.
-    bool has_min_slab(void) const
+    bool hasMinSlab(void) const
         {
         return m_has_min_slab;
         }
     //! Determine, whether this part of the domain decomposition
     //! has particles in the max slab.
-    bool has_max_slab(void) const
+    bool hasMaxSlab(void) const
         {
         return m_has_max_slab;
         }
 
     //! Call function, if the domain decomposition has changed.
-    void update_domain_decomposition(void);
+    void updateDomainDecomposition(void);
     //! Get the ignored variance between flow target and summed flow.
-    Scalar get_flow_epsilon(void) const
+    Scalar getFlowEpsilon(void) const
         {
         return m_flow_epsilon;
         }
-    //! Get the ignored variance between flow target and summed flow.
-    void set_flow_epsilon(const Scalar flow_epsilon)
+    //! Set the ignored variance between flow target and summed flow.
+    void setFlowEpsilon(const Scalar flow_epsilon)
         {
         m_flow_epsilon = flow_epsilon;
         }
     //! Trigger checks for orthorhombic checks.
-    void force_orthorhombic_box_check(void)
+    void forceOrthorhombicBoxCheck(void)
         {
         m_needs_orthorhombic_check = true;
         }
 
     protected:
     //! Swap min and max slab for a reverse flow.
-    //! More efficient than separate calls of set_min_slab() and set_max_slab(),
+    //! More efficient than separate calls of setMinSlab() and setMaxSlab(),
     //! especially in MPI runs.
-    void swap_min_max_slab(void);
+    void swapMinMaxSlab(void);
 
     //! Group of particles, which are searched for the velocity exchange
     std::shared_ptr<ParticleGroup> m_group;
 
-    virtual void search_min_max_velocity(void);
-    virtual void update_min_max_velocity(void);
+    virtual void searchMinMaxVelocity(void);
+    virtual void updateMinMaxVelocity(void);
 
     //! Temporary variables to store last found min vel info.
     //!
@@ -168,7 +203,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     //! Verify that the box is orthorhombic.
     //!
     //! Returns if box is orthorhombic, but throws a runtime_error, if the box is not orthorhombic.
-    void verify_orthorhombic_box(void);
+    void verifyOrthorhombicBox(void);
 #ifdef ENABLE_MPI
     struct MPI_SWAP
         {
@@ -185,14 +220,17 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         };
     struct MPI_SWAP m_min_swap;
     struct MPI_SWAP m_max_swap;
-    void init_mpi_swap(struct MPI_SWAP* ms, const int color);
-    void bcast_vel_to_all(struct MPI_SWAP* ms, Scalar3* vel, const MPI_Op op);
-    void mpi_exchange_velocity(void);
+    void initMPISwap(struct MPI_SWAP* ms, const int color);
+    void bcastVelToAll(struct MPI_SWAP* ms, Scalar3* vel, const MPI_Op op);
+    void mpiExchangeVelocity(void);
 #endif // ENABLE_MPI
     };
 
+namespace detail
+    {
 //! Exports the MuellerPlatheFlow class to python
 void export_MuellerPlatheFlow(pybind11::module& m);
 
-#endif // __HIPCC__
-#endif //__MUELLER_PLATHE_FLOW_H__
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

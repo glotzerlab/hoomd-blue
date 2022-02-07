@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
 import pytest
 
@@ -47,17 +50,6 @@ def test_common_properties(device, tmp_path):
                               msg_file=str(tmp_path / "example2.txt"),
                               num_cpu_threads=10)
 
-    # MPI conditional stuff
-    if hoomd.version.mpi_enabled:
-        # make sure we can pass a communciator
-        com = hoomd.communicator.Communicator(nrank=1)
-        assert device_type(communicator=com).communicator.num_ranks == 1
-        # make sure we can pass a shared_msg_file
-        device_type(shared_msg_file=str(tmp_path / "shared.txt"))
-    else:
-        with pytest.raises(RuntimeError):
-            device_type(shared_msg_file=str(tmp_path / "shared.txt"))
-
 
 def _assert_gpu_properties(dev, mem_traceback, gpu_error_checking):
     """Assert properties specific to GPU objects are correct."""
@@ -77,6 +69,12 @@ def test_gpu_specific_properties(device):
 
     # make sure we can give a list of GPU ids to the constructor
     hoomd.device.GPU(gpu_ids=[0])
+
+    c = device.compute_capability
+    assert type(c) is tuple
+    assert len(c) == 2
+    assert c[0] > 0
+    assert c[1] >= 0
 
 
 @pytest.mark.gpu

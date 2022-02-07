@@ -1,4 +1,6 @@
-// inclusion guard
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef _UPDATER_HPMC_CLUSTERS_GPU_
 #define _UPDATER_HPMC_CLUSTERS_GPU_
 
@@ -15,6 +17,8 @@
 
 #include <hip/hip_runtime.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 /*!
@@ -133,9 +137,6 @@ template<class Shape> class UpdaterClustersGPU : public UpdaterClusters<Shape>
 
     //! Check if memory reallocation for the adjacency list is necessary
     virtual bool checkReallocate();
-
-    //! Slot to be called when the number of types changes
-    virtual void slotNumTypesChange();
     };
 
 template<class Shape>
@@ -319,21 +320,11 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
                 }
             }
         }
-
-    // Connect to number of types change signal
-    this->m_pdata->getNumTypesChangeSignal()
-        .template connect<UpdaterClustersGPU<Shape>,
-                          &UpdaterClustersGPU<Shape>::slotNumTypesChange>(this);
     }
 
 template<class Shape> UpdaterClustersGPU<Shape>::~UpdaterClustersGPU()
     {
     this->m_exec_conf->msg->notice(5) << "Destroying UpdaterClustersGPU" << std::endl;
-
-    // disconnect signal
-    this->m_pdata->getNumTypesChangeSignal()
-        .template disconnect<UpdaterClustersGPU<Shape>,
-                             &UpdaterClustersGPU<Shape>::slotNumTypesChange>(this);
 
     for (auto s : m_depletant_streams)
         {
@@ -1132,54 +1123,8 @@ template<class Shape> void UpdaterClustersGPU<Shape>::updateGPUAdvice()
 #endif
     }
 
-template<class Shape> void UpdaterClustersGPU<Shape>::slotNumTypesChange()
+namespace detail
     {
-    unsigned int old_ntypes = (unsigned int)this->m_mc->getParams().size();
-
-    // skip the reallocation if the number of types does not change
-    // this keeps shape parameters when restoring a snapshot
-    // it will result in invalid coefficients if the snapshot has a different type id -> name
-    // mapping
-    if (this->m_pdata->getNTypes() != old_ntypes)
-        {
-        unsigned int ntypes = this->m_pdata->getNTypes();
-
-        // resize array
-        GlobalArray<Scalar> lambda(ntypes * this->m_mc->getDepletantIndexer().getNumElements(),
-                                   this->m_exec_conf);
-        m_lambda.swap(lambda);
-        TAG_ALLOCATION(m_lambda);
-
-        // destroy old streams
-        for (auto s : m_depletant_streams)
-            {
-            for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-                {
-                hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
-                hipStreamDestroy(s[idev]);
-                }
-            }
-
-        // create new ones
-        m_depletant_streams.resize(this->m_mc->getDepletantIndexer().getNumElements());
-        for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
-            {
-            for (unsigned int jtype = 0; jtype < this->m_pdata->getNTypes(); ++jtype)
-                {
-                m_depletant_streams[this->m_mc->getDepletantIndexer()(itype, jtype)].resize(
-                    this->m_exec_conf->getNumActiveGPUs());
-                for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-                    {
-                    hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
-                    hipStreamCreate(
-                        &m_depletant_streams[this->m_mc->getDepletantIndexer()(itype, jtype)]
-                                            [idev]);
-                    }
-                }
-            }
-        }
-    }
-
 template<class Shape> void export_UpdaterClustersGPU(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<UpdaterClustersGPU<Shape>,
@@ -1190,7 +1135,9 @@ template<class Shape> void export_UpdaterClustersGPU(pybind11::module& m, const 
                             std::shared_ptr<CellList>>());
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // ENABLE_CUDA
 #endif // _UPDATER_HPMC_CLUSTERS_GPU_

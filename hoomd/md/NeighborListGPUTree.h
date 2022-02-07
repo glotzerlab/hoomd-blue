@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborListGPU.h"
 #include "NeighborListGPUTree.cuh"
@@ -21,6 +19,10 @@
 #ifndef __NEIGHBORLISTGPUTREE_H__
 #define __NEIGHBORLISTGPUTREE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Efficient neighbor list build on the GPU using BVH trees
 /*!
  * GPU methods mostly make use of the neighbor library to do the traversal.
@@ -101,8 +103,8 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     GPUArray<unsigned int> m_type_last;  //!< Last index of each particle type in sorted list
 
     GPUFlags<unsigned int> m_lbvh_errors; //!< Error flags during particle marking (e.g., off rank)
-    std::vector<std::unique_ptr<LBVHWrapper>> m_lbvhs; //!< Array of LBVHs per-type
-    std::vector<std::unique_ptr<LBVHTraverserWrapper>>
+    std::vector<std::unique_ptr<kernel::LBVHWrapper>> m_lbvhs; //!< Array of LBVHs per-type
+    std::vector<std::unique_ptr<kernel::LBVHTraverserWrapper>>
         m_traversers;                   //!< Array of LBVH traverers per-type
     std::vector<hipStream_t> m_streams; //!< Array of CUDA streams per-type
 
@@ -127,7 +129,7 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         // ghost layer padding
         Scalar ghost_layer_width(0.0);
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             ghost_layer_width = m_comm->getGhostLayerMaxWidth();
 #endif
 
@@ -157,19 +159,22 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         m_max_num_changed = true;
         }
 
-    //! Notification of a change in the number of types
-    void slotNumTypesChanged()
-        {
-        m_type_changed = true;
-        }
+    /// set to true when the type data has been allocated
+    bool m_types_allocated;
 
-    bool m_type_changed;      //!< Flag if types changed
     bool m_box_changed;       //!< Flag if box changed
     bool m_max_num_changed;   //!< Flag if max number of particles changed
     unsigned int m_max_types; //!< Previous number of types
     // @}
     };
 
+namespace detail
+    {
 //! Exports NeighborListGPUTree to python
 void export_NeighborListGPUTree(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif //__NEIGHBORLISTGPUTREE_H__

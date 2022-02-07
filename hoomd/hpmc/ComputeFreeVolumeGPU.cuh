@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _COMPUTE_FREE_VOLUME_CUH_
 #define _COMPUTE_FREE_VOLUME_CUH_
@@ -19,6 +19,8 @@
 #include "hoomd/TextureTools.h"
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -202,7 +204,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     unsigned int ntyppairs = overlap_idx.getNumElements();
     unsigned int* s_overlap = (unsigned int*)(&s_check_overlaps[ntyppairs]);
 
-    // copy over parameters one int per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -376,14 +378,10 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
     hipMemsetAsync(args.d_n_overlap_all, 0, sizeof(unsigned int));
 
     // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    static hipFuncAttributes attr;
-    if (max_block_size == -1)
-        {
-        hipFuncGetAttributes(&attr,
-                             reinterpret_cast<const void*>(gpu_hpmc_free_volume_kernel<Shape>));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_hpmc_free_volume_kernel<Shape>));
+    max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel
     unsigned int n_groups
@@ -392,10 +390,9 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
     dim3 threads(args.stride, args.group_size, n_groups);
     dim3 grid(args.n_sample / n_groups + 1, 1, 1);
 
-    unsigned int shared_bytes
-        = (unsigned int)(args.num_types * sizeof(typename Shape::param_type)
-                         + n_groups * sizeof(unsigned int)
-                         + args.overlap_idx.getNumElements() * sizeof(unsigned int));
+    size_t shared_bytes = args.num_types * sizeof(typename Shape::param_type)
+                          + n_groups * sizeof(unsigned int)
+                          + args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
     unsigned int max_extra_bytes = static_cast<unsigned int>(args.devprop.sharedMemPerBlock
                                                              - attr.sharedSizeBytes - shared_bytes);
@@ -407,7 +404,7 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
         {
         d_params[i].allocate_shared(ptr, available_bytes);
         }
-    unsigned int extra_bytes = max_extra_bytes - available_bytes;
+    const unsigned int extra_bytes = max_extra_bytes - available_bytes;
 
     shared_bytes += extra_bytes;
 
@@ -450,5 +447,7 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
     }; // end namespace detail
 
     } // end namespace hpmc
+
+    } // end namespace hoomd
 
 #endif // _COMPUTE_FREE_VOLUME_CUH_

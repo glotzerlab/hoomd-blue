@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
 
 /*! \file TwoStepRATTLEBDGPU.cuh
     \brief Declares GPU kernel code for Brownian dynamics on the GPU. Used by TwoStepRATTLEBDGPU.
@@ -20,7 +21,6 @@
 
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
-using namespace hoomd;
 
 #include <assert.h>
 #include <type_traits>
@@ -28,6 +28,12 @@ using namespace hoomd;
 #ifndef __TWO_STEP_RATTLE_BD_GPU_CUH__
 #define __TWO_STEP_RATTLE_BD_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Temporary holder struct to limit the number of arguments passed to gpu_rattle_bd_step_one()
 struct rattle_bd_step_one_args
     {
@@ -183,13 +189,22 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
         next_pos.z = postype.z;
         Scalar3 normal = manifold.derivative(next_pos);
 
-        // draw a new random velocity for particle j
-        Scalar mass = vel.w;
-        Scalar sigma = fast::sqrt(T / mass);
-        NormalDistribution<Scalar> norm(sigma);
-        vel.x = norm(rng);
-        vel.y = norm(rng);
-        vel.z = norm(rng);
+        if (d_noiseless_t)
+            {
+            vel.x = net_force.x / gamma;
+            vel.y = net_force.y / gamma;
+            vel.z = net_force.y / gamma;
+            }
+        else
+            {
+            // draw a new random velocity for particle j
+            Scalar mass = vel.w;
+            Scalar sigma = fast::sqrt(T / mass);
+            NormalDistribution<Scalar> norm(sigma);
+            vel.x = norm(rng);
+            vel.y = norm(rng);
+            vel.z = norm(rng);
+            }
 
         Scalar norm_normal = fast::rsqrt(dot(normal, normal));
         normal.x *= norm_normal;
@@ -262,9 +277,9 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
 
                 // check if the shape is degenerate
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0) * gamma_r.x * T / deltaT),
                                                fast::sqrt(Scalar(2.0) * gamma_r.y * T / deltaT),
@@ -302,10 +317,20 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 d_orientation[idx] = quat_to_scalar4(q);
 
-                // draw a new random ang_mom for particle j in body frame
-                p_vec.x = NormalDistribution<Scalar>(fast::sqrt(T * I.x))(rng);
-                p_vec.y = NormalDistribution<Scalar>(fast::sqrt(T * I.y))(rng);
-                p_vec.z = NormalDistribution<Scalar>(fast::sqrt(T * I.z))(rng);
+                if (d_noiseless_r)
+                    {
+                    p_vec.x = t.x / gamma_r.x;
+                    p_vec.y = t.y / gamma_r.y;
+                    p_vec.z = t.z / gamma_r.z;
+                    }
+                else
+                    {
+                    // draw a new random ang_mom for particle j in body frame
+                    p_vec.x = NormalDistribution<Scalar>(fast::sqrt(T * I.x))(rng);
+                    p_vec.y = NormalDistribution<Scalar>(fast::sqrt(T * I.y))(rng);
+                    p_vec.z = NormalDistribution<Scalar>(fast::sqrt(T * I.z))(rng);
+                    }
+
                 if (x_zero)
                     p_vec.x = 0;
                 if (y_zero)
@@ -648,4 +673,8 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
     }
 
 #endif
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif //__TWO_STEP_RATTLE_BD_GPU_CUH__

@@ -14,7 +14,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "3.0.0-beta.6")
+set(HOOMD_VERSION_RAW "3.0.0-beta.13")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -56,14 +56,16 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
-# enable c++14
-set(CMAKE_CXX_STANDARD 14)
+# enable c++17
+# Since we support the last two major releases of the CUDA toolkit, we cannot
+# use C++17 as the CUDA standard until CUDA 12.
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 14)
 
 # Enable compiler warnings on gcc and clang (common compilers used by developers)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Wno-sign-conversion -Wno-unknown-pragmas -Wno-deprecated-declarations")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Wno-sign-conversion -Wno-unknown-pragmas -Wno-deprecated-declarations -Wno-unused-result")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 endif()
 
@@ -83,23 +85,9 @@ endif()
 option(SINGLE_PRECISION "Use single precision math" OFF)
 OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
 SET(ENABLE_HIP ${ENABLE_GPU})
+option(ENABLE_LLVM "Link to the LLVM library for run time code generation" off)
 
 option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
-
-# Optionally enable documentation build
-OPTION(ENABLE_DOXYGEN "Enables building of documentation with doxygen" OFF)
-if (ENABLE_DOXYGEN)
-    find_package(Doxygen)
-    if (DOXYGEN_FOUND)
-        # get the doxygen version
-        exec_program(${DOXYGEN_EXECUTABLE} ${HOOMD_SOURCE_DIR} ARGS --version OUTPUT_VARIABLE DOXYGEN_VERSION)
-
-        if (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
-        else (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
-            message(STATUS "Doxygen version less than 1.8.5, documentation may not build correctly")
-        endif (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
-    endif ()
-endif ()
 
 # Components
 option(BUILD_MD "Build the md package" on)
@@ -110,7 +98,6 @@ option(BUILD_HPMC "Build the hpmc package" off)
 endif()
 option(BUILD_METAL "Build the metal package" on)
 option(BUILD_DEM "Build the dem package" on)
-option(BUILD_JIT "Build the jit package" off)
 
 # Optionally use TBB for threading
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
@@ -200,12 +187,6 @@ endif (BUILD_TESTING OR BUILD_VALIDATION)
 ################################
 ## Process subdirectories
 add_subdirectory (hoomd)
-
-###############################
-## include documentation directories
-if (ENABLE_DOXYGEN)
-    add_subdirectory (doc)
-endif (ENABLE_DOXYGEN)
 
 ###############################
 ## install cmake config files

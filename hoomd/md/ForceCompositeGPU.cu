@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
@@ -17,12 +20,16 @@
 #include <thrust/transform.h>
 #pragma GCC diagnostic pop
 
-// Maintainer: jglaser
-
 /*! \file ForceComposite.cu
     \brief Defines GPU kernel code for the composite particle integration on the GPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Calculates the body forces and torques by summing the constituent particle forces using a fixed
 //! sliding window size
 /*  Compute the force and torque sum on all bodies in the system from their constituent particles.
@@ -472,13 +479,10 @@ hipError_t gpu_rigid_force(Scalar4* d_force,
 
         dim3 force_grid(nwork / n_bodies_per_block + 1, 1, 1);
 
-        static unsigned int max_block_size = UINT_MAX;
-        static hipFuncAttributes attr;
-        if (max_block_size == UINT_MAX)
-            {
-            hipFuncGetAttributes(&attr, (const void*)gpu_rigid_force_sliding_kernel);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
+        unsigned int max_block_size;
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void*)gpu_rigid_force_sliding_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
 
@@ -493,18 +497,16 @@ hipError_t gpu_rigid_force(Scalar4* d_force,
         unsigned int window_size = run_block_size / n_bodies_per_block;
         unsigned int thread_mask = window_size - 1;
 
-        unsigned int shared_bytes
-            = (unsigned int)(run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
-                             + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int)));
+        size_t shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
+                              + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
 
         while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
             {
             // block size is power of two
             run_block_size /= 2;
 
-            shared_bytes = (unsigned int)(run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
-                                          + n_bodies_per_block
-                                                * (sizeof(Scalar4) + 3 * sizeof(unsigned int)));
+            shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
+                           + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
 
             window_size = run_block_size / n_bodies_per_block;
             thread_mask = window_size - 1;
@@ -577,13 +579,10 @@ hipError_t gpu_rigid_virial(Scalar* d_virial,
 
         dim3 force_grid(nwork / n_bodies_per_block + 1, 1, 1);
 
-        static unsigned int max_block_size = UINT_MAX;
-        static hipFuncAttributes attr;
-        if (max_block_size == UINT_MAX)
-            {
-            hipFuncGetAttributes(&attr, (const void*)gpu_rigid_virial_sliding_kernel);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
+        unsigned int max_block_size;
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void*)gpu_rigid_virial_sliding_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
 
@@ -598,18 +597,16 @@ hipError_t gpu_rigid_virial(Scalar* d_virial,
         unsigned int window_size = run_block_size / n_bodies_per_block;
         unsigned int thread_mask = window_size - 1;
 
-        unsigned int shared_bytes
-            = (unsigned int)(6 * run_block_size * sizeof(Scalar)
-                             + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int)));
+        size_t shared_bytes = 6 * run_block_size * sizeof(Scalar)
+                              + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
 
         while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
             {
             // block size is power of two
             run_block_size /= 2;
 
-            shared_bytes = (unsigned int)(6 * run_block_size * sizeof(Scalar)
-                                          + n_bodies_per_block
-                                                * (sizeof(Scalar4) + 3 * sizeof(unsigned int)));
+            shared_bytes = 6 * run_block_size * sizeof(Scalar)
+                           + n_bodies_per_block * (sizeof(Scalar4) + 3 * sizeof(unsigned int));
 
             window_size = run_block_size / n_bodies_per_block;
             thread_mask = window_size - 1;
@@ -764,13 +761,10 @@ void gpu_update_composite(unsigned int N,
     {
     unsigned int run_block_size = block_size;
 
-    static unsigned int max_block_size = UINT_MAX;
-    static hipFuncAttributes attr;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncGetAttributes(&attr, (const void*)gpu_update_composite_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_update_composite_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     if (max_block_size <= run_block_size)
         {
@@ -864,3 +858,7 @@ hipError_t gpu_find_rigid_centers(const unsigned int* d_body,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

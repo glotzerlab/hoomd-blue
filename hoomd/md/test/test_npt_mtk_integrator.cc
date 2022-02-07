@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <iostream>
 
@@ -30,16 +30,15 @@
 #include "hoomd/RandomNumbers.h"
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
-namespace py = pybind11;
 
 #include "hoomd/Variant.h"
-
-using namespace hoomd;
 
 #include <math.h>
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file test_npt_mtk_integrator.cc
     \brief Implements unit tests for NPTMTKpdater and descendants
@@ -171,7 +170,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator,
     thermo_group->setNDOF(3 * pdata->getN() - 3);
     thermo_group_t->setNDOF(3 * pdata->getN() - 3);
     std::shared_ptr<IntegratorTwoStep> npt_mtk(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
-    npt_mtk->addForceCompute(fc);
+    npt_mtk->getForces().push_back(fc);
 
     // successively integrate the system using different methods
     unsigned int offs = 0;
@@ -194,8 +193,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator,
         args.flags = flags;
 
         std::shared_ptr<TwoStepNPTMTK> two_step_npt_mtk = npt_mtk_creator(args);
-        npt_mtk->removeAllIntegrationMethods();
-        npt_mtk->addIntegrationMethod(two_step_npt_mtk);
+        npt_mtk->getIntegrationMethods().clear();
+        npt_mtk->getIntegrationMethods().push_back(two_step_npt_mtk);
         npt_mtk->prepRun(0);
 
         // step for a 10,000 timesteps to relax pressure and temperature
@@ -459,8 +458,8 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator,
 
     std::shared_ptr<TwoStepNPTMTK> two_step_npt = nph_creator(args);
     std::shared_ptr<IntegratorTwoStep> nph(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
-    nph->addIntegrationMethod(two_step_npt);
-    nph->addForceCompute(fc);
+    nph->getIntegrationMethods().push_back(two_step_npt);
+    nph->getForces().push_back(fc);
     nph->prepRun(0);
 
     // step for a 10,000 timesteps to relax pressure and temperature
@@ -630,7 +629,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator,
     thermo_group_t->setNDOF(3 * pdata->getN() - 3);
 
     std::shared_ptr<IntegratorTwoStep> npt_mtk(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
-    npt_mtk->addForceCompute(fc);
+    npt_mtk->getForces().push_back(fc);
 
     // successively integrate the system using different methods
     unsigned int offs = 0;
@@ -653,8 +652,8 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator,
         args.flags = flags;
 
         std::shared_ptr<TwoStepNPTMTK> two_step_npt_mtk = npt_mtk_creator(args);
-        npt_mtk->removeAllIntegrationMethods();
-        npt_mtk->addIntegrationMethod(two_step_npt_mtk);
+        npt_mtk->getIntegrationMethods().clear();
+        npt_mtk->getIntegrationMethods().push_back(two_step_npt_mtk);
 
         unsigned int ndof_rot = npt_mtk->getRotationalDOF(group_all);
         thermo_group->setRotationalNDOF(ndof_rot);
@@ -807,9 +806,9 @@ std::shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard {};
-    py::module::import("variant");
-    py::list S;
+    pybind11::scoped_interpreter guard {};
+    pybind11::module::import("variant");
+    pybind11::list S;
     S.append(P_variant);
     S.append(P_variant);
     S.append(P_variant);
@@ -837,16 +836,16 @@ std::shared_ptr<TwoStepNPTMTK> base_class_nph_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard {};
-    py::module::import("variant");
-    py::list S;
+    pybind11::scoped_interpreter guard {};
+    pybind11::module::import("variant");
+    pybind11::list S;
     S.append(P_variant);
     S.append(P_variant);
     S.append(P_variant);
     S.append(zero_variant);
     S.append(zero_variant);
     S.append(zero_variant);
-    std::cout << py::len(S) << std::endl;
+    std::cout << pybind11::len(S) << std::endl;
 
     std::shared_ptr<Variant> T_variant(new VariantConst(args.T));
     // for the tests, we can assume that group is the all group
@@ -870,9 +869,9 @@ std::shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard {};
-    py::module::import("variant");
-    py::list S;
+    pybind11::scoped_interpreter guard {};
+    pybind11::module::import("variant");
+    pybind11::list S;
     S.append(P_variant);
     S.append(P_variant);
     S.append(P_variant);
@@ -899,9 +898,9 @@ std::shared_ptr<TwoStepNPTMTK> gpu_nph_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard {};
-    py::module::import("variant");
-    py::list S;
+    pybind11::scoped_interpreter guard {};
+    pybind11::module::import("variant");
+    pybind11::list S;
     S.append(P_variant);
     S.append(P_variant);
     S.append(P_variant);

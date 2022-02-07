@@ -1,290 +1,135 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan This file is
-# part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
 # features
 
-R""" Constraints.
+r"""Constraints.
 
-Constraint forces constrain a given set of particle to a given surface, to have
-some relative orientation, or impose some other type of constraint.
+Constraint forces can constrain particles to be a set distance from each other,
+to have some relative orientation, or impose other types of constraint.
 
-As with other force commands in hoomd, multiple constrain commands can be issued
-to specify multiple constraints, which are additively applied.
+The `Rigid` class is special in that only one is allowed in a system and is set
+to an `hoomd.md.Integrator` object separately in the
+`rigid <hoomd.md.Integrator.rigid>` attribute.
 
-Warning: Constraints will be invalidated if two separate constraint commands
-apply to the same particle.
+Warning:
+    Constraints will be invalidated if two separate constraints apply to the
+    same particle.
 
-The degrees of freedom removed from the system by constraints are correctly
-taken into account when computing the temperature.
+The degrees of freedom removed from the system by constraints are
+accounted for in `hoomd.md.compute.ThermodynamicQuantities`.
 """
 
-from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.md import force
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.typeconverter import OnlyIf, to_type_converter
 import hoomd
+from hoomd.operation import _HOOMDBaseObject
 
 
-## \internal
-# \brief Base class for constraint forces
-#
-# A constraint_force in hoomd reflects a ForceConstraint in c++. It is
-# responsible for all high-level management that happens behind the scenes for
-# hoomd writers. 1) The instance of the c++ constraint force itself is tracked
-# and added to the System 2) methods are provided for disabling the force from
-# being added to the net force on each particle
-class ConstraintForce:
-    ## \internal
-    # \brief Constructs the constraint force
-    #
-    # \param name name of the constraint force instance
-    #
-    # Initializes the cpp_force to None.
-    # If specified, assigns a name to the instance
-    # Assigns a name to the force in force_name
-    def __init__(self):
-        # check if initialization has occurred
-        if not hoomd.init.is_initialized():
-            raise RuntimeError("Cannot create force before initialization\n")
+class Constraint(_HOOMDBaseObject):
+    """A constraint force that acts on the system."""
 
-        self.cpp_force = None
+    def _attach(self):
+        """Create the c++ mirror class."""
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cpp_cls = getattr(_md, self._cpp_class_name)
+        else:
+            cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
 
-        # increment the id counter
-        id = ConstraintForce.cur_id
-        ConstraintForce.cur_id += 1
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
 
-        self.force_name = "constraint_force%d" % (id)
-        self.enabled = True
-
-        self.composite = False
-        hoomd.context.current.constraint_forces.append(self)
-
-        # create force data iterator
-        self.forces = hoomd.data.force_data(self)
-
-    ## \var enabled
-    # \internal
-    # \brief True if the force is enabled
-
-    ## \var composite
-    # \internal
-    # \brief True if this is a composite body force
-
-    ## \var cpp_force
-    # \internal
-    # \brief Stores the C++ side ForceCompute managed by this class
-
-    ## \var force_name
-    # \internal
-    # \brief The Force's name as it is assigned to the System
-
-    ## \internal
-    # \brief Checks that proper initialization has completed
-    def check_initialization(self):
-        # check that we have been initialized properly
-        if self.cpp_force is None:
-            hoomd.context.current.device.cpp_msg.error(
-                "Bug in hoomd: cpp_force not set, please report\n")
-            raise RuntimeError()
-
-    def disable(self):
-        R"""Disable the force.
-
-        Example::
-
-            force.disable()
+        super()._attach()
 
 
-        Executing the disable command removes the force from the simulation.
-        Any ```hoomd.run``` command executed after disabling a force will not
-        calculate or use the force during the simulation. A disabled force can
-        be re-enabled with :py:meth:`enable()`
-        """
-        self.check_initialization()
-
-        # check if we are already disabled
-        if not self.enabled:
-            hoomd.context.current.device.cpp_msg.warning(
-                "Ignoring command to disable a force that is already disabled")
-            return
-
-        self.enabled = False
-
-        # remove the compute from the system
-        hoomd.context.current.system.removeCompute(self.force_name)
-        hoomd.context.current.constraint_forces.remove(self)
-
-    def enable(self):
-        R"""Enable the force.
-
-        Example::
-
-            force.enable()
-
-        See ``disable``.
-        """
-        self.check_initialization()
-
-        # check if we are already disabled
-        if self.enabled:
-            hoomd.context.current.device.cpp_msg.warning(
-                "Ignoring command to enable a force that is already enabled")
-            return
-
-        # add the compute back to the system
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-        hoomd.context.current.constraint_forces.append(self)
-
-        self.enabled = True
-
-    ## \internal
-    # \brief updates force coefficients
-    def update_coeffs(self):
-        pass
-        # does nothing: this is for derived classes to implement
-
-
-# set default counter
-ConstraintForce.cur_id = 0
-
-
-class sphere(ConstraintForce):
-    R"""Constrain particles to the surface of a sphere.
+class Distance(Constraint):
+    """Constrain pairwise particle distances.
 
     Args:
-        group (``hoomd.group``): Group on which to apply the constraint.
-        P (tuple): (x,y,z) tuple indicating the position of the center of the
-            sphere (in distance units).
-        r (float): Radius of the sphere (in distance units).
+        tolerance (float): Relative tolerance for constraint violation warnings.
 
-    `sphere` specifies that forces will be applied to all particles in the given
-    group to constrain them to a sphere. Currently does not work with Brownian
-    or Langevin dynamics.
+    `Distance` applies forces between particles to constrain the distances
+    between particles to specific values. The algorithm implemented is described
+    in:
 
-    Example::
+    1. M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative
+       Matrix Method for Constraint Molecular Dynamics Simulations," Molecular
+       Simulation, vol. 13, no. 6, pp. 395--405, 1994.
+    2. M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint
+       Molecular Dynamics Simulations," Journal of Computational Physics,
+       vol. 172, no. 1, pp. 188--197, Sep. 2001.
 
-        constrain.sphere(group=groupA, P=(0,10,2), r=10)
+    Each distance constraint takes the form:
 
-    """
+    .. math::
 
-    def __init__(self, group, P, r):
-
-        # initialize the base class
-        ConstraintForce.__init__(self)
-
-        # create the c++ mirror class
-        P = _hoomd.make_scalar3(P[0], P[1], P[2])
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.ConstraintSphere(
-                hoomd.context.current.system_definition, group.cpp_group, P, r)
-        else:
-            self.cpp_force = _md.ConstraintSphereGPU(
-                hoomd.context.current.system_definition, group.cpp_group, P, r)
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # store metadata
-        self.group = group
-        self.P = P
-        self.r = r
-
-
-class distance(ConstraintForce):
-    R"""Constrain pairwise particle distances.
-
-    :py:class:`distance` specifies that forces will be applied to all particles
-    pairs for which constraints have been defined.
-
-    The constraint algorithm implemented is described in:
-
-     * [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative
-     Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul.,
-     vol. 13, no. 6, pp. 395--405, 1994.
-     * [2] M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint
-     Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp.
-     188--197, Sep. 2001.
+        \\chi_{ij}(r) = (\\vec{r}_j - \\vec{r}_i) \\cdot
+          (\\vec{r}_j - \\vec{r}_i)
+          - d_{ij}^2 = 0
 
     In brief, the second derivative of the Lagrange multipliers with respect to
     time is set to zero, such that both the distance constraints and their time
     derivatives are conserved within the accuracy of the Velocity Verlet scheme,
-    i.e. within :math:`\Delta t^2`. The corresponding linear system of equations
-    is solved. Because constraints are satisfied at :math:`t + 2 \Delta t`, the
-    scheme is self-correcting and drifts are avoided.
+    i.e. within :math:`\\Delta t^2`. The corresponding linear system of
+    equations is solved. Because constraints are satisfied at :math:`t + 2
+    \\Delta t`, the scheme is self-correcting and drifts are avoided.
+
+    .. hint::
+
+        Define the particles (:math:`i,j`) and distances (:math:`d_{ij}`) for
+        each pairwise distance constraint in a GSD file with
+        `gsd.hoomd.Snapshot.constraints` or in a `hoomd.Snapshot` with
+        `hoomd.Snapshot.constraints`.
 
     Warning:
         In MPI simulations, all particles connected through constraints will be
-        communicated between processors as ghost particles. Therefore, it is an
+        communicated between ranks as ghost particles. Therefore, it is an
         error when molecules defined by constraints extend over more than half
         the local domain size.
 
-    .. caution::
-        constrain.distance() does not currently interoperate with
-        integrate.brownian() or integrate.langevin()
+    Note:
+        `tolerance` sets the tolerance to detect constraint violations and
+        issue a warning message. It does not influence the computation of the
+        constraint force.
 
-    Example::
-
-        constrain.distance()
-
+    Attributes:
+        tolerance (float): Relative tolerance for constraint violation warnings.
     """
 
-    def __init__(self):
+    _cpp_class_name = "ForceDistanceConstraint"
 
-        # initialize the base class
-        ConstraintForce.__init__(self)
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.ForceDistanceConstraint(
-                hoomd.context.current.system_definition)
-        else:
-            self.cpp_force = _md.ForceDistanceConstraintGPU(
-                hoomd.context.current.system_definition)
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-    def set_params(self, rel_tol=None):
-        R"""Set parameters for constraint computation.
-
-        Args:
-            rel_tol (float): The relative tolerance with which constraint
-                violations are detected (**optional**).
-
-        Example::
-
-            dist = constrain.distance()
-            dist.set_params(rel_tol=0.0001)
-        """
-        if rel_tol is not None:
-            self.cpp_force.setRelativeTolerance(float(rel_tol))
+    def __init__(self, tolerance=1e-3):
+        self._param_dict.update(ParameterDict(tolerance=float(tolerance)))
 
 
-class rigid(ConstraintForce):
+class Rigid(Constraint):
     R"""Constrain particles in rigid bodies.
 
     .. rubric:: Overview
 
     Rigid bodies are defined by a single central particle and a number of
     constituent particles. All of these are particles in the HOOMD system
-    configuration and can interact with other particles via force computes. The
+    configuration and can interact with other particles via md forces. The
     mass and moment of inertia of the central particle set the full mass and
     moment of inertia of the rigid body (constituent particle mass is ignored).
 
     The central particle is at the center of mass of the rigid body and the
     orientation quaternion defines the rotation from the body space into the
-    simulation box. In body space, the center of mass of the body is at 0,0,0
-    and the moment of inertia is diagonal. You specify the constituent particles
-    to :py:class:`rigid` for each type of body in body coordinates. Then,
-    :py:class:`rigid` takes control of those particles, and sets their position
-    and orientation in the simulation box relative to the position and
-    orientation of the central particle. :py:class:`rigid` also transfers forces
-    and torques from constituent particles to the central particle. Then, MD
-    integrators can use these forces and torques to integrate the equations of
-    motion of the central particles (representing the whole rigid body) forward
-    in time.
+    simulation box. Body space refers to a rigid body viewed in a particular
+    reference frame, namely, in body space, the center of mass of the body is at
+    :math:`(0,0,0)` and the moment of inertia is diagonal. You specify the
+    constituent particles to `Rigid` for each type of body in body coordinates.
+    Then, `Rigid` takes control of those particles, and sets their position and
+    orientation in the simulation box relative to the position and orientation
+    of the central particle. `Rigid` also transfers forces and torques from
+    constituent particles to the central particle. Then, MD integrators can use
+    these forces and torques to integrate the equations of motion of the central
+    particles (representing the whole rigid body) forward in time.
 
     .. rubric:: Defining bodies
 
-    :py:class:`rigid` accepts one local body environment per body type. The
+    `Rigid` accepts one local body definition per body type. The
     type of a body is the particle type of the central particle in that body.
     In this way, each particle of type *R* in the system configuration defines
     a body of type *R*.
@@ -292,30 +137,24 @@ class rigid(ConstraintForce):
     As a convenience, you do not need to create placeholder entries for all of
     the constituent particles in your initial configuration. You only need to
     specify the positions and orientations of all the central particles. When
-    you call :py:meth:`create_bodies()`, it will create all constituent
-    particles that do not exist. (those that already exist e.g. in a restart
-    file are left unchanged).
+    you call `create_bodies`, it will create all constituent particles.
 
-    .. danger:: Automatic creation of constituent particles can change particle
-    tags. If bonds have been defined between particles in the initial
-    configuration, or bonds connect to constituent particles, rigid bodies
-    should be created manually.
+    Warning:
+        Automatic creation of constituent particles changes particle tags. When
+        there are bonds between particles in the initial configuration, or bonds
+        connect to constituent particles, include the constituent particles in
+        the initial configuration manually.
 
     When you create the constituent particles manually (i.e. in an input file
     or with snapshots), the central particle of a rigid body must have a lower
     tag than all of its constituent particles. Constituent particles follow in
     monotonically increasing tag order, corresponding to the order they were
-    defined in the argument to :py:meth:`set_param()`. The order of central and
+    defined in the argument to `Rigid` initialization. The order of central and
     contiguous particles need **not** to be contiguous. Additionally, you must
     set the ``body`` field for each of the particles in the rigid body to the
     tag of the central particle (for both the central and constituent
     particles). Set ``body`` to -1 for particles that do not belong to a rigid
-    body. After setting an initial configuration that contains properly defined
-    bodies and all their constituent particles, call :py:meth:`validate_bodies`
-    to verify that the bodies are defined and prepare the constraint.
-
-    You must call either :py:meth:`create_bodies` or :py:meth:`validate_bodies`
-    prior to starting a simulation ```hoomd.run```.
+    body (i.e. free bodies).
 
     .. rubric:: Integrating bodies
 
@@ -326,247 +165,143 @@ class rigid(ConstraintForce):
 
     Example::
 
-        rigid = hoomd.group.rigid_center()
-        hoomd.md.integrate.langevin(group=rigid, kT=1.0)
+        rigid_centers_and_free_filter = hoomd.filter.Rigid(
+            ("center", "free"))
+        langevin = hoomd.md.methods.Langevin(
+            filter=rigid_centers_and_free_filter, kT=1.0)
 
 
     .. rubric:: Thermodynamic quantities of bodies
 
     HOOMD computes thermodynamic quantities (temperature, kinetic energy,
-    etc...) appropriately when there are rigid bodies present in the system.
+    etc.) appropriately when there are rigid bodies present in the system.
     When it does so, it ignores all constituent particles and computes the
     translational and rotational energies of the central particles, which
-    represent the whole body. ``hoomd.analyze.log`` can log the translational
-    and rotational energy terms separately.
+    represent the whole body.
 
     .. rubric:: Restarting simulations with rigid bodies.
 
-    To restart, use :py:class:`hoomd.dump.GSD` to write restart files. GSD
+    To restart, use `hoomd.write.GSD` to write restart files. GSD
     stores all of the particle data fields needed to reconstruct the state of
     the system, including the body tag, rotational momentum, and orientation of
     the body. Restarting from a gsd file is equivalent to manual constituent
     particle creation. You still need to specify the same local body space
-    environment to :py:class:`rigid` as you did in the earlier simulation.
+    environment to `Rigid` as you did in the earlier simulation.
 
-    """
+    To set constituent particle types and coordinates for a rigid body use the
+    `body` attribute.
 
-    def __init__(self):
+    .. py:attribute:: body
 
-        # initialize the base class
-        ConstraintForce.__init__(self)
+        body is a mapping from the central particle type to a body definition
+        represented as a dictionary. The mapping respects ``None`` as meaning
+        that the type is not a rigid body center. All types are set to ``None``
+        by default. The keys for the body definition are
 
-        self.composite = True
+        - ``constituent_types`` (list[str]): List of types of constituent
+          particles
+        - ``positions`` (list[tuple[float, float, float]]): List of relative
+          positions of constituent particles
+        - ``orientations`` (list[tuple[float, float, float, float]]): List of
+          orientations (as quaternions) of constituent particles
+        - ``charge`` (list[float]): List of charges of constituent particles
+        - ``diameters`` (list[float]): List of diameters of constituent
+          particles
 
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.ForceComposite(
-                hoomd.context.current.system_definition)
-        else:
-            self.cpp_force = _md.ForceCompositeGPU(
-                hoomd.context.current.system_definition)
+        Type: `TypeParameter` [``particle_type``, `dict`]
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-    def set_param(
-        self,
-        type_name,
-        types,
-        positions,
-        orientations=None,
-        charges=None,
-        diameters=None,
-    ):
-        R"""Set constituent particle types and coordinates for a rigid body.
-
-        Args:
-            type_name (str): The type of the central particle
-            types (list): List of types of constituent particles
-            positions (list): List of relative positions of constituent
-                particles
-            orientations (list): List of orientations of constituent particles
-                (**optional**)
-            charge (list): List of charges of constituent particles
-                (**optional**)
-            diameters (list): List of diameters of constituent particles
-                (**optional**)
-
-        .. caution::
-            The constituent particle type must be exist.
-            If it does not exist, it can be created on the fly using
-            ``system.particles.types.add('A_const')``.
-
-        Example::
-
-            rigid = constrain.rigid()
-            rigid.set_param(
-                'A',
-                types = ['A_const', 'A_const'],
-                positions = [(0,0,1),(0,0,-1)]
-                )
-            rigid.set_param(
-                'B',
-                types = ['B_const', 'B_const'],
-                positions = [(0,0,.5),(0,0,-.5)]
-                )
-
-        """
-        # get a list of types from the particle data
-        ntypes = (hoomd.context.current.system_definition.getParticleData()
-                  .getNTypes())
-        type_list = []
-        for i in range(0, ntypes):
-            type_list.append(self._simulation.state._cpp_sys_def
-                             .getParticleData().getNameByType(i))
-
-        if type_name not in type_list:
-            hoomd.context.current.device.cpp_msg.error(
-                "Type '{}' not found.\n".format(type_name))
-            raise RuntimeError(
-                "Error setting up parameters for constrain.rigid()")
-
-        type_id = type_list.index(type_name)
-
-        if not isinstance(types, list):
-            hoomd.context.current.device.cpp_msg.error(
-                "Expecting list of particle types.\n")
-            raise RuntimeError(
-                "Error setting up parameters for constrain.rigid()")
-
-        type_vec = _hoomd.std_vector_uint()
-        for t in types:
-            if t not in type_list:
-                hoomd.context.current.device.cpp_msg.error(
-                    "Type '{}' not found.\n".format(t))
-                raise RuntimeError(
-                    "Error setting up parameters for constrain.rigid()")
-            constituent_type_id = type_list.index(t)
-
-            type_vec.append(constituent_type_id)
-
-        pos_vec = _hoomd.std_vector_scalar3()
-        positions_list = list(positions)
-        for p in positions_list:
-            p = tuple(p)
-            if len(p) != 3:
-                hoomd.context.current.device.cpp_msg.error(
-                    "Particle position is not a coordinate triple.\n")
-                raise RuntimeError(
-                    "Error setting up parameters for constrain.rigid()")
-            pos_vec.append(_hoomd.make_scalar3(p[0], p[1], p[2]))
-
-        orientation_vec = _hoomd.std_vector_scalar4()
-        if orientations is not None:
-            orientations_list = list(orientations)
-            for o in orientations_list:
-                o = tuple(o)
-                if len(o) != 4:
-                    hoomd.context.current.device.cpp_msg.error(
-                        "Particle orientation is not a 4-tuple.\n")
-                    raise RuntimeError(
-                        "Error setting up parameters for constrain.rigid()")
-                orientation_vec.append(
-                    _hoomd.make_scalar4(o[0], o[1], o[2], o[3]))
-        else:
-            for p in positions:
-                orientation_vec.append(_hoomd.make_scalar4(1, 0, 0, 0))
-
-        charge_vec = _hoomd.std_vector_scalar()
-        if charges is not None:
-            charges_list = list(charges)
-            for c in charges_list:
-                charge_vec.append(float(c))
-        else:
-            for p in positions:
-                charge_vec.append(0.0)
-
-        diameter_vec = _hoomd.std_vector_scalar()
-        if diameters is not None:
-            diameters_list = list(diameters)
-            for d in diameters_list:
-                diameter_vec.append(float(d))
-        else:
-            for p in positions:
-                diameter_vec.append(1.0)
-
-        # set parameters in C++ force
-        self.cpp_force.setParam(
-            type_id,
-            type_vec,
-            pos_vec,
-            orientation_vec,
-            charge_vec,
-            diameter_vec,
-        )
-
-    def create_bodies(self, create=True):
-        R"""Create copies of rigid bodies.
-
-        Args:
-            create (bool): When True, create rigid bodies, otherwise validate
-                existing ones.
-        """
-        self.cpp_force.validateRigidBodies(create)
-
-    def validate_bodies(self):
-        R"""Validate that bodies are well defined and prepare for the
-        simulation run.
-        """
-        self.cpp_force.validateRigidBodies(False)
-
-    ## \internal
-    # \brief updates force coefficients
-    def update_coeffs(self):
-        # validate copies of rigid bodies
-        self.create_bodies(False)
-
-
-class oneD(ConstraintForce):
-    R"""Constrain particles to move along a specific direction only
-
-    Args:
-        group (``hoomd.group``): Group on which to apply the constraint.
-        constraint_vector (list): [x,y,z] list indicating the direction that
-        the particles are restricted to
-
-    :py:class:`oneD` specifies that forces will be applied to all particles in
-    the given group to constrain them to only move along a given vector.
+    .. caution::
+        The constituent particle type must exist.
 
     Example::
 
-        constrain.oneD(group=groupA, constraint_vector=[1,0,0])
+        rigid = constrain.Rigid()
+        rigid.body['A'] = {
+            "constituent_types": ['A_const', 'A_const'],
+            "positions": [(0,0,1),(0,0,-1)],
+            "orientations": [(1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0)],
+            "charges": [0.0, 0.0],
+            "diameters": [1.0, 1.0]
+            }
+        rigid.body['B'] = {
+            "constituent_types": ['B_const', 'B_const'],
+            "positions": [(0,0,.5),(0,0,-.5)],
+            "orientations": [(1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0)],
+            "charges": [0.0, 1.0],
+            "diameters": [1.5, 1.0]
+            }
 
-    .. versionadded:: 2.1
+        # Can set rigid body definition to be None explicitly.
+        rigid.body["A"] = None
+
+    Warning:
+        `Rigid` will significantly slow down a simulation when
+        frequently changing rigid body definitions or adding/removing particles
+        from the simulation.
     """
 
-    def __init__(self, group, constraint_vector=[0, 0, 1]):
+    _cpp_class_name = "ForceComposite"
 
-        if (constraint_vector[0]**2 + constraint_vector[1]**2
-                + constraint_vector[2]**2) < 1e-10:
-            raise RuntimeError("The one dimension constraint vector is zero")
+    def __init__(self):
+        body = TypeParameter(
+            "body", "particle_types",
+            TypeParameterDict(OnlyIf(to_type_converter({
+                'constituent_types': [str],
+                'positions': [(float,) * 3],
+                'orientations': [(float,) * 4],
+                'charges': [float],
+                'diameters': [float]
+            }),
+                                     allow_none=True),
+                              len_keys=1))
+        self._add_typeparam(body)
+        self.body.default = None
 
-        constraint_vector = _hoomd.make_scalar3(constraint_vector[0],
-                                                constraint_vector[1],
-                                                constraint_vector[2])
+    def create_bodies(self, state):
+        R"""Create rigid bodies from central particles in state.
 
-        # initialize the base class
-        ConstraintForce.__init__(self)
+        Args:
+            state (hoomd.State): The state in which to create rigid bodies.
 
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.OneDConstraint(
-                hoomd.context.current.system_definition,
-                group.cpp_group,
-                constraint_vector,
-            )
+        This method will remove any existing constituent particles (defined as
+        having a valid body flag without a central particle definition in the
+        rigid `body` attribute).
+
+        Note:
+            This method will change any exiting body tags.
+
+        Tip:
+            If planning on using this function, initialize the `hoomd.State`
+            with free and central particles without worrying about the body
+            tag. Existing body values or constituent particles in the state
+            won't cause errors, but the method does not need it.
+
+        Warning:
+            This method must be called before its associated simulation is run.
+        """
+        if self._attached:
+            raise RuntimeError(
+                "Cannot call create_bodies after running simulation.")
+        # Attach and store information for detaching after calling
+        # createRigidBodies
+        old_sim = None
+        if self._added:
+            old_sim = self._simulation
+        self._add(state._simulation)
+        super()._attach()
+
+        self._cpp_obj.createRigidBodies()
+
+        # Restore previous state
+        self._detach()
+        if old_sim is not None:
+            self._simulation = old_sim
         else:
-            self.cpp_force = _md.OneDConstraintGPU(
-                hoomd.context.current.system_definition,
-                group.cpp_group,
-                constraint_vector,
-            )
+            self._remove()
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # store metadata
-        self.group = group
-        self.constraint_vector = constraint_vector
+    def _attach(self):
+        super()._attach()
+        # Need to ensure body tags and molecule sizes are correct and that the
+        # positions and orientations are accurate before integration.
+        self._cpp_obj.validateRigidBodies()
+        self._cpp_obj.updateCompositeParticles(0)

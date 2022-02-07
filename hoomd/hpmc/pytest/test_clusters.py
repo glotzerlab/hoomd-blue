@@ -1,11 +1,11 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.update.Clusters."""
 
 import hoomd
-from hoomd.conftest import operation_pickling_check
+from hoomd.conftest import operation_pickling_check, logging_check
+from hoomd.logging import LoggerCategories
 import pytest
 import hoomd.hpmc.pytest.conftest
 
@@ -13,16 +13,16 @@ import hoomd.hpmc.pytest.conftest
 # here that require preprocessing
 valid_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
-         pivot_move_ratio=0.1,
+         pivot_move_probability=0.1,
          flip_probability=0.8),
     dict(trigger=hoomd.trigger.After(100),
-         pivot_move_ratio=0.7,
+         pivot_move_probability=0.7,
          flip_probability=1),
     dict(trigger=hoomd.trigger.Before(100),
-         pivot_move_ratio=0.7,
+         pivot_move_probability=0.7,
          flip_probability=1),
     dict(trigger=hoomd.trigger.Periodic(1000),
-         pivot_move_ratio=0.7,
+         pivot_move_probability=0.7,
          flip_probability=1),
 ]
 
@@ -30,8 +30,8 @@ valid_attrs = [('trigger', hoomd.trigger.Periodic(10000)),
                ('trigger', hoomd.trigger.After(100)),
                ('trigger', hoomd.trigger.Before(12345)),
                ('flip_probability', 0.2), ('flip_probability', 0.5),
-               ('flip_probability', 0.8), ('pivot_move_ratio', 0.2),
-               ('pivot_move_ratio', 0.5), ('pivot_move_ratio', 0.8)]
+               ('flip_probability', 0.8), ('pivot_move_probability', 0.2),
+               ('pivot_move_probability', 0.5), ('pivot_move_probability', 0.8)]
 
 
 @pytest.mark.serial
@@ -53,6 +53,7 @@ def test_valid_construction_and_attach(device, simulation_factory,
     """Test that Clusters can be attached with valid arguments."""
     integrator = valid_args[0]
     args = valid_args[1]
+    n_dimensions = valid_args[2]
     # Need to unpack union integrators
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
@@ -61,16 +62,15 @@ def test_valid_construction_and_attach(device, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     mc.shape["B"] = args
 
     cl = hoomd.hpmc.update.Clusters(**constructor_args)
-    dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                      dimensions=dim,
+                                      dimensions=n_dimensions,
                                       d=2,
                                       L=50))
     sim.operations.updaters.append(cl)
@@ -100,6 +100,7 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     """Test that Clusters can get and set attributes while attached."""
     integrator = valid_args[0]
     args = valid_args[1]
+    n_dimensions = valid_args[2]
     # Need to unpack union integrators
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
@@ -108,16 +109,15 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     mc.shape["B"] = args
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10))
-    dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                      dimensions=dim,
+                                      dimensions=n_dimensions,
                                       d=2,
                                       L=50))
     sim.operations.updaters.append(cl)
@@ -139,13 +139,13 @@ def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
                                  n=7,
                                  r=0.1))
 
-    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
     mc.shape['B'] = dict(diameter=1.3)
     sim.operations.integrator = mc
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
-                                    pivot_move_ratio=0.5)
+                                    pivot_move_probability=0.5)
     sim.operations.updaters.append(cl)
 
     sim.run(100)
@@ -157,11 +157,20 @@ def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     """Test that Cluster objects are picklable."""
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
     mc.shape['B'] = dict(diameter=1.3)
     sim.operations.integrator = mc
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
-                                    pivot_move_ratio=0.1)
+                                    pivot_move_probability=0.1)
     operation_pickling_check(cl, sim)
+
+
+def test_logging():
+    logging_check(hoomd.hpmc.update.Clusters, ('hpmc', 'update'), {
+        'avg_cluster_size': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

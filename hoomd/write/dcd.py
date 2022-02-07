@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement DCD."""
 
@@ -14,8 +13,8 @@ class DCD(Writer):
     """Writes simulation snapshots in the DCD format.
 
     Args:
-        filename (str): File name to write.
         trigger (hoomd.trigger.Periodic): Select the timesteps to write.
+        filename (str): File name to write.
         filter (hoomd.filter.ParticleFilter): Select the particles to write.
             Defaults to `hoomd.filter.All`.
         overwrite (bool): When False, (the default) an existing DCD file will be
@@ -74,8 +73,8 @@ class DCD(Writer):
     """
 
     def __init__(self,
-                 filename,
                  trigger,
+                 filename,
                  filter=All(),
                  overwrite=False,
                  unwrap_full=False,

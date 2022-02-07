@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.update.QuickCompress."""
 
@@ -121,7 +120,7 @@ def test_sphere_compression(phi, simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory(snap)
     sim.operations.updaters.append(qc)
 
-    mc = hoomd.hpmc.integrate.Sphere(d=0.05)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
@@ -155,7 +154,7 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory(snap)
     sim.operations.updaters.append(qc)
 
-    mc = hoomd.hpmc.integrate.Sphere(d=0.05)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
@@ -179,7 +178,7 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
                                          target_box=hoomd.Box.square(10.))
 
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc = hoomd.hpmc.integrate.Sphere(d=0.05)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
     operation_pickling_check(qc, sim)

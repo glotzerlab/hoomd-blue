@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ComputeThermo.h"
 #include "IntegrationMethodTwoStep.h"
@@ -21,6 +19,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! Implements the Martyna Tobias Klein (MTK) equations for rigorous integration in the NPT
    ensemble. The update equations are derived from a strictly measure-preserving and time-reversal
@@ -228,20 +230,6 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
 
     Scalar getBarostatEnergy(uint64_t timestep);
 
-#ifdef ENABLE_MPI
-
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method
-        IntegrationMethodTwoStep::setCommunicator(comm);
-
-        // set the communicator on the internal thermo
-        m_thermo_half_step->setCommunicator(comm);
-        m_thermo_full_step->setCommunicator(comm);
-        }
-
-#endif
-
     protected:
     std::shared_ptr<ComputeThermo>
         m_thermo_half_step; //!< ComputeThermo operating on the integrated group at t+dt/2
@@ -284,7 +272,13 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     couplingMode getRelevantCouplings();
     };
 
+namespace detail
+    {
 //! Exports the TwoStepNPTMTK class to python
 void export_TwoStepNPTMTK(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NPT_MTK_H__

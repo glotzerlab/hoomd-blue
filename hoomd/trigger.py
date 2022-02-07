@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Triggers determine when `hoomd.Operations` activate.
 
@@ -296,7 +295,7 @@ class And(_hoomd.AndTrigger, Trigger):
                     hoomd.trigger.Periodic(100)])
 
     Attributes:
-        triggers (List[hoomd.trigger.Trigger]): List of triggers.
+        triggers (list[hoomd.trigger.Trigger]): List of triggers.
     """
 
     def __init__(self, triggers):

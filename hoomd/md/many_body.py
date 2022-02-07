@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement many body potentials."""
 
@@ -33,10 +32,10 @@ class Triplet(Force):
 
         \begin{eqnarray}
         \vec{F_i}
-            =& -\nabla V(\vec r_{ij}, \vec r_{ik})
+            =& -\nabla V(\vec r_{ij}, \vec r_{ik});
              & r_{ij} < r_{\mathrm{cut}}
                 \textrm{ and } r_{ik} < r_{\mathrm{cut}} \\
-           =& 0 & else
+           =& 0; & otherwise
         \end{eqnarray}
 
     Where
@@ -48,7 +47,7 @@ class Triplet(Force):
     .. py:attribute:: r_cut
 
         *r_cut* (in distance units), *optional*: defaults to the value
-        ``r_cut`` specified on construction.
+        ``default_r_cut`` specified on construction.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `float`])
@@ -60,13 +59,14 @@ class Triplet(Force):
         potential on the GPU with MPI will result in an error.
     """
 
-    def __init__(self, nlist, r_cut=None):
+    def __init__(self, nlist, default_r_cut=None):
+        super().__init__()
         self._nlist = validate_nlist(nlist)
         r_cut_param = TypeParameter(
             'r_cut', 'particle_types',
             TypeParameterDict(positive_real, len_keys=2))
-        if r_cut is not None:
-            r_cut_param.default = r_cut
+        if default_r_cut is not None:
+            r_cut_param.default = default_r_cut
         self._add_typeparam(r_cut_param)
 
     def _attach(self):
@@ -112,7 +112,7 @@ class Tersoff(Triplet):
 
     Args:
         nlist (:py:class:`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
     The Tersoff potential is a bond-order potential based on the Morse potential
     that accounts for the weakening of individual bonds with increasing
@@ -180,8 +180,8 @@ class Tersoff(Triplet):
         g(\theta_{ijk}) = 1 + \frac{c^2}{d^2}
                            - \frac{c^2}{d^2 + |m - \cos(\theta_{ijk})|^2}
 
-    The parameters of this potential are set via the ``params`` dictionary, they
-    must be set for each unique pair of particle types.
+    The parameters of this potential are set via the ``params`` dictionary,
+    they must be set for each unique pair of particle types.
 
     .. py:attribute:: params
 
@@ -189,31 +189,32 @@ class Tersoff(Triplet):
         keys:
 
         * ``magnitudes`` (tuple[`float`, `float`]) - :math:`(A_1, A_2)` -
-          Magnitudes of the repulsive and attractive terms (dimensionless,
-          *default*: (1.0, 1.0))
+          Magnitudes of the repulsive and attractive
+          terms (*default*: (1.0, 1.0)) :math:`[\mathrm{energy}]`
         * ``exp_factors`` (tuple[`float`, `float`]) -
           :math:`(\lambda_1, \lambda_2)` - exponential factors of the
-          repulsive and attractive terms (in units of 1/length, *default*:
-          2.0)
+          repulsive and attractive
+          terms (*default*: 2.0) :math:`[\mathrm{length}^{-1}]`
         * ``lambda3`` (`float`) - :math:`\lambda_3` - exponential factor in
-          :math:`\chi_{ij}` (in units of 1/length, *default*: 0.0)
+          :math:`\chi_{ij}` (*default*: 0.0) :math:`[\mathrm{length}^{-1}]`
         * ``dimer_r`` (`float`) - :math:`r_D` - length shift in attractive
-          and repulsive terms (in units of length, *default*: 1.5)
+          and repulsive terms (*default*: 1.5) :math:`[\mathrm{length}]`
         * ``cutoff_thickness`` (`float`) - :math:`r_{CT}` - distance which
-          defines the different regions of the potential (in units of
-          length, *default*: 0.2)
+          defines the different regions of the
+          potential (*default*: 0.2) :math:`[\mathrm{length}]`
         * ``alpha`` (`float`) - :math:`\alpha` - decay rate of the cutoff
-          term :math:`f_C(r)` (dimensionless, *default*: 3.0)
-        * ``n`` (`float`) - :math:`n` - power in :math:`b_{ij}`
-          (dimensionless, *default*: 0.0)
+          term
+          :math:`f_C(r)` (*default*: 3.0) :math:`[\mathrm{dimensionless}]`
+        * ``n`` (`float`) - :math:`n` - power in
+          :math:`b_{ij}` (*default*: 0.0) :math:`[\mathrm{dimensionless}]`
         * ``gamma`` (`float`) - :math:`\gamma` - coefficient in
-          :math:`b_{ij}` (dimensionless, *default*: 0.0)
-        * ``c`` (`float`) - :math:`c` - coefficient in :math:`g(\theta)`
-          (dimensionless, *default*: 0.0)
-        * ``d`` (`float`) - :math:`d` - coefficient in :math:`g(\theta)`
-          (dimensionless, *default*: 1.0)
-        * ``m`` (`float`) - :math:`m` - coefficient in :math:`g(\theta)`
-          (dimensionless, *default*: 0.0)
+          :math:`b_{ij}` (*default*: 0.0) :math:`[\mathrm{dimensionless}]`
+        * ``c`` (`float`) - :math:`c` - coefficient in
+          :math:`g(\theta)` (*default*: 0.0) :math:`[\mathrm{dimensionless}]`
+        * ``d`` (`float`) - :math:`d` - coefficient in
+          :math:`g(\theta)` (*default*: 1.0) :math:`[\mathrm{dimensionless}]`
+        * ``m`` (`float`) - :math:`m` - coefficient in
+          :math:`g(\theta)` (*default*: 0.0) :math:`[\mathrm{dimensionless}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -221,13 +222,13 @@ class Tersoff(Triplet):
     Example::
 
         nl = md.nlist.Cell()
-        tersoff = md.many_body.Tersoff(r_cut=1.3, nlist=nl)
+        tersoff = md.many_body.Tersoff(default_r_cut=1.3, nlist=nl)
         tersoff.params[('A', 'B')] = dict(magnitudes=(2.0, 1.0), lambda3=5.0)
     """
     _cpp_class_name = "PotentialTersoff"
 
-    def __init__(self, nlist, r_cut=None):
-        super().__init__(nlist, r_cut)
+    def __init__(self, nlist, default_r_cut=None):
+        super().__init__(nlist, default_r_cut)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(cutoff_thickness=0.2,
@@ -250,7 +251,7 @@ class RevCross(Triplet):
 
     Args:
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
     :py:class:`RevCross` specifies that the revcross three-body potential
     should be applied to every non-bonded particle pair in the simulation.
@@ -271,7 +272,7 @@ class RevCross(Triplet):
         V_{ij}(r)  =  4 \varepsilon \left[
             \left( \dfrac{ \sigma}{r_{ij}} \right)^{2n}
             - \left( \dfrac{ \sigma}{r_{ij}} \right)^{n}
-        \right] \qquad r<r_{cut}
+        \right]; \qquad r < r_{cut}
         \end{eqnarray*}
 
     Then an additional three-body repulsion is evaluated to compensate the bond
@@ -296,8 +297,8 @@ class RevCross(Triplet):
             \begin{eqnarray*}
             \hat{v}^{ \left( 2b \right)}_{ij}\left(\vec{r}_{ij}\right) =
             \begin{cases}
-            1 & r \le r_{min} \\
-            - \dfrac{v_{ij}\left(\vec{r}_{ij}\right)}{\epsilon}
+            1; & r \le r_{min} \\
+            - \dfrac{v_{ij}\left(\vec{r}_{ij}\right)}{\epsilon};
               & r > r_{min} \\
             \end{cases}
             \end{eqnarray*}
@@ -340,16 +341,17 @@ class RevCross(Triplet):
         The revcross potential parameters. The dictionary has the following
         keys:
 
-        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in
-          units of energy)
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+          :math:`[\mathrm{energy}]`
 
-        * ``sigma`` (`float`, **required**) - :math:`\sigma` - (in distance
-          units)
+        * ``sigma`` (`float`, **required**) - :math:`\sigma`
+          :math:`[\mathrm{length}]`
 
-        * ``n`` (`float`, **required**) - :math:`n` - (unitless)
+        * ``n`` (`float`, **required**) - :math:`n`
+          :math:`[\mathrm{dimensionless}]`
 
-        * ``lambda3`` (`float`, **required**) - :math:`\lambda_3` -
-          (unitless)
+        * ``lambda3`` (`float`, **required**) - :math:`\lambda_3`
+          :math:`[\mathrm{dimensionless}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -357,7 +359,7 @@ class RevCross(Triplet):
     Example::
 
         nl = md.nlist.Cell()
-        bond_swap = md.many_body.RevCross(r_cut=1.3,nlist=nl)
+        bond_swap = md.many_body.RevCross(default_r_cut=1.3,nlist=nl)
         bond_swap.params[(['A','B'],['A','B'])] = {
             "sigma":0,"n": 0, "epsilon": 0, "lambda3": 0}
         # a bond can be made only between A-B and not A-A or B-B
@@ -366,8 +368,8 @@ class RevCross(Triplet):
     """
     _cpp_class_name = "PotentialRevCross"
 
-    def __init__(self, nlist, r_cut=None):
-        super().__init__(nlist, r_cut)
+    def __init__(self, nlist, default_r_cut=None):
+        super().__init__(nlist, default_r_cut)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(sigma=2.0,
@@ -383,7 +385,7 @@ class SquareDensity(Triplet):
 
     Args:
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
     :py:class:`SquareDensity` specifies that the three-body potential should be
     applied to every non-bonded particle pair in the simulation, that is
@@ -416,18 +418,21 @@ class SquareDensity(Triplet):
         n_i = \sum\limits_{j\neq i} w_{ij}
               \left(\big| \vec r_i - \vec r_j \big|\right)
 
-    Use `params` dictionary to set potential coefficients. The coefficients must
-    be set per unique pair of particle types.
+    Use `params` dictionary to set potential coefficients. The coefficients
+    must be set per unique pair of particle types.
 
     .. py:attribute:: params
 
         The SquareDensity potential parameters. The dictionary has the
         following keys:
 
-        * ``A`` (`float`, **required**) - :math:`A` - mean density (in units
-          of volume^-1, *default*:0)
+        * ``A`` (`float`, **required**) - :math:`A` - mean density
+          (*default*:0) :math:`[\mathrm{length}^{-2}]` in 2D and
+          :math:`[\mathrm{length}^{-3}]` in 3D
         * ``B`` (`float`, **required**) - :math:`B` - coefficient of the
-          harmonic density term (in units of energy*volumne^2)
+          harmonic density term
+          :math:`[\mathrm{energy} \cdot \mathrm{length}^4]` in 2D and
+          :math:`[\mathrm{energy} \cdot \mathrm{length}^6]` in 3D
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -435,9 +440,9 @@ class SquareDensity(Triplet):
     Example::
 
         nl = nlist.Cell()
-        sqd = md.many_body.SquareDensity(nl, r_cut=3.0)
+        sqd = md.many_body.SquareDensity(nl, default_r_cut=3.0)
         sqd.params[('A', 'B')] = dict(A=1.0, B=2.0)
-        sqd.params[('B', 'B')] = dict(A=2.0, B=2.0, r_on=1.0)
+        sqd.params[('B', 'B')] = dict(A=2.0, B=2.0, default_r_on=1.0)
 
     For further details regarding this multibody potential, see
 
@@ -447,8 +452,8 @@ class SquareDensity(Triplet):
     """
     _cpp_class_name = "PotentialSquareDensity"
 
-    def __init__(self, nlist, r_cut=None):
-        super().__init__(nlist, r_cut)
+    def __init__(self, nlist, default_r_cut=None):
+        super().__init__(nlist, default_r_cut)
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(A=0.0, B=float, len_keys=2))
         self._add_typeparam(params)

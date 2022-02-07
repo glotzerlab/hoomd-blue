@@ -1,9 +1,14 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import copy as cp
 import hoomd
+from hoomd.logging import LoggerCategories
 import numpy as np
 import pytest
 import random
 from hoomd.md.nlist import Cell, Stencil, Tree
+from hoomd.conftest import logging_check, pickling_check
 
 
 def _nlist_params():
@@ -24,13 +29,18 @@ def nlist_params(request):
 
 def _assert_nlist_params(nlist, param_dict):
     """Assert the params of the nlist are the same as in the dictionary."""
-    for param in param_dict.keys():
-        assert getattr(nlist, param) == param_dict[param]
+    for param, item in param_dict.items():
+        if isinstance(item, (tuple, list)):
+            assert all(
+                a == b
+                for a, b in zip(getattr(nlist, param), param_dict[param]))
+        else:
+            assert getattr(nlist, param) == param_dict[param]
 
 
 def test_common_params(nlist_params):
     nlist_cls, required_args = nlist_params
-    nlist = nlist_cls(**required_args)
+    nlist = nlist_cls(**required_args, buffer=0.4)
     default_params_dict = {
         "buffer": 0.4,
         "exclusions": ('bond',),
@@ -63,7 +73,7 @@ def test_common_params(nlist_params):
 
 
 def test_cell_specific_params():
-    nlist = Cell()
+    nlist = Cell(buffer=0.4)
     _assert_nlist_params(nlist, dict(deterministic=False))
     nlist.deterministic = True
     _assert_nlist_params(nlist, dict(deterministic=True))
@@ -71,7 +81,7 @@ def test_cell_specific_params():
 
 def test_stencil_specific_params():
     cell_width = np.random.uniform(12.1)
-    nlist = Stencil(cell_width)
+    nlist = Stencil(cell_width=cell_width, buffer=0.4)
     _assert_nlist_params(nlist, dict(deterministic=False,
                                      cell_width=cell_width))
     nlist.deterministic = True
@@ -83,8 +93,8 @@ def test_stencil_specific_params():
 def test_simple_simulation(nlist_params, simulation_factory,
                            lattice_snapshot_factory):
     nlist_cls, required_args = nlist_params
-    nlist = nlist_cls(**required_args)
-    lj = hoomd.md.pair.LJ(nlist, r_cut=1.1)
+    nlist = nlist_cls(**required_args, buffer=0.4)
+    lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
     lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
     lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
     lj.params[('B', 'B')] = dict(epsilon=1, sigma=1)
@@ -96,3 +106,55 @@ def test_simple_simulation(nlist_params, simulation_factory,
     sim = simulation_factory(lattice_snapshot_factory(n=10))
     sim.operations.integrator = integrator
     sim.run(2)
+
+
+def test_auto_detach_simulation(simulation_factory,
+                                two_particle_snapshot_factory):
+    nlist = Cell(buffer=0.4)
+    lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
+    lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
+    lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
+    lj.params[('B', 'B')] = dict(epsilon=1, sigma=1)
+    lj_2 = cp.deepcopy(lj)
+    lj_2.nlist = nlist
+    integrator = hoomd.md.Integrator(0.005, forces=[lj, lj_2])
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+
+    sim = simulation_factory(
+        two_particle_snapshot_factory(particle_types=["A", "B"], d=2.0))
+    sim.operations.integrator = integrator
+    sim.run(0)
+    del integrator.forces[1]
+    assert nlist._attached
+    assert hasattr(nlist, "_cpp_obj")
+    del integrator.forces[0]
+    assert not nlist._attached
+    assert nlist._cpp_obj is None
+
+
+def test_pickling(simulation_factory, two_particle_snapshot_factory):
+    nlist = Cell(0.4)
+    pickling_check(nlist)
+    lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
+    lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
+    lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
+    lj.params[('B', 'B')] = dict(epsilon=1, sigma=1)
+    integrator = hoomd.md.Integrator(0.005, forces=[lj])
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+
+    sim = simulation_factory(
+        two_particle_snapshot_factory(particle_types=["A", "B"], d=2.0))
+    sim.operations.integrator = integrator
+    sim.run(0)
+    pickling_check(nlist)
+
+
+def test_logging():
+    logging_check(hoomd.md.nlist.NList, ('md', 'nlist'), {
+        'shortest_rebuild': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

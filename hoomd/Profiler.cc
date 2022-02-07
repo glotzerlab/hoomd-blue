@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Profiler.cc
     \brief Defines the Profiler class
@@ -13,8 +11,9 @@
 #include <sstream>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 ////////////////////////////////////////////////////
 // ProfileDataElem members
 int64_t ProfileDataElem::getChildElapsedTime() const
@@ -247,9 +246,15 @@ string print_profiler(Profiler* prof)
     return s.str();
     }
 
-void export_Profiler(py::module& m)
+namespace detail
     {
-    py::class_<Profiler>(m, "Profiler")
-        .def(py::init<const std::string&>())
+void export_Profiler(pybind11::module& m)
+    {
+    pybind11::class_<Profiler>(m, "Profiler")
+        .def(pybind11::init<const std::string&>())
         .def("__str__", &print_profiler);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

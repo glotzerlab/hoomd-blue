@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/Integrator.cc
@@ -14,6 +12,8 @@
 #include "hoomd/Communicator.h"
 #endif
 
+namespace hoomd
+    {
 /*!
  * \param sysdata MPCD system data
  * \param deltaT Fundamental integration timestep
@@ -112,7 +112,7 @@ void mpcd::Integrator::update(uint64_t timestep)
 
 // MD communication / rigid body updates
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         m_comm->communicate(timestep + 1);
         }
@@ -221,11 +221,10 @@ void mpcd::Integrator::addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> fi
  */
 void mpcd::detail::export_Integrator(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::Integrator, ::IntegratorTwoStep, std::shared_ptr<mpcd::Integrator>>(
-        m,
-        "Integrator")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>, Scalar>())
+    pybind11::class_<mpcd::Integrator,
+                     hoomd::md::IntegratorTwoStep,
+                     std::shared_ptr<mpcd::Integrator>>(m, "Integrator")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, Scalar>())
         .def("setCollisionMethod", &mpcd::Integrator::setCollisionMethod)
         .def("removeCollisionMethod", &mpcd::Integrator::removeCollisionMethod)
         .def("setStreamingMethod", &mpcd::Integrator::setStreamingMethod)
@@ -239,3 +238,4 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
 #endif // ENABLE_MPI
         ;
     }
+    } // end namespace hoomd

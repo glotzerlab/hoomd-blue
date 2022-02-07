@@ -1,7 +1,13 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
 import numpy as np
 import pytest
 from copy import deepcopy
+from hoomd.error import MutabilityError
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check
 try:
     import gsd.hoomd
     skip_gsd = False
@@ -28,13 +34,13 @@ def make_gsd_snapshot(hoomd_snapshot):
 
 
 def set_types(s, inds, particle_types, particle_type):
-    if s.exists:
+    if s.communicator.rank == 0:
         for i in inds:
             s.particles.typeid[i] = particle_types.index(particle_type)
 
 
 def update_positions(snap):
-    if snap.exists:
+    if snap.communicator.rank == 0:
         noise = 0.01
         rs = np.random.RandomState(0)
         mean = [0] * 3
@@ -169,7 +175,7 @@ def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
     sim = simulation_factory(
         lattice_snapshot_factory(n=snap_params[0],
                                  particle_types=snap_params[1]))
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     snapshot_dict = {}
     snapshot_dict[0] = snap
 
@@ -179,7 +185,7 @@ def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
     box = sim.state.box
     for step in range(1, nsteps):
         particle_type = np.random.choice(snap_params[1])
-        snap = update_positions(sim.state.snapshot)
+        snap = update_positions(sim.state.get_snapshot())
         set_types(snap, random_inds(snap_params[0]), snap_params[1],
                   particle_type)
 
@@ -194,7 +200,7 @@ def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
         sim.create_state_from_gsd(filename, frame=step)
         assert box == sim.state.box
 
-        assert_equivalent_snapshots(snap, sim.state.snapshot)
+        assert_equivalent_snapshots(snap, sim.state.get_snapshot())
 
 
 @skip_gsd
@@ -205,13 +211,13 @@ def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
     sim = simulation_factory(
         lattice_snapshot_factory(n=snap_params[0],
                                  particle_types=snap_params[1]))
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     snap = make_gsd_snapshot(snap)
     gsd_snapshot_list = [snap]
     box = sim.state.box
     for _ in range(1, nsteps):
         particle_type = np.random.choice(snap_params[1])
-        snap = update_positions(sim.state.snapshot)
+        snap = update_positions(sim.state.get_snapshot())
         set_types(snap, random_inds(snap_params[0]), snap_params[1],
                   particle_type)
         snap = make_gsd_snapshot(snap)
@@ -221,7 +227,7 @@ def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
         sim = hoomd.Simulation(device)
         sim.create_state_from_snapshot(snap)
         assert box == sim.state.box
-        assert_equivalent_snapshots(snap, sim.state.snapshot)
+        assert_equivalent_snapshots(snap, sim.state.get_snapshot())
 
 
 def test_writer_order(simulation_factory, two_particle_snapshot_factory):
@@ -330,8 +336,9 @@ def test_run_limit(simulation_factory, lattice_snapshot_factory):
         sim.run(-1)
 
 
-def test_seed(simulation_factory, lattice_snapshot_factory):
-    sim = simulation_factory()
+def test_seed(device, lattice_snapshot_factory):
+
+    sim = hoomd.Simulation(device)
     assert sim.seed is None
 
     sim.seed = 42
@@ -366,9 +373,12 @@ def test_operations_setting(simulation_factory, lattice_snapshot_factory):
 
     operations = hoomd.Operations()
     # Add some operations to test the setting
-    operations += hoomd.update.BoxResize(hoomd.Box.cube(10), hoomd.Box.cube(20),
-                                         hoomd.variant.Ramp(0, 1, 0, 100), 40)
-    operations += hoomd.write.GSD("foo.gsd", 10)
+    operations += hoomd.update.BoxResize(trigger=40,
+                                         box1=hoomd.Box.cube(10),
+                                         box2=hoomd.Box.cube(20),
+                                         variant=hoomd.variant.Ramp(
+                                             0, 1, 0, 100))
+    operations += hoomd.write.GSD(filename="foo.gsd", trigger=10)
     operations += hoomd.write.Table(10, logger=hoomd.logging.Logger(['scalar']))
     operations.tuners.clear()
     # Check setting before scheduling
@@ -377,11 +387,53 @@ def test_operations_setting(simulation_factory, lattice_snapshot_factory):
     sim.run(0)
     # Check setting after scheduling
     new_operations = hoomd.Operations()
-    new_operations += hoomd.update.BoxResize(hoomd.Box.cube(300),
-                                             hoomd.Box.cube(20),
-                                             hoomd.variant.Ramp(0, 1, 0, 100),
-                                             80)
-    new_operations += hoomd.write.GSD("bar.gsd", 20)
+    new_operations += hoomd.update.BoxResize(trigger=80,
+                                             box1=hoomd.Box.cube(300),
+                                             box2=hoomd.Box.cube(20),
+                                             variant=hoomd.variant.Ramp(
+                                                 0, 1, 0, 100))
+    new_operations += hoomd.write.GSD(filename="bar.gsd", trigger=20)
     new_operations += hoomd.write.Table(20,
                                         logger=hoomd.logging.Logger(['scalar']))
     check_operation_setting(sim, sim.operations, new_operations)
+
+
+def test_mutability_error(simulation_factory, two_particle_snapshot_factory,
+                          tmp_path):
+    filt = hoomd.filter.All()
+    sim = simulation_factory(two_particle_snapshot_factory())
+    trig = hoomd.trigger.Periodic(1)
+
+    filename = tmp_path / "temporary_test_file.gsd"
+    GSD_dump = hoomd.write.GSD(filename=filename, trigger=trig)
+    sim.operations.add(GSD_dump)
+    sim.run(0)
+
+    with pytest.raises(MutabilityError):
+        GSD_dump.filter = filt
+
+
+def test_logging():
+    logging_check(
+        hoomd.Simulation, (), {
+            'final_timestep': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'seed': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'timestep': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'tps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'walltime': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })

@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Particle filters.
 
 Particle filters describe criteria to select subsets of the particle in the
@@ -11,8 +14,8 @@ of the system has changed.**
 
 Groups are not completely static. HOOMD-blue re-evaluates the filter
 specifications and updates the group membership whenever the number of particles
-in the simulation changes. A future release will include an operation that you
-can schedule to periodically update groups on demand.
+in the simulation changes. Use `hoomd.update.FilterUpdater` to trigger updates
+to groups.
 
 For molecular dynamics simulations, each group maintains a count of the number
 of degrees of freedom given to the group by integration methods. This count is
@@ -25,6 +28,7 @@ count.
 from hoomd.filter.filter_ import ParticleFilter
 from hoomd.filter.all_ import All
 from hoomd.filter.null import Null
+from hoomd.filter.rigid import Rigid
 from hoomd.filter.set_ import Intersection, SetDifference, Union
 from hoomd.filter.tags import Tags
 from hoomd.filter.type_ import Type

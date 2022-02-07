@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Synced list utility classes."""
 
@@ -42,6 +41,16 @@ def identity(obj):
     return obj
 
 
+class _SimulationPlaceHolder:
+    """Used to ensure objects are not added to two locations at once."""
+
+    def __init__(self, obj):
+        self._id = id(obj)
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and self._id == other._id
+
+
 class SyncedList(MutableSequence):
     """Provides syncing and validation for a Python and C++ list.
 
@@ -50,7 +59,7 @@ class SyncedList(MutableSequence):
         is mostly for developers of HOOMD-blue. The class is documentated to
         highlight the object's API which is that of a `MutableSequence`.
 
-    This class ensures that standard list operations affect both
+    This class ensures that standard list methods affect both
     Python and C++.
 
     Args:
@@ -67,8 +76,12 @@ class SyncedList(MutableSequence):
             members of the SyncedList instance. Defaults to None which causes
             SyncedList to start with an empty list.
         callable_class (bool, optional): If a class is passed as validation and
-        this is `True` (defaults to `False`), then the class will be treated as
-        a callable and not used for type checking.
+            this is ``True`` (defaults to ``False``), then the class will be
+            treated as a callable and not used for type checking.
+        attach_members (bool, optional): Whether list members can be attached
+            (defaults to ``True``). If ``True`` then the `SyncedList` object
+            handles adding, attaching, detaching, and removing. If not, these
+            steps are skipped regardless of synced status.
     """
 
     # Also guarantees that lists remain in same order when using the public API.
@@ -77,7 +90,9 @@ class SyncedList(MutableSequence):
                  validation,
                  to_synced_list=None,
                  iterable=None,
-                 callable_class=False):
+                 callable_class=False,
+                 attach_members=True):
+        self._attach_members = attach_members
         if to_synced_list is None:
             to_synced_list = identity
 
@@ -87,171 +102,176 @@ class SyncedList(MutableSequence):
             self._validate = validation
 
         self._to_synced_list_conversion = to_synced_list
-        self._simulation = None
+        self._synced = False
+        self._simulation = _SimulationPlaceHolder(self)
         self._list = []
         if iterable is not None:
             for it in iterable:
                 self.append(it)
 
-    def __contains__(self, value):
-        """bool: True when the value is in the list.
-
-        Based on memory location.
-        """
-        for item in self._list:
-            if item is value:
-                return True
-        return False
-
     def __len__(self):
         """int: Length of the list."""
         return len(self._list)
 
-    def __iter__(self):
-        """Iterate through python list."""
-        yield from self._list
-
     def __setitem__(self, index, value):
-        """Change self[index] to value.
+        """Set self[index] to value.
 
         Detaches removed value and syncs cpp_list if necessary.
         """
-        if len(self) <= index or -len(self) > index:
-            raise IndexError(
-                f"Cannot assign index {index} to list of length {len(self)}.")
-        # Convert negative to positive indices
+        # Convert negative to positive indices and validate index
         index = self._handle_int(index)
         value = self._validate_or_error(value)
+        self._attach_value(value)
         # If synced need to change cpp_list and detach operation before
         # changing python list
         if self._synced:
             self._synced_list[index] = \
                 self._to_synced_list_conversion(value)
-            self._list[index]._detach()
-        self._list[index]._remove()
+        self._detach_value(self._list[index])
         self._list[index] = value
 
     def __getitem__(self, index):
         """Grabs the python list item."""
         index = self._handle_index(index)
-        if hasattr(index, '__iter__'):
+        # since _handle_index always returns a range or int we can safely use an
+        # isinstance check here.
+        if isinstance(index, range):
             return [self._list[i] for i in index]
-
-        if len(self) <= index or -len(self) > index:
-            raise IndexError(
-                f"Cannot get index {index} of a list of length {len(self)}.")
         return self._list[index]
 
     def __delitem__(self, index):
         """Deletes an item from list. Handles detaching if necessary."""
         index = self._handle_index(index)
-        if hasattr(index, '__iter__'):
+        # since _handle_index always returns a range or int we can safely use an
+        # isinstance check here.
+        if isinstance(index, range):
             # We must iterate from highest value to lowest to ensure we don't
             # accidentally try to delete an index that doesn't exist any more.
             for i in sorted(index, reverse=True):
                 del self[i]
             return
-        if len(self) <= index or -len(self) > index:
-            raise IndexError(
-                f"Cannot delete index {index} to list of length {len(self)}.")
         # Since delitem may not del the underlying object, we need to
         # manually call detach here.
         if self._synced:
             del self._synced_list[index]
-            self._list[index]._detach()
-        self._list[index]._remove()
-        del self._list[index]
+        old_value = self._list.pop(index)
+        self._detach_value(old_value)
 
-    @property
-    def _synced(self):
-        """Has a cpp_list object means that we are currently syncing."""
-        return hasattr(self, "_synced_list")
+    def insert(self, index, value):
+        """Insert value to list at index, handling list syncing."""
+        value = self._validate_or_error(value)
+        self._attach_value(value)
+        # Wrap index like normal but allow for inserting a new element to the
+        # beginning or end of the list for out of bounds index values.
+        if index <= -len(self):
+            index = 0
+        elif index >= len(self):
+            index = len(self)
+        else:
+            index = self._handle_int(index)
+        if self._synced:
+            self._synced_list.insert(index,
+                                     self._to_synced_list_conversion(value))
+        self._list.insert(index, value)
 
     def _handle_int(self, integer):
-        """Converts negative indices to positive."""
+        """Converts negative indices to positive and validates index."""
         if integer < 0:
             if -integer > len(self):
                 raise IndexError(
                     f"Negative index {integer} is too small for list of length "
                     f"{len(self)}")
             return integer % max(1, len(self))
+        if integer >= len(self):
+            raise IndexError(
+                f"Index {integer} is outside bounds of a length {len(self)}"
+                f"list.")
         return integer
 
     def _handle_index(self, index):
-        if not isinstance(index, slice):
-            return self._handle_int(index)
-        return self._handle_slice(index)
+        if isinstance(index, slice):
+            return self._handle_slice(index)
+        return self._handle_int(index)
 
     def _handle_slice(self, index):
-        start = index.start if index.start is not None else 0
-        start = self._handle_int(start)
-        stop = index.stop if index.stop is not None else len(self)
-        stop = self._handle_int(stop)
-        step = index.step if index.step is not None else 1
-        return list(range(start, stop, step))
+        return range(len(self))[index]
 
-    def synced_iter(self):
+    def _synced_iter(self):
         """Iterate over values in the list. Does nothing when not synced."""
         if self._synced:
             yield from self._synced_list
 
-    def _value_add_and_attach(self, value):
-        """Attaches value if unattached.
+    def _attach_value(self, value, raise_if_added=True):
+        """Attaches and/or adds value to simulation if unattached.
 
-        Raises an error if value is already in the list.
+        Raises an error if value is already in this or another list.
         """
-        if value._added:
-            raise RuntimeError("Object cannot be added to two lists.")
-        else:
-            value._add(self._simulation)
+        if not self._attach_members:
+            return
+        if raise_if_added and value._added:
+            raise RuntimeError(f"Object {value} cannot be added to two lists.")
+        value._add(self._simulation)
         if self._synced:
             value._attach()
-        return value
+
+    def _detach_value(self, value, remove=True):
+        """Detaches and/or removes value to simulation if attached.
+
+        Args:
+            value (``any``): The member of the synced list to dissociate from
+                its current simulation.
+            remove (bool, optional): Whether to add back to the `SyncedList`'s
+                current simulation or id. This defaults to ``True`` which is
+                desired when the object is removed completely from the list.
+        """
+        if not self._attach_members:
+            return
+        if self._synced:
+            value._detach()
+        if remove and value._added:
+            value._remove()
+        else:
+            value._add(self._simulation)
 
     def _validate_or_error(self, value):
         """Complete error checking and processing of value."""
         try:
             if self._validate(value):
-                return self._value_add_and_attach(value)
+                return value
             else:
-                raise ValueError("Value {} could not be validated."
-                                 "".format(value))
+                raise ValueError(f"Value {value} could not be validated.")
         except ValueError as verr:
-            raise ValueError("Validation failed: {}".format(verr.args[0]))
+            raise ValueError(f"Validation failed: {verr.args[0]}") from verr
 
     def _sync(self, simulation, synced_list):
         """Attach all list items and update for automatic attachment."""
         self._simulation = simulation
         self._synced_list = synced_list
-        for item in self:
-            item._add(simulation)
-            item._attach()
-            self._synced_list.append(self._to_synced_list_conversion(item))
+        self._synced = True
+        # We use a try except block here to maintain valid state (_synced in
+        # this case) even when facing an error.
+        try:
+            for item in self:
+                self._attach_value(item, False)
+                self._synced_list.append(self._to_synced_list_conversion(item))
+        except Exception as err:
+            self._synced = False
+            raise err
 
     def _unsync(self):
         """Detach all items, clear _synced_list, and remove cpp references."""
-        if self._synced:
-            for index in range(len(self)):
-                del self._synced_list[0]
+        if not self._synced:
+            return
+        # while not strictly necessary we check self._attach_members here to
+        # avoid looping unless necessary (_detach_value checks
+        # self._attach_members as well) making the check a slight performance
+        # bump for non-attaching members.
+        self._simulation = _SimulationPlaceHolder(self)
+        if self._attach_members:
             for item in self:
-                item._detach()
-            del self._simulation
-            del self._synced_list
-
-    def insert(self, index, value):
-        """Insert value to list at index, handling list syncing."""
-        value = self._validate_or_error(value)
-        if abs(index) > len(self):
-            raise IndexError(
-                f"Cannot insert {value} to index {index} for a list of length "
-                f"{len(self)}")
-        # Wrap index like normal but allow for inserting a new element to the
-        # end of the list.
-        index = self._handle_int(index)
-        if self._synced:
-            self._synced_list.insert(index,
-                                     self._to_synced_list_conversion(value))
-        self._list.insert(index, value)
+                self._detach_value(item, False)
+        del self._synced_list
+        self._synced = False
 
     def __getstate__(self):
         """Get state for pickling."""

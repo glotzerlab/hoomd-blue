@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file DomainDecomposition.h
     \brief Defines the DomainDecomposition class
@@ -26,6 +24,8 @@
 /*! \ingroup communication
  */
 
+namespace hoomd
+    {
 //! Class that initializes every processor using spatial domain-decomposition
 /*! This class is used to divide the global simulation box into sub-domains and to assign a box to
  * every processor.
@@ -113,21 +113,20 @@ class PYBIND11_EXPORT DomainDecomposition
         if (dir == 0)
             {
             assert(idx >= 0 && idx < m_nx + 1);
-            return m_cum_frac_x[idx];
+            return m_cumulative_frac_x[idx];
             }
         else if (dir == 1)
             {
             assert(idx >= 0 && idx < m_ny + 1);
-            return m_cum_frac_y[idx];
+            return m_cumulative_frac_y[idx];
             }
         else if (dir == 2)
             {
             assert(idx >= 0 && idx < m_nz + 1);
-            return m_cum_frac_z[idx];
+            return m_cumulative_frac_z[idx];
             }
         else
             {
-            m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
             throw std::runtime_error("comm: requested direction does not exist");
             }
         }
@@ -140,14 +139,13 @@ class PYBIND11_EXPORT DomainDecomposition
     std::vector<Scalar> getCumulativeFractions(unsigned int dir) const
         {
         if (dir == 0)
-            return m_cum_frac_x;
+            return m_cumulative_frac_x;
         else if (dir == 1)
-            return m_cum_frac_y;
+            return m_cumulative_frac_y;
         else if (dir == 2)
-            return m_cum_frac_z;
+            return m_cumulative_frac_z;
         else
             {
-            m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
             throw std::runtime_error("comm: requested direction does not exist");
             }
         }
@@ -227,15 +225,19 @@ class PYBIND11_EXPORT DomainDecomposition
     std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
     const MPI_Comm m_mpi_comm;                           //!< MPI communicator
 
-    std::vector<Scalar> m_cum_frac_x; //!< Cumulative fractions in x below cut plane index
-    std::vector<Scalar> m_cum_frac_y; //!< Cumulative fractions in y below cut plane index
-    std::vector<Scalar> m_cum_frac_z; //!< Cumulative fractions in z below cut plane index
-#endif                                // ENABLE_MPI
+    std::vector<Scalar> m_cumulative_frac_x; //!< Cumulative fractions in x below cut plane index
+    std::vector<Scalar> m_cumulative_frac_y; //!< Cumulative fractions in y below cut plane index
+    std::vector<Scalar> m_cumulative_frac_z; //!< Cumulative fractions in z below cut plane index
+#endif                                       // ENABLE_MPI
     };
 
+namespace detail
+    {
 #ifdef ENABLE_MPI
 //! Export the domain decomposition information
 void export_DomainDecomposition(pybind11::module& m);
 #endif
+    } // end namespace detail
 
+    }  // end namespace hoomd
 #endif // __DOMAIN_DECOMPOSITION_H

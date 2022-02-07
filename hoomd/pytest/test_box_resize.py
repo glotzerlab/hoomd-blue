@@ -1,8 +1,12 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import numpy as np
 import numpy.testing as npt
 import pytest
 import hoomd
 from hoomd.conftest import operation_pickling_check
+from hoomd.error import MutabilityError
 
 
 @pytest.fixture(scope="function")
@@ -88,7 +92,7 @@ def get_snapshot(sys, device):
     def make_shapshot():
         box1, points1 = sys[0]
         s = hoomd.snapshot.Snapshot(device.communicator)
-        if s.exists:
+        if s.communicator.rank == 0:
             s.configuration.box = box1
             s.particles.N = points1.shape[0]
             s.particles.typeid[:] = [0] * points1.shape[0]
@@ -233,3 +237,22 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory,
                   box_resize):
     sim = simulation_factory(two_particle_snapshot_factory())
     operation_pickling_check(box_resize, sim)
+
+
+def test_mutability_error(simulation_factory, two_particle_snapshot_factory):
+    filt = hoomd.filter.All()
+    sim = simulation_factory(two_particle_snapshot_factory())
+    trig = hoomd.trigger.Periodic(1)
+    box1 = hoomd.Box.cube(L=10)
+    box2 = hoomd.Box.cube(L=12)
+    var = hoomd.variant.Ramp(10, 12, 0, 100)
+    box_op = hoomd.update.BoxResize(box1=box1,
+                                    box2=box2,
+                                    variant=var,
+                                    trigger=trig)
+    sim.operations.add(box_op)
+    assert len(sim.operations.updaters) == 1
+    sim.run(0)
+
+    with pytest.raises(MutabilityError):
+        box_op.filter = filt

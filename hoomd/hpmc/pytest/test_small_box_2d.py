@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test Image list generation for small box / large move size simulations."""
 
@@ -116,7 +115,7 @@ def test_large_moves(simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory(snap)
     mc = hoomd.hpmc.integrate.ConvexPolygon(translation_move_probability=1.0,
                                             nselect=4,
-                                            d=100)
+                                            default_d=100)
     mc.shape['A'] = dict(vertices=[
         (-0.5, -0.5),
         (0.5, -0.5),

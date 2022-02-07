@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement Box."""
 
@@ -58,12 +57,12 @@ class Box:
     """Define box dimensions.
 
     Args:
-        Lx (float): box extent in the x direction (distance units).
-        Ly (float): box extent in the y direction (distance units).
-        Lz (float): box extent in the z direction (distance units).
-        xy (float): tilt factor xy (dimensionless).
-        xz (float): tilt factor xz (dimensionless).
-        yz (float): tilt factor yz (dimensionless).
+        Lx (float): box extent in the x direction :math:`[\\mathrm{length}]`.
+        Ly (float): box extent in the y direction :math:`[\\mathrm{length}]`.
+        Lz (float): box extent in the z direction :math:`[\\mathrm{length}]`.
+        xy (float): tilt factor xy :math:`[\\mathrm{dimensionless}]`.
+        xz (float): tilt factor xz :math:`[\\mathrm{dimensionless}]`.
+        yz (float): tilt factor yz :math:`[\\mathrm{dimensionless}]`.
 
     Simulation boxes in hoomd are specified by six parameters, ``Lx``, ``Ly``,
     ``Lz``, ``xy``, ``xz``, and ``yz``. `Box` provides a way to specify all
@@ -112,7 +111,7 @@ class Box:
         """Create a cube with side lengths ``L``.
 
         Args:
-            L (float): The box side length (distance units).
+            L (float): The box side length :math:`[\\mathrm{length}]`.
 
         Returns:
             hoomd.Box: The created 3D box.
@@ -124,7 +123,7 @@ class Box:
         """Create a square with side lengths ``L``.
 
         Args:
-            L (float): The box side length (distance units).
+            L (float): The box side length :math:`[\\mathrm{length}]`.
 
         Returns:
             hoomd.Box: The created 2D box.
@@ -247,7 +246,8 @@ class Box:
     # Length based properties
     @property
     def L(self):  # noqa: N802 - allow function name
-        """(3) `numpy.ndarray` of `float`: The box lengths, ``[Lx, Ly, Lz]``.
+        """(3, ) `numpy.ndarray` of `float`: The box lengths, ``[Lx, Ly, Lz]`` \
+        :math:`[\\mathrm{length}]`.
 
         Can be set with a float which sets all lengths, or a length 3 vector.
         """
@@ -262,7 +262,8 @@ class Box:
 
     @property
     def Lx(self):  # noqa: N802: Allow function name
-        """float: The length of the box in the x dimension."""
+        """float: The length of the box in the x dimension \
+        :math:`[\\mathrm{length}]`."""
         return self.L[0]
 
     @Lx.setter
@@ -273,7 +274,8 @@ class Box:
 
     @property
     def Ly(self):  # noqa: N802: Allow function name
-        """float: The length of the box in the y dimension."""
+        """float: The length of the box in the y dimension \
+        :math:`[\\mathrm{length}]`."""
         return self.L[1]
 
     @Ly.setter
@@ -284,7 +286,8 @@ class Box:
 
     @property
     def Lz(self):  # noqa: N802: Allow function name
-        """float: The length of the box in the z dimension."""
+        """float: The length of the box in the z dimension \
+        :math:`[\\mathrm{length}]`."""
         return self.L[2]
 
     @Lz.setter
@@ -296,7 +299,7 @@ class Box:
     # Box tilt based properties
     @property
     def tilts(self):
-        """(3) `numpy.ndarray` of `float`: The box tilts, ``[xy, xz, yz]``.
+        """(3, ) `numpy.ndarray` of `float`: The box tilts, ``[xy, xz, yz]``.
 
         Can be set using one tilt for all axes or three tilts. If the box is 2D
         ``xz`` and ``yz`` will automatically be set to zero.
@@ -344,7 +347,8 @@ class Box:
     # Misc. properties
     @property
     def periodic(self):
-        """(3) `numpy.ndarray` of `bool`: The periodicity of each dimension."""
+        """(3, ) `numpy.ndarray` of `bool`: The periodicity of each \
+        dimension."""
         return _vec3_to_array(self._cpp_obj.getPeriodic(), bool)
 
     @property
@@ -359,7 +363,10 @@ class Box:
 
     @property
     def volume(self):
-        """float: Volume of the box (area in 2D).
+        """float: Volume of the box.
+
+        :math:`[\\mathrm{length}^{2}]` in 2D and
+        :math:`[\\mathrm{length}^{3}]` in 3D.
 
         When setting volume the aspect ratio of the box is maintained while the
         lengths are changed.
@@ -405,16 +412,20 @@ class Box:
     def scale(self, s):
         R"""Scale box dimensions.
 
-        Scales the box by the given scale factors. Tilt factors are not
+        Scales the box in place by the given scale factors. Tilt factors are not
         modified.
 
         Args:
-            s (float or Sequence[float]): scale factors in each dimension. If a
+            s (float or list[float]): scale factors in each dimension. If a
                 single float is given then scale all dimensions by s; otherwise,
                 s must be a sequence of 3 values used to scale each dimension.
+
+        Returns:
+            ``self``
         """
         s = np.asarray(s, dtype=float)
         self.L *= s
+        return self
 
     # Magic Methods
     def __repr__(self):

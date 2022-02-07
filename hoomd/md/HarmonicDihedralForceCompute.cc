@@ -1,11 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: dnlebard
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HarmonicDihedralForceCompute.h"
-
-namespace py = pybind11;
 
 #include <iostream>
 #include <math.h>
@@ -14,13 +10,14 @@ namespace py = pybind11;
 
 using namespace std;
 
-// SMALL a relatively small number
-#define SMALL Scalar(0.001)
-
 /*! \file HarmonicDihedralForceCompute.cc
     \brief Contains code for the HarmonicDihedralForceCompute class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
@@ -35,14 +32,13 @@ HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(std::shared_ptr<Syste
     // check for some silly errors a user could make
     if (m_dihedral_data->getNTypes() == 0)
         {
-        m_exec_conf->msg->error() << "dihedral.harmonic: No dihedral types specified" << endl;
-        throw runtime_error("Error initializing HarmonicDihedralForceCompute");
+        throw runtime_error("No dihedral types in the system.");
         }
 
     // allocate the parameters
     m_K = new Scalar[m_dihedral_data->getNTypes()];
     m_sign = new Scalar[m_dihedral_data->getNTypes()];
-    m_multi = new Scalar[m_dihedral_data->getNTypes()];
+    m_multi = new int[m_dihedral_data->getNTypes()];
     m_phi_0 = new Scalar[m_dihedral_data->getNTypes()];
     }
 
@@ -70,14 +66,13 @@ HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
 void HarmonicDihedralForceCompute::setParams(unsigned int type,
                                              Scalar K,
                                              Scalar sign,
-                                             Scalar multiplicity,
+                                             int multiplicity,
                                              Scalar phi_0)
     {
     // make sure the type is valid
     if (type >= m_dihedral_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "dihedral.harmonic: Invalid dihedral type specified" << endl;
-        throw runtime_error("Error setting parameters in HarmonicDihedralForceCompute");
+        throw runtime_error("Invalid dihedral type.");
         }
 
     m_K[type] = K;
@@ -239,7 +234,7 @@ void HarmonicDihedralForceCompute::computeForces(uint64_t timestep)
             c_abcd = -1.0;
 
         unsigned int dihedral_type = m_dihedral_data->getTypeByIndex(i);
-        int multi = (int)m_multi[dihedral_type];
+        int multi = m_multi[dihedral_type];
         Scalar p = Scalar(1.0);
         Scalar dfab = Scalar(0.0);
         Scalar ddfab = Scalar(0.0);
@@ -366,12 +361,19 @@ void HarmonicDihedralForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-void export_HarmonicDihedralForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<HarmonicDihedralForceCompute,
-               ForceCompute,
-               std::shared_ptr<HarmonicDihedralForceCompute>>(m, "HarmonicDihedralForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_HarmonicDihedralForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<HarmonicDihedralForceCompute,
+                     ForceCompute,
+                     std::shared_ptr<HarmonicDihedralForceCompute>>(m,
+                                                                    "HarmonicDihedralForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &HarmonicDihedralForceCompute::setParamsPython)
         .def("getParams", &HarmonicDihedralForceCompute::getParams);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

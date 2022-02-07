@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_FORCE_SHIFTED_LJ_H__
 #define __PAIR_EVALUATOR_FORCE_SHIFTED_LJ_H__
@@ -24,10 +22,16 @@
 // compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the force shifted LJ pair potential
 /*! This evaluator is a variant of the Lennard-Jones pair potential, for which the force goes
    smoothly to zero at \f$ r = r_{\mathrm{cut}} \f$.
@@ -50,13 +54,23 @@ class EvaluatorPairForceShiftedLJ
     //! Define the parameter type used by this pair potential evaluator
     typedef EvaluatorPairLJ::param_type param_type;
 
+    DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+    HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
+#ifdef ENABLE_HIP
+    //! Set CUDA memory hints
+    void set_memory_hints() const { }
+#endif
+
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
         \param _rcutsq Squared distance at which the potential and the force go to 0
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairForceShiftedLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
+        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
+          lj2(_params.epsilon_x_4 * _params.sigma_6)
         {
         }
 
@@ -121,6 +135,16 @@ class EvaluatorPairForceShiftedLJ
             return false;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -142,5 +166,8 @@ class EvaluatorPairForceShiftedLJ
     Scalar lj1;    //!< lj1 parameter extracted from the params passed to the constructor
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_FORCE_SHIFTED_LJ_H__

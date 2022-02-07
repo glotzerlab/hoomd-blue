@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
@@ -18,6 +18,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file lj_force_test.cc
     \brief Implements unit tests for PotentialPairLJ and PotentialPairLJGPU and descendants
@@ -57,23 +59,19 @@ void periodic_force_particle_test(periodicforce_creator periodic_creator,
     Scalar orderParameter = 0.5;
     Scalar interfaceWidth = 0.5;
     unsigned int periodicity = 2;
-    fc_3->setParams(0,
-                    make_scalar4(__int_as_scalar(index),
-                                 orderParameter,
-                                 interfaceWidth,
-                                 __int_as_scalar(periodicity)));
-    fc_3->setParams(1,
-                    make_scalar4(__int_as_scalar(index),
-                                 -orderParameter,
-                                 interfaceWidth,
-                                 __int_as_scalar(periodicity)));
+    fc_3->setParams(
+        0,
+        PotentialExternalPeriodic::param_type(index, orderParameter, interfaceWidth, periodicity));
+    fc_3->setParams(
+        1,
+        PotentialExternalPeriodic::param_type(index, -orderParameter, interfaceWidth, periodicity));
 
     // compute the forces
     fc_3->compute(0);
 
         {
-        GlobalArray<Scalar4>& force_array_1 = fc_3->getForceArray();
-        GlobalArray<Scalar>& virial_array_1 = fc_3->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_1 = fc_3->getForceArray();
+        const GlobalArray<Scalar>& virial_array_1 = fc_3->getVirialArray();
         size_t pitch = virial_array_1.getPitch();
         ArrayHandle<Scalar4> h_force_1(force_array_1, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_1(virial_array_1, access_location::host, access_mode::read);

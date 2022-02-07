@@ -1,8 +1,14 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "../DEM3DForceGPU.cu"
 
+namespace hoomd
+    {
+namespace dem
+    {
+namespace kernel
+    {
 typedef DEMEvaluator<Scalar, Scalar4, SWCAPotential<Scalar, Scalar4, NoFriction<Scalar>>> SWCADEM;
 
 template hipError_t
@@ -31,7 +37,7 @@ gpu_compute_dem3d_forces<Scalar, Scalar4, SWCADEM>(Scalar4* d_force,
                                                    const BoxDim& box,
                                                    const unsigned int* d_n_neigh,
                                                    const unsigned int* d_nlist,
-                                                   const unsigned int* d_head_list,
+                                                   const size_t* d_head_list,
                                                    const SWCADEM evaluator,
                                                    const Scalar r_cutsq,
                                                    const unsigned int particlesPerBlock,
@@ -42,3 +48,7 @@ gpu_compute_dem3d_forces<Scalar, Scalar4, SWCADEM>(Scalar4* d_force,
                                                    const unsigned int* d_numTypeFaces,
                                                    const unsigned int* d_vertexConnectivity,
                                                    const unsigned int* d_edges);
+
+    } // end namespace kernel
+    } // end namespace dem
+    } // end namespace hoomd

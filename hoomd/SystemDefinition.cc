@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file SystemDefinition.cc
     \brief Defines SystemDefinition
@@ -15,10 +13,10 @@
 #include "Communicator.h"
 #endif
 
-namespace py = pybind11;
-
 using namespace std;
 
+namespace hoomd
+    {
 /*! \post All shared pointers contained in SystemDefinition are NULL
  */
 SystemDefinition::SystemDefinition() { }
@@ -183,37 +181,39 @@ template std::shared_ptr<SnapshotSystemData<double>> SystemDefinition::takeSnaps
 template void SystemDefinition::initializeFromSnapshot<double>(
     std::shared_ptr<SnapshotSystemData<double>> snapshot);
 
-void export_SystemDefinition(py::module& m)
+namespace detail
     {
-    py::class_<SystemDefinition, std::shared_ptr<SystemDefinition>>(m, "SystemDefinition")
-        .def(py::init<>())
-        .def(py::init<unsigned int,
-                      const BoxDim&,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      std::shared_ptr<ExecutionConfiguration>>())
-        .def(py::init<unsigned int,
-                      const BoxDim&,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      std::shared_ptr<ExecutionConfiguration>,
-                      std::shared_ptr<DomainDecomposition>>())
-        .def(py::init<std::shared_ptr<SnapshotSystemData<float>>,
-                      std::shared_ptr<ExecutionConfiguration>,
-                      std::shared_ptr<DomainDecomposition>>())
-        .def(py::init<std::shared_ptr<SnapshotSystemData<float>>,
-                      std::shared_ptr<ExecutionConfiguration>>())
-        .def(py::init<std::shared_ptr<SnapshotSystemData<double>>,
-                      std::shared_ptr<ExecutionConfiguration>,
-                      std::shared_ptr<DomainDecomposition>>())
-        .def(py::init<std::shared_ptr<SnapshotSystemData<double>>,
-                      std::shared_ptr<ExecutionConfiguration>>())
+void export_SystemDefinition(pybind11::module& m)
+    {
+    pybind11::class_<SystemDefinition, std::shared_ptr<SystemDefinition>>(m, "SystemDefinition")
+        .def(pybind11::init<>())
+        .def(pybind11::init<unsigned int,
+                            const BoxDim&,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            std::shared_ptr<ExecutionConfiguration>>())
+        .def(pybind11::init<unsigned int,
+                            const BoxDim&,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            std::shared_ptr<ExecutionConfiguration>,
+                            std::shared_ptr<DomainDecomposition>>())
+        .def(pybind11::init<std::shared_ptr<SnapshotSystemData<float>>,
+                            std::shared_ptr<ExecutionConfiguration>,
+                            std::shared_ptr<DomainDecomposition>>())
+        .def(pybind11::init<std::shared_ptr<SnapshotSystemData<float>>,
+                            std::shared_ptr<ExecutionConfiguration>>())
+        .def(pybind11::init<std::shared_ptr<SnapshotSystemData<double>>,
+                            std::shared_ptr<ExecutionConfiguration>,
+                            std::shared_ptr<DomainDecomposition>>())
+        .def(pybind11::init<std::shared_ptr<SnapshotSystemData<double>>,
+                            std::shared_ptr<ExecutionConfiguration>>())
         .def("setNDimensions", &SystemDefinition::setNDimensions)
         .def("getNDimensions", &SystemDefinition::getNDimensions)
         .def("getParticleData", &SystemDefinition::getParticleData)
@@ -229,5 +229,13 @@ void export_SystemDefinition(py::module& m)
         .def("initializeFromSnapshot", &SystemDefinition::initializeFromSnapshot<float>)
         .def("initializeFromSnapshot", &SystemDefinition::initializeFromSnapshot<double>)
         .def("getSeed", &SystemDefinition::getSeed)
-        .def("setSeed", &SystemDefinition::setSeed);
+        .def("setSeed", &SystemDefinition::setSeed)
+#ifdef ENABLE_MPI
+        .def("setCommunicator", &SystemDefinition::setCommunicator)
+#endif
+        ;
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

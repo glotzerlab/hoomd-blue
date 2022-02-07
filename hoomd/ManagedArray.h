@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -23,6 +23,8 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
 //! A device-side, fixed-size array memory-managed through cudaMallocManaged
 template<class T> class ManagedArray
     {
@@ -209,15 +211,21 @@ template<class T> class ManagedArray
             size_int++;
 
         // align ptr to size of data type
-        size_t max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T)) - 1;
-        char* ptr_align = (char*)(((unsigned long int)s_ptr + max_align_bytes) & ~max_align_bytes);
+        size_t max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T));
+        size_t padding = ((unsigned long)s_ptr % max_align_bytes);
+        if (padding != 0)
+            padding = max_align_bytes - padding;
+        char* ptr_align = s_ptr + padding;
 
-        if (size_int * sizeof(int) + max_align_bytes > available_bytes)
+        // this should compute the size of the allocated memory as
+        // size_int * sizeof(int) + padding, but that leads to memory errors in HPMC
+        // for unknown reasons - JAA
+        if (size_int * sizeof(int) + max_align_bytes - 1 > available_bytes)
             return nullptr;
 
         // increment pointer
         s_ptr = ptr_align + size_int * sizeof(int);
-        available_bytes -= (unsigned int)(size_int * sizeof(int) + max_align_bytes);
+        available_bytes -= (unsigned int)(size_int * sizeof(int) + max_align_bytes - 1);
 
         return (void*)ptr_align;
         }
@@ -280,11 +288,11 @@ template<class T> class ManagedArray
 #ifndef __HIPCC__
     void allocate()
         {
-        ptr = managed_allocator<T>::allocate_construct_aligned(N,
-                                                               managed,
-                                                               align,
-                                                               allocation_bytes,
-                                                               allocation_ptr);
+        ptr = detail::managed_allocator<T>::allocate_construct_aligned(N,
+                                                                       managed,
+                                                                       align,
+                                                                       allocation_bytes,
+                                                                       allocation_ptr);
         data = ptr;
         }
 
@@ -292,8 +300,12 @@ template<class T> class ManagedArray
         {
         if (N > 0)
             {
-            managed_allocator<T>::deallocate_destroy_aligned(ptr, N, managed, allocation_ptr);
+            detail::managed_allocator<T>::deallocate_destroy_aligned(ptr,
+                                                                     N,
+                                                                     managed,
+                                                                     allocation_ptr);
             }
+        ptr = nullptr;
         }
 #endif
 
@@ -306,6 +318,8 @@ template<class T> class ManagedArray
     void* allocation_ptr;    //!< Pointer to un-aligned start of allocation
     size_t allocation_bytes; //!< Total size of allocation, including aligned part
     };
+
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

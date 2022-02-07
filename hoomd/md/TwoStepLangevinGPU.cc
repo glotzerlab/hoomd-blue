@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevinGPU.h"
 #include "TwoStepLangevinGPU.cuh"
@@ -9,9 +9,12 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param T Temperature set point as a function of time
@@ -23,8 +26,7 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepLangevinGPU while CUDA is disabled" << endl;
-        throw std::runtime_error("Error initializing TwoStepLangevinGPU");
+        throw std::runtime_error("Cannot create TwoStepLangevinGPU on a CPU device.");
         }
 
     // allocate the sum arrays
@@ -90,18 +92,18 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
     m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
     // perform the update on the GPU
-    gpu_nve_step_one(d_pos.data,
-                     d_vel.data,
-                     d_accel.data,
-                     d_image.data,
-                     d_index_array.data,
-                     m_group->getGPUPartition(),
-                     box,
-                     m_deltaT,
-                     false,
-                     0,
-                     false,
-                     m_tuner_one->getParam());
+    kernel::gpu_nve_step_one(d_pos.data,
+                             d_vel.data,
+                             d_accel.data,
+                             d_image.data,
+                             d_index_array.data,
+                             m_group->getGPUPartition(),
+                             box,
+                             m_deltaT,
+                             false,
+                             0,
+                             false,
+                             m_tuner_one->getParam());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -127,15 +129,15 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
 
-        gpu_nve_angular_step_one(d_orientation.data,
-                                 d_angmom.data,
-                                 d_inertia.data,
-                                 d_net_torque.data,
-                                 d_index_array.data,
-                                 m_group->getGPUPartition(),
-                                 m_deltaT,
-                                 1.0,
-                                 m_tuner_angular_one->getParam());
+        kernel::gpu_nve_angular_step_one(d_orientation.data,
+                                         d_angmom.data,
+                                         d_inertia.data,
+                                         d_net_torque.data,
+                                         d_index_array.data,
+                                         m_group->getGPUPartition(),
+                                         m_deltaT,
+                                         1.0,
+                                         m_tuner_angular_one->getParam());
 
         m_tuner_angular_one->end();
         m_exec_conf->endMultiGPU();
@@ -195,7 +197,7 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         m_num_blocks = group_size / m_block_size + 1;
 
         // perform the update on the GPU
-        langevin_step_two_args args;
+        kernel::langevin_step_two_args args;
         args.d_gamma = d_gamma.data;
         args.n_types = (unsigned int)m_gamma.getNumElements();
         args.use_alpha = m_use_alpha;
@@ -211,17 +213,17 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         args.noiseless_r = m_noiseless_r;
         args.tally = m_tally;
 
-        gpu_langevin_step_two(d_pos.data,
-                              d_vel.data,
-                              d_accel.data,
-                              d_diameter.data,
-                              d_tag.data,
-                              d_index_array.data,
-                              group_size,
-                              d_net_force.data,
-                              args,
-                              m_deltaT,
-                              D);
+        kernel::gpu_langevin_step_two(d_pos.data,
+                                      d_vel.data,
+                                      d_accel.data,
+                                      d_diameter.data,
+                                      d_tag.data,
+                                      d_index_array.data,
+                                      group_size,
+                                      d_net_force.data,
+                                      args,
+                                      m_deltaT,
+                                      D);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -266,7 +268,7 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         {
         ArrayHandle<Scalar> h_sumBD(m_sum, access_location::host, access_mode::read);
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &h_sumBD.data[0],
@@ -284,12 +286,18 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_TwoStepLangevinGPU(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepLangevinGPU, TwoStepLangevin, std::shared_ptr<TwoStepLangevinGPU>>(
+void export_TwoStepLangevinGPU(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepLangevinGPU, TwoStepLangevin, std::shared_ptr<TwoStepLangevinGPU>>(
         m,
         "TwoStepLangevinGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

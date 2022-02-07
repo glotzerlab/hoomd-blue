@@ -1,18 +1,19 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceDistanceConstraint.h"
 
 #include <string.h>
 using namespace Eigen;
-namespace py = pybind11;
 
 /*! \file ForceDistanceConstraint.cc
     \brief Contains code for the ForceDistanceConstraint class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinition> sysdef)
@@ -35,6 +36,19 @@ ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinitio
 
     // reset condition
     m_condition.resetFlags(0);
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+
+        // register this class with the communicator
+        m_comm->getGhostLayerWidthRequestSignal()
+            .connect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(this);
+        }
+#endif
     }
 
 //! Destructor
@@ -47,10 +61,12 @@ ForceDistanceConstraint::~ForceDistanceConstraint()
         .disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintsAddedRemoved>(
             this);
 #ifdef ENABLE_MPI
-    if (m_comm_ghost_layer_connected)
+    if (m_sysdef->isDomainDecomposed())
+        {
         m_comm->getGhostLayerWidthRequestSignal()
             .disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(
                 this);
+        }
 #endif
     }
 
@@ -100,9 +116,7 @@ void ForceDistanceConstraint::computeForces(uint64_t timestep)
 
     if (m_cdata->getNGlobal() == 0)
         {
-        m_exec_conf->msg->error() << "constrain.distance() called with no constraints defined!\n"
-                                  << std::endl;
-        throw std::runtime_error("Error computing constraints.\n");
+        throw std::runtime_error("No constraints in the system.");
         }
 
     // reallocate through amortized resizin
@@ -414,9 +428,7 @@ void ForceDistanceConstraint::solveConstraints(uint64_t timestep)
 
     if (m_sparse_solver.info())
         {
-        m_exec_conf->msg->error() << "Could not solve linear system of constraint equations."
-                                  << std::endl;
-        throw std::runtime_error("Error evaluating constraint forces.\n");
+        throw std::runtime_error("Could not solve linear system of constraint equations.");
         }
 
     // access RHS and solution vector
@@ -608,7 +620,7 @@ void ForceDistanceConstraint::assignMoleculeTags()
     std::vector<Scalar> length = snap.val;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         bcast(groups, 0, m_exec_conf->getMPICommunicator());
         bcast(length, 0, m_exec_conf->getMPICommunicator());
@@ -660,11 +672,19 @@ void ForceDistanceConstraint::assignMoleculeTags()
     m_n_molecules_global = molecule;
     }
 
-void export_ForceDistanceConstraint(py::module& m)
+namespace detail
     {
-    py::class_<ForceDistanceConstraint,
-               MolecularForceCompute,
-               std::shared_ptr<ForceDistanceConstraint>>(m, "ForceDistanceConstraint")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
-        .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance);
+void export_ForceDistanceConstraint(pybind11::module& m)
+    {
+    pybind11::class_<ForceDistanceConstraint,
+                     MolecularForceCompute,
+                     std::shared_ptr<ForceDistanceConstraint>>(m, "ForceDistanceConstraint")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+        .def_property("tolerance",
+                      &ForceDistanceConstraint::getRelativeTolerance,
+                      &ForceDistanceConstraint::setRelativeTolerance);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

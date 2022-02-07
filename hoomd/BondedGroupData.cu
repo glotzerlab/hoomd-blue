@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "BondedGroupData.cuh"
 #include "ParticleData.cuh"
@@ -18,6 +16,8 @@
     \brief Implements the helper functions (GPU version) for updating the GPU bonded group tables
 */
 
+namespace hoomd
+    {
 template<unsigned int group_size, typename group_t>
 __global__ void gpu_count_groups_kernel(const unsigned int n_groups,
                                         const group_t* d_group_table,
@@ -279,3 +279,5 @@ template void gpu_update_group_table<4>(const unsigned int n_groups,
                                         unsigned int* d_offsets,
                                         bool has_type_mapping,
                                         CachedAllocator& alloc);
+
+    } // end namespace hoomd

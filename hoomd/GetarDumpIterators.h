@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __DUMPITERATORS_H_
 #define __DUMPITERATORS_H_
@@ -15,6 +15,8 @@
 /// composite data types found in hoomd for use in the getar reader
 /// and writer to and from flat streams of data.
 
+namespace hoomd
+    {
 namespace getardump
     {
 // Iterator to give the keys of a map
@@ -646,5 +648,7 @@ class InvGroupTagIterator : public std::iterator<std::input_iterator_tag, group_
     };
 
     } // namespace getardump
+
+    } // end namespace hoomd
 
 #endif

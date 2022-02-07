@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HOOMD-blue python API.
 
@@ -8,7 +7,23 @@
 simulations using HOOMD.
 """
 import sys
+import pathlib
 import os
+
+if ((pathlib.Path(__file__).parent / 'CMakeLists.txt').exists()
+        and 'SPHINX' not in os.environ):
+    print("It appears that hoomd is being imported from the source directory:")
+    print(pathlib.Path(__file__).parent)
+    print()
+    print("""Compile the package and import from the build directory or install
+the package and import from the Python environment.
+
+To run pytest, either:
+(1) compile then execute `python3 -m pytest <build-directory>/hoomd` or
+(2) compile and install. Then, ensuring your current working directory is
+outside the hoomd source directory, execute `python3 -m pytest --pyargs hoomd`.
+""",
+          file=sys.stderr)
 
 from hoomd import version
 from hoomd import trigger
@@ -17,29 +32,24 @@ from hoomd.box import Box
 from hoomd import data
 from hoomd import filter
 from hoomd import device
+from hoomd import error
 from hoomd import update
 from hoomd import integrate
 from hoomd import communicator
 from hoomd import util
 from hoomd import write
+from hoomd import wall
 from hoomd import _hoomd
-try:
+if version.md_built:
     from hoomd import md
-except ImportError:
-    pass
-try:
+if version.hpmc_built:
     from hoomd import hpmc
-except ImportError:
-    pass
-try:
+if version.dem_built and version.md_built:
     from hoomd import dem
-except ImportError:
-    pass
-# TODO: enable this import after updating MPCD to the new API
-# try:
+# if version.metal_built:
+#     from hoomd import metal
+# if version.mpcd_built:
 #     from hoomd import mpcd
-# except ImportError:
-#     pass
 
 from hoomd.simulation import Simulation
 from hoomd.state import State

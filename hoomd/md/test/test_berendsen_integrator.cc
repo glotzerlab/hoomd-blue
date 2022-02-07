@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
@@ -21,6 +21,8 @@
 #include <math.h>
 
 using namespace std;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file test_berendsen_updater.cc
     \brief Implements unit tests for TwoStepBerendsen and descendants
@@ -56,12 +58,12 @@ void berend_updater_lj_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     std::shared_ptr<TwoStepBerendsen> two_step_berendsen(
         new Berendsen(sysdef, group_all, thermo, 1.0, T_variant));
     std::shared_ptr<IntegratorTwoStep> berendsen_up(new IntegratorTwoStep(sysdef, deltaT));
-    berendsen_up->addIntegrationMethod(two_step_berendsen);
+    berendsen_up->getIntegrationMethods().push_back(two_step_berendsen);
 
     std::shared_ptr<TwoStepLangevin> two_step_bdnvt(
         new TwoStepLangevin(sysdef, group_all, T_variant2));
     std::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
-    bdnvt_up->addIntegrationMethod(two_step_bdnvt);
+    bdnvt_up->getIntegrationMethods().push_back(two_step_bdnvt);
     bdnvt_up->prepRun(0);
 
     int i;

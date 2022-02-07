@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "CellList.h"
 #include "Compute.h"
@@ -19,6 +17,8 @@
 #ifndef __CELLLISTSTENCIL_H__
 #define __CELLLISTSTENCIL_H__
 
+namespace hoomd
+    {
 //! Calculates a stencil for a given cell list
 /*!
  * Generates a list of translation vectors to check from a CellList for a given search radius.
@@ -102,21 +102,15 @@ class PYBIND11_EXPORT CellListStencil : public Compute
     GPUArray<Scalar4> m_stencil;        //!< Stencil of shifts and closest distance to bin
     GPUArray<unsigned int> m_n_stencil; //!< Number of bins in a stencil
     bool m_compute_stencil;             //!< Flag if stencil should be recomputed
-
-    //! Slot for the number of types changing, which triggers a resize
-    void slotTypeChange()
-        {
-        GPUArray<unsigned int> n_stencil(m_pdata->getNTypes(), m_exec_conf);
-        m_n_stencil.swap(n_stencil);
-
-        m_rstencil = std::vector<Scalar>(m_pdata->getNTypes(), -1.0);
-        requestCompute();
-        }
     };
 
+namespace detail
+    {
 //! Exports CellListStencil to python
 #ifndef __HIPCC__
 void export_CellListStencil(pybind11::module& m);
 #endif
+    } // end namespace detail
 
+    }  // end namespace hoomd
 #endif // __CELLLISTSTENCIL_H__

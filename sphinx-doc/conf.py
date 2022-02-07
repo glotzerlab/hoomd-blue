@@ -1,8 +1,12 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Sphinx configuration."""
 
 import sys
 import os
 import sphinx
+import datetime
 
 sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 
@@ -11,10 +15,7 @@ sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('..'))
 
-# TEMPORARY
-# TODO: remove this when 3.0 is closer to completion
-# stop warning about invalid references
-suppress_warnings = ['ref.any']
+os.environ['SPHINX'] = '1'
 
 extensions = [
     'nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary',
@@ -26,19 +27,20 @@ napoleon_include_special_with_doc = True
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
     'gsd': ('https://gsd.readthedocs.io/en/stable/', None)
 }
 autodoc_docstring_signature = True
 
 autodoc_mock_imports = [
     'hoomd._hoomd',
+    'hoomd.version_config',
     'hoomd.md._md',
     'hoomd.metal._metal',
     'hoomd.mpcd._mpcd',
     'hoomd.dem._dem',
     'hoomd.minimize._minimize',
-    'hoomd.jit._jit',
+    'hoomd.hpmc._jit',
     'hoomd.hpmc._hpmc',
 ]
 
@@ -50,11 +52,12 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 project = 'HOOMD-blue'
-copyright = '2009-2021 The Regents of the University of Michigan'
+year = datetime.date.today().year
+copyright = f'2009-{ year } The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.0.0-beta.6'
-release = '3.0.0-beta.6'
+version = '3.0.0-beta.13'
+release = '3.0.0-beta.13'
 
 language = None
 

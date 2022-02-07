@@ -1,3 +1,5 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ShapeConvexPolygon.h"    // check
 #include "ShapeConvexPolyhedron.h" // check
@@ -24,7 +26,11 @@
 #ifndef _GSD_HPMC_Schema_H_
 #define _GSD_HPMC_Schema_H_
 
-template<class T> using param_array = typename std::vector<T, managed_allocator<T>>;
+namespace hoomd
+    {
+namespace hpmc
+    {
+template<class T> using param_array = typename std::vector<T, hoomd::detail::managed_allocator<T>>;
 
 struct gsd_schema_hpmc_base
     {
@@ -567,5 +573,8 @@ template<> struct gsd_shape_schema<hpmc::detail::PolygonVertices> : public gsd_s
             }
         }
     };
+
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif

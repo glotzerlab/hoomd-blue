@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/ParticleData.cuh
@@ -17,6 +15,8 @@
 #include "ParticleDataUtilities.h"
 #include "hoomd/BoxDim.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -57,9 +57,9 @@ void add_particles(unsigned int old_nparticles,
                    const mpcd::detail::pdata_element* d_in,
                    const unsigned int mask,
                    const unsigned int block_size);
-    } // end namespace gpu
-    } // end namespace mpcd
-
+    }  // end namespace gpu
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // ENABLE_MPI
 
 #endif // MPCD_PARTICLE_DATA_CUH_

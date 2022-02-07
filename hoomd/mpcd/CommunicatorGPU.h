@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CommunicatorGPU.h
@@ -27,6 +25,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! MPI communication of MPCD particle data on the GPU
@@ -35,7 +35,7 @@ namespace mpcd
  * are used in parallel simulations on the GPU. A domain decomposition communication pattern
  * is used so that every processor owns particles that are spatially local (\cite Plimpton 1995). So
  * far, the only communication needed for MPCD particles is migration, which is handled
- * using the same algorithms as for the standard ::ParticleData
+ * using the same algorithms as for the standard hoomd::ParticleData
  * (::CommunicatorGPU::migrateParticles).
  *
  * There is unfortunately significant code duplication with ::CommunicatorGPU, but
@@ -111,8 +111,8 @@ namespace detail
 void export_CommunicatorGPU(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI
 #endif // MPCD_COMMUNICATOR_GPU_H_

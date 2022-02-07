@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/ATCollisionMethod.h
@@ -12,13 +10,15 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+namespace hoomd
+    {
 mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
                                            uint64_t cur_timestep,
                                            uint64_t period,
                                            int phase,
                                            std::shared_ptr<mpcd::CellThermoCompute> thermo,
                                            std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
-                                           std::shared_ptr<::Variant> T)
+                                           std::shared_ptr<Variant> T)
     : mpcd::CollisionMethod(sysdata, cur_timestep, period, phase), m_thermo(thermo),
       m_rand_thermo(rand_thermo), m_T(T)
     {
@@ -228,16 +228,17 @@ void mpcd::ATCollisionMethod::applyVelocities()
  */
 void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::ATCollisionMethod,
-               mpcd::CollisionMethod,
-               std::shared_ptr<mpcd::ATCollisionMethod>>(m, "ATCollisionMethod")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
-                      uint64_t,
-                      uint64_t,
-                      int,
-                      std::shared_ptr<mpcd::CellThermoCompute>,
-                      std::shared_ptr<mpcd::CellThermoCompute>,
-                      std::shared_ptr<::Variant>>())
+    pybind11::class_<mpcd::ATCollisionMethod,
+                     mpcd::CollisionMethod,
+                     std::shared_ptr<mpcd::ATCollisionMethod>>(m, "ATCollisionMethod")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+                            uint64_t,
+                            uint64_t,
+                            int,
+                            std::shared_ptr<mpcd::CellThermoCompute>,
+                            std::shared_ptr<mpcd::CellThermoCompute>,
+                            std::shared_ptr<Variant>>())
         .def("setTemperature", &mpcd::ATCollisionMethod::setTemperature);
     }
+
+    } // end namespace hoomd

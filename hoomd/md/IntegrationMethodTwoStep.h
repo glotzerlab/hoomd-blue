@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Profiler.h"
@@ -27,6 +25,10 @@ class Communicator;
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps
 /*! \b Overview
     A large class of integrators can be implemented in two steps:
@@ -163,32 +165,11 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
     //! not)
     virtual void validateGroup();
 
-#ifdef ENABLE_MPI
-    //! Set the communicator to use
-    /*! \param comm MPI communication class
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        assert(comm);
-        m_comm = comm;
-        }
-#endif
-
     //! Set (an-)isotropic integration mode
     /*! \param aniso True if anisotropic integration is requested
      */
     void setAnisotropic(bool aniso)
         {
-        // warn if we are moving isotropic->anisotropic and we
-        // find no rotational degrees of freedom
-        if (!m_aniso && aniso && this->getRotationalDOF(m_group) == Scalar(0))
-            {
-            m_exec_conf->msg->warning() << "Integrator #" << m_integrator_id
-                                        << ": Anisotropic integration requested, but no rotational "
-                                           "degrees of freedom found for its group"
-                                        << std::endl;
-            }
-
         m_aniso = aniso;
         }
 
@@ -247,15 +228,18 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         m_valid_restart = b;
         }
 
-#ifdef ENABLE_MPI
-    std::shared_ptr<Communicator> m_comm; //!< The communicator to use for MPI
-#endif
     private:
     unsigned int m_integrator_id; //!< Registered integrator id to access the state variables
     bool m_valid_restart;         //!< True if the restart info was valid when loading
     };
 
+namespace detail
+    {
 //! Exports the IntegrationMethodTwoStep class to python
 void export_IntegrationMethodTwoStep(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __INTEGRATION_METHOD_TWO_STEP_H__

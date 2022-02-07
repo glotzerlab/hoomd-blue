@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test that `LocalSnapshot` and `LocalSnapshotGPU` work."""
 
@@ -53,7 +52,22 @@ _particle_data = dict(
                       value=np.linspace(-4, 4, Np * 3).reshape((Np, 3)),
                       new_value=np.linspace(4, 8, Np * 3).reshape((Np, 3)),
                       shape=(Np, 3)),
-    typeid=dict(np_type=np.integer,
+    angmom=dict(np_type=np.floating,
+                value=np.linspace(-3, 6, Np * 4).reshape((Np, 4)),
+                new_value=np.linspace(1, 3, Np * 4).reshape((Np, 4)),
+                shape=(Np, 4)),
+    moment_inertia=dict(np_type=np.floating,
+                        value=np.linspace(3, 12, Np * 3).reshape((Np, 3)),
+                        new_value=np.linspace(0, 20, Np * 3).reshape((Np, 3)),
+                        shape=(Np, 3)),
+    # We don't care about a valid body specification here just that we can
+    # retrieve and set it correctly.
+    body=dict(np_type=np.uint32,
+              value=np.linspace(-1, 10, Np, dtype=np.uint32),
+              new_value=np.linspace(1, 20, Np, dtype=np.uint32),
+              shape=(Np,)),
+    # typeid is a signed integer in C++ despite always being nonnegative
+    typeid=dict(np_type=np.int32,
                 value=[0, 0, 0, 1, 1],
                 new_value=[1, 1, 1, 0, 0],
                 shape=(Np,)),
@@ -69,11 +83,13 @@ _particle_data = dict(
                   value=[5, 2, 3, 2, 5],
                   new_value=[2, 1, 0.5, 1, 2],
                   shape=(Np,)),
-    image=dict(np_type=np.integer,
-               value=np.linspace(-10, 20, Np * 3, dtype=int).reshape(Np, 3),
-               new_value=np.linspace(-20, 10, Np * 3, dtype=int).reshape(Np, 3),
+    image=dict(np_type=np.int32,
+               value=np.linspace(-10, 20, Np * 3,
+                                 dtype=np.int32).reshape(Np, 3),
+               new_value=np.linspace(-20, 10, Np * 3,
+                                     dtype=np.int32).reshape(Np, 3),
                shape=(Np, 3)),
-    tag=dict(np_type=np.unsignedinteger, value=None, shape=(Np,)),
+    tag=dict(np_type=np.uint32, value=None, shape=(Np,)),
     _types=['p1', 'p2'])
 
 _particle_local_data = dict(
@@ -211,7 +227,7 @@ def base_snapshot(device):
 
     snapshot = hoomd.Snapshot(device.communicator)
 
-    if snapshot.exists:
+    if snapshot.communicator.rank == 0:
         snapshot.configuration.box = [2.1, 2.1, 2.1, 0, 0, 0]
         set_snapshot(snapshot, _particle_data, 'particles')
         set_snapshot(snapshot, _bond_data, 'bonds')
@@ -388,7 +404,7 @@ class TestLocalSnapshots:
     def check_tag_shape(base_snapshot, local_snapshot, group, ranks):
         mpi_comm = MPI.COMM_WORLD
 
-        if base_snapshot.exists:
+        if base_snapshot.communicator.rank == 0:
             N = getattr(base_snapshot, group).N
         else:
             N = None
@@ -438,11 +454,11 @@ class TestLocalSnapshots:
                                    global_property):
         section_name, prop_name, prop_dict = global_property
         sim = base_simulation()
-        snapshot = sim.state.snapshot
+        snapshot = sim.state.get_snapshot()
 
         mpi_comm = MPI.COMM_WORLD
 
-        if snapshot.exists:
+        if snapshot.communicator.rank == 0:
             N = getattr(snapshot, section_name).N
         else:
             N = None
@@ -485,7 +501,7 @@ class TestLocalSnapshots:
         for lcl_snapshot_attr in self.get_snapshot_attr(sim):
             with getattr(sim.state, lcl_snapshot_attr):
                 with pytest.raises(RuntimeError):
-                    sim.state.snapshot = base_snapshot
+                    sim.state.set_snapshot(base_snapshot)
 
     @pytest.fixture
     def base_simulation(self, simulation_factory, base_snapshot):

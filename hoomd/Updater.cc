@@ -1,15 +1,14 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: joaander
 #include "Updater.h"
-
-namespace py = pybind11;
 
 /*! \file Updater.cc
     \brief Defines a base class for all updaters
 */
 
+namespace hoomd
+    {
 /*! \param sysdef System this compute will act on. Must not be NULL.
     \post The Updater is constructed with the given particle data and a NULL profiler.
 */
@@ -35,15 +34,17 @@ void Updater::setProfiler(std::shared_ptr<Profiler> prof)
     m_prof = prof;
     }
 
-void export_Updater(py::module& m)
+namespace detail
     {
-    py::class_<Updater, std::shared_ptr<Updater>>(m, "Updater")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_Updater(pybind11::module& m)
+    {
+    pybind11::class_<Updater, std::shared_ptr<Updater>>(m, "Updater")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("update", &Updater::update)
         .def("setProfiler", &Updater::setProfiler)
-        .def("notifyDetach", &Updater::notifyDetach)
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &Updater::setCommunicator)
-#endif
-        ;
+        .def("notifyDetach", &Updater::notifyDetach);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

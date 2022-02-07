@@ -49,7 +49,7 @@ env:
 <% endmacro %>
 <% set build_steps %>
     - name: Checkout
-      uses: actions/checkout@v2.3.4
+      uses: actions/checkout@v2.4.0
       with:
         path: code
         submodules: true
@@ -62,13 +62,13 @@ env:
                       -DENABLE_GPU=${ENABLE_GPU:-"OFF"} \
                       -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                       -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
-                      -DBUILD_JIT=${BUILD_JIT:-"OFF"} \
+                      -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
       env:
         ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
         ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
         ENABLE_TBB: ${{ contains(matrix.config, 'tbb') }}
-        BUILD_JIT: ${{ contains(matrix.config, 'jit') }}
+        ENABLE_LLVM: ${{ contains(matrix.config, 'llvm') }}
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
       working-directory: build
@@ -84,13 +84,13 @@ env:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v2.2.3
+      uses: actions/upload-artifact@v2.3.1
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v2.2.3
+      uses: actions/upload-artifact@v2.3.1
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
@@ -98,7 +98,7 @@ env:
 <% endset %>
 <% set download_build_steps %>
     - name: Download build
-      uses: actions/download-artifact@v2.0.9
+      uses: actions/download-artifact@v2.1.0
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
@@ -106,7 +106,7 @@ env:
 <% endset %>
 <% set download_install_steps %>
     - name: Download install
-      uses: actions/download-artifact@v2.0.9
+      uses: actions/download-artifact@v2.1.0
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -217,7 +217,7 @@ jobs:
   # This job is used to provide a single requirement for branch merge conditions. GitHub considers
   # the check passing even if it is skipped, so this job raises errors when required jobs were not
   # run.
-  tests_complete:
+  unit_tests_complete:
     name: Unit test
     needs: [pytest, ctest, validate]
     if: ${{ always() && github.event_name == 'pull_request' }}
@@ -226,12 +226,15 @@ jobs:
     steps:
       - name: Error if pytest did not succeed
         if: needs.pytest.result != 'success'
-        run: exit 1
+        run: echo "::error ::pytest tests failed." && exit 1
       - name: Error if ctest did not succeed
         if: needs.ctest.result != 'success'
-        run: exit 1
+        run: echo "::error ::ctest tests failed." && exit 1
+      - name: Warn if validate did not run
+        if: needs.validate.result == 'skipped'
+        run: echo "::warning ::Skipped validation tests." && exit 1
       - name: Error if validate did not succeed
         if: needs.validate.result != 'success'
-        run: exit 1
+        run: echo "::error ::Validation tests failed." && exit 1
       - run: echo "Done!"
 <% endblock %>

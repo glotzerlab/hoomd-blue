@@ -1,10 +1,14 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: pschoenhoefer
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ManifoldPrimitive.h"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 //! Exports the Primitive manifold class to python
 void export_ManifoldPrimitive(pybind11::module& m)
     {
@@ -13,3 +17,7 @@ void export_ManifoldPrimitive(pybind11::module& m)
         .def_property_readonly("N", &ManifoldPrimitive::getN)
         .def_property_readonly("epsilon", &ManifoldPrimitive::getEpsilon);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

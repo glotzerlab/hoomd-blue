@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SystemData.h
@@ -21,13 +19,15 @@
 #include "hoomd/SystemDefinition.h"
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 class PYBIND11_EXPORT SystemData
     {
     public:
     //! Construct from MPCD ParticleData
-    SystemData(std::shared_ptr<::SystemDefinition> sysdef,
+    SystemData(std::shared_ptr<hoomd::SystemDefinition> sysdef,
                std::shared_ptr<mpcd::ParticleData> mpcd_pdata);
 
     //! Construct from a snapshot
@@ -49,7 +49,7 @@ class PYBIND11_EXPORT SystemData
         }
 
     //! Get the HOOMD system definition
-    std::shared_ptr<::SystemDefinition> getSystemDefinition() const
+    std::shared_ptr<hoomd::SystemDefinition> getSystemDefinition() const
         {
         return m_sysdef;
         }
@@ -87,10 +87,10 @@ class PYBIND11_EXPORT SystemData
         }
 
     private:
-    std::shared_ptr<::SystemDefinition> m_sysdef;    //!< HOOMD system definition
-    std::shared_ptr<mpcd::ParticleData> m_particles; //!< MPCD particle data
-    std::shared_ptr<mpcd::CellList> m_cl;            //!< MPCD cell list
-    const BoxDim m_global_box;                       //!< Global simulation box
+    std::shared_ptr<hoomd::SystemDefinition> m_sysdef; //!< HOOMD system definition
+    std::shared_ptr<mpcd::ParticleData> m_particles;   //!< MPCD particle data
+    std::shared_ptr<mpcd::CellList> m_cl;              //!< MPCD cell list
+    const BoxDim m_global_box;                         //!< Global simulation box
 
     //! Check that the simulation box has not changed from the cached value on initialization
     void checkBox() const
@@ -120,6 +120,6 @@ namespace detail
 void export_SystemData(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_SYSTEM_DATA_H_

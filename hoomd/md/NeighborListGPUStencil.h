@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborListGPU.h"
 #include "hoomd/Autotuner.h"
@@ -21,6 +19,10 @@
 #ifndef __NEIGHBORLISTGPUSTENCIL_H__
 #define __NEIGHBORLISTGPUSTENCIL_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Neighbor list build on the GPU with multiple bin stencils
 /*! Implements the O(N) neighbor list build on the GPU using a cell list with multiple bin stencils.
 
@@ -65,20 +67,6 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
         m_tuner->setEnabled(enable);
         }
 
-#ifdef ENABLE_MPI
-
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method
-        NeighborList::setCommunicator(comm);
-
-        // set the communicator on the internal cell lists
-        m_cl->setCommunicator(comm);
-        m_cls->setCommunicator(comm);
-        }
-
-#endif
-
     protected:
     //! Builds the neighbor list
     virtual void buildNlist(uint64_t timestep);
@@ -113,7 +101,13 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
     bool m_update_cell_size = false;
     };
 
+namespace detail
+    {
 //! Exports NeighborListGPUStencil to python
 void export_NeighborListGPUStencil(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __NEIGHBORLISTGPUSTENCIL_H__

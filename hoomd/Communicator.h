@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Communicator.h
     \brief Defines the Communicator class
@@ -44,6 +42,8 @@
 //! a define to indicate API requirements
 #define HOOMD_COMM_GHOST_LAYER_WIDTH_REQUEST
 
+namespace hoomd
+    {
 //! Forward declarations for some classes
 class SystemDefinition;
 class Profiler;
@@ -666,8 +666,8 @@ class PYBIND11_EXPORT Communicator
         }
 
     private:
-    std::vector<pdata_element> m_sendbuf; //!< Buffer for particles that are sent
-    std::vector<pdata_element> m_recvbuf; //!< Buffer for particles that are received
+    std::vector<detail::pdata_element> m_sendbuf; //!< Buffer for particles that are sent
+    std::vector<detail::pdata_element> m_recvbuf; //!< Buffer for particles that are received
 
     /* Communication of bonded groups */
     GroupCommunicator<BondData> m_bond_comm; //!< Communication helper for bonds
@@ -689,23 +689,6 @@ class PYBIND11_EXPORT Communicator
     GroupCommunicator<PairData> m_pair_comm; //!< Communication helper for special pairs
     friend class GroupCommunicator<PairData>;
 
-    //! Reallocate the ghost layer width arrays when number of types change
-    void slotNumTypesChanged()
-        {
-        // skip the reallocation if the number of types does not change
-        // this keeps old parameters when restoring a snapshot
-        // it will result in invalid coefficients if the snapshot has a different type id -> name
-        // mapping
-        if (m_pdata->getNTypes() == m_r_ghost.getNumElements())
-            return;
-
-        GlobalArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
-        m_r_ghost.swap(r_ghost);
-
-        GlobalArray<Scalar> r_ghost_body(m_pdata->getNTypes(), m_exec_conf);
-        m_r_ghost_body.swap(r_ghost_body);
-        }
-
     //! Helper function to initialize adjacency arrays
     void initializeNeighborArrays();
 
@@ -717,8 +700,13 @@ class PYBIND11_EXPORT Communicator
         }
     };
 
+namespace detail
+    {
 //! Declaration of python export function
 void export_Communicator(pybind11::module& m);
 
+    } // end namespace detail
+
+    }  // end namespace hoomd
 #endif // __COMMUNICATOR_H__
 #endif // ENABLE_MPI

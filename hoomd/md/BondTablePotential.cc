@@ -1,12 +1,8 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: phillicl
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "BondTablePotential.h"
 #include "hoomd/BondedGroupData.h"
-
-namespace py = pybind11;
 
 #include <stdexcept>
 
@@ -16,6 +12,10 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -32,8 +32,7 @@ BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
 
     if (table_width == 0)
         {
-        m_exec_conf->msg->error() << "bond.table: Table width of 0 is invalid" << endl;
-        throw runtime_error("Error initializing BondTablePotential");
+        throw runtime_error("Bond table width must be greater than 0.");
         }
 
     // allocate storage for the tables and parameters
@@ -70,8 +69,7 @@ void BondTablePotential::setTable(unsigned int type,
     // make sure the type is valid
     if (type >= m_bond_data->getNTypes())
         {
-        m_exec_conf->msg->error() << "Invalid bond type specified" << endl;
-        throw runtime_error("Error setting parameters in PotentialBond");
+        throw runtime_error("Invalid bond type.");
         }
 
     // access the arrays
@@ -81,16 +79,14 @@ void BondTablePotential::setTable(unsigned int type,
     // range check on the parameters
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
-        m_exec_conf->msg->error() << "bond.table: rmin, rmax (" << rmin << "," << rmax
-                                  << ") is invalid." << endl;
-        throw runtime_error("Error initializing BondTablePotential");
+        std::ostringstream s;
+        s << "Bond rmin, rmax (" << rmin << "," << rmax << ") is invalid.";
+        throw runtime_error(s.str());
         }
 
     if (V.size() != m_table_width || F.size() != m_table_width)
         {
-        m_exec_conf->msg->error()
-            << "bond.table: table provided to setTable is not of the correct size" << endl;
-        throw runtime_error("Error initializing BondTablePotential");
+        throw runtime_error("Bond table is not the correct size.");
         }
 
     // fill out the parameters
@@ -104,6 +100,52 @@ void BondTablePotential::setTable(unsigned int type,
         h_tables.data[m_table_value(i, type)].x = V[i];
         h_tables.data[m_table_value(i, type)].y = F[i];
         }
+    }
+
+void BondTablePotential::setParamsPython(std::string type, pybind11::dict params)
+    {
+    auto type_id = m_bond_data->getTypeByName(type);
+    Scalar r_min = params["r_min"].cast<Scalar>();
+    Scalar r_max = params["r_max"].cast<Scalar>();
+
+    const auto V_py = params["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+    const auto F_py = params["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+
+    std::vector<Scalar> V(V_py.size());
+    std::vector<Scalar> F(F_py.size());
+
+    std::copy(V_py.data(0), V_py.data(0) + V_py.size(), V.data());
+    std::copy(F_py.data(0), F_py.data(0) + F_py.size(), F.data());
+
+    setTable(type_id, V, F, r_min, r_max);
+    }
+
+/// Get the parameters for a particular type.
+pybind11::dict BondTablePotential::getParams(std::string type)
+    {
+    ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
+
+    auto type_id = m_bond_data->getTypeByName(type);
+    pybind11::dict params;
+    params["r_min"] = h_params.data[type_id].x;
+    params["r_max"] = h_params.data[type_id].y;
+
+    auto V = pybind11::array_t<Scalar>(m_table_width);
+    auto V_unchecked = V.mutable_unchecked<1>();
+    auto F = pybind11::array_t<Scalar>(m_table_width);
+    auto F_unchecked = F.mutable_unchecked<1>();
+
+    for (unsigned int i = 0; i < m_table_width; i++)
+        {
+        V_unchecked(i) = h_tables.data[m_table_value(i, type_id)].x;
+        F_unchecked(i) = h_tables.data[m_table_value(i, type_id)].y;
+        }
+
+    params["V"] = V;
+    params["F"] = F;
+
+    return params;
     }
 
 /*! \post The table based forces are computed for the given timestep.
@@ -156,10 +198,9 @@ void BondTablePotential::computeForces(uint64_t timestep)
         // throw an error if this bond is incomplete
         if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
             {
-            this->m_exec_conf->msg->error() << "bond.table: bond " << bond.tag[0] << " "
-                                            << bond.tag[1] << " incomplete." << endl
-                                            << endl;
-            throw std::runtime_error("Error in bond calculation");
+            std::ostringstream s;
+            s << "bond.table: bond " << bond.tag[0] << " " << bond.tag[1] << " incomplete.";
+            throw std::runtime_error(s.str());
             }
         assert(idx_a <= m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_b <= m_pdata->getN() + m_pdata->getNGhosts());
@@ -250,12 +291,20 @@ void BondTablePotential::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
-//! Exports the BondTablePotential class to python
-void export_BondTablePotential(py::module& m)
+namespace detail
     {
-    py::class_<BondTablePotential, ForceCompute, std::shared_ptr<BondTablePotential>>(
+//! Exports the BondTablePotential class to python
+void export_BondTablePotential(pybind11::module& m)
+    {
+    pybind11::class_<BondTablePotential, ForceCompute, std::shared_ptr<BondTablePotential>>(
         m,
         "BondTablePotential")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>())
-        .def("setTable", &BondTablePotential::setTable);
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
+        .def_property_readonly("width", &BondTablePotential::getWidth)
+        .def("setParams", &BondTablePotential::setParamsPython)
+        .def("getParams", &BondTablePotential::getParams);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

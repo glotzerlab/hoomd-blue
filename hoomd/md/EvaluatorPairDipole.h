@@ -1,9 +1,8 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // $Id$
 // $URL$
-// Maintainer: ndtrung
 
 #ifndef __PAIR_EVALUATOR_DIPOLE_H__
 #define __PAIR_EVALUATOR_DIPOLE_H__
@@ -27,10 +26,16 @@
 // when included into the host compiler
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
+#define DEVICE __device__
 #else
 #define HOSTDEVICE
+#define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 class EvaluatorPairDipole
     {
     public:
@@ -52,13 +57,15 @@ class EvaluatorPairDipole
             \param available_bytes Size of remaining shared memory
             allocation
         */
-        HOSTDEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const { }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
         HOSTDEVICE param_type() : A(0), kappa(0) { }
 
 #ifndef __HIPCC__
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed)
             {
             A = v["A"].cast<Scalar>();
             kappa = v["kappa"].cast<Scalar>();
@@ -75,9 +82,9 @@ class EvaluatorPairDipole
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     struct shape_type
@@ -88,15 +95,17 @@ class EvaluatorPairDipole
         /*! \param ptr Pointer to load data to (will be incremented)
             \param available_bytes Size of remaining shared memory allocation
         */
-        HOSTDEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const { }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
         HOSTDEVICE shape_type() : mu {0, 0, 0} { }
 
 #ifndef __HIPCC__
 
-        shape_type(vec3<Scalar> mu_) : mu(mu_) { }
+        shape_type(vec3<Scalar> mu_, bool managed = false) : mu(mu_) { }
 
-        shape_type(pybind11::object mu_obj)
+        shape_type(pybind11::object mu_obj, bool managed)
             {
             auto mu_ = (pybind11::tuple)mu_obj;
             mu = vec3<Scalar>(mu_[0].cast<Scalar>(), mu_[1].cast<Scalar>(), mu_[2].cast<Scalar>());
@@ -110,7 +119,7 @@ class EvaluatorPairDipole
 
 #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
-        void attach_to_stream(hipStream_t stream) const { }
+        void set_memory_hint() const { }
 #endif
         };
 
@@ -131,11 +140,6 @@ class EvaluatorPairDipole
         : dr(_dr), rcutsq(_rcutsq), q_i(0), q_j(0), quat_i(_quat_i),
           quat_j(_quat_j), mu_i {0, 0, 0}, mu_j {0, 0, 0}, A(_params.A), kappa(_params.kappa)
         {
-        }
-
-    HOSTDEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const
-        {
-        // No-op for this struct since it contains no arrays
         }
 
     //! uses diameter
@@ -308,6 +312,16 @@ class EvaluatorPairDipole
         return true;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of the potential
     /*! \returns The potential name.
@@ -334,5 +348,8 @@ class EvaluatorPairDipole
     Scalar kappa;
     // const param_type &params;   //!< The pair potential parameters
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DIPOLE_H__

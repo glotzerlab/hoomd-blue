@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CommunicatorGPU.cc
@@ -16,9 +14,10 @@
 
 #include "hoomd/Profiler.h"
 
-namespace py = pybind11;
 #include <algorithm>
 
+namespace hoomd
+    {
 /*!
  * \param sysdef System definition the communicator is associated with
  * \param mpcd_sys MPCD system data
@@ -415,14 +414,16 @@ void mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
 /*!
  * \param m Python module to export to
  */
-void mpcd::detail::export_CommunicatorGPU(py::module& m)
+void mpcd::detail::export_CommunicatorGPU(pybind11::module& m)
     {
-    py::class_<mpcd::CommunicatorGPU, mpcd::Communicator, std::shared_ptr<mpcd::CommunicatorGPU>>(
-        m,
-        "CommunicatorGPU")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>>())
+    pybind11::class_<mpcd::CommunicatorGPU,
+                     mpcd::Communicator,
+                     std::shared_ptr<mpcd::CommunicatorGPU>>(m, "CommunicatorGPU")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>())
         .def("setMaxStages", &mpcd::CommunicatorGPU::setMaxStages);
     }
+
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI

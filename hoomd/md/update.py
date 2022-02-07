@@ -1,8 +1,6 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
 # features
 
 """Update particle properties.
@@ -11,86 +9,13 @@ When an updater is specified, it acts on the particle system each time step it
 is triggered to change its state.
 """
 
-from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
+from hoomd.error import SimulationDefinitionError
 from hoomd.operation import Updater
-
-
-class rescale_temp:
-    r"""Rescales particle velocities.
-
-    Args:
-        kT (`hoomd.variant` or `float`): Temperature set point (in energy units)
-        period (int): Velocities will be rescaled every *period* time steps
-        phase (int): When -1, start on the current time step. When >= 0, execute
-            on steps where *(step + phase) % period == 0*.
-
-    Every *period* time steps, particle velocities and angular momenta are
-    rescaled by equal factors so that they are consistent with a given
-    temperature in the equipartition theorem
-
-    .. math::
-
-        \langle 1/2 m v^2 \rangle = k_B T
-
-        \langle 1/2 I \omega^2 \rangle = k_B T
-
-    .. attention::
-        `rescale_temp` does **not** run on the GPU, and will significantly slow
-        down simulations.
-
-    Examples::
-
-        update.rescale_temp(kT=1.2)
-        rescaler = update.rescale_temp(kT=0.5)
-        update.rescale_temp(period=100, kT=1.03)
-        update.rescale_temp(
-            period=100, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
-
-    """
-
-    def __init__(self, kT, period=1, phase=0):
-
-        # initialize base class
-        # _updater.__init__(self)
-
-        # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT)
-
-        # create the compute thermo
-        thermo = hoomd.compute._get_unique_thermo(
-            group=hoomd.context.current.group_all)
-
-        # create the c++ mirror class
-        self.cpp_updater = _md.TempRescaleUpdater(
-            hoomd.context.current.system_definition, thermo.cpp_compute,
-            kT.cpp_variant)
-        self.setupUpdater(period, phase)
-
-        # store metadata
-        self.kT = kT
-        self.period = period
-        self.metadata_fields = ['kT', 'period']
-
-    def set_params(self, kT=None):
-        """Change rescale_temp parameters.
-
-        Args:
-            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature set
-                point (in energy units)
-
-        Examples::
-
-            rescaler.set_params(kT=2.0)
-
-        """
-        self.check_initialization()
-
-        if kT is not None:
-            kT = hoomd.variant._setup_variant_input(kT)
-            self.cpp_updater.setT(kT.cpp_variant)
-            self.kT = kT
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyTypes
+from hoomd.logging import log
 
 
 class ZeroMomentum(Updater):
@@ -119,269 +44,255 @@ class ZeroMomentum(Updater):
         super()._attach()
 
 
-class enforce2d:
-    """Enforces 2D simulation.
-
-    Every time step, particle velocities and accelerations are modified so that
-    their z components are 0: forcing 2D simulations when other calculations may
-    cause particles to drift out of the plane. Using enforce2d is only allowed
-    when the system is specified as having only 2 dimensions.
-
-    Examples::
-
-        update.enforce2d()
-
-    """
-
-    def __init__(self):
-        period = 1
-
-        # initialize base class
-        # _updater.__init__(self)
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_updater = _md.Enforce2DUpdater(
-                hoomd.context.current.system_definition)
-        else:
-            self.cpp_updater = _md.Enforce2DUpdaterGPU(
-                hoomd.context.current.system_definition)
-        self.setupUpdater(period)
-
-
-class constraint_ellipsoid:
-    """Constrain particles to the surface of a ellipsoid.
-
-    Args:
-        group (``hoomd.group``): Group for which the update will be set
-        P (tuple): (x,y,z) tuple indicating the position of the center of the
-            ellipsoid (in distance units).
-        rx (float): radius of an ellipsoid in the X direction (in distance
-            units).
-        ry (float): radius of an ellipsoid in the Y direction (in distance
-            units).
-        rz (float): radius of an ellipsoid in the Z direction (in distance
-            units).
-        r (float): radius of a sphere (in distance units), such that r=rx=ry=rz.
-
-    `constraint_ellipsoid` specifies that all particles are constrained to the
-    surface of an ellipsoid. Each time step particles are projected onto the
-    surface of the ellipsoid. Method from:
-    http://www.geometrictools.com/Documentation/\
-            DistancePointEllipseEllipsoid.pdf
-
-    .. attention::
-        For the algorithm to work, we must have :math:`rx >= rz,~ry >= rz,~rz >
-        0`.
-
-    Note:
-        This method does not properly conserve virial coefficients.
-
-    Note:
-        random thermal forces from the integrator are applied in 3D not 2D,
-        therefore they aren't fully accurate.  Suggested use is therefore only
-        for T=0.
-
-    Examples::
-
-        update.constraint_ellipsoid(P=(-1,5,0), r=9)
-        update.constraint_ellipsoid(rx=7, ry=5, rz=3)
-
-    """
-
-    def __init__(self, group, r=None, rx=None, ry=None, rz=None, P=(0, 0, 0)):
-        period = 1
-
-        # Error out in MPI simulations
-        if (hoomd.version.mpi_enabled):
-            if hoomd.context.current.system_definition.getParticleData(
-            ).getDomainDecomposition():
-                hoomd.context.current.device.cpp_msg.error(
-                    "constrain.ellipsoid is not supported in multi-processor "
-                    "simulations.\n\n")
-                raise RuntimeError("Error initializing updater.")
-
-        # Error out if no radii are set
-        if (r is None and rx is None and ry is None and rz is None):
-            hoomd.context.current.device.cpp_msg.error(
-                "no radii were defined in update.constraint_ellipsoid.\n\n")
-            raise RuntimeError("Error initializing updater.")
-
-        # initialize the base class
-        # _updater.__init__(self)
-
-        # Set parameters
-        P = _hoomd.make_scalar3(P[0], P[1], P[2])
-        if (r is not None):
-            rx = ry = rz = r
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_updater = _md.ConstraintEllipsoid(
-                hoomd.context.current.system_definition, group.cpp_group, P, rx,
-                ry, rz)
-        else:
-            self.cpp_updater = _md.ConstraintEllipsoidGPU(
-                hoomd.context.current.system_definition, group.cpp_group, P, rx,
-                ry, rz)
-
-        self.setupUpdater(period)
-
-        # store metadata
-        self.group = group
-        self.P = P
-        self.rx = rx
-        self.ry = ry
-        self.rz = rz
-        self.metadata_fields = ['group', 'P', 'rx', 'ry', 'rz']
-
-
-class mueller_plathe_flow:
-    r"""Updater for a shear flow via an algorithm published by Mueller Plathe.
+class ReversePerturbationFlow(Updater):
+    """Reverse Perturbation (Müller-Plathe) method to establish shear flow.
 
      "Florian Mueller-Plathe. Reversing the perturbation in nonequilibrium
      molecular dynamics: An easy way to calculate the shear viscosity of fluids.
      Phys. Rev. E, 59:4894-4898, May 1999."
 
     The simulation box is divided in a number of slabs.  Two distinct slabs of
-    those are chosen. The "max" slab searched for the max.  velocity component
-    in flow direction, the "min" is searched for the min.  velocity component.
-    Afterward, both velocity components are swapped.
+    those are chosen. The "max" slab searches for the maximum velocity component
+    in flow direction while the "min" slab searches for the minimum velocity
+    component. Afterward, both velocity components are swapped.
 
     This introduces a momentum flow, which drives the flow. The strength of this
-    flow, can be controlled by the flow_target variant, which defines the
-    integrated target momentum flow. The searching and swapping is repeated
-    until the target is reached. Depending on the target sign, the "max" and
-    "min" slap might be swapped.
+    flow is set through the `flow_target` argument, which defines a target value
+    for the time-integrated momentum flux. The searching and swapping is
+    repeated until the target is reached. Depending on the target sign, the
+    "max" and "min" slab might be swapped.
 
     Args:
-        group (``hoomd.group``): Group for which the update will be set
-        flow_target (`hoomd.variant`): Integrated target flow. The unit is the
-            in the natural units of the simulation: [flow_target] = [timesteps]
-            x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`.  The unit
-            of [timesteps] is your discretization dt x :math:`\mathcal{\tau}`.
-        slab_direction (``X``, ``Y``, or ``Z``): Direction perpendicular to the
-            slabs..
-        flow_direction (``X``, ``Y``, or ``Z``): Direction of the flow..
-        n_slabs (int): Number of slabs. You want as many as possible for small
-            disturbed volume, where the unphysical swapping is done. But each
-            slab has to contain a sufficient number of particle.
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+            apply this updater.
+
+        flow_target (`hoomd.variant.Variant`): Target value of the
+            time-integrated momentum flux.
+            :math:`[\\delta t \\cdot \\mathrm{mass} \\cdot \\mathrm{length}
+            \\cdot \\mathrm{time}^{-1}]` - where :math:`\\delta t` is the
+            integrator step size.
+
+        slab_direction (str): Direction perpendicular to the slabs. Can be "x",
+            "y", or "z"
+
+        flow_direction (str): Direction of the flow. Can be "x",
+            "y", or "z"
+
+        n_slabs (int): Number of slabs used to divide the simulation box along
+            the shear gradient. Using too few slabs will lead to a larger volume
+            being disturbed by the momentum exchange, while using too many slabs
+            may mean that there are not enough particles to exchange the target
+            momentum.
+
         max_slab (int): Id < n_slabs where the max velocity component is search
             for. If set < 0 the value is set to its default n_slabs/2.
+
         min_slab (int): Id < n_slabs where the min velocity component is search
             for. If set < 0 the value is set to its default 0.
 
-    .. attention::
-        * This updater has to be always applied every timestep.
+    Attention:
+        * This updater uses ``hoomd.trigger.Periodic(1)`` as a trigger, meaning
+          it is applied every timestep.
         * This updater works currently only with orthorhombic boxes.
 
-    .. note:
-        If you set this updater with unrealistic values, it algorithm might not
-        terminate, because your desired flow target can not be achieved.
 
-    .. versionadded:: v2.1
+    Note:
+        The attributes of this updater are immutable once the updater is
+        attached to a simulation.
 
     Examples::
 
-        #const integrated flow with 0.1 slope for max 1e8 timesteps
-        const_flow = hoomd.variant.linear_interp( [(0,0),(1e8,0.1*1e8)] )
-        #velocity gradient in z direction and shear flow in x direction.
-        update.mueller_plathe_flow(
-            all, const_flow, md.update.mueller_plathe_flow.Z,
-            md.update.mueller_plathe_flow.X, 100)
+        # const integrated flow with 0.1 slope for max 1e8 timesteps
+        ramp = hoomd.variant.Ramp(0.0, 0.1e8, 0, int(1e8))
+        # velocity gradient in z direction and shear flow in x direction.
+        mpf = hoomd.md.update.ReversePerturbationFlow(filter=hoomd.filter.All(),
+                                                      flow_target=ramp,
+                                                      slab_direction="Z",
+                                                      flow_direction="X",
+                                                      n_slabs=20)
 
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
+            apply this updater.
+
+        flow_target (hoomd.variant.Variant): Target value of the
+            time-integrated momentum flux.
+
+        slab_direction (str): Direction perpendicular to the
+            slabs.
+
+        flow_direction (str): Direction of the flow.
+
+        n_slabs (int): Number of slabs.
+
+        max_slab (int): Id < n_slabs where the max velocity component is
+            searched for.
+
+        min_slab (int): Id < n_slabs where the min velocity component is
+            searched for.
     """
 
     def __init__(self,
-                 group,
+                 filter,
                  flow_target,
                  slab_direction,
                  flow_direction,
                  n_slabs,
                  max_slab=-1,
                  min_slab=-1):
-        period = 1  # This updater has to be applied every timestep
-        assert (n_slabs > 0), "Invalid negative number of slabs."
+
+        params = ParameterDict(
+            filter=hoomd.filter.ParticleFilter,
+            flow_target=hoomd.variant.Variant,
+            slab_direction=OnlyTypes(str,
+                                     strict=True,
+                                     postprocess=self._to_lowercase),
+            flow_direction=OnlyTypes(str,
+                                     strict=True,
+                                     postprocess=self._to_lowercase),
+            n_slabs=OnlyTypes(int, preprocess=self._preprocess_n_slabs),
+            max_slab=OnlyTypes(int, preprocess=self._preprocess_max_slab),
+            min_slab=OnlyTypes(int, preprocess=self._preprocess_min_slab),
+            flow_epsilon=float(1e-2))
+        params.update(
+            dict(filter=filter,
+                 flow_target=flow_target,
+                 slab_direction=slab_direction,
+                 flow_direction=flow_direction,
+                 n_slabs=n_slabs))
+        self._param_dict.update(params)
+        self._param_dict.update(dict(max_slab=max_slab))
+        self._param_dict.update(dict(min_slab=min_slab))
+
+        # This updater has to be applied every timestep
+        super().__init__(hoomd.trigger.Periodic(1))
+
+    def _to_lowercase(self, letter):
+        return letter.lower()
+
+    def _preprocess_n_slabs(self, n_slabs):
+        if n_slabs < 0:
+            raise ValueError(f"The number of slabs is negative, \
+                              n_slabs = {n_slabs}")
+        return n_slabs
+
+    def _preprocess_max_slab(self, max_slab):
+        if max_slab < 0:
+            max_slab = self.n_slabs / 2
+        if max_slab <= -1 or max_slab > self.n_slabs:
+            raise ValueError(f"Invalid max_slab of {max_slab}")
+        return max_slab
+
+    def _preprocess_min_slab(self, min_slab):
         if min_slab < 0:
             min_slab = 0
-        if max_slab < 0:
-            max_slab = n_slabs / 2
+        if min_slab <= -1 or min_slab > self.n_slabs:
+            raise ValueError(f"Invalid min_slab of {min_slab}")
+        if min_slab == self.max_slab:
+            raise ValueError(f"Min and max slab are equal. \
+                              min_slab = max_slab = {min_slab}")
+        return min_slab
 
-        # Cast input to int to avoid mismatch of types in calling the
-        # constructor
-        n_slabs = int(n_slabs)
-        min_slab = int(min_slab)
-        max_slab = int(max_slab)
-
-        assert (max_slab > -1 and max_slab < n_slabs
-                ), "Invalid max_slab in [0," + str(n_slabs) + ")."
-        assert (min_slab > -1 and min_slab < n_slabs
-                ), "Invalid min_slab in [0," + str(n_slabs) + ")."
-        assert (min_slab != max_slab), "Invalid min/max slabs. Both have the \
-            same value."
-
-        # initialize the base class
-        # _updater.__init__(self)
-
-        self._flow_target = hoomd.variant._setup_variant_input(flow_target)
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_updater = _md.MuellerPlatheFlow(
-                hoomd.context.current.system_definition, group.cpp_group,
-                flow_target.cpp_variant, slab_direction, flow_direction,
-                n_slabs, min_slab, max_slab)
+    def _attach(self):
+        group = self._simulation.state._get_group(self.filter)
+        sys_def = self._simulation.state._cpp_sys_def
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            self._cpp_obj = _md.MuellerPlatheFlow(
+                sys_def, group, self.flow_target, self.slab_direction,
+                self.flow_direction, self.n_slabs, self.min_slab, self.max_slab,
+                self.flow_epsilon)
         else:
-            self.cpp_updater = _md.MuellerPlatheFlowGPU(
-                hoomd.context.current.system_definition, group.cpp_group,
-                flow_target.cpp_variant, slab_direction, flow_direction,
-                n_slabs, min_slab, max_slab)
+            self._cpp_obj = _md.MuellerPlatheFlowGPU(
+                sys_def, group, self.flow_target, self.slab_direction,
+                self.flow_direction, self.n_slabs, self.min_slab, self.max_slab,
+                self.flow_epsilon)
+        super()._attach()
 
-        self.setupUpdater(period)
+    @log(category="scalar", requires_run=True)
+    def summed_exchanged_momentum(self):
+        R"""Returned the summed up exchanged velocity of the full simulation."""
+        return self._cpp_obj.summed_exchanged_momentum
 
-    def get_n_slabs(self):
-        """Get the number of slabs."""
-        return self.cpp_updater.getNSlabs()
 
-    def get_min_slab(self):
-        """Get the slab id of min velocity search."""
-        return self.cpp_updater.getMinSlab()
+class ActiveRotationalDiffusion(Updater):
+    r"""Updater to introduce rotational diffusion with an active force.
 
-    def get_max_slab(self):
-        """Get the slab id of max velocity search."""
-        return self.cpp_updater.getMaxSlab()
+    Args:
+        trigger (hoomd.trigger.Trigger): Select the timesteps to update
+            rotational diffusion.
+        active_force (hoomd.md.force.Active): The active force associated with
+            the updater can be any subclass of the class
+            `hoomd.md.force.Active`.
+        rotational_diffusion (hoomd.variant.Variant): The rotational diffusion
+            as a function of time.
 
-    def get_flow_epsilon(self):
-        """Get the tolerance between target flow and actual achieved flow."""
-        return self.cpp_updater.getFlowEpsilon()
+    This updater works directly with an `hoomd.md.force.Active` or
+    `hoomd.md.force.ActiveOnManifold` instance to update rotational diffusion
+    for simulations with active forces.
 
-    def set_flow_epsilon(self, epsilon):
-        """Set the tolerance between target flow and actual achieved flow.
+    The diffusion of the updater  follows :math:`\delta \theta / \delta t =
+    \sqrt{2 D_r / \delta t} \Gamma`, where :math:`D_r` is the rotational
+    diffusion constant, and the gamma function is a unit-variance random
+    variable, whose components are uncorrelated in time, space, and between
+    particles. In 3D, :math:`\hat{p}_i` is a unit vector in 3D space, and
+    diffusion follows :math:`\delta \hat{p}_i / \delta t = \sqrt{2 D_r /
+    \delta t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)`,
+    where :math:`\hat{p}_r` is an uncorrelated random unit vector. The
+    persistence length of an active particle's path is :math:`v_0 / D_r`.
+    The rotational diffusion is applied to the orientation quaternion
+    of each particle. When used with `hoomd.md.force.ActiveOnManifold`,
+    rotational diffusion is performed in the tangent plane of the manifold.
 
-        Args:
-            epsilon (float): New tolerance for the deviation of actual and
-                achieved flow.
+    Tip:
+        Use `hoomd.md.force.Active.create_diffusion_updater` to construct
+        a `ActiveRotationalDiffusion` instance.
 
-        """
-        return self.cpp_updater.setFlowEpsilon(float(epsilon))
+    Attributes:
+        trigger (hoomd.trigger.Trigger): Select the timesteps to update
+            rotational diffusion.
+        active_force (hoomd.md.force.Active): The active force associated with
+            the updater. This is not settable after construction.
+        rotational_diffusion (hoomd.variant.Variant): The rotational diffusion
+            as a function of time.
+    """
 
-    def get_summed_exchanged_momentum(self):
-        """Returned the summed up exchanged velocity of the full simulation."""
-        return self.cpp_updater.getSummedExchangedMomentum()
+    def __init__(self, trigger, active_force, rotational_diffusion):
+        super().__init__(trigger)
+        param_dict = ParameterDict(rotational_diffusion=hoomd.variant.Variant,
+                                   active_force=hoomd.md.force.Active)
+        param_dict["rotational_diffusion"] = rotational_diffusion
+        param_dict["active_force"] = active_force
+        self._add_dependency(active_force)
+        self._param_dict.update(param_dict)
 
-    def has_min_slab(self):
-        """Returns, whether this MPI instance is part of the min slab."""
-        return self.cpp_updater.hasMinSlab()
+    def _attach(self):
+        # Since integrators are attached first, if the active force is not
+        # attached then the active force is not a part of the simulation, and we
+        # should error.
+        if not self.active_force._attached:
+            raise SimulationDefinitionError(
+                "Active force for ActiveRotationalDiffusion object does not "
+                "belong to the simulation integrator.")
+        if self.active_force._simulation is not self._simulation:
+            raise SimulationDefinitionError(
+                "Active force for ActiveRotationalDiffusion object belongs to "
+                "another simulation.")
+        self._cpp_obj = _md.ActiveRotationalDiffusionUpdater(
+            self._simulation.state._cpp_sys_def, self.rotational_diffusion,
+            self.active_force._cpp_obj)
+        # No need to call super
 
-    def has_max_slab(self):
-        """Returns, whether this MPI instance is part of the max slab."""
-        return self.cpp_updater.hasMaxSlab()
+    def _handle_removed_dependency(self, active_force):
+        raise SimulationDefinitionError(
+            "The active force this updater is dependent on is being removed. "
+            "Remove this updater first to avoid error.")
 
-    X = _md.MuellerPlatheFlow.Direction.X
-    """Direction Enum X for this class"""
+    def _getattr_param(self, attr):
+        if attr == "active_force":
+            return self._param_dict[attr]
+        return super()._getattr_param(attr)
 
-    Y = _md.MuellerPlatheFlow.Direction.Y
-    """Direction Enum Y for this class"""
-
-    Z = _md.MuellerPlatheFlow.Direction.Z
-    """Direction Enum Z for this class"""
+    def _setattr_param(self, attr, value):
+        if attr == "active_force":
+            raise ValueError("active_force is not settable after construction.")
+        super()._setattr_param(attr, value)

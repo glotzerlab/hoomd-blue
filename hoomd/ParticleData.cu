@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ParticleData.cuh"
 
@@ -21,6 +19,10 @@
 #include <thrust/scatter.h>
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! Kernel to partition particle data
 __global__ void gpu_scatter_particle_data_kernel(const unsigned int nwork,
                                                  const Scalar4* d_pos,
@@ -53,7 +55,7 @@ __global__ void gpu_scatter_particle_data_kernel(const unsigned int nwork,
                                                  Scalar4* d_net_torque_alt,
                                                  Scalar* d_net_virial_alt,
                                                  unsigned int* d_tag_alt,
-                                                 pdata_element* d_out,
+                                                 detail::pdata_element* d_out,
                                                  unsigned int* d_comm_flags,
                                                  unsigned int* d_comm_flags_out,
                                                  const unsigned int* d_scan,
@@ -71,7 +73,7 @@ __global__ void gpu_scatter_particle_data_kernel(const unsigned int nwork,
 
     if (remove)
         {
-        pdata_element p;
+        detail::pdata_element p;
         p.pos = d_pos[idx];
         p.vel = d_vel[idx];
         p.accel = d_accel[idx];
@@ -197,7 +199,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                               Scalar4* d_net_torque_alt,
                               Scalar* d_net_virial_alt,
                               unsigned int* d_tag_alt,
-                              pdata_element* d_out,
+                              detail::pdata_element* d_out,
                               unsigned int* d_comm_flags,
                               unsigned int* d_comm_flags_out,
                               unsigned int max_n_out,
@@ -367,7 +369,7 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
                                                unsigned int net_virial_pitch,
                                                unsigned int* d_tag,
                                                unsigned int* d_rtag,
-                                               const pdata_element* d_in,
+                                               const detail::pdata_element* d_in,
                                                unsigned int* d_comm_flags)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -375,7 +377,7 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
     if (idx >= num_add_ptls)
         return;
 
-    pdata_element p = d_in[idx];
+    detail::pdata_element p = d_in[idx];
 
     unsigned int add_idx = old_nparticles + idx;
     d_pos[add_idx] = p.pos;
@@ -435,7 +437,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                              unsigned int net_virial_pitch,
                              unsigned int* d_tag,
                              unsigned int* d_rtag,
-                             const pdata_element* d_in,
+                             const detail::pdata_element* d_in,
                              unsigned int* d_comm_flags)
     {
     assert(d_pos);
@@ -484,5 +486,9 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                        d_in,
                        d_comm_flags);
     }
+
+    } // end namespace kernel
+
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI

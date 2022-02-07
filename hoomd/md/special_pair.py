@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Potentials between special pairs of particles.
 
@@ -28,6 +27,9 @@ class SpecialPair(Force):
         potentials. Users should not instantiate this class directly.
 
     """
+
+    def __init__(self):
+        super().__init__()
 
     def _attach(self):
         # check that some bonds are defined
@@ -60,9 +62,9 @@ class LJ(SpecialPair):
         \begin{eqnarray*}
         V_{\mathrm{LJ}}(r)  = & 4 \varepsilon
             \left[ \left( \frac{\sigma}{r} \right)^{12} -
-            \alpha \left( \frac{\sigma}{r} \right)^{6} \right]
+                   \left( \frac{\sigma}{r} \right)^{6} \right];
                               & r < r_{\mathrm{cut}} \\
-                            = & 0 & r \ge r_{\mathrm{cut}} \\
+                            = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     where :math:`\vec{r}` is the vector pointing from one particle to the other
@@ -74,13 +76,14 @@ class LJ(SpecialPair):
             The dictionary has the following keys:
 
             * ``epsilon`` (`float`, **required**) - energy parameter
-              (in energy unit)
+              :math:`[\mathrm{energy}]`
 
             * ``sigma`` (`float`, **required**) - particle size
-              (in distance unit)
+              :math:`[\mathrm{length}]`
 
         r_cut (TypeParameter[``special pair type``, float]):
-            The cut-off distance for special pair potential (in distance unit)
+            The cut-off distance for special pair potential
+            :math:`[\mathrm{length}]`
 
     Examples::
 
@@ -95,6 +98,7 @@ class LJ(SpecialPair):
     _cpp_class_name = "PotentialSpecialPairLJ"
 
     def __init__(self):
+        super().__init__()
         # setup the coefficient options
         params = TypeParameter(
             "params", "special_pair_types",
@@ -121,9 +125,9 @@ class Coulomb(SpecialPair):
 
         \begin{eqnarray*}
         V_{\mathrm{Coulomb}}(r)  = & \alpha \cdot
-                                     \left[ \frac{q_{a}q_{b}}{r} \right]
+                                     \left[ \frac{q_{a}q_{b}}{r} \right];
                                    & r < r_{\mathrm{cut}} \\
-                                 = & 0 & r \ge r_{\mathrm{cut}} \\
+                                 = & 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     where :math:`\vec{r}` is the vector pointing from one particle to the other
@@ -135,10 +139,11 @@ class Coulomb(SpecialPair):
             The dictionary has the following keys:
 
             * ``alpha`` (`float`, **required**) - Coulomb scaling factor
-              (in energy unit)
+              :math:`[\mathrm{energy}]`
 
         r_cut (TypeParameter[``special pair type``, float]):
-            The cut-off distance for special pair potential (in distance unit)
+            The cut-off distance for special pair potential
+            :math:`[\mathrm{length}]`
 
 
     Examples::
@@ -155,6 +160,7 @@ class Coulomb(SpecialPair):
     _cpp_class_name = "PotentialSpecialPairCoulomb"
 
     def __init__(self):
+        super().__init__()
         params = TypeParameter("params", "special_pair_types",
                                TypeParameterDict(alpha=float, len_keys=1))
         r_cut = TypeParameter("r_cut", "special_pair_types",

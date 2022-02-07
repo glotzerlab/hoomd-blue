@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: phillicl
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_H__
 #define __POTENTIAL_PAIR_DPDTHERMO_H__
@@ -18,6 +16,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing dpd thermostat and LJ pair potential
 /*! <b>Overview:</b>
     TODO - Revise Documentation Below
@@ -117,9 +119,9 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
     ArrayHandle<unsigned int> h_nlist(this->m_nlist->getNListArray(),
                                       access_location::host,
                                       access_mode::read);
-    ArrayHandle<unsigned int> h_head_list(this->m_nlist->getHeadList(),
-                                          access_location::host,
-                                          access_mode::read);
+    ArrayHandle<size_t> h_head_list(this->m_nlist->getHeadList(),
+                                    access_location::host,
+                                    access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(),
                                access_location::host,
@@ -138,7 +140,6 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
     const BoxDim& box = this->m_pdata->getBox();
     ArrayHandle<Scalar> h_ronsq(this->m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::read);
-    ArrayHandle<param_type> h_params(this->m_params, access_location::host, access_mode::read);
 
     // need to start from a zero force, energy and virial
     memset((void*)h_force.data, 0, sizeof(Scalar4) * this->m_force.getNumElements());
@@ -154,7 +155,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
         Scalar3 vi = make_scalar3(h_vel.data[i].x, h_vel.data[i].y, h_vel.data[i].z);
 
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-        const unsigned int head_i = h_head_list.data[i];
+        const size_t head_i = h_head_list.data[i];
 
         // sanity check
         assert(typei < this->m_pdata->getNTypes());
@@ -197,7 +198,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
 
             // get parameters for this type pair
             unsigned int typpair_idx = this->m_typpair_idx(typei, typej);
-            param_type param = h_params.data[typpair_idx];
+            param_type param = this->m_params[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
 
             // design specifies that energies are shifted if
@@ -292,6 +293,8 @@ CommFlags PotentialPairDPDThermo<evaluator>::getRequestedCommFlags(uint64_t time
     }
 #endif
 
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPairDPDThermo class
@@ -305,5 +308,9 @@ void export_PotentialPairDPDThermo(pybind11::module& m, const std::string& name)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def_property("kT", &T::getT, &T::setT);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_H__

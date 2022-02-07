@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __NEIGHBORLISTGPUTREE_CUH__
 #define __NEIGHBORLISTGPUTREE_CUH__
@@ -23,6 +21,12 @@ class LBVH;
 class LBVHTraverser;
     } // namespace neighbor
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Sentinel for an invalid particle (e.g., ghost)
 const unsigned int NeighborListTypeSentinel = 0xffffffff;
 
@@ -75,6 +79,9 @@ class LBVHWrapper
     //! Constructor
     LBVHWrapper();
 
+    /// Destructor
+    ~LBVHWrapper();
+
     //! Setup the LBVH
     void setup(const Scalar4* points, const unsigned int* map, unsigned int N, hipStream_t stream);
 
@@ -88,7 +95,7 @@ class LBVHWrapper
                unsigned int block_size);
 
     //! Get the underlying LBVH
-    std::shared_ptr<neighbor::LBVH> get()
+    neighbor::LBVH* get()
         {
         return lbvh_;
         }
@@ -103,7 +110,11 @@ class LBVHWrapper
     std::vector<unsigned int> getTunableParameters() const;
 
     private:
-    std::shared_ptr<neighbor::LBVH> lbvh_; //!< Underlying neighbor::LBVH
+    // Storing a bare pointer here because CUDA 11.5 fails to compile
+    // std::shared_ptr<neighbor::LBVH>
+
+    /// Underlying neighbor::LBVH
+    neighbor::LBVH* lbvh_;
     };
 
 //! Wrapper around the neighbor::LBVHTraverser class
@@ -136,12 +147,15 @@ class LBVHTraverserWrapper
         unsigned int* neigh_list;
         unsigned int* nneigh;
         unsigned int* new_max_neigh;
-        unsigned int* first_neigh;
+        size_t* first_neigh;
         unsigned int max_neigh;
         };
 
     //! Constructor
     LBVHTraverserWrapper();
+
+    /// Destructor
+    ~LBVHTraverserWrapper();
 
     //! Setup the LBVH traverser
     void setup(const unsigned int* map, neighbor::LBVH& lbvh, hipStream_t stream);
@@ -158,7 +172,14 @@ class LBVHTraverserWrapper
     std::vector<unsigned int> getTunableParameters() const;
 
     private:
-    std::shared_ptr<neighbor::LBVHTraverser> trav_; //!< Underlying neighbor::LBVHTraverser
+    // Storing a bare pointer here because CUDA 11.5 fails to compile
+    // std::shared_ptr<neighbor::LBVHTraverser>
+
+    neighbor::LBVHTraverser* trav_; //!< Underlying neighbor::LBVHTraverser
     };
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__NEIGHBORLISTGPUTREE_CUH__

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file DomainDecomposition.cc
     \brief Implements the DomainDecomposition class
@@ -21,8 +19,9 @@
 #include <numeric>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 //! Constructor
 /*! The constructor performs a spatial domain decomposition of the simulation box of processor with
  * rank \b exec_conf->getMPIroot(). The domain dimensions are distributed on the other processors.
@@ -77,14 +76,11 @@ DomainDecomposition::DomainDecomposition(std::shared_ptr<ExecutionConfiguration>
     if ((nx > 0 && try_fxs.size() != m_nx - 1) || (ny > 0 && try_fys.size() != m_ny - 1)
         || (nz > 0 && try_fzs.size() != m_nz - 1))
         {
-        m_exec_conf->msg->warning() << "Domain decomposition grid does not match specification, "
-                                       "defaulting to uniform spacing"
-                                    << std::endl;
-
-        // clear out the vectors and default to uniform in all dimensions
-        try_fxs.clear();
-        try_fys.clear();
-        try_fzs.clear();
+        std::ostringstream o;
+        o << "Domain decomposition grid does not match specification:"
+          << "(" << m_nx << "," << m_ny << "," << m_nz << ") is not (" << try_fxs.size() + 1 << ","
+          << try_fys.size() + 1 << "," << try_fzs.size() + 1 << ")";
+        throw std::invalid_argument(o.str());
         }
 
     // if domain fractions weren't set, fill the fractions uniformly
@@ -160,12 +156,8 @@ void DomainDecomposition::initializeDomainGrid(Scalar3 L,
             bool found_decomposition = findDecomposition(nranks, L, nx, ny, nz);
             if (!found_decomposition)
                 {
-                m_exec_conf->msg->warning()
-                    << "Unable to find a decomposition with"
-                    << " requested dimensions. Choosing default decomposition." << endl;
-
-                nx = ny = nz = 0;
-                findDecomposition(nranks, L, nx, ny, nz);
+                throw std::invalid_argument(
+                    "Unable to find a decomposition with the requested dimensions.");
                 }
             }
         m_nx = nx;
@@ -278,11 +270,11 @@ void DomainDecomposition::initializeDomainGrid(Scalar3 L,
         }
 
     // Print out information about the domain decomposition
-    m_exec_conf->msg->notice(1) << "HOOMD-blue is using domain decomposition: n_x = " << m_nx
-                                << " n_y = " << m_ny << " n_z = " << m_nz << "." << std::endl;
+    m_exec_conf->msg->notice(2) << "Using domain decomposition: n_x = " << m_nx << " n_y = " << m_ny
+                                << " n_z = " << m_nz << "." << std::endl;
 
     if (m_twolevel)
-        m_exec_conf->msg->notice(1) << nx_intra << " x " << ny_intra << " x " << nz_intra
+        m_exec_conf->msg->notice(2) << nx_intra << " x " << ny_intra << " x " << nz_intra
                                     << " local grid on " << m_nodes.size() << " nodes" << std::endl;
 
     // compute position of this box in the domain grid by reverse look-up
@@ -308,27 +300,27 @@ void DomainDecomposition::initializeCumulativeFractions(const std::vector<Scalar
     assert(fzs.size() + 1 == m_nz);
 
     // adjust the fraction arrays
-    m_cum_frac_x.resize(m_nx + 1);
-    m_cum_frac_y.resize(m_ny + 1);
-    m_cum_frac_z.resize(m_nz + 1);
+    m_cumulative_frac_x.resize(m_nx + 1);
+    m_cumulative_frac_y.resize(m_ny + 1);
+    m_cumulative_frac_z.resize(m_nz + 1);
 
     // fill the beginning and end points
-    m_cum_frac_x[0] = Scalar(0.0);
-    m_cum_frac_x[m_nx] = Scalar(1.0);
-    m_cum_frac_y[0] = Scalar(0.0);
-    m_cum_frac_y[m_ny] = Scalar(1.0);
-    m_cum_frac_z[0] = Scalar(0.0);
-    m_cum_frac_z[m_nz] = Scalar(1.0);
+    m_cumulative_frac_x[0] = Scalar(0.0);
+    m_cumulative_frac_x[m_nx] = Scalar(1.0);
+    m_cumulative_frac_y[0] = Scalar(0.0);
+    m_cumulative_frac_y[m_ny] = Scalar(1.0);
+    m_cumulative_frac_z[0] = Scalar(0.0);
+    m_cumulative_frac_z[m_nz] = Scalar(1.0);
 
     // fill in the cumulative fractions by partial summation
-    std::partial_sum(fxs.begin(), fxs.end(), m_cum_frac_x.begin() + 1);
-    std::partial_sum(fys.begin(), fys.end(), m_cum_frac_y.begin() + 1);
-    std::partial_sum(fzs.begin(), fzs.end(), m_cum_frac_z.begin() + 1);
+    std::partial_sum(fxs.begin(), fxs.end(), m_cumulative_frac_x.begin() + 1);
+    std::partial_sum(fys.begin(), fys.end(), m_cumulative_frac_y.begin() + 1);
+    std::partial_sum(fzs.begin(), fzs.end(), m_cumulative_frac_z.begin() + 1);
 
     // broadcast the floating point result from rank 0 to all ranks
-    MPI_Bcast(&m_cum_frac_x[0], m_nx + 1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
-    MPI_Bcast(&m_cum_frac_y[0], m_ny + 1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
-    MPI_Bcast(&m_cum_frac_z[0], m_nz + 1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
+    MPI_Bcast(&m_cumulative_frac_x[0], m_nx + 1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
+    MPI_Bcast(&m_cumulative_frac_y[0], m_ny + 1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
+    MPI_Bcast(&m_cumulative_frac_z[0], m_nz + 1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
     }
 
 //! Find a domain decomposition with given parameters
@@ -340,11 +332,19 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks,
     {
     assert(L.x > 0);
     assert(L.y > 0);
-    assert(L.z > 0);
 
     // Calculate the number of sub-domains in every direction
     // by minimizing the surface area between domains at constant number of domains
-    double min_surface_area = L.x * L.y * (double)(nranks - 1);
+    bool is2D = L.z == 0.0;
+    double min_surface_area; // surface area in 3D, perimeter length in 2D
+    if (is2D)
+        {
+        min_surface_area = L.x * (double)(nranks - 1);
+        }
+    else
+        {
+        min_surface_area = L.x * L.z * (double)(nranks - 1);
+        }
 
     unsigned int nx_in = nx;
     unsigned int ny_in = ny;
@@ -354,8 +354,16 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks,
 
     // initial guess
     nx = 1;
-    ny = 1;
-    nz = nranks;
+    if (is2D)
+        {
+        ny = nranks;
+        nz = 1;
+        }
+    else
+        {
+        ny = 1;
+        nz = nranks;
+        }
 
     for (unsigned int nx_try = 1; nx_try <= nranks; nx_try++)
         {
@@ -371,9 +379,19 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks,
                     continue;
                 if (nx_try * ny_try * nz_try != nranks)
                     continue;
-                double surface_area = L.x * L.y * (double)(nz_try - 1)
-                                      + L.x * L.z * (double)(ny_try - 1)
-                                      + L.y * L.z * (double)(nx_try - 1);
+                if (is2D && nz_try > 1)
+                    continue;
+                double surface_area;
+                if (is2D)
+                    {
+                    surface_area = L.x * (ny_try - 1) + L.y * (nx_try - 1);
+                    }
+                else
+                    {
+                    surface_area = L.x * L.y * (double)(nz_try - 1)
+                                   + L.x * L.z * (double)(ny_try - 1)
+                                   + L.y * L.z * (double)(nx_try - 1);
+                    }
                 if (surface_area < min_surface_area || !found_decomposition)
                     {
                     nx = nx_try;
@@ -483,26 +501,25 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
     {
     if (dir > 2)
         {
-        m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
-        throw std::runtime_error("comm: requested direction does not exist");
+        throw std::invalid_argument("Requested direction does not exist.");
         }
 
     bool changed = false;
     if (m_exec_conf->getRank() == root)
         {
-        if (dir == 0 && cum_frac.size() == m_cum_frac_x.size())
+        if (dir == 0 && cum_frac.size() == m_cumulative_frac_x.size())
             {
-            m_cum_frac_x = cum_frac;
+            m_cumulative_frac_x = cum_frac;
             changed = true;
             }
-        else if (dir == 1 && cum_frac.size() == m_cum_frac_y.size())
+        else if (dir == 1 && cum_frac.size() == m_cumulative_frac_y.size())
             {
-            m_cum_frac_y = cum_frac;
+            m_cumulative_frac_y = cum_frac;
             changed = true;
             }
-        else if (dir == 2 && cum_frac.size() == m_cum_frac_z.size())
+        else if (dir == 2 && cum_frac.size() == m_cumulative_frac_z.size())
             {
-            m_cum_frac_z = cum_frac;
+            m_cumulative_frac_z = cum_frac;
             changed = true;
             }
         }
@@ -513,41 +530,39 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
         {
         if (dir == 0)
             {
-            MPI_Bcast(&m_cum_frac_x[0], m_nx + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
+            MPI_Bcast(&m_cumulative_frac_x[0], m_nx + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
 
-            if (m_cum_frac_x.front() != Scalar(0.0) || m_cum_frac_x.back() != Scalar(1.0))
+            if (m_cumulative_frac_x.front() != Scalar(0.0)
+                || m_cumulative_frac_x.back() != Scalar(1.0))
                 {
-                m_exec_conf->msg->error() << "comm: specified fractions are invalid" << std::endl;
-                throw std::runtime_error("comm: specified fractions are invalid");
+                throw std::invalid_argument("Specified fractions are invalid.");
                 }
             }
         else if (dir == 1)
             {
-            MPI_Bcast(&m_cum_frac_y[0], m_ny + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
+            MPI_Bcast(&m_cumulative_frac_y[0], m_ny + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
 
-            if (m_cum_frac_y.front() != Scalar(0.0) || m_cum_frac_y.back() != Scalar(1.0))
+            if (m_cumulative_frac_y.front() != Scalar(0.0)
+                || m_cumulative_frac_y.back() != Scalar(1.0))
                 {
-                m_exec_conf->msg->error() << "comm: specified fractions are invalid" << std::endl;
-                throw std::runtime_error("comm: specified fractions are invalid");
+                throw std::invalid_argument("Specified fractions are invalid.");
                 }
             }
         else if (dir == 2)
             {
-            MPI_Bcast(&m_cum_frac_z[0], m_nz + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
+            MPI_Bcast(&m_cumulative_frac_z[0], m_nz + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
 
-            if (m_cum_frac_z.front() != Scalar(0.0) || m_cum_frac_z.back() != Scalar(1.0))
+            if (m_cumulative_frac_z.front() != Scalar(0.0)
+                || m_cumulative_frac_z.back() != Scalar(1.0))
                 {
-                m_exec_conf->msg->error() << "comm: specified fractions are invalid" << std::endl;
-                throw std::runtime_error("comm: specified fractions are invalid");
+                throw std::invalid_argument("Specified fractions are invalid.");
                 }
             }
         }
     else // if no change, it's because things don't match up
         {
-        m_exec_conf->msg->error()
-            << "comm: domain decomposition cannot change topology after construction" << std::endl;
-        throw std::runtime_error(
-            "comm: domain decomposition cannot change topology after construction");
+        throw std::invalid_argument(
+            "Domain decomposition cannot change topology after construction.");
         }
     }
 
@@ -562,15 +577,15 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim& global_box)
     Scalar3 L = global_box.getL();
 
     // position of this domain in the grid
-    Scalar3 lo_cum_frac = make_scalar3(m_cum_frac_x[m_grid_pos.x],
-                                       m_cum_frac_y[m_grid_pos.y],
-                                       m_cum_frac_z[m_grid_pos.z]);
-    Scalar3 lo = global_box.getLo() + lo_cum_frac * L;
+    Scalar3 lo_cumulative_frac = make_scalar3(m_cumulative_frac_x[m_grid_pos.x],
+                                              m_cumulative_frac_y[m_grid_pos.y],
+                                              m_cumulative_frac_z[m_grid_pos.z]);
+    Scalar3 lo = global_box.getLo() + lo_cumulative_frac * L;
 
-    Scalar3 hi_cum_frac = make_scalar3(m_cum_frac_x[m_grid_pos.x + 1],
-                                       m_cum_frac_y[m_grid_pos.y + 1],
-                                       m_cum_frac_z[m_grid_pos.z + 1]);
-    Scalar3 hi = global_box.getLo() + hi_cum_frac * L;
+    Scalar3 hi_cumulative_frac = make_scalar3(m_cumulative_frac_x[m_grid_pos.x + 1],
+                                              m_cumulative_frac_y[m_grid_pos.y + 1],
+                                              m_cumulative_frac_z[m_grid_pos.z + 1]);
+    Scalar3 hi = global_box.getLo() + hi_cumulative_frac * L;
 
     // set periodic flags
     // we are periodic in a direction along which there is only one box
@@ -598,21 +613,18 @@ unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box,
     if (f.x < -tol || f.x >= 1.0 + tol || f.y < -tol || f.y >= 1.0 + tol || f.z < -tol
         || f.z >= 1.0 + tol)
         {
-        m_exec_conf->msg->error() << "Particle coordinates outside global box." << std::endl;
-        m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;
-        m_exec_conf->msg->error() << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z
-                                  << std::endl;
-        m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
-        m_exec_conf->msg->error() << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z
-                                  << std::endl;
+        std::ostringstream o;
+        o << "Particle coordinates outside global box." << std::endl;
+        o << "Cartesian coordinates: " << std::endl;
+        o << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
+        o << "Fractional coordinates: " << std::endl;
+        o << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
         Scalar3 lo = global_box.getLo();
         Scalar3 hi = global_box.getHi();
-        m_exec_conf->msg->error() << "Global box lo: (" << lo.x << ", " << lo.y << ", " << lo.z
-                                  << ")" << std::endl;
-        m_exec_conf->msg->error() << "           hi: (" << hi.x << ", " << hi.y << ", " << hi.z
-                                  << ")" << std::endl;
+        o << "Global box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
+        o << "           hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
 
-        throw std::runtime_error("Error placing particle");
+        throw std::runtime_error(o.str());
         }
 
     // compute the box the particle should be placed into
@@ -624,22 +636,22 @@ unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box,
     // correct boxes, as long as we don't wrap them around. Therefore, shift back into nearest box
     // if that is the case
     std::vector<Scalar>::iterator it;
-    it = std::lower_bound(m_cum_frac_x.begin(), m_cum_frac_x.end(), f.x);
-    int ix = int(it - 1 - m_cum_frac_x.begin());
+    it = std::lower_bound(m_cumulative_frac_x.begin(), m_cumulative_frac_x.end(), f.x);
+    int ix = int(it - 1 - m_cumulative_frac_x.begin());
     if (ix < 0)
         ix++;
     else if (ix >= (int)m_nx)
         ix--;
 
-    it = std::lower_bound(m_cum_frac_y.begin(), m_cum_frac_y.end(), f.y);
-    int iy = int(it - 1 - m_cum_frac_y.begin());
+    it = std::lower_bound(m_cumulative_frac_y.begin(), m_cumulative_frac_y.end(), f.y);
+    int iy = int(it - 1 - m_cumulative_frac_y.begin());
     if (iy < 0)
         iy++;
     else if (iy >= (int)m_ny)
         iy--;
 
-    it = std::lower_bound(m_cum_frac_z.begin(), m_cum_frac_z.end(), f.z);
-    int iz = int(it - 1 - m_cum_frac_z.begin());
+    it = std::lower_bound(m_cumulative_frac_z.begin(), m_cumulative_frac_z.end(), f.z);
+    int iz = int(it - 1 - m_cumulative_frac_z.begin());
     if (iz < 0)
         iz++;
     else if (iz >= (int)m_nz)
@@ -700,21 +712,28 @@ void DomainDecomposition::initializeTwoLevel()
         }
     }
 
-//! Export DomainDecomposition class to python
-void export_DomainDecomposition(py::module& m)
+namespace detail
     {
-    py::class_<DomainDecomposition, std::shared_ptr<DomainDecomposition>>(m, "DomainDecomposition")
-        .def(py::init<std::shared_ptr<ExecutionConfiguration>,
-                      Scalar3,
-                      unsigned int,
-                      unsigned int,
-                      unsigned int,
-                      bool>())
-        .def(py::init<std::shared_ptr<ExecutionConfiguration>,
-                      Scalar3,
-                      const std::vector<Scalar>&,
-                      const std::vector<Scalar>&,
-                      const std::vector<Scalar>&>())
+//! Export DomainDecomposition class to python
+void export_DomainDecomposition(pybind11::module& m)
+    {
+    pybind11::class_<DomainDecomposition, std::shared_ptr<DomainDecomposition>>(
+        m,
+        "DomainDecomposition")
+        .def(pybind11::init<std::shared_ptr<ExecutionConfiguration>,
+                            Scalar3,
+                            unsigned int,
+                            unsigned int,
+                            unsigned int,
+                            bool>())
+        .def(pybind11::init<std::shared_ptr<ExecutionConfiguration>,
+                            Scalar3,
+                            const std::vector<Scalar>&,
+                            const std::vector<Scalar>&,
+                            const std::vector<Scalar>&>())
         .def("getCumulativeFractions", &DomainDecomposition::getCumulativeFractions);
     }
+    } // end namespace detail
+
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

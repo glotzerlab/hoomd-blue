@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: askeys
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorTwoStep.h"
 
@@ -20,6 +18,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
 
@@ -66,17 +68,48 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
         m_nmin = nmin;
         }
 
+    //! Get the minimum number of steps for which the search direction must be
+    //! bad before finding a new direction
+    unsigned int getNmin()
+        {
+        return m_nmin;
+        }
+
     //! Set the fractional increase in the timestep upon a valid search direction
     void setFinc(Scalar finc);
 
-    //! Set the fractional increase in the timestep upon a valid search direction
+    //! get the fractional increase in the timestep upon a valid search direction
+    Scalar getFinc()
+        {
+        return m_finc;
+        }
+
+    //! Set the fractional decrease in the timestep upon system energy increasing
     void setFdec(Scalar fdec);
+
+    //! Get the fractional decrease in the timestep upon system energy increasing
+    Scalar getFdec()
+        {
+        return m_fdec;
+        }
 
     //! Set the relative strength of the coupling between the "f dot v" vs the "v" term
     void setAlphaStart(Scalar alpha0);
 
+    //! Get the relative strength of the coupling between the "f dot v" vs the "v" term
+    Scalar getAlphaStart()
+        {
+        return m_alpha_start;
+        }
+
     //! Set the fractional decrease in alpha upon finding a valid search direction
     void setFalpha(Scalar falpha);
+
+    //! Get the fractional decrease in alpha upon finding a valid search direction
+    Scalar getFalpha()
+        {
+        return m_falpha;
+        }
 
     //! Set the stopping criterion based on the total force on all particles in the system
     /*! \param ftol is the new force tolerance to set
@@ -84,6 +117,12 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
     void setFtol(Scalar ftol)
         {
         m_ftol = ftol;
+        }
+
+    //! get the stopping criterion based on the total force on all particles in the system
+    Scalar getFtol()
+        {
+        return m_ftol;
         }
 
     //! Set the stopping criterion based on the total torque on all particles in the system
@@ -94,6 +133,12 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
         m_wtol = wtol;
         }
 
+    //! Get the stopping criterion based on the total torque on all particles in the system
+    Scalar getWtol()
+        {
+        return m_wtol;
+        }
+
     //! Set the stopping criterion based on the change in energy between successive iterations
     /*! \param etol is the new energy tolerance to set
      */
@@ -102,12 +147,24 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
         m_etol = etol;
         }
 
+    //! Get the stopping criterion based on the change in energy between successive iterations
+    Scalar getEtol()
+        {
+        return m_etol;
+        }
+
     //! Set the a minimum number of steps before the other stopping criteria will be evaluated
     /*! \param steps is the minimum number of steps (attempts) that will be made
      */
     void setMinSteps(unsigned int steps)
         {
         m_run_minsteps = steps;
+        }
+
+    //! Get the minimum number of steps before the other stopping criteria will be evaluated
+    unsigned int getMinSteps()
+        {
+        return m_run_minsteps;
         }
 
     protected:
@@ -136,7 +193,13 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
     private:
     };
 
+namespace detail
+    {
 //! Exports the FIREEnergyMinimizer class to python
 void export_FIREEnergyMinimizer(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_H__

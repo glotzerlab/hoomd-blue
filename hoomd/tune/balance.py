@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Define LoadBalancer."""
 
 from hoomd.data.parameterdicts import ParameterDict
@@ -110,9 +113,8 @@ class LoadBalancer(Tuner):
             cpp_cls = getattr(_hoomd, 'LoadBalancerGPU')
         else:
             cpp_cls = getattr(_hoomd, 'LoadBalancer')
-        self._cpp_obj = cpp_cls(
-            self._simulation.state._cpp_sys_def,
-            self._simulation._cpp_sys.getCommunicator().getDomainDecomposition(
-            ), self.trigger)
+
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                self.trigger)
 
         super()._attach()

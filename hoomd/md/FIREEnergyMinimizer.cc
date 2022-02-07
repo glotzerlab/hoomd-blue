@@ -1,17 +1,18 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "FIREEnergyMinimizer.h"
 
 using namespace std;
-namespace py = pybind11;
 
 /*! \file FIREEnergyMinimizer.h
     \brief Contains code for the FIREEnergyMinimizer class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param dt maximum step size
 
@@ -57,10 +58,7 @@ void FIREEnergyMinimizer::setFdec(Scalar fdec)
     {
     if (!(fdec < 1.0 && fdec >= 0.0))
         {
-        m_exec_conf->msg->error() << "integrate.mode_minimize_fire: fractional decrease in "
-                                     "timestep should be between 0 and 1"
-                                  << endl;
-        throw runtime_error("Error setting parameters for FIREEnergyMinimizer");
+        throw runtime_error("fdec must be in the range [0,1).");
         }
     m_fdec = fdec;
     }
@@ -259,9 +257,9 @@ void FIREEnergyMinimizer::update(uint64_t timestep)
 
                 // check for zero moment of inertia
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 // ignore torque component along an axis for which the moment of inertia zero
                 if (x_zero)
@@ -350,14 +348,14 @@ void FIREEnergyMinimizer::update(uint64_t timestep)
         }
 
     Scalar factor_t;
-    if (fabs(fnorm) > EPSILON)
+    if (fabs(fnorm) > 0)
         factor_t = m_alpha * vnorm / fnorm;
     else
         factor_t = 1.0;
 
     Scalar factor_r = 0.0;
 
-    if (fabs(tnorm) > EPSILON)
+    if (fabs(tnorm) > 0)
         factor_r = m_alpha * wnorm / tnorm;
     else
         factor_r = 1.0;
@@ -402,9 +400,9 @@ void FIREEnergyMinimizer::update(uint64_t timestep)
 
                 // check for zero moment of inertia
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 // ignore torque component along an axis for which the moment of inertia zero
                 if (x_zero)
@@ -471,23 +469,36 @@ void FIREEnergyMinimizer::update(uint64_t timestep)
     m_old_energy = energy;
     }
 
-void export_FIREEnergyMinimizer(py::module& m)
+namespace detail
     {
-    py::class_<FIREEnergyMinimizer, IntegratorTwoStep, std::shared_ptr<FIREEnergyMinimizer>>(
+void export_FIREEnergyMinimizer(pybind11::module& m)
+    {
+    pybind11::class_<FIREEnergyMinimizer, IntegratorTwoStep, std::shared_ptr<FIREEnergyMinimizer>>(
         m,
         "FIREEnergyMinimizer")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("reset", &FIREEnergyMinimizer::reset)
-        .def("setDeltaT", &FIREEnergyMinimizer::setDeltaT)
-        .def("hasConverged", &FIREEnergyMinimizer::hasConverged)
-        .def("getEnergy", &FIREEnergyMinimizer::getEnergy)
-        .def("setNmin", &FIREEnergyMinimizer::setNmin)
-        .def("setFinc", &FIREEnergyMinimizer::setFinc)
-        .def("setFdec", &FIREEnergyMinimizer::setFdec)
-        .def("setAlphaStart", &FIREEnergyMinimizer::setAlphaStart)
-        .def("setFalpha", &FIREEnergyMinimizer::setFalpha)
-        .def("setFtol", &FIREEnergyMinimizer::setFtol)
-        .def("setWtol", &FIREEnergyMinimizer::setWtol)
-        .def("setEtol", &FIREEnergyMinimizer::setEtol)
-        .def("setMinSteps", &FIREEnergyMinimizer::setMinSteps);
+        .def_property_readonly("converged", &FIREEnergyMinimizer::hasConverged)
+        .def_property_readonly("energy", &FIREEnergyMinimizer::getEnergy)
+        .def_property("min_steps_adapt",
+                      &FIREEnergyMinimizer::getNmin,
+                      &FIREEnergyMinimizer::setNmin)
+        .def_property("finc_dt", &FIREEnergyMinimizer::getFinc, &FIREEnergyMinimizer::setFinc)
+        .def_property("fdec_dt", &FIREEnergyMinimizer::getFdec, &FIREEnergyMinimizer::setFdec)
+        .def_property("alpha_start",
+                      &FIREEnergyMinimizer::getAlphaStart,
+                      &FIREEnergyMinimizer::setAlphaStart)
+        .def_property("fdec_alpha",
+                      &FIREEnergyMinimizer::getFalpha,
+                      &FIREEnergyMinimizer::setFalpha)
+        .def_property("force_tol", &FIREEnergyMinimizer::getFtol, &FIREEnergyMinimizer::setFtol)
+        .def_property("angmom_tol", &FIREEnergyMinimizer::getWtol, &FIREEnergyMinimizer::setWtol)
+        .def_property("energy_tol", &FIREEnergyMinimizer::getEtol, &FIREEnergyMinimizer::setEtol)
+        .def_property("min_steps_conv",
+                      &FIREEnergyMinimizer::getMinSteps,
+                      &FIREEnergyMinimizer::setMinSteps);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

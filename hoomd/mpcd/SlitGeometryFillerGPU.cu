@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SlitGeometryFillerGPU.cu
@@ -13,6 +11,8 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -148,13 +148,10 @@ cudaError_t slit_draw_particles(Scalar4* d_pos,
     if (N_tot == 0)
         return cudaSuccess;
 
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)kernel::slit_draw_particles);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)kernel::slit_draw_particles);
+    max_block_size = attr.maxThreadsPerBlock;
 
     // precompute factor for rescaling the velocities since it is the same for all particles
     const Scalar vel_factor = fast::sqrt(kT / mass);
@@ -182,3 +179,4 @@ cudaError_t slit_draw_particles(Scalar4* d_pos,
 
     } // end namespace gpu
     } // end namespace mpcd
+    } // end namespace hoomd

@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
@@ -22,6 +22,7 @@ HOOMD_UP_MAIN();
 */
 
 using namespace std;
+using namespace hoomd;
 
 // we are going to need a dummy compute, a dummy analyzer and a dummy updater in order to test the
 // system

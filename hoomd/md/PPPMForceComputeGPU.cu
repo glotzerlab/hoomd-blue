@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceComputeGPU.cuh"
 #include "hoomd/TextureTools.h"
@@ -13,6 +13,12 @@
 
 #define GPU_PPPM_MAX_ORDER 7
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 // workaround for HIP bug
 #ifdef __HIP_PLATFORM_HCC__
 inline __device__ float myAtomicAdd(float* address, float val)
@@ -329,13 +335,10 @@ void gpu_assign_particles(const uint3 mesh_dim,
     hipMemsetAsync(d_mesh, 0, sizeof(hipfftComplex) * grid_dim.x * grid_dim.y * grid_dim.z);
     Scalar V_cell = box.getVolume() / (Scalar)(mesh_dim.x * mesh_dim.y * mesh_dim.z);
 
-    static unsigned int max_block_size = UINT_MAX;
-    static hipFuncAttributes attr;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncGetAttributes(&attr, (const void*)gpu_assign_particles_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_assign_particles_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(max_block_size, block_size);
 
@@ -360,7 +363,7 @@ void gpu_assign_particles(const uint3 mesh_dim,
 
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork / run_block_size + 1;
-        unsigned int shared_bytes = (unsigned int)(order * (2 * order + 1) * sizeof(Scalar));
+        const size_t shared_bytes = order * (2 * order + 1) * sizeof(Scalar);
 
         hipLaunchKernelGGL((gpu_assign_particles_kernel),
                            dim3(n_blocks),
@@ -523,13 +526,10 @@ void gpu_update_meshes(const unsigned int n_wave_vectors,
                        unsigned int block_size)
 
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_update_meshes_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_update_meshes_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(max_block_size, block_size);
     dim3 grid(n_wave_vectors / run_block_size + 1, 1, 1);
@@ -710,13 +710,10 @@ void gpu_compute_forces(const unsigned int N,
                         bool local_fft,
                         unsigned int inv_mesh_elements)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_compute_forces_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_compute_forces_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(max_block_size, block_size);
 
@@ -736,7 +733,7 @@ void gpu_compute_forces(const unsigned int N,
 
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork / run_block_size + 1;
-        unsigned int shared_bytes = (unsigned int)(order * (2 * order + 1) * sizeof(Scalar));
+        const size_t shared_bytes = order * (2 * order + 1) * sizeof(Scalar);
 
         hipLaunchKernelGGL(
             (gpu_compute_forces_kernel),
@@ -1260,13 +1257,10 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
 
     if (local_fft)
         {
-        static unsigned int max_block_size = UINT_MAX;
-        if (max_block_size == UINT_MAX)
-            {
-            hipFuncAttributes attr;
-            hipFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<true>);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
+        unsigned int max_block_size;
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<true>);
+        max_block_size = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = min(max_block_size, block_size);
 
@@ -1302,13 +1296,10 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
 #ifdef ENABLE_MPI
     else
         {
-        static unsigned int max_block_size = UINT_MAX;
-        if (max_block_size == UINT_MAX)
-            {
-            hipFuncAttributes attr;
-            hipFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<false>);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
+        unsigned int max_block_size;
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<false>);
+        max_block_size = attr.maxThreadsPerBlock;
 
         unsigned int run_block_size = min(max_block_size, block_size);
 
@@ -1486,3 +1477,7 @@ hipError_t gpu_fix_exclusions(Scalar4* d_force,
                        group_size);
     return hipSuccess;
     }
+
+    } // namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

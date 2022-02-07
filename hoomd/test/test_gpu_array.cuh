@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file gpu_array_test.cuh
     \brief Definitions of GPU kernel drivers for gpu_array_test.cc
@@ -13,12 +11,16 @@
 
 #include <hip/hip_runtime.h>
 
-extern "C"
+namespace hoomd
     {
-    //! Adds one to every value in an array of ints
-    hipError_t gpu_add_one(int* d_data, size_t num);
-    //! Fills out the data array with a test pattern
-    hipError_t gpu_fill_test_pattern(int* d_data, size_t num);
-    }
+namespace test
+    {
+//! Adds one to every value in an array of ints
+hipError_t gpu_add_one(int* d_data, size_t num);
+//! Fills out the data array with a test pattern
+hipError_t gpu_fill_test_pattern(int* d_data, size_t num);
+
+    } // end namespace test
+    } // end namespace hoomd
 
 #endif

@@ -1,9 +1,11 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMCMonoGPUTypes.cuh"
 #include "hoomd/GPUPartition.cuh"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -166,13 +168,10 @@ void hpmc_excell(unsigned int* d_excell_idx,
     assert(d_cell_adj);
 
     // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    if (max_block_size == -1)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_excell));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_excell));
+    max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel
     unsigned int run_block_size = min(block_size, (unsigned int)max_block_size);
@@ -235,13 +234,10 @@ void hpmc_check_convergence(const unsigned int* d_trial_move_type,
                             const unsigned int block_size)
     {
     // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    if (max_block_size == -1)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_check_convergence));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_check_convergence));
+    max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel
     unsigned int run_block_size = min(block_size, (unsigned int)max_block_size);
@@ -273,3 +269,4 @@ void hpmc_check_convergence(const unsigned int* d_trial_move_type,
 
     } // end namespace gpu
     } // end namespace hpmc
+    } // end namespace hoomd

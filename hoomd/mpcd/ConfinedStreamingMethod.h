@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/ConfinedStreamingMethod.h
@@ -18,6 +16,8 @@
 #include "StreamingMethod.h"
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! MPCD confined streaming method
@@ -228,20 +228,20 @@ namespace detail
  */
 template<class Geometry> void export_ConfinedStreamingMethod(pybind11::module& m)
     {
-    namespace py = pybind11;
     const std::string name = "ConfinedStreamingMethod" + Geometry::getName();
-    py::class_<mpcd::ConfinedStreamingMethod<Geometry>,
-               mpcd::StreamingMethod,
-               std::shared_ptr<mpcd::ConfinedStreamingMethod<Geometry>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
-                      unsigned int,
-                      unsigned int,
-                      int,
-                      std::shared_ptr<const Geometry>>())
+    pybind11::class_<mpcd::ConfinedStreamingMethod<Geometry>,
+                     mpcd::StreamingMethod,
+                     std::shared_ptr<mpcd::ConfinedStreamingMethod<Geometry>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+                            unsigned int,
+                            unsigned int,
+                            int,
+                            std::shared_ptr<const Geometry>>())
         .def_property("geometry",
                       &mpcd::ConfinedStreamingMethod<Geometry>::getGeometry,
                       &mpcd::ConfinedStreamingMethod<Geometry>::setGeometry);
     }
-    }      // end namespace detail
-    }      // end namespace mpcd
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_CONFINED_STREAMING_METHOD_H_

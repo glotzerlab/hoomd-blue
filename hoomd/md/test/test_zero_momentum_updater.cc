@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
@@ -13,6 +13,8 @@
 #include <math.h>
 
 using namespace std;
+using namespace hoomd;
+using namespace hoomd::md;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
@@ -60,7 +62,7 @@ UP_TEST(ZeroMomentumUpdater_basic)
     Scalar sum_py = 0.0;
     Scalar sum_pz = 0.0;
 
-    // note: assuming mass == 1 for now
+        // note: assuming mass == 1 for now
         {
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
                                    access_location::host,

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceDistanceConstraintGPU.cuh"
 
@@ -11,6 +9,12 @@
     \brief Defines GPU kernel code for pairwise distance constraints on the GPU
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel to fill the matrix for the linear constraint equation
 __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                                               unsigned int nptl_local,
@@ -189,13 +193,10 @@ hipError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                                   const BoxDim box,
                                   unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_fill_matrix_vector_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_fill_matrix_vector_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     // run configuration
     unsigned int run_block_size = min(block_size, max_block_size);
@@ -392,13 +393,10 @@ hipError_t gpu_compute_constraint_forces(const Scalar4* d_pos,
     // d_lagrange contains the Lagrange multipliers
 
     // fill out force array
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_fill_constraint_forces_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_fill_constraint_forces_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
     // run configuration
     unsigned int run_block_size = min(block_size, max_block_size);
@@ -424,3 +422,7 @@ hipError_t gpu_compute_constraint_forces(const Scalar4* d_pos,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

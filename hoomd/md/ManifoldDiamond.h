@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: pschoenhoefer
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __MANIFOLD_CLASS_DIAMOND_H__
 #define __MANIFOLD_CLASS_DIAMOND_H__
@@ -9,8 +7,6 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 #include <pybind11/pybind11.h>
-
-// namespace py = pybind11;
 
 /*! \file ManifoldDiamond.h
     \brief Defines the manifold class for the Diamond minimal surface
@@ -25,6 +21,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for constructing the Diamond minimal surface
 /*! <b>General Overview</b>
 
@@ -127,7 +127,13 @@ class ManifoldDiamond
     Scalar epsilon;
     };
 
+namespace detail
+    {
 //! Exports the Diamond manifold class to python
 void export_ManifoldDiamond(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_DIAMOND_H__

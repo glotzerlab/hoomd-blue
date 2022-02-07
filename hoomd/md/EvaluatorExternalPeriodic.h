@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_EXTERNAL_PERIODIC_H__
 #define __EVALUATOR_EXTERNAL_PERIODIC_H__
@@ -27,13 +25,10 @@
 #define DEVICE
 #endif
 
-// SCALARASINT resolves to __scalar_as_int on the device and to __scalar_as_int on the host
-#ifdef __HIPCC__
-#define SCALARASINT(x) __scalar_as_int(x)
-#else
-#define SCALARASINT(x) __scalar_as_int(x)
-#endif
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating sphere constraints
 /*! <b>General Overview</b>
     EvaluatorExternalPeriodic is an evaluator to induce a periodic modulation on the concentration
@@ -54,8 +49,39 @@ class EvaluatorExternalPeriodic
     {
     public:
     //! type of parameters this external potential accepts
-    typedef Scalar4 param_type;
-    typedef Scalar field_type; // dummy type
+    struct param_type
+        {
+        Scalar A;
+        Scalar w;
+        int i;
+        int p;
+
+#ifndef __HIPCC__
+        param_type() : A(1.0), w(1.0), i(0), p(1) { }
+
+        param_type(pybind11::dict params)
+            {
+            i = params["i"].cast<int>();
+            A = params["A"].cast<Scalar>();
+            w = params["w"].cast<Scalar>();
+            p = params["p"].cast<int>();
+            }
+
+        param_type(int i_, Scalar A_, Scalar w_, int p_) : A(A_), w(w_), i(i_), p(p_) { }
+
+        pybind11::dict toPython()
+            {
+            pybind11::dict d;
+            d["i"] = i;
+            d["A"] = A;
+            d["w"] = w;
+            d["p"] = p;
+            return d;
+            }
+#endif
+        } __attribute__((aligned(16)));
+
+    typedef void* field_type; // dummy type
 
     //! Constructs the constraint evaluator
     /*! \param X position of particle
@@ -66,12 +92,9 @@ class EvaluatorExternalPeriodic
                                      const BoxDim& box,
                                      const param_type& params,
                                      const field_type& field)
-        : m_pos(X), m_box(box)
+        : m_pos(X), m_box(box), m_index(params.i), m_orderParameter(params.A),
+          m_interfaceWidth(params.w), m_periodicity(params.p)
         {
-        m_index = SCALARASINT(params.x);
-        m_orderParameter = params.y;
-        m_interfaceWidth = params.z;
-        m_periodicity = SCALARASINT(params.w);
         }
 
     //! External Periodic doesn't need diameters
@@ -176,5 +199,8 @@ class EvaluatorExternalPeriodic
     Scalar m_interfaceWidth;    //!< width of interface between lamellae (relative to box length)
     unsigned int m_periodicity; //!< number of lamellae of each type
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__

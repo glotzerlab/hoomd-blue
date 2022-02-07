@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Compute properties of hard particle configurations."""
 
@@ -13,6 +12,7 @@ from hoomd.hpmc import integrate
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 import hoomd
+import numpy
 
 
 class FreeVolume(Compute):
@@ -51,6 +51,11 @@ class FreeVolume(Compute):
 
         `FreeVolume` respects the ``interaction_matrix`` set in the HPMC
         integrator.
+
+    .. rubric:: Mixed precision
+
+    `FreeVolume` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
 
     Examples::
 
@@ -95,11 +100,131 @@ class FreeVolume(Compute):
 
         super()._attach()
 
-    @log
+    @log(requires_run=True)
     def free_volume(self):
-        """Free volume available to the test particle."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.free_volume
+        """Free volume available to the test particle \
+        :math:`[\\mathrm{length}^{2}]` in 2D and \
+        :math:`[\\mathrm{length}^{3}]` in 3D."""
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.free_volume
+
+
+class SDF(Compute):
+    r"""Compute the scale distribution function.
+
+    Args:
+        xmax (float): Maximum *x* value at the right hand side of the rightmost
+            bin :math:`[\mathrm{length}]`.
+        dx (float): Bin width :math:`[\mathrm{length}]`.
+
+    `SDF` computes a distribution function of parameter :math:`x`. For each pair
+    of particles, it scales the particle separation vector by :math:`1+x` and
+    records the smallest :math:`x` that would cause the particles to touch in
+    the histogram :math:`s(x)`. The histogram is discrete and :math:`s(x_i) =
+    s[i]` where :math:`x_i = i \cdot dx + dx/2`.
+
+    The extrapolation of :math:`s(x)` to :math:`x = 0`, :math:`s(0+)` is related
+    to the pressure
+
+    .. math::
+        \beta P = \rho \left(1 + \frac{s(0+)}{2d} \right)
+
+    where :math:`d` is the dimensionality of the system, :math:`\rho` is the
+    number density, and :math:`\beta = \frac{1}{kT}`. This measurement of the
+    pressure is inherently noisy due to the nature of the sampling. Average
+    `betaP` over many timesteps to obtain accurate results.
+
+    Assuming particle diameters are ~1, these paramater values typically
+    achieve good results:
+
+      * ``xmax = 0.02``
+      * ``dx = 1e-4``
+
+    In systems near densest packings, ``dx=1e-5`` may be needed along with
+    smaller ``xmax``. Check that :math:`\sum_i s(x_i) \cdot dx \approx 0.5`.
+
+    Warning:
+        `SDF` does not compute correct pressures for simulations with
+        concave particles or enthalpic interactions.
+
+    Note:
+        `SDF` runs on the CPU even in GPU simulations.
+
+    .. rubric:: Mixed precision
+
+    `SDF` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
+
+    Attributes:
+        xmax (float): Maximum *x* value at the right hand side of the rightmost
+            bin :math:`[\mathrm{length}]`.
+
+        dx (float): Bin width :math:`[\mathrm{length}]`.
+    """
+
+    def __init__(self, xmax, dx):
+        # store metadata
+        param_dict = ParameterDict(xmax=float(xmax), dx=float(dx))
+        self._param_dict.update(param_dict)
+
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be an HPMC integrator.")
+
+        # Extract 'Shape' from '<hoomd.hpmc.integrate.Shape object>'
+        integrator_name = integrator.__class__.__name__
+
+        cpp_cls = getattr(_hpmc, 'ComputeSDF' + integrator_name)
+
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                integrator._cpp_obj, self.xmax, self.dx)
+
+        super()._attach()
+
+    @log(category='sequence', requires_run=True)
+    def sdf(self):
+        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[i]` - The scale \
+        distribution function :math:`[\\mathrm{probability\\ density}]`.
+
+        Attention:
+            In MPI parallel execution, the array is available on rank 0 only.
+            `sdf` is `None` on ranks >= 1.
+        """
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.sdf
+
+    @log(requires_run=True)
+    def betaP(self):  # noqa: N802 - allow function name
+        """float: Beta times pressure in NVT simulations \
+        :math:`\\left[ \\mathrm{length}^{-d} \\right]`.
+
+        Use a polynomial curve fit of degree 5 to estimate
+        :math:`s(0+)` and compute the pressure via:
+
+        .. math::
+            \\beta P = \\rho \\left(1 + \\frac{s(0+)}{2d} \\right)
+
+        where :math:`d` is the dimensionality of the system, :math:`\\rho` is
+        the number density, and :math:`\\beta = \\frac{1}{kT}`.
+
+        Attention:
+            In MPI parallel execution, `betaP` is available on rank 0 only.
+            `betaP` is `None` on ranks >= 1.
+        """
+        if not numpy.isnan(self.sdf).all():
+            # get the values to fit
+            n_fit = int(numpy.ceil(self.xmax / self.dx))
+            sdf_fit = self.sdf[0:n_fit]
+            # construct the x coordinates
+            x_fit = numpy.arange(0, self.xmax, self.dx)
+            x_fit += self.dx / 2
+            # perform the fit and extrapolation
+            p = numpy.polyfit(x_fit, sdf_fit, 5)
+
+            box = self._simulation.state.box
+            N = self._simulation.state.N_particles
+            rho = N / box.volume
+            return rho * (1 + numpy.polyval(p, 0.0) / (2 * box.dimensions))
         else:
             return None

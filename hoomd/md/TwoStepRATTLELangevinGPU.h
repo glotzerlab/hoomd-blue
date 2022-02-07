@@ -1,7 +1,6 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: joaander
 //
 #ifdef ENABLE_HIP
 
@@ -21,6 +20,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Implements Langevin dynamics on the GPU
 /*! GPU accelerated version of TwoStepLangevin
 
@@ -40,13 +43,13 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
     virtual ~TwoStepRATTLELangevinGPU() {};
 
     //! Performs the first step of the integration
-    virtual void integrateStepOne(unsigned int timestep);
+    virtual void integrateStepOne(uint64_t timestep);
 
     //! Performs the second step of the integration
-    virtual void integrateStepTwo(unsigned int timestep);
+    virtual void integrateStepTwo(uint64_t timestep);
 
     //! Includes the RATTLE forces to the virial/net force
-    virtual void includeRATTLEForce(unsigned int timestep);
+    virtual void includeRATTLEForce(uint64_t timestep);
 
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
@@ -92,7 +95,7 @@ TwoStepRATTLELangevinGPU<Manifold>::TwoStepRATTLELangevinGPU(
     if (!this->m_exec_conf->isCUDAEnabled())
         {
         this->m_exec_conf->msg->error()
-            << "Creating a TwoStepRATTLELangevinGPU while CUDA is disabled" << endl;
+            << "Creating a TwoStepRATTLELangevinGPU while CUDA is disabled" << std::endl;
         throw std::runtime_error("Error initializing TwoStepRATTLELangevinGPU");
         }
 
@@ -124,15 +127,19 @@ TwoStepRATTLELangevinGPU<Manifold>::TwoStepRATTLELangevinGPU(
                                             this->m_exec_conf));
     }
 template<class Manifold>
-void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
+void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(uint64_t timestep)
     {
     // profile this step
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "RATTLELangevin step 1");
 
-    if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
+    if (this->m_box_changed)
         {
-        throw std::runtime_error("Parts of the manifold are outside the box");
+        if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
+            {
+            throw std::runtime_error("Parts of the manifold are outside the box");
+            }
+        this->m_box_changed = false;
         }
 
     // access all the needed data
@@ -156,17 +163,17 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
     this->m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
     // perform the update on the GPU
-    gpu_rattle_nve_step_one(d_pos.data,
-                            d_vel.data,
-                            d_accel.data,
-                            d_image.data,
-                            d_index_array.data,
-                            this->m_group->getGPUPartition(),
-                            this->m_pdata->getBox(),
-                            this->m_deltaT,
-                            false,
-                            0,
-                            this->m_tuner_one->getParam());
+    kernel::gpu_rattle_nve_step_one(d_pos.data,
+                                    d_vel.data,
+                                    d_accel.data,
+                                    d_image.data,
+                                    d_index_array.data,
+                                    this->m_group->getGPUPartition(),
+                                    this->m_pdata->getBox(),
+                                    this->m_deltaT,
+                                    false,
+                                    0,
+                                    this->m_tuner_one->getParam());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -192,15 +199,15 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
         this->m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
 
-        gpu_rattle_nve_angular_step_one(d_orientation.data,
-                                        d_angmom.data,
-                                        d_inertia.data,
-                                        d_net_torque.data,
-                                        d_index_array.data,
-                                        this->m_group->getGPUPartition(),
-                                        this->m_deltaT,
-                                        1.0,
-                                        m_tuner_angular_one->getParam());
+        kernel::gpu_rattle_nve_angular_step_one(d_orientation.data,
+                                                d_angmom.data,
+                                                d_inertia.data,
+                                                d_net_torque.data,
+                                                d_index_array.data,
+                                                this->m_group->getGPUPartition(),
+                                                this->m_deltaT,
+                                                1.0,
+                                                m_tuner_angular_one->getParam());
 
         m_tuner_angular_one->end();
         this->m_exec_conf->endMultiGPU();
@@ -218,7 +225,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
 template<class Manifold>
-void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
+void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = this->m_pdata->getNetForce();
 
@@ -261,7 +268,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
         m_num_blocks = group_size / m_block_size + 1;
 
         // perform the update on the GPU
-        rattle_langevin_step_two_args args;
+        kernel::rattle_langevin_step_two_args args;
         args.d_gamma = d_gamma.data;
         args.n_types = this->m_gamma.getNumElements();
         args.use_alpha = this->m_use_alpha;
@@ -278,18 +285,18 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
         args.noiseless_r = this->m_noiseless_r;
         args.tally = this->m_tally;
 
-        gpu_rattle_langevin_step_two<Manifold>(d_pos.data,
-                                               d_vel.data,
-                                               d_accel.data,
-                                               d_diameter.data,
-                                               d_tag.data,
-                                               d_index_array.data,
-                                               group_size,
-                                               d_net_force.data,
-                                               args,
-                                               this->m_manifold,
-                                               this->m_deltaT,
-                                               D);
+        kernel::gpu_rattle_langevin_step_two<Manifold>(d_pos.data,
+                                                       d_vel.data,
+                                                       d_accel.data,
+                                                       d_diameter.data,
+                                                       d_tag.data,
+                                                       d_index_array.data,
+                                                       group_size,
+                                                       d_net_force.data,
+                                                       args,
+                                                       this->m_manifold,
+                                                       this->m_deltaT,
+                                                       D);
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -311,19 +318,19 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
                                            access_mode::read);
 
             unsigned int group_size = this->m_group->getNumMembers();
-            gpu_rattle_langevin_angular_step_two(d_pos.data,
-                                                 d_orientation.data,
-                                                 d_angmom.data,
-                                                 d_inertia.data,
-                                                 d_net_torque.data,
-                                                 d_index_array.data,
-                                                 d_gamma_r.data,
-                                                 d_tag.data,
-                                                 group_size,
-                                                 args,
-                                                 this->m_deltaT,
-                                                 D,
-                                                 1.0);
+            kernel::gpu_rattle_langevin_angular_step_two(d_pos.data,
+                                                         d_orientation.data,
+                                                         d_angmom.data,
+                                                         d_inertia.data,
+                                                         d_net_torque.data,
+                                                         d_index_array.data,
+                                                         d_gamma_r.data,
+                                                         d_tag.data,
+                                                         group_size,
+                                                         args,
+                                                         this->m_deltaT,
+                                                         D,
+                                                         1.0);
 
             if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -334,7 +341,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
         {
         ArrayHandle<Scalar> h_sumBD(m_sum, access_location::host, access_mode::read);
 #ifdef ENABLE_MPI
-        if (this->m_comm)
+        if (this->m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &h_sumBD.data[0],
@@ -353,7 +360,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
     }
 
 template<class Manifold>
-void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
+void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
     {
     // access all the needed data
     const GlobalArray<Scalar4>& net_force = this->m_pdata->getNetForce();
@@ -380,19 +387,19 @@ void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(unsigned int timeste
     // perform the update on the GPU
     this->m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
-    gpu_include_rattle_force_nve<Manifold>(d_pos.data,
-                                           d_vel.data,
-                                           d_accel.data,
-                                           d_net_force.data,
-                                           d_net_virial.data,
-                                           d_index_array.data,
-                                           this->m_group->getGPUPartition(),
-                                           net_virial_pitch,
-                                           this->m_manifold,
-                                           this->m_tolerance,
-                                           this->m_deltaT,
-                                           false,
-                                           m_tuner_one->getParam());
+    kernel::gpu_include_rattle_force_nve<Manifold>(d_pos.data,
+                                                   d_vel.data,
+                                                   d_accel.data,
+                                                   d_net_force.data,
+                                                   d_net_virial.data,
+                                                   d_index_array.data,
+                                                   this->m_group->getGPUPartition(),
+                                                   net_virial_pitch,
+                                                   this->m_manifold,
+                                                   this->m_tolerance,
+                                                   this->m_deltaT,
+                                                   false,
+                                                   m_tuner_one->getParam());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -401,16 +408,22 @@ void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(unsigned int timeste
     this->m_exec_conf->endMultiGPU();
     }
 
-template<class Manifold>
-void export_TwoStepRATTLELangevinGPU(py::module& m, const std::string& name)
+namespace detail
     {
-    py::class_<TwoStepRATTLELangevinGPU<Manifold>,
-               TwoStepRATTLELangevin<Manifold>,
-               std::shared_ptr<TwoStepRATTLELangevinGPU<Manifold>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Manifold,
-                      std::shared_ptr<Variant>,
-                      Scalar>());
+template<class Manifold>
+void export_TwoStepRATTLELangevinGPU(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<TwoStepRATTLELangevinGPU<Manifold>,
+                     TwoStepRATTLELangevin<Manifold>,
+                     std::shared_ptr<TwoStepRATTLELangevinGPU<Manifold>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            Manifold,
+                            std::shared_ptr<Variant>,
+                            Scalar>());
     }
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif // ENABLE_HIP

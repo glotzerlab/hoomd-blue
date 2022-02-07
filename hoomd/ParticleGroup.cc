@@ -1,7 +1,6 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: joaander
 #include "ParticleGroup.h"
 
 #include "hoomd/RNGIdentifiers.h"
@@ -17,8 +16,9 @@
 #include <algorithm>
 #include <iostream>
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 /*! \param sysdef System the particles are to be selected from
     \param rigid true selects particles that are in bodies, false selects particles that are not
    part of a body
@@ -49,46 +49,6 @@ ParticleFilterBody::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) co
         if (m_body && body != NO_BODY)
             result = true;
         if (!m_body && body == NO_BODY)
-            result = true;
-
-        if (result)
-            member_tags.push_back(tag);
-        }
-    return member_tags;
-    }
-
-//////////////////////////////////////////////////////////////////////////////
-// ParticleFilterRigid
-
-/*! \param rigid true selects particles that are in rigid bodies, false selects particles that are
- * not part of a rigid body
- */
-ParticleFilterRigid::ParticleFilterRigid(bool rigid) : ParticleFilter(), m_rigid(rigid) { }
-
-/*! \param tag Tag of the particle to check
-    \returns true if the type of particle \a tag meets the rigid criteria selected
-*/
-std::vector<unsigned int>
-ParticleFilterRigid::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
-    {
-    std::vector<unsigned int> member_tags;
-    auto pdata = sysdef->getParticleData();
-
-    // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
-        {
-        unsigned int tag = h_tag.data[idx];
-
-        // get position of particle
-        unsigned int body = h_body.data[idx];
-
-        // see if it matches the criteria
-        bool result = false;
-        if (m_rigid && body < MIN_FLOPPY)
-            result = true;
-        if (!m_rigid && body >= MIN_FLOPPY)
             result = true;
 
         if (result)
@@ -794,16 +754,19 @@ void ParticleGroup::rebuildIndexListGPU() const
     // reset membership properties
     if (m_member_tags.getNumElements() > 0)
         {
-        gpu_rebuild_index_list(m_pdata->getN(), d_is_member_tag.data, d_is_member.data, d_tag.data);
+        kernel::gpu_rebuild_index_list(m_pdata->getN(),
+                                       d_is_member_tag.data,
+                                       d_is_member.data,
+                                       d_tag.data);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
-        gpu_compact_index_list(m_pdata->getN(),
-                               d_is_member.data,
-                               d_member_idx.data,
-                               m_num_local_members,
-                               d_tmp.data,
-                               m_pdata->getExecConf()->getCachedAllocator());
+        kernel::gpu_compact_index_list(m_pdata->getN(),
+                                       d_is_member.data,
+                                       d_member_idx.data,
+                                       m_num_local_members,
+                                       d_tmp.data,
+                                       m_pdata->getExecConf()->getCachedAllocator());
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
@@ -929,13 +892,16 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         }
     }
 
-void export_ParticleGroup(py::module& m)
+namespace detail
     {
-    py::class_<ParticleGroup, std::shared_ptr<ParticleGroup>>(m, "ParticleGroup")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>, bool>())
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>>())
-        .def(py::init<std::shared_ptr<SystemDefinition>, const std::vector<unsigned int>&>())
-        .def(py::init<>())
+void export_ParticleGroup(pybind11::module& m)
+    {
+    pybind11::class_<ParticleGroup, std::shared_ptr<ParticleGroup>>(m, "ParticleGroup")
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>, bool>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, const std::vector<unsigned int>&>())
+        .def(pybind11::init<>())
         .def("getNumMembersGlobal", &ParticleGroup::getNumMembersGlobal)
         .def("getMemberTag", &ParticleGroup::getMemberTag)
         .def("getTotalMass", &ParticleGroup::getTotalMass)
@@ -948,5 +914,10 @@ void export_ParticleGroup(py::module& m)
         .def("getTranslationalDOF", &ParticleGroup::getTranslationalDOF)
         .def("setRotationalDOF", &ParticleGroup::setRotationalDOF)
         .def("getRotationalDOF", &ParticleGroup::getRotationalDOF)
-        .def("thermalizeParticleMomenta", &ParticleGroup::thermalizeParticleMomenta);
+        .def("thermalizeParticleMomenta", &ParticleGroup::thermalizeParticleMomenta)
+        .def_property_readonly("member_tags", &ParticleGroup::getMemberTags);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

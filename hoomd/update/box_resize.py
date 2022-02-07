@@ -1,16 +1,23 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement BoxResize."""
 
 from hoomd.operation import Updater
 from hoomd.box import Box
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyTypes, box_preprocessing
 from hoomd.variant import Variant, Constant
 from hoomd import _hoomd
 from hoomd.filter import ParticleFilter, All
+
+
+def _box_getter(param_dict, attr):
+    return param_dict._dict[attr]
+
+
+def _box_setter(param_dict, attr, value):
+    param_dict._dict[attr] = param_dict._type_converter[attr](value)
+    setattr(param_dict._cpp_obj, attr, param_dict._dict[attr])
 
 
 class BoxResize(Updater):
@@ -32,13 +39,13 @@ class BoxResize(Updater):
         properly in HPMC.
 
     Args:
+        trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
         box1 (hoomd.Box): The box associated with the minimum of the
             passed variant.
         box2 (hoomd.Box): The box associated with the maximum of the
             passed variant.
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
-        trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
         filter (hoomd.filter.ParticleFilter): The subset of particle positions
             to update.
 
@@ -54,11 +61,9 @@ class BoxResize(Updater):
             update.
     """
 
-    def __init__(self, box1, box2, variant, trigger, filter=All()):
-        params = ParameterDict(box1=OnlyTypes(Box,
-                                              preprocess=box_preprocessing),
-                               box2=OnlyTypes(Box,
-                                              preprocess=box_preprocessing),
+    def __init__(self, trigger, box1, box2, variant, filter=All()):
+        params = ParameterDict(box1=Box,
+                               box2=Box,
                                variant=Variant,
                                filter=ParticleFilter)
         params['box1'] = box1
@@ -66,6 +71,8 @@ class BoxResize(Updater):
         params['variant'] = variant
         params['trigger'] = trigger
         params['filter'] = filter
+        for attr in ("box1", "box2"):
+            params._set_special_getset(attr, _box_getter, _box_setter)
         self._param_dict.update(params)
         super().__init__(trigger)
 
@@ -85,6 +92,7 @@ class BoxResize(Updater):
 
         Returns:
             Box: The box used at the given timestep.
+            `None` before the first call to `Simulation.run`.
         """
         if self._attached:
             timestep = int(timestep)
@@ -107,6 +115,4 @@ class BoxResize(Updater):
         group = state._get_group(filter)
         updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def, state.box, box,
                                           Constant(1), group)
-        if state._simulation._system_communicator is not None:
-            updater.setCommunicator(state._simulation._system_communicator)
         updater.update(state._simulation.timestep)

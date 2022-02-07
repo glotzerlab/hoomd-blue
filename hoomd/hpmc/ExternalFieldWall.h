@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_FIELD_WALL_H_
 #define _EXTERNAL_FIELD_WALL_H_
@@ -28,6 +28,8 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 struct SphereWall
@@ -532,7 +534,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
                 this);
         }
 
-    double energydiff(const unsigned int& index,
+    double energydiff(uint64_t timestep,
+                      const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
@@ -582,7 +585,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
             }
         }
 
-    double calculateDeltaE(const Scalar4* const position_old,
+    double calculateDeltaE(uint64_t timestep,
+                           const Scalar4* const position_old,
                            const Scalar4* const orientation_old,
                            const BoxDim* const box_old)
         {
@@ -795,13 +799,15 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         m_Planes.erase(m_Planes.begin() + index);
         }
 
-    bool wall_overlap(const unsigned int& index,
+    bool wall_overlap(uint64_t timestep,
+                      const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
                       const Shape& shape_new)
         {
-        double energy = energydiff(index, position_old, shape_old, position_new, shape_new);
+        double energy
+            = energydiff(timestep, index, position_old, shape_old, position_new, shape_new);
         return (energy == INFINITY);
         }
 
@@ -816,7 +822,7 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
                                            access_location::host,
                                            access_mode::readwrite);
         const std::vector<typename Shape::param_type,
-                          managed_allocator<typename Shape::param_type>>& params
+                          hoomd::detail::managed_allocator<typename Shape::param_type>>& params
             = m_mc->getParams();
 
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -828,7 +834,7 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), params[typ_i]);
 
-            if (wall_overlap(i, pos_i, shape_i, pos_i, shape_i))
+            if (wall_overlap(timestep, i, pos_i, shape_i, pos_i, shape_i))
                 {
                 numOverlaps++;
                 }
@@ -959,6 +965,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
     BoxDim m_box;                                    //!< the current box
     };
 
+namespace detail
+    {
 template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ExternalFieldWall<Shape>,
@@ -993,7 +1001,8 @@ template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const s
         .def("SetCurrBox", &ExternalFieldWall<Shape>::SetCurrBox);
     }
 
+    } // end namespace detail
     } // namespace hpmc
-
+    } // end namespace hoomd
 #undef DEVICE
 #endif // inclusion guard

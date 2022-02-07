@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MolecularForceCompute.h"
 
@@ -15,22 +13,24 @@
 #include <map>
 #include <string.h>
 
-namespace py = pybind11;
-
 /*! \file MolecularForceCompute.cc
     \brief Contains code for the MolecularForceCompute class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0), m_dirty(true),
-      m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf), m_molecule_order(m_exec_conf),
-      m_molecule_idx(m_exec_conf)
+    : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0),
+      m_rebuild_molecules(true), m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf),
+      m_molecule_order(m_exec_conf), m_molecule_idx(m_exec_conf)
     {
     // connect to the ParticleData to receive notifications when particles change order in memory
     m_pdata->getParticleSortSignal()
-        .connect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
+        .connect<MolecularForceCompute, &MolecularForceCompute::setRebuildMolecules>(this);
 
     TAG_ALLOCATION(m_molecule_tag);
     TAG_ALLOCATION(m_molecule_list);
@@ -57,7 +57,7 @@ MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> s
 MolecularForceCompute::~MolecularForceCompute()
     {
     m_pdata->getParticleSortSignal()
-        .disconnect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
+        .disconnect<MolecularForceCompute, &MolecularForceCompute::setRebuildMolecules>(this);
     }
 
 #ifdef ENABLE_HIP
@@ -121,26 +121,26 @@ void MolecularForceCompute::initMoleculesGPU()
             m_exec_conf->getCachedAllocator(),
             m_molecule_tag.getNumElements());
 
-        gpu_sort_by_molecule(nptl_local,
-                             d_tag.data,
-                             d_molecule_tag.data,
-                             d_local_molecule_tags.data,
-                             d_local_molecules_lowest_idx.data,
-                             d_local_unique_molecule_tags.data,
-                             d_molecule_idx.data,
-                             d_sorted_by_tag.data,
-                             d_idx_sorted_by_tag.data,
-                             d_idx_sorted_by_molecule_and_tag.data,
-                             d_lowest_idx.data,
-                             d_lowest_idx_sort.data,
-                             d_lowest_idx_in_molecules.data,
-                             d_lowest_idx_by_molecule_tag.data,
-                             d_molecule_length.data,
-                             n_local_molecules,
-                             nmax,
-                             n_local_ptls_in_molecules,
-                             m_exec_conf->getCachedAllocator(),
-                             m_exec_conf->isCUDAErrorCheckingEnabled());
+        kernel::gpu_sort_by_molecule(nptl_local,
+                                     d_tag.data,
+                                     d_molecule_tag.data,
+                                     d_local_molecule_tags.data,
+                                     d_local_molecules_lowest_idx.data,
+                                     d_local_unique_molecule_tags.data,
+                                     d_molecule_idx.data,
+                                     d_sorted_by_tag.data,
+                                     d_idx_sorted_by_tag.data,
+                                     d_idx_sorted_by_molecule_and_tag.data,
+                                     d_lowest_idx.data,
+                                     d_lowest_idx_sort.data,
+                                     d_lowest_idx_in_molecules.data,
+                                     d_lowest_idx_by_molecule_tag.data,
+                                     d_molecule_length.data,
+                                     n_local_molecules,
+                                     nmax,
+                                     n_local_ptls_in_molecules,
+                                     m_exec_conf->getCachedAllocator(),
+                                     m_exec_conf->isCUDAErrorCheckingEnabled());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -174,16 +174,16 @@ void MolecularForceCompute::initMoleculesGPU()
         m_tuner_fill->begin();
         unsigned int block_size = m_tuner_fill->getParam();
 
-        gpu_fill_molecule_table(nptl_local,
-                                n_local_ptls_in_molecules,
-                                m_molecule_indexer,
-                                d_molecule_idx.data,
-                                d_local_molecules_lowest_idx.data,
-                                d_idx_sorted_by_tag.data,
-                                d_molecule_list.data,
-                                d_molecule_order.data,
-                                block_size,
-                                m_exec_conf->getCachedAllocator());
+        kernel::gpu_fill_molecule_table(nptl_local,
+                                        n_local_ptls_in_molecules,
+                                        m_molecule_indexer,
+                                        d_molecule_idx.data,
+                                        d_local_molecules_lowest_idx.data,
+                                        d_idx_sorted_by_tag.data,
+                                        d_molecule_list.data,
+                                        d_molecule_order.data,
+                                        block_size,
+                                        m_exec_conf->getCachedAllocator());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -261,7 +261,9 @@ void MolecularForceCompute::initMolecules()
     {
     // return early if no molecules are defined
     if (!m_n_molecules_global)
+        {
         return;
+        }
 
     m_exec_conf->msg->notice(7) << "MolecularForceCompute initializing molecule table" << std::endl;
 
@@ -291,40 +293,45 @@ void MolecularForceCompute::initMolecules()
 
     std::vector<unsigned int> local_molecule_idx(nptl_local, NO_MOLECULE);
 
-    // resize molecule lookup to size of local particle data
-    m_molecule_order.resize(m_pdata->getMaxN());
-
-    // keep track of particle with lowest tag
+    // keep track of particle with lowest tag within a molecule. This is assumed/required to be the
+    // central particle for the molecule.
     std::map<unsigned int, unsigned int> lowest_tag_by_molecule;
 
-    for (unsigned int iptl = 0; iptl < nptl_local; ++iptl)
+    for (unsigned int particle_index = 0; particle_index < nptl_local; ++particle_index)
         {
-        unsigned int tag = h_tag.data[iptl];
+        unsigned int tag = h_tag.data[particle_index];
         assert(tag < m_molecule_tag.getNumElements());
 
         unsigned int mol_tag = h_molecule_tag.data[tag];
         if (mol_tag == NO_MOLECULE)
+            {
             continue;
+            }
 
         auto it = lowest_tag_by_molecule.find(mol_tag);
         unsigned int min_tag = tag;
         if (it != lowest_tag_by_molecule.end())
+            {
             min_tag = std::min(it->second, tag);
+            }
 
         lowest_tag_by_molecule[mol_tag] = min_tag;
         }
 
-    // sort local molecules by index of lowest tag, and inside the molecule by ptl tag
+    // sort local molecules by the index of the smallest particle tag in a molecule, and sort within
+    // the molecule by particle tag.
     std::map<unsigned int, std::set<unsigned int>> local_molecules_sorted;
 
-    for (unsigned int iptl = 0; iptl < nptl_local; ++iptl)
+    for (unsigned int particle_index = 0; particle_index < nptl_local; ++particle_index)
         {
-        unsigned int tag = h_tag.data[iptl];
+        unsigned int tag = h_tag.data[particle_index];
         assert(tag < m_molecule_tag.getNumElements());
 
         unsigned int mol_tag = h_molecule_tag.data[tag];
         if (mol_tag == NO_MOLECULE)
+            {
             continue;
+            }
 
         unsigned int lowest_tag = lowest_tag_by_molecule[mol_tag];
         unsigned int lowest_idx = h_rtag.data[lowest_tag];
@@ -333,7 +340,7 @@ void MolecularForceCompute::initMolecules()
         local_molecules_sorted[lowest_idx].insert(tag);
         }
 
-    n_local_molecules = (unsigned int)local_molecules_sorted.size();
+    n_local_molecules = static_cast<unsigned int>(local_molecules_sorted.size());
 
     m_exec_conf->msg->notice(7) << "MolecularForceCompute: " << n_local_molecules << " molecules"
                                 << std::endl;
@@ -379,7 +386,8 @@ void MolecularForceCompute::initMolecules()
         h_molecule_length.data[imol] = 0;
         }
 
-    // reset molecule order
+    // resize and reset molecule lookup to size of local particle data
+    m_molecule_order.resize(m_pdata->getMaxN());
     ArrayHandle<unsigned int> h_molecule_order(m_molecule_order,
                                                access_location::host,
                                                access_mode::overwrite);
@@ -405,16 +413,21 @@ void MolecularForceCompute::initMolecules()
     for (auto it_mol = local_molecules_sorted.begin(); it_mol != local_molecules_sorted.end();
          ++it_mol)
         {
+        // Since the set is ordered by value, and this orders the particles within the molecule by
+        // tag, and types should have been validated by validateRigidBodies, then this ordering in
+        // h_molecule_order should preserve types even though it is indexed by particle index.
         for (std::set<unsigned int>::iterator it_tag = it_mol->second.begin();
              it_tag != it_mol->second.end();
              ++it_tag)
             {
+            unsigned int particle_index = h_rtag.data[*it_tag];
+            assert(particle_index < m_pdata->getN() + m_pdata->getNGhosts());
+            // Gets the current molecule index for the particle while incrementing the length of the
+            // molecule.
             unsigned int n = h_molecule_length.data[i_mol]++;
-            unsigned int ptl_idx = h_rtag.data[*it_tag];
-            assert(ptl_idx < m_pdata->getN() + m_pdata->getNGhosts());
-            h_molecule_list.data[m_molecule_indexer(n, i_mol)] = ptl_idx;
-            h_molecule_idx.data[ptl_idx] = i_mol;
-            h_molecule_order.data[ptl_idx] = n;
+            h_molecule_list.data[m_molecule_indexer(n, i_mol)] = particle_index;
+            h_molecule_idx.data[particle_index] = i_mol;
+            h_molecule_order.data[particle_index] = n;
             }
         i_mol++;
         }
@@ -423,10 +436,16 @@ void MolecularForceCompute::initMolecules()
         m_prof->pop(m_exec_conf);
     }
 
-void export_MolecularForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<MolecularForceCompute, ForceConstraint, std::shared_ptr<MolecularForceCompute>>(
-        m,
-        "MolecularForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+void export_MolecularForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<MolecularForceCompute,
+                     ForceConstraint,
+                     std::shared_ptr<MolecularForceCompute>>(m, "MolecularForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: dnlebard
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/BondedGroupData.h"
 #include "hoomd/ForceCompute.h"
@@ -23,18 +21,22 @@
 #ifndef __HARMONICDIHEDRALFORCECOMPUTE_H__
 #define __HARMONICDIHEDRALFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 struct dihedral_harmonic_params
     {
     Scalar k;
     Scalar d;
-    Scalar n;
+    int n;
     Scalar phi_0;
 
 #ifndef __HIPCC__
-    dihedral_harmonic_params() : k(0.), d(0.), n(0.), phi_0(0.) { }
+    dihedral_harmonic_params() : k(0.), d(0.), n(0), phi_0(0.) { }
 
     dihedral_harmonic_params(pybind11::dict v)
-        : k(v["k"].cast<Scalar>()), d(v["d"].cast<Scalar>()), n(v["n"].cast<Scalar>()),
+        : k(v["k"].cast<Scalar>()), d(v["d"].cast<Scalar>()), n(v["n"].cast<int>()),
           phi_0(v["phi0"].cast<Scalar>())
         {
         }
@@ -68,7 +70,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
 
     //! Set the parameters
     virtual void
-    setParams(unsigned int type, Scalar K, Scalar sign, Scalar multiplicity, Scalar phi_0);
+    setParams(unsigned int type, Scalar K, Scalar sign, int multiplicity, Scalar phi_0);
 
     virtual void setParamsPython(std::string type, pybind11::dict params);
 
@@ -91,7 +93,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
     protected:
     Scalar* m_K;     //!< K parameter for multiple dihedral tyes
     Scalar* m_sign;  //!< sign parameter for multiple dihedral types
-    Scalar* m_multi; //!< multiplicity parameter for multiple dihedral types
+    int* m_multi;    //!< multiplicity parameter for multiple dihedral types
     Scalar* m_phi_0; //!< phi_0 parameter for multiple dihedral types
 
     std::shared_ptr<DihedralData> m_dihedral_data; //!< Dihedral data to use in computing dihedrals
@@ -100,7 +102,13 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the DihedralForceCompute class to python
 void export_HarmonicDihedralForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

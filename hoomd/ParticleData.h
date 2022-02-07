@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ParticleData.h
     \brief Defines the ParticleData class and associated utilities
@@ -67,6 +65,8 @@
 //! Feature-define for HOOMD API
 #define HOOMD_SUPPORTS_ADD_REMOVE_PARTICLES
 
+namespace hoomd
+    {
 // Forward declaration of Profiler
 class Profiler;
 
@@ -112,12 +112,14 @@ const unsigned int MIN_FLOPPY = 0x80000000;
 //! processor
 const unsigned int NOT_LOCAL = 0xffffffff;
 
+    } // end namespace hoomd
+
 #ifdef ENABLE_MPI
 namespace cereal
     {
 //! Serialization of vec3<Real>
 template<class Archive, class Real>
-void serialize(Archive& ar, vec3<Real>& v, const unsigned int version)
+void serialize(Archive& ar, hoomd::vec3<Real>& v, const unsigned int version)
     {
     ar& v.x;
     ar& v.y;
@@ -126,7 +128,7 @@ void serialize(Archive& ar, vec3<Real>& v, const unsigned int version)
 
 //! Serialization of quat<Real>
 template<class Archive, class Real>
-void serialize(Archive& ar, quat<Real>& q, const unsigned int version)
+void serialize(Archive& ar, hoomd::quat<Real>& q, const unsigned int version)
     {
     // serialize both members
     ar& q.s;
@@ -135,8 +137,14 @@ void serialize(Archive& ar, quat<Real>& q, const unsigned int version)
     } // namespace cereal
 #endif
 
+namespace hoomd
+    {
+namespace detail
+    {
 /// Get a default type name given a type id
 std::string getDefaultTypeName(unsigned int id);
+
+    } // end namespace detail
 
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
@@ -250,6 +258,8 @@ template<class Real> struct PYBIND11_EXPORT SnapshotParticleData
     bool is_accel_set; //!< Flag indicating if accel is set
     };
 
+namespace detail
+    {
 //! Structure to store packed particle data
 /* pdata_element is used for compact storage of particle data, mainly for communication.
  */
@@ -270,6 +280,8 @@ struct pdata_element
     Scalar4 net_torque;   //!< net torque
     Scalar net_virial[6]; //!< net virial
     };
+
+    } // end namespace detail
 
 //! Manages all of the data arrays for the particles
 /*! <h1> General </h1>
@@ -902,12 +914,6 @@ class PYBIND11_EXPORT ParticleData
     //! Notify listeners that ghost particles have been removed
     void notifyGhostParticlesRemoved();
 
-    //! Connects a function to be called every time the number of types changes
-    Nano::Signal<void()>& getNumTypesChangeSignal()
-        {
-        return m_num_types_signal;
-        }
-
     //! Connects a function to be called every time the maximum diameter of composite particles is
     //! needed
     /*! The signal slot returns the maximum diameter
@@ -1208,12 +1214,13 @@ class PYBIND11_EXPORT ParticleData
      *        are invalidated. (call removeAllGhostAtoms() before or after
      *        this method).
      */
-    void removeParticles(std::vector<pdata_element>& out, std::vector<unsigned int>& comm_flags);
+    void removeParticles(std::vector<detail::pdata_element>& out,
+                         std::vector<unsigned int>& comm_flags);
 
     //! Add new local particles
     /*! \param in List of particle data elements to fill the particle data with
      */
-    void addParticles(const std::vector<pdata_element>& in);
+    void addParticles(const std::vector<detail::pdata_element>& in);
 
 #ifdef ENABLE_HIP
     //! Pack particle data into a buffer (GPU version)
@@ -1229,13 +1236,13 @@ class PYBIND11_EXPORT ParticleData
      *        are invalidated. (call removeAllGhostAtoms() before or after
      *        this method).
      */
-    void removeParticlesGPU(GlobalVector<pdata_element>& out,
+    void removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
                             GlobalVector<unsigned int>& comm_flags);
 
     //! Remove particles from local domain and add new particle data (GPU version)
     /*! \param in List of particle data elements to fill the particle data with
      */
-    void addParticlesGPU(const GlobalVector<pdata_element>& in);
+    void addParticlesGPU(const GlobalVector<detail::pdata_element>& in);
 #endif // ENABLE_HIP
 
 #endif // ENABLE_MPI
@@ -1248,14 +1255,6 @@ class PYBIND11_EXPORT ParticleData
 
     //! Return the nth active global tag
     unsigned int getNthTag(unsigned int n);
-
-    //! Add particle types
-    /*! \param Name of type to add
-     *
-     * Adds the name to the list of types and
-     * returns the id of the newly added type
-     */
-    unsigned int addType(const std::string& type_name);
 
     //! Translate the box origin
     /*! \param a vector to apply in the translation
@@ -1310,8 +1309,6 @@ class PYBIND11_EXPORT ParticleData
                                                            //!< particles are removed
     Nano::Signal<void()> m_global_particle_num_signal; //!< Signal that is triggered when the global
                                                        //!< number of particles changes
-    Nano::Signal<void()>
-        m_num_types_signal; //!< Signal that is triggered when the number of types changes
     Nano::Signal<Scalar()>
         m_composite_particles_signal; //!< Signal that is triggered when the maximum diameter of a
                                       //!< composite particle is needed
@@ -1450,6 +1447,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_position_handle,
                                                          &ParticleData::getPositions,
                                                          flag,
+                                                         true,
                                                          3);
         }
 
@@ -1458,6 +1456,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, int>(m_position_handle,
                                                       &ParticleData::getPositions,
                                                       flag,
+                                                      true,
                                                       0,
                                                       3 * sizeof(Scalar));
         }
@@ -1467,6 +1466,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_velocities_handle,
                                                          &ParticleData::getVelocities,
                                                          flag,
+                                                         true,
                                                          3);
         }
 
@@ -1475,6 +1475,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar3, Scalar>(m_acceleration_handle,
                                                          &ParticleData::getAccelerations,
                                                          flag,
+                                                         true,
                                                          3);
         }
 
@@ -1483,6 +1484,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_velocities_handle,
                                                          &ParticleData::getVelocities,
                                                          flag,
+                                                         true,
                                                          0,
                                                          3 * sizeof(Scalar));
         }
@@ -1492,6 +1494,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_orientation_handle,
                                                          &ParticleData::getOrientationArray,
                                                          flag,
+                                                         true,
                                                          4);
         }
 
@@ -1500,6 +1503,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_angular_momentum_handle,
                                                          &ParticleData::getAngularMomentumArray,
                                                          flag,
+                                                         true,
                                                          4);
         }
 
@@ -1508,6 +1512,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar3, Scalar>(m_inertia_handle,
                                                          &ParticleData::getMomentsOfInertiaArray,
                                                          flag,
+                                                         true,
                                                          3);
         }
 
@@ -1515,14 +1520,16 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         {
         return this->template getBuffer<Scalar, Scalar>(m_charge_handle,
                                                         &ParticleData::getCharges,
-                                                        flag);
+                                                        flag,
+                                                        true);
         }
 
     Output getDiameter(GhostDataFlag flag)
         {
         return this->template getBuffer<Scalar, Scalar>(m_diameter_handle,
                                                         &ParticleData::getDiameters,
-                                                        flag);
+                                                        flag,
+                                                        true);
         }
 
     Output getImages(GhostDataFlag flag)
@@ -1530,6 +1537,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<int3, int>(m_image_handle,
                                                    &ParticleData::getImages,
                                                    flag,
+                                                   true,
                                                    3);
         }
 
@@ -1537,7 +1545,8 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         {
         return this->template getBuffer<unsigned int, unsigned int>(m_tag_handle,
                                                                     &ParticleData::getTags,
-                                                                    flag);
+                                                                    flag,
+                                                                    true);
         }
 
     Output getRTags()
@@ -1549,7 +1558,8 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         {
         return this->template getBuffer<unsigned int, unsigned int>(m_rigid_body_ids_handle,
                                                                     &ParticleData::getBodies,
-                                                                    flag);
+                                                                    flag,
+                                                                    true);
         }
 
     Output getNetForce(GhostDataFlag flag)
@@ -1557,6 +1567,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_net_force_handle,
                                                          &ParticleData::getNetForce,
                                                          flag,
+                                                         true,
                                                          3);
         }
 
@@ -1565,6 +1576,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_net_torque_handle,
                                                          &ParticleData::getNetTorqueArray,
                                                          flag,
+                                                         true,
                                                          3);
         }
 
@@ -1574,6 +1586,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
             m_net_virial_handle,
             &ParticleData::getNetVirial,
             flag,
+            true,
             6,
             0,
             std::vector<ssize_t>({6 * sizeof(Scalar), sizeof(Scalar)}));
@@ -1584,6 +1597,7 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
         return this->template getBuffer<Scalar4, Scalar>(m_net_force_handle,
                                                          &ParticleData::getNetForce,
                                                          flag,
+                                                         true,
                                                          0,
                                                          3 * sizeof(Scalar));
         }
@@ -1630,6 +1644,8 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
     std::unique_ptr<ArrayHandle<Scalar4>> m_net_torque_handle;
     };
 
+namespace detail
+    {
 #ifndef __HIPCC__
 //! Exports the BoxDim class to python
 void export_BoxDim(pybind11::module& m);
@@ -1666,5 +1682,9 @@ template<class Output> void export_LocalParticleData(pybind11::module& m, std::s
 //! Export SnapshotParticleData to python
 void export_SnapshotParticleData(pybind11::module& m);
 #endif
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

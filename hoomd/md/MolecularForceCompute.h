@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborList.h"
 #include "hoomd/ForceConstraint.h"
@@ -42,6 +40,10 @@
 
 const unsigned int NO_MOLECULE = (unsigned int)0xffffffff;
 
+namespace hoomd
+    {
+namespace md
+    {
 class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
     {
     public:
@@ -133,35 +135,50 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
     GlobalVector<unsigned int> m_molecule_tag; //!< Molecule tag per particle tag
     unsigned int m_n_molecules_global;         //!< Global number of molecules
 
-    bool m_dirty; //!< True if we need to rebuild indices
+    bool m_rebuild_molecules; //!< True if we need to rebuild indices
 
     //! Helper function to check if particles have been sorted and rebuild indices if necessary
     virtual void checkParticlesSorted()
         {
-        if (m_dirty)
+        if (m_rebuild_molecules)
             {
             // rebuild molecule list
             initMolecules();
-            m_dirty = false;
+            m_rebuild_molecules = false;
             }
         }
 
     private:
-    GlobalVector<unsigned int> m_molecule_list;   //!< 2D Array of molecule members
-    GlobalVector<unsigned int> m_molecule_length; //!< List of molecule lengths
-    GlobalVector<unsigned int> m_molecule_order;  //!< Order in molecule by local ptl idx
-    GlobalVector<unsigned int> m_molecule_idx;    //!< Reverse-lookup into molecule list
+    /// 2D Array of molecule members. Use m_molecule_indexer to index into this array. The data
+    /// stored is
+    /// m_molecule_list[
+    ///     m_molecule_indexer(particle_molecule_index, molecule_index)
+    /// ] == local_particle_index
+    GlobalVector<unsigned int> m_molecule_list;
+
+    /// List of molecule lengths
+    GlobalVector<unsigned int> m_molecule_length;
+
+    /// Index of particle in a molecule. Accessed through local particle index.
+    GlobalVector<unsigned int> m_molecule_order;
+
+    /// Reverse-lookup into molecule list, specifically
+    /// m_molecule_idx[particle_index] == / molecule_index (note that this is the temporary
+    /// particle index not the permanent particle tag).
+    GlobalVector<unsigned int> m_molecule_idx;
 
 #ifdef ENABLE_HIP
     std::unique_ptr<Autotuner>
         m_tuner_fill; //!< Autotuner for block size for filling the molecule table
 #endif
 
-    Index2D m_molecule_indexer; //!< Index of the molecule table
+    /// Functor for indexing into a 1D array as if it were a 2-D array. Index is
+    /// [constituent_number, molecule_number].
+    Index2D m_molecule_indexer;
 
-    void setDirty()
+    void setRebuildMolecules()
         {
-        m_dirty = true;
+        m_rebuild_molecules = true;
         }
 
     //! construct a list of local molecules
@@ -177,7 +194,13 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
 #endif
     };
 
+namespace detail
+    {
 //! Exports the MolecularForceCompute to python
 void export_MolecularForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

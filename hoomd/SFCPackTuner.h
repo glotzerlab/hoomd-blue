@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file SFCPackTuner.h
     \brief Declares the SFCPackTuner class
@@ -22,6 +20,8 @@
 #ifndef __SFCPACK_UPDATER_H__
 #define __SFCPACK_UPDATER_H__
 
+namespace hoomd
+    {
 //! Sort the particles
 /*! Implements an algorithm that reorders particles in the ParticleData so that particles
     near each other in space become near each other in memory. This transformation improves
@@ -114,9 +114,20 @@ class PYBIND11_EXPORT SFCPackTuner : public Tuner
     std::vector<unsigned int> m_sort_order; //!< Generated sort order of the particles
     std::vector<std::pair<unsigned int, unsigned int>> m_particle_bins; //!< Binned particles
     std::shared_ptr<Trigger> m_trigger;
+
+#ifdef ENABLE_MPI
+    /// The systems's communicator.
+    std::shared_ptr<Communicator> m_comm;
+#endif
     };
 
+namespace detail
+    {
 //! Export the SFCPackTuner class to python
 void export_SFCPackTuner(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

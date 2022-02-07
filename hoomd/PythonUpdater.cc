@@ -1,8 +1,13 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "PythonUpdater.h"
 
 #include <exception>
 #include <string>
 
+namespace hoomd
+    {
 PythonUpdater::PythonUpdater(std::shared_ptr<SystemDefinition> sysdef, pybind11::object updater)
     : Updater(sysdef)
     {
@@ -31,8 +36,14 @@ PDataFlags PythonUpdater::getRequestedPDataFlags()
     return m_flags;
     }
 
+namespace detail
+    {
 void export_PythonUpdater(pybind11::module& m)
     {
     pybind11::class_<PythonUpdater, Updater, std::shared_ptr<PythonUpdater>>(m, "PythonUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, pybind11::object>());
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

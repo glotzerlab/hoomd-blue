@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BoxResizeUpdater.cc
     \brief Defines the BoxResizeUpdater class
@@ -14,8 +12,9 @@
 #include <stdexcept>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 /*! \param sysdef System definition containing the particle data to set the box size on
     \param Lx length of the x dimension over time
     \param Ly length of the y dimension over time
@@ -29,8 +28,9 @@ BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
                                    pybind11::object box2,
                                    std::shared_ptr<Variant> variant,
                                    std::shared_ptr<ParticleGroup> group)
-    : Updater(sysdef), m_py_box1(box1), m_py_box2(box2), m_box1(getBoxDimFromPyObject(box1)),
-      m_box2(getBoxDimFromPyObject(box2)), m_variant(variant), m_group(group)
+    : Updater(sysdef), m_py_box1(box1), m_py_box2(box2),
+      m_box1(detail::getBoxDimFromPyObject(box1)), m_box2(detail::getBoxDimFromPyObject(box2)),
+      m_variant(variant), m_group(group)
     {
     assert(m_pdata);
     assert(m_variant);
@@ -46,14 +46,14 @@ BoxResizeUpdater::~BoxResizeUpdater()
 void BoxResizeUpdater::setPyBox1(pybind11::object box1)
     {
     m_py_box1 = box1;
-    m_box1 = getBoxDimFromPyObject(box1);
+    m_box1 = detail::getBoxDimFromPyObject(box1);
     }
 
 /// Set a new final box from a python object
 void BoxResizeUpdater::setPyBox2(pybind11::object box2)
     {
     m_py_box2 = box2;
-    m_box2 = getBoxDimFromPyObject(box2);
+    m_box2 = detail::getBoxDimFromPyObject(box2);
     }
 
 /// Get the current box based on the timestep
@@ -146,14 +146,18 @@ void BoxResizeUpdater::update(uint64_t timestep)
         m_prof->pop();
     }
 
+namespace detail
+    {
 BoxDim& getBoxDimFromPyObject(pybind11::object box)
     {
     return box.attr("_cpp_obj").cast<BoxDim&>();
     }
 
-void export_BoxResizeUpdater(py::module& m)
+void export_BoxResizeUpdater(pybind11::module& m)
     {
-    py::class_<BoxResizeUpdater, Updater, std::shared_ptr<BoxResizeUpdater>>(m, "BoxResizeUpdater")
+    pybind11::class_<BoxResizeUpdater, Updater, std::shared_ptr<BoxResizeUpdater>>(
+        m,
+        "BoxResizeUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             pybind11::object,
                             pybind11::object,
@@ -167,3 +171,7 @@ void export_BoxResizeUpdater(py::module& m)
                                { return method->getGroup()->getFilter(); })
         .def("get_current_box", &BoxResizeUpdater::getCurrentBox);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

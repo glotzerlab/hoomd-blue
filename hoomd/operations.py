@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement a storage and management class for HOOMD-blue operations.
 
@@ -45,11 +44,11 @@ class Operations(Collection):
     The types of operations which can be added to an `Operations` object are
     tuners, updaters, integrators, writers, and computes. An `Operations` can
     only ever hold one integrator at a time. On the other hand, an `Operations`
-    object can hold any number of tuners, updaters, writers, or computes. To
-    see examples of these types of operations see `hoomd.tune` (tuners),
+    object can hold any number of tuners, updaters, writers, or computes. To see
+    examples of these types of operations see `hoomd.tune` (tuners),
     `hoomd.update` (updaters), `hoomd.hpmc.integrate` or `hoomd.md.Integrator`
-    (integrators), `hoomd.write` (writers), and `hoomd.md.thermo`
-    (computes).
+    (integrators), `hoomd.write` (writers), and
+    `hoomd.md.compute.ThermodynamicQuantities` (computes).
 
     A given instance of an operation class can only be added to a single
     `Operations` container. Likewise, a single instance cannot be added to the
@@ -235,7 +234,8 @@ class Operations(Collection):
 
     def __len__(self):
         """Return the number of operations contained in this collection."""
-        return len(list(self))
+        base_len = len(self._writers) + len(self._updaters) + len(self._tuners)
+        return base_len + (1 if self._integrator is not None else 0)
 
     @property
     def integrator(self):
@@ -266,7 +266,6 @@ class Operations(Collection):
             if op is not None:
                 op._attach()
         if old_ref is not None:
-            old_ref._notify_disconnect(self._simulation)
             old_ref._detach()
             old_ref._remove()
 

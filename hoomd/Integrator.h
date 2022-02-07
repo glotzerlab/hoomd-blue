@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
@@ -12,7 +12,6 @@
 #include "HalfStepHook.h"
 #include "ParticleGroup.h"
 #include "Updater.h"
-#include "md/ForceComposite.h"
 #include <pybind11/pybind11.h>
 #include <string>
 #include <vector>
@@ -21,33 +20,34 @@
 #include <hip/hip_runtime.h>
 #endif
 
+namespace hoomd
+    {
 /// Base class that defines an integrator
 /** An Integrator steps the entire simulation forward one time step in time.
     Prior to calling update(timestep), the system is at time step \a timestep.
     After the call to update completes, the system is at \a timestep + 1.
 
-    All integrators have the common property that they add up many forces to
-    get the net force on each particle. This task is performed by the
-    base class Integrator. Similarly, all integrators share the
-    property that they have a time step, \a deltaT.
+    All integrators have the common property that they add up many forces to get the net force on
+    each particle. This task is performed by the base class Integrator. Similarly, all integrators
+    share the property that they have a time step, \a deltaT.
 
-    Any number of ForceComputes can be used to specify the net force
-    for use with this integrator. They are added via calling
-    addForceCompute(). Any number of forces can be added in this way.
+    Any number of ForceComputes can be used to specify the net force for use with this integrator.
+    They are added through m_forces accessed via getForces. Any number of forces can be added in
+    this way.
 
-    All forces added via addForceCompute() are computed independently and then totaled up to
-   calculate the net force and energy on each particle. Constraint forces (ForceConstraint) are
-   unique in that they need to be computed \b after the net forces is already available. To
-   implement this behavior, call addForceConstraint() to add any number of constraint forces. All
-   constraint forces will be computed independently and will be able to read the current
-   unconstrained net force. Separate constraint forces should not overlap. Degrees of freedom
-   removed via the constraint forces can be totaled up with a call to getNDOFRemoved for convenience
-   in derived classes implementing correct counting in getTranslationalDOF() and getRotationalDOF().
+    All forces added to m_forces are computed independently and then totaled up to calculate the net
+    force and energy on each particle. Constraint forces (ForceConstraint) are unique in that they
+    need to be computed \b after the net forces is already available. To implement this behavior,
+    add constraint forces to m_constraint_forces through getConstraintForces. All constraint forces
+    will be computed independently and will be able to read the current unconstrained net force.
+    The particles that separate constraint forces interact with should not overlap. Degrees of
+    freedom removed via the constraint forces can be totaled up with a call to getNDOFRemoved for
+    convenience in derived classes implementing correct counting in getTranslationalDOF() and
+    getRotationalDOF().
 
-    Integrators take "ownership" of the particle's accelerations. Any other updater
-    that modifies the particles accelerations will produce undefined results. If
-    accelerations are to be modified, they must be done through forces, and added to
-    an Integrator via addForceCompute().
+    Integrators take "ownership" of the particle's accelerations. Any other updater that modifies
+    the particles accelerations will produce undefined results. If accelerations are to be modified,
+    they must be done through forces, and added to an Integrator via the m_forces std::vector.
 
     No such ownership is taken of the particle positions and velocities. Other Updaters
     can modify particle positions and velocities as they wish. Those updates will be taken
@@ -69,17 +69,11 @@ class PYBIND11_EXPORT Integrator : public Updater
     /// Take one timestep forward
     virtual void update(uint64_t timestep);
 
-    /// Add a ForceCompute to the list
-    virtual void addForceCompute(std::shared_ptr<ForceCompute> fc);
-
     /// Get the list of force computes
     std::vector<std::shared_ptr<ForceCompute>>& getForces()
         {
         return m_forces;
         }
-
-    /// Add a ForceConstraint to the list
-    virtual void addForceConstraint(std::shared_ptr<ForceConstraint> fc);
 
     /// Get the list of force computes
     std::vector<std::shared_ptr<ForceConstraint>>& getConstraintForces()
@@ -90,10 +84,7 @@ class PYBIND11_EXPORT Integrator : public Updater
     /// Set HalfStepHook
     virtual void setHalfStepHook(std::shared_ptr<HalfStepHook> hook);
 
-    /// Removes all ForceComputes from the list
-    virtual void removeForceComputes();
-
-    /// Removes HalfStepHook
+    // Removes HalfStepHook
     virtual void removeHalfStepHook();
 
     /// Change the timestep
@@ -133,18 +124,13 @@ class PYBIND11_EXPORT Integrator : public Updater
     /// Count the total number of degrees of freedom removed by all constraint forces
     Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
 
-    /// helper function to compute total momentum
-    virtual Scalar computeTotalMomentum(uint64_t timestep);
+    /// Compute the linear momentum of the system
+    virtual vec3<double> computeLinearMomentum();
 
     /// Prepare for the run
     virtual void prepRun(uint64_t timestep);
 
 #ifdef ENABLE_MPI
-    /// Set the communicator to use
-    /** @param comm The Communicator
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm);
-
     /// Callback for pre-computing the forces
     void computeCallback(uint64_t timestep);
 #endif
@@ -166,30 +152,30 @@ class PYBIND11_EXPORT Integrator : public Updater
     void computeAccelerations(uint64_t timestep);
 
     /// helper function to compute net force/virial
-    void computeNetForce(uint64_t timestep);
+    virtual void computeNetForce(uint64_t timestep);
 
 #ifdef ENABLE_HIP
     /// helper function to compute net force/virial on the GPU
-    void computeNetForceGPU(uint64_t timestep);
+    virtual void computeNetForceGPU(uint64_t timestep);
 #endif
 
 #ifdef ENABLE_MPI
     /// helper function to determine the ghost communication flags
-    CommFlags determineFlags(uint64_t timestep);
+    virtual CommFlags determineFlags(uint64_t timestep);
+
+    /// The systems's communicator.
+    std::shared_ptr<Communicator> m_comm;
 #endif
 
     /// Check if any forces introduce anisotropic degrees of freedom
-    bool getAnisotropic();
-
-    private:
-#ifdef ENABLE_MPI
-    /// Connection to Communicator to request communication flags
-    bool m_request_flags_connected = false;
-
-    /// Track if we have already connected signals
-    bool m_signals_connected = false;
-#endif
+    virtual bool areForcesAnisotropic();
     };
 
+namespace detail
+    {
 /// Exports the NVEUpdater class to python
 void export_Integrator(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd

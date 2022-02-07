@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HPMC updaters."""
 
@@ -20,8 +19,8 @@ class BoxMC(Updater):
 
     Args:
         betaP (`float` or :py:mod:`hoomd.variant.Variant`):
-            :math:`\frac{p}{k_{\mathrm{B}}T}` (units of inverse area in 2D or
-            inverse volume in 3D).
+            :math:`\frac{p}{k_{\mathrm{B}}T}` :math:`[\mathrm{length}^{-2}]`
+            in 2D or :math:`[\mathrm{length}^{-3}]` in 3D.
         trigger (hoomd.trigger.Trigger): Select the timesteps to perform box
             trial moves.
 
@@ -36,6 +35,11 @@ class BoxMC(Updater):
     a box trial move is proposed, all the particle positions are scaled into the
     new box. Trial moves are then accepted, if they do not produce an overlap,
     according to standard Metropolis criterion and rejected otherwise.
+
+    .. rubric:: Mixed precision
+
+    `BoxMC` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
 
     Attributes:
         volume (dict):
@@ -63,7 +67,7 @@ class BoxMC(Updater):
             * ``weight`` (float) - Maximum change of HOOMD-blue box parameters
               Lx, Ly, and Lz.
             * ``delta`` (tuple[float, float, float]) - Maximum change of the
-              box lengths ``(Lx, Ly, Lz)``.
+              box lengths ``(Lx, Ly, Lz)`` :math:`[\mathrm{length}]`.
 
         shear (dict):
             Parameters for isovolume box shear moves. The dictionary has the
@@ -109,7 +113,7 @@ class BoxMC(Updater):
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -141,7 +145,8 @@ class BoxMC(Updater):
 
         Note:
             The counts are reset to 0 at the start of each call to
-            `hoomd.Simulation.run`.
+            `hoomd.Simulation.run`. Before the first call to `Simulation.run`,
+            `counter` is `None`.
         """
         if not self._attached:
             return None
@@ -152,7 +157,7 @@ class BoxMC(Updater):
     def volume_moves(self):
         """tuple[int, int]: The accepted and rejected volume and length moves.
 
-        (0, 0) when not attached.
+        (0, 0) before the first call to `Simulation.run`.
         """
         counter = self.counter
         if counter is None:
@@ -168,7 +173,7 @@ class BoxMC(Updater):
     def shear_moves(self):
         """tuple[int, int]: The accepted and rejected shear moves.
 
-        (0, 0) when not attached.
+        (0, 0) before the first call to `Simulation.run`.
         """
         counter = self.counter
         if counter is None:
@@ -180,7 +185,7 @@ class BoxMC(Updater):
     def aspect_moves(self):
         """tuple[int, int]: The accepted and rejected aspect moves.
 
-        (0, 0) when not attached.
+        (0, 0) before the first call to `Simulation.run`.
         """
         counter = self.counter
         if counter is None:
@@ -354,8 +359,9 @@ class MuVT(Updater):
 
     Gibbs ensemble simulations are also supported, where particles and volumeare
     swapped between two or more boxes.  Every box correspond to one MPI
-    partition, and can therefore run on multiple ranks. See ``hoomd.comm`` and
-    the --nrank command line option for how to split a MPI task into partitions.
+    partition, and can therefore run on multiple ranks. Use the
+    ``ranks_per_partition`` argument of `hoomd.communicator.Communicator` to
+    enable partitioned simulations.
 
     Note:
         Multiple Gibbs ensembles are also supported in a single parallel job,
@@ -413,69 +419,45 @@ class MuVT(Updater):
                                 integrator._cpp_obj, self.ngibbs)
         super()._attach()
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def insert_moves(self):
         """tuple[int, int]: Count of the accepted and rejected paricle \
         insertion moves.
 
         None when not attached
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
+        counter = self._cpp_obj.getCounters(1)
+        return counter.insert
 
-        if counter is None:
-            return None
-        else:
-            return counter.insert
-
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def remove_moves(self):
         """tuple[int, int]: Count of the accepted and rejected paricle removal \
         moves.
 
         None when not attached
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
+        counter = self._cpp_obj.getCounters(1)
+        return counter.remove
 
-        if counter is None:
-            return None
-        else:
-            return counter.remove
-
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def exchange_moves(self):
         """tuple[int, int]: Count of the accepted and rejected paricle \
         exchange moves.
 
         None when not attached
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
+        counter = self._cpp_obj.getCounters(1)
+        return counter.exchange
 
-        if counter is None:
-            return None
-        else:
-            return counter.exchange
-
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def volume_moves(self):
         """tuple[int, int]: Count of the accepted and rejected paricle volume \
         moves.
 
         None when not attached
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
-
-        if counter is None:
-            return None
-        else:
-            return counter.volume
+        counter = self._cpp_obj.getCounters(1)
+        return counter.volume
 
     @log(category='object')
     def N(self):  # noqa: N802 - allow N as a function name
@@ -490,80 +472,12 @@ class MuVT(Updater):
         return N_dict
 
 
-class remove_drift:  # noqa - will be rewritten for v3
-    """Remove the center of mass drift from a system restrained on a lattice.
-
-    Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        external_lattice (:py:class:`hoomd.hpmc.field.lattice_field`): lattice
-          field where the lattice is defined.
-        period (int): the period to call the updater
-
-    The command hpmc.update.remove_drift sets up an updater that removes the
-    center of mass drift of a system every period timesteps,
-
-    Example::
-
-        mc = hpmc.integrate.convex_polyhedron(seed=seed);
-        mc.shape_param.set("A", vertices=verts)
-        mc.set_params(d=0.005, a=0.005)
-        lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice,
-                                             k=1000.0);
-        remove_drift = update.remove_drift(mc=mc, external_lattice=lattice,
-                                           period=1000);
-
-    """
-
-    def __init__(self, mc, external_lattice, period=1):
-        # initialize base class
-        # _updater.__init__(self)
-        cls = None
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            if isinstance(mc, integrate.sphere):
-                cls = _hpmc.RemoveDriftUpdaterSphere
-            elif isinstance(mc, integrate.convex_polygon):
-                cls = _hpmc.RemoveDriftUpdaterConvexPolygon
-            elif isinstance(mc, integrate.simple_polygon):
-                cls = _hpmc.RemoveDriftUpdaterSimplePolygon
-            elif isinstance(mc, integrate.convex_polyhedron):
-                cls = _hpmc.RemoveDriftUpdaterConvexPolyhedron
-            elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = _hpmc.RemoveDriftUpdaterSpheropolyhedron
-            elif isinstance(mc, integrate.ellipsoid):
-                cls = _hpmc.RemoveDriftUpdaterEllipsoid
-            elif isinstance(mc, integrate.convex_spheropolygon):
-                cls = _hpmc.RemoveDriftUpdaterSpheropolygon
-            elif isinstance(mc, integrate.faceted_sphere):
-                cls = _hpmc.RemoveDriftUpdaterFacetedEllipsoid
-            elif isinstance(mc, integrate.polyhedron):
-                cls = _hpmc.RemoveDriftUpdaterPolyhedron
-            elif isinstance(mc, integrate.sphinx):
-                cls = _hpmc.RemoveDriftUpdaterSphinx
-            elif isinstance(mc, integrate.sphere_union):
-                cls = _hpmc.RemoveDriftUpdaterSphereUnion
-            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-                cls = _hpmc.RemoveDriftUpdaterConvexPolyhedronUnion
-            elif isinstance(mc, integrate.faceted_ellipsoid_union):
-                cls = _hpmc.RemoveDriftUpdaterFacetedEllipsoidUnion
-            else:
-                hoomd.context.current.device.cpp_msg.error(
-                    "update.remove_drift: Unsupported integrator.\n")
-                raise RuntimeError("Error initializing update.remove_drift")
-        else:
-            raise RuntimeError(
-                "update.remove_drift: Error! GPU not implemented.")
-
-        self.cpp_updater = cls(hoomd.context.current.system_definition,
-                               external_lattice.cpp_compute, mc.cpp_integrator)
-        self.setupUpdater(period)
-
-
 class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
 
     Args:
-        pivot_move_ratio (float): Set the ratio between pivot and reflection
-          moves.
+        pivot_move_probability (float): Set the probability for attempting a
+                                        pivot move.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
         trigger (Trigger): Select the timesteps on which to perform cluster
@@ -587,14 +501,14 @@ class Clusters(Updater):
     algorithm is then no longer ergodic for those and needs to be combined with
     local moves.
 
+    .. rubric:: Mixed precision
 
-    .. rubric:: Threading
-
-    The `Clusters` updater support threaded execution on multiple CPU cores.
+    `Clusters` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
 
     Attributes:
-        pivot_move_ratio (float): Set the ratio between pivot and reflection
-          moves.
+        pivot_move_probability (float): Set the probability for attempting a
+                                        pivot move.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
         trigger (Trigger): Select the timesteps on which to perform cluster
@@ -603,11 +517,15 @@ class Clusters(Updater):
     _remove_for_pickling = Updater._remove_for_pickling + ('_cpp_cell',)
     _skip_for_equality = Updater._skip_for_equality | {'_cpp_cell'}
 
-    def __init__(self, pivot_move_ratio=0.5, flip_probability=0.5, trigger=1):
+    def __init__(self,
+                 pivot_move_probability=0.5,
+                 flip_probability=0.5,
+                 trigger=1):
         super().__init__(trigger)
 
-        param_dict = ParameterDict(pivot_move_ratio=float(pivot_move_ratio),
-                                   flip_probability=float(flip_probability))
+        param_dict = ParameterDict(
+            pivot_move_probability=float(pivot_move_probability),
+            flip_probability=float(flip_probability))
 
         self._param_dict.update(param_dict)
         self.instance = 0
@@ -617,7 +535,7 @@ class Clusters(Updater):
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
@@ -649,20 +567,23 @@ class Clusters(Updater):
                                     integrator._cpp_obj)
         super()._attach()
 
-    @log
+    @log(requires_run=True)
     def avg_cluster_size(self):
         """float: the typical size of clusters.
 
         None when not attached.
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
+        counter = self._cpp_obj.getCounters(1)
+        return counter.average_cluster_size
 
-        if counter is None:
-            return None
-        else:
-            return counter.average_cluster_size
+
+def _box_getter(param_dict, attr):
+    return param_dict._dict[attr]
+
+
+def _box_setter(param_dict, attr, value):
+    param_dict._dict[attr] = param_dict._type_converter[attr](value)
+    setattr(param_dict._cpp_obj, attr, param_dict._dict[attr])
 
 
 class QuickCompress(Updater):
@@ -708,13 +629,18 @@ class QuickCompress(Updater):
     of the largest particle type.
 
     Tip:
-        Use the `hoomd.hpmc.tune.MoveSizeTuner` in conjunction with
+        Use the `hoomd.hpmc.tune.MoveSize` in conjunction with
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
 
     Warning:
         When the smallest MC translational move size is 0, `QuickCompress`
         will scale the box by 1.0 and not progress toward the target box.
+
+    .. rubric:: Mixed precision
+
+    `QuickCompress` uses reduced precision floating point arithmetic when
+    checking for particle overlaps in the local particle reference frame.
 
     Attributes:
         trigger (Trigger): Update the box dimensions on triggered time steps.
@@ -741,16 +667,14 @@ class QuickCompress(Updater):
                  min_scale=0.99):
         super().__init__(trigger)
 
-        param_dict = ParameterDict(
-            max_overlaps_per_particle=float,
-            min_scale=float,
-            target_box=hoomd.data.typeconverter.OnlyTypes(
-                hoomd.Box,
-                preprocess=hoomd.data.typeconverter.box_preprocessing),
-            instance=int)
+        param_dict = ParameterDict(max_overlaps_per_particle=float,
+                                   min_scale=float,
+                                   target_box=hoomd.Box,
+                                   instance=int)
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
+        param_dict._set_special_getset("target_box", _box_getter, _box_setter)
 
         self._param_dict.update(param_dict)
 
@@ -761,7 +685,7 @@ class QuickCompress(Updater):
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        if simulation is not None:
+        if isinstance(simulation, hoomd.Simulation):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)

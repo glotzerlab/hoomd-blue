@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBD.h"
 #include "QuaternionMath.h"
@@ -14,17 +14,22 @@ using namespace hoomd;
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /** @param sysdef SystemDefinition this method will act on. Must not be NULL.
     @param group The group of particles this integration method is to work on
     @param T Temperature set point as a function of time
 */
 TwoStepBD::TwoStepBD(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<ParticleGroup> group,
-                     std::shared_ptr<Variant> T)
-    : TwoStepLangevinBase(sysdef, group, T), m_noiseless_t(false), m_noiseless_r(false)
+                     std::shared_ptr<Variant> T,
+                     bool noiseless_t,
+                     bool noiseless_r)
+    : TwoStepLangevinBase(sysdef, group, T), m_noiseless_t(noiseless_t), m_noiseless_r(noiseless_r)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBD" << endl;
     }
@@ -135,16 +140,28 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
         // into place
         box.wrap(h_pos.data[j], h_image.data[j]);
 
-        // draw a new random velocity for particle j
-        Scalar mass = h_vel.data[j].w;
-        Scalar sigma = fast::sqrt(currentTemp / mass);
-        NormalDistribution<Scalar> normal(sigma);
-        h_vel.data[j].x = normal(rng);
-        h_vel.data[j].y = normal(rng);
-        if (D > 2)
-            h_vel.data[j].z = normal(rng);
+        if (m_noiseless_t)
+            {
+            h_vel.data[j].x = h_net_force.data[j].x / gamma;
+            h_vel.data[j].y = h_net_force.data[j].y / gamma;
+            if (D > 2)
+                h_vel.data[j].z = h_net_force.data[j].z / gamma;
+            else
+                h_vel.data[j].z = 0;
+            }
         else
-            h_vel.data[j].z = 0;
+            {
+            // draw a new random velocity for particle j
+            Scalar mass = h_vel.data[j].w;
+            Scalar sigma = fast::sqrt(currentTemp / mass);
+            NormalDistribution<Scalar> normal(sigma);
+            h_vel.data[j].x = normal(rng);
+            h_vel.data[j].y = normal(rng);
+            if (D > 2)
+                h_vel.data[j].z = normal(rng);
+            else
+                h_vel.data[j].z = 0;
+            }
 
         // rotational random force and orientation quaternion updates
         if (m_aniso)
@@ -159,9 +176,9 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 vec3<Scalar> I(h_inertia.data[j]);
 
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 Scalar3 sigma_r
                     = make_scalar3(fast::sqrt(Scalar(2.0) * gamma_r.x * currentTemp / m_deltaT),
@@ -203,10 +220,20 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 h_orientation.data[j] = quat_to_scalar4(q);
 
-                // draw a new random ang_mom for particle j in body frame
-                p_vec.x = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.x))(rng);
-                p_vec.y = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.y))(rng);
-                p_vec.z = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.z))(rng);
+                if (m_noiseless_r)
+                    {
+                    p_vec.x = t.x / gamma_r.x;
+                    p_vec.y = t.y / gamma_r.y;
+                    p_vec.z = t.z / gamma_r.z;
+                    }
+                else
+                    {
+                    // draw a new random ang_mom for particle j in body frame
+                    p_vec.x = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.x))(rng);
+                    p_vec.y = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.y))(rng);
+                    p_vec.z = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.z))(rng);
+                    }
+
                 if (x_zero)
                     p_vec.x = 0;
                 if (y_zero)
@@ -236,10 +263,18 @@ void TwoStepBD::integrateStepTwo(uint64_t timestep)
     // there is no step 2 in Brownian dynamics.
     }
 
-void export_TwoStepBD(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD>>(m, "TwoStepBD")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>>());
+void export_TwoStepBD(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD>>(m, "TwoStepBD")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
+                            bool,
+                            bool>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

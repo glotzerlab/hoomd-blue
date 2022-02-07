@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_DLVO_H__
 #define __PAIR_EVALUATOR_DLVO_H__
@@ -21,10 +19,16 @@
 //! compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the DLVO pair potential
 /*! <b>General Overview</b>
 
@@ -43,13 +47,6 @@
    \f$ j \f$, and \f$ \Delta = (d_i + d_j)/2  \f$.
 
     See Israelachvili 2011, pp. 317.
-
-    The DLVO potential does not need charge, but does need diameter. Three parameters are specified
-   and stored in a Scalar4. \a kappa is placed in \a params.x and \a Z is in \a params.y and \a A in
-   \a params.z
-
-    Due to the way that DLVO modifies the cutoff condition, it will not function properly with the
-   xplor shifting mode.
 */
 class EvaluatorPairDLVO
     {
@@ -60,6 +57,12 @@ class EvaluatorPairDLVO
         Scalar kappa;
         Scalar Z;
         Scalar A;
+        Scalar a1;
+        Scalar a2;
+
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
@@ -72,11 +75,13 @@ class EvaluatorPairDLVO
 #ifndef __HIPCC__
         param_type() : kappa(0), Z(0), A(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             kappa = v["kappa"].cast<Scalar>();
             Z = v["Z"].cast<Scalar>();
             A = v["A"].cast<Scalar>();
+            a1 = v["a1"].cast<Scalar>();
+            a2 = v["a2"].cast<Scalar>();
             }
 
         pybind11::dict asDict()
@@ -85,6 +90,8 @@ class EvaluatorPairDLVO
             v["kappa"] = kappa;
             v["Z"] = Z;
             v["A"] = A;
+            v["a1"] = a1;
+            v["a2"] = a2;
             return v;
             }
 #endif
@@ -98,27 +105,25 @@ class EvaluatorPairDLVO
     DEVICE EvaluatorPairDLVO(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
         : rsq(_rsq), rcutsq(_rcutsq), kappa(_params.kappa), Z(_params.Z), A(_params.A)
         {
+        radsum = _params.a1 + _params.a2;
+        radsub = _params.a1 - _params.a2;
+        radprod = _params.a1 * _params.a2;
+        radsumsq = _params.a1 * _params.a1 + _params.a2 * _params.a2;
+        radsubsq = _params.a1 * _params.a1 - _params.a2 * _params.a2;
+        delta = radsum - Scalar(1.0);
         }
 
     //! DLVO uses diameter
     DEVICE static bool needsDiameter()
         {
-        return true;
+        return false;
         }
 
     //! Accept the optional diameter values
     /*! \param di Diameter of particle i
         \param dj Diameter of particle j
     */
-    DEVICE void setDiameter(Scalar di, Scalar dj)
-        {
-        radsum = (di + dj) / Scalar(2.0);
-        radsub = (di - dj) / Scalar(2.0);
-        radprod = (di * dj) / Scalar(4.0);
-        radsumsq = (di * di + dj * dj) / Scalar(4.0);
-        radsubsq = (di * di - dj * dj) / Scalar(4.0);
-        delta = radsum - Scalar(1.0);
-        }
+    DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! DLVO doesn't use charge
     DEVICE static bool needsCharge()
@@ -149,7 +154,7 @@ class EvaluatorPairDLVO
         Scalar rcut = Scalar(1.0) / rcutinv;
 
         // compute the force divided by r in force_divr
-        if (r < (rcut + delta) && kappa != 0)
+        if (r < rcut && kappa != 0)
             {
             Scalar rmds = r - radsum;
             Scalar rmdsqs = r * r - radsum * radsum;
@@ -171,7 +176,7 @@ class EvaluatorPairDLVO
             pair_eng = r * forcerep_divr / kappa - engt1 - engt2 - engt3;
             if (energy_shift)
                 {
-                Scalar rcutt = rcut + delta;
+                Scalar rcutt = rcut;
                 Scalar rmdscut = rcutt - radsum;
                 Scalar rmdsqscut = rcutt * rcutt - radsum * radsum;
                 Scalar rmdsqmcut = rcutt * rcutt - radsub * radsub;
@@ -189,6 +194,16 @@ class EvaluatorPairDLVO
             }
         else
             return false;
+        }
+
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
         }
 
 #ifndef __HIPCC__
@@ -219,5 +234,8 @@ class EvaluatorPairDLVO
     Scalar radsubsq; //!< radsubsq parameter extracted from the call to setDiameter
     Scalar delta;    //!< Diameter sum minus one
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DLVO_H__

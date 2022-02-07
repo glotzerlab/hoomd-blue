@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 hoomd.version
 -------------
 
@@ -5,16 +8,3 @@ hoomd.version
 
 .. automodule:: hoomd.version
     :synopsis: Version and build information.
-    :members: compile_date,
-              compile_flags,
-              cxx_compiler,
-              git_branch,
-              git_sha1,
-              gpu_api_version,
-              gpu_enabled,
-              gpu_platform,
-              install_dir,
-              mpi_enabled,
-              source_dir,
-              tbb_enabled,
-              version

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_EXTERNAL_ELECTRIC_FIELD_H__
 #define __EVALUATOR_EXTERNAL_ELECTRIC_FIELD_H__
@@ -27,6 +25,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating an electric field
 /*! <b>General Overview</b>
     The external potential \f$V(\vec{r}) \f$ is implemented using the following formula:
@@ -41,10 +43,31 @@ class EvaluatorExternalElectricField
     {
     public:
     //! type of parameters this external potential accepts
-    typedef struct param
+    struct param_type
         {
-        } param_type;
-    typedef Scalar3 field_type;
+        Scalar3 E;
+
+#ifndef __HIPCC__
+        param_type() : E(make_scalar3(0, 0, 0)) { }
+
+        param_type(pybind11::object params)
+            {
+            pybind11::tuple py_E(params);
+            E.x = pybind11::cast<Scalar>(py_E[0]);
+            E.y = pybind11::cast<Scalar>(py_E[1]);
+            E.z = pybind11::cast<Scalar>(py_E[2]);
+            }
+
+        pybind11::object toPython()
+            {
+            pybind11::tuple params;
+            params = pybind11::make_tuple(E.x, E.y, E.z);
+            return std::move(params);
+            }
+#endif // ifndef __HIPCC__
+        } __attribute__((aligned(16)));
+
+    typedef void* field_type;
 
     //! Constructs the constraint evaluator
     /*! \param X position of particle
@@ -55,7 +78,7 @@ class EvaluatorExternalElectricField
                                           const BoxDim& box,
                                           const param_type& params,
                                           const field_type& field)
-        : m_pos(X), m_box(box), m_field(field)
+        : m_pos(X), m_box(box), m_E(params.E)
         {
         }
 
@@ -64,17 +87,19 @@ class EvaluatorExternalElectricField
         {
         return false;
         }
+
     //! Accept the optional diameter value
     /*! \param di Diameter of particle i
      */
     DEVICE void setDiameter(Scalar di) { }
 
-    //! External Periodic doesn't need charges
+    //! ExternalElectricField needs charges
     DEVICE static bool needsCharge()
         {
         return true;
         }
-    //! Accept the optional diameter value
+
+    //! Accept the optional charge value
     /*! \param qi Charge of particle i
      */
     DEVICE void setCharge(Scalar qi)
@@ -97,8 +122,8 @@ class EvaluatorExternalElectricField
     */
     DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
         {
-        F = m_qi * m_field;
-        energy = -m_qi * dot(m_field, m_pos);
+        F = m_qi * m_E;
+        energy = -m_qi * dot(m_E, m_pos);
 
         virial[0] = F.x * m_pos.x;
         virial[1] = F.x * m_pos.y;
@@ -119,10 +144,13 @@ class EvaluatorExternalElectricField
 #endif
 
     protected:
-    Scalar3 m_pos;   //!< particle position
-    BoxDim m_box;    //!< box dimensions
-    Scalar m_qi;     //!< particle charge
-    Scalar3 m_field; //!< the field vector
+    Scalar3 m_pos; //!< particle position
+    BoxDim m_box;  //!< box dimensions
+    Scalar m_qi;   //!< particle charge
+    Scalar3 m_E;   //!< the field vector
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__

@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef __PAIR_EVALUATOR_OPP_H__
 #define __PAIR_EVALUATOR_OPP_H__
 
@@ -16,10 +19,16 @@
 // included into the host compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the oscillating pair potential
 /*! <b>General Overview</b>
 
@@ -45,6 +54,10 @@ class EvaluatorPairOPP
         Scalar k;
         Scalar phi;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
         void set_memory_hint() const
@@ -56,7 +69,7 @@ class EvaluatorPairOPP
 #ifndef __HIPCC__
         param_type() : C1(0), C2(0), eta1(0), eta2(0), k(0), phi(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             C1 = v["C1"].cast<Scalar>();
             C2 = v["C2"].cast<Scalar>();
@@ -161,6 +174,16 @@ class EvaluatorPairOPP
             }
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -181,5 +204,8 @@ class EvaluatorPairOPP
     Scalar rcutsq;     /// Stored rcutsq from the constructor
     param_type params; /// Stored pair parameters for a given type pair
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_OPP_H__

@@ -1,10 +1,9 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan This file is
-# part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Choose which hardware device(s) should execute the simulation."""
 
 import contextlib
-import os
 import hoomd
 from hoomd import _hoomd
 
@@ -28,13 +27,7 @@ class Device:
         Most users should employ MPI for parallel simulations.
     """
 
-    def __init__(self, communicator, notice_level, msg_file, shared_msg_file):
-        # check shared_msg_file
-        if shared_msg_file is not None:
-            if not hoomd.version.mpi_enabled:
-                raise RuntimeError(
-                    "Shared log files are only available in MPI builds.")
-
+    def __init__(self, communicator, notice_level, msg_file):
         # MPI communicator
         if communicator is None:
             self._comm = hoomd.communicator.Communicator()
@@ -43,8 +36,7 @@ class Device:
 
         # c++ messenger object
         self._cpp_msg = _create_messenger(self.communicator.cpp_mpi_conf,
-                                          notice_level, msg_file,
-                                          shared_msg_file)
+                                          notice_level, msg_file)
 
         # c++ execution configuration mirror class
         self._cpp_exec_conf = None
@@ -83,6 +75,20 @@ class Device:
         Set `msg_file` to a filename to redirect these messages to that file.
 
         Set `msg_file` to `None` to use the system's ``stdout`` and ``stderr``.
+
+        Note:
+            All MPI ranks within a given partition must open the same file.
+            To ensure this, the given file name on rank 0 is broadcast to the
+            other ranks. Different partitions may open separate files. For
+            example:
+
+            .. code::
+
+                communicator = hoomd.communicator.Communicator(
+                    ranks_per_partition=2)
+                filename = f'messages.{communicator.partition}'
+                device = hoomd.device.GPU(communicator=communicator,
+                                          msg_file=filename)
         """
         return self._msg_file
 
@@ -96,7 +102,7 @@ class Device:
 
     @property
     def devices(self):
-        """List[str]: Descriptions of the active hardware devices."""
+        """list[str]: Descriptions of the active hardware devices."""
         return self._cpp_exec_conf.getActiveDevices()
 
     @property
@@ -117,15 +123,11 @@ class Device:
             self._cpp_exec_conf.setNumThreads(int(num_cpu_threads))
 
 
-def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
+def _create_messenger(mpi_config, notice_level, msg_file):
     msg = _hoomd.Messenger(mpi_config)
 
     # try to detect if we're running inside an MPI job
     inside_mpi_job = mpi_config.getNRanksGlobal() > 1
-    if ('OMPI_COMM_WORLD_RANK' in os.environ
-            or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ
-            or 'PMI_RANK' in os.environ or 'ALPS_APP_PE' in os.environ):
-        inside_mpi_job = True
 
     # only open python stdout/stderr in non-MPI runs
     if not inside_mpi_job:
@@ -137,12 +139,6 @@ def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
     if msg_file is not None:
         msg.openFile(msg_file)
 
-    if shared_msg_file is not None:
-        if not hoomd.version.mpi_enabled:
-            raise RuntimeError(
-                'Shared log files are only available in MPI builds.')
-        msg.setSharedFile(shared_msg_file)
-
     return msg
 
 
@@ -150,7 +146,7 @@ class GPU(Device):
     """Select a GPU or GPU(s) to execute simulations.
 
     Args:
-        gpu_ids (List[int]): List of GPU ids to use. Set to `None` to let the
+        gpu_ids (list[int]): List of GPU ids to use. Set to `None` to let the
             driver auto-select a GPU.
 
         num_cpu_threads (int): Number of TBB threads. Set to `None` to
@@ -161,11 +157,8 @@ class GPU(Device):
             MPI ranks.
 
         msg_file (str): Filename to write messages to. When `None`, use
-            `sys.stdout` and `sys.stderr`.
-
-        shared_msg_file (str): Prefix of filename to write message to (HOOMD
-            will append the MPI partition #). When `None`, messages
-            from all partitions are merged.
+            `sys.stdout` and `sys.stderr`. Messages from multiple MPI
+            ranks are collected into this file.
 
         notice_level (int): Minimum level of messages to print.
 
@@ -210,10 +203,9 @@ class GPU(Device):
                  num_cpu_threads=None,
                  communicator=None,
                  msg_file=None,
-                 shared_msg_file=None,
                  notice_level=2):
 
-        super().__init__(communicator, notice_level, msg_file, shared_msg_file)
+        super().__init__(communicator, notice_level, msg_file)
 
         if gpu_ids is None:
             gpu_ids = []
@@ -253,6 +245,15 @@ class GPU(Device):
     def gpu_error_checking(self, new_bool):
         self._cpp_exec_conf.setCUDAErrorChecking(new_bool)
 
+    @property
+    def compute_capability(self):
+        """tuple(int, int): Compute capability of the device.
+
+        The tuple includes the major and minor versions of the CUDA compute
+        capability: ``(major, minor)``.
+        """
+        return self._cpp_exec_conf.getComputeCapability(0)
+
     @staticmethod
     def is_available():
         """Test if the GPU device is available.
@@ -267,7 +268,7 @@ class GPU(Device):
         """Get the available GPU devices.
 
         Returns:
-            List[str]: Descriptions of the available devices (if any).
+            list[str]: Descriptions of the available devices (if any).
         """
         return list(_hoomd.ExecutionConfiguration.getCapableDevices())
 
@@ -276,7 +277,7 @@ class GPU(Device):
         """Get messages describing the reasons why devices are unavailable.
 
         Returns:
-            List[str]: Messages indicating why some devices are unavailable
+            list[str]: Messages indicating why some devices are unavailable
             (if any).
         """
         return list(_hoomd.ExecutionConfiguration.getScanMessages())
@@ -315,11 +316,8 @@ class CPU(Device):
             MPI ranks.
 
         msg_file (str): Filename to write messages to. When `None` use
-            `sys.stdout` and `sys.stderr`.
-
-        shared_msg_file (str): Prefix of filename to write message to (HOOMD
-            will append the MPI partition #). When `None`, messages
-            from all partitions are merged.
+            `sys.stdout` and `sys.stderr`. Messages from multiple MPI
+            ranks are collected into this file.
 
         notice_level (int): Minimum level of messages to print.
 
@@ -332,10 +330,9 @@ class CPU(Device):
                  num_cpu_threads=None,
                  communicator=None,
                  msg_file=None,
-                 shared_msg_file=None,
                  notice_level=2):
 
-        super().__init__(communicator, notice_level, msg_file, shared_msg_file)
+        super().__init__(communicator, notice_level, msg_file)
 
         self._cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.CPU, [],
@@ -345,10 +342,7 @@ class CPU(Device):
             self.num_cpu_threads = num_cpu_threads
 
 
-def auto_select(communicator=None,
-                msg_file=None,
-                shared_msg_file=None,
-                notice_level=2):
+def auto_select(communicator=None, msg_file=None, notice_level=2):
     """Automatically select the hardware device.
 
     Args:
@@ -358,11 +352,8 @@ def auto_select(communicator=None,
             MPI ranks.
 
         msg_file (str): Filename to write messages to. When `None` use
-            `sys.stdout` and `sys.stderr`.
-
-        shared_msg_file (str): Prefix of filename to write message to (HOOMD
-            will append the MPI partition #). When `None`, messages
-            from all partitions are merged.
+            `sys.stdout` and `sys.stderr`. Messages from multiple MPI
+            ranks are collected into this file.
 
         notice_level (int): Minimum level of messages to print.
 
@@ -371,7 +362,6 @@ def auto_select(communicator=None,
     """
     # Set class according to C++ object
     if len(GPU.get_available_devices()) > 0:
-        return GPU(None, None, communicator, msg_file, shared_msg_file,
-                   notice_level)
+        return GPU(None, None, communicator, msg_file, notice_level)
     else:
-        return CPU(None, communicator, msg_file, shared_msg_file, notice_level)
+        return CPU(None, communicator, msg_file, notice_level)

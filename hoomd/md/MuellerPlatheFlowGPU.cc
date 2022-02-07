@@ -1,10 +1,9 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MuellerPlatheFlowGPU.h"
 #include "hoomd/HOOMDMPI.h"
 
-namespace py = pybind11;
 using namespace std;
 
 //! \file MuellerPlatheFlowGPU.cc Implementation of GPU version of MuellerPlatheFlow.
@@ -12,22 +11,28 @@ using namespace std;
 #ifdef ENABLE_HIP
 #include "MuellerPlatheFlowGPU.cuh"
 
+namespace hoomd
+    {
+namespace md
+    {
 MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
                                            std::shared_ptr<ParticleGroup> group,
                                            std::shared_ptr<Variant> flow_target,
-                                           const flow_enum::Direction slab_direction,
-                                           const flow_enum::Direction flow_direction,
+                                           std::string slab_direction_str,
+                                           std::string flow_direction_str,
                                            const unsigned int N_slabs,
                                            const unsigned int min_slab,
-                                           const unsigned int max_slab)
+                                           const unsigned int max_slab,
+                                           Scalar flow_epsilon)
     : MuellerPlatheFlow(sysdef,
                         group,
                         flow_target,
-                        slab_direction,
-                        flow_direction,
+                        slab_direction_str,
+                        flow_direction_str,
                         N_slabs,
                         min_slab,
-                        max_slab)
+                        max_slab,
+                        flow_epsilon)
     {
     m_exec_conf->msg->notice(5) << "Constructing MuellerPlatheFlowGPU " << endl;
     if (!m_exec_conf->isCUDAEnabled())
@@ -52,12 +57,12 @@ MuellerPlatheFlowGPU::~MuellerPlatheFlowGPU(void)
     m_exec_conf->msg->notice(5) << "Destroying MuellerPlatheFlowGPU " << endl;
     }
 
-void MuellerPlatheFlowGPU::search_min_max_velocity(void)
+void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
     {
     const unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-    if (!this->has_max_slab() and !this->has_min_slab())
+    if (!this->hasMaxSlab() and !this->hasMinSlab())
         return;
     if (m_prof)
         m_prof->push("MuellerPlatheFlowGPU::search");
@@ -81,23 +86,23 @@ void MuellerPlatheFlowGPU::search_min_max_velocity(void)
     const BoxDim& gl_box = m_pdata->getGlobalBox();
 
     m_tuner->begin();
-    gpu_search_min_max_velocity(group_size,
-                                d_vel.data,
-                                d_pos.data,
-                                d_tag.data,
-                                d_rtag.data,
-                                d_group_members.data,
-                                gl_box,
-                                this->get_N_slabs(),
-                                this->get_max_slab(),
-                                this->get_min_slab(),
-                                &m_last_max_vel,
-                                &m_last_min_vel,
-                                this->has_max_slab(),
-                                this->has_min_slab(),
-                                m_tuner->getParam(),
-                                m_flow_direction,
-                                m_slab_direction);
+    kernel::gpu_search_min_max_velocity(group_size,
+                                        d_vel.data,
+                                        d_pos.data,
+                                        d_tag.data,
+                                        d_rtag.data,
+                                        d_group_members.data,
+                                        gl_box,
+                                        this->getNSlabs(),
+                                        this->getMaxSlab(),
+                                        this->getMinSlab(),
+                                        &m_last_max_vel,
+                                        &m_last_min_vel,
+                                        this->hasMaxSlab(),
+                                        this->hasMinSlab(),
+                                        m_tuner->getParam(),
+                                        m_flow_direction,
+                                        m_slab_direction);
     m_tuner->end();
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -106,7 +111,7 @@ void MuellerPlatheFlowGPU::search_min_max_velocity(void)
         m_prof->pop();
     }
 
-void MuellerPlatheFlowGPU::update_min_max_velocity(void)
+void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
     {
     if (m_prof)
         m_prof->push("MuellerPlatheFlowGPU::update");
@@ -118,12 +123,12 @@ void MuellerPlatheFlowGPU::update_min_max_velocity(void)
                                access_mode::readwrite);
     const unsigned int Ntotal = m_pdata->getN() + m_pdata->getNGhosts();
 
-    gpu_update_min_max_velocity(d_rtag.data,
-                                d_vel.data,
-                                Ntotal,
-                                m_last_max_vel,
-                                m_last_min_vel,
-                                m_flow_direction);
+    kernel::gpu_update_min_max_velocity(d_rtag.data,
+                                        d_vel.data,
+                                        Ntotal,
+                                        m_last_max_vel,
+                                        m_last_min_vel,
+                                        m_flow_direction);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -132,18 +137,26 @@ void MuellerPlatheFlowGPU::update_min_max_velocity(void)
         m_prof->pop();
     }
 
-void export_MuellerPlatheFlowGPU(py::module& m)
+namespace detail
     {
-    py::class_<MuellerPlatheFlowGPU, MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlowGPU>>(
-        m,
-        "MuellerPlatheFlowGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>,
-                      const flow_enum::Direction,
-                      const flow_enum::Direction,
-                      const unsigned int,
-                      const unsigned int,
-                      const unsigned int>());
+void export_MuellerPlatheFlowGPU(pybind11::module& m)
+    {
+    pybind11::class_<MuellerPlatheFlowGPU,
+                     MuellerPlatheFlow,
+                     std::shared_ptr<MuellerPlatheFlowGPU>>(m, "MuellerPlatheFlowGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
+                            std::string,
+                            std::string,
+                            const unsigned int,
+                            const unsigned int,
+                            const unsigned int,
+                            Scalar>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif // ENABLE_HIP

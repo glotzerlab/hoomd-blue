@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file BounceBackNVE.h
@@ -19,6 +17,8 @@
 #include "hoomd/md/IntegrationMethodTwoStep.h"
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Integrator that applies bounce-back boundary conditions in NVE.
@@ -33,7 +33,8 @@ namespace mpcd
  * Verlet algorithm after the reflections are completed. This reflection procedure may induce a
  * small amount of slip near the surface from the acceleration.
  */
-template<class Geometry> class PYBIND11_EXPORT BounceBackNVE : public ::IntegrationMethodTwoStep
+template<class Geometry>
+class PYBIND11_EXPORT BounceBackNVE : public hoomd::md::IntegrationMethodTwoStep
     {
     public:
     //! Constructor
@@ -296,19 +297,19 @@ namespace detail
 //! Exports the BounceBackNVE class to python
 template<class Geometry> void export_BounceBackNVE(pybind11::module& m)
     {
-    namespace py = pybind11;
     const std::string name = "BounceBackNVE" + Geometry::getName();
 
-    py::class_<BounceBackNVE<Geometry>,
-               IntegrationMethodTwoStep,
-               std::shared_ptr<BounceBackNVE<Geometry>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<const Geometry>>())
+    pybind11::class_<BounceBackNVE<Geometry>,
+                     hoomd::md::IntegrationMethodTwoStep,
+                     std::shared_ptr<BounceBackNVE<Geometry>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<const Geometry>>())
         .def_property("geometry",
                       &BounceBackNVE<Geometry>::getGeometry,
                       &BounceBackNVE<Geometry>::setGeometry);
     }
-    }      // end namespace detail
-    }      // end namespace mpcd
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // #ifndef MPCD_BOUNCE_BACK_NVE_H_

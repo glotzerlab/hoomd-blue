@@ -1,13 +1,13 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/mpcd/SystemData.h"
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN()
+
+using namespace hoomd;
 
 class VirtualCallback
     {

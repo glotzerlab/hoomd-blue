@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.snapshot import Snapshot
 import hoomd
 import numpy
@@ -9,7 +12,7 @@ def snap(device):
     s = Snapshot(device.communicator)
     N = 1000
 
-    if s.exists:
+    if s.communicator.rank == 0:
         s.configuration.box = [20, 20, 20, 0, 0, 0]
 
         s.particles.N = N
@@ -71,7 +74,7 @@ def snap(device):
 
 
 def assert_snapshots_equal(s1, s2):
-    if s1.exists:
+    if s1.communicator.rank == 0:
         numpy.testing.assert_allclose(s1.configuration.box,
                                       s2.configuration.box)
         numpy.testing.assert_allclose(s1.configuration.dimensions,
@@ -134,7 +137,7 @@ def assert_snapshots_equal(s1, s2):
 def test_create_from_snapshot(simulation_factory, snap):
     sim = simulation_factory(snap)
 
-    if snap.exists:
+    if snap.communicator.rank == 0:
         assert sim.state.particle_types == snap.particles.types
         assert sim.state.bond_types == snap.bonds.types
         assert sim.state.angle_types == snap.angles.types
@@ -150,7 +153,7 @@ def test_get_snapshot(simulation_factory, snap):
     sim = simulation_factory()
     sim.create_state_from_snapshot(snap)
 
-    snap2 = sim.state.snapshot
+    snap2 = sim.state.get_snapshot()
     assert_snapshots_equal(snap, snap2)
 
 
@@ -158,7 +161,7 @@ def test_modify_snapshot(simulation_factory, snap):
     sim = simulation_factory()
     sim.create_state_from_snapshot(snap)
 
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.N = snap.particles.N // 2
         snap.bonds.N = snap.bonds.N // 4
         snap.angles.N = snap.angles.N // 4
@@ -167,9 +170,9 @@ def test_modify_snapshot(simulation_factory, snap):
         snap.pairs.N = snap.pairs.N // 4
         snap.constraints.N = snap.constraints.N // 4
 
-    sim.state.snapshot = snap
+    sim.state.set_snapshot(snap)
 
-    snap2 = sim.state.snapshot
+    snap2 = sim.state.get_snapshot()
     assert_snapshots_equal(snap, snap2)
 
 
@@ -179,8 +182,8 @@ def test_thermalize_particle_velocity(simulation_factory,
     sim = simulation_factory(snap)
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
 
-    snapshot = sim.state.snapshot
-    if snapshot.exists:
+    snapshot = sim.state.get_snapshot()
+    if snapshot.communicator.rank == 0:
         v = snapshot.particles.velocity[:]
         m = snapshot.particles.mass[:]
         p = m * v.T
@@ -200,14 +203,14 @@ def test_thermalize_angular_momentum(simulation_factory,
     snap = lattice_snapshot_factory()
     I = [1, 2, 3]  # noqa: E741 - allow ambiguous variable name
 
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.moment_inertia[:] = I
 
     sim = simulation_factory(snap)
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
 
-    snapshot = sim.state.snapshot
-    if snapshot.exists:
+    snapshot = sim.state.get_snapshot()
+    if snapshot.communicator.rank == 0:
         # Note: this conversion assumes that all particles have (1, 0, 0, 0)
         # orientations.
         L = snapshot.particles.angmom[:, 1:4] / 2
@@ -218,3 +221,65 @@ def test_thermalize_angular_momentum(simulation_factory,
         # too large for an allclose check.
         expected_K = (3 * snap.particles.N) / 2 * 1.5
         assert K > expected_K * 3 / 4 and K < expected_K * 4 / 3
+
+
+def test_replicate(simulation_factory, lattice_snapshot_factory):
+    initial_snapshot = lattice_snapshot_factory(a=10, n=1)
+
+    sim = simulation_factory(initial_snapshot)
+
+    initial_snapshot.replicate(2, 2, 2)
+    if initial_snapshot.communicator.rank == 0:
+        numpy.testing.assert_allclose(initial_snapshot.particles.position, [
+            [-5, -5, -5],
+            [-5, -5, 5],
+            [-5, 5, -5],
+            [-5, 5, 5],
+            [5, -5, -5],
+            [5, -5, 5],
+            [5, 5, -5],
+            [5, 5, 5],
+        ])
+
+    sim.state.replicate(2, 2, 2)
+    new_snapshot = sim.state.get_snapshot()
+    assert_snapshots_equal(initial_snapshot, new_snapshot)
+
+
+def test_domain_decomposition(device, simulation_factory,
+                              lattice_snapshot_factory):
+    snapshot = lattice_snapshot_factory()
+
+    if device.communicator.num_ranks == 1:
+        sim = simulation_factory(snapshot)
+        assert sim.state.domain_decomposition == (1, 1, 1)
+        assert sim.state.domain_decomposition_split_fractions == ([], [], [])
+    elif device.communicator.num_ranks == 2:
+        sim = simulation_factory(snapshot)
+        assert sim.state.domain_decomposition == (1, 1, 2)
+        assert sim.state.domain_decomposition_split_fractions == ([], [], [0.5])
+
+        sim = simulation_factory(snapshot, domain_decomposition=(None, 1, 1))
+        assert sim.state.domain_decomposition == (2, 1, 1)
+        assert sim.state.domain_decomposition_split_fractions == ([0.5], [], [])
+
+        sim = simulation_factory(snapshot, domain_decomposition=(2, 1, 1))
+        assert sim.state.domain_decomposition == (2, 1, 1)
+        assert sim.state.domain_decomposition_split_fractions == ([0.5], [], [])
+
+        sim = simulation_factory(snapshot, domain_decomposition=(1, None, 1))
+        assert sim.state.domain_decomposition == (1, 2, 1)
+        assert sim.state.domain_decomposition_split_fractions == ([], [0.5], [])
+
+        sim = simulation_factory(snapshot, domain_decomposition=(1, 2, 1))
+        assert sim.state.domain_decomposition == (1, 2, 1)
+        assert sim.state.domain_decomposition_split_fractions == ([], [0.5], [])
+
+        sim = simulation_factory(snapshot,
+                                 domain_decomposition=(None, None, [0.25,
+                                                                    0.75]))
+        assert sim.state.domain_decomposition == (1, 1, 2)
+        assert sim.state.domain_decomposition_split_fractions == ([], [],
+                                                                  [0.25])
+    else:
+        raise RuntimeError("Test only supports 1 and 2 ranks")

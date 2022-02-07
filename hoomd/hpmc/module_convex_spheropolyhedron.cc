@@ -1,25 +1,24 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 
-#include "AnalyzerSDF.h"
+#include "ComputeSDF.h"
 #include "ShapeSpheropolyhedron.h"
 #include "ShapeUnion.h"
 
 #include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -27,27 +26,25 @@
 #include "UpdaterClustersGPU.h"
 #endif
 
-namespace py = pybind11;
-using namespace hpmc;
-
-using namespace hpmc::detail;
-
+namespace hoomd
+    {
 namespace hpmc
     {
+namespace detail
+    {
 //! Export the base HPMCMono integrators
-void export_convex_spheropolyhedron(py::module& m)
+void export_convex_spheropolyhedron(pybind11::module& m)
     {
     export_IntegratorHPMCMono<ShapeSpheropolyhedron>(m, "IntegratorHPMCMonoSpheropolyhedron");
     export_ComputeFreeVolume<ShapeSpheropolyhedron>(m, "ComputeFreeVolumeSpheropolyhedron");
-    export_AnalyzerSDF<ShapeSpheropolyhedron>(m, "AnalyzerSDFSpheropolyhedron");
+    export_ComputeSDF<ShapeSpheropolyhedron>(m, "ComputeSDFConvexSpheropolyhedron");
     export_UpdaterMuVT<ShapeSpheropolyhedron>(m, "UpdaterMuVTConvexSpheropolyhedron");
     export_UpdaterClusters<ShapeSpheropolyhedron>(m, "UpdaterClustersConvexSpheropolyhedron");
 
     export_ExternalFieldInterface<ShapeSpheropolyhedron>(m, "ExternalFieldSpheropolyhedron");
-    export_LatticeField<ShapeSpheropolyhedron>(m, "ExternalFieldLatticeSpheropolyhedron");
+    export_HarmonicField<ShapeSpheropolyhedron>(m, "ExternalFieldHarmonicSpheropolyhedron");
     export_ExternalFieldComposite<ShapeSpheropolyhedron>(m,
                                                          "ExternalFieldCompositeSpheropolyhedron");
-    export_RemoveDriftUpdater<ShapeSpheropolyhedron>(m, "RemoveDriftUpdaterSpheropolyhedron");
     export_ExternalFieldWall<ShapeSpheropolyhedron>(m, "WallSpheropolyhedron");
     export_UpdaterExternalFieldWall<ShapeSpheropolyhedron>(
         m,
@@ -62,5 +59,6 @@ void export_convex_spheropolyhedron(py::module& m)
 
 #endif
     }
-
+    } // namespace detail
     } // namespace hpmc
+    } // namespace hoomd

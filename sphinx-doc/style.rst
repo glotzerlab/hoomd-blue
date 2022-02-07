@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Code style
 ==========
 
@@ -65,30 +68,26 @@ C++/CUDA
 
 * Naming conventions:
 
-    * Namespaces: All lowercase ``somenamespace``
-    * Class names: ``UpperCamelCase``
-    * Methods: ``lowerCamelCase``
-    * Member variables: ``m_`` prefix followed by lowercase with words
-      separated by underscores ``m_member_variable``
-    * Constants: all upper-case with words separated by underscores
-      ``SOME_CONSTANT``
-    * Functions: ``lowerCamelCase``
+  * Namespaces: All lowercase ``somenamespace``
+  * Class names: ``UpperCamelCase``
+  * Methods: ``lowerCamelCase``
+  * Member variables: ``m_`` prefix followed by lowercase with words
+    separated by underscores ``m_member_variable``
+  * Constants: all upper-case with words separated by underscores
+    ``SOME_CONSTANT``
+  * Functions: ``lowerCamelCase``
 
 Tools
 ^^^^^
 
 * Autoformatter: `clang-format <https://clang.llvm.org/docs/ClangFormat.html>`_.
 
-  * Run: ``pre-commit run --all-files --hook-stage manual`` to apply changes to
-    the whole repository. You must have a ``conda`` installation in your
-    ``PATH`` to run this.
-
 Documentation
 ^^^^^^^^^^^^^
 
-Documentation comments should be in Javadoc format and precede the item they
-document for compatibility with Doxygen and most source code editors. Multi-line
-documentation comment blocks start with ``/**`` and single line ones start with
+Documentation comments should be in Javadoc format and precede the item they document for
+compatibility with many source code editors. Multi-line documentation comment blocks start with
+``/**`` and single line ones start with
 ``///``.
 
 .. code:: c++

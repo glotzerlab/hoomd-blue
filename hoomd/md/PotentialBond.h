@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
@@ -20,6 +20,10 @@
 #ifndef __POTENTIALBOND_H__
 #define __POTENTIALBOND_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Bond potential with evaluator support
 
     \ingroup computes
@@ -335,6 +339,8 @@ CommFlags PotentialBond<evaluator>::getRequestedCommFlags(uint64_t timestep)
     }
 #endif
 
+namespace detail
+    {
 //! Exports the PotentialBond class to python
 /*! \param name Name of the class in the exported python module
     \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
@@ -346,5 +352,9 @@ template<class T> void export_PotentialBond(pybind11::module& m, const std::stri
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

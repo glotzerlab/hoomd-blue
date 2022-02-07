@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SystemData.cc
@@ -13,11 +11,13 @@
 #include "CellListGPU.h"
 #endif // ENABLE_HIP
 
+namespace hoomd
+    {
 /*!
  * \param sysdef System definition
  * \param particles MPCD ParticleData
  */
-mpcd::SystemData::SystemData(std::shared_ptr<::SystemDefinition> sysdef,
+mpcd::SystemData::SystemData(std::shared_ptr<hoomd::SystemDefinition> sysdef,
                              std::shared_ptr<mpcd::ParticleData> particles)
     : m_sysdef(sysdef), m_particles(particles),
       m_global_box(m_sysdef->getParticleData()->getGlobalBox())
@@ -117,13 +117,14 @@ void mpcd::SystemData::initializeFromSnapshot(std::shared_ptr<mpcd::SystemDataSn
  */
 void mpcd::detail::export_SystemData(pybind11::module& m)
     {
-    namespace py = pybind11;
-
-    py::class_<mpcd::SystemData, std::shared_ptr<mpcd::SystemData>>(m, "SystemData")
-        .def(py::init<std::shared_ptr<::SystemDefinition>, std::shared_ptr<mpcd::ParticleData>>())
-        .def(py::init<std::shared_ptr<mpcd::SystemDataSnapshot>>())
+    pybind11::class_<mpcd::SystemData, std::shared_ptr<mpcd::SystemData>>(m, "SystemData")
+        .def(pybind11::init<std::shared_ptr<hoomd::SystemDefinition>,
+                            std::shared_ptr<mpcd::ParticleData>>())
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemDataSnapshot>>())
         .def("getParticleData", &mpcd::SystemData::getParticleData)
         .def("getCellList", &mpcd::SystemData::getCellList)
         .def("takeSnapshot", &mpcd::SystemData::takeSnapshot)
         .def("initializeFromSnapshot", &mpcd::SystemData::initializeFromSnapshot);
     }
+
+    } // end namespace hoomd

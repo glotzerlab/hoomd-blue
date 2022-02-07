@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: zhoupj
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_FOURIER_H__
 #define __PAIR_EVALUATOR_FOURIER_H__
@@ -23,10 +21,16 @@
 // compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Fourier pair potential
 /*! <b>General Overview</b>
 
@@ -61,6 +65,10 @@ class EvaluatorPairFourier
         Scalar a[3]; //!< Fourier component coefficents
         Scalar b[3]; //!< Fourier component coefficents
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         //! set CUDA memory hint
         void set_memory_hint() const { }
@@ -76,7 +84,7 @@ class EvaluatorPairFourier
                 }
             }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             pybind11::list py_a(v["a"]);
             pybind11::list py_b(v["b"]);
@@ -188,6 +196,16 @@ class EvaluatorPairFourier
             return false;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -208,5 +226,8 @@ class EvaluatorPairFourier
     Scalar rcutsq;            //!< Stored rcutsq from the constructor
     const param_type& params; //!< Fourier component coefficents
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_FOURIER_H__

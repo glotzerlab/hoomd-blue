@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mspells
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file DEM3DForceComputeGPU.cc
   \brief Defines the DEM3DForceComputeGPU class
@@ -24,6 +22,10 @@
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace dem
+    {
 /*! \param sysdef System to compute forces on
   \param nlist Neighborlist to use for computing the forces
   \param r_cut Cutoff radius beyond which the force is 0
@@ -37,7 +39,7 @@ using namespace std;
 template<typename Real, typename Real4, typename Potential>
 DEM3DForceComputeGPU<Real, Real4, Potential>::DEM3DForceComputeGPU(
     std::shared_ptr<SystemDefinition> sysdef,
-    std::shared_ptr<NeighborList> nlist,
+    std::shared_ptr<md::NeighborList> nlist,
     Real r_cut,
     Potential potential)
     : DEM3DForceCompute<Real, Real4, Potential>(sysdef, nlist, r_cut, potential)
@@ -119,7 +121,7 @@ void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(uint64_t timest
         this->m_prof->push(this->m_exec_conf, "DEM3D pair");
 
     // The GPU implementation CANNOT handle a half neighborlist, error out now
-    bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
+    bool third_law = this->m_nlist->getStorageMode() == md::NeighborList::half;
     if (third_law)
         {
         this->m_exec_conf->msg->error()
@@ -149,9 +151,9 @@ void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(uint64_t timest
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(),
                                       access_location::device,
                                       access_mode::read);
-    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(),
-                                          access_location::device,
-                                          access_mode::read);
+    ArrayHandle<size_t> d_head_list(this->m_nlist->getHeadList(),
+                                    access_location::device,
+                                    access_mode::read);
 
     // access the particle data
     ArrayHandle<Real4> d_pos(this->m_pdata->getPositions(),
@@ -213,7 +215,7 @@ void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(uint64_t timest
         return;
 
     m_tuner->begin();
-    gpu_compute_dem3d_forces<Real, Real4, DEMEvaluator<Real, Real4, Potential>>(
+    kernel::gpu_compute_dem3d_forces<Real, Real4, DEMEvaluator<Real, Real4, Potential>>(
         d_force.data,
         d_torque.data,
         d_virial.data,
@@ -262,6 +264,9 @@ void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(uint64_t timest
     if (this->m_prof)
         this->m_prof->pop(this->m_exec_conf, flops, mem_transfer);
     }
+
+    } // end namespace dem
+    } // end namespace hoomd
 
 #endif
 

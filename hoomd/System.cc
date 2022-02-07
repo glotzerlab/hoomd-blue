@@ -1,14 +1,11 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file System.cc
     \brief Defines the System class
 */
 
 #include "System.h"
-#include "SignalHandler.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
@@ -20,19 +17,19 @@
 #include <stdexcept>
 #include <time.h>
 
-// the typedef works around an issue with older versions of the preprocessor
-typedef std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>> _analyzer_pair;
-PYBIND11_MAKE_OPAQUE(std::vector<_analyzer_pair>)
-typedef std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>> _updater_pair;
-PYBIND11_MAKE_OPAQUE(std::vector<_updater_pair>)
-
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<Tuner>>)
-
 using namespace std;
-namespace py = pybind11;
 
-PyObject* walltimeLimitExceptionTypeObj = 0;
+// the typedef works around an issue with older versions of the preprocessor
+// specifically, gcc8
+typedef std::pair<std::shared_ptr<hoomd::Analyzer>, std::shared_ptr<hoomd::Trigger>> _analyzer_pair;
+PYBIND11_MAKE_OPAQUE(std::vector<_analyzer_pair>)
+typedef std::pair<std::shared_ptr<hoomd::Updater>, std::shared_ptr<hoomd::Trigger>> _updater_pair;
+PYBIND11_MAKE_OPAQUE(std::vector<_updater_pair>)
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::Tuner>>)
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ParticleGroup>>);
 
+namespace hoomd
+    {
 /*! \param sysdef SystemDefinition for the system to be simulated
     \param initial_tstep Initial time step of the simulation
 
@@ -86,7 +83,6 @@ void System::setCommunicator(std::shared_ptr<Communicator> comm)
 
 void System::run(uint64_t nsteps, bool write_at_start)
     {
-    ScopedSignalHandler signal_handler;
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
 
@@ -102,7 +98,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
     resetStats();
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // make sure we start off with a migration substep
         m_comm->forceMigrate();
@@ -111,6 +107,12 @@ void System::run(uint64_t nsteps, bool write_at_start)
         m_comm->communicate(m_cur_tstep);
         }
 #endif
+
+    if (m_update_group_dof_next_step)
+        {
+        updateGroupDOF();
+        m_update_group_dof_next_step = false;
+        }
 
     // Prepare the run
     if (m_integrator)
@@ -141,7 +143,17 @@ void System::run(uint64_t nsteps, bool write_at_start)
         for (auto& updater_trigger_pair : m_updaters)
             {
             if ((*updater_trigger_pair.second)(m_cur_tstep))
+                {
                 updater_trigger_pair.first->update(m_cur_tstep);
+                m_update_group_dof_next_step
+                    |= updater_trigger_pair.first->mayChangeDegreesOfFreedom(m_cur_tstep);
+                }
+            }
+
+        if (m_update_group_dof_next_step)
+            {
+            updateGroupDOF();
+            m_update_group_dof_next_step = false;
             }
 
         // look ahead to the next time step and see which analyzers and updaters will be executed
@@ -164,19 +176,16 @@ void System::run(uint64_t nsteps, bool write_at_start)
 
         updateTPS();
 
-        // quit if Ctrl-C was pressed
-        if (g_sigint_recvd)
+        // propagate Python exceptions related to signals
+        if (PyErr_CheckSignals() != 0)
             {
-            g_sigint_recvd = 0;
-            PyErr_SetString(PyExc_KeyboardInterrupt, "");
             throw pybind11::error_already_set();
-            return;
             }
         }
 
 #ifdef ENABLE_MPI
     // make sure all ranks return the same TPS after the run completes
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
         bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
@@ -221,7 +230,7 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
         compute->setAutotunerParams(enabled, period);
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         m_comm->setAutotunerParams(enabled, period);
 #endif
     }
@@ -264,7 +273,7 @@ void System::setupProfiling()
 
 #ifdef ENABLE_MPI
     // communicator
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         m_comm->setProfiler(m_profiler);
 #endif
     }
@@ -319,19 +328,41 @@ PDataFlags System::determineFlags(uint64_t tstep)
     return flags;
     }
 
-void export_System(py::module& m)
+/*! Apply the degrees of freedom given by the integrator to all groups in the cache.
+ */
+void System::updateGroupDOF()
     {
-    py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>>(
+    for (auto group : m_group_cache)
+        {
+        if (m_integrator)
+            {
+            m_integrator->updateGroupDOF(group);
+            }
+        else
+            {
+            group->setTranslationalDOF(0);
+            group->setRotationalDOF(0);
+            }
+        }
+    }
+
+namespace detail
+    {
+void export_System(pybind11::module& m)
+    {
+    pybind11::bind_vector<
+        std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>>(
         m,
         "AnalyzerTriggerList");
-    py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>>>>(
+    pybind11::bind_vector<
+        std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>>>>(
         m,
         "UpdaterTriggerList");
-    py::bind_vector<std::vector<std::shared_ptr<Tuner>>>(m, "TunerList");
-    py::bind_vector<std::vector<std::shared_ptr<Compute>>>(m, "ComputeList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<Tuner>>>(m, "TunerList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<Compute>>>(m, "ComputeList");
 
-    py::class_<System, std::shared_ptr<System>>(m, "System")
-        .def(py::init<std::shared_ptr<SystemDefinition>, uint64_t>())
+    pybind11::class_<System, std::shared_ptr<System>>(m, "System")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, uint64_t>())
 
         .def("setIntegrator", &System::setIntegrator)
         .def("getIntegrator", &System::getIntegrator)
@@ -350,9 +381,15 @@ void export_System(py::module& m)
         .def_property_readonly("updaters", &System::getUpdaters)
         .def_property_readonly("tuners", &System::getTuners)
         .def_property_readonly("computes", &System::getComputes)
+        .def_property_readonly("group_cache", &System::getGroupCache)
+        .def("getGroupCache", &System::getGroupCache)
+        .def("updateGroupDOFOnNextStep", &System::updateGroupDOFOnNextStep)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &System::setCommunicator)
-        .def("getCommunicator", &System::getCommunicator)
 #endif
         ;
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

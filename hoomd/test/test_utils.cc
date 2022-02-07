@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
@@ -11,7 +11,6 @@
 #include <math.h>
 
 #include "upp11_config.h"
-HOOMD_UP_MAIN();
 
 /*! \file utils_test.cc
     \brief Unit tests for ClockSource, Profiler, and Variant
@@ -19,6 +18,9 @@ HOOMD_UP_MAIN();
 */
 
 using namespace std;
+using namespace hoomd;
+
+HOOMD_UP_MAIN();
 
 // the clock test depends on timing and thus should not be run in automatic builds.
 // uncomment to test by hand if the test seems to be behaving poorly

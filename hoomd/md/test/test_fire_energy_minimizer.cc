@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
@@ -25,6 +25,8 @@
 #include <math.h>
 
 using namespace std;
+using namespace hoomd;
+using namespace hoomd::md;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
@@ -276,9 +278,9 @@ void fire_smallsystem_test(fire_creator fire_creator1,
 
     std::shared_ptr<TwoStepNVE> nve = nve_creator1(sysdef, group_all);
     std::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, Scalar(0.05));
-    fire->addIntegrationMethod(nve);
+    fire->getIntegrationMethods().push_back(nve);
     fire->setFtol(5.0);
-    fire->addForceCompute(fc);
+    fire->getForces().push_back(fc);
     fire->setMinSteps(10);
     fire->prepRun(0);
 
@@ -353,9 +355,9 @@ void fire_twoparticle_test(fire_creator fire_creator1,
 
     std::shared_ptr<TwoStepNVE> nve = nve_creator1(sysdef, group_one);
     std::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, Scalar(0.05));
-    fire->addIntegrationMethod(nve);
+    fire->getIntegrationMethods().push_back(nve);
 
-    fire->addForceCompute(fc);
+    fire->getForces().push_back(fc);
     fire->setFtol(Scalar(5.0));
     fire->setEtol(Scalar(1e-7));
     fire->setMinSteps(10);

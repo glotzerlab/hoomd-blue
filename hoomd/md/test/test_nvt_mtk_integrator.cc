@@ -1,11 +1,10 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <iostream>
 
 #include <functional>
 
-#include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/ComputeThermo.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
 #ifdef ENABLE_HIP
@@ -24,6 +23,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file nvt_updater_test.cc
     \brief Implements unit tests for NVTUpdater and descendants
@@ -114,8 +115,8 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf,
     std::shared_ptr<TwoStepNVTMTK> two_step_nvt_1
         = nvt_creator(sysdef_1, group_all_1, thermo_nvt, tau, T_ref);
     ;
-    nvt_1->addIntegrationMethod(two_step_nvt_1);
-    nvt_1->addForceCompute(fc_1);
+    nvt_1->getIntegrationMethods().push_back(two_step_nvt_1);
+    nvt_1->getForces().push_back(fc_1);
 
     unsigned int ndof = nvt_1->getTranslationalDOF(group_all_1);
     thermo_nvt->setNDOF(ndof);
@@ -220,8 +221,8 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
     std::shared_ptr<TwoStepNVTMTK> two_step_nvt_1
         = nvt_creator(sysdef_1, group_all_1, thermo_nvt, tau, T_ref);
     ;
-    nvt_1->addIntegrationMethod(two_step_nvt_1);
-    nvt_1->addForceCompute(fc_1);
+    nvt_1->getIntegrationMethods().push_back(two_step_nvt_1);
+    nvt_1->getForces().push_back(fc_1);
 
     unsigned int ndof = nvt_1->getTranslationalDOF(group_all_1);
     thermo_nvt->setNDOF(ndof);
@@ -346,17 +347,17 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1,
     thermo1->setNDOF(3 * N - 3);
     std::shared_ptr<TwoStepNVTMTK> two_step_nvt1
         = nvt_creator1(sysdef1, group_all1, thermo1, Scalar(0.5), Scalar(1.2));
-    nvt1->addIntegrationMethod(two_step_nvt1);
+    nvt1->getIntegrationMethods().push_back(two_step_nvt1);
 
     std::shared_ptr<IntegratorTwoStep> nvt2(new IntegratorTwoStep(sysdef2, Scalar(0.002)));
     std::shared_ptr<ComputeThermo> thermo2(new ComputeThermo(sysdef2, group_all2));
     thermo2->setNDOF(3 * N - 3);
     std::shared_ptr<TwoStepNVTMTK> two_step_nvt2
         = nvt_creator2(sysdef2, group_all2, thermo2, Scalar(0.5), Scalar(1.2));
-    nvt2->addIntegrationMethod(two_step_nvt2);
+    nvt2->getIntegrationMethods().push_back(two_step_nvt2);
 
-    nvt1->addForceCompute(fc1);
-    nvt2->addForceCompute(fc2);
+    nvt1->getForces().push_back(fc1);
+    nvt2->getForces().push_back(fc2);
 
     nvt1->prepRun(0);
     nvt2->prepRun(0);

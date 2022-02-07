@@ -1,5 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan This file is
-# part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Write GSD files storing simulation trajectories and logging data."""
 
@@ -31,8 +31,8 @@ class GSD(Writer):
     r"""Write simulation trajectories in the GSD format.
 
     Args:
-        filename (str): File name to write.
         trigger (hoomd.trigger.Trigger): Select the timesteps to write.
+        filename (str): File name to write.
         filter (hoomd.filter.ParticleFilter): Select the particles to write.
             Defaults to `hoomd.filter.All`.
         mode (str): The file open mode. Defaults to ``'ab'``.
@@ -144,8 +144,8 @@ class GSD(Writer):
     """
 
     def __init__(self,
-                 filename,
                  trigger,
+                 filename,
                  filter=All(),
                  mode='ab',
                  truncate=False,
@@ -213,9 +213,6 @@ class GSD(Writer):
 
         writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, filename,
                                       state._get_group(filter), mode, False)
-
-        if state._simulation._system_communicator is not None:
-            writer.setCommunicator(state._simulation._system_communicator)
 
         if log is not None:
             writer.log_writer = _GSDLogWriter(log)

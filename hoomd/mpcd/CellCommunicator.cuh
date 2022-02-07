@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CellCommunicator.cuh
@@ -16,6 +14,8 @@
 
 #include <cuda_runtime.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -153,13 +153,11 @@ cudaError_t pack_cell_buffer(typename PackOpT::element* d_send_buf,
                              unsigned int block_size)
     {
     // determine runtime block size
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::pack_cell_buffer<T, PackOpT>);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::pack_cell_buffer<T, PackOpT>);
+    max_block_size = attr.maxThreadsPerBlock;
+
     const unsigned int run_block_size = min(block_size, max_block_size);
 
     dim3 grid(num_send / run_block_size + 1);
@@ -201,14 +199,11 @@ cudaError_t unpack_cell_buffer(T* d_props,
                                const unsigned int block_size)
     {
     // determine runtime block size
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr,
-                              (const void*)mpcd::gpu::kernel::unpack_cell_buffer<T, PackOpT>);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::unpack_cell_buffer<T, PackOpT>);
+    max_block_size = attr.maxThreadsPerBlock;
+
     const unsigned int run_block_size = min(block_size, max_block_size);
 
     dim3 grid(num_cells / run_block_size + 1);
@@ -227,5 +222,6 @@ cudaError_t unpack_cell_buffer(T* d_props,
 
     } // end namespace gpu
     } // end namespace mpcd
+    } // end namespace hoomd
 
 #endif // MPCD_CELL_COMMUNICATOR_CUH_

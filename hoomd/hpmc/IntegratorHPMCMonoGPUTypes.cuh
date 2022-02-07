@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -11,6 +11,8 @@
 #include "hoomd/hpmc/HPMCCounters.h"
 #include <hip/hip_runtime.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -207,3 +209,4 @@ void hpmc_check_convergence(const unsigned int* d_trial_move_type,
     } // end namespace gpu
 
     } // end namespace hpmc
+    } // end namespace hoomd

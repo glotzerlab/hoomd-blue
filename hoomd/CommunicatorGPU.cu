@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CommunicatorGPU.cu
     \brief Implementation of communication algorithms on the GPU
@@ -29,6 +27,8 @@
 
 #include <cassert>
 
+namespace hoomd
+    {
 //! Select a particle for migration
 __global__ void gpu_select_particle_migrate(unsigned int N,
                                             const Scalar4* d_postype,
@@ -175,7 +175,7 @@ void gpu_stage_particles(const unsigned int N,
     \param alloc Caching allocator
  */
 void gpu_sort_migrating_particles(const size_t nsend,
-                                  pdata_element* d_in,
+                                  detail::pdata_element* d_in,
                                   const unsigned int* d_comm_flags,
                                   const Index3D& di,
                                   const uint3 my_pos,
@@ -187,7 +187,7 @@ void gpu_sort_migrating_particles(const size_t nsend,
                                   const unsigned int nneigh,
                                   const unsigned int mask,
                                   unsigned int* d_tmp,
-                                  pdata_element* d_in_copy,
+                                  detail::pdata_element* d_in_copy,
                                   CachedAllocator& alloc)
     {
     assert(d_in);
@@ -199,7 +199,7 @@ void gpu_sort_migrating_particles(const size_t nsend,
     assert(d_neighbors);
 
     // Wrap input & output
-    thrust::device_ptr<pdata_element> in_ptr(d_in);
+    thrust::device_ptr<detail::pdata_element> in_ptr(d_in);
     thrust::device_ptr<const unsigned int> comm_flags_ptr(d_comm_flags);
     thrust::device_ptr<unsigned int> keys_ptr(d_keys);
     thrust::device_ptr<const unsigned int> neighbors_ptr(d_neighbors);
@@ -212,7 +212,7 @@ void gpu_sort_migrating_particles(const size_t nsend,
 
     // allocate temp arrays
     thrust::device_ptr<unsigned int> tmp_ptr(d_tmp);
-    thrust::device_ptr<pdata_element> in_copy_ptr(d_in_copy);
+    thrust::device_ptr<detail::pdata_element> in_copy_ptr(d_in_copy);
 
     // copy and fill with ascending integer sequence
     thrust::counting_iterator<unsigned int> count_it(0);
@@ -248,15 +248,16 @@ void gpu_sort_migrating_particles(const size_t nsend,
     thrust::upper_bound(keys_ptr, keys_ptr + nsend, neighbors_ptr, neighbors_ptr + nneigh, end_ptr);
     }
 
-__global__ void
-gpu_wrap_particles_kernel(const unsigned int n_recv, pdata_element* d_recv, const BoxDim box)
+__global__ void gpu_wrap_particles_kernel(const unsigned int n_recv,
+                                          detail::pdata_element* d_recv,
+                                          const BoxDim box)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n_recv)
         return;
 
-    pdata_element p = d_recv[idx];
+    detail::pdata_element p = d_recv[idx];
     box.wrap(p.pos, p.image);
     d_recv[idx] = p;
     }
@@ -265,7 +266,7 @@ gpu_wrap_particles_kernel(const unsigned int n_recv, pdata_element* d_recv, cons
     \param d_in Buffer of particle data elements
     \param box Box for which to apply boundary conditions
  */
-void gpu_wrap_particles(const unsigned int n_recv, pdata_element* d_in, const BoxDim& box)
+void gpu_wrap_particles(const unsigned int n_recv, detail::pdata_element* d_in, const BoxDim& box)
     {
     assert(d_in);
 
@@ -394,7 +395,7 @@ void gpu_make_ghost_exchange_plan(unsigned int* d_plan,
 
     unsigned int block_size = 256;
     unsigned int n_blocks = N / block_size + 1;
-    unsigned int shared_bytes = (unsigned int)(2 * sizeof(Scalar3) * ntypes);
+    const size_t shared_bytes = 2 * sizeof(Scalar3) * ntypes;
 
     hipLaunchKernelGGL(gpu_make_ghost_exchange_plan_kernel,
                        dim3(n_blocks),
@@ -2820,4 +2821,5 @@ template void gpu_exchange_ghost_groups_copy_buf<2>(unsigned int nrecv,
                                                     unsigned int& n_keep,
                                                     CachedAllocator& alloc);
 
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

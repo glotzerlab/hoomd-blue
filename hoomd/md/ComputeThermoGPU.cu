@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ComputeThermoGPU.cuh"
 #include "hoomd/HOOMDMath.h"
@@ -15,6 +13,12 @@
    ComputeThermoGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Perform partial sums of the thermo properties on the GPU
 /*! \param d_scratch Scratch space to hold partial sums. One element is written per block
     \param d_net_force Net force / pe array from ParticleData
@@ -260,15 +264,15 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar* d_scratch,
 
             Scalar ke_rot(0.0);
 
-            if (I.x >= EPSILON)
+            if (I.x > 0)
                 {
                 ke_rot += s.v.x * s.v.x / I.x;
                 }
-            if (I.y >= EPSILON)
+            if (I.y > 0)
                 {
                 ke_rot += s.v.y * s.v.y / I.y;
                 }
-            if (I.z >= EPSILON)
+            if (I.z > 0)
                 {
                 ke_rot += s.v.z * s.v.z / I.z;
                 }
@@ -559,7 +563,7 @@ hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
         dim3 grid(nwork / args.block_size + 1, 1, 1);
         dim3 threads(args.block_size, 1, 1);
 
-        unsigned int shared_bytes = (unsigned int)(sizeof(Scalar3) * args.block_size);
+        size_t shared_bytes = sizeof(Scalar3) * args.block_size;
 
         hipLaunchKernelGGL(gpu_compute_thermo_partial_sums,
                            dim3(grid),
@@ -582,7 +586,7 @@ hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
             {
             assert(args.d_scratch_pressure_tensor);
 
-            shared_bytes = (unsigned int)(6 * sizeof(Scalar) * args.block_size);
+            shared_bytes = 6 * sizeof(Scalar) * args.block_size;
 
             // run the kernel
             hipLaunchKernelGGL(gpu_compute_pressure_tensor_partial_sums,
@@ -608,7 +612,7 @@ hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
             {
             assert(args.d_scratch_pressure_tensor);
 
-            shared_bytes = (unsigned int)(sizeof(Scalar) * args.block_size);
+            shared_bytes = sizeof(Scalar) * args.block_size;
 
             // run the kernel
             hipLaunchKernelGGL(gpu_compute_rotational_ke_partial_sums,
@@ -676,7 +680,7 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
     dim3 grid = dim3(1, 1, 1);
     dim3 threads = dim3(final_block_size, 1, 1);
 
-    unsigned int shared_bytes = (unsigned int)(sizeof(Scalar4) * final_block_size);
+    size_t shared_bytes = sizeof(Scalar4) * final_block_size;
 
     Scalar external_virial
         = Scalar(1.0 / 3.0)
@@ -701,7 +705,7 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
 
     if (compute_pressure_tensor)
         {
-        shared_bytes = (unsigned int)(6 * sizeof(Scalar) * final_block_size);
+        shared_bytes = 6 * sizeof(Scalar) * final_block_size;
         // run the kernel
         hipLaunchKernelGGL(gpu_compute_pressure_tensor_final_sums,
                            dim3(grid),
@@ -724,3 +728,7 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

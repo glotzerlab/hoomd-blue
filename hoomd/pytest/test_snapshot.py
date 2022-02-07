@@ -1,4 +1,8 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.snapshot import Snapshot
+from hoomd import Box
 import numpy
 import pytest
 from hoomd.pytest.test_simulation import make_gsd_snapshot
@@ -20,7 +24,7 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
     differences in the way the two snapshots handle the dimensions of empty
     boxes. This function returns ``True`` when not on the root rank.
     """
-    if not hoomd_snap.exists:
+    if not hoomd_snap.communicator.rank == 0:
         return True
     for attr in dir(hoomd_snap):
         if attr[0] == '_' or attr in ['exists', 'replicate', 'communicator']:
@@ -64,7 +68,7 @@ def s():
 
 
 def test_empty_snapshot(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         numpy.testing.assert_allclose(s.configuration.box, [0, 0, 0, 0, 0, 0],
                                       atol=1e-7)
         assert s.configuration.dimensions == 3
@@ -115,7 +119,7 @@ def test_empty_snapshot(s):
 
 
 def test_configuration(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
         numpy.testing.assert_allclose(s.configuration.box,
                                       [10, 12, 7, 0.1, 0.4, 0.2])
@@ -125,8 +129,132 @@ def test_configuration(s):
         assert s.configuration.dimensions == 3
 
 
+def generate_outside(box, interior_points, unwrap_images, initial_images):
+    """Generate test cases from interior points by adding box vectors."""
+    box = Box.from_box(box)
+    matrix = box.matrix
+    input_points = numpy.zeros(
+        (len(interior_points), len(unwrap_images), len(initial_images), 3))
+    check_points = numpy.zeros_like(input_points)
+    input_images = numpy.zeros_like(input_points, dtype=int)
+    check_images = numpy.zeros_like(input_points, dtype=int)
+    for i, inside_point in enumerate(interior_points):
+        for j, unwrap_image in enumerate(unwrap_images):
+            for k, initial_image in enumerate(initial_images):
+                input_points[i, j, k, :] = matrix @ unwrap_image + inside_point
+                check_points[i, j, k, :] = inside_point
+                input_images[i, j, k, :] = initial_image
+                check_images[i, j, k, :] = initial_image + unwrap_image
+    return input_points.reshape((-1, 3)), check_points.reshape(
+        (-1, 3)), input_images.reshape((-1, 3)), check_images.reshape((-1, 3))
+
+
+def run_box_type(s, box, interior_points, unwrap_images, initial_images):
+    (input_points, check_points, input_images,
+     check_images) = generate_outside(box, interior_points, unwrap_images,
+                                      initial_images)
+    s.configuration.box = box
+    s.particles.N = len(input_points)
+    s.particles.position[:] = input_points
+    s.particles.image[:] = input_images
+    s.wrap()
+    numpy.testing.assert_allclose(s.particles.position,
+                                  check_points,
+                                  atol=1e-12)
+    numpy.testing.assert_array_equal(s.particles.image, check_images)
+
+
+# Multiples of lattice vectors to add to interior points
+unwrap_images = numpy.array([
+    [0, 0, 0],
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+    [-1, 0, 0],
+    [0, -1, 0],
+    [0, 0, -1],
+    [-1, -1, -1],
+    [-5, 24, 13],
+    [3, -4, 5],
+    [3, 4, -5],
+    [100, 101, 102],
+    [-50, -50, 50],
+])
+
+test_images = unwrap_images
+
+unwrap_images_2d = numpy.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0],
+                                [0, -1, 0], [-1, -1, 0], [1, 1, 0],
+                                [-10, 20, 0]])
+
+
+def test_wrap_cubic(s):
+    if s.communicator.rank == 0:
+        run_box_type(s,
+                     box=[1, 1, 1, 0, 0, 0],
+                     interior_points=[[0, 0, 0], [-0.5, 0.0, -0.2],
+                                      [0.0, 0.3, -0.1], [0.3, 0.2, -0.1],
+                                      [-0.5, 0.2, -0.2]],
+                     unwrap_images=unwrap_images,
+                     initial_images=test_images)
+
+
+def test_wrap_triclinic(s):
+    if s.communicator.rank == 0:
+        run_box_type(s,
+                     box=[10, 12, 7, 0.1, 0.4, 0.2],
+                     interior_points=[[0, 0, 0], [-0.5, 0.0, -0.2],
+                                      [0.0, 0.3, -0.1], [0.3, 0.2, -0.1],
+                                      [-0.5, 0.2, -0.2], [0, 0, -3.5],
+                                      [-6.5, -6.5, -3.5]],
+                     unwrap_images=unwrap_images,
+                     initial_images=test_images)
+
+
+def test_wrap_2d(s):
+    if s.communicator.rank == 0:
+        run_box_type(s,
+                     box=[5, 11, 0, 0, 0, 0],
+                     interior_points=[[1, 0, 0], [2.4, 5, 0], [-2.5, 0, 0],
+                                      [-2.5, -5.5, 0]],
+                     unwrap_images=unwrap_images_2d,
+                     initial_images=unwrap_images_2d)
+
+
+def test_wrap_tetragonal(s):
+    if s.communicator.rank == 0:
+        run_box_type(s,
+                     box=[7, 7, 4, 0, 0, 0],
+                     interior_points=[[0, 0, 0], [-0.5, 0.0, -0.2],
+                                      [0.0, 0.3, -0.1], [0.3, 0.2, -0.1],
+                                      [-0.5, 0.2, -0.2], [-3.5, -3.5, -2]],
+                     unwrap_images=unwrap_images,
+                     initial_images=test_images)
+
+
+def test_wrap_orthorhombic(s):
+    if s.communicator.rank == 0:
+        run_box_type(s,
+                     box=[8, 6, 4, 0, 0, 0],
+                     interior_points=[[0, 0, 0], [-0.5, 0.0, -0.2],
+                                      [0.0, 0.3, -0.1], [0.3, 0.2, -0.1],
+                                      [-0.5, 0.2, -0.2], [-4, -3, -2]],
+                     unwrap_images=unwrap_images,
+                     initial_images=test_images)
+
+
+def test_wrap_monoclinic(s):
+    if s.communicator.rank == 0:
+        run_box_type(s,
+                     box=[7, 4, 8, 0, 0.25, 0],
+                     interior_points=[[-2, 1, -1], [-4, 0, -3], [2, 1, 1],
+                                      [-1, 0, -4], [-4.5, -2, -4]],
+                     unwrap_images=unwrap_images,
+                     initial_images=test_images)
+
+
 def test_particles(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.N = 5
 
         assert s.particles.N == 5
@@ -173,7 +301,7 @@ def test_particles(s):
 
 
 def test_bonds(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.bonds.N = 3
 
         assert s.bonds.N == 3
@@ -190,7 +318,7 @@ def test_bonds(s):
 
 
 def test_angles(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.angles.N = 3
 
         assert s.angles.N == 3
@@ -207,7 +335,7 @@ def test_angles(s):
 
 
 def test_dihedrals(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.dihedrals.N = 3
 
         assert s.dihedrals.N == 3
@@ -224,7 +352,7 @@ def test_dihedrals(s):
 
 
 def test_impropers(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.impropers.N = 3
 
         assert s.impropers.N == 3
@@ -241,7 +369,7 @@ def test_impropers(s):
 
 
 def test_pairs(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.pairs.N = 3
 
         assert s.pairs.N == 3
@@ -258,7 +386,7 @@ def test_pairs(s):
 
 
 def test_constraints(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.constraints.N = 3
 
         assert s.constraints.N == 3
@@ -280,7 +408,7 @@ def test_from_gsd_snapshot_empty(s, device):
 
 @skip_gsd
 def test_from_gsd_snapshot_populated(s, device):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
         for section in ('particles', 'bonds', 'angles', 'dihedrals',
                         'impropers', 'pairs'):
@@ -319,7 +447,7 @@ def test_invalid_particle_typeids(simulation_factory, lattice_snapshot_factory):
     snap = lattice_snapshot_factory(particle_types=['A', 'B'])
 
     # assign invalid type ids
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.typeid[:] = 2
 
     with pytest.raises(RuntimeError):
@@ -358,7 +486,7 @@ def test_invalid_bond_typeids(
     snap = lattice_snapshot_factory()
 
     # assign invalid type ids
-    if snap.exists:
+    if snap.communicator.rank == 0:
         group = getattr(snap, group_name)
         group.types = ['A']
         group.N = 1
@@ -372,7 +500,7 @@ def test_invalid_bond_typeids(
     snap = lattice_snapshot_factory()
 
     # assign invalid type ids
-    if snap.exists:
+    if snap.communicator.rank == 0:
         group = getattr(snap, group_name)
         group.types = []
         group.N = 0
