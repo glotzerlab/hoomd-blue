@@ -147,6 +147,6 @@ class WallPotential(ExternalField):
 
     @log(requires_run=True)
     def overlaps(self):
-        """float: The total number of overlaps between particles and walls."""
+        """int: The total number of overlaps between particles and walls."""
         timestep = self._simulation.timestep
         return self._cpp_obj.numOverlaps(timestep, False)
