@@ -1,17 +1,16 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement VolumeMoveSize."""
 
 from hoomd.custom import _InternalAction
-from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, OnlyIf,
-                                      to_type_converter)
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, OnlyIf
+
 from hoomd.tune import _InternalCustomTuner
 from hoomd.tune.attr_tuner import (_TuneDefinition, SolverStep, ScaleSolver,
                                    SecantSolver)
+
 from hoomd.hpmc.integrate import HPMCIntegrator
 
 
@@ -22,14 +21,13 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
     move sizes. For this class 'x' is the move size and 'y' is the acceptance
     rate.
     """
-    _attr_acceptance = {'delta': 'volume_moves'}
+    acceptable_attrs = {"volume", "aspect", "shear"}
 
-    def __init__(self, attr, type, target, domain=None):
-        if attr not in self._attr_acceptance:
+    def __init__(self, attr, target, domain=None):
+        if attr not in self.acceptable_attrs:
             raise ValueError("Only {} are allowed as tunable "
                              "attributes.".format(self._available_attrs))
         self.attr = attr
-        self.type = type
         self.integrator = None
         self.previous_accepted_moves = None
         self.previous_total = None
@@ -37,7 +35,7 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
         super().__init__(target, domain)
 
     def _get_y(self):
-        ratio = getattr(self.integrator, self._attr_acceptance[self.attr])
+        ratio = getattr(self.integrator, f"{self.attr}_moves")
         accepted_moves = ratio[0]
         total_moves = sum(ratio)
 
@@ -77,17 +75,16 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
         return acceptance_rate
 
     def _get_x(self):
-        return self._boxmc.volume["delta"]
+        return getattr(self._boxmc, self.attr)["delta"]
 
     def _set_x(self, value):
-        self._boxmc.volume = {**self._boxmc.volume, "delta": value}
+        getattr(self._boxmc, self.attr)["delta"] = value
 
     def __hash__(self):
-        return hash((self.attr, self.type, self._target, self._domain))
+        return hash((self.attr, self._target, self._domain))
 
     def __eq__(self, other):
-        return (self.attr == other.attr and self.type == other.type
-                and self._target == other._target
+        return (self.attr == other.attr and self._target == other._target
                 and self._domain == other._domain)
 
 
