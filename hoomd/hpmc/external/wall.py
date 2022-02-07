@@ -144,6 +144,11 @@ class WallPotential(ExternalField):
             integrator = self._simulation.operations.integrator
             self._check_valid_shape_wall_pairs(wall_list, integrator)
         self._walls = hoomd.wall._WallsMetaList(wall_list, _to_hpmc_cpp_wall)
+        self._walls._sync({
+            hoomd.wall.Sphere: self._cpp_obj.SphereWalls,
+            hoomd.wall.Cylinder: self._cpp_obj.CylinderWalls,
+            hoomd.wall.Plane: self._cpp_obj.PlaneWalls,
+        })
 
     @log(requires_run=True)
     def overlaps(self):
