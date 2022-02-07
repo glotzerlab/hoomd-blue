@@ -68,6 +68,18 @@ class PYBIND11_EXPORT BondTablePotential : public ForceCompute
                           Scalar rmin,
                           Scalar rmax);
 
+    /// Set parameters from Python.
+    void setParamsPython(std::string type, pybind11::dict params);
+
+    /// Get the parameters for a particular type.
+    pybind11::dict getParams(std::string type);
+
+    /// Get the width
+    unsigned int getWidth()
+        {
+        return m_table_width;
+        }
+
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     /*! \param timestep Current time step

@@ -13,7 +13,8 @@ md.angle
 
     Angle
     Harmonic
-    Cosinesq
+    CosineSquared
+    Table
 
 .. rubric:: Details
 
@@ -21,6 +22,7 @@ md.angle
     :synopsis: Angle potentials.
     :members: Angle,
               Harmonic,
-              Cosinesq
+              CosineSquared,
+              Table
     :no-inherited-members:
     :show-inheritance:
