@@ -32,12 +32,6 @@ HarmonicImproperForceCompute::HarmonicImproperForceCompute(std::shared_ptr<Syste
     // access the improper data for later use
     m_improper_data = m_sysdef->getImproperData();
 
-    // check for some silly errors a user could make
-    if (m_improper_data->getNTypes() == 0)
-        {
-        throw runtime_error("No improper types in the system.");
-        }
-
     // allocate the parameters
     m_K = new Scalar[m_improper_data->getNTypes()];
     m_chi = new Scalar[m_improper_data->getNTypes()];
@@ -69,12 +63,24 @@ void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar
 
     m_K[type] = K;
     m_chi[type] = chi;
+    }
 
-    // check for some silly errors a user could make
-    if (K <= 0)
-        m_exec_conf->msg->warning() << "improper.harmonic: specified K <= 0" << endl;
-    if (chi <= 0)
-        m_exec_conf->msg->warning() << "improper.harmonic: specified Chi <= 0" << endl;
+void HarmonicImproperForceCompute::setParamsPython(std::string type, pybind11::dict params)
+    {
+    // make sure the type is valid
+    auto typ = m_improper_data->getTypeByName(type);
+    Scalar k = params["k"].cast<Scalar>();
+    Scalar chi_0 = params["chi0"].cast<Scalar>();
+    setParams(typ, k, chi_0);
+    }
+
+pybind11::dict HarmonicImproperForceCompute::getParams(std::string type)
+    {
+    auto typ = m_improper_data->getTypeByName(type);
+    pybind11::dict params;
+    params["k"] = m_K[typ];
+    params["chi0"] = m_chi[typ];
+    return params;
     }
 
 /*! Actually perform the force computation
@@ -302,7 +308,8 @@ void export_HarmonicImproperForceCompute(pybind11::module& m)
                      std::shared_ptr<HarmonicImproperForceCompute>>(m,
                                                                     "HarmonicImproperForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParams", &HarmonicImproperForceCompute::setParams);
+        .def("setParams", &HarmonicImproperForceCompute::setParamsPython)
+        .def("getParams", &HarmonicImproperForceCompute::getParams);
     }
 
     } // end namespace detail
