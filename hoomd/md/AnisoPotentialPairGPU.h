@@ -70,6 +70,11 @@ class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
         m_tuner->setEnabled(enable);
         }
 
+    virtual void
+    setParams(unsigned int typ1, unsigned int typ2, const typename evaluator::param_type& param);
+
+    virtual void setShape(unsigned int typ, const typename evaluator::shape_type& shape_param);
+
     protected:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
     unsigned int m_param;               //!< Kernel tuning parameter
@@ -177,13 +182,6 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
 
     // access parameters
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
-    ArrayHandle<typename evaluator::param_type> d_params(this->m_params,
-                                                         access_location::device,
-                                                         access_mode::read);
-    ArrayHandle<typename evaluator::shape_type> d_shape_params(this->m_shape_params,
-                                                               access_location::device,
-                                                               access_mode::read);
-
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_torque(this->m_torque, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
@@ -227,8 +225,9 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
                                    this->m_pdata->getGPUPartition(),
                                    this->m_exec_conf->dev_prop,
                                    first),
-             d_params.data,
-             d_shape_params.data);
+             this->m_params.data(),
+             this->m_shape_params.data());
+
     if (!m_param)
         this->m_tuner->end();
 
@@ -239,6 +238,32 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
 
     if (this->m_prof)
         this->m_prof->pop(this->m_exec_conf);
+    }
+
+template<class evaluator,
+         hipError_t gpu_cgpf(const kernel::a_pair_args_t& pair_args,
+                             const typename evaluator::param_type* d_params,
+                             const typename evaluator::shape_type* d_shape_params)>
+void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::setParams(
+    unsigned int typ1,
+    unsigned int typ2,
+    const typename evaluator::param_type& param)
+    {
+    AnisoPotentialPair<evaluator>::setParams(typ1, typ2, param);
+    this->m_params[this->m_typpair_idx(typ1, typ2)].set_memory_hint();
+    this->m_params[this->m_typpair_idx(typ2, typ1)].set_memory_hint();
+    }
+
+template<class evaluator,
+         hipError_t gpu_cgpf(const kernel::a_pair_args_t& pair_args,
+                             const typename evaluator::param_type* d_params,
+                             const typename evaluator::shape_type* d_shape_params)>
+void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::setShape(
+    unsigned int typ,
+    const typename evaluator::shape_type& shape_param)
+    {
+    AnisoPotentialPair<evaluator>::setShape(typ, shape_param);
+    this->m_shape_params[typ].set_memory_hint();
     }
 
 namespace detail

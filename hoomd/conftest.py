@@ -598,6 +598,32 @@ class ListWriter(hoomd.custom.Action):
         self.data.append(getattr(self._operation, self._attribute))
 
 
+class ManyListWriter(hoomd.custom.Action):
+    """Log many quantities to a list.
+
+    On each triggered timestep, access the attributes given to the constructor
+    and append the data to lists.
+
+    Args:
+        list_tuples (list(tuple)):
+            List of pairs (operation, attribute) similar to the two arguments
+            given to the ListWriter constructor.
+    """
+
+    def __init__(self, list_tuples):
+        self._listwriters = [ListWriter(op, attr) for op, attr in list_tuples]
+
+    def act(self, timestep):
+        """Add each attribute value to the listwriter for that attribute."""
+        for listwriter in self._listwriters:
+            listwriter.act(timestep)
+
+    @property
+    def data(self):
+        """tuple(list): Data for each attribute specified in the constructor."""
+        return tuple([w.data for w in self._listwriters])
+
+
 def index_id(i):
     """Used for pytest fixture ids of indices."""
     return f"(i={i})"
