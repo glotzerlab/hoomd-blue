@@ -5,6 +5,7 @@ import hoomd
 from hoomd.wall import _WallsMetaList
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.hpmc.external.field import ExternalField
+from hoomd.logging import log
 
 
 def _to_hpmc_cpp_wall(wall):
@@ -143,3 +144,9 @@ class WallPotential(ExternalField):
             integrator = self._simulation.operations.integrator
             self._check_valid_shape_wall_pairs(wall_list, integrator)
         self._walls = hoomd.wall._WallsMetaList(wall_list, _to_hpmc_cpp_wall)
+
+    @log(requires_run=True)
+    def overlaps(self):
+        """float: The total number of overlaps between particles and walls."""
+        timestep = self._simulation.timestep
+        return self._cpp_obj.numOverlaps(timestep, False)

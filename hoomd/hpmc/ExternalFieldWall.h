@@ -766,6 +766,7 @@ template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const s
                      std::shared_ptr<ExternalFieldWall<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>>())
+        .def("numOverlaps", &ExternalFieldWall<Shape>::countOverlaps)
         .def_property_readonly("SphereWalls", &ExternalFieldWall<Shape>::GetSphereWalls)
         .def_property_readonly("CylinderWalls", &ExternalFieldWall<Shape>::GetCylinderWalls)
         .def_property_readonly("PlaneWalls", &ExternalFieldWall<Shape>::GetPlaneWalls);
