@@ -676,12 +676,12 @@ class Table(Pair):
     in the pair, ``r_min`` is defined in `params`, and ``r_cut`` is defined in
     `Pair.r_cut`.
 
-    Provide :math:`F(r)` and :math:`V(r)` on an evenly space set of grid points
-    points between :math:`r_{\\mathrm{min}}` and :math:`r_{\\mathrm{cut}}`.
-    `Table` linearly interpolates values when :math:`r` lies between grid points
-    and between the last grid point and :math:`r=r_{\\mathrm{cut}}`.  The force
-    must be specificed commensurate with the potential: :math:`F =
-    -\\frac{\\partial V}{\\partial r}`.
+    Provide :math:`F(r)` and :math:`V(r)` on evenly spaced grid points points
+    between :math:`r_{\\mathrm{min}}` and :math:`r_{\\mathrm{cut}}`. `Table`
+    linearly interpolates values when :math:`r` lies between grid points and
+    between the last grid point and :math:`r=r_{\\mathrm{cut}}`.  The force must
+    be specificed commensurate with the potential: :math:`F = -\\frac{\\partial
+    V}{\\partial r}`.
 
     `Table` does not support energy shifting or smoothing modes.
 

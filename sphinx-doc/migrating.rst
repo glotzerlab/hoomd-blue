@@ -185,10 +185,8 @@ Not yet ported
 The following v2 functionalities have not yet been ported to the v3 API. They may be added in a
 future 3.x release:
 
-- Tabulated bond, angle, and dihedral potentials.
 - Walls in HPMC.
 - HPMC box volume move size tuner.
-- Harmonic improper potential.
 
 These contributed functionalities rely on the community for support. Please
 contact the developers if you have an interest in porting these:

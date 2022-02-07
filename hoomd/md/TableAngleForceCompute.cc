@@ -9,9 +9,6 @@
     \brief Defines the TableAngleForceCompute class
 */
 
-#undef VT0
-#undef VT1
-
 using namespace std;
 
 // SMALL a relatively small number
@@ -92,6 +89,47 @@ void TableAngleForceCompute::setTable(unsigned int type,
         h_tables.data[m_table_value(i, type)].x = V[i];
         h_tables.data[m_table_value(i, type)].y = T[i];
         }
+    }
+
+void TableAngleForceCompute::setParamsPython(std::string type, pybind11::dict params)
+    {
+    auto type_id = m_angle_data->getTypeByName(type);
+
+    const auto V_py = params["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+    const auto T_py = params["tau"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+
+    std::vector<Scalar> V(V_py.size());
+    std::vector<Scalar> T(T_py.size());
+
+    std::copy(V_py.data(0), V_py.data(0) + V_py.size(), V.data());
+    std::copy(T_py.data(0), T_py.data(0) + T_py.size(), T.data());
+
+    setTable(type_id, V, T);
+    }
+
+/// Get the parameters for a particular type.
+pybind11::dict TableAngleForceCompute::getParams(std::string type)
+    {
+    ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
+
+    auto type_id = m_angle_data->getTypeByName(type);
+    pybind11::dict params;
+
+    auto V = pybind11::array_t<Scalar>(m_table_width);
+    auto V_unchecked = V.mutable_unchecked<1>();
+    auto T = pybind11::array_t<Scalar>(m_table_width);
+    auto T_unchecked = T.mutable_unchecked<1>();
+
+    for (unsigned int i = 0; i < m_table_width; i++)
+        {
+        V_unchecked(i) = h_tables.data[m_table_value(i, type_id)].x;
+        T_unchecked(i) = h_tables.data[m_table_value(i, type_id)].y;
+        }
+
+    params["V"] = V;
+    params["tau"] = T;
+
+    return params;
     }
 
 /*! \post The table based forces are computed for the given timestep.
@@ -300,7 +338,9 @@ void export_TableAngleForceCompute(pybind11::module& m)
         m,
         "TableAngleForceCompute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
-        .def("setTable", &TableAngleForceCompute::setTable);
+        .def_property_readonly("width", &TableAngleForceCompute::getWidth)
+        .def("setParams", &TableAngleForceCompute::setParamsPython)
+        .def("getParams", &TableAngleForceCompute::getParams);
     }
 
     } // end namespace detail
