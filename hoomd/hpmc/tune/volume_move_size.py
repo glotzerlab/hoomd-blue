@@ -5,7 +5,8 @@
 
 from hoomd.custom import _InternalAction
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, OnlyIf
+from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, OnlyIf,
+                                      to_type_converter)
 
 from hoomd.tune import _InternalCustomTuner
 from hoomd.tune.attr_tuner import (_TuneDefinition, SolverStep, ScaleSolver,
@@ -88,7 +89,7 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
                 and self._domain == other._domain)
 
 
-class _InternalMoveSize(_InternalAction):
+class _InternalVolumeMoveSize(_InternalAction):
     """Internal class for the box volume tuner."""
     _min_move_size = 1e-7
 
@@ -97,10 +98,10 @@ class _InternalMoveSize(_InternalAction):
         moves,
         target,
         solver,
-        max_volume_move=None,
+        max_move_size=None,
     ):
         # A flag for knowing when to update the maximum move sizes
-        self._update_move_sizes = False
+        self._update_max_move_sizes = False
 
         self._tunables = []
         # A counter when tuned reaches 1 it means that the tuner has reported
@@ -113,40 +114,34 @@ class _InternalMoveSize(_InternalAction):
         self._tuned = 0
         self._is_attached = False
 
-        # set up maximum trial move sizes
-        #        t_moves = TypeParameteh(
-        #            'max_volume_move', 'particle_type',
-        #            TypeParameterDict(OnlyTypes(float,
-        #                                        postprocess=self._flag_move_size_update,
-        #                                        allow_none=True),
-        #                              len_keys=1))
-        #        self._typeparam_dict = {
-        #            'max_volume_move': t_moves,
-        #        }
-
         # This is a bit complicated because we are having to ensure that we keep
         # the list of tunables and the solver updated with the changes to
         # attributes. However, these are simply forwarding a change along.
-        param_dict = ParameterDict(moves=OnlyIf([OnlyFrom(['delta'])],
-                                                postprocess=self._update_moves),
-                                   target=OnlyTypes(
-                                       float,
-                                       postprocess=self._target_postprocess),
-                                   solver=SolverStep)
+        params = ParameterDict(
+            moves=OnlyFrom(_MoveSizeTuneDefinition.acceptable_attrs,
+                           postprocess=self._update_moves),
+            target=OnlyTypes(float, postprocess=self._target_postprocess),
+            solver=OnlyTypes(SolverStep, strict=True),
+            max_move_size=OnlyIf(to_type_converter({
+                "volume": float,
+                "shear": float,
+                "aspect": float
+            }),
+                                 postprocess=self._flag_move_size_update))
+        params["moves"] = moves
+        params["target"] = target
+        params["solver"] = solver
+        if max_move_size is None:
+            max_move_size = {}
+        params["max_move_size"] = max_move_size
+        self._param_dict.update(params)
 
-        self._param_dict.update(param_dict)
-        self.target = target
-        self.solver = solver
-        self.moves = moves
-
-        self.max_volume_move.default = max_volume_move
         self._update_tunables(new_moves=moves)
 
     def attach(self, simulation):
         if not isinstance(simulation.operations.integrator, HPMCIntegrator):
             raise RuntimeError(
                 "MoveSizeTuner can only be used in HPMC simulations.")
-        self._update_tunables(new_moves=self.moves)
         self._update_tunables_attr('integrator',
                                    simulation.operations.integrator)
         self._is_attached = True
@@ -179,33 +174,30 @@ class _InternalMoveSize(_InternalAction):
             # update maximum move sizes
             if self._update_move_sizes:
                 for tunable in self._tunables:
-                    max_move_size = self.max_volume_move[tunable.type]
+                    max_move_size = self.max_move_size[tunable.attr]
                     tunable.domain = (self._min_move_size, max_move_size)
 
             tuned = self.solver.solve(self._tunables)
             self._tuned = self._tuned + 1 if tuned else 0
 
-    def _update_tunables(self, *, new_moves=tuple()):
+    def _update_tunables(self, *, new_moves=()):
         tunables = self._tunables
 
-        # First filter out any move size tune definitions that don't match
-        # the new specification.
-        #def filter_tunables(tunable):
-        #    return ((new_moves is None or tunable.attr in new_moves)
-        #            and (new_types is None or tunable.type in new_types))
+        def filter_tunables(tunable):
+            return tunable.attr in new_moves
 
-        #self._tunables = list(filter(filter_tunables, tunables))
-        #tune_definitions = set(self._tunables)
+        self._tunables = list(filter(filter_tunables, tunables))
+        tune_definitions = {t.attr for t in self._tunables}
 
         # Add any move size tune definitions that are required by the new
         # specification.
         for move in new_moves:
-            max_move_size = self.max_volume_move[new_type]
+            if move in tune_definitions:
+                continue
+            max_move_size = self.max_move_size[move]
             move_definition = _MoveSizeTuneDefinition(
-                move, new_type, self.target,
-                (self._min_move_size, max_move_size))
-            if move_definition not in tune_definitions:
-                self._tunables.append(move_definition)
+                move, self.target, (self._min_move_size, max_move_size))
+            self._tunables.append(move_definition)
 
     def _update_tunables_attr(self, attr, value):
         for tunable in self._tunables:
@@ -221,11 +213,6 @@ class _InternalMoveSize(_InternalAction):
 
     def _update_moves(self, value):
         self._update_tunables(new_moves=value)
-        self._tuned = 0
-        return value
-
-    def _update_types(self, value):
-        self._update_tunables(new_types=value)
         self._tuned = 0
         return value
 
@@ -252,7 +239,7 @@ class VolumeMoveSize(_InternalCustomTuner):
         types (list[str]): A list of string particle types to tune the move
             size for, defaults to None which upon attaching will tune all types
             in the system currently.
-        max_volume_move (float): The maximum volume move size to attempt.
+        max_move_size (float): The maximum volume move size to attempt.
 
     Attributes:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
@@ -266,7 +253,7 @@ class VolumeMoveSize(_InternalCustomTuner):
         types (list[str]): A list of string particle
             types to tune the move size for, defaults to None which upon
             attaching will tune all types in the system currently.
-        max_volume_move (float): The maximum value of a volume move
+        max_move_size (float): The maximum value of a volume move
             size to attempt.
 
     Note:
@@ -278,15 +265,14 @@ class VolumeMoveSize(_InternalCustomTuner):
         maximum move size for at least the translational moves to prevent
         requiring checking periodic images.
     """
-    _internal_class = _InternalMoveSize
+    _internal_class = _InternalVolumeMoveSize
 
     @classmethod
     def scale_solver(cls,
                      trigger,
                      moves,
                      target,
-                     types=None,
-                     max_volume_move=None,
+                     max_move_size=None,
                      max_scale=2.,
                      gamma=1.,
                      tol=1e-2):
@@ -302,7 +288,7 @@ class VolumeMoveSize(_InternalCustomTuner):
             types (list[str]): A list of string particle types to tune the
                 move size for, defaults to None which upon attaching will tune
                 all types in the system currently.
-            max_volume_move (float): The maximum value of a volume
+            max_move_size (float): The maximum value of a volume
                 move size to attempt.
             max_scale (float): Maximum scale factor.
             gamma (float): The value of gamma to pass through to
@@ -316,14 +302,14 @@ class VolumeMoveSize(_InternalCustomTuner):
                 significantly at typical tuning rates.
         """
         solver = ScaleSolver(max_scale, gamma, 'negative', tol)
-        return cls(trigger, moves, target, solver, max_volume_move)
+        return cls(trigger, moves, target, solver, max_move_size)
 
     @classmethod
     def secant_solver(cls,
                       trigger,
                       moves,
                       target,
-                      max_volume_move=None,
+                      max_move_size=None,
                       gamma=0.8,
                       tol=1e-2):
         """Create a `MoveSize` tuner with a `hoomd.tune.SecantSolver`.
@@ -342,7 +328,7 @@ class VolumeMoveSize(_InternalCustomTuner):
             types (list[str]): A list of string
                 particle types to tune the move size for, defaults to None which
                 upon attaching will tune all types in the system currently.
-            max_volume_move (float): The maximum value of a volume
+            max_move_size (float): The maximum value of a volume
                 move size to attempt, defaults to ``None`` which represents no
                 maximum move size.
             gamma (float): The value of gamma to pass through
@@ -362,4 +348,4 @@ class VolumeMoveSize(_InternalCustomTuner):
             frequently.
         """
         solver = SecantSolver(gamma, tol)
-        return cls(trigger, moves, target, solver, types, max_volume_move)
+        return cls(trigger, moves, target, solver, max_move_size)
