@@ -228,7 +228,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                             [&] { cl->setGridShift(make_scalar3(0.51, 0.51, 0.51)); });
 
         // check coverage box
-        const BoxDim& coverage = cl->getCoverageBox();
+        const BoxDim coverage = cl->getCoverageBox();
         if (mpi_x)
             {
             if (pos.x)
@@ -447,7 +447,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         UP_ASSERT_EXCEPTION(std::runtime_error,
                             [&] { cl->setGridShift(make_scalar3(0.3, 0.3, 0.3)); });
 
-        const BoxDim& coverage = cl->getCoverageBox();
+        const BoxDim coverage = cl->getCoverageBox();
         if (mpi_x)
             {
             if (pos.x)
@@ -662,7 +662,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         UP_ASSERT_EXCEPTION(std::runtime_error,
                             [&] { cl->setGridShift(make_scalar3(0.3, 0.3, 0.3)); });
 
-        const BoxDim& coverage = cl->getCoverageBox();
+        const BoxDim coverage = cl->getCoverageBox();
         if (mpi_x)
             {
             if (pos.x)

@@ -106,7 +106,7 @@ template<class Geometry> void ConfinedStreamingMethod<Geometry>::stream(uint64_t
     if (m_prof)
         m_prof->push("MPCD stream");
 
-    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
 
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
                                access_location::host,

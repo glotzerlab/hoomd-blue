@@ -276,7 +276,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
         }
 
     // determine local particles that are to be sent to neighboring processors
-    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
     setCommFlags(box);
 
     // fill send buffer once
@@ -531,7 +531,7 @@ void mpcd::Communicator::setCommFlags(const BoxDim& box)
 void mpcd::Communicator::checkDecomposition()
     {
     // determine the bounds of this box
-    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
     const Scalar3 lo = box.getLo();
     const Scalar3 hi = box.getHi();
 
