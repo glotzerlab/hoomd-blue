@@ -9,14 +9,14 @@ import itertools
 import numpy as np
 import pytest
 
-wall_types = [
+wall_instances = [
     hoomd.wall.Cylinder(1.0, (0, 0, 1)),
     hoomd.wall.Plane((0, 0, 0), (1, 1, 1)),
     hoomd.wall.Sphere(1.0)
 ]
 valid_wall_lists = []
 for r in 1, 2, 3:
-    walls_ = list(itertools.combinations(wall_types, r))
+    walls_ = list(itertools.combinations(wall_instances, r))
     valid_wall_lists.extend(walls_)
 
 
@@ -231,7 +231,6 @@ def test_replace_with_valid(simulation_factory, two_particle_snapshot_factory,
     mc, walls = add_default_integrator(sim, integrator_class, walls)
     sim.run(0)
     mc.external_potential.walls = [hoomd.wall.Sphere(1.0)]
-    sim.run(0)
 
 
 L_cube = 1.0
