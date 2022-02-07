@@ -4,9 +4,10 @@
 """Test hoomd.hpmc.external.wall."""
 
 import hoomd
-import itertools
-import pytest
 from hoomd.hpmc.pytest.conftest import _valid_args
+import itertools
+import numpy as np
+import pytest
 
 wall_types = [
     hoomd.wall.Cylinder(1.0, (0, 0, 1)),
@@ -31,7 +32,7 @@ def test_valid_construction(device, wall_list):
         assert wall_input == wall_in_object
 
 
-wall_args = {
+default_wall_args = {
     hoomd.wall.Sphere: (1.0,),
     hoomd.wall.Cylinder: (1.0, (0, 0, 1)),
     hoomd.wall.Plane: ((0, 0, 0), (1, 1, 1))
@@ -41,10 +42,16 @@ wall_args = {
 @pytest.fixture(scope="module")
 def add_default_integrator():
 
-    def add(simulation, integrator_class, wall_types):
+    def add(simulation,
+            integrator_class,
+            wall_types,
+            use_default_wall_args=True):
         mc = integrator_class()
         mc.shape['A'] = mc_params[integrator_class]
-        wall_list = [wt(*wall_args[wt]) for wt in wall_types]
+        if use_default_wall_args:
+            wall_list = [wt(*default_wall_args[wt]) for wt in wall_types]
+        else:
+            wall_list = wall_types
         walls = hoomd.hpmc.external.wall.WallPotential(wall_list)
         mc.external_potential = walls
         simulation.operations.integrator = mc
@@ -225,3 +232,335 @@ def test_replace_with_valid(simulation_factory, two_particle_snapshot_factory,
     sim.run(0)
     mc.external_potential.walls = [hoomd.wall.Sphere(1.0)]
     sim.run(0)
+
+
+L_cube = 1.0
+cube_vertices = np.array(
+    list(itertools.product((-L_cube / 2, L_cube / 2), repeat=3)))
+cube_rc = max(np.linalg.norm(cube_vertices, axis=1))  # circumsphere radius
+cube_face_rc = np.sqrt(2) / 2
+cube_r_s = 0.1  # sweep radius for spherocube
+rot_x_45deg = [0.92387953, 0.38268343, 0, 0]
+cube_def = dict(vertices=cube_vertices)
+spherocube_def = dict(vertices=cube_vertices, sweep_radius=cube_r_s)
+overlap_test_info = [
+    # sphere completely inside spherical cavity
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Sphere(1.0, (0, 0, 0), inside=True)],
+        dict(diameter=1.0),
+        False,
+    ),
+    # big sphere in small spherical cavity
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Sphere(1.0, (0, 0, 0), inside=True)],
+        dict(diameter=10.0),
+        True,
+    ),
+    # sphere inside spherical forbidden region
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Sphere(1.0, (0, 0, 0), inside=False)],
+        dict(diameter=1.0),
+        True,
+    ),
+    # sphere outside spherical forbidden region (i.e., no overlaps)
+    (
+        (5, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Sphere(1.0, (0, 0, 0), inside=False)],
+        dict(diameter=1.0),
+        False,
+    ),
+    # big sphere outside spherical forbidden region but extends into it
+    (
+        (2, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Sphere(1.0, (0, 0, 0), inside=False)],
+        dict(diameter=5.0),
+        True,
+    ),
+    # cube safely nestled in the center of a spherical cavity
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexPolyhedron,
+        [hoomd.wall.Sphere(1.1 * cube_rc, (0, 0, 0), inside=True)],
+        cube_def,
+        False,
+    ),
+    # cube inside a too-small spherical cavity
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexPolyhedron,
+        [hoomd.wall.Sphere(0.9 * cube_rc, (0, 0, 0), inside=True)],
+        cube_def,
+        True,
+    ),
+    # cube safely outside a spherical forbidden region
+    (
+        (0, 1.51, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexPolyhedron,
+        [hoomd.wall.Sphere(1.0, (0, 0, 0), inside=False)],
+        cube_def,
+        False,
+    ),
+    # cube outside a spherical forbidden region but rotated to overlap
+    (
+        (0, 1.51, 0),
+        rot_x_45deg,
+        hoomd.hpmc.integrate.ConvexPolyhedron,
+        [hoomd.wall.Sphere(1.0, (0, 0, 0), inside=False)],
+        cube_def,
+        True,
+    ),
+    # spherocube safely nestled in the center of a spherical cavity
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexSpheropolyhedron,
+        [hoomd.wall.Sphere(1.1 * (cube_rc + cube_r_s), (0, 0, 0), inside=True)],
+        spherocube_def,
+        False,
+    ),
+    # spherocube inside a too-small spherical cavity
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexSpheropolyhedron,
+        [hoomd.wall.Sphere(cube_rc, (0, 0, 0), inside=True)],
+        spherocube_def,
+        True,
+    ),
+    # spherocube safely outside a spherical forbidden region
+    (
+        (0, 1 + 0.5 + cube_r_s + 0.01, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexSpheropolyhedron,
+        [hoomd.wall.Sphere(1.0, (0, 0, 0), inside=False)],
+        spherocube_def,
+        False,
+    ),
+    # spherocube outside a spherical forbidden region but rotated to overlap
+    (
+        (0, 1 + 0.5 + cube_r_s + 0.01, 0),
+        rot_x_45deg,
+        hoomd.hpmc.integrate.ConvexSpheropolyhedron,
+        [hoomd.wall.Sphere(1.0, (0, 0, 0), inside=False)],
+        spherocube_def,
+        True,
+    ),
+    # sphere on allowed side of plane wall
+    (
+        (1.29, 1.29, 1.29),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Plane((1, 1, 1), (1, 1, 1))],
+        dict(diameter=1.0),
+        False,
+    ),
+    # sphere on allowed side of plane wall but overlapping with wall
+    (
+        (1.28, 1.28, 1.28),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Plane((1, 1, 1), (1, 1, 1))],
+        dict(diameter=1.0),
+        True,
+    ),
+    # sphere on disallowed side of plane wall
+    (
+        (1.29, 1.29, 1.29),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Plane((1, 1, 1), (-1, -1, -1))],
+        dict(diameter=1.0),
+        True,
+    ),
+    # cube with face parallel to wall and barely on allowed side
+    (
+        (0, 1.51, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexPolyhedron,
+        [hoomd.wall.Plane((0, 1, 0), (0, 1, 0))],
+        cube_def,
+        False,
+    ),
+    # cube barely on allowed side but rotated to intersect wall
+    (
+        (0, 1.51, 0),
+        rot_x_45deg,
+        hoomd.hpmc.integrate.ConvexPolyhedron,
+        [hoomd.wall.Plane((0, 1, 0), (0, 1, 0))],
+        cube_def,
+        True,
+    ),
+    # cube all the way on forbidden side of planar wall
+    (
+        (0, 1.51, 0),
+        rot_x_45deg,
+        hoomd.hpmc.integrate.ConvexPolyhedron,
+        [hoomd.wall.Plane((0, -1, 0), (0, -1, 0))],
+        cube_def,
+        True,
+    ),
+    # spherocube with face parallel to wall and barely on overlapping
+    (
+        (0, 1.51, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexSpheropolyhedron,
+        [hoomd.wall.Plane((0, 1, 0), (0, 1, 0))],
+        spherocube_def,
+        True,
+    ),
+    # spherocube with face parallel to wall and barely on allowed side
+    (
+        (0, 1.61, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexSpheropolyhedron,
+        [hoomd.wall.Plane((0, 1, 0), (0, 1, 0))],
+        spherocube_def,
+        False,
+    ),
+    # spherocube barely on allowed side but rotated to intersect wall
+    (
+        (0, 1.61, 0),
+        rot_x_45deg,
+        hoomd.hpmc.integrate.ConvexSpheropolyhedron,
+        [hoomd.wall.Plane((0, 1, 0), (0, 1, 0))],
+        spherocube_def,
+        True,
+    ),
+    # spherocube all the way on forbidden side of planar wall
+    (
+        (0, 1.61, 0),
+        rot_x_45deg,
+        hoomd.hpmc.integrate.ConvexSpheropolyhedron,
+        [hoomd.wall.Plane((0, -1, 0), (0, -1, 0))],
+        spherocube_def,
+        True,
+    ),
+    # sphere in middle of cylindrical pore with larger radius than sphere
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Cylinder(1.0, (1, 0, 0))],
+        dict(diameter=1.0),
+        False,
+    ),
+    # make sure translating cylinder wall along normal does not affect overlaps
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Cylinder(1.0, (1, 0, 0), origin=(2, 0, 0))],
+        dict(diameter=1.0),
+        False,
+    ),
+    # sphere in middle of cylindrical pore with smaller radius than sphere
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Cylinder(0.4, (1, 0, 0))],
+        dict(diameter=1.0),
+        True,
+    ),
+    # sphere in forbidden inverse cylinder space
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Cylinder(1.0, (1, 0, 0), origin=(0, 2, 0))],
+        dict(diameter=1.0),
+        True,
+    ),
+    # sphere in forbidden cylinder space
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Cylinder(1.0, (1, 0, 0), inside=False)],
+        dict(diameter=1.0),
+        True,
+    ),
+    # sphere in allowed inverse cylinder space
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.Sphere,
+        [hoomd.wall.Cylinder(1.0, (1, 0, 0), origin=(0, 3, 0), inside=False)],
+        dict(diameter=1.0),
+        False,
+    ),
+
+    # cube in middle of cylindrical pore with larger radius than the
+    # circumsphere radius of the cube projected onto the circular cross-section
+    # of the cylinder (i.e., the square face of the cube)
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexPolyhedron,
+        [hoomd.wall.Cylinder(cube_face_rc * 1.01, (1, 0, 0))],
+        cube_def,
+        False,
+    ),
+    # cube in middle of cylindrical pore with smaller radius than the
+    # circumsphere radius of the cube projected onto the circular cross-section
+    # of the cylinder (i.e., the square face of the cube)
+    (
+        (0, 0, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexPolyhedron,
+        [hoomd.wall.Cylinder(0.99 * cube_face_rc, (1, 0, 0))],
+        cube_def,
+        True,
+    ),
+    # cube in allowed inverse cylinder space
+    (
+        (0, 3, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexPolyhedron,
+        [hoomd.wall.Cylinder(1.0, (1, 0, 0), inside=False)],
+        cube_def,
+        False,
+    ),
+    # cube center in allowed inverse cylinder space but vertices extend to
+    # forbidden region
+    (
+        (0, 0.6, 0),
+        (1, 0, 0, 0),
+        hoomd.hpmc.integrate.ConvexPolyhedron,
+        [hoomd.wall.Cylinder(1.0, (1, 0, 0), inside=False)],
+        cube_def,
+        True,
+    ),
+]
+
+
+@pytest.mark.cpu
+@pytest.mark.parametrize("test_info", overlap_test_info)
+def test_overlaps(simulation_factory, one_particle_snapshot_factory,
+                  add_default_integrator, test_info):
+    pos, orientation, shape, wall_list, shapedef, expecting_overlap = test_info
+    sim = simulation_factory(
+        one_particle_snapshot_factory(position=pos, orientation=orientation))
+    mc, walls = add_default_integrator(sim,
+                                       shape,
+                                       wall_list,
+                                       use_default_wall_args=False)
+    mc.shape['A'] = shapedef
+    sim.run(0)
+    assert (mc.external_potential.overlaps > 0) == expecting_overlap

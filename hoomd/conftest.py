@@ -78,6 +78,51 @@ def simulation_factory(device):
 
 
 @pytest.fixture(scope='session')
+def one_particle_snapshot_factory(device):
+    """Make a snapshot with a single particle."""
+
+    def make_snapshot(particle_types=['A'],
+                      dimensions=3,
+                      position=(0, 0, 0),
+                      orientation=(1, 0, 0, 0),
+                      L=20):
+        """Make the snapshot.
+
+        Args:
+            particle_types: List of particle type names
+            dimensions: Number of dimensions (2 or 3)
+            position: Position to place the particle
+            orientation: Orientation quaternion to assign to the particle
+            L: Box length
+
+        The arguments position and orientation define the position and
+        orientation of the particle.  When dimensions==3, the box is a cubic box
+        with dimensions L by L by L. When dimensions==2, the box is a square box
+        with dimensions L by L by 0.
+        """
+        s = Snapshot(device.communicator)
+        N = 1
+
+        if dimensions == 2 and position[2] != 0:
+            raise ValueError(
+                'z component of position must be zero for 2D simulation.')
+
+        if s.communicator.rank == 0:
+            box = [L, L, L, 0, 0, 0]
+            if dimensions == 2:
+                box[2] = 0
+            s.configuration.box = box
+            s.particles.N = N
+            # shift particle positions slightly in z so MPI tests pass
+            s.particles.position[0] = position
+            s.particles.orientation[0] = orientation
+            s.particles.types = particle_types
+        return s
+
+    return make_snapshot
+
+
+@pytest.fixture(scope='session')
 def two_particle_snapshot_factory(device):
     """Make a snapshot with two particles."""
 
