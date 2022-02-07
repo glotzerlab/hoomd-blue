@@ -340,6 +340,12 @@ class LJ(Pair):
 
         Type: `str`
 
+    .. py:attribute:: tail_correction
+
+        Whether to apply the isotropic integrated long range tail correction.
+
+        Type: `bool`
+
     Example::
 
         nl = nlist.Cell()
