@@ -9,14 +9,6 @@ from hoomd.conftest import operation_pickling_check
 import hoomd
 import hoomd.write
 
-try:
-    from mpi4py import MPI
-    skip_mpi = False
-except ImportError:
-    skip_mpi = True
-
-skip_mpi = pytest.mark.skipif(skip_mpi, reason="MPI4py is not importable.")
-
 
 class Identity:
 
@@ -115,14 +107,16 @@ def test_values(device, logger, expected_values):
             for hdr, v in zip(headers, values))
 
 
-@skip_mpi
 def test_mpi_write_only(device, logger):
+    mpi4py = pytest.importorskip("mpi4py")
+    mpi4py.MPI = pytest.importorskip("mpi4py.MPI")
+
     output = StringIO("")
     table_writer = hoomd.write.Table(1, logger, output)
     table_writer._comm = device.communicator
     table_writer.write()
 
-    comm = MPI.COMM_WORLD
+    comm = mpi4py.MPI.COMM_WORLD
     if comm.rank == 0:
         assert output.getvalue() != ''
     else:

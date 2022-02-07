@@ -6,16 +6,8 @@ from collections.abc import Sequence
 import numpy as np
 import pytest
 
-try:
-    import rowan
-    skip_rowan = False
-except ImportError:
-    skip_rowan = True
-
 import hoomd
 import hoomd.md as md
-
-skip_rowan = pytest.mark.skipif(skip_rowan, reason="rowan cannot be imported.")
 
 
 @pytest.fixture
@@ -72,6 +64,8 @@ def check_bodies(snapshot, definition):
     This is just to prevent duplication of code from test_create_bodies and
     test_running_simulation.
     """
+    rowan = pytest.importorskip("rowan")
+
     assert snapshot.particles.N == 10
     assert all(snapshot.particles.typeid[3:] == 1)
 
@@ -123,9 +117,10 @@ def check_bodies(snapshot, definition):
                           definition["orientations"][i])
 
 
-@skip_rowan
 def test_create_bodies(simulation_factory, two_particle_snapshot_factory,
                        lattice_snapshot_factory, valid_body_definition):
+    rowan = pytest.importorskip("rowan")  # noqa F841 - used by called method
+
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
 
@@ -225,9 +220,10 @@ def test_error_on_invalid_body(simulation_factory,
         sim.run(0)
 
 
-@skip_rowan
 def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
                             valid_body_definition):
+    rowan = pytest.importorskip("rowan")  # noqa F841 - used by called method
+
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())

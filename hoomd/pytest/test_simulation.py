@@ -8,17 +8,11 @@ from copy import deepcopy
 from hoomd.error import MutabilityError
 from hoomd.logging import LoggerCategories
 from hoomd.conftest import logging_check
-try:
-    import gsd.hoomd
-    skip_gsd = False
-except ImportError:
-    skip_gsd = True
-
-skip_gsd = pytest.mark.skipif(skip_gsd,
-                              reason="gsd Python package was not found.")
 
 
 def make_gsd_snapshot(hoomd_snapshot):
+    gsd = pytest.importorskip("gsd")
+    gsd.hoomd = pytest.importorskip("gsd.hoomd")
     s = gsd.hoomd.Snapshot()
     for attr in dir(hoomd_snapshot):
         if attr[0] != '_' and attr not in [
@@ -161,9 +155,11 @@ def state_args(request):
     return deepcopy(request.param)
 
 
-@skip_gsd
 def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
                         state_args, tmp_path):
+    gsd = pytest.importorskip("gsd")
+    gsd.hoomd = pytest.importorskip("gsd.hoomd")
+
     snap_params, nsteps = state_args
 
     d = tmp_path / "sub"
@@ -203,7 +199,6 @@ def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
         assert_equivalent_snapshots(snap, sim.state.get_snapshot())
 
 
-@skip_gsd
 def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
                                  device, state_args, tmp_path):
     snap_params, nsteps = state_args

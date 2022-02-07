@@ -4,14 +4,6 @@
 import hoomd
 import pytest
 import time
-try:
-    from mpi4py import MPI
-    mpi4py_available = True
-except ImportError:
-    mpi4py_available = False
-
-skip_mpi4py = pytest.mark.skipif(not mpi4py_available,
-                                 reason='mpi4py could not be imported.')
 
 
 def test_communicator_methods():
@@ -36,10 +28,17 @@ def test_communicator_ranks():
     assert communicator.rank < communicator.num_ranks
     assert communicator.partition == 0
 
-    if mpi4py_available:
-        mpi_communicator = MPI.COMM_WORLD
-        assert communicator.rank == mpi_communicator.Get_rank()
-        assert communicator.num_ranks == mpi_communicator.Get_size()
+
+def test_communicator_ranks_with_mpi4py():
+    """Check that the ranks are set correctly with mpi4py."""
+    mpi4py = pytest.importorskip("mpi4py")
+    mpi4py.MPI = pytest.importorskip("mpi4py.MPI")
+
+    communicator = hoomd.communicator.Communicator()
+
+    mpi_communicator = mpi4py.MPI.COMM_WORLD
+    assert communicator.rank == mpi_communicator.Get_rank()
+    assert communicator.num_ranks == mpi_communicator.Get_size()
 
 
 def test_communicator_partition():
@@ -53,9 +52,19 @@ def test_communicator_partition():
         assert communicator.rank == 0
         assert communicator.partition < communicator.num_partitions
 
-        if mpi4py_available:
-            mpi_communicator = MPI.COMM_WORLD
-            assert communicator.partition == mpi_communicator.Get_rank()
+
+def test_communicator_partition_with_mpi4py():
+    """Check that communicators are partitioned correctly with mpi4py."""
+    mpi4py = pytest.importorskip("mpi4py")
+    mpi4py.MPI = pytest.importorskip("mpi4py.MPI")
+
+    world_communicator = hoomd.communicator.Communicator()
+
+    if world_communicator.num_ranks == 2:
+        communicator = hoomd.communicator.Communicator(ranks_per_partition=1)
+
+        mpi_communicator = mpi4py.MPI.COMM_WORLD
+        assert communicator.partition == mpi_communicator.Get_rank()
 
 
 def test_commuicator_walltime():
@@ -68,12 +77,15 @@ def test_commuicator_walltime():
     assert t >= ref_time
 
 
-@skip_mpi4py
 @pytest.mark.skipif(not hoomd.version.mpi_enabled,
                     reason='This test requires MPI')
 def test_communicator_mpi4py():
     """Check that Communicator can be initialized with mpi4py."""
+    mpi4py = pytest.importorskip("mpi4py")
+    mpi4py.MPI = pytest.importorskip("mpi4py.MPI")
+
     world_communicator = hoomd.communicator.Communicator()
-    communicator = hoomd.communicator.Communicator(mpi_comm=MPI.COMM_WORLD)
+    communicator = hoomd.communicator.Communicator(
+        mpi_comm=mpi4py.MPI.COMM_WORLD)
     assert world_communicator.num_ranks == communicator.num_ranks
     assert world_communicator.rank == communicator.rank

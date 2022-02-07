@@ -8,18 +8,6 @@ import hoomd
 from hoomd.data.array import HOOMDGPUArray
 import numpy as np
 import pytest
-try:
-    # This try block is purely to allow testing locally without mpi4py. We could
-    # require it for testing, and simplify the logic here. The CI containers all
-    # have mpi4py.
-    from mpi4py import MPI
-except ImportError:
-    skip_mpi4py = True
-else:
-    skip_mpi4py = False
-
-skip_mpi4py = pytest.mark.skipif(skip_mpi4py,
-                                 reason='mpi4py could not be imported.')
 
 try:
     # We use the CUPY_IMPORTED variable to allow for local GPU testing without
@@ -402,7 +390,10 @@ class TestLocalSnapshots:
 
     @staticmethod
     def check_tag_shape(base_snapshot, local_snapshot, group, ranks):
-        mpi_comm = MPI.COMM_WORLD
+        mpi4py = pytest.importorskip("mpi4py")
+        mpi4py.MPI = pytest.importorskip("mpi4py.MPI")
+
+        mpi_comm = mpi4py.MPI.COMM_WORLD
 
         if base_snapshot.communicator.rank == 0:
             N = getattr(base_snapshot, group).N
@@ -413,7 +404,7 @@ class TestLocalSnapshots:
         # check particles tag size
         if group == 'particles':
             total_len = mpi_comm.allreduce(len(local_snapshot.particles.tag),
-                                           op=MPI.SUM)
+                                           op=mpi4py.MPI.SUM)
             assert total_len == N
         else:
             local_snapshot_section = getattr(local_snapshot, group)
@@ -422,7 +413,6 @@ class TestLocalSnapshots:
             else:
                 assert len(local_snapshot_section.tag) == N
 
-    @skip_mpi4py
     @pytest.mark.cupy_optional
     def test_tags_shape(self, base_simulation, base_snapshot, snapshot_section):
         """Checks that tags are the appropriate size from local snapshots.
@@ -448,15 +438,17 @@ class TestLocalSnapshots:
             with pytest.raises(ValueError):
                 prop[:] = 1
 
-    @skip_mpi4py
     @pytest.mark.cupy_optional
     def test_cpu_global_properties(self, base_simulation, base_snapshot,
                                    global_property):
+        mpi4py = pytest.importorskip("mpi4py")
+        mpi4py.MPI = pytest.importorskip("mpi4py.MPI")
+
         section_name, prop_name, prop_dict = global_property
         sim = base_simulation()
         snapshot = sim.state.get_snapshot()
 
-        mpi_comm = MPI.COMM_WORLD
+        mpi_comm = mpi4py.MPI.COMM_WORLD
 
         if snapshot.communicator.rank == 0:
             N = getattr(snapshot, section_name).N

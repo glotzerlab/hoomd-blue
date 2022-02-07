@@ -12,13 +12,6 @@ try:
 except ImportError:
     CUPY_IMPORTED = False
 
-# mpi4py is needed for the ghost data test
-try:
-    from mpi4py import MPI
-    MPI4PY_IMPORTED = True
-except ImportError:
-    MPI4PY_IMPORTED = False
-
 import hoomd
 from hoomd import md
 
@@ -234,8 +227,8 @@ def test_ghost_data_access(local_force_names, two_particle_snapshot_factory,
                            force_simulation_factory):
     """Ensure size of ghost data arrays are correct."""
     # skip this test if mpi4py not imported
-    if not MPI4PY_IMPORTED:
-        pytest.skip("This test needs mpi4py to run.")
+    mpi4py = pytest.importorskip("mpi4py")
+    mpi4py.MPI = pytest.importorskip("mpi4py.MPI")
 
     for local_force_name in local_force_names:
         snap = two_particle_snapshot_factory()
@@ -256,7 +249,7 @@ def test_ghost_data_access(local_force_names, two_particle_snapshot_factory,
             N_global = snap.particles.N
         else:
             N_global = None
-        mpi_comm = MPI.COMM_WORLD
+        mpi_comm = mpi4py.MPI.COMM_WORLD
         N_global = mpi_comm.bcast(N_global, root=0)
 
         # test buffer lengths
@@ -271,8 +264,9 @@ def test_ghost_data_access(local_force_names, two_particle_snapshot_factory,
                 assert len(buffer) + len(ghost_buffer) == len(buffer_with_ghost)
 
                 # make sure all particles are accounted for across ranks
-                mpi_comm = MPI.COMM_WORLD
-                N_global_computed = mpi_comm.allreduce(len(buffer), op=MPI.SUM)
+                mpi_comm = mpi4py.MPI.COMM_WORLD
+                N_global_computed = mpi_comm.allreduce(len(buffer),
+                                                       op=mpi4py.MPI.SUM)
                 assert N_global_computed == N_global
 
 

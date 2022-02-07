@@ -6,14 +6,6 @@ from hoomd import Box
 import numpy
 import pytest
 from hoomd.pytest.test_simulation import make_gsd_snapshot
-try:
-    import gsd.hoomd  # noqa: F401 - need to know if the import fails
-    skip_gsd = False
-except ImportError:
-    skip_gsd = True
-
-skip_gsd = pytest.mark.skipif(skip_gsd,
-                              reason="gsd Python package was not found.")
 
 
 def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
@@ -399,14 +391,12 @@ def test_constraints(s):
         assert s.constraints.group.dtype == numpy.uint32
 
 
-@skip_gsd
 def test_from_gsd_snapshot_empty(s, device):
     gsd_snap = make_gsd_snapshot(s)
     hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
     assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
 
-@skip_gsd
 def test_from_gsd_snapshot_populated(s, device):
     if s.communicator.rank == 0:
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
