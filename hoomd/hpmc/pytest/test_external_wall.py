@@ -607,7 +607,9 @@ def test_overlaps(simulation_factory, one_particle_snapshot_factory,
                   add_default_integrator, test_info):
     pos, orientation, shape, wall_list, shapedef, expecting_overlap = test_info
     sim = simulation_factory(
-        one_particle_snapshot_factory(position=pos, orientation=orientation))
+        one_particle_snapshot_factory(position=pos,
+                                      orientation=orientation,
+                                      L=100))
     mc, walls = add_default_integrator(sim,
                                        shape,
                                        wall_list,
