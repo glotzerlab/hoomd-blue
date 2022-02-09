@@ -171,16 +171,25 @@ of user-supplied integration methos (`IntegrationMethodTwoStep`). Each method in
 on a single particle group (`ParticleGroup`) and is solely responsible for integrating the equations
 of motion of all particles in that group.
 
-## Templates functors
+## Templates evaluator
 
 Many operations in HOOMD-blue provide similar functionality with different functional forms. For
 example pair potentials with many different V(r) and HPMC integration with many different particle
 shape classes. To reduce code duplication while maintaining high performance, HOOMD-blue uses
-template functor classes combined with a single implementation of the general method. This allows
+template evaluator classes combined with a single implementation of the general method. This allows
 the method (e.g. pair potential evaluation) to be implemented only twice (once on the GPU and once
-on the CPU) while each specific functor (e.g. V(r)) is also implemented only once. With the
+on the CPU) while each specific evaluator (e.g. V(r)) is also implemented only once. With the
 functional form defined in a template class, the compiler is free to inline the evaluation of that
 function into the inner loop generated in each template instantiation.
+
+To add a new functional form to the code, a developer must:
+
+1. Implement the evaluator class.
+2. Instantiate the GPU kernel driver with the evaluator.
+3. Instantiate the method class with the evaluator and export them to Python.
+4. Add the Python Operation class to wrap the C++ implementation.
+
+See existing examples in the codebase (e.g. grep for `EvaluatorPairLJ>`) for details.
 
 ## GPU kernel driver functions
 
