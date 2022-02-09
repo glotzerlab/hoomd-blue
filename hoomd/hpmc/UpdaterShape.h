@@ -702,8 +702,7 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
                       &UpdaterShape<Shape>::getNumPhase,
                       &UpdaterShape<Shape>::setNumPhase)
         .def("getStepsize", &UpdaterShape<Shape>::getStepsize)
-        .def("setStepsize", &UpdaterShape<Shape>::setStepsize)
-        ;
+        .def("setStepsize", &UpdaterShape<Shape>::setStepsize);
     }
 
     } // namespace hpmc

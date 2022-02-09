@@ -117,47 +117,49 @@ template<typename Shape> class ShapeMoveBase
     //                    d.begin(),
     //                    [](const Scalar& s) -> Scalar { return s; });
     //     int retval
-    //         = gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, d.size(), 1, 0, (void*)&d[0]);
+    //         = gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, d.size(), 1, 0,
+    //         (void*)&d[0]);
     //     return retval;
     //     }
 
-//     //! Method that is called to connect to the gsd write state signal
-//     virtual bool restoreStateGSD(std::shared_ptr<GSDReader> reader,
-//                                  std::string name,
-//                                  const std::shared_ptr<const ExecutionConfiguration> exec_conf,
-//                                  bool mpi)
-//         {
-//         bool success = true;
-//         std::string path = name + "stepsize";
-//         std::vector<float> d;
-//         unsigned int Ntypes = (unsigned int)this->m_step_size.size();
-//         uint64_t frame = reader->getFrame();
-//         if (exec_conf->isRoot())
-//             {
-//             d.resize(Ntypes, 0.0);
-//             exec_conf->msg->notice(2)
-//                 << "shape_move reading from GSD File from name: " << name << std::endl;
-//             success = reader->readChunk((void*)&d[0],
-//                                         frame,
-//                                         path.c_str(),
-//                                         Ntypes * gsd_sizeof_type(GSD_TYPE_FLOAT),
-//                                         Ntypes);
-//             exec_conf->msg->notice(2)
-//                 << "stepsize: " << d[0] << " success: " << std::boolalpha << success << std::endl;
-//             }
-//
-// #ifdef ENABLE_MPI
-//         if (mpi)
-//             {
-//             bcast(d, 0, exec_conf->getMPICommunicator()); // broadcast the data
-//             }
-// #endif
-//
-//         for (unsigned int i = 0; i < d.size(); i++)
-//             m_step_size[i] = Scalar(d[i]);
-//
-//         return success;
-//         }
+    //     //! Method that is called to connect to the gsd write state signal
+    //     virtual bool restoreStateGSD(std::shared_ptr<GSDReader> reader,
+    //                                  std::string name,
+    //                                  const std::shared_ptr<const ExecutionConfiguration>
+    //                                  exec_conf, bool mpi)
+    //         {
+    //         bool success = true;
+    //         std::string path = name + "stepsize";
+    //         std::vector<float> d;
+    //         unsigned int Ntypes = (unsigned int)this->m_step_size.size();
+    //         uint64_t frame = reader->getFrame();
+    //         if (exec_conf->isRoot())
+    //             {
+    //             d.resize(Ntypes, 0.0);
+    //             exec_conf->msg->notice(2)
+    //                 << "shape_move reading from GSD File from name: " << name << std::endl;
+    //             success = reader->readChunk((void*)&d[0],
+    //                                         frame,
+    //                                         path.c_str(),
+    //                                         Ntypes * gsd_sizeof_type(GSD_TYPE_FLOAT),
+    //                                         Ntypes);
+    //             exec_conf->msg->notice(2)
+    //                 << "stepsize: " << d[0] << " success: " << std::boolalpha << success <<
+    //                 std::endl;
+    //             }
+    //
+    // #ifdef ENABLE_MPI
+    //         if (mpi)
+    //             {
+    //             bcast(d, 0, exec_conf->getMPICommunicator()); // broadcast the data
+    //             }
+    // #endif
+    //
+    //         for (unsigned int i = 0; i < d.size(); i++)
+    //             m_step_size[i] = Scalar(d[i]);
+    //
+    //         return success;
+    //         }
 
     virtual Scalar operator()(uint64_t timestep,
                               const unsigned int& N,
@@ -462,9 +464,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         m_volume = volume;
         }
 
-    void prepare(uint64_t timestep)
-        {
-        }
+    void prepare(uint64_t timestep) { }
 
     void update_shape(uint64_t timestep,
                       Scalar& stepsize,
@@ -692,62 +692,64 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     //     exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: " << name
     //                               << std::endl;
     //     retval
-    //         |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, rows, 3, 0, (void*)&data[0]);
+    //         |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, rows, 3, 0,
+    //         (void*)&data[0]);
     //     return retval;
     //     };
 
-//     //! Method that is called to connect to the gsd write state signal
-//     virtual bool restoreStateGSD(std::shared_ptr<GSDReader> reader,
-//                                  std::string name,
-//                                  const std::shared_ptr<const ExecutionConfiguration> exec_conf,
-//                                  bool mpi)
-//         {
-//         // Call base method for stepsize
-//         bool success = ShapeMoveBase<Shape>::restoreStateGSD(reader, name, exec_conf, mpi);
-//         unsigned int Ntypes = (unsigned int)this->m_step_size.size();
-//         uint64_t frame = reader->getFrame();
-//         std::vector<float> defmat(Ntypes * 3 * 3, 0.0);
-//         if (exec_conf->isRoot())
-//             {
-//             std::string path = name + "defmat";
-//             exec_conf->msg->notice(2)
-//                 << "shape_move reading from GSD File from name: " << name << std::endl;
-//             success = reader->readChunk((void*)&defmat[0],
-//                                         frame,
-//                                         path.c_str(),
-//                                         3 * 3 * Ntypes * gsd_sizeof_type(GSD_TYPE_FLOAT),
-//                                         3 * Ntypes)
-//                       && success;
-//             exec_conf->msg->notice(2)
-//                 << "defmat success: " << std::boolalpha << success << std::endl;
-//             }
-//
-// #ifdef ENABLE_MPI
-//         if (mpi)
-//             {
-//             bcast(defmat, 0, exec_conf->getMPICommunicator());
-//             }
-// #endif
-//
-//         if (defmat.size() != (this->m_Fbar).size() * 3 * 3)
-//             {
-//             throw std::runtime_error("Error occured while attempting to restore from gsd file.");
-//             }
-//
-//         unsigned int count = 0;
-//         for (unsigned int i = 0; i < (this->m_Fbar).size(); i++)
-//             {
-//             for (unsigned int j = 0; j < 3; j++)
-//                 {
-//                 this->m_Fbar[i](0, j) = defmat[count * 3 + 0];
-//                 this->m_Fbar[i](1, j) = defmat[count * 3 + 1];
-//                 this->m_Fbar[i](2, j) = defmat[count * 3 + 2];
-//                 count++;
-//                 }
-//             }
-//
-//         return success;
-//         };
+    //     //! Method that is called to connect to the gsd write state signal
+    //     virtual bool restoreStateGSD(std::shared_ptr<GSDReader> reader,
+    //                                  std::string name,
+    //                                  const std::shared_ptr<const ExecutionConfiguration>
+    //                                  exec_conf, bool mpi)
+    //         {
+    //         // Call base method for stepsize
+    //         bool success = ShapeMoveBase<Shape>::restoreStateGSD(reader, name, exec_conf, mpi);
+    //         unsigned int Ntypes = (unsigned int)this->m_step_size.size();
+    //         uint64_t frame = reader->getFrame();
+    //         std::vector<float> defmat(Ntypes * 3 * 3, 0.0);
+    //         if (exec_conf->isRoot())
+    //             {
+    //             std::string path = name + "defmat";
+    //             exec_conf->msg->notice(2)
+    //                 << "shape_move reading from GSD File from name: " << name << std::endl;
+    //             success = reader->readChunk((void*)&defmat[0],
+    //                                         frame,
+    //                                         path.c_str(),
+    //                                         3 * 3 * Ntypes * gsd_sizeof_type(GSD_TYPE_FLOAT),
+    //                                         3 * Ntypes)
+    //                       && success;
+    //             exec_conf->msg->notice(2)
+    //                 << "defmat success: " << std::boolalpha << success << std::endl;
+    //             }
+    //
+    // #ifdef ENABLE_MPI
+    //         if (mpi)
+    //             {
+    //             bcast(defmat, 0, exec_conf->getMPICommunicator());
+    //             }
+    // #endif
+    //
+    //         if (defmat.size() != (this->m_Fbar).size() * 3 * 3)
+    //             {
+    //             throw std::runtime_error("Error occured while attempting to restore from gsd
+    //             file.");
+    //             }
+    //
+    //         unsigned int count = 0;
+    //         for (unsigned int i = 0; i < (this->m_Fbar).size(); i++)
+    //             {
+    //             for (unsigned int j = 0; j < 3; j++)
+    //                 {
+    //                 this->m_Fbar[i](0, j) = defmat[count * 3 + 0];
+    //                 this->m_Fbar[i](1, j) = defmat[count * 3 + 1];
+    //                 this->m_Fbar[i](2, j) = defmat[count * 3 + 2];
+    //                 count++;
+    //                 }
+    //             }
+    //
+    //         return success;
+    //         };
 
     Scalar operator()(uint64_t timestep,
                       const unsigned int& N,
