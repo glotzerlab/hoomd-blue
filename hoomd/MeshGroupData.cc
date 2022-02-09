@@ -96,14 +96,15 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
     // re-initialize data structures
     this->initialize();
 
-    std::vector<members_t> all_groups;
+    std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t> all_groups;
 
     if (bond)
         {
         for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
             {
-            members_t triag;
-            std::vector<members_t> bonds(3);
+            typename BondedGroupData<group_size, Group, name, true>::members_t triag;
+            std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t> bonds(
+                3);
             triag.tag[0] = snapshot.groups[group_idx].tag[0];
             triag.tag[1] = snapshot.groups[group_idx].tag[1];
             triag.tag[2] = snapshot.groups[group_idx].tag[2];
@@ -144,12 +145,13 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
         }
     else
         {
-        std::vector<members_t> all_helper;
+        std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t> all_helper;
         all_groups.resize(snapshot.groups.size());
         for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
             {
-            members_t triag;
-            std::vector<members_t> bonds(3);
+            typename BondedGroupData<group_size, Group, name, true>::members_t triag;
+            std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t> bonds(
+                3);
             std::vector<int> bond_id;
             triag.tag[0] = snapshot.groups[group_idx].tag[0];
             triag.tag[1] = snapshot.groups[group_idx].tag[1];
@@ -248,7 +250,8 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
     this->removeAllGhostGroups();
 
     typeval_t typeval = g.get_typeval();
-    members_t members_tags = g.get_members();
+    typename BondedGroupData<group_size, Group, name, true>::members_t members_tags
+        = g.get_members();
 
     unsigned int max_tag = this->m_pdata->getMaximumTag();
 
@@ -345,7 +348,7 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
 #ifdef ENABLE_MPI
         if (this->m_pdata->getDomainDecomposition())
             {
-            ranks_t r;
+            typename BondedGroupData<group_size, Group, name, true>::ranks_t r;
             // initialize with zero
             for (unsigned int i = 0; i < group_size; ++i)
                 r.idx[i] = 0;
@@ -409,7 +412,8 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
             // index
             for (unsigned int cur_group = 0; cur_group < ngroups_tot; cur_group++)
                 {
-                members_t g = this->m_groups[cur_group];
+                typename BondedGroupData<group_size, Group, name, true>::members_t g
+                    = this->m_groups[cur_group];
                 for (unsigned int i = 0; i < group_size_half; ++i)
                     {
                     unsigned int tag = g.tag[i];
@@ -437,9 +441,8 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
             ArrayHandle<unsigned int> h_n_groups(this->m_gpu_n_groups,
                                                  access_location::host,
                                                  access_mode::overwrite);
-            ArrayHandle<members_t> h_gpu_table(this->m_gpu_table,
-                                               access_location::host,
-                                               access_mode::overwrite);
+            ArrayHandle<typename BondedGroupData<group_size, Group, name, true>::members_t>
+                h_gpu_table(this->m_gpu_table, access_location::host, access_mode::overwrite);
 
             // now, update the actual table
             // zero the number of bonded groups counter (again)
@@ -450,7 +453,8 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
             // loop through all group and add them to each column in the list
             for (unsigned int cur_group = 0; cur_group < ngroups_tot; cur_group++)
                 {
-                members_t g = this->m_groups[cur_group];
+                typename BondedGroupData<group_size, Group, name, true>::members_t g
+                    = this->m_groups[cur_group];
 
                 for (unsigned int i = 0; i < group_size_half; ++i)
                     {
@@ -458,7 +462,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
                     unsigned int idx1 = h_rtag.data[tag1];
                     unsigned int num = h_n_groups.data[idx1]++;
 
-                    members_t h;
+                    typename BondedGroupData<group_size, Group, name, true>::members_t h;
 
                     h.idx[group_size - 1]
                         = static_cast<typeval_t>(this->m_group_typeval[cur_group]).type;
@@ -722,7 +726,8 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
             index.insert(std::make_pair(group_tag, snap_id));
 
             unsigned int group_idx = rtag_it->second;
-            members_t member = this->m_groups[group_idx];
+            typename BondedGroupData<group_size, Group, name, true>::members_t member
+                = this->m_groups[group_idx];
             for (unsigned int i = 0; i < group_size_half; i++)
                 {
                 snapshot.groups[snap_id].tag[i] = member.tag[i];
