@@ -103,7 +103,7 @@ Base data types:
   the CUDA vector types which are aligned properly to enable efficient vector load instructions on
   the GPU. Use these types to store arrays of vector data. Prefer the `2` and `4` size vectors as
   they require fewer memory transactions to read/write than 3-vectors.
-* `vec2<Real`> `vec3<Real>`, `quat<Real>` - Templated vector and quaternion types defined in
+* `vec2<Real>` `vec3<Real>`, `quat<Real>` - Templated vector and quaternion types defined in
   `VectorMath.h`. Use these types and the corresponding methods (e.g. `dot`, `operator+`) to perform
   vector and quaternion math with a clean and readable syntax. Convert from and to the `ScalarN`
   vector types when reading inputs and writing outputs to arrays.
