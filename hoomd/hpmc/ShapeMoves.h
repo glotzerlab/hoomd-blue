@@ -23,13 +23,12 @@ template<typename Shape> class ShapeMoveBase
     {
     public:
     ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef, unsigned int ntypes)
-        : m_det_inertia_tensor(0), m_step_size(ntypes), m_sysdef(sysdef)
+        : m_det_inertia_tensor(0), m_sysdef(sysdef)
         {
         }
 
     ShapeMoveBase(const ShapeMoveBase& src)
-        : m_det_inertia_tensor(src.getDeterminantInertiaTensor()),
-          m_step_size(src.getStepSizeArray())
+        : m_det_inertia_tensor(src.getDeterminantInertiaTensor())
         {
         }
 
@@ -68,97 +67,97 @@ template<typename Shape> class ShapeMoveBase
         return m_isoperimetric_quotient;
         }
 
-    //! Get the stepsize
-    pybind11::dict getStepsize()
-        {
-        pybind11::dict stepsize;
-        for (unsigned int i = 0; i < m_step_size.size(); i++)
-            {
-            pybind11::str type_name = m_sysdef->getParticleData()->getNameByType(i);
-            stepsize[type_name] = m_step_size[i];
-            }
-        return stepsize;
-        }
+    // //! Get the stepsize
+    // pybind11::dict getStepsize()
+    //     {
+    //     pybind11::dict stepsize;
+    //     for (unsigned int i = 0; i < m_step_size.size(); i++)
+    //         {
+    //         pybind11::str type_name = m_sysdef->getParticleData()->getNameByType(i);
+    //         stepsize[type_name] = m_step_size[i];
+    //         }
+    //     return stepsize;
+    //     }
 
-    //! Get all of the stepsizes
-    const std::vector<Scalar>& getStepSizeArray() const
-        {
-        return m_step_size;
-        }
+    // //! Get all of the stepsizes
+    // const std::vector<Scalar>& getStepSizeArray() const
+    //     {
+    //     return m_step_size;
+    //     }
 
     //! Set the step size
-    void setStepsize(pybind11::dict stepsize)
-        {
-        std::vector<Scalar> stepsize_vector(m_step_size.size());
-        for (auto name_and_stepsize : stepsize)
-            {
-            std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
-            Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
-            unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
-            stepsize_vector[type_i] = type_stepsize;
-            }
-        m_step_size = stepsize_vector;
-        }
+    // void setStepsize(pybind11::dict stepsize)
+    //     {
+    //     std::vector<Scalar> stepsize_vector(m_step_size.size());
+    //     for (auto name_and_stepsize : stepsize)
+    //         {
+    //         std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
+    //         Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
+    //         unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
+    //         stepsize_vector[type_i] = type_stepsize;
+    //         }
+    //     m_step_size = stepsize_vector;
+    //     }
 
     //! Method that is called whenever the GSD file is written if connected to a GSD file.
-    virtual int writeGSD(gsd_handle& handle,
-                         std::string name,
-                         const std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                         bool mpi) const
-        {
-        if (!exec_conf->isRoot())
-            return 0;
-        std::string path = name + "stepsize";
-        exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: " << name
-                                  << std::endl;
-        std::vector<float> d;
-        d.resize(m_step_size.size());
-        std::transform(m_step_size.begin(),
-                       m_step_size.end(),
-                       d.begin(),
-                       [](const Scalar& s) -> Scalar { return s; });
-        int retval
-            = gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, d.size(), 1, 0, (void*)&d[0]);
-        return retval;
-        }
+    // virtual int writeGSD(gsd_handle& handle,
+    //                      std::string name,
+    //                      const std::shared_ptr<const ExecutionConfiguration> exec_conf,
+    //                      bool mpi) const
+    //     {
+    //     if (!exec_conf->isRoot())
+    //         return 0;
+    //     std::string path = name + "stepsize";
+    //     exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: " << name
+    //                               << std::endl;
+    //     std::vector<float> d;
+    //     d.resize(m_step_size.size());
+    //     std::transform(m_step_size.begin(),
+    //                    m_step_size.end(),
+    //                    d.begin(),
+    //                    [](const Scalar& s) -> Scalar { return s; });
+    //     int retval
+    //         = gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, d.size(), 1, 0, (void*)&d[0]);
+    //     return retval;
+    //     }
 
-    //! Method that is called to connect to the gsd write state signal
-    virtual bool restoreStateGSD(std::shared_ptr<GSDReader> reader,
-                                 std::string name,
-                                 const std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                                 bool mpi)
-        {
-        bool success = true;
-        std::string path = name + "stepsize";
-        std::vector<float> d;
-        unsigned int Ntypes = (unsigned int)this->m_step_size.size();
-        uint64_t frame = reader->getFrame();
-        if (exec_conf->isRoot())
-            {
-            d.resize(Ntypes, 0.0);
-            exec_conf->msg->notice(2)
-                << "shape_move reading from GSD File from name: " << name << std::endl;
-            success = reader->readChunk((void*)&d[0],
-                                        frame,
-                                        path.c_str(),
-                                        Ntypes * gsd_sizeof_type(GSD_TYPE_FLOAT),
-                                        Ntypes);
-            exec_conf->msg->notice(2)
-                << "stepsize: " << d[0] << " success: " << std::boolalpha << success << std::endl;
-            }
-
-#ifdef ENABLE_MPI
-        if (mpi)
-            {
-            bcast(d, 0, exec_conf->getMPICommunicator()); // broadcast the data
-            }
-#endif
-
-        for (unsigned int i = 0; i < d.size(); i++)
-            m_step_size[i] = Scalar(d[i]);
-
-        return success;
-        }
+//     //! Method that is called to connect to the gsd write state signal
+//     virtual bool restoreStateGSD(std::shared_ptr<GSDReader> reader,
+//                                  std::string name,
+//                                  const std::shared_ptr<const ExecutionConfiguration> exec_conf,
+//                                  bool mpi)
+//         {
+//         bool success = true;
+//         std::string path = name + "stepsize";
+//         std::vector<float> d;
+//         unsigned int Ntypes = (unsigned int)this->m_step_size.size();
+//         uint64_t frame = reader->getFrame();
+//         if (exec_conf->isRoot())
+//             {
+//             d.resize(Ntypes, 0.0);
+//             exec_conf->msg->notice(2)
+//                 << "shape_move reading from GSD File from name: " << name << std::endl;
+//             success = reader->readChunk((void*)&d[0],
+//                                         frame,
+//                                         path.c_str(),
+//                                         Ntypes * gsd_sizeof_type(GSD_TYPE_FLOAT),
+//                                         Ntypes);
+//             exec_conf->msg->notice(2)
+//                 << "stepsize: " << d[0] << " success: " << std::boolalpha << success << std::endl;
+//             }
+//
+// #ifdef ENABLE_MPI
+//         if (mpi)
+//             {
+//             bcast(d, 0, exec_conf->getMPICommunicator()); // broadcast the data
+//             }
+// #endif
+//
+//         for (unsigned int i = 0; i < d.size(); i++)
+//             m_step_size[i] = Scalar(d[i]);
+//
+//         return success;
+//         }
 
     virtual Scalar operator()(uint64_t timestep,
                               const unsigned int& N,
@@ -188,7 +187,6 @@ template<typename Shape> class ShapeMoveBase
     protected:
     Scalar m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
     Scalar m_isoperimetric_quotient; // isoperimetric quotient of the shape
-    std::vector<Scalar> m_step_size; // maximum stepsize
     std::shared_ptr<SystemDefinition> m_sysdef;
     }; // end class ShapeMoveBase
 
@@ -204,15 +202,6 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
                     Scalar mixratio)
         : ShapeMoveBase<Shape>(sysdef, ntypes), m_num_params(0), m_python_callback(python_function)
         {
-        std::vector<Scalar> stepsize_vector(ntypes);
-        for (auto name_and_stepsize : stepsize)
-            {
-            std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
-            Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
-            unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
-            stepsize_vector[type_i] = type_stepsize;
-            }
-        this->m_step_size = stepsize_vector;
         m_select_ratio = fmin(mixratio, 1.0);
         this->m_det_inertia_tensor = 1.0;
         std::vector<std::vector<Scalar>> params_vector(ntypes);
@@ -339,9 +328,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         }
 
     private:
-    std::vector<Scalar> m_step_size_backup; // maximum step size
     Scalar m_select_ratio;
-    ;                          // fraction of parameters to change in each move. internal use
     unsigned int m_num_params; // cache the number of parameters.
     Scalar m_scale; // the scale needed to keep the particle at constant volume. internal use
     std::vector<std::vector<Scalar>> m_params_backup; // all params are from 0,1
@@ -450,11 +437,9 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
             unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
             stepsize_vector[type_i] = type_stepsize;
             }
-        this->m_step_size = stepsize_vector;
         m_calculated.resize(ntypes, false);
         m_centroids.resize(ntypes, vec3<Scalar>(0, 0, 0));
         m_select_ratio = fmin(mixratio, 1.0);
-        m_step_size_backup = this->m_step_size;
         }
 
     Scalar getParamRatio()
@@ -479,7 +464,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
 
     void prepare(uint64_t timestep)
         {
-        m_step_size_backup = m_step_size;
         }
 
     void update_shape(uint64_t timestep,
@@ -500,7 +484,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
             if (hoomd::detail::generate_canonical<double>(rng) < m_select_ratio)
                 {
                 vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
-                move_translate(vert, rng, m_step_size[type_id], 3);
+                move_translate(vert, rng, stepsize, 3);
                 shape.x[i] = (OverlapReal)vert.x;
                 shape.y[i] = (OverlapReal)vert.y;
                 shape.z[i] = (OverlapReal)vert.z;
@@ -529,17 +513,15 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         this->m_det_inertia_tensor = mp.getDetInertiaTensor();
         m_isoperimetric_quotient = mp.getIsoperimetricQuotient();
         shape.diameter = OverlapReal(2.0 * fast::sqrt(rsq));
-        m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
+        stepsize *= m_scale; // only need to scale if the parameters are not normalized
         }
 
     void retreat(uint64_t timestep)
         {
         // move has been rejected.
-        std::swap(m_step_size, m_step_size_backup);
         }
 
     private:
-    std::vector<Scalar> m_step_size_backup; // maximum step size
     Scalar m_select_ratio;
     ;                    // probability of a vertex being selected for a move
     OverlapReal m_scale; // factor to scale the shape by to achieve desired constant volume
@@ -560,8 +542,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         : ShapeMoveBase<Shape>(sysdef, ntypes), m_mass_props(ntypes), m_k(k)
         {
         m_select_ratio = fmin(move_ratio, 1.0);
-        this->m_step_size.resize(ntypes);
-        std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
         m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
         m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
         this->m_det_inertia_tensor = 1.0;
@@ -658,18 +638,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         m_select_ratio = fmin(param_ratio, 1.0);
         }
 
-    //! Get the stepsize
-    Scalar getStepsizeValue()
-        {
-        return this->m_step_size[0];
-        }
-
-    //! Set the step size
-    void setStepsizeValue(Scalar stepsize)
-        {
-        std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
-        }
-
     void setStiffness(std::shared_ptr<Variant> stiff)
         {
         m_k = stiff;
@@ -694,92 +662,92 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         return m_reference_shape.asDict();
         }
 
-    //! Method that is called whenever the GSD file is written if connected to a GSD file.
-    int writeGSD(gsd_handle& handle,
-                 std::string name,
-                 const std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                 bool mpi) const
-        {
-        if (!exec_conf->isRoot())
-            return 0;
+    // //! Method that is called whenever the GSD file is written if connected to a GSD file.
+    // int writeGSD(gsd_handle& handle,
+    //              std::string name,
+    //              const std::shared_ptr<const ExecutionConfiguration> exec_conf,
+    //              bool mpi) const
+    //     {
+    //     if (!exec_conf->isRoot())
+    //         return 0;
+    //
+    //     // Call base method for stepsize
+    //     int retval = ShapeMoveBase<Shape>::writeGSD(handle, name, exec_conf, mpi);
+    //     // flatten deformation matrix before writting to GSD
+    //     unsigned int Ntypes = (unsigned int)this->m_step_size.size();
+    //     unsigned int rows = Ntypes * 3;
+    //     std::vector<float> data(rows * 3);
+    //     unsigned int count = 0;
+    //     for (unsigned int i = 0; i < Ntypes; i++)
+    //         {
+    //         for (unsigned int j = 0; j < 3; j++)
+    //             {
+    //             data[count * 3 + 0] = float(m_Fbar[i](0, j));
+    //             data[count * 3 + 1] = float(m_Fbar[i](1, j));
+    //             data[count * 3 + 2] = float(m_Fbar[i](2, j));
+    //             count++;
+    //             };
+    //         };
+    //     std::string path = name + "defmat";
+    //     exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: " << name
+    //                               << std::endl;
+    //     retval
+    //         |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, rows, 3, 0, (void*)&data[0]);
+    //     return retval;
+    //     };
 
-        // Call base method for stepsize
-        int retval = ShapeMoveBase<Shape>::writeGSD(handle, name, exec_conf, mpi);
-        // flatten deformation matrix before writting to GSD
-        unsigned int Ntypes = (unsigned int)this->m_step_size.size();
-        unsigned int rows = Ntypes * 3;
-        std::vector<float> data(rows * 3);
-        unsigned int count = 0;
-        for (unsigned int i = 0; i < Ntypes; i++)
-            {
-            for (unsigned int j = 0; j < 3; j++)
-                {
-                data[count * 3 + 0] = float(m_Fbar[i](0, j));
-                data[count * 3 + 1] = float(m_Fbar[i](1, j));
-                data[count * 3 + 2] = float(m_Fbar[i](2, j));
-                count++;
-                };
-            };
-        std::string path = name + "defmat";
-        exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: " << name
-                                  << std::endl;
-        retval
-            |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, rows, 3, 0, (void*)&data[0]);
-        return retval;
-        };
-
-    //! Method that is called to connect to the gsd write state signal
-    virtual bool restoreStateGSD(std::shared_ptr<GSDReader> reader,
-                                 std::string name,
-                                 const std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                                 bool mpi)
-        {
-        // Call base method for stepsize
-        bool success = ShapeMoveBase<Shape>::restoreStateGSD(reader, name, exec_conf, mpi);
-        unsigned int Ntypes = (unsigned int)this->m_step_size.size();
-        uint64_t frame = reader->getFrame();
-        std::vector<float> defmat(Ntypes * 3 * 3, 0.0);
-        if (exec_conf->isRoot())
-            {
-            std::string path = name + "defmat";
-            exec_conf->msg->notice(2)
-                << "shape_move reading from GSD File from name: " << name << std::endl;
-            success = reader->readChunk((void*)&defmat[0],
-                                        frame,
-                                        path.c_str(),
-                                        3 * 3 * Ntypes * gsd_sizeof_type(GSD_TYPE_FLOAT),
-                                        3 * Ntypes)
-                      && success;
-            exec_conf->msg->notice(2)
-                << "defmat success: " << std::boolalpha << success << std::endl;
-            }
-
-#ifdef ENABLE_MPI
-        if (mpi)
-            {
-            bcast(defmat, 0, exec_conf->getMPICommunicator());
-            }
-#endif
-
-        if (defmat.size() != (this->m_Fbar).size() * 3 * 3)
-            {
-            throw std::runtime_error("Error occured while attempting to restore from gsd file.");
-            }
-
-        unsigned int count = 0;
-        for (unsigned int i = 0; i < (this->m_Fbar).size(); i++)
-            {
-            for (unsigned int j = 0; j < 3; j++)
-                {
-                this->m_Fbar[i](0, j) = defmat[count * 3 + 0];
-                this->m_Fbar[i](1, j) = defmat[count * 3 + 1];
-                this->m_Fbar[i](2, j) = defmat[count * 3 + 2];
-                count++;
-                }
-            }
-
-        return success;
-        };
+//     //! Method that is called to connect to the gsd write state signal
+//     virtual bool restoreStateGSD(std::shared_ptr<GSDReader> reader,
+//                                  std::string name,
+//                                  const std::shared_ptr<const ExecutionConfiguration> exec_conf,
+//                                  bool mpi)
+//         {
+//         // Call base method for stepsize
+//         bool success = ShapeMoveBase<Shape>::restoreStateGSD(reader, name, exec_conf, mpi);
+//         unsigned int Ntypes = (unsigned int)this->m_step_size.size();
+//         uint64_t frame = reader->getFrame();
+//         std::vector<float> defmat(Ntypes * 3 * 3, 0.0);
+//         if (exec_conf->isRoot())
+//             {
+//             std::string path = name + "defmat";
+//             exec_conf->msg->notice(2)
+//                 << "shape_move reading from GSD File from name: " << name << std::endl;
+//             success = reader->readChunk((void*)&defmat[0],
+//                                         frame,
+//                                         path.c_str(),
+//                                         3 * 3 * Ntypes * gsd_sizeof_type(GSD_TYPE_FLOAT),
+//                                         3 * Ntypes)
+//                       && success;
+//             exec_conf->msg->notice(2)
+//                 << "defmat success: " << std::boolalpha << success << std::endl;
+//             }
+//
+// #ifdef ENABLE_MPI
+//         if (mpi)
+//             {
+//             bcast(defmat, 0, exec_conf->getMPICommunicator());
+//             }
+// #endif
+//
+//         if (defmat.size() != (this->m_Fbar).size() * 3 * 3)
+//             {
+//             throw std::runtime_error("Error occured while attempting to restore from gsd file.");
+//             }
+//
+//         unsigned int count = 0;
+//         for (unsigned int i = 0; i < (this->m_Fbar).size(); i++)
+//             {
+//             for (unsigned int j = 0; j < 3; j++)
+//                 {
+//                 this->m_Fbar[i](0, j) = defmat[count * 3 + 0];
+//                 this->m_Fbar[i](1, j) = defmat[count * 3 + 1];
+//                 this->m_Fbar[i](2, j) = defmat[count * 3 + 2];
+//                 count++;
+//                 }
+//             }
+//
+//         return success;
+//         };
 
     Scalar operator()(uint64_t timestep,
                       const unsigned int& N,
@@ -895,8 +863,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
                      pybind11::dict shape_params)
         : ShapeMoveBase<ShapeEllipsoid>(sysdef, ntypes), m_mass_props(ntypes), m_k(k)
         {
-        // m_step_size.resize(ntypes, stepsize);
-        // std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
         m_select_ratio = fmin(move_ratio, 1.0);
         typename ShapeEllipsoid::param_type shape(shape_params);
         m_reference_shape = shape;
@@ -912,18 +878,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
     void setParamRatio(Scalar param_ratio)
         {
         m_select_ratio = fmin(param_ratio, 1.0);
-        }
-
-    //! Get the stepsize
-    Scalar getStepsizeValue()
-        {
-        return this->m_step_size[0];
-        }
-
-    //! Set the step size
-    void setStepsizeValue(Scalar stepsize)
-        {
-        std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
         }
 
     void setStiffness(std::shared_ptr<Variant> stiff)
@@ -1021,9 +975,6 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
         .def_property("params",
                       &PythonShapeMove<Shape>::getParams,
                       &PythonShapeMove<Shape>::setParams)
-        .def_property("stepsize",
-                      &PythonShapeMove<Shape>::getStepsize,
-                      &PythonShapeMove<Shape>::setStepsize)
         .def_property("param_ratio",
                       &PythonShapeMove<Shape>::getParamRatio,
                       &PythonShapeMove<Shape>::setParamRatio)
@@ -1046,9 +997,6 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
         .def_property("volume",
                       &ConvexPolyhedronVertexShapeMove::getVolume,
                       &ConvexPolyhedronVertexShapeMove::setVolume)
-        .def_property("stepsize",
-                      &ConvexPolyhedronVertexShapeMove::getStepsize,
-                      &ConvexPolyhedronVertexShapeMove::setStepsize)
         .def_property("param_ratio",
                       &ConvexPolyhedronVertexShapeMove::getParamRatio,
                       &ConvexPolyhedronVertexShapeMove::setParamRatio);
@@ -1078,9 +1026,6 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
                             Scalar,
                             std::shared_ptr<Variant>,
                             pybind11::dict>())
-        .def_property("stepsize",
-                      &ElasticShapeMove<Shape>::getStepsizeValue,
-                      &ElasticShapeMove<Shape>::setStepsizeValue)
         .def_property("param_ratio",
                       &ElasticShapeMove<Shape>::getParamRatio,
                       &ElasticShapeMove<Shape>::setParamRatio)

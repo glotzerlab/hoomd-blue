@@ -172,15 +172,6 @@ template<typename Shape> class UpdaterShape : public Updater
 
     void countTypes();
 
-    //! Method that is called whenever the GSD file is written if connected to a GSD file.
-    int slotWriteGSD(gsd_handle&, std::string name) const;
-
-    //! Method that is called to connect to the gsd write state signal
-    void connectGSDStateSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
-
-    //! Method that is called to connect to the gsd write state signal
-    bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
-
     private:
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
     std::shared_ptr<ShapeMoveBase<Shape>>
@@ -316,8 +307,6 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
         GPUArray<Scalar> determinant_backup(m_determinant);
         m_move_function->prepare(timestep);
 
-        // std::vector<Scalar> stepsize = m_move_function->getStepSizeArray();
-
         for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
             {
             // make a trial move for i
@@ -420,8 +409,6 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(),
                                                  access_location::host,
                                                  access_mode::read);
-
-            // std::vector<Scalar> stepsize = m_move_function->getStepSizeArray();
 
             // Loop over particles corresponding to m_type_select
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -670,43 +657,6 @@ template<typename Shape> void UpdaterShape<Shape>::countTypes()
 #endif
     }
 
-template<typename Shape>
-int UpdaterShape<Shape>::slotWriteGSD(gsd_handle& handle, std::string name) const
-    {
-    m_exec_conf->msg->notice(2) << "UpdaterShape writing to GSD File to name: " << name
-                                << std::endl;
-#ifdef ENABLE_MPI
-    bool mpi = (bool)m_pdata->getDomainDecomposition();
-#else
-    bool mpi = false;
-#endif
-    int retval = m_move_function->writeGSD(handle, name + "move/", m_exec_conf, mpi);
-    return retval;
-    }
-
-template<typename Shape>
-void UpdaterShape<Shape>::connectGSDStateSignal(std::shared_ptr<GSDDumpWriter> writer,
-                                                std::string name)
-    {
-    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&UpdaterShape<Shape>::slotWriteGSD, this, std::placeholders::_1, name);
-    std::shared_ptr<hoomd::detail::SignalSlot> pslot(new SlotType(writer->getWriteSignal(), func));
-    addSlot(pslot);
-    }
-
-template<typename Shape>
-bool UpdaterShape<Shape>::restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name)
-    {
-    m_exec_conf->msg->notice(2) << "UpdaterShape from GSD File to name: " << name << std::endl;
-#ifdef ENABLE_MPI
-    bool mpi = (bool)m_pdata->getDomainDecomposition();
-#else
-    bool mpi = false;
-#endif
-    bool success = m_move_function->restoreStateGSD(reader, name + "move/", m_exec_conf, mpi);
-    return success;
-    }
-
 template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<UpdaterShape<Shape>, Updater, std::shared_ptr<UpdaterShape<Shape>>>(
@@ -724,10 +674,6 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
         .def_property_readonly("total_count", &UpdaterShape<Shape>::getTotalCount)
         .def_property_readonly("particle_volume", &UpdaterShape<Shape>::getParticleVolume)
         .def("getShapeMoveEnergy", &UpdaterShape<Shape>::getShapeMoveEnergy)
-        // .def("getShapeParam", &UpdaterShape<Shape>::getShapeParam)
-        // .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)
-        .def("connectGSDStateSignal", &UpdaterShape<Shape>::connectGSDStateSignal)
-        .def("restoreStateGSD", &UpdaterShape<Shape>::restoreStateGSD)
         .def_property("shape_move",
                       &UpdaterShape<Shape>::getShapeMove,
                       &UpdaterShape<Shape>::setShapeMove)
