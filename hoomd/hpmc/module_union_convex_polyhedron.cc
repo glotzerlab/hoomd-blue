@@ -56,7 +56,8 @@ void export_union_convex_polyhedron(pybind11::module& m)
     export_ExternalFieldComposite<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
         "ExternalFieldCompositeConvexPolyhedronUnion");
-    export_ExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron>>(m, "WallConvexPolyhedronUnion");
+    export_ExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron>>(m,
+                                                                "WallConvexSpheropolyhedronUnion");
 
 #ifdef ENABLE_HIP
 
