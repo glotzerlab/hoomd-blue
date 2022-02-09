@@ -157,7 +157,7 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     double scale = uniform(rng);
 
     // TODO: This slow. We will implement a general reusable fix later in #705
-    const BoxDim target_box = *m_target_box;
+    const auto& target_box = *m_target_box;
 
     // construct the scaled box
     BoxDim current_box = m_pdata->getGlobalBox();

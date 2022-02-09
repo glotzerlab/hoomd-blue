@@ -53,7 +53,7 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
     /// Get the current m_box2
     std::shared_ptr<BoxDim> getBox2();
 
-    /// Set a new m_box_1
+    /// Set a new m_box_2
     void setBox2(std::shared_ptr<BoxDim> box2);
 
     /// Gets particle scaling filter
