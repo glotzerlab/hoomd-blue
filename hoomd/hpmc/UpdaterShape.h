@@ -170,6 +170,19 @@ template<typename Shape> class UpdaterShape : public Updater
         return m_instance;
         }
 
+    //! Get maximum displacement (by type name)
+    inline Scalar getStepsize(std::string name)
+        {
+        unsigned int id = this->m_pdata->getTypeByName(name);
+        return m_step_size[id];
+        }
+
+    inline void setStepsize(std::string name, Scalar d)
+        {
+        unsigned int id = this->m_pdata->getTypeByName(name);
+        m_step_size[id] = d;
+        }
+
     void countTypes();
 
     private:
@@ -306,6 +319,8 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             this->m_prof->push(this->m_exec_conf, "UpdaterShape move");
         GPUArray<Scalar> determinant_backup(m_determinant);
         m_move_function->prepare(timestep);
+
+        // std::vector<Scalar> stepsize = m_move_function->getStepSizeArray();
 
         for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
             {
@@ -685,7 +700,10 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
                       &UpdaterShape<Shape>::setMultiPhase)
         .def_property("num_phase",
                       &UpdaterShape<Shape>::getNumPhase,
-                      &UpdaterShape<Shape>::setNumPhase);
+                      &UpdaterShape<Shape>::setNumPhase)
+        .def("getStepsize", &UpdaterShape<Shape>::getStepsize)
+        .def("setStepsize", &UpdaterShape<Shape>::setStepsize)
+        ;
     }
 
     } // namespace hpmc
