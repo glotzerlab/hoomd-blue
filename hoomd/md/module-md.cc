@@ -47,7 +47,6 @@
 #include "PotentialPair.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialTersoff.h"
-#include "QuaternionMath.h"
 #include "TableAngleForceCompute.h"
 #include "TableDihedralForceCompute.h"
 #include "TwoStepBD.h"

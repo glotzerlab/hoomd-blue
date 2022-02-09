@@ -2,7 +2,6 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBD.h"
-#include "QuaternionMath.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
