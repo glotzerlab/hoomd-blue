@@ -58,7 +58,9 @@ The majority of HOOMD-blue's simulation engine is implemented in C++ with a desi
 balance between performance, readability, and maintenance burden. In general, most classes in HOOMD
 operate on the entire system of particles so that they can implement loops over the entire system
 efficiently. To the extent possible, each class is responsible for a single isolated task and is
-composable with other classes.
+composable with other classes. Where needed classes provide a signal/slot mechanism to escape the
+isolation and provide notification to client classes when relevant data changes. For example,
+`ParticleData` emits a signal when the system box size changes.
 
 This document provides a high level overview of the design, describing how the elements
 interoperate. For full details on these classes, see the documentation in the source code comments.
