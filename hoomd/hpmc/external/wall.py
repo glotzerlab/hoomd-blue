@@ -176,11 +176,12 @@ class WallPotential(ExternalField):
         if self._attached:
             integrator = self._simulation.operations.integrator
         self._walls = _HPMCWallsMetaList(self, wall_list, _to_hpmc_cpp_wall)
-        self._walls._sync({
-            hoomd.wall.Sphere: self._cpp_obj.SphereWalls,
-            hoomd.wall.Cylinder: self._cpp_obj.CylinderWalls,
-            hoomd.wall.Plane: self._cpp_obj.PlaneWalls,
-        })
+        if self._attached:
+            self._walls._sync({
+                hoomd.wall.Sphere: self._cpp_obj.SphereWalls,
+                hoomd.wall.Cylinder: self._cpp_obj.CylinderWalls,
+                hoomd.wall.Plane: self._cpp_obj.PlaneWalls,
+            })
 
     @log(requires_run=True)
     def overlaps(self):
