@@ -1,13 +1,7 @@
 # HOOMD-blue code architecture
 
-ARCHITECTURE files are a way to diffuse the organization and mental picture or
-30,000 foot view of a code base as well as provide guidance for developers.  For
-more information regarding the concept see
-https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html.
-
-**Note**: Details that are reported here are API or "stable".  That is the
-purpose of this document is not to show how to use the package, for that see
-our [API documentation][hoomd_documentation] on readthedocs.
+This document provides a high level overview of the codebase for developers. Details that are reported here relate to the internal API design. For detail on the user-facing public API, see the
+[user documentation][hoomd_documentation].
 
 [hoomd_documentation]: https://hoomd-blue.readthedocs.io/en/latest/
 
@@ -25,12 +19,12 @@ Each minor and major release of HOOMD-blue at a minimum supports:
 ### Continuous integration
 
 [Github Actions] performs continuous integration testing on HOOMD-blue. GitHub
-Actions compiles HOOMD-blue, runs the unit and validation, and and reports the
+Actions compiles HOOMD-blue, runs the unit tests, and and reports the
 status to GitHub pull requests. A number of parallel builds test a variety of
 compiler and build configurations as defined above.
 
 Visit the [workflows] page to find recent builds. The pipeline configuration
-files are in [.github/workflows/] which are built from Jinja templates in
+files are in [.github/workflows/] and are built from Jinja templates in
 [.github/workflows/templates/] using `make_workflows.py` which is automatically
 run by `pre-commit`. To make changes to the workflows, edit the templates.
 
@@ -39,10 +33,171 @@ run by `pre-commit`. To make changes to the workflows, edit the templates.
 [.github/workflows/]: .github/workflows/
 [.github/workflows/templates/]: .github/workflows/templates/
 
+## Build system
+
+HOOMD-blue consists of C++ code, Python code, and the CMake configuration scripts necessary to
+compile and assemble a functioning Python module. The CMake configuration copies the `.py` files
+into the build directory so that developers can iteratively build and test without needing to make
+the `install` target and modify files outside the build directory. For more details on using the
+build system, see the [user documentation][hoomd_documentation].
+
+HOOMD-blue's CMake configuration follows the most modern CMake standards possible given the software
+support constraint given above. For example, it uses `find_package(... CONFIG)` to find package
+config files. It manages the linked libraries and additional include directories with the
+appropriate visibility in `target_link_libraries` to pass these dependencies on to external
+components. HOOMD-blue itself produces a CMake config file to use with `find_package`.
+
+HOOMD has many optional dependencies (e.g. LLVM) and developers can build with or without components
+or features (e.g. HPMC). These are set in CMake `ENABLE_*` and `BUILD_*` variables and passed
+into the C++ code as preprocessor definitions. New code must observe these definitions so that
+the code compiles correctly (or is excluded as needed) when a given option is set or not set.
+
+## C++
+
+The majority of HOOMD-blue's simulation engine is implemented in C++ with a design that strikes a
+balance between performance, readability, and maintenance burden. In general, most classes in HOOMD
+operate on the entire system of particles so that they can implement loops over the entire system
+efficiently. To the extent possible, each class is responsible for a single isolated task and is
+composable with other classes.
+
+This document provides a high level overview of the design, describing how the elements
+interoperate. For full details on these classes, see the documentation in the source code comments.
+With few exceptions, the C++ code for a class `ClassName` is in `ClassName.h`, `ClassName.cc`,
+`ClassName.cuh`, and/or `ClassName.cu`. These files are in the directory corresponding to the Python
+package where they reside.
+
+## Execution model
+
+HOOMD-blue implements all operations on the CPU and GPU. The CPU implementation is vanilla C++, and
+the GPU implementation uses HIP to support both AMD and NVIDIA GPUs. The `ExecutionConfiguration`
+class selects the device (CPU, GPU, or multiple GPUs) and configures global execution options. Each
+operation class that needs to know the device configuration is given a shared pointer to the
+`ExecutionConfiguration` - most classes store this in the member variable `m_exec_conf`.
+
+To minimize code duplication and to provide a common interface for both CPU and GPU code paths,
+HOOMD defines the CPU implementation of an operation in `ClassName` and the GPU implementation in a
+subclass `ClassNameGPU`. The base class defines the data structures, parameters, getter/setter
+methods, initialization, and other common tasks. The GPU class overrides key methods to perform the
+expensive part of the computation on the GPU. The GPU subclass may use alternate data structures for
+performance if needed, but this increases the code maintenance burden.
+
+HOOMD-blue uses MPI for domain decomposition simulations on multiple CPUs or GPUs. The
+`MPIConfiguration` class (held by `ExecutionConfiguration`) defines the MPI partition and ranks.
+Many classes, such as `ParticleData` provide separate methods to access *local* properties on the
+current rank and *global* properties (e.g. `ParticleData::getBox` and `ParticleData::getGlobalBox`).
+The `Communicator` class is responsible for communicating and migrating particles and bonds between
+neighboring ranks.
+
+## Data model
+
+If you think HOOMD-blue's data model is unnecessarily complex, you are correct. Understand that it
+is a product of continual development since the year 2007 and has grown along with improving CUDA
+functionality. No developer has the time or inclination to completely refactor the entire codebase
+to be consistent with the current features. New code should follow the guidelines documented here.
+
+Base data types:
+
+* `Scalar` - Base floating point data type for particle properties. Configurable to either `double`
+  or `float` at compile time.
+* `Scalar2`, `Scalar3`, `Scalar4`, `int2`, `int3`, ... - 2,3, and 4-vectors of values. These map to
+  the CUDA vector types which are aligned properly to enable efficient vector load instructions on
+  the GPU. Use these types to store arrays of vector data. Prefer the `2` and `4` size vectors as
+  they require fewer memory transactions to read/write than 3-vectors.
+* `vec2<Real`> `vec3<Real>`, `quat<Real>` - Templated vector and quaternion types defined in
+  `VectorMath.h`. Use these types and the corresponding methods (e.g. `dot`, `operator+`) to perform
+  vector and quaternion math with a clean and readable syntax. Convert from and to the `ScalarN`
+  vector types when reading inputs and writing outputs to arrays.
+
+Array data:
+
+* `GPUArray<T>` - Template array data type that stores two copies of the data, one on the CPU and
+  one on the GPU. Use `ArrayHandle` to request a pointer to the data, which will copy the most
+  recently written data to the requested device when needed. New code should use `ArrayHandle` to
+  access existing data structures that use `GPUArray`. New code **should not** define new `GPUArray`
+  arrays, use `GlobalArray` or `std::vector` with a managed allocator.
+* `GlobalArray<T>` - Template array data type that stores one copy of the data in CUDA's unified
+  memory in single process, multi-GPU execution. When using a single GPU per process, falls back on
+  `GPUArray`. Use `ArrayHandle` to access data in `GlobalArray`.
+* `std::vector<T, hoomd::detail::managed_allocator<T>>` - Store array data in a `std::vector` in
+  CUDA's unifed memory. This data type is useful for parameter arrays that are exposed to Python.
+
+When using `GlobalArray` or `std::vector<T, hoomd::detail::managed_allocator<T>>`, call
+`cudaMemadvise` to set the appropriate memory hints for the array. Small parameter arrays should be
+set to `cudaMemAdviseSetReadMostly`. Larger arrays accessed in portions in single-process multi-GPU
+execution should be set to `cudaMemAdviseSetPreferredLocation` appropriately for the different
+portions of the array.
+
+System data:
+
+* `ParticleData` - Stores the particle positions, velocities, masses, and other per-particle
+  properties.
+* `ParticleGroup` - Stores the indices of a subset of particles in the system.
+* `BondedGroupData` - Stores bonds, angles, and dihedrals.
+* `SystemDefinition` - Combines particle data and all bond data.
+* `SnapshotSystemData` - Stores a copy of the global system state. Used for file I/O and user
+  initialization/analysis.
+
+## Class overview
+
+Users configure HOOMD simulations by defining lists of **Operations** that act on the system state
+and schedule when they occur with `Trigger`. The `System` class manages these lists and executes the
+simulation in `System::run`. There are numerous types of operations, each with their own base class:
+
+* `Compute` - Compute properties of the system state without modifying it. May provide results
+  directly to the user and/or another operation class (e.g. `PotentialPair` uses `NeighborList`).
+  A single compute instance may be used by multiple operations, so it must avoid recomputing results
+  when `compute` is called multiple times during a single timestep.
+* `Updater` - Change the system state.
+* `Integrator` - Move the system state forward in time. There is only one `Integrator` in a
+  `System`.
+* `Analyzer` (named `Writer` in Python) - Computes properties of the system state without modifying
+  it and writes them to an output stream or file.
+* `Tuner` - Modify parameters of other operations without changing the system state or the
+  correctness of the simulation. For example, `SFCPackTuner` reorders the particles in memory to
+  improve performance by reducing cache misses.
+
+### HPMC
+
+The integrator `HPMCIntegrator` defines and stores the core parameters of the simulation, such as
+the particle shape. All HPMC specific operations (such as `UpdaterClusters` and `UpdaterBoxMC`) take
+a shared pointer to the HPMC integrator to access this information.
+
+### MD
+
+There are two MD integrators: `IntegratorTwoStep` implements normal MD simulations and
+`FIREENergyMinimizer` implements energy minimization. In MD, the integrator maintains the list of
+user-supplied forces (`ForceCompute`) to apply to particles. Both integrators also maintain a list
+of user-supplied integration methos (`IntegrationMethodTwoStep`). Each method instance operates
+on a single particle group (`ParticleGroup`) and is solely responsible for integrating the equations
+of motion of all particles in that group.
+
+## Templates functors
+
+Many operations in HOOMD-blue provide similar functionality with different functional forms. For
+example pair potentials with many different V(r) and HPMC integration with many different particle
+shape classes. To reduce code duplication while maintaining high performance, HOOMD-blue uses
+template functor classes combined with a single implementation of the general method. This allows
+the method (e.g. pair potential evaluation) to be implemented only twice (once on the GPU and once
+on the CPU) while each specific functor (e.g. V(r)) is also implemented only once. With the
+functional form defined in a template class, the compiler is free to inline the evaluation of that
+function into the inner loop generated in each template instantiation.
+
+## GPU kernel driver functions
+
+Early versions of CUDA could compile only a minimal subset of C++ code. While the modern CUDA
+compilers are much improved, there are still occasional cases where including complex C++ code like
+`pybind11.h` (or even using some standard library features) causes compile errors. This can occur
+even when the use of that code is used only in host code. To work around these cases, all GPU
+kernels in HOOMD-blue are called via minimal driver functions. These driver functions are not member
+functions of their respective class, and therefore must take a long C-style argument list consisting
+of bare pointers to data arrays, array sizes, etc... The ABI for these calls is not strictly C, as
+driver functions may be templated on functor classes and/or accept lightwight C++ objects as
+parameters (such as `BoxDim`).
+
 ## Python
 
 The Python code in HOOMD-blue is mostly written to wrap core functionality
-written in C++/HIP.  Priority is given to ease of use for users in Python even
+written in C++.  Priority is given to ease of use for users in Python even
 at the cost of code complexity (within reason).
 
 **Note**: Most internal functions, classes, and methods are documented for
@@ -284,3 +439,38 @@ object then any necessary changes should be made (if the constructor is used
 then any new arguments to constructor must have defaults via semantic
 versioning and no changes should be needed to support pickling). The removal of
 internal attributes should not cause problems as well.
+
+## Directory structure
+
+The top level directories are:
+
+* `CMake` - CMake scripts.
+* `example_plugin` - External developers to copy this to start developing an external component.
+* `hoomd` - Source code for the `hoomd` Python package. Subdirectories under `hoomd` follow the same
+  layout as the final Python package.
+* `sphinx-doc` - Sphinx configuration and input files for the user-facing documentation.
+
+## Documentation
+
+## User
+
+The user facing documentation is compiled into a human readable document by Sphinx. The
+documentation consists of `.rst` files in the `sphinx-doc` directory and the docstrings of
+user-facing Python classes in the implementation (imported by the Sphinx autodoc extension).
+HOOMD-blue's Sphinx configuration defines mocked imports so that the documentation may be built from
+the source directory without needing to compile the C++ source code. This is greatly beneficial when
+building the documentation on readthedocs.
+
+The tutorial portion of the documentation is written in Jupyter notebooks housed in the
+[hoomd-examples][hoomd_examples] repository. HOOMD-blue includes these in the generated Sphinx
+documentation using [nbsphinx][nbsphinx].
+
+[hoomd_examples]: https://github.com/glotzerlab/hoomd-examples
+[nbsphinx]: https://nbsphinx.readthedocs.io/
+
+## Detailed developer documentation
+
+Like the user facing classes, internal Python classes document themselves with docstrings.
+Similarly, C++ classes provide developer documentation in Javadoc comments. Browse the developer
+documentation by viewing the source directly as HOOMD-blue provides no configuration for C++
+documentation generation tools.
