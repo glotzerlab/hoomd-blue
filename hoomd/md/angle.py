@@ -8,7 +8,6 @@ from hoomd.md.force import Force
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 import hoomd
-import numpy
 
 
 class Angle(Force):
@@ -78,10 +77,10 @@ class Harmonic(Angle):
         self._add_typeparam(params)
 
 
-class CosineSquared(Angle):
+class Cosinesq(Angle):
     r"""Cosine squared angle potential.
 
-    :py:class:`CosineSquared` specifies a cosine squared potential energy
+    :py:class:`Cosinesq` specifies a cosine squared potential energy
     between every triplet of particles with an angle specified between them.
 
     .. math::
@@ -111,7 +110,7 @@ class CosineSquared(Angle):
 
     Examples::
 
-        cosinesq = angle.CosineSquared()
+        cosinesq = angle.Cosinesq()
         cosinesq.params['polymer'] = dict(k=3.0, t0=0.7851)
         cosinesq.params['backbone'] = dict(k=100.0, t0=1.0)
     """
@@ -125,71 +124,64 @@ class CosineSquared(Angle):
         self._add_typeparam(params)
 
 
-class Table(Angle):
-    """Tabulated bond potential.
+class PCND(Angle):
+    R""" PCND angle potential.
 
-    Args:
-        width (int): Number of points in the table.
+    The command angle.pcnd defines a regular harmonic potential energy between every defined triplet
+    of particles in the simulation, but in addition in adds the repulsive part of a PCND pair potential
+    between the first and the third particle.
 
-    `Table` computes a user-defined potential and force applied to each angle.
+    `B. Levine et. al. 2011 <http://dx.doi.org/10.1021/ct2005193>`_ describes the PCND implementation details in
+    HOOMD-blue. Cite it if you utilize the PCND potential in your work.
 
-    The torque :math:`\\tau` is:
-
-    .. math::
-        \\tau(\\theta) = \\tau_\\mathrm{table}(\\theta)
-
-    and the potential :math:`V(\\theta)` is:
+    The total potential is thus:
 
     .. math::
-        V(\\theta) =V_\\mathrm{table}(\\theta)
 
-    where :math:`\\theta` is the angle between the vectors
-    :math:`\\vec{r}_A - \\vec{r}_B` and :math:`\\vec{r}_C - \\vec{r}_B` for
-    particles A,B,C in the angle.
+        V(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2
 
-    Provide :math:`\\tau_\\mathrm{table}(\\theta)` and
-    :math:`V_\\mathrm{table}(\\theta)` on evenly spaced grid points points
-    in the range :math:`\\theta \\in [0,\\pi]`. `Table` linearly
-    interpolates values when :math:`\\theta` lies between grid points. The
-    torque must be specificed commensurate with the potential: :math:`\\tau =
-    -\\frac{\\partial V}{\\partial \\theta}`.
+    where :math:`\theta` is the current angle between the three particles
+    and either:
 
-    Attributes:
-        params (`TypeParameter` [``angle type``, `dict`]):
-          The potential parameters. The dictionary has the following keys:
+    .. math::
 
-          * ``V`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
-            the tabulated energy values :math:`[\\mathrm{energy}]`. Must have
-            a size equal to `width`.
+        V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[
+        \left( \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right]
+        \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 2^{\frac{1}{6}}
 
-          * ``tau`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
-            the tabulated torque values :math:`[\\mathrm{force} \\cdot
-            \\mathrm{length}]`. Must have a size equal to `width`.
 
-        width (int): Number of points in the table.
+    .. math::
+
+        V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~}
+        V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} -
+        \left( \frac{\sigma}{r} \right)^{6} \right]
+        \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot \left(\frac{3}{2}\right)^{\frac{1}{3}}
+
+
+    .. math::
+
+        V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~}
+        V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+        \left( \frac{\sigma}{r} \right)^{4} \right]
+        \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 3^{\frac{1}{8}}
+
+    with :math:`r_{13}` being the distance between the two outer particles of the angle.
+
+    Coefficients:
+
+    - :math:`\theta_0` - rest angle ``t0`` (in radians)
+    - :math:`k` - potential constant ``k`` (in units of energy/radians^2)
+    - :math:`\varepsilon` - strength of potential ``epsilon`` (in energy units)
+    - :math:`\sigma` - distance of interaction ``sigma`` (in distance units)
+
+    Coefficients :math:`k, \theta_0, \varepsilon``, and :math:`\sigma` and Lennard-Jones exponents pair must be set for
+    each type of angle in the simulation using :py:meth:`set_coeff()`.
     """
+    
+    __cpp_class_name = 'PCNDAngleForceCompute'
 
-    def __init__(self, width):
+    def __init__(self):
         super().__init__()
-        param_dict = hoomd.data.parameterdicts.ParameterDict(width=int)
-        param_dict['width'] = width
-        self._param_dict = param_dict
-
-        params = TypeParameter(
-            "params", "angle_types",
-            TypeParameterDict(
-                V=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
-                tau=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
-                len_keys=1))
+        params = TypeParameter('params', 'angle_types',
+                               TypeParameterDict(Xi=float, tau=float, len_keys=1))
         self._add_typeparam(params)
-
-    def _attach(self):
-        """Create the c++ mirror class."""
-        if isinstance(self._simulation.device, hoomd.device.CPU):
-            cpp_cls = _md.TableAngleForceCompute
-        else:
-            cpp_cls = _md.TableAngleForceComputeGPU
-
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.width)
-
-        Force._attach(self)

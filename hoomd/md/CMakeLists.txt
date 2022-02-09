@@ -10,7 +10,7 @@ set(_md_sources module-md.cc
                    CosineSqAngleForceCompute.cc
                    CustomForceCompute.cc
                    EvaluatorWalls.cc
-                       FIREEnergyMinimizer.cc
+                   FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
                    HarmonicAngleForceCompute.cc
@@ -32,7 +32,9 @@ set(_md_sources module-md.cc
                    NeighborListStencil.cc
                    NeighborListTree.cc
                    OPLSDihedralForceCompute.cc
-                   PPPMForceCompute.cc
+		   PCNDAngleForceCompute.cc
+		   PCNDForceCompute.cc
+		   PPPMForceCompute.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TwoStepBD.cc
@@ -83,7 +85,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorSpecialPairCoulomb.h
                 EvaluatorExternalElectricField.h
                 EvaluatorExternalPeriodic.h
-                EvaluatorPairALJ.h
                 EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
                 EvaluatorPairDLVO.h
@@ -145,6 +146,12 @@ set(_md_headers ActiveForceComputeGPU.h
                 NeighborListTree.h
                 OPLSDihedralForceComputeGPU.h
                 OPLSDihedralForceCompute.h
+		PCNDAngleForceComputeGPU.h
+		PCNDAngleForceGPU.cuh
+		PCNDAngleForceCompute.h
+		PCNDForceComputeGPU.h
+		PCNDForceGPU.cuh
+		PCNDForceCompute.h
                 PotentialBondGPU.h
                 PotentialBondGPU.cuh
                 PotentialBond.h
@@ -163,6 +170,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialTersoff.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
+                QuaternionMath.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h
@@ -211,7 +219,9 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            NeighborListGPUStencil.cc
                            NeighborListGPUTree.cc
                            OPLSDihedralForceComputeGPU.cc
-                           PPPMForceComputeGPU.cc
+			   PCNDAngleForceComputeGPU.cc
+			   PCNDForceComputeGPU.cc
+			   PPPMForceComputeGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
                            TwoStepBDGPU.cc
@@ -249,7 +259,9 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       FourierDriverPotentialPairGPU.cu
                       PairLJ1208DriverPotentialPairGPU.cu
                       PairLJ0804DriverPotentialPairGPU.cu
-                      ReactionFieldDriverPotentialPairGPU.cu
+		      PCNDAngleForceGPU.cu
+		      PCNDForceGPU.cu
+		      ReactionFieldDriverPotentialPairGPU.cu
                       ExpandedLJDriverPotentialPairGPU.cu
                       YukawaDriverPotentialPairGPU.cu
                       ZBLDriverPotentialPairGPU.cu
@@ -368,6 +380,7 @@ add_subdirectory(methods)
 add_subdirectory(long_range)
 
 add_subdirectory(external)
+
 add_subdirectory(minimize)
 
 if (BUILD_TESTING)
