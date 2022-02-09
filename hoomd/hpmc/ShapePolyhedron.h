@@ -590,7 +590,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
             for (unsigned int ivert = 0; ivert < 3; ++ivert)
                 {
                 unsigned int idx_a = a.data.face_verts[offs_a+ivert];
-                vec3<float> v = a.data.verts[idx_a];
+                vec3<OverlapReal> v = a.data.verts[idx_a];
                 v = rotate(q,v) + dr;
                 U[ivert][0] = v.x; U[ivert][1] = v.y; U[ivert][2] = v.z;
                 }
