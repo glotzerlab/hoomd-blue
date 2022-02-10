@@ -105,7 +105,7 @@ class Constant(ShapeMove):
 
 
 class Elastic(ShapeMove):
-    """Apply scale and shear shape moves to particles.
+    """Apply scale and shear shape moves to particles with an energy penalty.
 
     Args:
         stiffness (Variant): Spring stiffness when shearing particles.
@@ -113,9 +113,7 @@ class Elastic(ShapeMove):
         reference (dict): Arguments defining the shape to reference
             the spring to.
 
-        stepsize (float): Largest scaling/shearing factor used.
-
-        param_ratio (float): Fraction of scale to shear moves.
+        shear_scale_ratio (float): Fraction of scale to shear moves.
 
     Example::
 
@@ -134,16 +132,13 @@ class Elastic(ShapeMove):
         reference (dict): Arguments defining the shape to reference
             the spring to.
 
-        stepsize (float): Largest scaling/shearing factor used.
-
-        param_ratio (float): Fraction of scale to shear moves.
+        shear_scale_ratio (float): Fraction of scale to shear moves.
     """
 
     def __init__(self, stiffness, reference, stepsize, param_ratio):
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant,
                                    reference=dict(reference),
-                                   stepsize=float(stepsize),
-                                   param_ratio=float(param_ratio))
+                                   shear_scale_ratio=float(shear_scale_ratio))
         param_dict["stiffness"] = stiffness
         self._param_dict.update(param_dict)
 
@@ -284,10 +279,8 @@ class Vertex(ShapeMove):
     """Apply shape moves where particle vertices are translated.
 
     Args:
-        stepsize (dict): Dictionary of types and the corresponding step size
-            to use when changing parameter values
 
-        param_ratio (float): Average fraction of vertices to change during
+        vertex_move_probability (float): Average fraction of vertices to change during
             each shape move
 
         volume (float): Volume of the particles to hold constant
@@ -312,18 +305,14 @@ class Vertex(ShapeMove):
 
     Attributes:
 
-        stepsize (dict): Dictionary of types and the corresponding step size
-            to use when changing parameter values
-
-        param_ratio (float): Average fraction of vertices to change during
+        vertex_move_probability (float): Average fraction of vertices to change during
             each shape move
 
         volume (float): Volume of the particles to hold constant
     """
 
-    def __init__(self, stepsize, param_ratio, volume):
-        param_dict = ParameterDict(stepsize=dict(stepsize),
-                                   param_ratio=float(param_ratio),
+    def __init__(self, vertex_move_probability, volume):
+        param_dict = ParameterDict(vertex_move_probability=float(vertex_move_probability),
                                    volume=float(volume))
         self._param_dict.update(param_dict)
 

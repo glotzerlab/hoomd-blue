@@ -347,17 +347,17 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
             }
         m_calculated.resize(ntypes, false);
         m_centroids.resize(ntypes, vec3<Scalar>(0, 0, 0));
-        m_select_ratio = fmin(mixratio, 1.0);
+        m_vertex_move_probability = fmin(mixratio, 1.0);
         }
 
-    Scalar getParamRatio()
+    Scalar getVertexMoveProbability()
         {
-        return m_select_ratio;
+        return m_vertex_move_probability;
         }
 
-    void setParamRatio(Scalar param_ratio)
+    void setVertexMoveProbability(Scalar param_ratio)
         {
-        m_select_ratio = fmin(param_ratio, 1.0);
+        m_vertex_move_probability = fmin(param_ratio, 1.0);
         }
 
     Scalar getVolume()
@@ -389,7 +389,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         // mix the shape.
         for (unsigned int i = 0; i < shape.N; i++)
             {
-            if (hoomd::detail::generate_canonical<double>(rng) < m_select_ratio)
+            if (hoomd::detail::generate_canonical<double>(rng) < m_vertex_move_probability)
                 {
                 vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
                 move_translate(vert, rng, stepsize, 3);
@@ -430,8 +430,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         }
 
     private:
-    Scalar m_select_ratio;
-    ;                    // probability of a vertex being selected for a move
+    Scalar m_vertex_move_probability; // probability of a vertex being selected for a move
     OverlapReal m_scale; // factor to scale the shape by to achieve desired constant volume
     Scalar m_volume;     // desired constant volume of each shape
     std::vector<vec3<Scalar>> m_centroids; // centroid of each type of shape
@@ -817,9 +816,9 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
         .def_property("volume",
                       &ConvexPolyhedronVertexShapeMove::getVolume,
                       &ConvexPolyhedronVertexShapeMove::setVolume)
-        .def_property("param_ratio",
-                      &ConvexPolyhedronVertexShapeMove::getParamRatio,
-                      &ConvexPolyhedronVertexShapeMove::setParamRatio);
+        .def_property("vertex_move_probability",
+                      &ConvexPolyhedronVertexShapeMove::getVertexMoveProbability,
+                      &ConvexPolyhedronVertexShapeMove::setVertexMoveProbability);
     }
 
 template<class Shape>
