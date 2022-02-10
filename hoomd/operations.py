@@ -31,23 +31,21 @@ def _triggered_op_conversion(value):
 class Operations(Collection):
     """A mutable collection of operations which act on a `hoomd.Simulation`.
 
-    The `Operations` class contains all the operations acting on a
+    An `Operations` class instance contains all the operations acting on a
     simulation. These operations are classes that perform various actions on a
     `hoomd.Simulation`. Operations can be added and removed at any point from a
     `hoomd.Operations` instance. The class provides the interface defined by
-    `collections.abc.Collection`. Other methods for manipulating instances
-    attempt to mimic Python objects where possible, but the class is not
-    simply a mutable list or set. Since there are multiple types of operations
-    in HOOMD-blue, `Operations` objects manage multiple independent
-    sequences described below.
+    `collections.abc.Collection`. Other methods for manipulating instances mimic
+    Python objects where possible, but the class is not simply a mutable list or
+    set. Since there are multiple types of operations in HOOMD-blue,
+    `Operations` objects manage multiple independent sequences described below.
 
     The types of operations which can be added to an `Operations` object are
-    tuners, updaters, integrators, writers, and computes. An `Operations` can
-    only ever hold one integrator at a time. On the other hand, an `Operations`
-    object can hold any number of tuners, updaters, writers, or computes. To see
-    examples of these types of operations see `hoomd.tune` (tuners),
-    `hoomd.update` (updaters), `hoomd.hpmc.integrate` or `hoomd.md.Integrator`
-    (integrators), `hoomd.write` (writers), and
+    tuners, updaters, integrators, writers, and computes. An `Operations`
+    instance can zero or one integrator and any number of tuners, updaters,
+    writers, or computes. To see examples of these types of operations see
+    `hoomd.tune` (tuners), `hoomd.update` (updaters), `hoomd.hpmc.integrate` or
+    `hoomd.md.Integrator` (integrators), `hoomd.write` (writers), and
     `hoomd.md.compute.ThermodynamicQuantities` (computes).
 
     A given instance of an operation class can only be added to a single
@@ -140,10 +138,8 @@ class Operations(Collection):
     def remove(self, operation):
         """Remove an operation from the `Operations` object.
 
-        Remove the item from the collection whose id is the same as
-        ``operation``. See
-        `<https://docs.python.org/3/library/functions.html#id>`_ for the concept
-        of a Python object id.
+        Remove the item from the collection whose Python object `id` is the same
+        as ``operation``.
 
         Args:
             operation (`hoomd.operation.Operation`): A HOOMD-blue integrator,
@@ -298,10 +294,10 @@ class Operations(Collection):
 
     @property
     def computes(self):
-        """list[`hoomd.operation.Compute`]: A list of tuner operations.
+        """list[`hoomd.operation.Compute`]: A list of compute operations.
 
-        Holds the list of tuners associated with this collection. The list can
-        be modified as a standard Python list.
+        Holds the list of computess associated with this collection. The list
+        can be modified as a standard Python list.
         """
         return self._computes
 
