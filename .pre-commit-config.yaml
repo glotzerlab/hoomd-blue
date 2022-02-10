@@ -84,7 +84,6 @@ repos:
     # These also need to be removed in setup.cfg
     exclude: |
       (?x)(
-        ^hoomd/md/impropers.py|
         ^hoomd/hpmc/external/wall.py|
         ^hoomd/extern/|
         ^hoomd/mpcd/|

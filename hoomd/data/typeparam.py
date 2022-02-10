@@ -206,9 +206,6 @@ class TypeParameter(MutableMapping):
         """Convert to a Python `dict`."""
         return self.param_dict.to_base()
 
-    def to_dict(self):
-        """Alias for `to_base`."""
-
     def __iter__(self):
         """Get the keys in the dictionaty."""
         yield from self.param_dict.keys()
