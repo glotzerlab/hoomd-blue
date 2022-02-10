@@ -442,7 +442,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     public:
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                      unsigned int ntypes,
-                     Scalar stepsize,
                      Scalar move_ratio,
                      std::shared_ptr<Variant> k,
                      pybind11::dict shape_params)
@@ -677,7 +676,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
     public:
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                      unsigned int ntypes,
-                     Scalar stepsize,
                      Scalar move_ratio,
                      std::shared_ptr<Variant> k,
                      pybind11::dict shape_params)
@@ -841,7 +839,6 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
                      std::shared_ptr<ElasticShapeMove<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
-                            Scalar,
                             Scalar,
                             std::shared_ptr<Variant>,
                             pybind11::dict>())
