@@ -235,7 +235,8 @@ class Plane(WallGeometry):
             Whether to include the surface of the plane in the space. ``True``
             means do not include the surface, defaults to ``True``.
 
-    The normal points toward the points with a positive signed distance to the plane.
+    The normal points toward the points with a positive signed distance to the
+    plane.
 
     The signed distance from the wall is
 
