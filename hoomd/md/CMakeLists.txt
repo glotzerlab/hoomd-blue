@@ -163,7 +163,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialTersoff.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
-                QuaternionMath.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h
