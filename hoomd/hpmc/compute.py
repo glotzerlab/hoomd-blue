@@ -117,11 +117,34 @@ class SDF(Compute):
             bin :math:`[\mathrm{length}]`.
         dx (float): Bin width :math:`[\mathrm{length}]`.
 
-    `SDF` computes a distribution function of parameter :math:`x`. For each pair
-    of particles, it scales the particle separation vector by :math:`1+x` and
-    records the smallest :math:`x` that would cause the particles to touch in
-    the histogram :math:`s(x)`. The histogram is discrete and :math:`s(x_i) =
-    s[i]` where :math:`x_i = i \cdot dx + dx/2`.
+    `SDF` computes the proability distribution of particles overlapping
+    :math:`s(x)` as a function of separation.
+
+    .. rubric:: Implementation
+
+    For each pair of particles :math:`i` and :math:`j` it scales the particle
+    separation vector by :math:`1-x`, and finds the smallest value leading to
+    particle shape overlap:
+
+    .. math::
+
+        x_{ij} = \min \{ x \in \mathbb{R}_{> 0} : \mathrm{overlap}\left(
+            (1-x)(\vec{r_j} - \vec{r_i}),
+            S_i(\mathbf{q}_i),
+            S_j(\mathbf{q}_j) \ne \emptyset \right) \}
+
+    where :math:`\mathrm{overlap}` is the shape overlap function defined in
+    `hpmc.integrate.HPMCIntegrator` and :math:`S_i` is the shape of particle
+    :math:`i`.
+
+    `SDF` adds a single count to the histogram for each particle *i* at the
+    minimum value:
+
+    .. math::
+
+        x_i = \min \{ x_{ij} \}
+
+    .. rubric:: Pressure
 
     The extrapolation of :math:`s(x)` to :math:`x = 0`, :math:`s(0+)` is related
     to the pressure
@@ -141,7 +164,7 @@ class SDF(Compute):
       * ``dx = 1e-4``
 
     In systems near densest packings, ``dx=1e-5`` may be needed along with
-    smaller ``xmax``. Check that :math:`\sum_i s(x_i) \cdot dx \approx 0.5`.
+    smaller ``xmax``. Check that :math:`\sum_k s(x_k) \cdot dx \approx 0.5`.
 
     Warning:
         `SDF` does not compute correct pressures for simulations with
@@ -154,6 +177,12 @@ class SDF(Compute):
 
     `SDF` uses reduced precision floating point arithmetic when checking
     for particle overlaps in the local particle reference frame.
+
+    .. rubric:: Box images
+
+    `SDF` does not apply the minimum image convention. It supports small boxes
+    where particles can potentially with particles outside the primary box
+    image.
 
     Attributes:
         xmax (float): Maximum *x* value at the right hand side of the rightmost
@@ -184,8 +213,11 @@ class SDF(Compute):
 
     @log(category='sequence', requires_run=True)
     def sdf(self):
-        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[i]` - The scale \
+        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[k]` - The scale \
         distribution function :math:`[\\mathrm{probability\\ density}]`.
+
+        The :math:`x` value corresponding to bin :math:`k` is:
+        :math:`x = k \\cdot dx + dx/2`.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.

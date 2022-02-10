@@ -135,8 +135,9 @@ class Box:
     .. rubric:: Box images
 
     HOOMD-blue always stores particle positions :math:`\\vec{r}` in the primary
-    box image. Operations apply the minimum image convention when computing
-    pairwise interactions between particles:
+    box image. Unless otherwise noted in the documentation, operations apply the
+    minimum image convention when computing pairwise interactions between
+    particles:
 
     .. math::
 
