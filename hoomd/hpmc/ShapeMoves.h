@@ -370,9 +370,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         m_volume = volume;
         }
 
-    void prepare(uint64_t timestep)
-        {
-        }
+    void prepare(uint64_t timestep) { }
 
     void update_shape(uint64_t timestep,
                       Scalar& stepsize,
