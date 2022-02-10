@@ -235,9 +235,7 @@ class Plane(WallGeometry):
             Whether to include the surface of the plane in the space. ``True``
             means do not include the surface, defaults to ``True``.
 
-    The normal points away from the active half side; in HPMC, this means that
-    the normal points to the side of the plane where particles are allowed to
-    be.
+    The normal points toward the points with a positive signed distance to the plane.
 
     The signed distance from the wall is
 
