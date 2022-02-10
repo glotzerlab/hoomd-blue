@@ -67,98 +67,6 @@ template<typename Shape> class ShapeMoveBase
         return m_isoperimetric_quotient;
         }
 
-    // //! Get the stepsize
-    // pybind11::dict getStepsize()
-    //     {
-    //     pybind11::dict stepsize;
-    //     for (unsigned int i = 0; i < m_step_size.size(); i++)
-    //         {
-    //         pybind11::str type_name = m_sysdef->getParticleData()->getNameByType(i);
-    //         stepsize[type_name] = m_step_size[i];
-    //         }
-    //     return stepsize;
-    //     }
-
-    // //! Get all of the stepsizes
-    // const std::vector<Scalar>& getStepSizeArray() const
-    //     {
-    //     return m_step_size;
-    //     }
-
-    //! Set the step size
-    // void setStepsize(pybind11::dict stepsize)
-    //     {
-    //     std::vector<Scalar> stepsize_vector(m_step_size.size());
-    //     for (auto name_and_stepsize : stepsize)
-    //         {
-    //         std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
-    //         Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
-    //         unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
-    //         stepsize_vector[type_i] = type_stepsize;
-    //         }
-    //     m_step_size = stepsize_vector;
-    //     }
-
-    //! Method that is called whenever the GSD file is written if connected to a GSD file.
-    // virtual int writeGSD(gsd_handle& handle,
-    //                      std::string name,
-    //                      const std::shared_ptr<const ExecutionConfiguration> exec_conf,
-    //                      bool mpi) const
-    //     {
-    //     if (!exec_conf->isRoot())
-    //         return 0;
-    //     std::string path = name + "stepsize";
-    //     exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: " << name
-    //                               << std::endl;
-    //     std::vector<float> d;
-    //     d.resize(m_step_size.size());
-    //     std::transform(m_step_size.begin(),
-    //                    m_step_size.end(),
-    //                    d.begin(),
-    //                    [](const Scalar& s) -> Scalar { return s; });
-    //     int retval
-    //         = gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, d.size(), 1, 0, (void*)&d[0]);
-    //     return retval;
-    //     }
-
-//     //! Method that is called to connect to the gsd write state signal
-//     virtual bool restoreStateGSD(std::shared_ptr<GSDReader> reader,
-//                                  std::string name,
-//                                  const std::shared_ptr<const ExecutionConfiguration> exec_conf,
-//                                  bool mpi)
-//         {
-//         bool success = true;
-//         std::string path = name + "stepsize";
-//         std::vector<float> d;
-//         unsigned int Ntypes = (unsigned int)this->m_step_size.size();
-//         uint64_t frame = reader->getFrame();
-//         if (exec_conf->isRoot())
-//             {
-//             d.resize(Ntypes, 0.0);
-//             exec_conf->msg->notice(2)
-//                 << "shape_move reading from GSD File from name: " << name << std::endl;
-//             success = reader->readChunk((void*)&d[0],
-//                                         frame,
-//                                         path.c_str(),
-//                                         Ntypes * gsd_sizeof_type(GSD_TYPE_FLOAT),
-//                                         Ntypes);
-//             exec_conf->msg->notice(2)
-//                 << "stepsize: " << d[0] << " success: " << std::boolalpha << success << std::endl;
-//             }
-//
-// #ifdef ENABLE_MPI
-//         if (mpi)
-//             {
-//             bcast(d, 0, exec_conf->getMPICommunicator()); // broadcast the data
-//             }
-// #endif
-//
-//         for (unsigned int i = 0; i < d.size(); i++)
-//             m_step_size[i] = Scalar(d[i]);
-//
-//         return success;
-//         }
-
     virtual Scalar operator()(uint64_t timestep,
                               const unsigned int& N,
                               const unsigned int type_id,
@@ -541,7 +449,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
                      pybind11::dict shape_params)
         : ShapeMoveBase<Shape>(sysdef, ntypes), m_mass_props(ntypes), m_k(k)
         {
-        m_select_ratio = fmin(move_ratio, 1.0);
+        m_shear_scale_ratio = fmin(move_ratio, 1.0);
         m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
         m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
         this->m_det_inertia_tensor = 1.0;
@@ -566,7 +474,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         using Eigen::Matrix3d;
         Matrix3d transform;
         if (hoomd::detail::generate_canonical<double>(rng)
-            < m_select_ratio) // perform a scaling move
+            < m_shear_scale_ratio) // perform a scaling move
             {
             generateExtentional(transform, rng, stepsize + 1.0);
             }
@@ -628,14 +536,14 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             m_Fbar_last); // we can swap because m_Fbar_last will be reset on the next prepare
         }
 
-    Scalar getParamRatio()
+    Scalar getShearScaleRatio()
         {
-        return m_select_ratio;
+        return m_shear_scale_ratio;
         }
 
-    void setParamRatio(Scalar param_ratio)
+    void setShearScaleRatio(Scalar param_ratio)
         {
-        m_select_ratio = fmin(param_ratio, 1.0);
+        m_shear_scale_ratio = fmin(param_ratio, 1.0);
         }
 
     void setStiffness(std::shared_ptr<Variant> stiff)
@@ -661,93 +569,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         std::vector<pybind11::dict> references;
         return m_reference_shape.asDict();
         }
-
-    // //! Method that is called whenever the GSD file is written if connected to a GSD file.
-    // int writeGSD(gsd_handle& handle,
-    //              std::string name,
-    //              const std::shared_ptr<const ExecutionConfiguration> exec_conf,
-    //              bool mpi) const
-    //     {
-    //     if (!exec_conf->isRoot())
-    //         return 0;
-    //
-    //     // Call base method for stepsize
-    //     int retval = ShapeMoveBase<Shape>::writeGSD(handle, name, exec_conf, mpi);
-    //     // flatten deformation matrix before writting to GSD
-    //     unsigned int Ntypes = (unsigned int)this->m_step_size.size();
-    //     unsigned int rows = Ntypes * 3;
-    //     std::vector<float> data(rows * 3);
-    //     unsigned int count = 0;
-    //     for (unsigned int i = 0; i < Ntypes; i++)
-    //         {
-    //         for (unsigned int j = 0; j < 3; j++)
-    //             {
-    //             data[count * 3 + 0] = float(m_Fbar[i](0, j));
-    //             data[count * 3 + 1] = float(m_Fbar[i](1, j));
-    //             data[count * 3 + 2] = float(m_Fbar[i](2, j));
-    //             count++;
-    //             };
-    //         };
-    //     std::string path = name + "defmat";
-    //     exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: " << name
-    //                               << std::endl;
-    //     retval
-    //         |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, rows, 3, 0, (void*)&data[0]);
-    //     return retval;
-    //     };
-
-//     //! Method that is called to connect to the gsd write state signal
-//     virtual bool restoreStateGSD(std::shared_ptr<GSDReader> reader,
-//                                  std::string name,
-//                                  const std::shared_ptr<const ExecutionConfiguration> exec_conf,
-//                                  bool mpi)
-//         {
-//         // Call base method for stepsize
-//         bool success = ShapeMoveBase<Shape>::restoreStateGSD(reader, name, exec_conf, mpi);
-//         unsigned int Ntypes = (unsigned int)this->m_step_size.size();
-//         uint64_t frame = reader->getFrame();
-//         std::vector<float> defmat(Ntypes * 3 * 3, 0.0);
-//         if (exec_conf->isRoot())
-//             {
-//             std::string path = name + "defmat";
-//             exec_conf->msg->notice(2)
-//                 << "shape_move reading from GSD File from name: " << name << std::endl;
-//             success = reader->readChunk((void*)&defmat[0],
-//                                         frame,
-//                                         path.c_str(),
-//                                         3 * 3 * Ntypes * gsd_sizeof_type(GSD_TYPE_FLOAT),
-//                                         3 * Ntypes)
-//                       && success;
-//             exec_conf->msg->notice(2)
-//                 << "defmat success: " << std::boolalpha << success << std::endl;
-//             }
-//
-// #ifdef ENABLE_MPI
-//         if (mpi)
-//             {
-//             bcast(defmat, 0, exec_conf->getMPICommunicator());
-//             }
-// #endif
-//
-//         if (defmat.size() != (this->m_Fbar).size() * 3 * 3)
-//             {
-//             throw std::runtime_error("Error occured while attempting to restore from gsd file.");
-//             }
-//
-//         unsigned int count = 0;
-//         for (unsigned int i = 0; i < (this->m_Fbar).size(); i++)
-//             {
-//             for (unsigned int j = 0; j < 3; j++)
-//                 {
-//                 this->m_Fbar[i](0, j) = defmat[count * 3 + 0];
-//                 this->m_Fbar[i](1, j) = defmat[count * 3 + 1];
-//                 this->m_Fbar[i](2, j) = defmat[count * 3 + 2];
-//                 count++;
-//                 }
-//             }
-//
-//         return success;
-//         };
 
     Scalar operator()(uint64_t timestep,
                       const unsigned int& N,
@@ -786,7 +607,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
 
     protected:
-    Scalar m_select_ratio;
+    Scalar m_shear_scale_ratio;
     ; // probability of performing a scaling move vs a
       // rotation-scale-rotation move
     std::vector<detail::MassProperties<Shape>> m_mass_props; // mass properties of the shape
@@ -863,21 +684,20 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
                      pybind11::dict shape_params)
         : ShapeMoveBase<ShapeEllipsoid>(sysdef, ntypes), m_mass_props(ntypes), m_k(k)
         {
-        m_select_ratio = fmin(move_ratio, 1.0);
         typename ShapeEllipsoid::param_type shape(shape_params);
         m_reference_shape = shape;
         detail::MassProperties<ShapeEllipsoid> mp(m_reference_shape);
         m_volume = mp.getVolume();
         }
 
-    Scalar getParamRatio()
+    Scalar getShearScaleRatio()
         {
-        return m_select_ratio;
+        return m_shear_scale_ratio;
         }
 
-    void setParamRatio(Scalar param_ratio)
+    void setShearScaleRatio(Scalar param_ratio)
         {
-        m_select_ratio = fmin(param_ratio, 1.0);
+        m_shear_scale_ratio = fmin(param_ratio, 1.0);
         }
 
     void setStiffness(std::shared_ptr<Variant> stiff)
@@ -953,9 +773,9 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         }
 
     private:
+    Scalar m_shear_scale_ratio;
     std::vector<detail::MassProperties<ShapeEllipsoid>>
         m_mass_props; // mass properties of the shape
-    Scalar m_select_ratio;
     Scalar m_volume;                                       // volume of shape
     typename ShapeEllipsoid::param_type m_reference_shape; // shape to reference shape move against
     std::shared_ptr<Variant> m_k;                          // shape move stiffness
@@ -1026,9 +846,9 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
                             Scalar,
                             std::shared_ptr<Variant>,
                             pybind11::dict>())
-        .def_property("param_ratio",
-                      &ElasticShapeMove<Shape>::getParamRatio,
-                      &ElasticShapeMove<Shape>::setParamRatio)
+        .def_property("shear_scale_ratio",
+                      &ElasticShapeMove<Shape>::getShearScaleRatio,
+                      &ElasticShapeMove<Shape>::setShearScaleRatio)
         .def_property("stiffness",
                       &ElasticShapeMove<Shape>::getStiffness,
                       &ElasticShapeMove<Shape>::setStiffness)
@@ -1036,20 +856,6 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
                       &ElasticShapeMove<Shape>::getReference,
                       &ElasticShapeMove<Shape>::setReference);
     }
-
-// template<class Shape> void export_ShapeMoveInterface(pybind11::module& m, const std::string&
-// name);
-
-// template<class Shape> void export_ElasticShapeMove(pybind11::module& m, const std::string& name);
-
-// template<class Shape>
-// void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std::string& name);
-
-// template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std::string& name);
-
-// template<class Shape> void export_ConstantShapeMove(pybind11::module& m, const std::string&
-// name);
-
     } // namespace hpmc
     } // namespace hoomd
 
