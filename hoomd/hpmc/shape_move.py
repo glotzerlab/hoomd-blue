@@ -120,10 +120,9 @@ class Elastic(ShapeMove):
         mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
         verts = [(1, 1, 1), (-1, -1, 1), (1, -1, -1), (-1, 1, -1)]
         mc.shape["A"] = dict(vertices=verts)
-        elastic_move = hoomd.hpmc.shape_move.Elastic(stiffness=hoomd.variant.Constant(1.0),
+        elastic_move = hoomd.hpmc.shape_move.Elastic(stiffness=100,
                                                      reference=dict(vertices=verts),
-                                                     stepsize=0.05,
-                                                     param_ratio=0.2)
+                                                     shear_scale_ratio=0.2)
 
     Attributes:
 
@@ -135,7 +134,7 @@ class Elastic(ShapeMove):
         shear_scale_ratio (float): Fraction of scale to shear moves.
     """
 
-    def __init__(self, stiffness, reference, stepsize, param_ratio):
+    def __init__(self, stiffness, reference, shear_scale_ratio):
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant,
                                    reference=dict(reference),
                                    shear_scale_ratio=float(shear_scale_ratio))
@@ -165,18 +164,12 @@ class Elastic(ShapeMove):
 
         ntypes = self._simulation.state._cpp_sys_def.getParticleData(
         ).getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
-                                 self.stepsize, self.param_ratio,
-                                 self.stiffness, self.reference)
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
+                                 ntypes,
+                                 self.shear_scale_ratio,
+                                 self.stiffness,
+                                 self.reference)
         super()._attach()
-
-    @log(category="scalar")
-    def shape_move_stiffness(self):
-        """float: Stiffness of the shape used to calculate shape energy.
-
-        None when not attached
-        """
-        return self.stiffness
 
 
 class Python(ShapeMove):
@@ -190,10 +183,7 @@ class Python(ShapeMove):
             of initial parameters to pass to the callback
             (ex: {'A' : [1.0], 'B': [0.0]})
 
-        stepsize (dict): Dictionary of types and the corresponding step size
-            to use when changing parameter values
-
-        param_ratio (float): Average fraction of parameters to change during
+        param_move_probability (float): Average fraction of parameters to change during
             each shape move
 
     Note:
@@ -212,8 +202,7 @@ class Python(ShapeMove):
                 return hoomd.hpmc._hpmc.PolyhedronVertices(verts)
         python_move = hoomd.hpmc.shape_move.Python(callback=ExampleCallback,
                                                    params={'A': [1.0]},
-                                                   stepsize={'A': 0.05},
-                                                   param_ratio=1.0)
+                                                   param_move_probability=1.0)
 
     Attributes:
 
@@ -224,18 +213,14 @@ class Python(ShapeMove):
             of initial parameters to pass to the callback
             (ex: {'A' : [1.0], 'B': [0.0]})
 
-        stepsize (dict): Dictionary of types and the corresponding step size
-            to use when changing parameter values
-
-        param_ratio (float): Average fraction of parameters to change during
+        param_move_probability (float): Average fraction of parameters to change during
             each shape move
     """
 
-    def __init__(self, callback, params, stepsize, param_ratio):
+    def __init__(self, callback, params, stepsize, param_move_probability):
         param_dict = ParameterDict(callback=Callback,
                                    params=dict(params),
-                                   stepsize=dict(stepsize),
-                                   param_ratio=float(param_ratio))
+                                   param_move_probability=float(param_move_probability))
         param_dict["callback"] = callback
         self._param_dict.update(param_dict)
 
@@ -261,9 +246,11 @@ class Python(ShapeMove):
 
         ntypes = self._simulation.state._cpp_sys_def.getParticleData(
         ).getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
-                                 self.callback, self.params, self.stepsize,
-                                 self.param_ratio)
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
+                                 ntypes,
+                                 self.callback,
+                                 self.params,
+                                 self.param_move_probability)
         super()._attach()
 
     @log(category='object')
@@ -299,8 +286,7 @@ class Vertex(ShapeMove):
         cube_verts = [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1),
                       (1, -1, -1), (-1, 1, -1), (-1, -1, 1), (-1, -1, -1)])
         mc.shape["A"] = dict(vertices=numpy.asarray(cube_verts) / 2)
-        vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01},
-                                                   param_ratio=0.125,
+        vertex_move = hoomd.hpmc.shape_move.Vertex(vertex_move_probability=0.125,
                                                    volume=1.0)
 
     Attributes:
@@ -331,6 +317,8 @@ class Vertex(ShapeMove):
 
         ntypes = self._simulation.state._cpp_sys_def.getParticleData(
         ).getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
-                                 self.stepsize, self.param_ratio, self.volume)
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
+                                 ntypes,
+                                 self.vertex_move_probability,
+                                 self.volume)
         super()._attach()

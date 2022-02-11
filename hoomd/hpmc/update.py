@@ -536,10 +536,10 @@ class Shape(Updater):
         num_phase (int): How many boxes are simulated at the same time, now
             support 2 and 3.
     """
-
     def __init__(self,
                  shape_move,
-                 trigger=hoomd.trigger.Periodic(1),
+                 stepsize,
+                 trigger=1,
                  pretend=False,
                  nselect=1,
                  nsweeps=1,
@@ -554,6 +554,14 @@ class Shape(Updater):
                                    num_phase=int(num_phase))
         param_dict["shape_move"] = shape_move
         self._param_dict.update(param_dict)
+
+        # Set standard typeparameters for hpmc integrators
+        typeparam_stepsize = TypeParameter('stepsize',
+                                           type_kind='particle_types',
+                                           param_dict=TypeParameterDict(
+                                           float(stepsize), len_keys=1))
+
+        self._extend_typeparam([typeparam_stepsize])
 
     def _add(self, sim):
         if self.shape_move is not None:
@@ -612,9 +620,11 @@ class Shape(Updater):
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     integrator._cpp_obj,
                                     self.shape_move._cpp_obj,
-                                    self._simulation.seed, self.nselect,
-                                    self.nsweeps, self.pretend,
-                                    self.multi_phase, self.num_phase)
+                                    self.nselect,
+                                    self.nsweeps,
+                                    self.pretend,
+                                    self.multi_phase,
+                                    self.num_phase)
         super()._attach()
 
     @log(category='sequence')
@@ -628,13 +638,15 @@ class Shape(Updater):
             accepted = self._cpp_obj.accepted_count
             return (accepted, total - accepted)
         else:
-            return None
+            return (0, 0)
 
     @log(category='scalar')
     def particle_volume(self):
         """float: Total volume being occupied by particles.
 
         None when not attached
+
+        TODO - move this to the shape moves classes
         """
         if self._attached:
             return self._cpp_obj.particle_volume
@@ -646,6 +658,8 @@ class Shape(Updater):
         """float: Energy of the shape resulting from shear moves.
 
         None when not attached
+
+        TODO - move this to the shape moves classes
         """
         if self._attached:
             return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)

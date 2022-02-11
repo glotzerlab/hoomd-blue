@@ -106,11 +106,10 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
                     unsigned int ntypes,
                     pybind11::object python_function,
                     pybind11::dict params,
-                    pybind11::dict stepsize,
                     Scalar mixratio)
         : ShapeMoveBase<Shape>(sysdef, ntypes), m_num_params(0), m_python_callback(python_function)
         {
-        m_select_ratio = fmin(mixratio, 1.0);
+        m_param_move_probability = fmin(mixratio, 1.0);
         this->m_det_inertia_tensor = 1.0;
         std::vector<std::vector<Scalar>> params_vector(ntypes);
         for (auto name_and_params : params)
@@ -140,7 +139,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
             hoomd::UniformDistribution<Scalar> uniform(
                 fmax(-stepsize, -(m_params[type_id][i])),
                 fmin(stepsize, (1.0 - m_params[type_id][i])));
-            Scalar x = (hoomd::detail::generate_canonical<double>(rng) < m_select_ratio)
+            Scalar x = (hoomd::detail::generate_canonical<double>(rng) < m_param_move_probability)
                            ? uniform(rng)
                            : 0.0;
             m_params[type_id][i] += x;
@@ -217,12 +216,12 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
 
     Scalar getParamRatio()
         {
-        return m_select_ratio;
+        return m_param_move_probability;
         }
 
     void setParamRatio(Scalar select_ratio)
         {
-        m_select_ratio = fmin(select_ratio, 1.0);
+        m_param_move_probability = fmin(select_ratio, 1.0);
         }
 
     pybind11::object getCallback()
@@ -236,7 +235,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         }
 
     private:
-    Scalar m_select_ratio;
+    Scalar m_param_move_probability;
     unsigned int m_num_params; // cache the number of parameters.
     Scalar m_scale; // the scale needed to keep the particle at constant volume. internal use
     std::vector<std::vector<Scalar>> m_params_backup; // all params are from 0,1
@@ -330,24 +329,15 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     public:
     ConvexPolyhedronVertexShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                                     unsigned int ntypes,
-                                    pybind11::dict step_size,
-                                    Scalar mixratio,
+                                    Scalar vertex_move_prob,
                                     Scalar volume)
         : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef, ntypes), m_volume(volume)
         {
         this->m_det_inertia_tensor = 1.0;
         m_scale = 1.0;
-        std::vector<Scalar> stepsize_vector(ntypes);
-        for (auto name_and_stepsize : step_size)
-            {
-            std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
-            Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
-            unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
-            stepsize_vector[type_i] = type_stepsize;
-            }
         m_calculated.resize(ntypes, false);
         m_centroids.resize(ntypes, vec3<Scalar>(0, 0, 0));
-        m_vertex_move_probability = fmin(mixratio, 1.0);
+        m_vertex_move_probability = fmin(vertex_move_prob, 1.0);
         }
 
     Scalar getVertexMoveProbability()
@@ -355,9 +345,9 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         return m_vertex_move_probability;
         }
 
-    void setVertexMoveProbability(Scalar param_ratio)
+    void setVertexMoveProbability(Scalar vertex_move_prob)
         {
-        m_vertex_move_probability = fmin(param_ratio, 1.0);
+        m_vertex_move_probability = fmin(vertex_move_prob, 1.0);
         }
 
     Scalar getVolume()
@@ -537,9 +527,9 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         return m_shear_scale_ratio;
         }
 
-    void setShearScaleRatio(Scalar param_ratio)
+    void setShearScaleRatio(Scalar scale_shear_ratio)
         {
-        m_shear_scale_ratio = fmin(param_ratio, 1.0);
+        m_shear_scale_ratio = fmin(scale_shear_ratio, 1.0);
         }
 
     void setStiffness(std::shared_ptr<Variant> stiff)
@@ -690,9 +680,9 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         return m_shear_scale_ratio;
         }
 
-    void setShearScaleRatio(Scalar param_ratio)
+    void setShearScaleRatio(Scalar scale_shear_ratio)
         {
-        m_shear_scale_ratio = fmin(param_ratio, 1.0);
+        m_shear_scale_ratio = fmin(scale_shear_ratio, 1.0);
         }
 
     void setStiffness(std::shared_ptr<Variant> stiff)
@@ -785,12 +775,11 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
                             unsigned int,
                             pybind11::object,
                             pybind11::dict,
-                            pybind11::dict,
                             Scalar>())
         .def_property("params",
                       &PythonShapeMove<Shape>::getParams,
                       &PythonShapeMove<Shape>::setParams)
-        .def_property("param_ratio",
+        .def_property("param_move_probability",
                       &PythonShapeMove<Shape>::getParamRatio,
                       &PythonShapeMove<Shape>::setParamRatio)
         .def_property("callback",
@@ -806,7 +795,6 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
                      std::shared_ptr<ConvexPolyhedronVertexShapeMove>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             unsigned int,
-                            pybind11::dict,
                             Scalar,
                             Scalar>())
         .def_property("volume",
