@@ -184,8 +184,8 @@ def test_replace_with_invalid(simulation_factory, two_particle_snapshot_factory,
                               add_default_integrator):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator_class = hoomd.hpmc.integrate.ConvexSpheropolyhedron
-    walls = [hoomd.wall.Sphere, hoomd.wall.Plane]
-    mc, walls = add_default_integrator(sim, integrator_class, walls)
+    wall_types = [hoomd.wall.Sphere, hoomd.wall.Plane]
+    mc, walls = add_default_integrator(sim, integrator_class, wall_types)
     sim.run(0)
     with pytest.raises(NotImplementedError):
         mc.external_potential.walls = [hoomd.wall.Cylinder(1.2345, (0, 0, 0))]
@@ -197,8 +197,8 @@ def test_replace_with_invalid_by_append(simulation_factory,
                                         add_default_integrator):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator_class = hoomd.hpmc.integrate.ConvexSpheropolyhedron
-    walls = [hoomd.wall.Sphere, hoomd.wall.Plane]
-    mc, walls = add_default_integrator(sim, integrator_class, walls)
+    wall_types = [hoomd.wall.Sphere, hoomd.wall.Plane]
+    mc, walls = add_default_integrator(sim, integrator_class, wall_types)
     sim.run(0)
     with pytest.raises(NotImplementedError):
         new_wall = hoomd.wall.Cylinder(1.2345, (0, 0, 0))
@@ -211,8 +211,8 @@ def test_replace_with_invalid_by_extend(simulation_factory,
                                         add_default_integrator):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator_class = hoomd.hpmc.integrate.ConvexSpheropolyhedron
-    walls = [hoomd.wall.Sphere, hoomd.wall.Plane]
-    mc, walls = add_default_integrator(sim, integrator_class, walls)
+    wall_types = [hoomd.wall.Sphere, hoomd.wall.Plane]
+    mc, walls = add_default_integrator(sim, integrator_class, wall_types)
     sim.run(0)
     with pytest.raises(NotImplementedError):
         new_walls = [hoomd.wall.Cylinder(1.2345, (0, 0, 0))]
@@ -224,8 +224,8 @@ def test_replace_with_valid(simulation_factory, two_particle_snapshot_factory,
                             add_default_integrator):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator_class = hoomd.hpmc.integrate.ConvexSpheropolyhedron
-    walls = [hoomd.wall.Plane]
-    mc, walls = add_default_integrator(sim, integrator_class, walls)
+    wall_types = [hoomd.wall.Plane]
+    mc, walls = add_default_integrator(sim, integrator_class, wall_types)
     sim.run(0)
     mc.external_potential.walls = [hoomd.wall.Sphere(1.0)]
 
@@ -236,8 +236,8 @@ def test_replace_with_valid_by_append(simulation_factory,
                                       add_default_integrator):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator_class = hoomd.hpmc.integrate.ConvexSpheropolyhedron
-    walls = [hoomd.wall.Plane]
-    mc, walls = add_default_integrator(sim, integrator_class, walls)
+    wall_types = [hoomd.wall.Plane]
+    mc, walls = add_default_integrator(sim, integrator_class, wall_types)
     sim.run(0)
     mc.external_potential.walls.append(hoomd.wall.Sphere(1.0))
 
@@ -248,8 +248,8 @@ def test_replace_with_valid_by_extend(simulation_factory,
                                       add_default_integrator):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator_class = hoomd.hpmc.integrate.ConvexSpheropolyhedron
-    walls = [hoomd.wall.Plane]
-    mc, walls = add_default_integrator(sim, integrator_class, walls)
+    wall_types = [hoomd.wall.Plane]
+    mc, walls = add_default_integrator(sim, integrator_class, wall_types)
     sim.run(0)
     mc.external_potential.walls.extend([hoomd.wall.Sphere(1.0)])
 
