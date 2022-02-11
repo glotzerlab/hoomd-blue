@@ -92,32 +92,6 @@ class TypeParameter(MutableMapping):
         exist in the `hoomd.State` object. After calling ``run``, however, all
         such data for non-existent types is removed, and querying or attempting
         to set those keys will result in a ``KeyError``.
-
-    Warning:
-        Values after calling `hoomd.Simulation.run` are returned **by copy** not
-        reference. Beforehand, values are returned by reference.  For nested
-        data structures, this means that directly editing the internal stuctures
-        such as a list inside a dict will not be reflected after calling
-        `hoomd.Simulation.run`. Examples of nested structure are the union shape
-        intergrators in HPMC and the table pair potential in MD.  The
-        recommended way to handle mutation for nested structures in general is a
-        read-modify-write approach shown below in a code example. Future
-        versions of HOOMD-blue version 3 may lift this restriction and allow for
-        direct modification of nested structures.
-
-        .. code-block:: python
-
-            union_shape = hoomd.hpmc.integrate.SphereUnion()
-            union_shape.shape["union"] = {
-                "shapes": [{"diameter": 1.0}, {"diameter": 1.5}],
-                "positions": [(0.0, 0.0, 0.0), (-1.0, 0.0, 0.0)]
-                }
-            # read
-            shape_spec = union_shape.shape["union"]
-            # modify
-            shape_spec["shapes"][1] = {"diameter": 2.0}
-            # write
-            union_shape.shape["union"] = shape_spec
     """
     __slots__ = ("name", "type_kind", "param_dict")
 
