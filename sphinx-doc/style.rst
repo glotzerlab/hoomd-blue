@@ -54,6 +54,10 @@ formatting for use in `Napoleon`_.
 .. _Google Style: https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html#example-google
 .. _Napoleon: https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html
 
+Simulation operations should unambiguously document what calculations they perform using formal
+mathematical notation and use a consistent set of symbols and across the whole codebase.
+HOOMD-blue documentation should follow standard physics and statistical mechanics notation with
+consistent use of symbols detailed in :py:doc:`notation`.
 
 C++/CUDA
 --------
