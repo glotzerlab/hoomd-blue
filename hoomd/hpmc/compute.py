@@ -131,7 +131,7 @@ class SDF(Compute):
         x_{ij} = \min \{ x \in \mathbb{R}_{> 0} : \mathrm{overlap}\left(
             (1-x)(\vec{r_j} - \vec{r_i}),
             S_i(\mathbf{q}_i),
-            S_j(\mathbf{q}_j) \ne \emptyset \right) \}
+            S_j(\mathbf{q}_j) \right) \ne \emptyset \}
 
     where :math:`\mathrm{overlap}` is the shape overlap function defined in
     `hpmc.integrate.HPMCIntegrator` and :math:`S_i` is the shape of particle
