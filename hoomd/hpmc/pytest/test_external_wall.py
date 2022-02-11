@@ -111,43 +111,34 @@ for shape in _integrator_classes:
 
 
 @pytest.mark.cpu
-@pytest.mark.parametrize("shapewall", invalid_flattened_shape_wall_combos)
+@pytest.mark.parametrize("shape_cls, wall", invalid_flattened_shape_wall_combos)
 def test_attaching_invalid_combos(simulation_factory,
                                   two_particle_snapshot_factory,
-                                  add_default_integrator, shapewall):
-    integrator_class, wall = shapewall
+                                  add_default_integrator, shape_cls, wall):
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc, walls = add_default_integrator(sim, integrator_class, [
-        wall,
-    ])
+    mc, walls = add_default_integrator(sim, shape_cls, [wall])
     with pytest.raises(NotImplementedError):
         sim.run(0)
 
 
 @pytest.mark.cpu
-@pytest.mark.parametrize("shapewall", valid_flattened_shape_wall_combos)
+@pytest.mark.parametrize("shape_cls, wall", valid_flattened_shape_wall_combos)
 def test_attaching_valid_combos(simulation_factory,
                                 two_particle_snapshot_factory,
-                                add_default_integrator, shapewall):
-    integrator_class, wall = shapewall
+                                add_default_integrator, shape_cls, wall):
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc, walls = add_default_integrator(sim, integrator_class, [
-        wall,
-    ])
+    mc, walls = add_default_integrator(sim, shape_cls, [wall])
     sim.run(0)
     assert mc._attached
     assert walls._attached
 
 
 @pytest.mark.cpu
-@pytest.mark.parametrize("shapewall", valid_flattened_shape_wall_combos)
+@pytest.mark.parametrize("shape_cls, wall", valid_flattened_shape_wall_combos)
 def test_detaching(simulation_factory, two_particle_snapshot_factory,
-                   add_default_integrator, shapewall):
+                   add_default_integrator, shape_cls, wall):
     sim = simulation_factory(two_particle_snapshot_factory())
-    integrator_class, wall = shapewall
-    mc, walls = add_default_integrator(sim, integrator_class, [
-        wall,
-    ])
+    mc, walls = add_default_integrator(sim, shape_cls, [wall])
     sim.run(0)
     sim.operations.remove(mc)
     assert not mc._attached
@@ -163,15 +154,14 @@ for shape in _integrator_classes:
 
 
 @pytest.mark.cpu
-@pytest.mark.parametrize("shapewalls", shape_multiwall_combos)
-def test_multiple_wall_geometries(simulation_factory,
+@pytest.mark.parametrize("shape_cls, wall_validity", shape_multiwall_combos)
+def test_multiple_wall_geometries(simulation_factory, shape_cls, wall_validity,
                                   two_particle_snapshot_factory,
-                                  add_default_integrator, shapewalls):
+                                  add_default_integrator):
     sim = simulation_factory(two_particle_snapshot_factory())
-    integrator_class, walls_valid = shapewalls
-    walls = [x[0] for x in walls_valid]
-    is_valids = [x[1] for x in walls_valid]
-    mc, walls = add_default_integrator(sim, integrator_class, walls)
+    walls = [x[0] for x in wall_validity]
+    is_valids = [x[1] for x in wall_validity]
+    mc, walls = add_default_integrator(sim, shape_cls, walls)
     if all(is_valids):
         sim.run(0)
     else:
@@ -571,10 +561,12 @@ overlap_test_info = [
 
 
 @pytest.mark.cpu
-@pytest.mark.parametrize("test_info", overlap_test_info)
+@pytest.mark.parametrize(
+    "pos, orientation, shape, wall_list, shapedef, expecting_overlap",
+    overlap_test_info)
 def test_overlaps(simulation_factory, one_particle_snapshot_factory,
-                  add_default_integrator, test_info):
-    pos, orientation, shape, wall_list, shapedef, expecting_overlap = test_info
+                  add_default_integrator, pos, orientation, shape, wall_list,
+                  shapedef, expecting_overlap):
     sim = simulation_factory(
         one_particle_snapshot_factory(position=pos,
                                       orientation=orientation,
