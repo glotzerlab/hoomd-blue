@@ -38,7 +38,7 @@ const float mpcd::ParticleData::resize_factor = 9. / 8.;
  * equipartitioned at kT.
  */
 mpcd::ParticleData::ParticleData(unsigned int N,
-                                 const std::shared_ptr<const BoxDim>& local_box,
+                                 const std::shared_ptr<const BoxDim> local_box,
                                  Scalar kT,
                                  unsigned int seed,
                                  unsigned int ndimensions,
@@ -71,7 +71,7 @@ mpcd::ParticleData::ParticleData(unsigned int N,
  * \param decomposition Domain decomposition
  */
 mpcd::ParticleData::ParticleData(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
-                                 const std::shared_ptr<const BoxDim>& global_box,
+                                 const std::shared_ptr<const BoxDim> global_box,
                                  std::shared_ptr<const ExecutionConfiguration> exec_conf,
                                  std::shared_ptr<DomainDecomposition> decomposition)
     : m_N(0), m_N_virtual(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0),
@@ -110,7 +110,7 @@ mpcd::ParticleData::~ParticleData()
  */
 void mpcd::ParticleData::initializeFromSnapshot(
     const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot,
-    const std::shared_ptr<const BoxDim>& global_box)
+    const std::shared_ptr<const BoxDim> global_box)
     {
     m_exec_conf->msg->notice(4) << "MPCD ParticleData: initializing from snapshot" << std::endl;
 
@@ -333,7 +333,7 @@ void mpcd::ParticleData::initializeFromSnapshot(
  * \param ndimensions Dimensionality
  */
 void mpcd::ParticleData::initializeRandom(unsigned int N,
-                                          const std::shared_ptr<const BoxDim>& local_box,
+                                          const std::shared_ptr<const BoxDim> local_box,
                                           Scalar kT,
                                           unsigned int seed,
                                           unsigned int ndimensions)
@@ -446,7 +446,7 @@ void mpcd::ParticleData::initializeRandom(unsigned int N,
  * \post \a snapshot holds the current MPCD particle data on the root (0) rank
  */
 void mpcd::ParticleData::takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
-                                      const shared_ptr<const BoxDim>& global_box) const
+                                      const shared_ptr<const BoxDim> global_box) const
     {
     m_exec_conf->msg->notice(4) << "MPCD ParticleData: taking snapshot" << std::endl;
 
@@ -585,7 +585,7 @@ bool mpcd::ParticleData::checkSnapshot(
  */
 bool mpcd::ParticleData::checkInBox(
     const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot,
-    const std::shared_ptr<const BoxDim>& box)
+    const std::shared_ptr<const BoxDim> box)
     {
     bool in_box = true;
     if (m_exec_conf->getRank() == 0)
@@ -1276,13 +1276,13 @@ void mpcd::detail::export_ParticleData(pybind11::module& m)
     {
     pybind11::class_<mpcd::ParticleData, std::shared_ptr<mpcd::ParticleData>>(m, "MPCDParticleData")
         .def(pybind11::init<unsigned int,
-                            const std::shared_ptr<const BoxDim>&,
+                            const std::shared_ptr<const BoxDim>,
                             Scalar,
                             unsigned int,
                             unsigned int,
                             std::shared_ptr<ExecutionConfiguration>>())
         .def(pybind11::init<unsigned int,
-                            const std::shared_ptr<const BoxDim>&,
+                            const std::shared_ptr<const BoxDim>,
                             Scalar,
                             unsigned int,
                             unsigned int,

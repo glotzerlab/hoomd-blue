@@ -55,7 +55,7 @@ class PYBIND11_EXPORT SystemData
         }
 
     //! Get the current global simulation box
-    const BoxDim& getGlobalBox() const
+    const BoxDim getGlobalBox() const
         {
         return *m_global_box;
         }
