@@ -135,6 +135,7 @@ class Elastic(ShapeMove):
     """
 
     def __init__(self, stiffness, reference, shear_scale_ratio):
+        # TODO: reference should be implemented as TypeParameter
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant,
                                    reference=dict(reference),
                                    shear_scale_ratio=float(shear_scale_ratio))
@@ -215,7 +216,8 @@ class Python(ShapeMove):
             each shape move
     """
 
-    def __init__(self, callback, params, stepsize, param_move_probability):
+    def __init__(self, callback, params, param_move_probability):
+        # TODO: params should be implemented as TypeParameter
         param_dict = ParameterDict(
             callback=Callback,
             params=dict(params),

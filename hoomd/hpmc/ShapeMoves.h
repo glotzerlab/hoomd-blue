@@ -430,12 +430,17 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     public:
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                      unsigned int ntypes,
-                     Scalar move_ratio,
+                     Scalar shear_scale_ratio,
                      std::shared_ptr<Variant> k,
                      pybind11::dict shape_params)
         : ShapeMoveBase<Shape>(sysdef, ntypes), m_mass_props(ntypes), m_k(k)
         {
-        m_shear_scale_ratio = fmin(move_ratio, 1.0);
+        /* TODO: Since the deformation tensor, F, is no longer stored in the GSD,
+                 it has to be computed here. F takes the reference shape and
+                 transforms it into a deformed shape by V' = F * Vref. The conponents
+                 of F are sampled in such a way that particle volume is always conserved.
+        */
+        m_shear_scale_ratio = fmin(shear_scale_ratio, 1.0);
         m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
         m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
         this->m_det_inertia_tensor = 1.0;
