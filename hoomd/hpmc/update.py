@@ -536,6 +536,7 @@ class Shape(Updater):
         num_phase (int): How many boxes are simulated at the same time, now
             support 2 and 3.
     """
+
     def __init__(self,
                  shape_move,
                  stepsize,
@@ -559,7 +560,7 @@ class Shape(Updater):
         typeparam_stepsize = TypeParameter('stepsize',
                                            type_kind='particle_types',
                                            param_dict=TypeParameterDict(
-                                           float(stepsize), len_keys=1))
+                                               float(stepsize), len_keys=1))
 
         self._extend_typeparam([typeparam_stepsize])
 
@@ -619,12 +620,9 @@ class Shape(Updater):
         self._attach_shape_move(self._simulation)
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     integrator._cpp_obj,
-                                    self.shape_move._cpp_obj,
-                                    self.nselect,
-                                    self.nsweeps,
-                                    self.pretend,
-                                    self.multi_phase,
-                                    self.num_phase)
+                                    self.shape_move._cpp_obj, self.nselect,
+                                    self.nsweeps, self.pretend,
+                                    self.multi_phase, self.num_phase)
         super()._attach()
 
     @log(category='sequence')

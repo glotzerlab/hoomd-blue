@@ -760,7 +760,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
     private:
     Scalar m_shear_scale_ratio;
     std::vector<detail::MassProperties<ShapeEllipsoid>>
-        m_mass_props; // mass properties of the shape
+        m_mass_props;                                      // mass properties of the shape
     Scalar m_volume;                                       // volume of shape
     typename ShapeEllipsoid::param_type m_reference_shape; // shape to reference shape move against
     std::shared_ptr<Variant> m_k;                          // shape move stiffness
@@ -793,10 +793,7 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
     pybind11::class_<ConvexPolyhedronVertexShapeMove,
                      ShapeMoveBase<ShapeConvexPolyhedron>,
                      std::shared_ptr<ConvexPolyhedronVertexShapeMove>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            unsigned int,
-                            Scalar,
-                            Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, Scalar, Scalar>())
         .def_property("volume",
                       &ConvexPolyhedronVertexShapeMove::getVolume,
                       &ConvexPolyhedronVertexShapeMove::setVolume)

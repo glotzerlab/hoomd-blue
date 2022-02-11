@@ -164,10 +164,8 @@ class Elastic(ShapeMove):
 
         ntypes = self._simulation.state._cpp_sys_def.getParticleData(
         ).getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
-                                 ntypes,
-                                 self.shear_scale_ratio,
-                                 self.stiffness,
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
+                                 self.shear_scale_ratio, self.stiffness,
                                  self.reference)
         super()._attach()
 
@@ -218,9 +216,10 @@ class Python(ShapeMove):
     """
 
     def __init__(self, callback, params, stepsize, param_move_probability):
-        param_dict = ParameterDict(callback=Callback,
-                                   params=dict(params),
-                                   param_move_probability=float(param_move_probability))
+        param_dict = ParameterDict(
+            callback=Callback,
+            params=dict(params),
+            param_move_probability=float(param_move_probability))
         param_dict["callback"] = callback
         self._param_dict.update(param_dict)
 
@@ -246,10 +245,8 @@ class Python(ShapeMove):
 
         ntypes = self._simulation.state._cpp_sys_def.getParticleData(
         ).getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
-                                 ntypes,
-                                 self.callback,
-                                 self.params,
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
+                                 self.callback, self.params,
                                  self.param_move_probability)
         super()._attach()
 
@@ -298,8 +295,9 @@ class Vertex(ShapeMove):
     """
 
     def __init__(self, vertex_move_probability, volume):
-        param_dict = ParameterDict(vertex_move_probability=float(vertex_move_probability),
-                                   volume=float(volume))
+        param_dict = ParameterDict(
+            vertex_move_probability=float(vertex_move_probability),
+            volume=float(volume))
         self._param_dict.update(param_dict)
 
     def _attach(self):
@@ -317,8 +315,6 @@ class Vertex(ShapeMove):
 
         ntypes = self._simulation.state._cpp_sys_def.getParticleData(
         ).getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
-                                 ntypes,
-                                 self.vertex_move_probability,
-                                 self.volume)
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
+                                 self.vertex_move_probability, self.volume)
         super()._attach()
