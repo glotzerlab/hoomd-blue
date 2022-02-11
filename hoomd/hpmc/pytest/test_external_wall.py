@@ -247,7 +247,7 @@ def test_replace_with_invalid_by_extend(simulation_factory,
     sim.run(0)
     with pytest.raises(NotImplementedError):
         new_walls = [hoomd.wall.Cylinder(1.2345, (0, 0, 0))]
-        mc.external_potential.walls.append(new_walls)
+        mc.external_potential.walls.extend(new_walls)
 
 
 @pytest.mark.cpu
