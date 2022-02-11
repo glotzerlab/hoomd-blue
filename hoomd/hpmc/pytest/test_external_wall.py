@@ -65,7 +65,7 @@ def add_default_integrator():
 _integrator_classes = []
 mc_params = {}
 for integrator_class, args, _ in _valid_args:
-    if type(integrator_class) is tuple:
+    if isinstance(integrator_class, tuple):
         _integrator_classes.append(integrator_class[0])
         base_shape, integrator_class = integrator_class
     else:
