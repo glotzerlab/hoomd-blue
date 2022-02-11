@@ -3,6 +3,8 @@
 
 """Test hoomd.hpmc.external.wall."""
 
+from collections import defaultdict
+
 import hoomd
 from hoomd.hpmc.pytest.conftest import _valid_args
 import itertools
@@ -60,82 +62,48 @@ def add_default_integrator():
     return add
 
 
+_integrator_classes = []
 mc_params = {}
 for integrator_class, args, _ in _valid_args:
     if type(integrator_class) is tuple:
+        _integrator_classes.append(integrator_class[0])
         base_shape, integrator_class = integrator_class
+    else:
+        _integrator_classes.append(integrator_class)
     mc_params.setdefault(integrator_class, args)
 
-shape_wall_compatibilities = [
-    (hoomd.hpmc.integrate.ConvexPolygon, {
+
+def default_wall_compatibility():
+    return {
         hoomd.wall.Sphere: False,
         hoomd.wall.Cylinder: False,
         hoomd.wall.Plane: False
-    }),
-    (hoomd.hpmc.integrate.ConvexPolyhedron, {
+    }
+
+
+shape_wall_compatibilities = defaultdict(default_wall_compatibility)
+shape_wall_compatibilities.update({
+    hoomd.hpmc.integrate.ConvexPolyhedron: {
         hoomd.wall.Sphere: True,
         hoomd.wall.Cylinder: True,
         hoomd.wall.Plane: True
-    }),
-    (hoomd.hpmc.integrate.ConvexSpheropolygon, {
-        hoomd.wall.Sphere: False,
-        hoomd.wall.Cylinder: False,
-        hoomd.wall.Plane: False
-    }),
-    (hoomd.hpmc.integrate.ConvexSpheropolyhedron, {
+    },
+    hoomd.hpmc.integrate.ConvexSpheropolyhedron: {
         hoomd.wall.Sphere: True,
         hoomd.wall.Cylinder: False,
         hoomd.wall.Plane: True
-    }),
-    (hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion, {
-        hoomd.wall.Sphere: False,
-        hoomd.wall.Cylinder: False,
-        hoomd.wall.Plane: False
-    }),
-    (hoomd.hpmc.integrate.Ellipsoid, {
-        hoomd.wall.Sphere: False,
-        hoomd.wall.Cylinder: False,
-        hoomd.wall.Plane: False
-    }),
-    (hoomd.hpmc.integrate.FacetedEllipsoid, {
-        hoomd.wall.Sphere: False,
-        hoomd.wall.Cylinder: False,
-        hoomd.wall.Plane: False
-    }),
-    (hoomd.hpmc.integrate.FacetedEllipsoidUnion, {
-        hoomd.wall.Sphere: False,
-        hoomd.wall.Cylinder: False,
-        hoomd.wall.Plane: False
-    }),
-    (hoomd.hpmc.integrate.Polyhedron, {
-        hoomd.wall.Sphere: False,
-        hoomd.wall.Cylinder: False,
-        hoomd.wall.Plane: False
-    }),
-    (hoomd.hpmc.integrate.SimplePolygon, {
-        hoomd.wall.Sphere: False,
-        hoomd.wall.Cylinder: False,
-        hoomd.wall.Plane: False
-    }),
-    (hoomd.hpmc.integrate.Sphere, {
+    },
+    hoomd.hpmc.integrate.Sphere: {
         hoomd.wall.Sphere: True,
         hoomd.wall.Cylinder: True,
         hoomd.wall.Plane: True
-    }),
-    (hoomd.hpmc.integrate.SphereUnion, {
-        hoomd.wall.Sphere: False,
-        hoomd.wall.Cylinder: False,
-        hoomd.wall.Plane: False
-    }),
-    (hoomd.hpmc.integrate.Sphinx, {
-        hoomd.wall.Sphere: False,
-        hoomd.wall.Cylinder: False,
-        hoomd.wall.Plane: False
-    }),
-]
+    },
+})
+
 valid_flattened_shape_wall_combos = []
 invalid_flattened_shape_wall_combos = []
-for shape, wall_info in shape_wall_compatibilities:
+for shape in _integrator_classes:
+    wall_info = shape_wall_compatibilities[shape]
     valid_flattened_shape_wall_combos.extend(
         [shape, wall] for wall, v in wall_info.items() if v)
     invalid_flattened_shape_wall_combos.extend(
@@ -187,7 +155,8 @@ def test_detaching(simulation_factory, two_particle_snapshot_factory,
 
 
 shape_multiwall_combos = []
-for shape, wall_info in shape_wall_compatibilities:
+for shape in _integrator_classes:
+    wall_info = shape_wall_compatibilities[shape]
     if any((v for v in wall_info.values())):
         shape_multiwall_combos.append(
             (shape, [(w, v) for w, v in wall_info.items()]))
