@@ -1,7 +1,10 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""MPI communicator."""
+"""MPI communicator.
+
+Use `Communicator` to configure and query the MPI ranks and partitions.
+"""
 
 from hoomd import _hoomd
 import hoomd

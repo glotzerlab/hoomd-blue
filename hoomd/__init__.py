@@ -1,10 +1,30 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""HOOMD-blue python API.
+"""HOOMD-blue python package.
 
-:py:mod:`hoomd` provides a high level user interface for defining and executing
-simulations using HOOMD.
+`hoomd` is the top level HOOMD-blue Python package. It consists of the common
+code shared among all types of HOOMD-blue simulations. The core data structures
+used to construct a simulation include:
+
+* `Simulation`
+
+  * `device.Device`
+  * `State <hoomd.State>`
+  * `Operations`
+
+    * Tuners
+    * Updaters
+    * Integrator
+    * Writers
+
+See the table of contents or the modules section for a full list of classes,
+methods, and variables in the API.
+
+`hoomd` also contains subpackages that implement specific types of simulations:
+
+* `hpmc` - Hard particle Monte Carlo.
+* `md` - Molecular dynamics.
 """
 import sys
 import pathlib

@@ -1,7 +1,11 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Particle data local access."""
+"""Access State data on the local rank.
+
+`LocalSnapshot`, `LocalSnapshotGPU`, and related classes provide direct access
+to the data buffers managed by `hoomd.State`.
+"""
 
 from .array import HOOMDArray, HOOMDGPUArray
 from .local_access import (AngleLocalAccessBase, BondLocalAccessBase,

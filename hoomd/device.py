@@ -1,7 +1,12 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Choose which hardware device(s) should execute the simulation."""
+"""Devices.
+
+Use a device class to choose which hardware device(s) should execute the
+simulation. The device also sets where to write log messages and how verbose
+the message output should be.
+"""
 
 import contextlib
 import hoomd

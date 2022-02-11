@@ -1,7 +1,11 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""HOOMD Errors."""
+"""HOOMD-blue specific error classes.
+
+These classes are subclasses of Python exception types. HOOMD-blue raises
+these exceptions when documented.
+"""
 
 
 class MutabilityError(AttributeError):
@@ -29,7 +33,7 @@ class DataAccessError(RuntimeError):
 
 
 class TypeConversionError(ValueError):
-    """Error when validatimg TypeConverter subclasses fails."""
+    """Error when validating TypeConverter subclasses fails."""
     pass
 
 
