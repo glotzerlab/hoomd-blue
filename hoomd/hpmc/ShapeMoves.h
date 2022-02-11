@@ -214,12 +214,12 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         m_params = params_vector;
         }
 
-    Scalar getParamRatio()
+    Scalar getParamMoveProbability()
         {
         return m_param_move_probability;
         }
 
-    void setParamRatio(Scalar select_ratio)
+    void setParamMoveProbability(Scalar select_ratio)
         {
         m_param_move_probability = fmin(select_ratio, 1.0);
         }
@@ -785,8 +785,8 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
                       &PythonShapeMove<Shape>::getParams,
                       &PythonShapeMove<Shape>::setParams)
         .def_property("param_move_probability",
-                      &PythonShapeMove<Shape>::getParamRatio,
-                      &PythonShapeMove<Shape>::setParamRatio)
+                      &PythonShapeMove<Shape>::getParamMoveProbability,
+                      &PythonShapeMove<Shape>::setParamMoveProbability)
         .def_property("callback",
                       &PythonShapeMove<Shape>::getCallback,
                       &PythonShapeMove<Shape>::setCallback);
