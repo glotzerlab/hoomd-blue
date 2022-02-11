@@ -306,7 +306,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         PDataFlags flags = this->m_pdata->getFlags();
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-        const BoxDim& box = m_pdata->getBox();
+        const BoxDim box = m_pdata->getBox();
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
@@ -573,7 +573,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         PDataFlags flags = this->m_pdata->getFlags();
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-        const BoxDim& box = m_pdata->getBox();
+        const BoxDim box = m_pdata->getBox();
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 

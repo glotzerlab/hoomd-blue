@@ -370,7 +370,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
                                          access_mode::read);
         int3 dummy = make_int3(0, 0, 0);
         vec3<Scalar> origin(m_pdata->getOrigin());
-        const BoxDim& box = this->m_pdata->getGlobalBox();
+        const BoxDim box = this->m_pdata->getGlobalBox();
         vec3<Scalar> r0 = m_reference_positions[h_tags.data[index]];
         Scalar3 t = vec_to_scalar3(position - origin);
         box.wrap(t, dummy);

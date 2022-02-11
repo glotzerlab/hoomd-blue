@@ -95,7 +95,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
                                      access_location::host,
                                      access_mode::read);
 
-        const BoxDim& box = this->m_pdata->getGlobalBox();
+        const BoxDim box = this->m_pdata->getGlobalBox();
 
         double total_energy = 0.0;
         for (size_t i = 0; i < this->m_pdata->getN(); i++)
@@ -143,7 +143,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(),
                                      access_location::host,
                                      access_mode::read);
-        const BoxDim& box_new = this->m_pdata->getGlobalBox();
+        const BoxDim box_new = this->m_pdata->getGlobalBox();
         const Scalar4 *position_old = position_old_arg, *orientation_old = orientation_old_arg;
         if (!position_old)
             {

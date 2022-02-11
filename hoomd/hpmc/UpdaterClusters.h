@@ -479,7 +479,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
     const uint16_t seed = this->m_sysdef->getSeed();
 
     // get image of particle i after transformation
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     int3 img_i;
     vec3<Scalar> pos_i_transf = pos_i;
     if (line)
@@ -1069,7 +1069,7 @@ void UpdaterClusters<Shape>::transform(const quat<Scalar>& q, const vec3<Scalar>
 
     // store old locality data
     m_aabb_tree_old = m_mc->buildAABBTree();
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
 
         {
         ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -1625,7 +1625,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         f.z = 0.5;
         }
 
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     pivot = vec3<Scalar>(box.makeCoordinates(f));
     if (m_sysdef->getNDimensions() == 2)
         {

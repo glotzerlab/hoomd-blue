@@ -165,7 +165,7 @@ template<class Geometry> void ConfinedStreamingMethod<Geometry>::stream(uint64_t
 template<class Geometry> void ConfinedStreamingMethod<Geometry>::validate()
     {
     // ensure that the global box is padded enough for periodic boundaries
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     const Scalar cell_width = m_mpcd_sys->getCellList()->getCellSize();
     if (!m_geom->validateBox(box, cell_width))
         {

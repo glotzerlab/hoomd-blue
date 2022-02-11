@@ -541,7 +541,7 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
                       const vec3<Scalar>& position_new,
                       const Shape& shape_new)
         {
-        const BoxDim& box = this->m_pdata->getGlobalBox();
+        const BoxDim box = this->m_pdata->getGlobalBox();
         vec3<Scalar> origin(m_pdata->getOrigin());
 
         for (size_t i = 0; i < m_Spheres.size(); i++)

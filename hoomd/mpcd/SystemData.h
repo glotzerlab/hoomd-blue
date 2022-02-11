@@ -95,7 +95,7 @@ class PYBIND11_EXPORT SystemData
     //! Check that the simulation box has not changed from the cached value on initialization
     void checkBox() const
         {
-        auto& new_box = m_sysdef->getParticleData()->getGlobalBox();
+        auto new_box = m_sysdef->getParticleData()->getGlobalBox();
 
         const Scalar3 cur_L = m_global_box->getL();
         const Scalar3 new_L = new_box.getL();

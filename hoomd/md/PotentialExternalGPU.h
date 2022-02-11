@@ -87,7 +87,7 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                  access_location::device,
                                  access_mode::read);
 
-    const BoxDim& box = this->m_pdata->getGlobalBox();
+    const BoxDim box = this->m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);

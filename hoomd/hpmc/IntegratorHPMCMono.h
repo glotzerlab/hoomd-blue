@@ -653,7 +653,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     ArrayHandle<hpmc_implicit_counters_t> h_implicit_counters(m_implicit_count, access_location::host, access_mode::readwrite);
     std::copy(h_implicit_counters.data, h_implicit_counters.data + m_depletant_idx.getNumElements(), m_implicit_count_step_start.begin());
 
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim box = m_pdata->getBox();
     unsigned int ndim = this->m_sysdef->getNDimensions();
 
     #ifdef ENABLE_MPI
@@ -1477,7 +1477,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
     m_image_list_rebuilds++;
 
     // Get box vectors
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     vec3<Scalar> e1 = vec3<Scalar>(box.getLatticeVector(0));
     vec3<Scalar> e2 = vec3<Scalar>(box.getLatticeVector(1));
     // 2D simulations don't necessarily have a zero-size z-dimension, but it is convenient for us if we assume one.

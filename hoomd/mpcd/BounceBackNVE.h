@@ -131,7 +131,7 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
                                  access_location::host,
                                  access_mode::read);
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim box = m_pdata->getBox();
 
     // group members
     const unsigned int group_size = m_group->getNumMembers();
@@ -233,7 +233,7 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t
 template<class Geometry> void BounceBackNVE<Geometry>::validate()
     {
     // ensure that the global box is padded enough for periodic boundaries
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     if (!m_geom->validateBox(box, 0.))
         {
         m_exec_conf->msg->error() << "BounceBackNVE: box too small for " << Geometry::getName()
