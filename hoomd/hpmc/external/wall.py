@@ -7,6 +7,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.syncedlist import identity
 from hoomd.hpmc.external.field import ExternalField
 from hoomd.logging import log
+from hoomd import hpmc
 
 
 def _to_hpmc_cpp_wall(wall):
@@ -31,13 +32,13 @@ class _HPMCWallsMetaList(_WallsMetaList):
     attached.
     """
     _supported_shape_wall_pairs = {
-        hoomd.hpmc.integrate.Sphere: [
+        hpmc.integrate.Sphere: [
             hoomd.wall.Sphere, hoomd.wall.Cylinder, hoomd.wall.Plane
         ],
-        hoomd.hpmc.integrate.ConvexPolyhedron: [
+        hpmc.integrate.ConvexPolyhedron: [
             hoomd.wall.Sphere, hoomd.wall.Cylinder, hoomd.wall.Plane
         ],
-        hoomd.hpmc.integrate.ConvexSpheropolyhedron: [
+        hpmc.integrate.ConvexSpheropolyhedron: [
             hoomd.wall.Sphere, hoomd.wall.Plane
         ]
     }
