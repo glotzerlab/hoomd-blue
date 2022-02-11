@@ -42,7 +42,7 @@ struct external_potential_args_t
     Scalar4* d_force;              //!< Force to write out
     Scalar* d_virial;              //!< Virial to write out
     const size_t virial_pitch;     //!< The pitch of the 2D array of virial matrix elements
-    const BoxDim& box;             //!< Simulation box in GPU format
+    const BoxDim box;              //!< Simulation box in GPU format
     const unsigned int N;          //!< Number of particles
     const Scalar4* d_pos;          //!< Device array of particle positions
     const Scalar* d_diameter;      //!< particle diameters
