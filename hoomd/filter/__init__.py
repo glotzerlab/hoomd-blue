@@ -12,10 +12,10 @@ same particle filter specification (in the same `hoomd.Simulation`) will resolve
 to the same group *and the originally selected particles*, **even if the state
 of the system has changed.**
 
-Groups are not completely static. HOOMD-blue re-evaluates the filter
-specifications and updates the group membership whenever the number of particles
-in the simulation changes. Use `hoomd.update.FilterUpdater` to trigger updates
-to groups.
+Groups are not completely static. HOOMD-blue automatically re-evaluates the
+filter specifications and updates the group membership whenever the number of
+particles in the simulation changes. Use `hoomd.update.FilterUpdater` to
+manually trigger updates to group membership.
 
 For molecular dynamics simulations, each group maintains a count of the number
 of degrees of freedom given to the group by integration methods. This count is
