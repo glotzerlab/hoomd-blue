@@ -60,7 +60,8 @@ class _HPMCWallsMetaList(_WallsMetaList):
             ]
         }
         super().__init__(walls, to_cpp)
-        self._validate_walls()
+        if wall_potential._attached:
+            self._validate_walls()
 
     def __setitem__(self, index, wall):
         self._check_wall_compatibility(wall)
