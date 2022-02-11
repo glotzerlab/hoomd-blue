@@ -41,7 +41,7 @@ struct stream_args_t
     Scalar4* d_vel;                   //!< Particle velocities
     const Scalar mass;                //!< Particle mass
     const mpcd::ExternalField* field; //!< Applied external field on particles
-    const BoxDim& box;                //!< Simulation box
+    const BoxDim box;                 //!< Simulation box
     const Scalar dt;                  //!< Timestep
     const unsigned int N;             //!< Number of particles
     const unsigned int block_size;    //!< Number of threads per block
