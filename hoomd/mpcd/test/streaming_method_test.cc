@@ -88,7 +88,7 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
                                    access_location::host,
                                    access_mode::read);
         CHECK_CLOSE(h_pos.data[0].x, 1.2, tol);
-        CHECK_CLOSE(h_pos.data[0].y, -4.95, 100);
+        CHECK_CLOSE(h_pos.data[0].y, -4.95, tol);
         CHECK_CLOSE(h_pos.data[0].z, 3.2, tol);
 
         CHECK_CLOSE(h_pos.data[1].x, -3.2, tol);
@@ -104,11 +104,11 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
                                    access_location::host,
                                    access_mode::read);
         CHECK_CLOSE(h_pos.data[0].x, 1.4, tol);
-        CHECK_CLOSE(h_pos.data[0].y, -4.75, 10);
+        CHECK_CLOSE(h_pos.data[0].y, -4.75, tol);
         CHECK_CLOSE(h_pos.data[0].z, 3.4, tol);
 
         CHECK_CLOSE(h_pos.data[1].x, -3.4, tol);
-        CHECK_CLOSE(h_pos.data[1].y, 4.85, 10);
+        CHECK_CLOSE(h_pos.data[1].y, 4.85, tol);
         CHECK_CLOSE(h_pos.data[1].z, -1.4, tol);
         }
     }
