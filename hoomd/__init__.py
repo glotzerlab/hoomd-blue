@@ -25,6 +25,10 @@ methods, and variables in the API.
 
 * `hpmc` - Hard particle Monte Carlo.
 * `md` - Molecular dynamics.
+
+See also:
+
+    Tutorial: :doc:`tutorial/00-Introducing-HOOMD-blue/00-index`
 """
 import sys
 import pathlib

@@ -7,6 +7,10 @@ Use the `Logger` class to collect loggable quantities (e.g. kinetic temperature,
 pressure, per-particle energy) during the simulation run. Pass the `Logger`
 to a back end such as `write.GSD` or `write.Table` to write the logged values
 to a file.
+
+See also:
+
+    Tutorial: :doc:`tutorial/02-Logging/00-index`
 """
 
 from copy import deepcopy
