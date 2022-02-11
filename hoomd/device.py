@@ -168,8 +168,6 @@ class GPU(Device):
         ``[1]`` will select the second, and so on.
 
         The ordering of the devices is determined by the GPU driver and runtime.
-        It may change when you upgrade this software.
-
 
     .. rubric:: Device auto-selection
 
