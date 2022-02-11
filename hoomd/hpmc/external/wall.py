@@ -30,6 +30,17 @@ class _HPMCWallsMetaList(_WallsMetaList):
     compatible with integrator in the simulation to which the `WallPotential` is
     attached.
     """
+    _supported_shape_wall_pairs = {
+        hoomd.hpmc.integrate.Sphere: [
+            hoomd.wall.Sphere, hoomd.wall.Cylinder, hoomd.wall.Plane
+        ],
+        hoomd.hpmc.integrate.ConvexPolyhedron: [
+            hoomd.wall.Sphere, hoomd.wall.Cylinder, hoomd.wall.Plane
+        ],
+        hoomd.hpmc.integrate.ConvexSpheropolyhedron: [
+            hoomd.wall.Sphere, hoomd.wall.Plane
+        ]
+    }
 
     def _check_wall_compatibility(self, wall):
         if not self._wall_potential._attached:
@@ -48,17 +59,6 @@ class _HPMCWallsMetaList(_WallsMetaList):
 
     def __init__(self, wall_potential, walls=None, to_cpp=identity):
         self._wall_potential = wall_potential
-        self._supported_shape_wall_pairs = {
-            hoomd.hpmc.integrate.Sphere: [
-                hoomd.wall.Sphere, hoomd.wall.Cylinder, hoomd.wall.Plane
-            ],
-            hoomd.hpmc.integrate.ConvexPolyhedron: [
-                hoomd.wall.Sphere, hoomd.wall.Cylinder, hoomd.wall.Plane
-            ],
-            hoomd.hpmc.integrate.ConvexSpheropolyhedron: [
-                hoomd.wall.Sphere, hoomd.wall.Plane
-            ]
-        }
         super().__init__(walls, to_cpp)
         if wall_potential._attached:
             self._validate_walls()
