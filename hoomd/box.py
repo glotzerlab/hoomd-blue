@@ -76,7 +76,7 @@ class Box:
 
     .. math::
 
-        \\mathbf{h} \\equiv \\left( \\vec a_1, \\vec a_2, \\vec a_3 \\right)
+        \\mathbf{B} = \\left( \\vec a_1, \\vec a_2, \\vec a_3 \\right)
 
     The first lattice vector :math:`\\vec a_1` is parallel to the unit vector
     :math:`\\vec e_x = (1,0,0)`. The tilt factor :math:`xy` indicates how the
@@ -91,7 +91,7 @@ class Box:
         :nowrap:
 
         \\begin{eqnarray*}
-        \\mathbf{h}& =& \\left(\\begin{array}{ccc} L_x & xy L_y & xz L_z \\\\
+        \\mathbf{B}& =& \\left(\\begin{array}{ccc} L_x & xy L_y & xz L_z \\\\
                                                 0   & L_y    & yz L_z \\\\
                                                 0   & 0      & L_z    \\\\
                             \\end{array}\\right)
@@ -105,11 +105,11 @@ class Box:
         :nowrap:
 
         \\begin{eqnarray*}
-        \\cos\\gamma \\equiv \\cos(\\angle\\vec a_1, \\vec a_2) &=&
+        \\cos\\gamma = \\cos(\\angle\\vec a_1, \\vec a_2) &=&
             \\frac{xy}{\\sqrt{1+xy^2}}\\\\
-        \\cos\\beta \\equiv \\cos(\\angle\\vec a_1, \\vec a_3) &=&
+        \\cos\\beta = \\cos(\\angle\\vec a_1, \\vec a_3) &=&
             \\frac{xz}{\\sqrt{1+xz^2+yz^2}}\\\\
-        \\cos\\alpha \\equiv \\cos(\\angle\\vec a_2, \\vec a_3) &=&
+        \\cos\\alpha = \\cos(\\angle\\vec a_2, \\vec a_3) &=&
             \\frac{xy \\cdot xz + yz}{\\sqrt{1+xy^2} \\sqrt{1+xz^2+yz^2}}
         \\end{eqnarray*}
 
@@ -134,8 +134,14 @@ class Box:
 
     .. rubric:: Box images
 
-    HOOMD-blue always stores particle positions :math:`\\vec{r}` in the primary
-    box image. Unless otherwise noted in the documentation, operations apply the
+    HOOMD-blue always stores particle positions :math:`\\vec{r}` inside the
+    primary box image which includes the origin at the center. The primary box
+    image include the left, bottom, and back face while excluding the right,
+    top, and front face. In cubic boxes, this implies that the particle
+    coordinates in the primary box image are in the interval :math:`\\left[
+    -\\frac{L}{2},\\frac{L}{2} \\right)`.
+
+    Unless otherwise noted in the documentation, operations apply the
     minimum image convention when computing pairwise interactions between
     particles:
 

@@ -18,6 +18,8 @@ General notation:
       - Magnitude of the vector :math:`\vec{a}`.
     * - :math:`\hat{a}`
       - Unit vector in the direction of :math:`\vec{a}`.
+    * - :math:`\mathbf{A}`
+      - Matrix.
     * - :math:`\mathbf{b}`
       - Quaternion.
     * - :math:`i`, :math:`j`, :math:`k`
