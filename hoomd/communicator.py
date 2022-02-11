@@ -30,6 +30,11 @@ class Communicator(object):
     own `partition` index. Use this to perform many simulations in parallel, for
     example by using `partition` as an index into an array of state points to
     execute.
+
+    See also:
+        :doc:`tutorial/03-Parallel-Simulations-With-MPI/00-index`
+
+        :doc:`tutorial/05-Organizing-and-Executing-Simulations/00-index`
     """
 
     def __init__(self, mpi_comm=None, ranks_per_partition=None):
