@@ -46,15 +46,13 @@ void export_convex_polyhedron(pybind11::module& m)
     export_UpdaterClusters<ShapeConvexPolyhedron>(m, "UpdaterClustersConvexPolyhedron");
 
     export_MassProperties<ShapeConvexPolyhedron>(m, "MassPropertiesConvexPolyhedron");
-    // export_ShapeMoveInterface<ShapeConvexPolyhedron>(m, "ShapeMoveConvexPolyhedron");
-    export_ElasticShapeMove<ShapeConvexPolyhedron>(m, "ElasticShapeMoveConvexPolyhedron");
-    export_ConvexPolyhedronVertexShapeMove(m, "VertexShapeMoveConvexPolyhedron");
-    // export_ConvexPolyhedronGeneralizedShapeMove<ShapeConvexPolyhedron>(
-    //     m,
-    //     "GeneralizedShapeMoveConvexPolyhedron");
+
     export_UpdaterShape<ShapeConvexPolyhedron>(m, "UpdaterShapeConvexPolyhedron");
+    export_ShapeMoveBase<ShapeConvexPolyhedron>(m, "ShapeMoveBaseShapeConvexPolyhedron");
     export_PythonShapeMove<ShapeConvexPolyhedron>(m, "PythonShapeMoveConvexPolyhedron");
     export_ConstantShapeMove<ShapeConvexPolyhedron>(m, "ConstantShapeMoveConvexPolyhedron");
+    export_ElasticShapeMove<ShapeConvexPolyhedron>(m, "ElasticShapeMoveConvexPolyhedron");
+    export_ConvexPolyhedronVertexShapeMove(m, "VertexShapeMoveConvexPolyhedron");
 
     export_ExternalFieldInterface<ShapeConvexPolyhedron>(m, "ExternalFieldConvexPolyhedron");
     export_HarmonicField<ShapeConvexPolyhedron>(m, "ExternalFieldHarmonicConvexPolyhedron");

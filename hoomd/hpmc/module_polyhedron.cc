@@ -44,8 +44,8 @@ void export_polyhedron(pybind11::module& m)
     export_UpdaterMuVT<ShapePolyhedron>(m, "UpdaterMuVTPolyhedron");
     export_UpdaterClusters<ShapePolyhedron>(m, "UpdaterClustersPolyhedron");
 
-    // export_ShapeMoveInterface<ShapePolyhedron>(m, "ShapeMovePolyhedron");
     export_UpdaterShape<ShapePolyhedron>(m, "UpdaterShapePolyhedron");
+    export_ShapeMoveBase<ShapePolyhedron>(m, "ShapeMoveBasePolyhedron");
     export_PythonShapeMove<ShapePolyhedron>(m, "PythonShapeMovePolyhedron");
     export_ConstantShapeMove<ShapePolyhedron>(m, "ConstantShapeMovePolyhedron");
 
