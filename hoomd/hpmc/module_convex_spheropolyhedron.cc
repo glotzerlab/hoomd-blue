@@ -17,7 +17,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
@@ -45,10 +44,7 @@ void export_convex_spheropolyhedron(pybind11::module& m)
     export_HarmonicField<ShapeSpheropolyhedron>(m, "ExternalFieldHarmonicSpheropolyhedron");
     export_ExternalFieldComposite<ShapeSpheropolyhedron>(m,
                                                          "ExternalFieldCompositeSpheropolyhedron");
-    export_ExternalFieldWall<ShapeSpheropolyhedron>(m, "WallSpheropolyhedron");
-    export_UpdaterExternalFieldWall<ShapeSpheropolyhedron>(
-        m,
-        "UpdaterExternalFieldWallSpheropolyhedron");
+    export_ExternalFieldWall<ShapeSpheropolyhedron>(m, "WallConvexSpheropolyhedron");
     export_ExternalCallback<ShapeSpheropolyhedron>(m, "ExternalCallbackSpheropolyhedron");
 
 #ifdef ENABLE_HIP

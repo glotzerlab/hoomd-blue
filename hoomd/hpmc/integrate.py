@@ -456,6 +456,11 @@ class Sphere(HPMCIntegrator):
               `True` to ignore tracked statistics.
             * ``orientable`` (`bool`, **default:** `False`) - set to `True` to
               allow rotation moves on this particle type.
+
+    .. rubric:: Wall support.
+
+    `integrate.Sphere` supports all `hoomd.wall` geometries.
+
     """
     _cpp_cls = 'IntegratorHPMCMonoSphere'
 
@@ -550,6 +555,10 @@ class ConvexPolygon(HPMCIntegrator):
           Warning:
               HPMC does not check that all vertex requirements are met.
               Undefined behavior **will result** when they are violated.
+
+    .. rubric:: Wall support.
+
+    `integrate.ConvexPolygon` supports no `hoomd.wall` geometries.
 
     """
     _cpp_cls = 'IntegratorHPMCMonoConvexPolygon'
@@ -653,6 +662,12 @@ class ConvexSpheropolygon(HPMCIntegrator):
             Warning:
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
+
+    .. rubric:: Wall support.
+
+    `integrate.ConvexSpheropolygon` supports no `hoomd.wall`
+    geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSpheropolygon'
@@ -748,6 +763,11 @@ class SimplePolygon(HPMCIntegrator):
             Warning:
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
+
+
+    .. rubric:: Wall support.
+
+    `integrate.SimplePolygon` supports no `hoomd.wall` geometries.
 
     """
 
@@ -918,6 +938,11 @@ class Polyhedron(HPMCIntegrator):
             Warning:
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
+
+    .. rubric:: Wall support.
+
+    `integrate.Polyhedron` supports no `hoomd.wall` geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoPolyhedron'
@@ -1032,6 +1057,12 @@ class ConvexPolyhedron(HPMCIntegrator):
             Warning:
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
+
+    .. rubric:: Wall support.
+
+    `integrate.ConvexPolyhedron` supports all `hoomd.wall`
+    geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedron'
@@ -1174,6 +1205,12 @@ class FacetedEllipsoid(HPMCIntegrator):
                 specified, the half-space intersection of the normals must match
                 the convex polyhedron defined by the vertices (if non-empty),
                 the half-space intersection is **not** calculated automatically.
+
+    .. rubric:: Wall support.
+
+    `integrate.FacetedEllipsoid` supports no `hoomd.wall`
+    geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoid'
@@ -1253,6 +1290,11 @@ class Sphinx(HPMCIntegrator):
               :math:`[\\mathrm{length}]`.
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
+
+    .. rubric:: Wall support.
+
+    `integrate.Sphinx` supports no `hoomd.wall` geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSphinx'
@@ -1347,6 +1389,12 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
             Warning:
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
+
+    .. rubric:: Wall support.
+
+    `integrate.ConvexSpheropolyhedron` supports the
+    `hoomd.wall.Sphere` and `hoomd.wall.Plane` geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSpheropolyhedron'
@@ -1432,6 +1480,11 @@ class Ellipsoid(HPMCIntegrator):
               direction :math:`[\\mathrm{length}]`
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
+
+    .. rubric:: Wall support.
+
+    `integrate.Ellipsoid` supports no `hoomd.wall`  geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoEllipsoid'
@@ -1542,6 +1595,11 @@ class SphereUnion(HPMCIntegrator):
               particles per leaf node to adjust performance.
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
+
+    .. rubric:: Wall support.
+
+    `integrate.SphereUnion` supports no `hoomd.wall`  geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSphereUnion'
@@ -1672,6 +1730,12 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
               particles per leaf node to adjust performance.
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
+
+    .. rubric:: Wall support.
+
+    `integrate.ConvexSpheropolyhedronUnion` supports no `hoomd.wall`
+    geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedronUnion'
@@ -1814,6 +1878,12 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
               particles per leaf node to adjust performance.
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
+
+    .. rubric:: Wall support.
+
+    `integrate.FacetedEllipsoidUnion` supports no `hoomd.wall`
+    geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoidUnion'

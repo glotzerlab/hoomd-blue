@@ -18,6 +18,7 @@
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#include <pybind11/stl_bind.h>
 #endif
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -35,54 +36,74 @@ namespace hpmc
 struct SphereWall
     {
     SphereWall()
-        : rsq(0), inside(false), origin(0, 0, 0), verts(new detail::PolyhedronVertices(1, false))
+        : rsq(0), inside(true), origin(0, 0, 0), verts(new detail::PolyhedronVertices(1, false))
         {
         }
-    SphereWall(Scalar r, vec3<Scalar> orig, bool ins = true)
-        : rsq(r * r), inside(ins), origin(orig), verts(new detail::PolyhedronVertices(1, false))
+    SphereWall(Scalar r, vec3<Scalar> origin_, bool inside_ = true)
+        : rsq(r * r), inside(inside_), origin(origin_),
+          verts(new detail::PolyhedronVertices(1, false))
         {
         verts->N = 0; // case for sphere (can be 0 or 1)
         verts->diameter = OverlapReal(r + r);
         verts->sweep_radius = OverlapReal(r);
         verts->ignore = 0;
         }
+#ifndef __HIPCC__
+    SphereWall(Scalar r, pybind11::tuple origin, bool inside = true)
+        : SphereWall(r,
+                     vec3<Scalar>(origin[0].cast<Scalar>(),
+                                  origin[1].cast<Scalar>(),
+                                  origin[2].cast<Scalar>()),
+                     inside)
+        {
+        }
+
+    pybind11::tuple getOrigin()
+        {
+        return pybind11::make_tuple(origin.x, origin.y, origin.z);
+        }
+#endif
     SphereWall(const SphereWall& src)
         : rsq(src.rsq), inside(src.inside), origin(src.origin),
           verts(new detail::PolyhedronVertices(*src.verts))
         {
         }
-    // scale all distances associated with the sphere wall by some factor alpha
-    void scale(const Scalar alpha)
+
+    Scalar getRadius()
         {
-        rsq *= alpha * alpha;
-        origin *= alpha;
-        verts->diameter = OverlapReal(verts->diameter * alpha);
-        verts->sweep_radius = OverlapReal(verts->diameter * alpha);
+        return sqrt(rsq);
+        }
+
+    bool getInside()
+        {
+        return inside;
+        }
+
+    bool getOpen()
+        {
+        return open;
         }
 
     Scalar rsq;
     bool inside;
     vec3<Scalar> origin;
     std::shared_ptr<detail::PolyhedronVertices> verts;
+    bool open;
     };
 
 struct CylinderWall
     {
     CylinderWall()
-        : rsq(0), inside(false), origin(0, 0, 0), orientation(origin),
+        : rsq(0), inside(true), origin(0, 0, 0), orientation(0, 0, 1),
           verts(new detail::PolyhedronVertices)
         {
         }
-    CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> orient, bool ins = true)
-        : rsq(0), inside(false), origin(0, 0, 0), orientation(origin),
+    CylinderWall(Scalar r, vec3<Scalar> origin_, vec3<Scalar> axis_, bool inside_ = true)
+        : rsq(r * r), inside(inside_), origin(origin_), orientation(axis_),
           verts(new detail::PolyhedronVertices(2, false))
         {
-        rsq = r * r;
-        inside = ins;
-        origin = orig;
-        orientation = orient;
-
-        Scalar len = sqrt(dot(orientation, orientation)); // normalize the orientation vector
+        // normalize the orientation vector
+        Scalar len = sqrt(dot(orientation, orientation));
         orientation /= len;
 
         // set the position of the vertices and the diameter later
@@ -90,17 +111,37 @@ struct CylinderWall
         verts->sweep_radius = OverlapReal(r);
         verts->ignore = 0;
         }
+#ifndef __HIPCC__
+    CylinderWall(Scalar r, pybind11::tuple origin, pybind11::tuple axis, bool inside = true)
+        : CylinderWall(
+            r,
+            vec3<Scalar>(origin[0].cast<Scalar>(),
+                         origin[1].cast<Scalar>(),
+                         origin[2].cast<Scalar>()),
+            vec3<Scalar>(axis[0].cast<Scalar>(), axis[1].cast<Scalar>(), axis[2].cast<Scalar>()),
+            inside)
+        {
+        }
+
+    pybind11::tuple getOrigin()
+        {
+        return pybind11::make_tuple(origin.x, origin.y, origin.z);
+        }
+
+    pybind11::tuple getAxis()
+        {
+        return pybind11::make_tuple(orientation.x, orientation.y, orientation.z);
+        }
+#endif
     CylinderWall(const CylinderWall& src)
         : rsq(src.rsq), inside(src.inside), origin(src.origin), orientation(src.orientation),
           verts(new detail::PolyhedronVertices(*src.verts))
         {
         }
-    // scale all distances associated with the sphere wall by some factor alpha
-    void scale(const Scalar alpha)
+
+    Scalar getRadius()
         {
-        rsq *= alpha * alpha;
-        origin *= alpha;
-        verts->sweep_radius = OverlapReal(verts->sweep_radius * alpha);
+        return sqrt(rsq);
         }
 
     Scalar rsq;
@@ -113,27 +154,53 @@ struct CylinderWall
 
 struct PlaneWall
     {
-    PlaneWall(vec3<Scalar> nvec, vec3<Scalar> pt, bool ins = true)
-        : normal(nvec), origin(pt), inside(ins)
+    PlaneWall(vec3<Scalar> origin_, vec3<Scalar> normal_) : origin(origin_), normal(normal_)
         {
         Scalar len = sqrt(dot(normal, normal));
         normal /= len;
         d = -dot(normal, origin);
         }
-
-    // scale all distances associated with the sphere wall by some factor alpha
-    void scale(const Scalar alpha)
+#ifndef __HIPCC__
+    PlaneWall(pybind11::tuple origin, pybind11::tuple normal)
+        : PlaneWall(vec3<Scalar>(origin[0].cast<Scalar>(),
+                                 origin[1].cast<Scalar>(),
+                                 origin[2].cast<Scalar>()),
+                    vec3<Scalar>(normal[0].cast<Scalar>(),
+                                 normal[1].cast<Scalar>(),
+                                 normal[2].cast<Scalar>()))
         {
-        origin *= alpha;
-        d *= alpha;
         }
 
-    vec3<Scalar> normal; // unit normal n = (a, b, c)
+    pybind11::tuple getOrigin()
+        {
+        return pybind11::make_tuple(origin.x, origin.y, origin.z);
+        }
+
+    pybind11::tuple getNormal()
+        {
+        return pybind11::make_tuple(normal.x, normal.y, normal.z);
+        }
+#endif
+
     vec3<Scalar> origin; // we could remove this.
-    bool inside;         // not used
+    vec3<Scalar> normal; // unit normal n = (a, b, c)
     Scalar d;            // ax + by + cz + d =  0
     };
+    } // namespace hpmc
+    } // namespace hoomd
 
+#ifndef __HIPCC__
+// This is required to be here before any uses of these vectors to work
+// correctly.
+PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::SphereWall>);
+PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::CylinderWall>);
+PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::PlaneWall>);
+#endif
+
+namespace hoomd
+    {
+namespace hpmc
+    {
 template<class WallShape, class ParticleShape>
 DEVICE inline bool test_confined(const WallShape& wall,
                                  const ParticleShape& shape,
@@ -521,18 +588,8 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
                       std::shared_ptr<IntegratorHPMCMono<Shape>> mc)
         : ExternalFieldMono<Shape>(sysdef), m_mc(mc)
         {
-        m_box = m_pdata->getGlobalBox();
-        //! scale the container walls every time the box changes
-        m_pdata->getBoxChangeSignal()
-            .template connect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(
-                this);
         }
-    ~ExternalFieldWall()
-        {
-        m_pdata->getBoxChangeSignal()
-            .template disconnect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(
-                this);
-        }
+    ~ExternalFieldWall() { }
 
     double energydiff(uint64_t timestep,
                       const unsigned int& index,
@@ -572,19 +629,6 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         return double(0.0);
         }
 
-    Scalar calculateBoltzmannWeight(uint64_t timestep)
-        {
-        unsigned int numOverlaps = countOverlaps(timestep, false);
-        if (numOverlaps > 0)
-            {
-            return Scalar(0.0);
-            }
-        else
-            {
-            return Scalar(1.0);
-            }
-        }
-
     double calculateDeltaE(uint64_t timestep,
                            const Scalar4* const position_old,
                            const Scalar4* const orientation_old,
@@ -601,202 +645,19 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
             }
         }
 
-    // assumes cubic box
-    void scaleWalls()
-        {
-        BoxDim newBox = m_pdata->getGlobalBox();
-        Scalar newVol = newBox.getVolume();
-        Scalar oldVol = m_box.getVolume();
-        double alpha = pow((newVol / oldVol), Scalar(1.0 / 3.0));
-        m_Volume *= (newVol / oldVol);
-
-        for (size_t i = 0; i < m_Spheres.size(); i++)
-            {
-            m_Spheres[i].scale(alpha);
-            }
-
-        for (size_t i = 0; i < m_Cylinders.size(); i++)
-            {
-            m_Cylinders[i].scale(alpha);
-            }
-
-        for (size_t i = 0; i < m_Planes.size(); i++)
-            {
-            m_Planes[i].scale(alpha);
-            }
-
-        m_box = newBox;
-        }
-
-    std::tuple<Scalar, vec3<Scalar>, bool> GetSphereWallParameters(size_t index)
-        {
-        SphereWall w = GetSphereWall(index);
-        return std::make_tuple(w.rsq, w.origin, w.inside);
-        }
-
-    pybind11::tuple GetSphereWallParametersPy(size_t index)
-        {
-        Scalar rsq;
-        vec3<Scalar> origin;
-        bool inside;
-        pybind11::list pyorigin;
-        std::tuple<Scalar, vec3<Scalar>, bool> t = GetSphereWallParameters(index);
-        std::tie(rsq, origin, inside) = t;
-        pyorigin.append(pybind11::cast(origin.x));
-        pyorigin.append(pybind11::cast(origin.y));
-        pyorigin.append(pybind11::cast(origin.z));
-        return pybind11::make_tuple(rsq, pyorigin, inside);
-        }
-
-    std::tuple<Scalar, vec3<Scalar>, vec3<Scalar>, bool> GetCylinderWallParameters(size_t index)
-        {
-        CylinderWall w = GetCylinderWall(index);
-        return std::make_tuple(w.rsq, w.origin, w.orientation, w.inside);
-        }
-
-    pybind11::tuple GetCylinderWallParametersPy(size_t index)
-        {
-        Scalar rsq;
-        vec3<Scalar> origin;
-        vec3<Scalar> orientation;
-        bool inside;
-        pybind11::list pyorigin;
-        pybind11::list pyorientation;
-        std::tuple<Scalar, vec3<Scalar>, vec3<Scalar>, bool> t = GetCylinderWallParameters(index);
-        std::tie(rsq, origin, orientation, inside) = t;
-        pyorigin.append(pybind11::cast(origin.x));
-        pyorigin.append(pybind11::cast(origin.y));
-        pyorigin.append(pybind11::cast(origin.z));
-        pyorientation.append(pybind11::cast(orientation.x));
-        pyorientation.append(pybind11::cast(orientation.y));
-        pyorientation.append(pybind11::cast(orientation.z));
-        return pybind11::make_tuple(rsq, pyorigin, pyorientation, inside);
-        }
-
-    std::tuple<vec3<Scalar>, vec3<Scalar>> GetPlaneWallParameters(size_t index)
-        {
-        PlaneWall w = GetPlaneWall(index);
-        return std::make_tuple(w.normal, w.origin);
-        }
-
-    pybind11::tuple GetPlaneWallParametersPy(size_t index)
-        {
-        vec3<Scalar> normal;
-        vec3<Scalar> origin;
-        pybind11::list pynormal;
-        pybind11::list pyorigin;
-        std::tuple<vec3<Scalar>, vec3<Scalar>> t = GetPlaneWallParameters(index);
-        std::tie(normal, origin) = t;
-        pynormal.append(pybind11::cast(normal.x));
-        pynormal.append(pybind11::cast(normal.y));
-        pynormal.append(pybind11::cast(normal.z));
-        pyorigin.append(pybind11::cast(origin.x));
-        pyorigin.append(pybind11::cast(origin.y));
-        pyorigin.append(pybind11::cast(origin.z));
-        return pybind11::make_tuple(pynormal, pyorigin);
-        }
-
-    const std::vector<SphereWall>& GetSphereWalls()
+    std::vector<SphereWall>& GetSphereWalls()
         {
         return m_Spheres;
         }
 
-    const SphereWall& GetSphereWall(size_t index)
-        {
-        if (index >= m_Spheres.size())
-            throw std::runtime_error("Out of bounds of sphere walls.");
-        return m_Spheres[index];
-        }
-
-    const std::vector<CylinderWall>& GetCylinderWalls()
+    std::vector<CylinderWall>& GetCylinderWalls()
         {
         return m_Cylinders;
         }
 
-    const CylinderWall& GetCylinderWall(size_t index)
-        {
-        if (index >= m_Cylinders.size())
-            throw std::runtime_error("Out of bounds of cylinder walls.");
-        return m_Cylinders[index];
-        }
-
-    const std::vector<PlaneWall>& GetPlaneWalls()
+    std::vector<PlaneWall>& GetPlaneWalls()
         {
         return m_Planes;
-        }
-
-    const PlaneWall& GetPlaneWall(size_t index)
-        {
-        if (index >= m_Planes.size())
-            throw std::runtime_error("Out of bounds of plane walls.");
-        return m_Planes[index];
-        }
-
-    void SetSphereWallParameter(size_t index, const SphereWall& wall)
-        {
-        if (index >= m_Spheres.size())
-            throw std::runtime_error("Out of bounds of sphere walls.");
-        m_Spheres[index] = wall;
-        }
-
-    void SetCylinderWallParameter(size_t index, const CylinderWall& wall)
-        {
-        if (index >= m_Cylinders.size())
-            throw std::runtime_error("Out of bounds of cylinder walls.");
-        m_Cylinders[index] = wall;
-        }
-
-    void SetPlaneWallParameter(size_t index, const PlaneWall& wall)
-        {
-        if (index >= m_Planes.size())
-            throw std::runtime_error("Out of bounds of plane walls.");
-        m_Planes[index] = wall;
-        }
-
-    void SetSphereWalls(const std::vector<SphereWall>& Spheres)
-        {
-        m_Spheres = Spheres;
-        }
-
-    void SetCylinderWalls(const std::vector<CylinderWall>& Cylinders)
-        {
-        m_Cylinders = Cylinders;
-        }
-
-    void SetPlaneWalls(const std::vector<PlaneWall>& Planes)
-        {
-        m_Planes = Planes;
-        }
-
-    void AddSphereWall(const SphereWall& wall)
-        {
-        m_Spheres.push_back(wall);
-        }
-
-    void AddCylinderWall(const CylinderWall& wall)
-        {
-        m_Cylinders.push_back(wall);
-        }
-
-    void AddPlaneWall(const PlaneWall& wall)
-        {
-        m_Planes.push_back(wall);
-        }
-
-    // is this messy ...
-    void RemoveSphereWall(size_t index)
-        {
-        m_Spheres.erase(m_Spheres.begin() + index);
-        }
-
-    void RemoveCylinderWall(size_t index)
-        {
-        m_Cylinders.erase(m_Cylinders.begin() + index);
-        }
-
-    void RemovePlaneWall(size_t index)
-        {
-        m_Planes.erase(m_Planes.begin() + index);
         }
 
     bool wall_overlap(uint64_t timestep,
@@ -863,65 +724,6 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         return numOverlaps;
         }
 
-    void setVolume(Scalar volume)
-        {
-        m_Volume = volume;
-        }
-
-    Scalar getVolume()
-        {
-        return m_Volume;
-        }
-
-    size_t getNumSphereWalls()
-        {
-        return m_Spheres.size();
-        }
-    size_t getNumCylinderWalls()
-        {
-        return m_Cylinders.size();
-        }
-    size_t getNumPlaneWalls()
-        {
-        return m_Planes.size();
-        }
-
-    bool hasVolume()
-        {
-        return true;
-        }
-
-    Scalar GetCurrBoxLx()
-        {
-        return m_box.getL().x;
-        }
-    Scalar GetCurrBoxLy()
-        {
-        return m_box.getL().y;
-        }
-    Scalar GetCurrBoxLz()
-        {
-        return m_box.getL().z;
-        }
-    Scalar GetCurrBoxTiltFactorXY()
-        {
-        return m_box.getTiltFactorXY();
-        }
-    Scalar GetCurrBoxTiltFactorXZ()
-        {
-        return m_box.getTiltFactorXZ();
-        }
-    Scalar GetCurrBoxTiltFactorYZ()
-        {
-        return m_box.getTiltFactorYZ();
-        }
-
-    void SetCurrBox(Scalar Lx, Scalar Ly, Scalar Lz, Scalar xy, Scalar xz, Scalar yz)
-        {
-        m_box.setL(make_scalar3(Lx, Ly, Lz));
-        m_box.setTiltFactors(xy, xz, yz);
-        }
-
     protected:
     void set_cylinder_wall_verts(CylinderWall& wall, const Shape& shape)
         {
@@ -937,22 +739,6 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
         wall.verts->diameter
             = OverlapReal(2.0 * (shape.getCircumsphereDiameter() + wall.verts->sweep_radius));
         }
-    std::string getSphWallParamName(size_t i)
-        {
-        std::stringstream ss;
-        std::string snum;
-        ss << i;
-        ss >> snum;
-        return "hpmc_wall_sph_rsq-" + snum;
-        }
-    std::string getCylWallParamName(size_t i)
-        {
-        std::stringstream ss;
-        std::string snum;
-        ss << i;
-        ss >> snum;
-        return "hpmc_wall_cyl_rsq-" + snum;
-        }
 
     protected:
     std::vector<SphereWall> m_Spheres;
@@ -962,9 +748,15 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
 
     private:
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< integrator
-    BoxDim m_box;                                    //!< the current box
     };
+    } // namespace hpmc
+    } // namespace hoomd
 
+#ifndef __HIPCC__
+namespace hoomd
+    {
+namespace hpmc
+    {
 namespace detail
     {
 template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const std::string& name)
@@ -974,35 +766,17 @@ template<class Shape> void export_ExternalFieldWall(pybind11::module& m, const s
                      std::shared_ptr<ExternalFieldWall<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>>())
-        .def("SetSphereWallParameter", &ExternalFieldWall<Shape>::SetSphereWallParameter)
-        .def("SetCylinderWallParameter", &ExternalFieldWall<Shape>::SetCylinderWallParameter)
-        .def("SetPlaneWallParameter", &ExternalFieldWall<Shape>::SetPlaneWallParameter)
-        .def("AddSphereWall", &ExternalFieldWall<Shape>::AddSphereWall)
-        .def("AddCylinderWall", &ExternalFieldWall<Shape>::AddCylinderWall)
-        .def("AddPlaneWall", &ExternalFieldWall<Shape>::AddPlaneWall)
-        .def("RemoveSphereWall", &ExternalFieldWall<Shape>::RemoveSphereWall)
-        .def("RemoveCylinderWall", &ExternalFieldWall<Shape>::RemoveCylinderWall)
-        .def("RemovePlaneWall", &ExternalFieldWall<Shape>::RemovePlaneWall)
-        .def("countOverlaps", &ExternalFieldWall<Shape>::countOverlaps)
-        .def("setVolume", &ExternalFieldWall<Shape>::setVolume)
-        .def("getVolume", &ExternalFieldWall<Shape>::getVolume)
-        .def("getNumSphereWalls", &ExternalFieldWall<Shape>::getNumSphereWalls)
-        .def("getNumCylinderWalls", &ExternalFieldWall<Shape>::getNumCylinderWalls)
-        .def("getNumPlaneWalls", &ExternalFieldWall<Shape>::getNumPlaneWalls)
-        .def("GetSphereWallParametersPy", &ExternalFieldWall<Shape>::GetSphereWallParametersPy)
-        .def("GetCylinderWallParametersPy", &ExternalFieldWall<Shape>::GetCylinderWallParametersPy)
-        .def("GetPlaneWallParametersPy", &ExternalFieldWall<Shape>::GetPlaneWallParametersPy)
-        .def("GetCurrBoxLx", &ExternalFieldWall<Shape>::GetCurrBoxLx)
-        .def("GetCurrBoxLy", &ExternalFieldWall<Shape>::GetCurrBoxLy)
-        .def("GetCurrBoxLz", &ExternalFieldWall<Shape>::GetCurrBoxLz)
-        .def("GetCurrBoxTiltFactorXY", &ExternalFieldWall<Shape>::GetCurrBoxTiltFactorXY)
-        .def("GetCurrBoxTiltFactorXZ", &ExternalFieldWall<Shape>::GetCurrBoxTiltFactorXZ)
-        .def("GetCurrBoxTiltFactorYZ", &ExternalFieldWall<Shape>::GetCurrBoxTiltFactorYZ)
-        .def("SetCurrBox", &ExternalFieldWall<Shape>::SetCurrBox);
+        .def("numOverlaps", &ExternalFieldWall<Shape>::countOverlaps)
+        .def_property_readonly("SphereWalls", &ExternalFieldWall<Shape>::GetSphereWalls)
+        .def_property_readonly("CylinderWalls", &ExternalFieldWall<Shape>::GetCylinderWalls)
+        .def_property_readonly("PlaneWalls", &ExternalFieldWall<Shape>::GetPlaneWalls);
     }
 
+void export_wall_list(pybind11::module& m);
+void export_wall_classes(pybind11::module& m);
     } // end namespace detail
     } // namespace hpmc
     } // end namespace hoomd
+#endif
 #undef DEVICE
 #endif // inclusion guard

@@ -463,9 +463,6 @@ template<class Shape> void export_HarmonicField(pybind11::module& m, std::string
                       &ExternalFieldHarmonic<Shape>::setSymmetricallyEquivalentOrientations)
         .def("getEnergies", &ExternalFieldHarmonic<Shape>::getEnergies);
     }
-
-void export_HarmonicFields(pybind11::module& m);
-
     } // end namespace detail
     } // namespace hpmc
     } // end namespace hoomd

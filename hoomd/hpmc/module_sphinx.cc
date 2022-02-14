@@ -17,7 +17,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
@@ -45,7 +44,6 @@ void export_sphinx(pybind11::module& m)
     export_HarmonicField<ShapeSphinx>(m, "ExternalFieldHarmonicSphinx");
     export_ExternalFieldComposite<ShapeSphinx>(m, "ExternalFieldCompositeSphinx");
     export_ExternalFieldWall<ShapeSphinx>(m, "WallSphinx");
-    export_UpdaterExternalFieldWall<ShapeSphinx>(m, "UpdaterExternalFieldWallSphinx");
     export_ExternalCallback<ShapeSphinx>(m, "ExternalCallbackSphinx");
 
 #ifdef ENABLE_HIP
