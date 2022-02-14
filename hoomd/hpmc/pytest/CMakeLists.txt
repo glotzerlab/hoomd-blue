@@ -15,6 +15,7 @@ set(files __init__.py
           test_scale.py
           test_small_box_2d.py
           test_small_box_3d.py
+          test_volume_moves.py
           conftest.py
           depletants_sphere.py
     )
