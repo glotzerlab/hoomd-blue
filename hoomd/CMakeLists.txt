@@ -73,8 +73,6 @@ set(_hoomd_sources Analyzer.cc
                    ExecutionConfiguration.cc
                    ForceCompute.cc
                    ForceConstraint.cc
-                   GetarDumpWriter.cc
-                   GetarInitializer.cc
                    GSDDumpWriter.cc
                    GSDReader.cc
                    HOOMDMath.cc
@@ -145,9 +143,6 @@ set(_hoomd_headers
     Filesystem.h
     ForceCompute.h
     ForceConstraint.h
-    GetarDumpIterators.h
-    GetarDumpWriter.h
-    GetarInitializer.h
     GlobalArray.h
     GPUArray.h
     GPUFlags.h
@@ -218,28 +213,6 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       ParticleData.cu
                       ParticleGroup.cu
                       SFCPackTunerGPU.cu)
-
-# include libgetar sources directly into _hoomd.so
-get_property(GETAR_SRCS_REL TARGET getar PROPERTY SOURCES)
-foreach(getar_src ${GETAR_SRCS_REL})
-  list(APPEND _hoomd_sources ${libgetar_DIR}/${getar_src})
-endforeach(getar_src)
-
-# quiet some warnings locally on files we can't modify
-if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-    set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
-    set_source_files_properties(extern/libgetar/src/DirArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/src/SqliteArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/src/TarArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/src/ZipArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/src/lz4.c PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/miniz/miniz.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    if (CMAKE_COMPILER_IS_GNUCXX)
-        set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-conversion -Wno-return-local-addr -Wno-misleading-indentation")
-    else()
-        set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    endif()
-endif()
 
 if (ENABLE_HIP)
 set(_cuda_sources ${_hoomd_cu_sources})

@@ -91,7 +91,7 @@ struct hpmc_free_volume_args_t
     unsigned int select;                  //!< RNG select value
     const uint64_t timestep;              //!< Current time step
     const unsigned int dim;               //!< Number of dimensions
-    const BoxDim& box;                    //!< Current simulation box
+    const BoxDim box;                     //!< Current simulation box
     unsigned int block_size;              //!< Block size to execute
     unsigned int stride;                  //!< Number of threads per overlap check
     unsigned int group_size;              //!< Size of the group to execute

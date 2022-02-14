@@ -846,7 +846,7 @@ bool mpcd::CellList::checkConditions()
             << "x: " << m_grid_shift.x << " y: " << m_grid_shift.y << " z: " << m_grid_shift.z
             << std::endl;
 
-        const BoxDim& cover_box = getCoverageBox();
+        const BoxDim cover_box = getCoverageBox();
         Scalar3 lo = cover_box.getLo();
         Scalar3 hi = cover_box.getHi();
         uchar3 periodic = cover_box.getPeriodic();

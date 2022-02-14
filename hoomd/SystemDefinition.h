@@ -75,6 +75,20 @@ class PYBIND11_EXPORT SystemDefinition
     SystemDefinition();
     //! Constructs a SystemDefinition with a simply initialized ParticleData
     SystemDefinition(unsigned int N,
+                     const std::shared_ptr<BoxDim> box,
+                     unsigned int n_types = 1,
+                     unsigned int n_bond_types = 0,
+                     unsigned int n_angle_types = 0,
+                     unsigned int n_dihedral_types = 0,
+                     unsigned int n_improper_types = 0,
+                     std::shared_ptr<ExecutionConfiguration> exec_conf
+                     = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
+                     std::shared_ptr<DomainDecomposition> decomposition
+                     = std::shared_ptr<DomainDecomposition>());
+
+    // Mostly exists as test pass a plain box rather than a std::shared_ptr.
+    //! Constructs a SystemDefinition with a simply initialized ParticleData
+    SystemDefinition(unsigned int N,
                      const BoxDim& box,
                      unsigned int n_types = 1,
                      unsigned int n_bond_types = 0,

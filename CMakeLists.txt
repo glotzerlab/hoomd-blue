@@ -128,8 +128,6 @@ if (Eigen3_FOUND)
     find_package_message(EIGEN3 "Found eigen: ${Eigen3_DIR} ${EIGEN3_INCLUDE_DIR} (version ${Eigen3_VERSION})" "[${Eigen3_DIR}][${EIGEN3_INCLUDE_DIR}]")
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
-
 #########################################
 # Check for submodules
 if (
@@ -156,16 +154,6 @@ if (
                             "must be provided.")
     endif()
 endif()
-
-find_package(libgetar)
-
-if (libgetar_DIR)
-  set(LIBGETAR_SHARED TRUE)
-  add_subdirectory(${libgetar_DIR} EXCLUDE_FROM_ALL)
-else (libgetar_DIR)
-  message(FATAL_ERROR "Libgetar was not found in hoomd/extern/libgetar. Please "
-                      "pull the libgetar source, i.e. via `git submodule update`.")
-endif (libgetar_DIR)
 
 #######################
 ## Get the compile date

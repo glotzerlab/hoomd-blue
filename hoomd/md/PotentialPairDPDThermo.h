@@ -137,7 +137,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
     ArrayHandle<Scalar4> h_force(this->m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(this->m_virial, access_location::host, access_mode::overwrite);
 
-    const BoxDim& box = this->m_pdata->getBox();
+    const BoxDim box = this->m_pdata->getBox();
     ArrayHandle<Scalar> h_ronsq(this->m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::read);
 

@@ -33,7 +33,7 @@ class ExternalField : public Compute
     virtual double calculateDeltaE(uint64_t timestep,
                                    const Scalar4* const position_old,
                                    const Scalar4* const orientation_old,
-                                   const BoxDim* const box_old)
+                                   const BoxDim& box_old)
         {
         return 0;
         }

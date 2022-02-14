@@ -598,7 +598,7 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
                       const vec3<Scalar>& position_new,
                       const Shape& shape_new)
         {
-        const BoxDim& box = this->m_pdata->getGlobalBox();
+        const BoxDim box = this->m_pdata->getGlobalBox();
         vec3<Scalar> origin(m_pdata->getOrigin());
 
         for (size_t i = 0; i < m_Spheres.size(); i++)
@@ -632,7 +632,7 @@ template<class Shape> class ExternalFieldWall : public ExternalFieldMono<Shape>
     double calculateDeltaE(uint64_t timestep,
                            const Scalar4* const position_old,
                            const Scalar4* const orientation_old,
-                           const BoxDim* const box_old)
+                           const BoxDim& box_old)
         {
         unsigned int numOverlaps = countOverlaps(0, false);
         if (numOverlaps > 0)

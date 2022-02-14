@@ -166,7 +166,10 @@ class _DependencyRelation:
 
     def _remove_dependent(self, obj):
         """Removes a dependent from the list of dependencies."""
-        self._dependents.remove(obj)
+        try:
+            self._dependents.remove(obj)
+        except ValueError:
+            pass
 
 
 class _HOOMDBaseObject(_HOOMDGetSetAttrBase,

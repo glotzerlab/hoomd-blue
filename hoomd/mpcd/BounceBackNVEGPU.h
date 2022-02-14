@@ -93,7 +93,7 @@ template<class Geometry> void BounceBackNVEGPU<Geometry>::integrateStepOne(uint6
     ArrayHandle<Scalar3> d_accel(this->m_pdata->getAccelerations(),
                                  access_location::device,
                                  access_mode::read);
-    const BoxDim& box = this->m_pdata->getBox();
+    const BoxDim box = this->m_pdata->getBox();
 
     // group members
     const unsigned int group_size = this->m_group->getNumMembers();
