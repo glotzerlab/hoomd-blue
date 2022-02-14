@@ -7,7 +7,7 @@ from hoomd.operation import Operation
 
 
 class BaseIntegrator(Operation):
-    """Defines the base for all HOOMD-blue integrators.
+    """Advance the simulation state forward one time step.
 
     An integrator in HOOMD-blue is the primary operation that drives a
     simulation state forward. In `hoomd.hpmc`, integrators perform particle

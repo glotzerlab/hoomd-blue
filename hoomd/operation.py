@@ -1,7 +1,12 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Base classes for all HOOMD-blue operations."""
+"""Operation class types.
+
+Operations act on the state of the system at defined points during the
+simulation's run loop. Add operation objects to the `Simulation.operations`
+collection.
+"""
 
 # Operation is a parent class of almost all other HOOMD objects.
 # Triggered objects should inherit from _TriggeredOperation.
@@ -291,7 +296,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
 
 
 class Operation(_HOOMDBaseObject):
-    """Represents operations that are added to an `hoomd.Operations` object.
+    """Represents an operation.
 
     Operations in the HOOMD-blue data scheme are objects that *operate* on a
     `hoomd.Simulation` object. They broadly consist of 5 subclasses: `Updater`,
@@ -311,6 +316,7 @@ class Operation(_HOOMDBaseObject):
 
 
 class _TriggeredOperation(Operation):
+    """Light wrapper around `Operation` for some C++ implementations."""
     _cpp_list_name = None
 
     _override_setattr = {'trigger'}
@@ -343,7 +349,7 @@ class _TriggeredOperation(Operation):
 
 
 class Updater(_TriggeredOperation):
-    """Base class for all HOOMD updaters.
+    """Change the state of the simulation's state.
 
     An updater is an operation which modifies a simulation's state.
 
@@ -355,7 +361,7 @@ class Updater(_TriggeredOperation):
 
 
 class Writer(_TriggeredOperation):
-    """Base class for all HOOMD analyzers.
+    """Write output that depends on the simulation's state.
 
     An analyzer is an operation which writes out a simulation's state.
 
@@ -367,7 +373,7 @@ class Writer(_TriggeredOperation):
 
 
 class Compute(Operation):
-    """Base class for all HOOMD computes.
+    """Compute properties of the simulation's state.
 
     A compute is an operation which computes some property for another operation
     or use by a user.
@@ -380,7 +386,7 @@ class Compute(Operation):
 
 
 class Tuner(Operation):
-    """Base class for all HOOMD tuners.
+    """Adjust the parameters of other operations to improve performance.
 
     A tuner is an operation which tunes the parameters of another operation for
     performance or other reasons. A tuner does not modify the current microstate

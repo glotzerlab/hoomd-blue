@@ -10,7 +10,7 @@ class CustomFilter(Hashable, Callable):
     """Abstract base class for custom particle filters.
 
     The class allows the definition of particle filters in Python (see
-    `hoomd.filter.ParticleFilter`).
+    `ParticleFilter`).
 
     Subclasses of this class must have ``__hash__``, ``__eq__``, and
     ``__call__`` methods. The ``__hash__`` and ``__eq__`` methods will be used

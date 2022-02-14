@@ -25,10 +25,17 @@ hoomd.trigger
     :no-members:
 
     .. autoclass:: After(timestep)
+        :show-inheritance:
     .. autoclass:: And(triggers)
+        :show-inheritance:
     .. autoclass:: Before(timestep)
+        :show-inheritance:
     .. autoclass:: Not(trigger)
+        :show-inheritance:
     .. autoclass:: On(timestep)
+        :show-inheritance:
     .. autoclass:: Or(triggers)
+        :show-inheritance:
     .. autoclass:: Periodic(period, phase)
+        :show-inheritance:
     .. autoclass:: Trigger()
