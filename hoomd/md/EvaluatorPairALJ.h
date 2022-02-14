@@ -574,7 +574,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
                           shape_j->rounding_radii,
                           shape_i->has_rounding,
                           shape_j->has_rounding);
-                //assert(success && !overlap);
+                // assert(success && !overlap);
 
                 if (flip)
                     {
