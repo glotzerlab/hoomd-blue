@@ -20,8 +20,6 @@ Attributes:
     cxx_compiler (str): Name and version of the C++ compiler used to build
         HOOMD.
 
-    dem_built (bool): ``True`` when the ``dem`` component is built.
-
     floating_point_precision (tuple[int, int]): The **high precision** floating
         point width in bits  (element 0) and the **reduced precision** width in
         bits (element 1).
@@ -65,7 +63,6 @@ from hoomd.version_config import (
     compile_date,
     cuda_include_path,
     cuda_devrt_library,
-    dem_built,
     git_branch,
     git_sha1,
     hpmc_built,

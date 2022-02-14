@@ -26,12 +26,6 @@ else()
     set(_hpmc_built "False")
 endif()
 
-if (BUILD_DEM)
-    set(_dem_built "True")
-else()
-    set(_dem_built "False")
-endif()
-
 if (BUILD_METAL)
     set(_metal_built "True")
 else()
@@ -432,10 +426,6 @@ endif()
 
 if (BUILD_METAL AND BUILD_MD)
     add_subdirectory(metal)
-endif()
-
-if (BUILD_DEM AND BUILD_MD)
-    add_subdirectory(dem)
 endif()
 
 if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
