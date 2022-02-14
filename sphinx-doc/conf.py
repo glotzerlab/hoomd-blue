@@ -71,13 +71,19 @@ html_theme = 'sphinx_rtd_theme'
 html_css_files = ['css/hoomd-theme.css']
 html_static_path = ['_static']
 
+IGNORE_MODULES = ['hoomd._hoomd']
+IGNORE_CLASSES = ['_TunerProperty']
+
 
 def autodoc_process_bases(app, name, obj, options, bases):
     """Ignore base classes from the '_hoomd' module."""
-    # bases must be modified in place. Assume that only one `hoomd._hoomd`
+    # bases must be modified in place. Assume that only one matching
     # class is in the list
     for i in range(len(bases)):
-        if bases[i].__module__ == 'hoomd._hoomd':
+        if bases[i].__module__ in IGNORE_MODULES:
+            del bases[i]
+            return
+        if bases[i].__name__ in IGNORE_CLASSES:
             del bases[i]
             return
 

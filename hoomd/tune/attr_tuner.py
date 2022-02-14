@@ -223,10 +223,9 @@ class ManualTuneDefinition(_TuneDefinition):
 class SolverStep(metaclass=ABCMeta):
     """Abstract base class for "solving" stepwise equations of f(x) = y.
 
-    Requires a single method `SolverStep.solve_one` that steps forward one
-    iteration in solving the given variable relationship. Users can use
-    subclasses of this with `hoomd.tune.ManualTuneDefinition` to tune attributes
-    with a functional relation.
+    Requires a single method `solve_one` that steps forward one iteration in
+    solving the given variable relationship. Users can use subclasses of this
+    with `ManualTuneDefinition` to tune attributes with a functional relation.
 
     Note:
         A `SolverStep` object requires manual iteration to converge. This is to
@@ -392,7 +391,7 @@ class SecantSolver(SolverStep):
             dxdf = (x - old_x) / (f_x - old_f_x)
         except ZeroDivisionError:  # Implies that y has not changed
             # Given the likelihood for use cases in HOOMD that this implies
-            # a lack of equilibriation of y or too small of a change.
+            # a lack of equilibration of y or too small of a change.
             new_x = self._handle_static_y(tunable, x, old_x)
         else:
             # We can use the secant formula
@@ -430,12 +429,12 @@ class SecantSolver(SolverStep):
         """Handles when y is constant for multiple calls to solve_one.
 
         We do nothing for the first SecantSolver._max_allowable_counter
-        consequetive times, but afterwards we attempt to perturb x in the
+        consecutive times, but afterwards we attempt to perturb x in the
         direction of last change, and reset the counter.
 
         This method is useful to handle y that vary slowly with x (such as move
         sizes and acceptance rates for low density HPMC simulations), or cases
-        where y takes a while to equilibriate.
+        where y takes a while to equilibrate.
         """
         counter = self._counters.get(tunable, 0) + 1
         if counter > self._max_allowable_counter:

@@ -14,12 +14,14 @@ from hoomd.filter import ParticleFilter, All
 class BoxResize(Updater):
     """Resizes the box between an initial and final box.
 
-    When part of a `hoomd.Simulation` ``updater`` list, this object will resize
-    the box between the initial and final boxes passed. The behavior is a linear
-    interpolation between the initial and final boxes where the minimum of the
-    variant is tagged to `box1` and the maximum is tagged to `box2`. All values
-    between the minimum and maximum result in a box that is the interpolation of
-    the three lengths and tilt factors of the initial and final boxes.
+    `BoxResize` resizes the box between gradually from the initial box to the
+    final box. The behavior is a linear interpolation between the initial and
+    final boxes where the minimum of the variant is tagged to `box1` and the
+    maximum is tagged to `box2`. All values between the minimum and maximum
+    result in a box that is the interpolation of the three lengths and tilt
+    factors of the initial and final boxes:
+
+
 
     Note:
         The passed `Variant` must be bounded (i.e. it must have a true minimum

@@ -1,7 +1,15 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Updaters."""
+"""Updaters.
+
+`Updater` operations modify the simulation state when they act.
+
+See Also:
+    `hoomd.Operations`
+
+    `hoomd.Simulation`
+"""
 
 from hoomd.update.box_resize import BoxResize
 from hoomd.update.remove_drift import RemoveDrift
