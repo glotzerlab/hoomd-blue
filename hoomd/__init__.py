@@ -7,17 +7,17 @@
 code shared among all types of HOOMD-blue simulations. The core data structures
 used to construct a simulation include:
 
-* `hoomd.Simulation`
+* `Simulation`
 
-  * `hoomd.device.Device`
-  * `hoomd.State`
-  * `hoomd.Operations`
+  * `Device`
+  * `State <hoomd.State>`
+  * `Operations`
 
-    * `hoomd.integrate.BaseIntegrator`
-    * `hoomd.operation.Compute`
-    * `hoomd.operation.Tuner`
-    * `hoomd.operation.Updater`
-    * `hoomd.operation.Writer`
+    * `BaseIntegrator`
+    * `Compute`
+    * `Tuner`
+    * `Updater`
+    * `Writer`
 
 See the table of contents or the modules section for a full list of classes,
 methods, and variables in the API.

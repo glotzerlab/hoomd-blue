@@ -5,7 +5,7 @@
 
 Defines the `Operations` class which serves as the main class for storing and
 organizing the many parts of a simulation in a way that allows operations to be
-added and removed from a `hoomd.Simulation`.
+added and removed from a `Simulation`.
 """
 
 # Operations also automatically handles attaching and detaching (creating and
@@ -29,7 +29,7 @@ def _triggered_op_conversion(value):
 
 
 class Operations(Collection):
-    """A mutable collection of operations which act on a `hoomd.Simulation`.
+    """A mutable collection of operations which act on a `Simulation`.
 
     An `Operations` class instance contains all the operations acting on a
     simulation. These operations are classes that perform various actions on a
@@ -165,7 +165,7 @@ class Operations(Collection):
 
         Args:
             operation (`hoomd.operation.Operation`): A HOOMD-blue integrator,
-                tuner, updater, integrator, analzyer, or compute to remove from
+                tuner, updater, integrator, analyzer, or compute to remove from
                 the collection.
         """
         self.remove(operation)

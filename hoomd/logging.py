@@ -4,12 +4,11 @@
 """Logging infrastructure.
 
 Use the `Logger` class to collect loggable quantities (e.g. kinetic temperature,
-pressure, per-particle energy) during the simulation run. Pass the `Logger`
-to a back end such as `write.GSD` or `write.Table` to write the logged values
-to a file.
+pressure, per-particle energy) during the simulation run. Pass the `Logger` to a
+back end such as `hoomd.write.GSD` or `hoomd.write.Table` to write the logged
+values to a file.
 
-See also:
-
+See Also:
     Tutorial: :doc:`tutorial/02-Logging/00-index`
 """
 
@@ -182,7 +181,7 @@ class _NamespaceFilter:
 
 
 class _LoggerQuantity:
-    """The information to automatically log to a `hoomd.logging.Logger`.
+    """The information to automatically log to a `Logger`.
 
     Args:
         name (str): The name of the quantity.
@@ -221,9 +220,9 @@ class _LoggerQuantity:
     def yield_names(self, user_name=None):
         """Infinitely yield potential namespaces.
 
-        Used to ensure that all namespaces are unique for a
-        `hoomd.logging.Logger` object. We simple increment a number at the end
-        until the caller stops asking for another namespace.
+        Used to ensure that all namespaces are unique for a `Logger` object. We
+        simple increment a number at the end until the caller stops asking for
+        another namespace.
 
         Yields:
             tuple[str]: A potential namespace for the object.
@@ -240,8 +239,8 @@ class _LoggerQuantity:
         """Allow updating the class/namespace of the object.
 
         Since the namespace is determined by the passed class's module and class
-        name, if inheritanting `hoomd.logging._LoggerQuantity`, the class needs
-        to be updated to the subclass.
+        name, if inheritanting `_LoggerQuantity`, the class needs to be updated
+        to the subclass.
 
         Args:
             cls (``class object``): The class to update the namespace with.
@@ -389,19 +388,19 @@ def log(func=None,
             loggable quantities.  Many users may not want to log such
             quantities even when logging other quantities of that type. The
             default category allows for these to be pass over by
-            `hoomd.logging.Logger` objects by default. Argument keyword only.
+            `Logger` objects by default. Argument keyword only.
         requires_run (`bool`, optional): Whether this property requires
             the simulation to run before being accessible.
 
     Note:
-        The namespace (where the loggable object is stored in the
-        `hoomd.logging.Logger` object's nested dictionary, is determined by
-        the module/script and class name the loggable class comes from. In
-        creating subclasses of `hoomd.custom.Action`, for instance, if the
-        module the subclass is defined in is ``user.custom.action`` and the
-        class name is ``Foo`` then the namespace used will be ``('user',
-        'custom', 'action', 'Foo')``. This helps to prevent naming conflicts,
-        and automate the logging specification for developers and users.
+        The namespace (where the loggable object is stored in the `Logger`
+        object's nested dictionary, is determined by the module/script and class
+        name the loggable class comes from. In creating subclasses of
+        `hoomd.custom.Action`, for instance, if the module the subclass is
+        defined in is ``user.custom.action`` and the class name is ``Foo`` then
+        the namespace used will be ``('user', 'custom', 'action', 'Foo')``. This
+        helps to prevent naming conflicts, and automate the logging
+        specification for developers and users.
     """
 
     def helper(func):
@@ -436,10 +435,10 @@ def log(func=None,
 
 
 class _LoggerEntry:
-    """Stores the information for an entry in a `hoomd.logging.Logger`.
+    """Stores the information for an entry in a `Logger`.
 
     The class deals with the logic of converting `tuple` and
-    `hoomd.logging._LoggerQuantity` objects into an object that can obtain the
+    `_LoggerQuantity` objects into an object that can obtain the
     actually log value when called.
 
     Note:
@@ -514,18 +513,19 @@ class Logger(_SafeNamespaceDict):
     """Logs HOOMD-blue operation data and custom quantities.
 
     The `Logger` class provides an intermediary between a back end such as
-    `write.GSD` or `write.Table` and loggable objects. The `Logger` class makes
-    use of *namespaces* which organize logged quantities. For example internally
-    all loggable quantities are ordered by the module and class them come from.
-    For instance, the `md.pair.LJ` class has a namespace ``('md', 'pair',
-    'LJ')``. This ensures that logged quantities remain unambiguous. Use
-    `Logger.add` or the ``+=`` operator to add loggable objects to the `Logger`.
+    `hoomd.write.GSD` or `hoomd.write.Table` and loggable objects. The `Logger`
+    class makes use of *namespaces* which organize logged quantities. For
+    example internally all loggable quantities are ordered by the module and
+    class them come from. For instance, the `hoomd.md.pair.LJ` class has a
+    namespace ``('md', 'pair', 'LJ')``. This ensures that logged quantities
+    remain unambiguous. Use `add` or the ``+=`` operator to add loggable objects
+    to the `Logger`.
 
     Example:
         .. code-block:: python
 
             logger = hoomd.logging.Logger()
-            lj = md.pair.lj(nlist)
+            lj = md.pair.lj(neighbor_list)
             # Log all default quantities of the lj object
             logger += lj
             logger = hoomd.logging.Logger(categories=['scalar'])
@@ -554,7 +554,7 @@ class Logger(_SafeNamespaceDict):
     ``only_default`` flag is mainly a convenience by allowing quantities not
     commonly logged (but available) to be passed over unless explicitly asked
     for. You can override the ``only_default`` flag by explicitly listing the
-    quantities you want in `Logger.add`, but the same is not true with regards
+    quantities you want in `add`, but the same is not true with regards
     to ``categories``.
 
     Note:
@@ -565,12 +565,12 @@ class Logger(_SafeNamespaceDict):
         `hoomd.custom.Action` and used with `hoomd.write.CustomWriter`.
 
     Note:
-        When logging multiple instances of the same class `Logger.add` provides
-        a means of specifying the class level of the namespace (e.g. ``'LJ`` in
-        ``('md', 'pair', 'LJ')``). The default behavior (without specifying a
-        user name) is to just append ``_{num}`` where ``num`` is the smallest
-        positive integer which makes the full namespace unique. This appending
-        will also occur for user specified names that are reused.
+        When logging multiple instances of the same class `add` provides a means
+        of specifying the class level of the namespace (e.g. ``'LJ`` in ``('md',
+        'pair', 'LJ')``). The default behavior (without specifying a user name)
+        is to just append ``_{num}`` where ``num`` is the smallest positive
+        integer which makes the full namespace unique. This appending will also
+        occur for user specified names that are reused.
 
     Args:
         categories (`list` of `str`, optional): A list of string categories
@@ -662,7 +662,7 @@ class Logger(_SafeNamespaceDict):
 
             user_name (str): A user name to specify the final entry in the
                 namespace of the object. This must be used in ``user_name`` was
-                specified in `Logger.add`.
+                specified in `add`.
         """
         if obj is None and quantities is None:
             raise ValueError(

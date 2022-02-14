@@ -71,12 +71,12 @@ class Box:
     the extents :math:`L_x`, :math:`L_y` and :math:`L_z` of the box in the three
     directions, and three tilt factors :math:`xy`, :math:`xz` and :math:`yz`.
 
-    The parameter matrix :math:`\\mathbf{h}` is defined in terms of the lattice
+    The parameter matrix is defined in terms of the lattice
     vectors :math:`\\vec a_1`, :math:`\\vec a_2` and :math:`\\vec a_3`:
 
     .. math::
 
-        \\mathbf{B} = \\left( \\vec a_1, \\vec a_2, \\vec a_3 \\right)
+        \\left( \\vec a_1, \\vec a_2, \\vec a_3 \\right)
 
     The first lattice vector :math:`\\vec a_1` is parallel to the unit vector
     :math:`\\vec e_x = (1,0,0)`. The tilt factor :math:`xy` indicates how the
@@ -91,10 +91,10 @@ class Box:
         :nowrap:
 
         \\begin{eqnarray*}
-        \\mathbf{B}& =& \\left(\\begin{array}{ccc} L_x & xy L_y & xz L_z \\\\
-                                                0   & L_y    & yz L_z \\\\
-                                                0   & 0      & L_z    \\\\
-                            \\end{array}\\right)
+        \\left(\\begin{array}{ccc} L_x & xy L_y & xz L_z \\\\
+                                   0   & L_y    & yz L_z \\\\
+                                   0   & 0      & L_z    \\\\
+                \\end{array}\\right)
         \\end{eqnarray*}
 
     The tilt factors :math:`xy`, :math:`xz` and :math:`yz` are dimensionless.
@@ -188,7 +188,6 @@ class Box:
     usage.
 
     Examples:
-
     * Cubic box with given length: ``hoomd.Box.cube(L=1)``
     * Square box with given length: ``hoomd.Box.square(L=1)``
     * From an upper triangular matrix: ``hoomd.Box.from_matrix(matrix)``

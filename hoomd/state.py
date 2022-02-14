@@ -71,24 +71,24 @@ def _create_domain_decomposition(device, box, domain_decomposition):
 
 
 class State:
-    """The state of a `hoomd.Simulation` object.
+    """The state of a `Simulation` object.
 
     Note:
         This object cannot be directly instantiated. Use
-        `hoomd.Simulation.create_state_from_gsd` and
-        `hoomd.Simulation.create_state_from_snapshot` to instantiate a `State`
+        `Simulation.create_state_from_gsd` and
+        `Simulation.create_state_from_snapshot` to instantiate a `State`
         object as part of a simulation.
 
     .. rubric:: Overview
 
     `State` stores the data that describes the thermodynamic microstate of a
-    `hoomd.Simulation` object. This data consists of the box, particles, bonds,
+    `Simulation` object. This data consists of the box, particles, bonds,
     angles, dihedrals, impropers, special pairs, and constraints.
 
     .. rubric:: Box
 
     The simulation `box` describes the spatial extent that contains the
-    particles See `Box` for a full description.
+    particles as a `Box` object.
 
     .. rubric:: Particles
 
@@ -110,13 +110,13 @@ class State:
       particle's type. `particle_types` maps type ids to names with:
       ``name = particle_types[particle_typeid]``.
 
-    - ``particle_body``: body id :math:`[\\mathrm{dimensionless}]` -
-      An integer that identifies the particle's rigid body. A value of ``-1``
-      indicates that this particle does not belong to a body. A positive value
-      indicates that the particle belongs to the body ``particle_body``. This
-      particle is the central particle of a body when the body id is equal to
-      the tag :math:`\\mathrm{particle_body} = \\mathrm{particle_tag}`. (used by
-      `md.constrain.Rigid`)
+    - ``particle_body``: body id :math:`[\\mathrm{dimensionless}]` - An integer
+      that identifies the particle's rigid body. A value of ``-1`` indicates
+      that this particle does not belong to a body. A positive value indicates
+      that the particle belongs to the body ``particle_body``. This particle is
+      the central particle of a body when the body id is equal to the tag
+      :math:`\\mathrm{particle\\_body} = \\mathrm{particle\\_tag}`. (used by
+      `hoomd.md.constrain.Rigid`)
 
     - :math:`m`: mass :math:`[\\mathrm{mass}]` - The particle's mass.
 
@@ -206,7 +206,7 @@ class State:
     .. rubric:: Constraints
 
     The state contains `N_constraints` distance constraints between particles.
-    These constraints are used by `md.constrain.Distance`. Each distance
+    These constraints are used by `hoomd.md.constrain.Distance`. Each distance
     constraint consists of a distance value and the group members.
 
     - ``constraint_group``: A list of 2 integers in the interval
@@ -234,10 +234,10 @@ class State:
     that access data directly available on the local MPI rank (including the
     local and ghost particles) and *global* snapshots that collect the entire
     state on rank 0. See `State.cpu_local_snapshot`, `State.gpu_local_snapshot`,
-    `State.get_snapshot`, and `State.set_snapshot` for information about
-    these data access patterns.
+    `get_snapshot`, and `set_snapshot` for information about these data access
+    patterns.
 
-    See also:
+    See Also:
         To write the simulation to disk, use `write.GSD`.
 
     .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
@@ -272,7 +272,7 @@ class State:
         """Make a copy of the simulation current state.
 
         `State.get_snapshot` makes a copy of the simulation state and
-        makes it available in a single object. `State.set_snapshot` resets
+        makes it available in a single object. `set_snapshot` resets
         the internal state to that in the given snapshot. Use these methods
         to implement techniques like hybrid MD/MC or umbrella sampling where
         entire system configurations need to be reset to a previous one after a
@@ -292,7 +292,7 @@ class State:
             `set_snapshot`
 
         Returns:
-            hoomd.Snapshot: The current simulation state
+            Snapshot: The current simulation state
         """
         cpp_snapshot = self._cpp_sys_def.takeSnapshot_double()
         return Snapshot._from_cpp_snapshot(cpp_snapshot,
@@ -305,7 +305,7 @@ class State:
         system with the new state.
 
         Args:
-            snapshot (hoomd.Snapshot): Snapshot of the system from
+            snapshot (Snapshot): Snapshot of the system from
               `get_snapshot`
 
         Warning:
@@ -315,9 +315,9 @@ class State:
             particle/bond/etc.. types.
 
         Note:
-            `State.set_snapshot` is an order :math:`O(N_{particles} +
-            N_{bonds} + \\ldots)` operation and is very expensive when the
-            simulation device is a GPU.
+            `set_snapshot` is an order :math:`O(N_{particles} + N_{bonds} +
+            \\ldots)` operation and is very expensive when the simulation device
+            is a GPU.
 
         See Also:
             `get_snapshot`
@@ -378,10 +378,9 @@ class State:
     def types(self):
         """dict[str, list[str]]: dictionary of all types in the state.
 
-        Combines the data from `State.particle_types`, `State.bond_types`,
-        `State.angle_types`, `State.dihedral_types`, `State.improper_types`, and
-        `State.special_pair_types` into a dictionary with keys matching the
-        property names.
+        Combines the data from `particle_types`, `bond_types`, `angle_types`,
+        `dihedral_types`, `improper_types`, and `special_pair_types` into a
+        dictionary with keys matching the property names.
         """
         return dict(particle_types=self.particle_types,
                     bond_types=self.bond_types,
@@ -521,9 +520,9 @@ class State:
         This method is called automatically when:
 
         * An Integrator is assigned to the `Simulation`'s operations.
-        * The `md.Integrator` ``integrate_rotational_dof`` parameter is set.
-        * `State.set_snapshot` is called.
-        * On timesteps where a `update.FilterUpdater` triggers.
+        * The `hoomd.md.Integrator.integrate_rotational_dof` parameter is set.
+        * `set_snapshot` is called.
+        * On timesteps where a `hoomd.update.FilterUpdater` triggers.
 
         Call `update_group_dof` manually to force an update, such as when
         you modify particle moments of inertia with `cpu_local_snapshot`.
@@ -540,7 +539,7 @@ class State:
         `hoomd.data.LocalSnapshot` object is only usable within a context
         manager (i.e. ``with sim.state.cpu_local_snapshot as data:``). Attempts
         to assess data outside the context manager will result in errors. The
-        local snapshot interface is similar to that of `hoomd.Snapshot`.
+        local snapshot interface is similar to that of `Snapshot`.
 
         The `hoomd.data.LocalSnapshot` data access is mediated through
         `hoomd.data.array.HOOMDArray` objects. This lets us ensure memory safety
@@ -582,7 +581,7 @@ class State:
         `hoomd.data.LocalSnapshotGPU` object is only usable within a context
         manager (i.e. ``with sim.state.gpu_local_snapshot as data:``). Attempts
         to assess data outside the context manager will result in errors. The
-        local snapshot interface is similar to that of `hoomd.Snapshot`.
+        local snapshot interface is similar to that of `Snapshot`.
 
         The `hoomd.data.LocalSnapshotGPU` data access is mediated through
         `hoomd.data.array.HOOMDGPUArray` objects. This helps us maintain memory
