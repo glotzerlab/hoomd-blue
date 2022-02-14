@@ -99,14 +99,23 @@ def _is_close(v1, v2):
     return v1 == v2 if isinstance(v1, str) else np.allclose(v1, v2)
 
 
+def obj_attr_check(boxmc, mapping):
+    for attr, value in mapping.items():
+        obj_value = getattr(boxmc, attr)
+        if (isinstance(obj_value, hoomd.variant.Constant)
+                and not isinstance(value, hoomd.variant.Constant)):
+            assert obj_value(0) == value
+            continue
+        assert getattr(boxmc, attr) == value
+
+
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction(constructor_args):
     """Test that BoxMC can be constructed with valid arguments."""
     boxmc = hoomd.hpmc.update.BoxMC(**constructor_args)
 
     # validate the params were set properly
-    for attr, value in constructor_args.items():
-        assert getattr(boxmc, attr) == value
+    obj_attr_check(boxmc, constructor_args)
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -128,8 +137,7 @@ def test_valid_construction_and_attach(simulation_factory,
     sim.run(0)
 
     # validate the params were set properly
-    for attr, value in constructor_args.items():
-        assert getattr(boxmc, attr) == value
+    obj_attr_check(boxmc, constructor_args)
 
 
 @pytest.mark.parametrize("attr,value", valid_attrs)
