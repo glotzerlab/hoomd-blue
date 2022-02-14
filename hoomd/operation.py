@@ -300,9 +300,9 @@ class Operation(_HOOMDBaseObject):
 
     Operations in the HOOMD-blue data scheme are objects that *operate* on a
     `hoomd.Simulation` object. They broadly consist of 5 subclasses: `Updater`,
-    `Writer`, `Compute`, `Tuner`, and `hoomd.integrate.BaseIntegrator`. All
-    HOOMD-blue operations inherit from one of these five base classes. To find
-    the purpose of each class see its documentation.
+    `Writer`, `Compute`, `Tuner`, and `Integrator`. All HOOMD-blue operations
+    inherit from one of these five base classes. To find the purpose of each
+    class see its documentation.
 
     Note:
         Developers or those contributing to HOOMD-blue, see our architecture
@@ -398,3 +398,25 @@ class Tuner(Operation):
         for `isinstance` or `issubclass` checks.
     """
     pass
+
+
+class Integrator(Operation):
+    """Advance the simulation state forward one time step.
+
+    An integrator in HOOMD-blue is the primary operation that drives a
+    simulation state forward. In `hoomd.hpmc`, integrators perform particle
+    based Monte Carlo moves. In `hoomd.md`, the `hoomd.md.Integrator` class
+    organizes the forces, equations of motion, and other factors of the given
+    simulation.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
+
+    def _attach(self):
+        self._simulation._cpp_sys.setIntegrator(self._cpp_obj)
+        super()._attach()
+
+        # The integrator has changed, update the number of DOF in all groups
+        self._simulation.state.update_group_dof()

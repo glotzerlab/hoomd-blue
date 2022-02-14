@@ -74,7 +74,6 @@ html_static_path = ['_static']
 
 def autodoc_process_bases(app, name, obj, options, bases):
     """Ignore base classes from the '_hoomd' module."""
-
     # bases must be modified in place. Assume that only one `hoomd._hoomd`
     # class is in the list
     for i in range(len(bases)):

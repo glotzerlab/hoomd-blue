@@ -34,7 +34,7 @@ class Communicator(object):
     example by using `partition` as an index into an array of state points to
     execute.
 
-    See also:
+    See Also:
         :doc:`tutorial/03-Parallel-Simulations-With-MPI/00-index`
 
         :doc:`tutorial/05-Organizing-and-Executing-Simulations/00-index`

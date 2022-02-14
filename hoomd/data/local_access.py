@@ -140,7 +140,7 @@ class ParticleLocalAccessBase(_LocalAccess):
         The `md.Integrator` is responsible for integrating the equations of
         motion and manages the values in these arrays.
 
-    See also:
+    See Also:
         `hoomd.State`
     """
 
@@ -217,7 +217,7 @@ class BondLocalAccessBase(_GroupLocalAccess):
             ``i = bonds.rtag[tag]`` is the array index holding that
             bond.
 
-    See also:
+    See Also:
         `hoomd.State`
     """
     _cpp_get_data_method_name = "getBondData"
@@ -239,7 +239,7 @@ class AngleLocalAccessBase(_GroupLocalAccess):
             The angle reverse tags. For a given angle tag ``tag``, ``i =
             angles.rtag[tag]`` is the array index holding that angle.
 
-    See also:
+    See Also:
         `hoomd.State`
     """
     _cpp_get_data_method_name = "getAngleData"
@@ -261,7 +261,7 @@ class DihedralLocalAccessBase(_GroupLocalAccess):
             The dihedral reverse tags. For a given dihedral tag ``tag``, ``i
             = dihedrals.rtag[tag]`` is the array index holding that dihedral.
 
-    See also:
+    See Also:
         `hoomd.State`
     """
     _cpp_get_data_method_name = "getDihedralData"
@@ -283,7 +283,7 @@ class ImproperLocalAccessBase(_GroupLocalAccess):
             The improper reverse tags. For a given improper tag ``tag``, ``i
             = impropers.rtag[tag]`` is the array index holding that improper.
 
-    See also:
+    See Also:
         `hoomd.State`
     """
     _cpp_get_data_method_name = "getImproperData"
@@ -306,7 +306,7 @@ class ConstraintLocalAccessBase(_GroupLocalAccess):
             ``i = constraints.rtag[tag]`` is the array index holding that
             constraint.
 
-    See also:
+    See Also:
         `hoomd.State`
     """
     _fields = {
@@ -335,7 +335,7 @@ class PairLocalAccessBase(_GroupLocalAccess):
             ``tag``, ``i = pairs.rtag[tag]`` is the array index holding that
             special pair.
 
-    See also:
+    See Also:
         `hoomd.State`
     """
     _cpp_get_data_method_name = "getPairData"

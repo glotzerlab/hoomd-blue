@@ -14,9 +14,8 @@ added and removed from a `Simulation`.
 from collections.abc import Collection
 from copy import copy
 from itertools import chain
-import hoomd.integrate
 from hoomd.data import syncedlist
-from hoomd.operation import Writer, Updater, Tuner, Compute
+from hoomd.operation import Writer, Updater, Tuner, Compute, Integrator
 from hoomd.tune import ParticleSorter
 
 
@@ -115,7 +114,7 @@ class Operations(Collection):
         if operation._added:
             raise ValueError("The provided operation has already been added "
                              "to an Operations instance.")
-        if isinstance(operation, hoomd.integrate.BaseIntegrator):
+        if isinstance(operation, Integrator):
             self.integrator = operation
         else:
             try:
@@ -150,7 +149,7 @@ class Operations(Collection):
             ValueError: If ``operation`` is not found in this container.
             TypeError: If ``operation`` is not of a valid type.
         """
-        if isinstance(operation, hoomd.integrate.BaseIntegrator):
+        if isinstance(operation, Integrator):
             self.integrator = None
         else:
             try:
@@ -235,7 +234,7 @@ class Operations(Collection):
 
     @property
     def integrator(self):
-        """`hoomd.integrate.BaseIntegrator`: An MD or HPMC integrator object.
+        """`hoomd.operation.Integrator`: An MD or HPMC integrator object.
 
         `Operations` objects have an initial ``integrator`` property of
         ``None``. Can be set to MD or HPMC integrators. The property can also be
@@ -246,9 +245,9 @@ class Operations(Collection):
     @integrator.setter
     def integrator(self, op):
         if op is not None:
-            if not isinstance(op, hoomd.integrate.BaseIntegrator):
+            if not isinstance(op, Integrator):
                 raise TypeError("Cannot set integrator to a type not derived "
-                                "from hoomd.integrate.BaseIntegrator")
+                                "from hoomd.operation.Integrator")
             if op._added:
                 raise RuntimeError("Integrator cannot be added to twice to "
                                    "Operations collection.")

@@ -9,15 +9,15 @@ used to construct a simulation include:
 
 * `Simulation`
 
-  * `Device`
-  * `State <hoomd.State>`
-  * `Operations`
+  * `hoomd.device.Device`
+  * `hoomd.State`
+  * `hoomd.Operations`
 
-    * `BaseIntegrator`
-    * `Compute`
-    * `Tuner`
-    * `Updater`
-    * `Writer`
+    * `hoomd.operations.Integrator>`
+    * `hoomd.operations.Compute`
+    * `hoomd.operations.Tuner`
+    * `hoomd.operations.Updater`
+    * `hoomd.operations.Writer`
 
 See the table of contents or the modules section for a full list of classes,
 methods, and variables in the API.
@@ -58,7 +58,6 @@ from hoomd import filter
 from hoomd import device
 from hoomd import error
 from hoomd import update
-from hoomd import integrate
 from hoomd import communicator
 from hoomd import util
 from hoomd import write
