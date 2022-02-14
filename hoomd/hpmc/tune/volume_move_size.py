@@ -3,6 +3,7 @@
 
 """Implement VolumeMoveSize."""
 
+import hoomd
 from hoomd.custom import _InternalAction
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, OnlyIf,
@@ -22,21 +23,21 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
     move sizes. For this class 'x' is the move size and 'y' is the acceptance
     rate.
     """
-    acceptable_attrs = {"volume", "aspect", "shear"}
+    acceptable_attrs = {"volume", "aspect"}
 
-    def __init__(self, attr, target, domain=None):
+    def __init__(self, boxmc, attr, target, domain=None):
         if attr not in self.acceptable_attrs:
-            raise ValueError("Only {} are allowed as tunable "
-                             "attributes.".format(self._available_attrs))
+            raise ValueError(f"Only {self.acceptable_attrs} are allowed as "
+                             f"tunable attributes not {attr}.")
         self.attr = attr
-        self.integrator = None
+        self.boxmc = boxmc
         self.previous_accepted_moves = None
         self.previous_total = None
         self.previous_acceptance_rate = None
         super().__init__(target, domain)
 
     def _get_y(self):
-        ratio = getattr(self.integrator, f"{self.attr}_moves")
+        ratio = getattr(self.boxmc, f"{self.attr}_moves")
         accepted_moves = ratio[0]
         total_moves = sum(ratio)
 
@@ -76,7 +77,7 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
         return acceptance_rate
 
     def _get_x(self):
-        return getattr(self._boxmc, self.attr)["delta"]
+        return getattr(self.boxmc, self.attr)["delta"]
 
     def _set_x(self, value):
         getattr(self._boxmc, self.attr)["delta"] = value
@@ -95,13 +96,15 @@ class _InternalVolumeMoveSize(_InternalAction):
 
     def __init__(
         self,
+        boxmc,
         moves,
         target,
         solver,
         max_move_size=None,
     ):
-        # A flag for knowing when to update the maximum move sizes
+        # Flags for knowing when to update classes attributes
         self._update_max_move_sizes = False
+        self._should_update_tunables = False
 
         self._tunables = []
         # A counter when tuned reaches 1 it means that the tuner has reported
@@ -118,32 +121,33 @@ class _InternalVolumeMoveSize(_InternalAction):
         # the list of tunables and the solver updated with the changes to
         # attributes. However, these are simply forwarding a change along.
         params = ParameterDict(
-            moves=OnlyFrom(_MoveSizeTuneDefinition.acceptable_attrs,
-                           postprocess=self._update_moves),
+            boxmc=hoomd.hpmc.update.BoxMC,
+            moves=[
+                OnlyFrom(_MoveSizeTuneDefinition.acceptable_attrs,
+                         postprocess=self._flag_new_tunables)
+            ],
             target=OnlyTypes(float, postprocess=self._target_postprocess),
             solver=OnlyTypes(SolverStep, strict=True),
             max_move_size=OnlyIf(to_type_converter({
-                "volume": float,
-                "shear": float,
-                "aspect": float
+                "volume": OnlyTypes(float, allow_none=True),
+                "aspect": OnlyTypes(float, allow_none=True)
             }),
                                  postprocess=self._flag_move_size_update))
+        params["boxmc"] = boxmc
         params["moves"] = moves
         params["target"] = target
         params["solver"] = solver
         if max_move_size is None:
-            max_move_size = {}
+            max_move_size = {"volume": None, "aspect": None}
         params["max_move_size"] = max_move_size
         self._param_dict.update(params)
 
-        self._update_tunables(new_moves=moves)
+        self._update_tunables()
 
     def attach(self, simulation):
         if not isinstance(simulation.operations.integrator, HPMCIntegrator):
             raise RuntimeError(
                 "MoveSizeTuner can only be used in HPMC simulations.")
-        self._update_tunables_attr('integrator',
-                                   simulation.operations.integrator)
         self._is_attached = True
 
     @property
@@ -161,7 +165,6 @@ class _InternalVolumeMoveSize(_InternalAction):
         return self._tuned >= 2
 
     def detach(self):
-        self._update_tunables_attr('integrator', None)
         self._is_attached = False
 
     def act(self, timestep=None):
@@ -172,6 +175,9 @@ class _InternalVolumeMoveSize(_InternalAction):
         """
         if self._is_attached:
             # update maximum move sizes
+            if self._should_update_tunables:
+                self._update_tunables()
+                self._tuned = 0
             if self._update_move_sizes:
                 for tunable in self._tunables:
                     max_move_size = self.max_move_size[tunable.attr]
@@ -180,23 +186,24 @@ class _InternalVolumeMoveSize(_InternalAction):
             tuned = self.solver.solve(self._tunables)
             self._tuned = self._tuned + 1 if tuned else 0
 
-    def _update_tunables(self, *, new_moves=()):
+    def _update_tunables(self):
         tunables = self._tunables
 
         def filter_tunables(tunable):
-            return tunable.attr in new_moves
+            return tunable.attr in self.moves
 
         self._tunables = list(filter(filter_tunables, tunables))
         tune_definitions = {t.attr for t in self._tunables}
 
         # Add any move size tune definitions that are required by the new
         # specification.
-        for move in new_moves:
+        for move in self.moves:
             if move in tune_definitions:
                 continue
             max_move_size = self.max_move_size[move]
             move_definition = _MoveSizeTuneDefinition(
-                move, self.target, (self._min_move_size, max_move_size))
+                self.boxmc, move, self.target,
+                (self._min_move_size, max_move_size))
             self._tunables.append(move_definition)
 
     def _update_tunables_attr(self, attr, value):
@@ -211,14 +218,14 @@ class _InternalVolumeMoveSize(_InternalAction):
         self._tuned = 0
         return target
 
-    def _update_moves(self, value):
-        self._update_tunables(new_moves=value)
-        self._tuned = 0
-        return value
-
     def _flag_move_size_update(self, value):
         self._update_move_sizes = True
         return value
+
+    def _flag_new_tunables(self, value):
+        self._should_update_tunables = True
+        return value
+        self._param_dict._cpp_obj = 5
 
 
 class VolumeMoveSize(_InternalCustomTuner):
@@ -230,6 +237,8 @@ class VolumeMoveSize(_InternalCustomTuner):
     Args:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
             the tuner.
+        boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC` object to
+            tune.
         moves (list[str]): A list of types of moves to tune. Available options
             are 'delta'.
         target (float): The acceptance rate for trial moves that is desired. The
@@ -244,6 +253,8 @@ class VolumeMoveSize(_InternalCustomTuner):
     Attributes:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
             the tuner.
+        boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC` object to
+            tune.
         moves (list[str]): A list of types of moves to tune. Available options
             are 'a' and 'd'.
         target (float): The acceptance rate for trial moves that is desired. The
@@ -270,6 +281,7 @@ class VolumeMoveSize(_InternalCustomTuner):
     @classmethod
     def scale_solver(cls,
                      trigger,
+                     boxmc,
                      moves,
                      target,
                      max_move_size=None,
@@ -281,6 +293,8 @@ class VolumeMoveSize(_InternalCustomTuner):
         Args:
             trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
                 run the tuner.
+            boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC`
+                object to tune.
             moves (list[str]): A list of types of moves to tune. Available
                 options are 'a' and 'd'.
             target (float): The acceptance rate for trial moves that is desired.
@@ -302,11 +316,12 @@ class VolumeMoveSize(_InternalCustomTuner):
                 significantly at typical tuning rates.
         """
         solver = ScaleSolver(max_scale, gamma, 'negative', tol)
-        return cls(trigger, moves, target, solver, max_move_size)
+        return cls(trigger, boxmc, moves, target, solver, max_move_size)
 
     @classmethod
     def secant_solver(cls,
                       trigger,
+                      boxmc,
                       moves,
                       target,
                       max_move_size=None,
@@ -321,6 +336,8 @@ class VolumeMoveSize(_InternalCustomTuner):
         Args:
             trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
                 run the tuner.
+            boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC`
+                object to tune.
             moves (list[str]): A list of types of moves to tune. Available
                 options are 'a' and 'd'.
             target (float): The acceptance rate for trial moves that is desired.
@@ -348,4 +365,4 @@ class VolumeMoveSize(_InternalCustomTuner):
             frequently.
         """
         solver = SecantSolver(gamma, tol)
-        return cls(trigger, moves, target, solver, max_move_size)
+        return cls(trigger, boxmc, moves, target, solver, max_move_size)
