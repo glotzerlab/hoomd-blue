@@ -177,7 +177,7 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
     m_offsets.resize(m_n_unique_neigh);
 
     // determine local particles that are to be sent to neighboring processors
-    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
     setCommFlags(box);
 
     for (unsigned int stage = 0; stage < m_num_stages; stage++)

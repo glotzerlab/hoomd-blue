@@ -11,3 +11,4 @@ hpmc.external
 
    module-hpmc-external-user
    module-hpmc-external-field
+   module-hpmc-external-wall

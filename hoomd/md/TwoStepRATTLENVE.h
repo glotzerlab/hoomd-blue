@@ -212,7 +212,7 @@ template<class Manifold> void TwoStepRATTLENVE<Manifold>::integrateStepOne(uint6
                                access_location::host,
                                access_mode::readwrite);
 
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim box = m_pdata->getBox();
 
     if (m_box_changed)
         {

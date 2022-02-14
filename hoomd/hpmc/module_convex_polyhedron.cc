@@ -17,7 +17,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
@@ -46,9 +45,6 @@ void export_convex_polyhedron(pybind11::module& m)
     export_ExternalFieldComposite<ShapeConvexPolyhedron>(m,
                                                          "ExternalFieldCompositeConvexPolyhedron");
     export_ExternalFieldWall<ShapeConvexPolyhedron>(m, "WallConvexPolyhedron");
-    export_UpdaterExternalFieldWall<ShapeConvexPolyhedron>(
-        m,
-        "UpdaterExternalFieldWallConvexPolyhedron");
     export_ExternalCallback<ShapeConvexPolyhedron>(m, "ExternalCallbackConvexPolyhedron");
 
 #ifdef ENABLE_HIP

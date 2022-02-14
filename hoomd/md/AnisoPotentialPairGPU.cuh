@@ -84,7 +84,7 @@ struct a_pair_args_t
     const Scalar* d_charge;       //!< particle charges
     const Scalar4* d_orientation; //!< particle orientation to compute forces over
     const unsigned int* d_tag;    //!< particle tags to compute forces over
-    const BoxDim& box;            //!< Simulation box in GPU format
+    const BoxDim box;             //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle

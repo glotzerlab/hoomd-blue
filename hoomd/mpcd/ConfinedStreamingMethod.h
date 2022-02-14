@@ -106,7 +106,7 @@ template<class Geometry> void ConfinedStreamingMethod<Geometry>::stream(uint64_t
     if (m_prof)
         m_prof->push("MPCD stream");
 
-    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
 
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
                                access_location::host,
@@ -165,7 +165,7 @@ template<class Geometry> void ConfinedStreamingMethod<Geometry>::stream(uint64_t
 template<class Geometry> void ConfinedStreamingMethod<Geometry>::validate()
     {
     // ensure that the global box is padded enough for periodic boundaries
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     const Scalar cell_width = m_mpcd_sys->getCellList()->getCellSize();
     if (!m_geom->validateBox(box, cell_width))
         {

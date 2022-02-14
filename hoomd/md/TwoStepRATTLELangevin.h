@@ -177,7 +177,7 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepOne(
 
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
 
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim box = m_pdata->getBox();
 
     if (m_box_changed)
         {

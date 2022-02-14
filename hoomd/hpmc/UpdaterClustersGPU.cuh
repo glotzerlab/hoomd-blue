@@ -94,7 +94,7 @@ struct cluster_args_t
     const unsigned int* d_check_overlaps; //!< Interaction matrix
     const Index2D& overlap_idx;           //!< Indexer into interaction matrix
     const uint64_t timestep;              //!< Current time step
-    const BoxDim& box;                    //!< Current simulation box
+    const BoxDim box;                     //!< Current simulation box
     unsigned int block_size;              //!< Block size to execute
     unsigned int tpp;                     //!< Threads per particle
     unsigned int overlap_threads;         //!< Threads per overlap check
@@ -180,7 +180,7 @@ struct clusters_transform_args_t
     const quat<Scalar> q;
     const bool line;
     const GPUPartition& gpu_partition;
-    const BoxDim& box;
+    const BoxDim box;
     const unsigned int num_types;
     const unsigned int block_size;
     };

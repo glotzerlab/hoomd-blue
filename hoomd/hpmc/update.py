@@ -194,152 +194,6 @@ class BoxMC(Updater):
             return counter.aspect
 
 
-class wall:  # noqa - will be rewritten for v3
-    """Apply wall updates with a user-provided python callback.
-
-    Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        walls (:py:class:`hoomd.hpmc.field.wall`): the wall class instance to be
-          updated
-        py_updater (`callable`): the python callback that performs the update
-          moves. This must be a python method that is a function of the
-          timestep of the simulation. It must actually update the
-          :py:class:`hoomd.hpmc.field.wall`) managed object.
-        move_probability (float): the probability with which an update move is
-          attempted
-        seed (int): the seed of the pseudo-random number generator that
-          determines whether or not an update move is attempted
-        period (int): the number of timesteps between update move attempt
-          attempts Every *period* steps, a walls update move is tried with
-          probability *move_probability*. This update move is provided by the
-          *py_updater* callback. Then, update.wall only accepts an update move
-          provided by the python callback if it maintains confinement conditions
-          associated with all walls. Otherwise, it reverts back to a non-updated
-          copy of the walls.
-
-    Once initialized, the update provides the following log quantities that can
-    be logged via ``hoomd.analyze.log``:
-
-    * **hpmc_wall_acceptance_ratio** - the acceptance ratio for wall update
-      moves
-
-    Example::
-
-        mc = hpmc.integrate.sphere(seed = 415236);
-        ext_wall = hpmc.compute.wall(mc);
-        ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0],
-                                 inside = True);
-        def perturb(timestep):
-          r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0,
-                                                     param = "rsq"));
-          ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
-                                   origin = [0, 0, 0], inside = True);
-        wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
-                                        move_probability = 0.5, seed = 27,
-                                        period = 50);
-        log = analyze.log(quantities=['hpmc_wall_acceptance_ratio'],
-                          period=100, filename='log.dat', overwrite=True);
-
-    Example::
-
-        mc = hpmc.integrate.sphere(seed = 415236);
-        ext_wall = hpmc.compute.wall(mc);
-        ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0],
-                                 inside = True);
-        def perturb(timestep):
-          r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0,
-                                                     param = "rsq"));
-          ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
-                                   origin = [0, 0, 0], inside = True);
-        wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
-                                        move_probability = 0.5,
-                                        seed = 27, period = 50);
-
-    """
-
-    def __init__(self, mc, walls, py_updater, move_probability, seed, period=1):
-
-        # initialize base class
-        # _updater.__init__(self)
-
-        cls = None
-        if isinstance(mc, integrate.sphere):
-            cls = _hpmc.UpdaterExternalFieldWallSphere
-        elif isinstance(mc, integrate.convex_polyhedron):
-            cls = _hpmc.UpdaterExternalFieldWallConvexPolyhedron
-        elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = _hpmc.UpdaterExternalFieldWallSpheropolyhedron
-        else:
-            hoomd.context.current.device.cpp_msg.error(
-                "update.wall: Unsupported integrator.\n")
-            raise RuntimeError("Error initializing update.wall")
-
-        self.cpp_updater = cls(hoomd.context.current.system_definition,
-                               mc.cpp_integrator, walls.cpp_compute, py_updater,
-                               move_probability, seed)
-        self.setupUpdater(period)
-
-    def get_accepted_count(self, mode=0):
-        r"""Get the number of accepted wall update moves.
-
-        Args:
-            mode (int): specify the type of count to return. If mode!=0,
-              return absolute quantities. If mode=0, return quantities relative
-              to the start of the run. DEFAULTS to 0.
-
-        Returns:
-           the number of accepted wall update moves
-
-        Example::
-
-            mc = hpmc.integrate.sphere(seed = 415236);
-            ext_wall = hpmc.compute.wall(mc);
-            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0],
-                                     inside = True);
-            def perturb(timestep):
-              r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0,
-                                                         param = "rsq"));
-              ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
-                                       origin = [0, 0, 0], inside = True);
-            wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
-                                            move_probability = 0.5, seed = 27,
-                                            period = 50);
-            run(100);
-            acc_count = wall_updater.get_accepted_count(mode = 0);
-        """
-        return self.cpp_updater.getAcceptedCount(mode)
-
-    def get_total_count(self, mode=0):
-        r"""Get the number of attempted wall update moves.
-
-        Args:
-            mode (int): specify the type of count to return. If mode!=0,
-              return absolute quantities. If mode=0, return quantities relative
-              to the start of the run. DEFAULTS to 0.
-
-        Returns:
-           the number of attempted wall update moves
-
-        Example::
-
-            mc = hpmc.integrate.sphere(seed = 415236);
-            ext_wall = hpmc.compute.wall(mc);
-            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0],
-                                     inside = True);
-            def perturb(timestep):
-              r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0,
-                                                         param = "rsq"));
-              ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
-                                       origin = [0, 0, 0], inside = True);
-            wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
-                                            move_probability = 0.5, seed = 27,
-                                            period = 50);
-            run(100);
-            tot_count = wall_updater.get_total_count(mode = 0);
-        """
-        return self.cpp_updater.getTotalCount(mode)
-
-
 class MuVT(Updater):
     r"""Insert and remove particles in the muVT ensemble.
 
@@ -577,15 +431,6 @@ class Clusters(Updater):
         return counter.average_cluster_size
 
 
-def _box_getter(param_dict, attr):
-    return param_dict._dict[attr]
-
-
-def _box_setter(param_dict, attr, value):
-    param_dict._dict[attr] = param_dict._type_converter[attr](value)
-    setattr(param_dict._cpp_obj, attr, param_dict._dict[attr])
-
-
 class QuickCompress(Updater):
     """Quickly compress a hard particle system to a target box.
 
@@ -674,7 +519,6 @@ class QuickCompress(Updater):
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
-        param_dict._set_special_getset("target_box", _box_getter, _box_setter)
 
         self._param_dict.update(param_dict)
 
@@ -700,7 +544,8 @@ class QuickCompress(Updater):
 
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
             self._simulation.state._cpp_sys_def, integrator._cpp_obj,
-            self.max_overlaps_per_particle, self.min_scale, self.target_box)
+            self.max_overlaps_per_particle, self.min_scale,
+            self.target_box._cpp_obj)
         super()._attach()
 
     @property

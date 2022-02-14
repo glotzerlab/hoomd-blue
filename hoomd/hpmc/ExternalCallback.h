@@ -50,12 +50,12 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
     //! Compute DeltaU = Unew-Uold
     /*! \param position_old_arg Old (local) positions
         \param orientation_old_arg Old (local) orientations
-        \param box_old_arg Old (global) box
+        \param box_old Old (global) box
      */
     double calculateDeltaE(uint64_t timestep,
                            const Scalar4* const position_old_arg,
                            const Scalar4* const orientation_old_arg,
-                           const BoxDim* const box_old_arg)
+                           const BoxDim& box_old)
         {
         auto snap = takeSnapshot();
         double energy_new = getEnergy(snap);
@@ -63,7 +63,7 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
         // update snapshot with old configuration
         // FIXME: this will not work in MPI, we will have to broadcast to root and modify snapshot
         // there
-        snap->global_box = *box_old_arg;
+        snap->global_box = std::make_shared<BoxDim>(box_old);
         unsigned int N = this->m_pdata->getN();
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(),
                                         access_location::host,

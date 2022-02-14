@@ -7,13 +7,11 @@ from collections.abc import Sequence
 import json
 from numbers import Number
 
-from hoomd import md
 from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
-from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import (OnlyTypes, OnlyFrom, positive_real,
-                                      OnlyIf, to_type_converter)
+from hoomd.data.typeconverter import OnlyIf, to_type_converter
 
 
 class AnisotropicPair(Pair):
@@ -39,15 +37,10 @@ class AnisotropicPair(Pair):
         mode (`str`, optional) : the energy shifting mode, defaults to "none".
     """
 
+    _accepted_modes = ("none", "shift")
+
     def __init__(self, nlist, default_r_cut=None, mode="none"):
-        self._nlist = OnlyTypes(md.nlist.NList, strict=True)(nlist)
-        tp_r_cut = TypeParameter('r_cut', 'particle_types',
-                                 TypeParameterDict(positive_real, len_keys=2))
-        if default_r_cut is not None:
-            tp_r_cut.default = default_r_cut
-        self._param_dict.update(ParameterDict(mode=OnlyFrom(['none', 'shift'])))
-        self.mode = mode
-        self._add_typeparam(tp_r_cut)
+        super().__init__(nlist, default_r_cut, 0.0, mode)
 
     def _return_type_shapes(self):
         type_shapes = self._cpp_obj.getTypeShapesPy()

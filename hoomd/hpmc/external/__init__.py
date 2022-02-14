@@ -5,3 +5,4 @@
 
 from . import user
 from . import field
+from . import wall

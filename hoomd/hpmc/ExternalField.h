@@ -26,27 +26,14 @@ class ExternalField : public Compute
     {
     public:
     ExternalField(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef) { }
-    /*! calculateBoltzmannWeight(uint64_t timestep)
-        method used to calculate the boltzmann weight contribution for the
-        external field of the entire system. This is used to interface with
-        global moves such as the NPT box updater. The boltzmann factor can
-        be calculated by the quotient of the boltzmann weight post move and
-        boltzmann weight pre move. Example:
-        Scalar bw1 = external->calculateBoltzmannWeight(timestep);
-        // make a move updating m_pdata and any other system info (shape, position, orientation,
-       etc.) Scalar bw2 = external->calculateBoltzmannWeight(timestep); pacc = min(1, bw2/bw1);
-    */
-    virtual Scalar calculateBoltzmannWeight(uint64_t timestep)
-        {
-        return 0;
-        }
+
     /*! Calculate deltaE for the whole system
         Used for box resizing
     */
     virtual double calculateDeltaE(uint64_t timestep,
                                    const Scalar4* const position_old,
                                    const Scalar4* const orientation_old,
-                                   const BoxDim* const box_old)
+                                   const BoxDim& box_old)
         {
         return 0;
         }
@@ -100,7 +87,6 @@ template<class Shape> void export_ExternalFieldInterface(pybind11::module& m, st
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("compute", &ExternalFieldMono<Shape>::compute)
         .def("energydiff", &ExternalFieldMono<Shape>::energydiff)
-        .def("calculateBoltzmannWeight", &ExternalFieldMono<Shape>::calculateBoltzmannWeight)
         .def("calculateDeltaE", &ExternalFieldMono<Shape>::calculateDeltaE);
     }
 

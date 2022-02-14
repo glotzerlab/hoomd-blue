@@ -1944,7 +1944,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
-        const BoxDim& global_box = this->m_pdata->getGlobalBox();
+        const BoxDim global_box = this->m_pdata->getGlobalBox();
         ArrayHandle<unsigned int> h_cart_ranks(
             this->m_pdata->getDomainDecomposition()->getCartRanks(),
             access_location::host,
@@ -2340,7 +2340,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep,
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
-        const BoxDim& global_box = this->m_pdata->getGlobalBox();
+        const BoxDim global_box = this->m_pdata->getGlobalBox();
         ArrayHandle<unsigned int> h_cart_ranks(
             this->m_pdata->getDomainDecomposition()->getCartRanks(),
             access_location::host,
@@ -2765,7 +2765,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t ti
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
-        const BoxDim& global_box = this->m_pdata->getGlobalBox();
+        const BoxDim global_box = this->m_pdata->getGlobalBox();
         ArrayHandle<unsigned int> h_cart_ranks(
             this->m_pdata->getDomainDecomposition()->getCartRanks(),
             access_location::host,
@@ -2953,7 +2953,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep,
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
-        const BoxDim& global_box = this->m_pdata->getGlobalBox();
+        const BoxDim global_box = this->m_pdata->getGlobalBox();
         ArrayHandle<unsigned int> h_cart_ranks(
             this->m_pdata->getDomainDecomposition()->getCartRanks(),
             access_location::host,
