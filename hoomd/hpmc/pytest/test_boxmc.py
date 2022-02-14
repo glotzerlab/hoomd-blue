@@ -11,7 +11,7 @@ import pytest
 import numpy as np
 
 valid_constructor_args = [
-    dict(trigger=hoomd.trigger.Periodic(10), betaP=hoomd.variant.Constant(10)),
+    dict(trigger=hoomd.trigger.Periodic(10), betaP=10),
     dict(trigger=hoomd.trigger.After(100),
          betaP=hoomd.variant.Ramp(1, 5, 0, 100)),
     dict(trigger=hoomd.trigger.Before(100),
@@ -192,7 +192,7 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     n = 7
     snap = lattice_snapshot_factory(dimensions=3, n=n, a=1.3)
 
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP))
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=betaP)
 
     sim = simulation_factory(snap)
     initial_box = sim.state.box
@@ -226,7 +226,7 @@ def test_disk_compression(betaP, box_move, simulation_factory,
     n = 7
     snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.3)
 
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP))
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=betaP)
 
     sim = simulation_factory(snap)
     initial_box = sim.state.box
@@ -256,7 +256,7 @@ def test_disk_compression(betaP, box_move, simulation_factory,
 def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
                   counter_attrs):
     """Test that BoxMC counters count corectly."""
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(3))
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=3)
     # check result when box object is unattached
     for v in counter_attrs.values():
         assert getattr(boxmc, v) == (0, 0)
@@ -292,7 +292,7 @@ def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
 
 @pytest.mark.parametrize("box_move", box_moves_attrs)
 def test_pickling(box_move, simulation_factory, two_particle_snapshot_factory):
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(3))
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=3)
     setattr(boxmc, box_move['move'], box_move['params'])
     sim = simulation_factory(two_particle_snapshot_factory())
     mc = hoomd.hpmc.integrate.Sphere()
