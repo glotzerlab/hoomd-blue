@@ -5,6 +5,17 @@
 
 `CustomOperation` provides a mechanism for users to insert Python code
 via an `Action` subclass that executes during the simulation's run loop.
+Use this to prototype new simulation methods in Python, analyze the system state
+while the simulation progresses, or write output to custom file formats.
+
+See Also:
+    `hoomd.tune.CustomTuner`
+
+    `hoomd.update.CustomUpdater`
+
+    `hoomd.write.CustomWriter`
+
+    `hoomd.md.force.Custom`
 """
 
 from hoomd.custom.custom_action import Action, _InternalAction

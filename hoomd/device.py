@@ -3,9 +3,21 @@
 
 """Devices.
 
-Use a device class to choose which hardware device(s) should execute the
-simulation. The device also sets where to write log messages and how verbose
-the message output should be.
+Use a `Device` class to choose which hardware device(s) should execute the
+simulation. `Device` also sets where to write log messages and how verbose
+the message output should be. Pass a `Device` object to `hoomd.Simulation`
+on instanation to set the options for that simulation.
+
+User scripts may instantiate multiple `Device` objects and use each with a
+different `hoomd.Simulation` objects. One `Device` object may also be shared
+with many `hoomd.Simulation` objects.
+
+Tip:
+    Reuse `Device` objects when possible. There is a non-negligible overhead
+    to creating each `Device`, especially on the GPU.
+
+See Also:
+    `hoomd.Simulation`
 """
 
 import contextlib

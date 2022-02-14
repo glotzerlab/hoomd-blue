@@ -5,6 +5,9 @@
 
 `LocalSnapshot`, `LocalSnapshotGPU`, and related classes provide direct access
 to the data buffers managed by `hoomd.State`.
+
+See Also:
+    `hoomd.State`
 """
 
 from .array import HOOMDArray, HOOMDGPUArray

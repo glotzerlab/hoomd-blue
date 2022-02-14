@@ -6,6 +6,11 @@
 Operations act on the state of the system at defined points during the
 simulation's run loop. Add operation objects to the `Simulation.operations`
 collection.
+
+See Also:
+    `hoomd.Operations`
+
+    `hoomd.Simulation`
 """
 
 # Operation is a parent class of almost all other HOOMD objects.

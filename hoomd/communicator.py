@@ -3,7 +3,16 @@
 
 """MPI communicator.
 
-Use `Communicator` to configure and query the MPI ranks and partitions.
+When compiled without MPI support, `Communicator` acts as if there is one MPI
+rank and 1 partition. To use MPI, :doc:`compile HOOMD-blue <building>` with the
+option ``ENABLE_MPI=on`` and use the appropriate MPI launcher to launch Python.
+Then the `Communicator` class will configure and query MPI ranks and partitions.
+By default, `Communicator` starts with the ``MPI_COMM_WOLRD`` MPI communicator,
+and the communicator is not available for user scripts.
+
+`Communicator` also accepts MPI communicators from ``mpi4py``. Use this to
+implement workflows with multiple simulations that communicate using ``mpi4py``
+calls in user code (e.g. genetic algorithms, umbrella sampling).
 
 See Also:
     :doc:`tutorial/03-Parallel-Simulations-With-MPI/00-index`
