@@ -86,7 +86,7 @@ class BoxMC(Updater):
             different streams of random numbers.
     """
 
-    def __init__(self, betaP, trigger):
+    def __init__(self, trigger, betaP):
         super().__init__(trigger)
 
         _default_dict = dict(weight=0.0, delta=0.0)
