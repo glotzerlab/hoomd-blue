@@ -13,11 +13,11 @@ used to construct a simulation include:
   * `hoomd.State`
   * `hoomd.Operations`
 
-    * `hoomd.operations.Integrator>`
-    * `hoomd.operations.Compute`
-    * `hoomd.operations.Tuner`
-    * `hoomd.operations.Updater`
-    * `hoomd.operations.Writer`
+    * `hoomd.operation.Integrator`
+    * `hoomd.operation.Compute`
+    * `hoomd.operation.Tuner`
+    * `hoomd.operation.Updater`
+    * `hoomd.operation.Writer`
 
 See the table of contents or the modules section for a full list of classes,
 methods, and variables in the API.

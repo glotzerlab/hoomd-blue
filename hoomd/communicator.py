@@ -4,6 +4,11 @@
 """MPI communicator.
 
 Use `Communicator` to configure and query the MPI ranks and partitions.
+
+See Also:
+    :doc:`tutorial/03-Parallel-Simulations-With-MPI/00-index`
+
+    :doc:`tutorial/05-Organizing-and-Executing-Simulations/00-index`
 """
 
 from hoomd import _hoomd
@@ -33,11 +38,6 @@ class Communicator(object):
     own `partition` index. Use this to perform many simulations in parallel, for
     example by using `partition` as an index into an array of state points to
     execute.
-
-    See Also:
-        :doc:`tutorial/03-Parallel-Simulations-With-MPI/00-index`
-
-        :doc:`tutorial/05-Organizing-and-Executing-Simulations/00-index`
     """
 
     def __init__(self, mpi_comm=None, ranks_per_partition=None):
