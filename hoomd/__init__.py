@@ -7,27 +7,27 @@
 code shared among all types of HOOMD-blue simulations. The core data structures
 used to construct a simulation include:
 
-* `Simulation`
+* `hoomd.Simulation`
 
-  * `device.Device`
-  * `State <hoomd.State>`
-  * `Operations`
+  * `hoomd.device.Device`
+  * `hoomd.State`
+  * `hoomd.Operations`
 
-    * Tuners
-    * Updaters
-    * Integrator
-    * Writers
+    * `hoomd.integrate.BaseIntegrator`
+    * `hoomd.operation.Compute`
+    * `hoomd.operation.Tuner`
+    * `hoomd.operation.Updater`
+    * `hoomd.operation.Writer`
 
 See the table of contents or the modules section for a full list of classes,
 methods, and variables in the API.
 
 `hoomd` also contains subpackages that implement specific types of simulations:
 
-* `hpmc` - Hard particle Monte Carlo.
-* `md` - Molecular dynamics.
+* `hoomd.hpmc` - Hard particle Monte Carlo.
+* `hoomd.md` - Molecular dynamics.
 
-See also:
-
+See Also:
     Tutorial: :doc:`tutorial/00-Introducing-HOOMD-blue/00-index`
 """
 import sys
