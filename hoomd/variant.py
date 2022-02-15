@@ -4,8 +4,30 @@
 """Define quantities that vary over the simulation.
 
 A `Variant` object represents a scalar function of the time step. Some
-**Operations** accept `Variant` values for certain parameters, such as the
+operations accept `Variant` values for certain parameters, such as the
 ``kT`` parameter to `hoomd.md.methods.NVT`.
+
+Use one of the built in variant types, or define your own custom function
+in Python:
+
+.. code:: python
+
+    class CustomVariant(hoomd.variant.Variant):
+        def __init__(self):
+            hoomd.variant.Variant.__init__(self)
+
+        def __call__(self, timestep):
+            return (float(timestep)**(1 / 2))
+
+        def _min(self):
+            return 0.0
+
+        def _max(self):
+            return float('inf')
+
+Note:
+    Provide the minimum and maximum values in the ``_min`` and ``_max``
+    methods repsectively.
 """
 
 from hoomd import _hoomd
@@ -14,17 +36,7 @@ from hoomd import _hoomd
 class Variant(_hoomd.Variant):
     """Variant base class.
 
-    Variants define values as a function of the simulation time step. Use one of
-    the built in types or define your own custom function:
-
-    .. code:: python
-
-        class CustomVariant(hoomd.variant.Variant):
-            def __init__(self):
-                hoomd.variant.Variant.__init__(self)
-
-            def __call__(self, timestep):
-                return (float(timestep)**(1 / 2))
+    Variants are scalar valued functions of the simulation time step.
 
     .. py:method:: __call__(timestep)
 
@@ -38,16 +50,16 @@ class Variant(_hoomd.Variant):
 
     @property
     def min(self):
-        """The minimum value of this variant."""
+        """The minimum value of this variant for :math:`t \\in [0,\\infty)`."""
         return self._min()
 
     @property
     def max(self):
-        """The maximum value of this variant."""
+        """The maximum value of this variant for :math:`t \\in [0,\\infty)`."""
         return self._max()
 
     def __getstate__(self):
-        """Get the variant's ``__dict__`` attributue."""
+        """Get the variant's ``__dict__`` attribute."""
         return self.__dict__
 
     def __setstate__(self, state):
@@ -72,7 +84,7 @@ class Constant(_hoomd.VariantConstant, Variant):
     Args:
         value (float): The value.
 
-    `Constant` returns *value* at all time steps.
+    `Constant` returns `value` at all time steps.
 
     Attributes:
         value (float): The value.
@@ -154,7 +166,7 @@ class Cycle(_hoomd.VariantCycle, Variant):
 
 
 class Power(_hoomd.VariantPower, Variant):
-    """A approach from initial to final value of x ^ (power).
+    """A approach from initial to final value following t**(power).
 
     Args:
         A (float): The start value.
@@ -164,12 +176,12 @@ class Power(_hoomd.VariantPower, Variant):
         t_ramp (int): The length of the ramp.
 
     :py:class:`Power` holds the value *A* until time *t_start*. Then it
-    progresses at :math:`x^{power}` from *A* to *B* over *t_ramp* steps and
-    holds the value *B* after that.
+    progresses at :math:`t^{\\mathrm{power}}` from *A* to *B* over *t_ramp*
+    steps and holds the value *B* after that.
 
     .. code-block:: python
 
-        p = Power(2, 8, 1 / 10, 10, 20)
+        p = Power(A=2, B-8, power=1 / 10, t_start=10, t_ramp=20)
 
     .. image:: variant-power.svg
 

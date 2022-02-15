@@ -107,6 +107,7 @@
             "HOOMD",
             "HOOMDGPU",
             "hpmc",
+            "infty",
             "itertools",
             "Jens",
             "joaander",

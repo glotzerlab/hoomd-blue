@@ -6,17 +6,19 @@ hoomd.trigger
 
 .. rubric:: Overview
 
+.. py:currentmodule:: hoomd.trigger
+
 .. autosummary::
     :nosignatures:
 
-    hoomd.trigger.After
-    hoomd.trigger.And
-    hoomd.trigger.Before
-    hoomd.trigger.Not
-    hoomd.trigger.On
-    hoomd.trigger.Or
-    hoomd.trigger.Periodic
-    hoomd.trigger.Trigger
+    After
+    And
+    Before
+    Not
+    On
+    Or
+    Periodic
+    Trigger
 
 .. rubric:: Details
 
