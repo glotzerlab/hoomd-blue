@@ -40,8 +40,9 @@ class Device:
     HOOMD will use this value. You can also set `num_cpu_threads` explicitly.
 
     Note:
-        At this time **very few** features in HOOMD use TBB for threading.
-        Most users should employ MPI for parallel simulations.
+        At this time **very few** features use TBB for threading. Most users
+        should employ MPI for parallel simulations. See `features` for more
+        information.
     """
 
     def __init__(self, communicator, notice_level, msg_file):
@@ -207,9 +208,9 @@ class GPU(Device):
     code path.
 
     Note:
-        Not all features in HOOMD are optimized to use this code path, and it
-        requires that all GPUs support concurrent manged memory access and have
-        high bandwidth interconnects.
+        Not all features are optimized to use this code path, and it requires
+        that all GPUs support concurrent manged memory access and have high
+        bandwidth interconnects.
 
     """
 

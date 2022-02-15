@@ -66,9 +66,9 @@ class Box:
 
     .. image:: box.svg
 
-    All simulations executed in HOOMD-blue occur in a triclinic simulation box
-    with periodic boundary conditions. A triclinic box is defined by six values:
-    the extents :math:`L_x`, :math:`L_y` and :math:`L_z` of the box in the three
+    Particles in a simulation state exist in a triclinic simulation box with
+    periodic boundary conditions. A triclinic box is defined by six values: the
+    extents :math:`L_x`, :math:`L_y` and :math:`L_z` of the box in the three
     directions, and three tilt factors :math:`xy`, :math:`xz` and :math:`yz`.
 
     The parameter matrix is defined in terms of the lattice
@@ -175,9 +175,9 @@ class Box:
 
     .. rubric:: Two dimensional systems
 
-    2D simulations in HOOMD use boxes with ``Lz == 0``. 2D boxes ignore ``xz``
-    and ``yz``. If a new `Box` is assigned to a system with different
-    dimensionality, a warning will be shown.
+    Set ``Lz == 0`` to make the box 2D. 2D boxes ignore ``xz`` and ``yz``.
+    Changing the box dimensionality from 2D to 3D (or from 3D to 2D) during
+    a simulation will result in undefined behavior.
 
     In 2D boxes, *volume* is in units of :math:`[\\mathrm{length}]^2`.
 

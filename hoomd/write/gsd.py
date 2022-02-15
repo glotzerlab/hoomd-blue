@@ -240,10 +240,9 @@ class GSD(Writer):
 def _iterable_is_incomplete(iterable):
     """Checks that any nested attribute has no instances of RequiredArg.
 
-    Given the arbitrary nesting of container types in HOOMD-blue's data
-    model, we need to ensure that no RequiredArg values exist at any depth
-    in a state loggable key. Otherwise, the gsd backend will fail in its
-    conversion to NumPy arrays.
+    Given the arbitrary nesting of container types in the data model, we need to
+    ensure that no RequiredArg values exist at any depth in a state loggable
+    key. Otherwise, the gsd backend will fail in its conversion to NumPy arrays.
     """
     if (not isinstance(iterable, Collection) or isinstance(iterable, str)
             or len(iterable) == 0):

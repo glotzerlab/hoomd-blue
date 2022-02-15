@@ -36,8 +36,8 @@ class Operations(Collection):
     `hoomd.Operations` instance. The class provides the interface defined by
     `collections.abc.Collection`. Other methods for manipulating instances mimic
     Python objects where possible, but the class is not simply a mutable list or
-    set. Since there are multiple types of operations in HOOMD-blue,
-    `Operations` objects manage multiple independent sequences described below.
+    set. `Operations` objects manage multiple independent sequences described
+    below.
 
     The types of operations which can be added to an `Operations` object are
     tuners, updaters, integrators, writers, and computes. An `Operations`

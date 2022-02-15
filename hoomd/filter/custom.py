@@ -88,7 +88,7 @@ class CustomFilter(Hashable, Callable):
     def __eq__(self, other):
         """Whether this filter and another filter are equal.
 
-        This is necessary to allow for proper caching of filter tags internally
-        in HOOMD-blue.
+        This is necessary to allow for proper caching of filter tags in
+        `hoomd.State`.
         """
         pass
