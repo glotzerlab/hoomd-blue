@@ -124,6 +124,7 @@
             "nosignatures",
             "nselect",
             "numpy",
+            "OVITO",
             "parameterdicts",
             "pdata",
             "picklable",

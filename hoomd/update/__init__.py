@@ -9,6 +9,8 @@ See Also:
     `hoomd.Operations`
 
     `hoomd.Simulation`
+
+    Tutorial: :doc:`tutorial/00-Introducing-HOOMD-blue/00-index`
 """
 
 from hoomd.update.box_resize import BoxResize

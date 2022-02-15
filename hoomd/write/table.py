@@ -104,10 +104,10 @@ class _Formatter:
         else:
             # The minimum length representation if greater than one than the
             # smallest representation is to write the number without any
-            # infomration past the decimal point. For values less than 1 the
+            # information past the decimal point. For values less than 1 the
             # smallest is 0.xxx. The plus one is for the decimal point. We
             # already attempt to print out as many decimal points as possible so
-            # we only need to determine the minumum size to the left of the
+            # we only need to determine the minimum size to the left of the
             # decimal point including the decimal point.
             min_len_repr = int(log10(max(abs(value), 1))) + 1
             if value < 0:
@@ -242,7 +242,7 @@ class _TableInternal(_InternalAction):
         This function could be made simpler and faster by moving some of the
         transformation to act. Since we don't expect the headers to change often
         however, this would likely slow the writer down. The design is to
-        off-load any potnentially unnecessary calculations to this function even
+        off-load any potentially unnecessary calculations to this function even
         if that means more overall computation when headers change.
         """
         header_output_list = []
@@ -328,18 +328,16 @@ class _TableInternal(_InternalAction):
 
 
 class Table(_InternalCustomWriter):
-    """A delimiter separated value file backend for a Logger.
+    """Write delimiter separated values to a stream.
 
-    This can serve as a way to output scalar simulation data to standard out.
-    However, this is useable to store simulation scalar data to a file as well.
+    Use `Table` to write scalar and string `hoomd.logging.Logger` quantities to
+    standard out or to a file.
 
-    Note:
-        This only works with scalar and string quantities. If using string
-        quantities, keep in mind that the default space delimiter will make
-        strings with spaces in them will cause read errors if attempting to read
-        the outputed data with a space delimited file reader.
+    Warning:
+        When logger quantities include strings with spaces, the default space
+        delimiter will result in files that are not machine readable.
 
-    Note:
+    Important:
         All attributes for this class are static. They cannot be set to new
         values once created.
 
@@ -353,14 +351,14 @@ class Table(_InternalCustomWriter):
             the data from, defaults to standard out. The object must have write
             and flush methods and a mode attribute.
         header_sep (`str`, optional): String to use to separate names in
-            the logger's namespace, defaults to '.'. For example, if logging the
-            total energy of an `hoomd.md.pair.LJ` pair force object, the default
-            header would be ``md.pair.LJ.energy`` (assuming that
+            the logger's namespace, defaults to ``'.'``. For example, if logging
+            the total energy of an `hoomd.md.pair.LJ` pair force object, the
+            default header would be ``md.pair.LJ.energy`` (assuming that
             ``max_header_len`` is not set).
         delimiter (`str`, optional): String used to separate elements in
-            the space delimitated file, defaults to ' '.
+            the space delimitated file, defaults to ``' '``.
         pretty (`bool`, optional): Flags whether to attempt to make output
-            prettier and easier to read, defaults to True. To make the ouput
+            prettier and easier to read, defaults to True. To make the output
             easier to read, the output will compromise on outputted precision
             for improved readability. In many cases, though the precision will
             still be high with pretty set to ``True``.
@@ -392,7 +390,7 @@ class Table(_InternalCustomWriter):
         delimiter (str): String used to separate elements in the space
             delimitated file.
         pretty (bool): Flags whether to attempt to make output
-            prettier and easier to read. To make the ouput easier to read, the
+            prettier and easier to read. To make the output easier to read, the
             output will compromise on outputted precision for improved
             readability. In many cases, though the precision will still be high
             with pretty set to ``True``.
