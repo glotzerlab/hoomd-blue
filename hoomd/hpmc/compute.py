@@ -137,14 +137,14 @@ class SDF(Compute):
             bin :math:`[\mathrm{length}]`.
         dx (float): Bin width :math:`[\mathrm{length}]`.
 
-    `SDF` computes the proability distribution of particles overlapping
-    :math:`s(x)` as a function of separation.
+    `SDF` computes the proability distribution :math:`s(x)` of particles
+    overlapping as a function of separation.
 
     .. rubric:: Implementation
 
-    For each pair of particles :math:`i` and :math:`j` it scales the particle
-    separation vector by :math:`1-x`, and finds the smallest value leading to
-    particle shape overlap:
+    For each pair of particles :math:`i` and :math:`j` `SDF` scales the particle
+    separation vector by :math:`1-x` and finds the smallest value of :math:`x`
+    leading to an overlap of the particle shapes:
 
     .. math::
 
@@ -167,7 +167,7 @@ class SDF(Compute):
     .. rubric:: Pressure
 
     The extrapolation of :math:`s(x)` to :math:`x = 0`, :math:`s(0+)` is related
-    to the pressure
+    to the pressure:
 
     .. math::
         \beta P = \rho \left(1 + \frac{s(0+)}{2d} \right)
@@ -251,8 +251,8 @@ class SDF(Compute):
         """float: Beta times pressure in NVT simulations \
         :math:`\\left[ \\mathrm{length}^{-d} \\right]`.
 
-        Use a polynomial curve fit of degree 5 to estimate
-        :math:`s(0+)` and compute the pressure via:
+        Uses a polynomial curve fit of degree 5 to estimate :math:`s(0+)` and
+        compute the pressure via:
 
         .. math::
             \\beta P = \\rho \\left(1 + \\frac{s(0+)}{2d} \\right)
