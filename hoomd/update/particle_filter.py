@@ -40,7 +40,7 @@ class FilterUpdater(hoomd.operation.Updater):
     `hoomd.filter.ParticleFilter` instances to avoid the cost of re-running the
     filter on every time step. The particles selected by a filter will remain
     static until recomputed. This class provides a mechanism to update the
-    cached list of particles periodically. For example, use it to MD integration
+    cached list of particles. For example, periodically update a MD integration
     method's group so that the integration method applies to particles in a
     given region of space.
 
