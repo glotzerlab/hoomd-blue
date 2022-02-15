@@ -7,8 +7,8 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.14 net yet released
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.14 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
@@ -26,22 +26,25 @@ v3.0.0-beta.14 net yet released
 * ``md.dihedral.Table`` - Tabulated dihedral potential.
 * ``md.improper.Harmonic`` - Compute the harmonic improper potential and forces.
 * Tutorial on Organizing and executing simulations.
+* C++ and build system overview in ``ARCHITECTURE.md``.
+* ``hpmc.external.wall`` - Overlap checks between particles and wall surfaces.
 
 *Changed*
 
 * Support variant translational and rotational spring constants in ``hpmc.external.field.Harmonic``.
-* [breaking] - renamed ``md.angle.Cosinesq`` to ``md.angle.CosineSquared``.
+* [breaking] Renamed ``md.angle.Cosinesq`` to ``md.angle.CosineSquared``.
+* [breaking] `hoomd.Box` no longer has a `matrix` property use ``to_matrix`` and ``from_matrix``.
 
 *Fixed*
 
 * Compilation errors on FreeBSD.
 * ``TypeError`` when instantiating special pair forces.
-
-*Deprecated*
+* Inconsistent state when using the ``walls`` setter of a ``md.external.wall.WallPotential``.
 
 *Removed*
 
 * [breaking] Removed ``md.pair.SLJ`` potential and wall. Use ``md.pair.ExpandedLJ``.
+* [breaking] ``hoomd.Box.lattice_vectors`` property no longer exists.
 
 v3.0.0-beta.13 (2022-01-18)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
