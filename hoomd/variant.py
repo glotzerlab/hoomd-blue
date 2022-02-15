@@ -27,7 +27,7 @@ in Python:
 
 Note:
     Provide the minimum and maximum values in the ``_min`` and ``_max``
-    methods repsectively.
+    methods respectively.
 """
 
 from hoomd import _hoomd
@@ -166,7 +166,7 @@ class Cycle(_hoomd.VariantCycle, Variant):
 
 
 class Power(_hoomd.VariantPower, Variant):
-    """A approach from initial to final value following t**(power).
+    """An approach from initial to final value following ``t**power``.
 
     Args:
         A (float): The start value.

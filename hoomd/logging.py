@@ -239,7 +239,7 @@ class _LoggerQuantity:
         """Allow updating the class/namespace of the object.
 
         Since the namespace is determined by the passed class's module and class
-        name, if inheritanting `_LoggerQuantity`, the class needs to be updated
+        name, if inheriting from `_LoggerQuantity`, the class needs to be updated
         to the subclass.
 
         Args:
@@ -516,7 +516,7 @@ class Logger(_SafeNamespaceDict):
     `hoomd.write.GSD` or `hoomd.write.Table` and loggable objects. The `Logger`
     class makes use of *namespaces* which organize logged quantities. For
     example internally all loggable quantities are ordered by the module and
-    class them come from. For instance, the `hoomd.md.pair.LJ` class has a
+    class they come from. For instance, the `hoomd.md.pair.LJ` class has a
     namespace ``('md', 'pair', 'LJ')``. This ensures that logged quantities
     remain unambiguous. Use `add` or the ``+=`` operator to add loggable objects
     to the `Logger`.

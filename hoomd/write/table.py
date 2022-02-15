@@ -356,11 +356,11 @@ class Table(_InternalCustomWriter):
             default header would be ``md.pair.LJ.energy`` (assuming that
             ``max_header_len`` is not set).
         delimiter (`str`, optional): String used to separate elements in
-            the space delimitated file, defaults to ``' '``.
+            the space delimited file, defaults to ``' '``.
         pretty (`bool`, optional): Flags whether to attempt to make output
             prettier and easier to read, defaults to True. To make the output
-            easier to read, the output will compromise on outputted precision
-            for improved readability. In many cases, though the precision will
+            easier to read, the output will compromise on numerical precision
+            for improved readability. In many cases, the precision will
             still be high with pretty set to ``True``.
         max_precision (`int`, optional): If pretty is not set, then this
             controls the maximum precision to use when outputing numerical
@@ -388,7 +388,7 @@ class Table(_InternalCustomWriter):
             be ``md.pair.LJ.energy`` (assuming that ``max_header_len`` is not
             set).
         delimiter (str): String used to separate elements in the space
-            delimitated file.
+            delimited file.
         pretty (bool): Flags whether to attempt to make output
             prettier and easier to read. To make the output easier to read, the
             output will compromise on outputted precision for improved

@@ -295,7 +295,7 @@ class Operations(Collection):
     def computes(self):
         """list[`hoomd.operation.Compute`]: A list of compute operations.
 
-        Holds the list of computess associated with this collection. The list
+        Holds the list of computes associated with this collection. The list
         can be modified as a standard Python list.
         """
         return self._computes

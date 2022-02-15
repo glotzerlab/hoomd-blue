@@ -6,10 +6,10 @@
 Use a `Device` class to choose which hardware device(s) should execute the
 simulation. `Device` also sets where to write log messages and how verbose
 the message output should be. Pass a `Device` object to `hoomd.Simulation`
-on instanation to set the options for that simulation.
+on instantiation to set the options for that simulation.
 
 User scripts may instantiate multiple `Device` objects and use each with a
-different `hoomd.Simulation` objects. One `Device` object may also be shared
+different `hoomd.Simulation` object. One `Device` object may also be shared
 with many `hoomd.Simulation` objects.
 
 Tip:
@@ -209,7 +209,7 @@ class GPU(Device):
 
     Note:
         Not all features are optimized to use this code path, and it requires
-        that all GPUs support concurrent manged memory access and have high
+        that all GPUs support concurrent managed memory access and have high
         bandwidth interconnects.
 
     """

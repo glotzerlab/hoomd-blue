@@ -65,7 +65,7 @@ class Sphere(WallGeometry):
             Whether to include the surface of the sphere in the space. ``True``
             means do not include the surface, defaults to ``True``.
 
-    The signed distance from the wall is:
+    The signed distance from the wall surface is:
 
     .. math::
 
@@ -304,7 +304,7 @@ class Plane(WallGeometry):
 class _MetaListIndex:
     """Index and type information between frontend and backend lists.
 
-    This class facilitates mantaining order between the user exposed list in
+    This class facilitates maintaining order between the user exposed list in
     `_WallsMetaList` and the backend lists used in C++. This is essentially a
     dataclass (we cannot use a dataclass since it requires Python 3.7 and we
     support prior versions.
