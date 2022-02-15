@@ -1,7 +1,14 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Compute properties of hard particle configurations."""
+"""Compute properties of hard particle configurations.
+
+The HPMC compute classes analyze the system configuration and provide results
+as loggable quantities for use with `hoomd.logging.Logger` or by direct access
+via the Python API. `FreeVolume` computes the free volume available to small
+particles, such as depletants, and `SDF` computes the pressure in system of
+convex particles with a fixed box size.
+"""
 
 from __future__ import print_function
 
@@ -24,28 +31,41 @@ class FreeVolume(Compute):
 
     `FreeVolume` computes the free volume in the simulation state available to a
     given test particle using Monte Carlo integration. It must be used in
-    combination with an HPMC integrator, which defines the particle shape
-    parameters.
+    combination with `hoomd.hpmc.integrate.HPMCIntegrator`, which defines the
+    particle shape parameters of the type in the ``shape`` property. Particles
+    of ``test_particle_type`` may or may not be present in the simulation state.
 
-    `FreeVolume` generates `num_samples` uniform random test particle placements
-    (position and orientation) inside the box and counts the number of times
-    these test placements overlap with the particles in the simulation state.
-    It then computes the free volume with:
+    `FreeVolume` generates `num_samples` (:math:`n_\mathrm{samples}`) random
+    trial particle configurations with positions :math:`\vec{r}^t_j` uniformly
+    distributed in the simulation box, and orientations :math:`\mathbf{q}^t_j`
+    uniformly distributed among rotations matching the box dimensionality.
+    `FreeVolume` counts the number of the trial configurations overlap with the
+    particles in the simulation state:
+
+    .. math::
+
+        n_\mathrm{overlaps} = \sum_{j=1}^{n_\mathrm{samples}}
+            \sum_{i=1}^{N_\mathrm{particles}}
+            \left[
+            \mathrm{overlap}\left(
+            \mathrm{minimum\_image}(\vec{r}^t_j - \vec{r}_i),
+            S_i(\mathbf{q}_i),
+            S_t(\mathbf{q}^t_j) \right) \ne \emptyset
+            \right]
+
+    where :math:`\mathrm{overlap}` is the shape overlap function defined in
+    `hpmc.integrate.HPMCIntegrator`, :math:`S_i` is the shape of particle
+    :math:`i`, :math:`S_t` is the shape of the test particle, and
+    :math:`\left[ P \right]` is the Iverson bracket.
+
+    The free volume is given by:
 
     .. math::
         V_\mathrm{free} = \left( \frac{n_\mathrm{samples} - n_\mathrm{overlaps}}
                                {n_\mathrm{samples}} \right) V_\mathrm{box}
 
-    where :math:`V_\mathrm{free}` is the estimated free volume `free_volume`,
-    :math:`n_\mathrm{samples}` is the number of samples `num_samples`,
-    :math:`n_\mathrm{overlaps}` is the number of overlapping test placements,
-    and :math:`V_\mathrm{box}` is the volume of the simulation box.
-
-    Note:
-
-        The test particle type must exist in the simulation state and its shape
-        parameters must be set in the simulation's HPMC integrator. Particles
-        with this type may or may not be present in the simulation state.
+    where :math:`V_\mathrm{free}` is the estimated free volume `free_volume`
+    and :math:`V_\mathrm{box}` is the volume of the simulation box (area in 2D).
 
     Note:
 
