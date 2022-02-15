@@ -90,21 +90,19 @@ class BoxMC(Updater):
         super().__init__(trigger)
 
         _default_dict = dict(weight=0.0, delta=0.0)
-        param_dict = ParameterDict(volume={
-            "mode": hoomd.data.typeconverter.OnlyFrom(['standard', 'ln']),
-            **_default_dict
-        },
-                                   aspect=_default_dict,
-                                   length=dict(weight=0.0, delta=(0.0,) * 3),
-                                   shear=dict(weight=0.0,
-                                              delta=(0.0,) * 3,
-                                              reduce=0.0),
-                                   betaP=hoomd.variant.Variant,
-                                   instance=int,
-                                   _defaults={'volume': {
-                                       'mode': 'standard'
-                                   }})
+        param_dict = ParameterDict(
+            volume={
+                "mode": hoomd.data.typeconverter.OnlyFrom(['standard', 'ln']),
+                **_default_dict
+            },
+            aspect=_default_dict,
+            length=dict(weight=0.0, delta=(0.0,) * 3),
+            shear=dict(weight=0.0, delta=(0.0,) * 3, reduce=0.0),
+            betaP=hoomd.variant.Variant,
+            instance=int,
+        )
         self._param_dict.update(param_dict)
+        self.volume["mode"] = "standard"
         self.betaP = betaP
         self.instance = 0
 
