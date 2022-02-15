@@ -274,11 +274,9 @@ template<unsigned int ndim> class EvaluatorPairALJ
             // and we don't need to iterate over polytope based attributes.
             const auto vertices = shape["vertices"].cast<pybind11::list>();
             const auto N_vertices = static_cast<unsigned int>(len(vertices));
-            verts = ManagedArray<vec3<Scalar>>(N_vertices, managed);
 
             const auto faces_ = shape["faces"].cast<pybind11::list>();
             const auto N_faces = static_cast<unsigned int>(len(faces_));
-            face_offsets = ManagedArray<unsigned int>(N_faces, managed);
 
             // Simulating an ellipsoid just return
             if (N_vertices == 0 && N_faces == 0)
@@ -300,6 +298,9 @@ template<unsigned int ndim> class EvaluatorPairALJ
                 {
                 throw std::runtime_error("Cannot have empty vertices list.");
                 }
+
+            verts = ManagedArray<vec3<Scalar>>(N_vertices, managed);
+            face_offsets = ManagedArray<unsigned int>(N_faces, managed);
 
             // Unpack the list[list] of vertices into a ManagedArray.
             for (unsigned int i = 0; i < N_vertices; ++i)
