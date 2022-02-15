@@ -2,6 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from math import isclose
+import numpy as np
 import pytest
 
 from hoomd import hpmc
@@ -9,10 +10,35 @@ from hoomd.conftest import operation_pickling_check
 from hoomd.hpmc.tune.volume_move_size import (_MoveSizeTuneDefinition,
                                               VolumeMoveSize)
 
+MOVE_TYPES = ("aspect", "volume", "shear_x", "shear_y", "shear_z", "length_x",
+              "length_y", "length_z")
 
-@pytest.fixture(params=("volume", "aspect"))
+rng = np.random.default_rng(56456264)
+
+
+def generate_move_definition(move=None):
+    if move is None:
+        move = rng.choose(MOVE_TYPES)
+    target = rng.random()
+    domain = (rng.uniform(1e-8, 1e-4), rng.uniform(5, 10))
+    if rng.random() > 0.5:
+        domain = (domain[0], None)
+    return {"attr": move, "target": target, "domain": domain}
+
+
+def get_move_acceptance_ratio(boxmc, attr):
+    """Helps translate between tune move names and their acceptance ratio."""
+    splits = attr.split("_")
+    if len(splits) == 1:
+        return getattr(boxmc, attr + "_moves")
+    if splits[0].startswith("len"):
+        return boxmc.volume_moves
+    return boxmc.shear_moves
+
+
+@pytest.fixture(params=MOVE_TYPES)
 def move_definition_dict(request):
-    return {"attr": request.param, "target": 0.5, "domain": (1e-5, None)}
+    return generate_move_definition(request.param)
 
 
 @pytest.fixture
@@ -27,12 +53,18 @@ def simulation(simulation_factory, lattice_snapshot_factory):
 
 @pytest.fixture
 def boxmc(move_definition_dict):
-    attr = move_definition_dict["attr"]
-    boxmc = hpmc.update.BoxMC(0, 1)
+    split = move_definition_dict["attr"].split("_")
+    attr = split[0]
+    boxmc = hpmc.update.BoxMC(trigger=1, betaP=0)
     getattr(boxmc, attr)["weight"] = 1.0
-    getattr(boxmc, attr)["delta"] = 1e-2
+    if len(split) > 1:
+        getattr(boxmc, attr)["delta"] = (1e-1,) * 3
+    else:
+        getattr(boxmc, attr)["delta"] = 1e-1
     if attr == "volume":
         boxmc.volume["mode"] = "ln"
+    if attr == "shear":
+        boxmc.shear["reduce"] = 1.0
     return boxmc
 
 
@@ -62,9 +94,9 @@ class TestMoveSizeTuneDefinition:
         simulation.run(0)
         # needed to set previous values need to to calculate acceptance rate
         assert move_size_definition.y is None
-        simulation.run(1000)
-        move_attr = f"{move_size_definition.attr}_moves"
-        accepted, rejected = getattr(boxmc, move_attr)
+        simulation.run(10)
+        attr = move_size_definition.attr
+        accepted, rejected = get_move_acceptance_ratio(boxmc, attr)
         calc_acceptance_rate = (accepted) / (accepted + rejected)
         assert isclose(move_size_definition.y, calc_acceptance_rate)
         # We do this twice to ensure that when the counter doesn"t change our
@@ -72,19 +104,38 @@ class TestMoveSizeTuneDefinition:
         assert isclose(move_size_definition.y, calc_acceptance_rate)
         simulation.run(10)
         assert not isclose(move_size_definition.y, calc_acceptance_rate)
-        accepted, rejected = getattr(boxmc, move_attr)
+        accepted, rejected = get_move_acceptance_ratio(boxmc, attr)
         calc_acceptance_rate = accepted / (accepted + rejected)
         assert isclose(move_size_definition.y, calc_acceptance_rate)
 
     def test_getting_setting_move_size(self, boxmc, move_size_definition,
                                        simulation):
         attr = move_size_definition.attr
+
+        def set_move_size(new_value):
+            splits = attr.split("_")
+            definition = getattr(boxmc, splits[0])
+            if len(splits) == 1:
+                definition["delta"] = new_value
+                return new_value
+            old_value = list(definition["delta"])
+            old_value[{"x": 0, "y": 1, "z": 2}[splits[1]]] = new_value
+            definition["delta"] = old_value
+            return new_value
+
+        def get_move_size():
+            splits = attr.split("_")
+            base_size = getattr(boxmc, splits[0])["delta"]
+            if len(splits) == 1:
+                return base_size
+            return base_size[{"x": 0, "y": 1, "z": 2}[splits[1]]]
+
         simulation.operations += move_size_definition.boxmc
-        assert move_size_definition.x == getattr(boxmc, attr)["delta"]
-        getattr(boxmc, attr)["delta"] = getattr(boxmc, attr)["delta"] * 1.1
-        assert move_size_definition.x == getattr(boxmc, attr)["delta"]
-        move_size_definition.x = getattr(boxmc, attr)["delta"] * 1.1
-        assert move_size_definition.x == getattr(boxmc, attr)["delta"]
+        assert move_size_definition.x == get_move_size()
+        set_move_size(rng.uniform(0, 10))
+        assert move_size_definition.x == get_move_size()
+        move_size_definition.x = rng.uniform(0, 10)
+        assert move_size_definition.x == get_move_size()
 
     def test_hash(self, move_size_definition, move_definition_dict, simulation,
                   boxmc):
@@ -107,49 +158,58 @@ class TestMoveSizeTuneDefinition:
         assert different_definition != move_size_definition
 
 
-_move_size_options = [(VolumeMoveSize.scale_solver,
-                       dict(trigger=300,
-                            moves=["volume"],
-                            target=0.5,
-                            max_move_size={"volume": 5},
-                            tol=1e-1)),
-                      (VolumeMoveSize.secant_solver,
-                       dict(
-                           trigger=300,
-                           moves=["aspect"],
-                           target=0.6,
-                       ))]
-
-
-@pytest.fixture(params=_move_size_options,
-                ids=lambda x: "MoveSize-" + x[0].__name__)
-def move_size_tuner_pairs(request, boxmc):
-    return (request.param[0], {**request.param[1], "boxmc": boxmc})
+@pytest.fixture(params=MOVE_TYPES)
+def boxmc_tuner_method_and_kwargs(request):
+    cls_methods = (VolumeMoveSize.secant_solver, VolumeMoveSize.scale_solver)
+    cls = cls_methods[rng.integers(2)]
+    return cls, {
+        "trigger": 100,
+        "moves": [request.param],
+        "tol": 0.05,
+        "target": rng.uniform(0.3, 0.5)
+    }
 
 
 @pytest.fixture
-def move_size_tuner(move_size_tuner_pairs):
-    return move_size_tuner_pairs[0](**move_size_tuner_pairs[1])
+def boxmc_with_tuner(boxmc_tuner_method_and_kwargs):
+    cls, move_size_kwargs = boxmc_tuner_method_and_kwargs
+    move = move_size_kwargs["moves"][0]
+    boxmc = hpmc.update.BoxMC(1, betaP=1.0)
+    if move == "aspect":
+        boxmc.aspect = {"weight": 1.0, "delta": 0.0008}
+    elif move == "volume":
+        boxmc.volume = {"weight": 1.0, "delta": 0.1, "mode": "standard"}
+    else:
+        setattr(boxmc,
+                move.split("_")[0], {
+                    "weight": 1.0,
+                    "delta": (1e-1,) * 3
+                })
+    cls_methods = (VolumeMoveSize.secant_solver, VolumeMoveSize.scale_solver)
+    cls = cls_methods[rng.integers(2)]
+    return boxmc, cls(**move_size_kwargs, boxmc=boxmc)
 
 
 class TestMoveSize:
 
-    def test_construction(self, move_size_tuner_pairs):
-        move_size_dict = move_size_tuner_pairs[1]
-        move_size = move_size_tuner_pairs[0](**move_size_dict)
-        for attr in move_size_dict:
+    def test_construction(self, boxmc_tuner_method_and_kwargs, boxmc):
+        cls, params = boxmc_tuner_method_and_kwargs
+        move_size = cls(**params, boxmc=boxmc)
+        for attr in params:
             if attr == "trigger":
-                assert getattr(move_size, attr).period == move_size_dict[attr]
+                assert getattr(move_size, attr).period == params[attr]
                 continue
             try:
-                assert getattr(move_size, attr) == move_size_dict[attr]
+                assert getattr(move_size, attr) == params[attr]
             # We catch attribute errors since the solver may be the one to
             # have an attribute. This allows us to check that all attributes
             # are getting set correctly.
             except AttributeError:
-                assert getattr(move_size.solver, attr) == move_size_dict[attr]
+                assert getattr(move_size.solver, attr) == params[attr]
+        assert boxmc is move_size.boxmc
 
-    def test_attach(self, move_size_tuner, simulation, boxmc):
+    def test_attach(self, boxmc_with_tuner, simulation):
+        boxmc, move_size_tuner = boxmc_with_tuner
         simulation.operations.tuners.append(move_size_tuner)
         simulation.operations += boxmc
         tunable = move_size_tuner._tunables[0]
@@ -158,7 +218,8 @@ class TestMoveSize:
         assert move_size_tuner._attached
         assert tunable.y is None
 
-    def test_detach(self, move_size_tuner, simulation, boxmc):
+    def test_detach(self, boxmc_with_tuner, simulation):
+        boxmc, move_size_tuner = boxmc_with_tuner
         simulation.operations.tuners.append(move_size_tuner)
         simulation.operations += boxmc
         simulation.run(0)
@@ -166,7 +227,8 @@ class TestMoveSize:
         move_size_tuner._detach()
         assert not move_size_tuner._attached
 
-    def test_set_params(self, move_size_tuner):
+    def test_set_params(self, boxmc_with_tuner):
+        _, move_size_tuner = boxmc_with_tuner
         target = move_size_tuner.target
         assert all(target == t.target for t in move_size_tuner._tunables)
         target *= 1.1
@@ -189,23 +251,26 @@ class TestMoveSize:
     # All tests (using differnt fixtures) combined take about 17 seconds, so
     # only test during validation
     @pytest.mark.validate
-    def test_act(self, move_size_tuner_pairs, simulation, boxmc):
-        move_size_tuner = move_size_tuner_pairs[0](**move_size_tuner_pairs[1])
+    def test_act(self, boxmc_with_tuner, simulation):
+        boxmc, move_size_tuner = boxmc_with_tuner
+        if move_size_tuner.moves[0].startswith("sh"):
+            pytest.skip("Do not test shear with validation.")
+        simulation.run(1500)
         simulation.operations.tuners.append(move_size_tuner)
         simulation.operations += boxmc
-        simulation.run(901)
-        # breakpoint()
-        assert False
         cnt = 0
-        while not move_size_tuner.tuned and cnt < 4:
-            simulation.run(2000)
+        while not move_size_tuner.tuned and cnt < 5:
+            simulation.run(1201)
             cnt += 1
         assert move_size_tuner.tuned
-        simulation.run(10000)
-        move_counts = simulation.operations.integrator.translate_moves
+        simulation.run(1_100)
+        move_counts = get_move_acceptance_ratio(boxmc, move_size_tuner.moves[0])
         acceptance_rate = move_counts[0] / sum(move_counts)
-        tolerance = move_size_tuner.solver.tol
+        # We must increase tolerance a bit since tuning to a tolerance is noisy
+        # for BoxMC. Particularly shear move tuning.
+        tolerance = 2.0 * move_size_tuner.solver.tol
         assert abs(acceptance_rate - move_size_tuner.target) <= tolerance
 
-    def test_pickling(self, move_size_tuner, simulation):
+    def test_pickling(self, boxmc_with_tuner, simulation):
+        _, move_size_tuner = boxmc_with_tuner
         operation_pickling_check(move_size_tuner, simulation)
