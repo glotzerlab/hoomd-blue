@@ -283,8 +283,10 @@ template<unsigned int ndim> class EvaluatorPairALJ
             // Simulating an ellipsoid just return
             if (N_vertices == 0 && N_faces == 0)
                 {
-                // for ellipsoids, there needs to be a 0 vertex
-                // because that is the 0 of the support function
+                // The GJK implementation assumes that all shapes have at least one
+                // vertex. For ellipsoids, we must use the origin as that vertex since it
+                // guarantees that the polyhedral component of the support function will
+                // always be 0 and not contribute to the total support function.
                 verts = ManagedArray<vec3<Scalar>>(1, managed);
                 verts[0] = vec3<Scalar>(0, 0, 0);
                 faces = ManagedArray<unsigned int>(1, managed);
@@ -574,7 +576,11 @@ template<unsigned int ndim> class EvaluatorPairALJ
                           shape_j->rounding_radii,
                           shape_i->has_rounding,
                           shape_j->has_rounding);
-                // assert(success && !overlap);
+                // Unphysical ALJ simulation results may be the result of
+                // invalid collision detection from GJK, which will normally
+                // occur silently. This assertion helps debug such errors by
+                // failing fast in debug mode if GJK failed to converge.
+                assert(success && !overlap);
 
                 if (flip)
                     {
