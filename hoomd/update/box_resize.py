@@ -62,18 +62,18 @@ class BoxResize(Updater):
         \\vec{r_j} \\leftarrow \\mathrm{minimum\\_image}_{\\vec{a}_k}'
                                (\\vec{r}_j)
 
-    Note:
-        The passed `Variant` must be bounded (i.e. it must have a true minimum
-        and maximum) or the behavior of the updater is undefined.
+    Important:
+        The passed `Variant` must be bounded on the interval :math:`t \\in
+        [0,\\infty)` or the behavior of the updater is undefined.
 
-    Note:
+    Warning:
         Rescaling particles fails in HPMC simulations with more than one MPI
         rank.
 
     Note:
         When using rigid bodies, ensure that the `BoxResize` updater is last in
         the operations updater list. Immediately after the `BoxResize` updater
-        triggers, rigid bodies (`hoomd.md.constrain.rigid`) will be temporarily
+        triggers, rigid bodies (`hoomd.md.constrain.Rigid`) will be temporarily
         deformed. `hoomd.md.Integrator` will run after the last updater and
         resets the constituent particle positions before computing forces.
 

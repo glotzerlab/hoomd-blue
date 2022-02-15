@@ -36,22 +36,22 @@ class _GroupConverter:
 class FilterUpdater(hoomd.operation.Updater):
     """Update sets of particles associated with a filter.
 
-    HOOMD caches the particles selected by `hoomd.filter.ParticleFilter`
-    instances to avoid the cost of re-running the filter on every time step.
-    This means that unless the particles selected by a filter are recomputed the
-    set of particles an operation works on is static. This class provides a
-    mechanism to update the cached list of particles periodically. For example,
-    use it to update the particles operated on by an MD integration method so
-    that the integration method applies to particles in a given region of space.
+    `hoomd.Simulation` caches the particles selected by
+    `hoomd.filter.ParticleFilter` instances to avoid the cost of re-running the
+    filter on every time step. The particles selected by a filter will remain
+    static until recomputed. This class provides a mechanism to update the
+    cached list of particles periodically. For example, use it to MD integration
+    method's group so that the integration method applies to particles in a
+    given region of space.
 
-    Note:
-        If needed to improve performance, use a `hoomd.trigger.Trigger`
-        subclass, to update only when there is a known change to the particles
-        that a filter would select.
+    Tip:
+        To improve performance, use a `hoomd.trigger.Trigger` subclass, to
+        update only when there is a known change to the particles that a filter
+        would select.
 
     Note:
         Some actions automatically recompute all filter particles such as adding
-        or removing particles.
+        or removing particles to the `hoomd.Simulation.state`.
 
     Args:
         trigger (hoomd.trigger.Trigger or int):
