@@ -377,20 +377,19 @@ def log(func=None,
         func (`method`): class method to make loggable. If using non-default
             arguments, func should not be set.
         is_property (`bool`, optional): Whether to make the method a
-            property, defaults to True. Argument keyword only
+            property, defaults to True. Keyword only argument.
         category (`str`, optional): The string represention of the type of
-            loggable quantity, defaults to 'scalar'. See
-            `LoggerCategories` for available types. Argument
-            keyword only
+            loggable quantity, defaults to 'scalar'. See `LoggerCategories` for
+            available types. Keyword only argument.
         default (`bool`, optional): Whether the quantity should be logged
             by default, defaults to True. This is orthogonal to the loggable
-            quantity's type. An example would be performance orientated
-            loggable quantities.  Many users may not want to log such
-            quantities even when logging other quantities of that type. The
-            default category allows for these to be pass over by
-            `Logger` objects by default. Argument keyword only.
-        requires_run (`bool`, optional): Whether this property requires
-            the simulation to run before being accessible.
+            quantity's type. An example would be performance orientated loggable
+            quantities.  Many users may not want to log such quantities even
+            when logging other quantities of that type. The default category
+            allows for these to be pass over by `Logger` objects by default.
+            Keyword only argument.
+        requires_run (`bool`, optional): Whether this property requires the
+            simulation to run before being accessible.
 
     Note:
         The namespace (where the loggable object is stored in the `Logger`
