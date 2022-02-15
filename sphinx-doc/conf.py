@@ -72,7 +72,7 @@ html_css_files = ['css/hoomd-theme.css']
 html_static_path = ['_static']
 
 IGNORE_MODULES = ['hoomd._hoomd']
-IGNORE_CLASSES = ['_TunerProperty', '_UpdaterProperty']
+IGNORE_CLASSES = ['_TunerProperty', '_UpdaterProperty', '_HOOMDGetSetAttrBase']
 
 
 def autodoc_process_bases(app, name, obj, options, bases):
