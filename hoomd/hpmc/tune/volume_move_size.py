@@ -188,8 +188,8 @@ class _InternalVolumeMoveSize(_InternalAction):
     def tuned(self):
         """bool: Whether or not the move sizes are considered tuned.
 
-        A `MoveSize` object is considered tuned if it the solver tolerance has
-        been met by all tunables for 2 iterations.
+        A `VolumeMoveSize` object is considered tuned if it the solver tolerance
+        has been met by all tunables for 2 iterations.
         """
         return self._tuned > 1
 
@@ -261,10 +261,11 @@ class _InternalVolumeMoveSize(_InternalAction):
 
 
 class VolumeMoveSize(_InternalCustomTuner):
-    """Tunes HPMCIntegrator move sizes to targeted acceptance rate.
+    """Tunes ``BoxMC`` move sizes to targeted acceptance rate.
 
-    For most common creation of a `MoveSize` tuner see `MoveSize.secant_solver`
-    and `MoveSize.scale_solver` respectively.
+    For most common creation of a `VolumeMoveSize` tuner see
+    `VolumeMoveSize.secant_solver` and `VolumeMoveSize.scale_solver`
+    respectively.
 
     Args:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
@@ -299,14 +300,9 @@ class VolumeMoveSize(_InternalCustomTuner):
         max_move_size (float): The maximum value of a volume move
             size to attempt.
 
-    Note:
-        Limiting the maximum move sizes can lead to the inability to converge to
-        the desired acceptance rate. Also, not limiting the move size can lead
-        to move sizes that require the use of multiple periodic images to check
-        for overlaps, especially in low density systems since the acceptance
-        rate tends towards 1. Therefore, it is recommended to pick a moderate
-        maximum move size for at least the translational moves to prevent
-        requiring checking periodic images.
+    Warning:
+        Over-limiting the maximum move sizes can lead to the inability to
+        converge to the desired acceptance rate.
     """
     _internal_class = _InternalVolumeMoveSize
 
@@ -320,7 +316,7 @@ class VolumeMoveSize(_InternalCustomTuner):
                      max_scale=2.,
                      gamma=1.,
                      tol=1e-2):
-        """Create a `MoveSize` tuner with a `hoomd.tune.ScaleSolver`.
+        """Create a `VolumeMoveSize` tuner with a `hoomd.tune.ScaleSolver`.
 
         Args:
             trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
@@ -359,7 +355,7 @@ class VolumeMoveSize(_InternalCustomTuner):
                       max_move_size=None,
                       gamma=0.8,
                       tol=1e-2):
-        """Create a `MoveSize` tuner with a `hoomd.tune.SecantSolver`.
+        """Create a `VolumeMoveSize` tuner with a `hoomd.tune.SecantSolver`.
 
         This solver can be faster than `hoomd.tune.ScaleSolver`, but depending
         on the system slightly less stable. In general, with the default value
