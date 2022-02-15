@@ -343,7 +343,7 @@ class Table(_InternalCustomWriter):
 
     Args:
         trigger (hoomd.trigger.Trigger): The trigger to determine when to run
-            the Table back end.
+            the Table backend.
         logger (hoomd.logging.Logger): The logger to query for output. The
             'scalar' categories must be set on the logger, and the 'string'
             categories is optional.
@@ -375,7 +375,7 @@ class Table(_InternalCustomWriter):
 
     Attributes:
         trigger (hoomd.trigger.Trigger): The trigger to determine when to run
-            the Table back end.
+            the Table backend.
         logger (hoomd.logging.Logger): The logger to query for output. The
             'scalar' categories must be set on the logger, and the 'string'
             categories is optional.

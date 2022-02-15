@@ -5,7 +5,7 @@
 
 Use the `Logger` class to collect loggable quantities (e.g. kinetic temperature,
 pressure, per-particle energy) during the simulation run. Pass the `Logger` to a
-back end such as `hoomd.write.GSD` or `hoomd.write.Table` to write the logged
+backend such as `hoomd.write.GSD` or `hoomd.write.Table` to write the logged
 values to a file.
 
 See Also:
@@ -239,8 +239,8 @@ class _LoggerQuantity:
         """Allow updating the class/namespace of the object.
 
         Since the namespace is determined by the passed class's module and class
-        name, if inheriting from `_LoggerQuantity`, the class needs to be updated
-        to the subclass.
+        name, if inheriting from `_LoggerQuantity`, the class needs to be
+        updated to the subclass.
 
         Args:
             cls (``class object``): The class to update the namespace with.
@@ -512,7 +512,7 @@ class _LoggerEntry:
 class Logger(_SafeNamespaceDict):
     """Logs HOOMD-blue operation data and custom quantities.
 
-    The `Logger` class provides an intermediary between a back end such as
+    The `Logger` class provides an intermediary between a backend such as
     `hoomd.write.GSD` or `hoomd.write.Table` and loggable objects. The `Logger`
     class makes use of *namespaces* which organize logged quantities. For
     example internally all loggable quantities are ordered by the module and
@@ -550,7 +550,7 @@ class Logger(_SafeNamespaceDict):
     `Logger` object will not change the values of these two properties.
     ``categories`` determines what if any types of loggable quantities (see
     `LoggerCategories`) are appropriate for a given `Logger` object. This helps
-    logging back ends determine if a `Logger` object is compatible. The
+    logging backends determine if a `Logger` object is compatible. The
     ``only_default`` flag is mainly a convenience by allowing quantities not
     commonly logged (but available) to be passed over unless explicitly asked
     for. You can override the ``only_default`` flag by explicitly listing the
@@ -561,7 +561,7 @@ class Logger(_SafeNamespaceDict):
         The logger provides a way for users to create their own logger back
         ends. See `log` for details on the intermediate representation.
         `LoggerCategories` defines the various categories available to specify
-        logged quantities. Custom back ends should be a subclass of
+        logged quantities. Custom backends should be a subclass of
         `hoomd.custom.Action` and used with `hoomd.write.CustomWriter`.
 
     Note:
