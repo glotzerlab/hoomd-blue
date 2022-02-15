@@ -57,7 +57,7 @@ formatting for use in `Napoleon`_.
 Simulation operations should unambiguously document what calculations they perform using formal
 mathematical notation and use a consistent set of symbols and across the whole codebase.
 HOOMD-blue documentation should follow standard physics and statistical mechanics notation with
-consistent use of symbols detailed in :py:doc:`notation`.
+consistent use of symbols detailed in `notation`.
 
 When referencing classes, methods, and properties in documentation, use ``name`` to refer to names
 in the local scope (class method or property, or classes in the same module). For classes outside
