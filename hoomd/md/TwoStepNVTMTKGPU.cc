@@ -155,7 +155,6 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
 
     // advance thermostat
     advanceThermostat(timestep, false);
-
     }
 
 /*! \param timestep Current time step

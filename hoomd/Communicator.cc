@@ -300,7 +300,6 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
 
                 n_recv_tot += n_recv_groups[ineigh];
                 }
-
             }
 
         // Resize receive buffer
@@ -1066,7 +1065,7 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
             // resize recv buf
             m_groups_recvbuf.resize(num_recv_ghosts);
 
-            // exchange group data, write directly to the particle data arrays
+                // exchange group data, write directly to the particle data arrays
                 {
                 MPI_Isend(&plan_copybuf.front(),
                           int(num_copy_ghosts * sizeof(unsigned int)),
@@ -2036,7 +2035,7 @@ void Communicator::exchangeGhosts()
         // resize plan array
         m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
 
-        // exchange particle data, write directly to the particle data arrays
+            // exchange particle data, write directly to the particle data arrays
             {
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir],
                                                     access_location::host,
@@ -2521,7 +2520,7 @@ void Communicator::exchangeGhosts()
             m_plan_reverse.resize(n_ghosts_init + n_reverse_ghosts_recv);
             m_tag_reverse.resize(n_reverse_ghosts_recv);
 
-            // exchange particle data, write directly to the particle data arrays
+                // exchange particle data, write directly to the particle data arrays
                 // Now forward the ghosts
                 {
                 ArrayHandle<unsigned int> h_plan_reverse_copybuf(m_plan_reverse_copybuf[dir],

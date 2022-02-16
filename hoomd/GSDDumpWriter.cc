@@ -244,7 +244,6 @@ void GSDDumpWriter::analyze(uint64_t timestep)
         retval = gsd_end_frame(&m_handle);
         GSDUtils::checkError(retval, m_fname);
         }
-
     }
 
 void GSDDumpWriter::writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping)

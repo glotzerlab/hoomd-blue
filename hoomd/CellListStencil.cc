@@ -184,7 +184,6 @@ void CellListStencil::compute(uint64_t timestep)
         assert(n_stencil_i <= max_n_stencil);
         h_n_stencil.data[cur_type] = n_stencil_i;
         }
-
     }
 
 bool CellListStencil::shouldCompute(uint64_t timestep)

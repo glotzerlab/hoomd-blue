@@ -194,7 +194,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         m_sysdef; //!< The system definition this method is associated with
     const std::shared_ptr<ParticleGroup> m_group; //!< The group of particles this method works on
     const std::shared_ptr<ParticleData>
-        m_pdata;                      //!< The particle data this method is associated with
+        m_pdata; //!< The particle data this method is associated with
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     bool m_aniso;    //!< True if anisotropic integration is requested

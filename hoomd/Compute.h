@@ -123,7 +123,7 @@ class PYBIND11_EXPORT Compute
     const std::shared_ptr<SystemDefinition>
         m_sysdef; //!< The system definition this compute is associated with
     const std::shared_ptr<ParticleData>
-        m_pdata;                      //!< The particle data this compute is associated with
+        m_pdata; //!< The particle data this compute is associated with
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>

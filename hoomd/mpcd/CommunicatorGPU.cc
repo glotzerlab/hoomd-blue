@@ -335,7 +335,7 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
             MPI_Waitall(nreq, m_reqs.data(), MPI_STATUSES_IGNORE);
             }
 
-        // wrap received particles through the global boundary
+            // wrap received particles through the global boundary
             {
             ArrayHandle<mpcd::detail::pdata_element> d_recvbuf(m_recvbuf,
                                                                access_location::device,
@@ -376,7 +376,6 @@ void mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_flags_tuner->end();
-
     }
 
 /*!

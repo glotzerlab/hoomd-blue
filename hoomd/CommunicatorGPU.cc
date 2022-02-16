@@ -3245,7 +3245,7 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
         if (!m_comm_pending)
             {
 #ifndef ENABLE_MPI_CUDA
-            // only unpack in non-CUDA MPI builds
+                // only unpack in non-CUDA MPI builds
                 {
                 // access receive buffers
                 ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf,

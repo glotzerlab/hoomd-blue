@@ -846,7 +846,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                     }
                 }
             }
-
         }
     }
 
