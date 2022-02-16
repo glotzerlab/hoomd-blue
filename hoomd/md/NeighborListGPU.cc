@@ -204,7 +204,9 @@ void NeighborListGPU::buildHeadList()
     {
     // don't do anything if there are no particles owned by this rank
     if (!m_pdata->getN())
+        {
         return;
+        }
 
         {
         ArrayHandle<size_t> h_req_size_nlist(m_req_size_nlist,
