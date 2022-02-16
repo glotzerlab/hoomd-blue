@@ -1,9 +1,187 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Hard particle Monte Carlo integrators.
+r"""Hard particle Monte Carlo integrators.
 
- The
+.. rubric:: Metropolis Monte Carlo
+
+The hard particle Monte Carlo (HPMC) integrator `HPMCIntegrator` samples
+equilibrium system states using the Metropolis Monte Carlo method. In this
+method, `HPMCIntegrator` takes the existing system state in the configuration
+:math:`C = (\vec{r}_0, \vec{r}_1, \ldots \vec{r}_{N_\mathrm{particles}-1},
+\mathbf{q}_0, \mathbf{q}_2, \ldots \mathbf{q}_{N_\mathrm{particles}-1})` with
+potential energy :math:`U` and perturbs it to a to form a trial configuration
+:math:`C^t` with potential energy :math:`U^t` leading to an energy difference
+:math:`\Delta U = U^t - U`. The trial move is accepted with the probability:
+
+.. math::
+
+    p_\mathrm{accept} =
+    \begin{cases}
+      \exp(-\beta \Delta U) & \Delta U > 0 \\
+      1 & \Delta U \le 0 \\
+    \end{cases}
+
+When the trial move is accepted, the system state is set to the the trial
+configuration. When it is not accepted, the move is rejected and the state is
+not modified.
+
+.. rubric:: Local trial moves
+
+`HPMCIntegrator` generates local trial moves for a single particle at a time.
+For a given particle :math:`i` move is either a translation move or a rotation
+move, selected randomly with the probability of a translation move set by
+`HPMCIntegrator.translation_move_probability` :math:`p_\mathrm{translation}`.
+Let :math:`u` be a random value in the interval :math:`[0,1]`,
+:math:`\vec{v}` be a random vector uniformly distributed in the ball of
+radius 1, and :math:`\mathbf{w}` be a random unit quaternion from the set of
+uniformly distributed rotations. Then the 3D trial move for particle :math:`i`
+is:
+
+.. math::
+
+    \begin{cases}
+      \left( \begin{array}{l}
+      \vec{r}^t_i = \vec{r}_i + d_i \vec{v}, \\
+      \mathbf{q}^t_i = \mathbf{q}_i
+      \end{array} \right) & u \le p_\mathrm{translation} \\
+      \left( \begin{array}{l}
+      \vec{r}^t_i = \vec{r}_i, \\
+      \mathbf{q}^t_i = \frac{\mathbf{q}_i + a_i \mathbf{w}}
+        {\vert \mathbf{q}_i + a_i \mathbf{w} \vert}
+      \end{array} \right) & u > p_\mathrm{translation} \\
+    \end{cases}
+
+where :math:`d_i` is the translation move size for particle :math:`i` (set by
+particle type with `HPMCIntegrator.d`) and :math:`a_i` is the rotation move size
+(set by particle type with `HPMCIntegrator.a`).
+
+Note:
+    For non-orientable spheres, :math:`p_\mathrm{translation} = 1`.
+
+Note:
+    In 2D, :math:`\vec{v}` is uniformly distributed in the disk of radius 1 in
+    the x,y plane and the rotation move is a random rotation about z by an angle
+    uniformly distributed in the range :math:`[-a_i, a_i]` in radians.
+
+.. rubric:: Timesteps
+
+In the serial CPU implementation, `HPMCIntegrator` performs `nselect
+<HPMCIntegrator.nselect>` trial moves per particle in each timestep. To achieve
+detailed balance at the level of a timestep, `HPMCIntegrator` randomly chooses
+with equal probability to loop through particles in forward index or reverse
+index order (random selection severely degrades performance due to cache
+incoherency). In the GPU and MPI implementations, trial moves are performed in
+parallel for particles in active domains while leaving particles on the border
+fixed (see the paper for a full description). As a consequence, a single
+timestep may perform more or less than ``nselect`` trial moves per particle when
+using the parallel code paths. Monitor the number of trial moves performed with
+`HPMCIntegrator.translate_moves` and `HPMCIntegrator.rotate_moves`.
+
+.. rubric:: Energy evaluation
+
+`HPMCIntegrator` evaluates the energy of a configuration from a number of terms:
+
+.. math::
+
+    U = \sum_{i=0}^\mathrm{N_particles-1} \sum_{j=0}^\mathrm{N_particles-1}
+        ( U_{\mathrm{pair},ij} + U_{\mathrm{shape},ij} ) +
+        \sum_{i=0}^\mathrm{N_particles-1} U_{\mathrm{external}},i
+
+:math:`U_{\mathrm{pair},ij}` is evaluated by potential classes in
+:doc:`module-hpmc-pair`. Assign a class instance to
+`HPMCIntegrator.pair_potential` to apply it during integration.
+
+:math:`U_{\mathrm{external},i}` is evaluated by potential classes in
+:doc:`module-hpmc-external`. Assign a class instance to
+`HPMCIntegrator.external_potential` to apply it during integration.
+
+`HPMCIntegrator` performs shape overlap tests to evaluate
+:math:`U_{\mathrm{pair},ij}`.
+
+.. rubric:: Shape overlap tests
+
+Let :math:`S` be the set of all points inside the shape in the local coordinate
+system of the shape:
+
+.. math::
+
+    S = \{ \vec{a} \in \mathbb{R}^3 : \vec{a} \quad \mathrm{inside\ shape} \}
+
+See the subclasses of `HPMCIntegrator` for formal definitions of the shapes,
+whose parameters are set by particle type. Let :math:`S_i` refer specifically
+to the shape for particle :math:`i`.
+
+The quaternion :math:`\mathbf{q}` represents a rotation of the shape from its
+local coordinate system to the given orientation:
+
+.. math::
+
+    S(\mathbf{q}) = \{ \mathbf{q}\vec{a}\mathbf{q}^* : \vec{a} \in S \}
+
+The full transformation from the local shape coordinate system to the simulation
+box coordinate system includes a rotation and translation:
+
+.. math::
+
+    S(\mathbf{q}, \vec{r}) = \{ \mathbf{q}\vec{a}\mathbf{q}^* + \vec{r} :
+                                \vec{a} \in S \}
+
+`HPMCIntegrator` defines the shape overlap test for two shapes:
+
+.. math::
+
+    \mathrm{overlap}(S_1, S_2) = S_1 \bigcap S_2
+
+and is often used by rotating :math:`S_1` and rotating/translating :math:`S_2`:
+
+.. math::
+
+    \mathrm{overlap}(S_1(\mathbf{q}_1), S_2(\mathbf{q}_2,
+                                            \vec{r}_2 - \vec{r}_1))
+
+The hard shape interaction energy between two particles is:
+
+.. math::
+
+    U_{\mathrm{shape},ij} = \infty
+            & \cdot
+            \prod_{i=0, i \ne j}^{N_\mathrm{particles}-1}
+            \left[
+            \mathrm{overlap}\left(
+            S_i(\mathbf{q}_i),
+            S_t(\mathbf{q}^t_j, \vec{r}^t_j - \vec{r}_i)
+            \right) =\ne \emptyset
+            \right]
+            \\
+            & \cdot \prod_{i=0}^{N_\mathrm{particles}-1}
+            \prod_{\vec{A} \in B_\mathrm{images}, \vec{A} \ne \vec{0}}
+            \left[
+            \mathrm{overlap}\left(
+            S_i(\mathbf{q}_i),
+            S_t(\mathbf{q}^t_j, \vec{r}^t_j - (\vec{r}_i + \vec{A}))
+            \right) \ne \emptyset
+            \right]
+
+where :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a vector that
+translates by periodic box images, the set of box images includes all image
+vectors necessary to find overlaps between particles in the primary image with
+particles in periodic images, and the square brackets denote the Iverson
+bracket. The first product evaluates overlaps between particle :math:`i` with
+other particles (not itself) in the primary box image. The second product
+evaluates overlaps between particle :math:`i` and all potentially interacting
+periodic images of all particles (including itself). This enables simulations of
+small simulation boxes.
+
+Note:
+    While this notation is written in terms or factors over all particles
+    `HPMCIntegrator` uses spatial data structures to evaluate these calculations
+    efficiently. Similarly, while the overlap test is notated as a set
+    intersection, `HPMCIntegrator` employs efficient computational geometry
+    algorithms to determine whether there is or is not an overlap.
+
+See Also:
+    `Anderson 2016 <https://dx.doi.org/10.1016/j.cpc.2016.02.024>`_
 """
 
 from hoomd import _hoomd

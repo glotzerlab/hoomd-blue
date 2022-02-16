@@ -11,7 +11,6 @@ hoomd.hpmc.integrate
 .. autosummary::
     :nosignatures:
 
-    HPMCIntegrator
     ConvexPolygon
     ConvexPolyhedron
     ConvexSpheropolygon
@@ -20,6 +19,7 @@ hoomd.hpmc.integrate
     Ellipsoid
     FacetedEllipsoid
     FacetedEllipsoidUnion
+    HPMCIntegrator
     Polyhedron
     SimplePolygon
     Sphere
@@ -31,8 +31,6 @@ hoomd.hpmc.integrate
 .. automodule:: hoomd.hpmc.integrate
     :synopsis: HPMC integrators.
 
-    .. autoclass:: HPMCIntegrator
-        :inherited-members:
     .. autoclass:: ConvexPolygon
         :show-inheritance:
         :members:
@@ -57,6 +55,8 @@ hoomd.hpmc.integrate
     .. autoclass:: FacetedEllipsoidUnion
         :show-inheritance:
         :members:
+    .. autoclass:: HPMCIntegrator
+        :inherited-members:
     .. autoclass:: Polyhedron
         :show-inheritance:
         :members:

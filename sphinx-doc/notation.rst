@@ -22,6 +22,8 @@ General notation:
       - Matrix.
     * - :math:`\mathbf{b}`
       - Quaternion.
+    * - :math:`\vert \mathbf{b} \vert`
+      - Magnitude of a quaternion.
     * - :math:`i`, :math:`j`, :math:`k`
       - Indices.
     * - :math:`i`

@@ -49,19 +49,18 @@ class FreeVolume(Compute):
             \prod_{\vec{A} \in B_\mathrm{images}}
             \left[
             \mathrm{overlap}\left(
-            \vec{r}^t_j - (\vec{r}_i + \vec{A}),
             S_i(\mathbf{q}_i),
-            S_t(\mathbf{q}^t_j) \right) = \emptyset
+            S_t(\mathbf{q}^t_j, \vec{r}^t_j - (\vec{r}_i + \vec{A}))
+            \right) = \emptyset
             \right]
 
     where :math:`\mathrm{overlap}` is the shape overlap function defined in
-    `hpmc.integrate.HPMCIntegrator`, :math:`S_i` is the shape of particle
-    :math:`i`, :math:`S_t` is the shape of the test particle, :math:`\vec{A} =
-    h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a vector that translates by
-    periodic box images, the set of box images includes all image vectors
-    necessary to find overlaps between particles in the primary image with
-    particles in periodic images, and the square brackets denote the Iverson
-    bracket.
+    `hoomd.hpmc.integrate`, :math:`S_i` is the shape of particle :math:`i`,
+    :math:`S_t` is the shape of the test particle, :math:`\vec{A} = h\vec{a}_1 +
+    k\vec{a}_2 + l\vec{a}_3` is a vector that translates by periodic box images,
+    the set of box images includes all image vectors necessary to find overlaps
+    between particles in the primary image with particles in periodic images,
+    and the square brackets denote the Iverson bracket.
 
     The free volume :math:`V_\mathrm{free}` is given by:
 
@@ -168,13 +167,12 @@ class SDF(Compute):
 
         x_{ij}(\vec{A}) = \min \{ x \in \mathbb{R}_{> 0} :
             \mathrm{overlap}\left(
-                (1-x)(\vec{r}^t_j - (\vec{r}_i + \vec{A})),
                 S_i(\mathbf{q}_i),
-                S_j(\mathbf{q}_j)
+                S_j(\mathbf{q}_j, (1-x)(\vec{r}^t_j - (\vec{r}_i + \vec{A})))
             \right) \ne \emptyset \}
 
     where :math:`\mathrm{overlap}` is the shape overlap function defined in
-    `hpmc.integrate.HPMCIntegrator`, :math:`S_i` is the shape of particle
+    `hoomd.hpmc.integrate`, :math:`S_i` is the shape of particle
     :math:`i`, and :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a
     vector that translates by periodic box images.
 
