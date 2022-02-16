@@ -206,47 +206,47 @@ void NeighborListGPU::buildHeadList()
     if (!m_pdata->getN())
         return;
 
-        {
-        ArrayHandle<size_t> h_req_size_nlist(m_req_size_nlist,
-                                             access_location::host,
-                                             access_mode::overwrite);
-        // reset flags
-        *h_req_size_nlist.data = 0;
-        }
+    {
+    ArrayHandle<size_t> h_req_size_nlist(m_req_size_nlist,
+                                         access_location::host,
+                                         access_mode::overwrite);
+    // reset flags
+    *h_req_size_nlist.data = 0;
+    }
 
-        {
-        ArrayHandle<size_t> d_head_list(m_head_list,
-                                        access_location::device,
-                                        access_mode::overwrite);
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
-                                   access_location::device,
-                                   access_mode::read);
-        ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
+    {
+    ArrayHandle<size_t> d_head_list(m_head_list,
+                                    access_location::device,
+                                    access_mode::overwrite);
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
+                               access_location::device,
+                               access_mode::read);
+    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
 
-        ArrayHandle<size_t> d_req_size_nlist(m_req_size_nlist,
-                                             access_location::device,
-                                             access_mode::readwrite);
+    ArrayHandle<size_t> d_req_size_nlist(m_req_size_nlist,
+                                         access_location::device,
+                                         access_mode::readwrite);
 
-        m_tuner_head_list->begin();
-        kernel::gpu_nlist_build_head_list(d_head_list.data,
-                                          d_req_size_nlist.data,
-                                          d_Nmax.data,
-                                          d_pos.data,
-                                          m_pdata->getN(),
-                                          m_pdata->getNTypes(),
-                                          m_tuner_head_list->getParam());
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        m_tuner_head_list->end();
-        }
+    m_tuner_head_list->begin();
+    kernel::gpu_nlist_build_head_list(d_head_list.data,
+                                      d_req_size_nlist.data,
+                                      d_Nmax.data,
+                                      d_pos.data,
+                                      m_pdata->getN(),
+                                      m_pdata->getNTypes(),
+                                      m_tuner_head_list->getParam());
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    m_tuner_head_list->end();
+    }
 
     size_t req_size_nlist;
-        {
-        ArrayHandle<size_t> h_req_size_nlist(m_req_size_nlist,
-                                             access_location::host,
-                                             access_mode::read);
-        req_size_nlist = *h_req_size_nlist.data;
-        }
+    {
+    ArrayHandle<size_t> h_req_size_nlist(m_req_size_nlist,
+                                         access_location::host,
+                                         access_mode::read);
+    req_size_nlist = *h_req_size_nlist.data;
+    }
 
     resizeNlist(req_size_nlist);
 
