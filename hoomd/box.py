@@ -188,6 +188,7 @@ class Box:
     usage.
 
     Examples:
+
     * Cubic box with given length: ``hoomd.Box.cube(L=1)``
     * Square box with given length: ``hoomd.Box.square(L=1)``
     * From an upper triangular matrix: ``hoomd.Box.from_matrix(matrix)``
