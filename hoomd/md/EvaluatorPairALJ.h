@@ -1624,7 +1624,7 @@ template<> std::string EvaluatorPairALJ<2>::getShapeSpec() const
     std::ostringstream shapedef;
     const ManagedArray<vec3<Scalar>>& verts(shape_i->verts); //! Shape vertices.
     const unsigned int N = verts.size();
-    if (N < 2)
+    if (N == 1)
         {
         shapedef << "{\"type\": \"Ellipsoid\", \"a\": "
                  << shape_i->rounding_radii.x + (_params.contact_sigma_i / 2)
@@ -1661,7 +1661,7 @@ template<> std::string EvaluatorPairALJ<3>::getShapeSpec() const
     std::ostringstream shapedef;
     const ManagedArray<vec3<Scalar>>& verts(shape_i->verts);
     const unsigned int N = verts.size();
-    if (N < 2)
+    if (N == 1)
         {
         shapedef << "{\"type\": \"Ellipsoid\", \"a\": "
                  << shape_i->rounding_radii.x + (_params.contact_sigma_i / 2)
