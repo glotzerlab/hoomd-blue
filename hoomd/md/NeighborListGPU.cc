@@ -72,9 +72,6 @@ bool NeighborListGPU::distanceCheck(uint64_t timestep)
         }
 
     // scan through the particle data arrays and calculate distances
-    if (m_prof)
-        m_prof->push(m_exec_conf, "dist-check");
-
     // access data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getBox();
@@ -124,8 +121,6 @@ bool NeighborListGPU::distanceCheck(uint64_t timestep)
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        if (m_prof)
-            m_prof->push(m_exec_conf, "MPI allreduce");
         // check if migrate criterion is fulfilled on any rank
         int local_result = result ? 1 : 0;
         int global_result = 0;
@@ -136,13 +131,8 @@ bool NeighborListGPU::distanceCheck(uint64_t timestep)
                       MPI_MAX,
                       m_exec_conf->getMPICommunicator());
         result = (global_result > 0);
-        if (m_prof)
-            m_prof->pop();
         }
 #endif
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
 
     return result;
     }
@@ -151,9 +141,6 @@ bool NeighborListGPU::distanceCheck(uint64_t timestep)
  */
 void NeighborListGPU::filterNlist()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "filter");
-
     // access data
 
     ArrayHandle<unsigned int> d_n_ex_idx(m_n_ex_idx, access_location::device, access_mode::read);
@@ -176,18 +163,12 @@ void NeighborListGPU::filterNlist()
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_filter->end();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 //! Update the exclusion list on the GPU
 void NeighborListGPU::updateExListIdx()
     {
     assert(!m_n_particles_changed);
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "update-ex");
 
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(),
                                      access_location::device,
@@ -216,9 +197,6 @@ void NeighborListGPU::updateExListIdx()
                                       m_pdata->getN());
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 //! Build the head list for neighbor list indexing on the GPU
@@ -227,11 +205,6 @@ void NeighborListGPU::buildHeadList()
     // don't do anything if there are no particles owned by this rank
     if (!m_pdata->getN())
         return;
-
-    if (m_prof)
-        {
-        m_prof->push(m_exec_conf, "head-list");
-        }
 
         {
         ArrayHandle<size_t> h_req_size_nlist(m_req_size_nlist,
@@ -280,9 +253,6 @@ void NeighborListGPU::buildHeadList()
     // now that the head list is complete and the neighbor list has been allocated, update memory
     // advice
     updateMemoryMapping();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

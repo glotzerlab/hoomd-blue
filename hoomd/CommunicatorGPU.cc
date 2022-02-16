@@ -9,7 +9,6 @@
 #ifdef ENABLE_HIP
 
 #include "CommunicatorGPU.h"
-#include "Profiler.h"
 #include "System.h"
 
 #include <algorithm>
@@ -406,11 +405,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         m_exec_conf->msg->notice(7)
             << "GroupCommunicator<" << m_gdata->getName() << ">: migrate" << std::endl;
 
-        if (m_gpu_comm.m_prof)
-            {
-            m_gpu_comm.m_prof->push(m_exec_conf, m_gdata->getName());
-            }
-
             {
             // Reset reverse lookup tags of old ghost groups
             ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(),
@@ -647,8 +641,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
             unsigned int send_bytes = 0;
             unsigned int recv_bytes = 0;
-            if (m_gpu_comm.m_prof)
-                m_gpu_comm.m_prof->push(m_exec_conf, "MPI send/recv");
 
             // compute send counts
             for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
@@ -695,9 +687,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
                 n_recv_tot += n_recv_groups[ineigh];
                 }
-
-            if (m_gpu_comm.m_prof)
-                m_gpu_comm.m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
             }
 
         // Resize receive buffer
@@ -713,9 +702,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<unsigned int> h_unique_neighbors(m_gpu_comm.m_unique_neighbors,
                                                          access_location::host,
                                                          access_mode::read);
-
-            if (m_gpu_comm.m_prof)
-                m_gpu_comm.m_prof->push(m_exec_conf, "MPI send/recv");
 
 #ifdef ENABLE_MPI_CUDA
             ArrayHandle<rank_element_t> ranks_sendbuf_handle(m_ranks_sendbuf,
@@ -778,9 +764,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
             std::vector<MPI_Status> stats(reqs.size());
             MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
-
-            if (m_gpu_comm.m_prof)
-                m_gpu_comm.m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
             }
 
             {
@@ -1030,8 +1013,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
             unsigned int send_bytes = 0;
             unsigned int recv_bytes = 0;
-            if (m_gpu_comm.m_prof)
-                m_gpu_comm.m_prof->push(m_exec_conf, "MPI send/recv");
 
             // compute send counts
             for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
@@ -1078,9 +1059,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
                 n_recv_tot += n_recv_groups[ineigh];
                 }
-
-            if (m_gpu_comm.m_prof)
-                m_gpu_comm.m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
             }
 
         // Resize receive buffer
@@ -1096,9 +1074,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<unsigned int> h_unique_neighbors(m_gpu_comm.m_unique_neighbors,
                                                          access_location::host,
                                                          access_mode::read);
-
-            if (m_gpu_comm.m_prof)
-                m_gpu_comm.m_prof->push(m_exec_conf, "MPI send/recv");
 
 #if defined(ENABLE_MPI_CUDA) && 0
 #else
@@ -1152,9 +1127,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
             std::vector<MPI_Status> stats(reqs.size());
             MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
-
-            if (m_gpu_comm.m_prof)
-                m_gpu_comm.m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
             }
 
         unsigned int n_recv_unique = 0;
@@ -1241,9 +1213,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
         // remove duplicate groups
         m_gdata->removeGroups(old_ngroups + n_recv_unique - new_ngroups);
-
-        if (m_gpu_comm.m_prof)
-            m_gpu_comm.m_prof->pop(m_exec_conf);
         }
     }
 
@@ -1479,9 +1448,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                                                              access_location::host,
                                                              access_mode::read);
 
-                if (m_gpu_comm.m_prof)
-                    m_gpu_comm.m_prof->push(m_exec_conf, "MPI send/recv");
-
                 // compute send counts
                 for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
                     n_send_ghost_groups[stage][ineigh]
@@ -1539,9 +1505,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
 
                     n_recv_ghost_groups_tot[stage] += n_recv_ghost_groups[stage][ineigh];
                     }
-
-                if (m_gpu_comm.m_prof)
-                    m_gpu_comm.m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
                 }
 
             n_max = 0;
@@ -1576,9 +1539,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                 ArrayHandle<unsigned int> h_ghost_group_end(m_ghost_group_end,
                                                             access_location::host,
                                                             access_mode::read);
-
-                if (m_gpu_comm.m_prof)
-                    m_gpu_comm.m_prof->push(m_exec_conf, "MPI send/recv");
 
                 std::vector<MPI_Request> reqs;
                 MPI_Request req;
@@ -1622,9 +1582,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
 
                 std::vector<MPI_Status> stats(reqs.size());
                 MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
-
-                if (m_gpu_comm.m_prof)
-                    m_gpu_comm.m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
                 } // end ArrayHandle scope
 
             unsigned int old_n_ghost = m_gdata->getNGhosts();
@@ -1769,9 +1726,6 @@ void CommunicatorGPU::migrateParticles()
     // check if simulation box is sufficiently large for domain decomposition
     checkBoxSize();
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "comm_migrate");
-
     // remove ghost particles from system
     m_pdata->removeAllGhostParticles();
 
@@ -1899,8 +1853,6 @@ void CommunicatorGPU::migrateParticles()
 
             unsigned int send_bytes = 0;
             unsigned int recv_bytes = 0;
-            if (m_prof)
-                m_prof->push(m_exec_conf, "MPI send/recv");
 
             // compute send counts
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
@@ -1955,9 +1907,6 @@ void CommunicatorGPU::migrateParticles()
 
                 n_recv_tot += n_recv_ptls[ineigh];
                 }
-
-            if (m_prof)
-                m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
             }
 
         // Resize receive buffer
@@ -1969,9 +1918,6 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors,
                                                          access_location::host,
                                                          access_mode::read);
-
-            if (m_prof)
-                m_prof->push(m_exec_conf, "MPI send/recv");
 
 #if defined(ENABLE_MPI_CUDA)
             ArrayHandle<detail::pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf,
@@ -2041,9 +1987,6 @@ void CommunicatorGPU::migrateParticles()
 
             std::vector<MPI_Status> stats(reqs.size());
             MPI_Waitall((unsigned int)(reqs.size()), &reqs.front(), &stats.front());
-
-            if (m_prof)
-                m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
             }
 
             {
@@ -2062,9 +2005,6 @@ void CommunicatorGPU::migrateParticles()
         m_pdata->addParticlesGPU(m_gpu_recvbuf);
 
         } // end communication stage
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void CommunicatorGPU::removeGhostParticleTags()
@@ -2103,9 +2043,6 @@ void CommunicatorGPU::exchangeGhosts()
 
     // check if simulation box is sufficiently large for domain decomposition
     checkBoxSize();
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "comm_ghost_exch");
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost exchange" << std::endl;
 
@@ -2432,9 +2369,6 @@ void CommunicatorGPU::exchangeGhosts()
                                                          access_location::host,
                                                          access_mode::read);
 
-            if (m_prof)
-                m_prof->push(m_exec_conf, "MPI send/recv");
-
             // compute send counts
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
                 m_n_send_ghosts[stage][ineigh]
@@ -2492,9 +2426,6 @@ void CommunicatorGPU::exchangeGhosts()
 
                 m_n_recv_ghosts_tot[stage] += m_n_recv_ghosts[stage][ineigh];
                 }
-
-            if (m_prof)
-                m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
             }
 
         n_max = 0;
@@ -2649,9 +2580,6 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<unsigned int> h_ghost_end(m_ghost_end,
                                                   access_location::host,
                                                   access_mode::read);
-
-            if (m_prof)
-                m_prof->push(m_exec_conf, "MPI send/recv");
 
             std::vector<MPI_Request> reqs;
             MPI_Request req;
@@ -2912,9 +2840,6 @@ void CommunicatorGPU::exchangeGhosts()
 
             std::vector<MPI_Status> stats(reqs.size());
             MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
-
-            if (m_prof)
-                m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
             } // end ArrayHandle scope
 
 #ifdef ENABLE_MPI_CUDA
@@ -3031,9 +2956,6 @@ void CommunicatorGPU::exchangeGhosts()
     m_constraint_comm.exchangeGhostGroups(m_ghost_plan);
 
     m_last_flags = flags;
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 //! Perform ghosts update
@@ -3041,19 +2963,11 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
     {
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost update" << std::endl;
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "comm_ghost_update");
-
     CommFlags flags = getFlags();
 
     // main communication loop
     for (unsigned int stage = 0; stage < m_num_stages; ++stage)
         {
-        if (m_prof)
-            {
-            m_prof->push(m_exec_conf, "pack");
-            }
-
             {
             // access particle data
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
@@ -3123,8 +3037,6 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
 
         /*
          * Ghost particle communication
@@ -3211,9 +3123,6 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
 #endif
 
             // access send buffers
-            if (m_prof)
-                m_prof->push(m_exec_conf, "MPI send/recv");
-
             m_reqs.clear();
             MPI_Request req;
 
@@ -3331,22 +3240,12 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                 std::vector<MPI_Status> stats(m_reqs.size());
                 MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
                 }
-
-            if (m_prof)
-                {
-                m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
-                }
             } // end ArrayHandle scope
 
         if (!m_comm_pending)
             {
 #ifndef ENABLE_MPI_CUDA
             // only unpack in non-CUDA MPI builds
-            if (m_prof)
-                {
-                m_prof->push(m_exec_conf, "unpack");
-                }
-
                 {
                 // access receive buffers
                 ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf,
@@ -3399,14 +3298,9 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 }
-            if (m_prof)
-                m_prof->pop(m_exec_conf);
 #endif
             }
         } // end main communication loop
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 /*! Finish ghost update
@@ -3419,18 +3313,9 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
         {
         m_comm_pending = false;
 
-        if (m_prof)
-            m_prof->push(m_exec_conf, "comm_ghost_update");
-
         // complete communication
-        if (m_prof)
-            m_prof->push(m_exec_conf, "MPI send/recv");
         std::vector<MPI_Status> stats(m_reqs.size());
         MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
-        if (m_prof)
-            {
-            m_prof->pop(m_exec_conf);
-            }
 
 #ifdef ENABLE_MPI_CUDA
         // MPI library may use non-zero stream
@@ -3441,10 +3326,6 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
         unsigned int stage = 0;
         unsigned int first_idx = m_pdata->getN();
         CommFlags flags = m_last_flags;
-        if (m_prof)
-            {
-            m_prof->push(m_exec_conf, "unpack");
-            }
 
             {
             // access receive buffers
@@ -3498,12 +3379,7 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
 #endif
-
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
         }
     }
 
@@ -3532,15 +3408,9 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
 
     m_exec_conf->msg->notice(7) << oss.str() << std::endl;
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "comm_ghost_net_force");
-
     // main communication loop
     for (unsigned int stage = 0; stage < m_num_stages; ++stage)
         {
-        if (m_prof)
-            m_prof->push(m_exec_conf, "pack");
-
         // compute maximum send buf size
         unsigned int n_max = 0;
         for (unsigned int istage = 0; istage <= stage; ++istage)
@@ -3640,9 +3510,6 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
                 CHECK_CUDA_ERROR();
             }
 
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
-
         /*
          * Ghost particle communication
          */
@@ -3706,9 +3573,6 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
                                                          access_mode::read);
 
             // access send buffers
-            if (m_prof)
-                m_prof->push(m_exec_conf, "MPI send/recv");
-
             m_reqs.clear();
             MPI_Request req;
 
@@ -3816,17 +3680,7 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
             // complete communication
             std::vector<MPI_Status> stats(m_reqs.size());
             MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
-
-            if (m_prof)
-                {
-                m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
-                }
             } // end ArrayHandle scope
-
-        if (m_prof)
-            {
-            m_prof->push(m_exec_conf, "unpack");
-            }
 
             {
             // access receive buffers
@@ -3891,13 +3745,7 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
-
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
         } // end main communication loop
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

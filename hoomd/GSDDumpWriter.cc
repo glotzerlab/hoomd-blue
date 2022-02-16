@@ -151,9 +151,6 @@ void GSDDumpWriter::analyze(uint64_t timestep)
     int retval;
     bool root = true;
 
-    if (m_prof)
-        m_prof->push("Dump GSD");
-
     // take particle data snapshot
     m_exec_conf->msg->notice(10) << "GSD: taking particle data snapshot" << endl;
     SnapshotParticleData<float> snapshot;
@@ -248,8 +245,6 @@ void GSDDumpWriter::analyze(uint64_t timestep)
         GSDUtils::checkError(retval, m_fname);
         }
 
-    if (m_prof)
-        m_prof->pop();
     }
 
 void GSDDumpWriter::writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping)

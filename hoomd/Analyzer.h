@@ -15,7 +15,6 @@
 #define __ANALYZER_H__
 
 #include "Communicator.h"
-#include "Profiler.h"
 #include "SharedSignal.h"
 #include "SystemDefinition.h"
 
@@ -67,9 +66,6 @@ class PYBIND11_EXPORT Analyzer
         \param timestep Current time step of the simulation
         */
     virtual void analyze(uint64_t timestep) { }
-
-    //! Sets the profiler for the analyzer to use
-    void setProfiler(std::shared_ptr<Profiler> prof);
 
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
@@ -130,7 +126,6 @@ class PYBIND11_EXPORT Analyzer
         m_sysdef; //!< The system definition this analyzer is associated with
     const std::shared_ptr<ParticleData>
         m_pdata;                      //!< The particle data this analyzer is associated with
-    std::shared_ptr<Profiler> m_prof; //!< The profiler this analyzer is to use
 
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration

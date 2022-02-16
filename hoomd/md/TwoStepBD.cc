@@ -48,10 +48,6 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    // profile this step
-    if (m_prof)
-        m_prof->push("BD step 1");
-
     // grab some initial variables
     const Scalar currentTemp = (*m_T)(timestep);
     const unsigned int D = m_sysdef->getNDimensions();
@@ -249,10 +245,6 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 }
             }
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! @param timestep Current time step

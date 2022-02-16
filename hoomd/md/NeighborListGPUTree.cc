@@ -186,18 +186,10 @@ void NeighborListGPUTree::buildNlist(uint64_t timestep)
         }
 
     // build the tree
-    if (m_prof)
-        m_prof->push(m_exec_conf, "build");
     buildTree();
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
 
     // walk with the tree
-    if (m_prof)
-        m_prof->push(m_exec_conf, "traverse");
     traverseTree();
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 /*!

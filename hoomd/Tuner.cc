@@ -10,7 +10,7 @@
 namespace hoomd
     {
 /*! \param sysdef System this compute will act on. Must not be NULL.
-    \post The Updater is constructed with the given particle data and a NULL profiler.
+    \post The Updater is constructed with the given particle.
 */
 Tuner::Tuner(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger)
     : Updater(sysdef), m_trigger(trigger)

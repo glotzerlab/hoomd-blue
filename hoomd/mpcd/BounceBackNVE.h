@@ -114,9 +114,6 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t
         throw std::runtime_error("Anisotropic integration not supported with bounce-back");
         }
 
-    if (m_prof)
-        m_prof->push("Bounce NVE step 1");
-
     if (m_validate_geom)
         validate();
 
@@ -173,9 +170,6 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t
         h_pos.data[pid] = make_scalar4(pos.x, pos.y, pos.z, type);
         h_vel.data[pid] = make_scalar4(vel.x, vel.y, vel.z, mass);
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t timestep)
@@ -187,9 +181,6 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t
                                   << std::endl;
         throw std::runtime_error("Anisotropic integration not supported with bounce-back");
         }
-    if (m_prof)
-        m_prof->push("Bounce NVE step 2");
-
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
                                access_mode::readwrite);
@@ -225,9 +216,6 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t
         h_vel.data[pid] = vel;
         h_accel.data[pid] = accel;
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 template<class Geometry> void BounceBackNVE<Geometry>::validate()

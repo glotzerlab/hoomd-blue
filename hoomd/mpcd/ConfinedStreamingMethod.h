@@ -103,9 +103,6 @@ template<class Geometry> void ConfinedStreamingMethod<Geometry>::stream(uint64_t
         m_validate_geom = false;
         }
 
-    if (m_prof)
-        m_prof->push("MPCD stream");
-
     const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
 
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
@@ -158,8 +155,6 @@ template<class Geometry> void ConfinedStreamingMethod<Geometry>::stream(uint64_t
 
     // particles have moved, so the cell cache is no longer valid
     m_mpcd_pdata->invalidateCellCache();
-    if (m_prof)
-        m_prof->pop();
     }
 
 template<class Geometry> void ConfinedStreamingMethod<Geometry>::validate()

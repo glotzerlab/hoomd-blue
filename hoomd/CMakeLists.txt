@@ -81,7 +81,6 @@ set(_hoomd_sources Analyzer.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    ParticleFilterUpdater.cc
-                   Profiler.cc
                    PythonLocalDataAccess.cc
                    PythonAnalyzer.cc
                    PythonTuner.cc
@@ -169,7 +168,6 @@ set(_hoomd_headers
     ParticleGroup.cuh
     ParticleGroup.h
     ParticleFilterUpdater.h
-    Profiler.h
     PythonLocalDataAccess.h
     PythonUpdater.h
     PythonAnalyzer.h

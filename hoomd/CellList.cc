@@ -135,9 +135,6 @@ void CellList::compute(uint64_t timestep)
     Compute::compute(timestep);
     bool force = false;
 
-    if (m_prof)
-        m_prof->push("Cell");
-
     m_exec_conf->msg->notice(10) << "Cell list compute" << endl;
 
     if (m_params_changed)
@@ -195,9 +192,6 @@ void CellList::compute(uint64_t timestep)
                 }
             } while (overflowed);
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param num_iters Number of iterations to average for the benchmark
@@ -247,8 +241,6 @@ void CellList::initializeAll()
 void CellList::initializeWidth()
     {
     m_exec_conf->msg->notice(10) << "Cell list initialize width" << endl;
-    if (m_prof)
-        m_prof->push("init");
 
     // get the local box
     const BoxDim& box = m_pdata->getBox();
@@ -264,16 +256,11 @@ void CellList::initializeWidth()
 
     // signal that the width has changed
     m_width_change.emit();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void CellList::initializeMemory()
     {
     m_exec_conf->msg->notice(10) << "Cell list initialize memory" << endl;
-    if (m_prof)
-        m_prof->push("init");
 
     // if it is still set at 0, estimate Nmax
     if (m_Nmax == 0)
@@ -384,9 +371,6 @@ void CellList::initializeMemory()
         m_idx.swap(idx);
         }
 
-    if (m_prof)
-        m_prof->pop();
-
     // only initialize the adjacency list if requested
     if (m_compute_adj_list)
         initializeCellAdj();
@@ -394,9 +378,6 @@ void CellList::initializeMemory()
 
 void CellList::initializeCellAdj()
     {
-    if (m_prof)
-        m_prof->push("init");
-
     ArrayHandle<unsigned int> h_cell_adj(m_cell_adj, access_location::host, access_mode::overwrite);
 
     // per cell temporary storage of neighbors
@@ -451,16 +432,10 @@ void CellList::initializeCellAdj()
                 // copy to adj array
                 copy(adj.begin(), adj.end(), &h_cell_adj.data[m_cell_adj_indexer(0, cur_cell)]);
                 }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void CellList::computeCellList()
     {
-    if (m_prof)
-        m_prof->push("compute");
-
     // acquire the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
@@ -607,9 +582,6 @@ void CellList::computeCellList()
                                         access_mode::overwrite);
         *h_conditions.data = conditions;
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 bool CellList::checkConditions()

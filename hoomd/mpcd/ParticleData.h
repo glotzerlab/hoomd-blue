@@ -29,7 +29,6 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/GPUFlags.h"
 #include "hoomd/GPUVector.h"
-#include "hoomd/Profiler.h"
 
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 
@@ -208,12 +207,6 @@ class PYBIND11_EXPORT ParticleData
 
     //! Get the tag of the particle on the local rank
     unsigned int getTag(unsigned int idx) const;
-
-    //! Set the profiler for the particle data to use
-    void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
 
     //! Set autotuner parameters
     /*!
@@ -442,7 +435,6 @@ class PYBIND11_EXPORT ParticleData
 
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< GPU execution configuration
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition
-    std::shared_ptr<Profiler> m_prof;                          //!< Profiler
 
     GPUArray<Scalar4> m_pos;                 //!< MPCD particle positions plus type
     GPUArray<Scalar4> m_vel;                 //!< MPCD particle velocities plus cell list id

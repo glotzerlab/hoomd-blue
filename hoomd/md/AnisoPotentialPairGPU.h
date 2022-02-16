@@ -135,10 +135,6 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
     {
     this->m_nlist->compute(timestep);
 
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, this->m_prof_name);
-
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
@@ -235,9 +231,6 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
         CHECK_CUDA_ERROR();
 
     this->m_exec_conf->endMultiGPU();
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class evaluator,

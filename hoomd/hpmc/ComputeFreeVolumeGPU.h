@@ -158,9 +158,6 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
     // compute cell list
     this->m_cl->compute(timestep);
 
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "Free volume");
-
     // if the cell list is a different size than last time, reinitialize expanded cell list
     uint3 cur_dim = this->m_cl->getDim();
     if (this->m_last_dim.x != cur_dim.x || this->m_last_dim.y != cur_dim.y
@@ -317,9 +314,6 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
                       this->m_exec_conf->getMPICommunicator());
         }
 #endif
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Shape> void ComputeFreeVolumeGPU<Shape>::initializeExcellMem()
