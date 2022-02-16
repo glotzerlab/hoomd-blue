@@ -59,6 +59,8 @@ Symbol definitions:
       - Pressure.
     * - :math:`\rho`
       - Number density.
+    * - :math:`\vec{a}_1`, :math:`\vec{a}_2`, :math:`\vec{a}_3`
+      - Box unit cell vectors.
     * - :math:`\vec{F}`
       - Force.
     * - :math:`\vec{\tau}`

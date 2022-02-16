@@ -30,52 +30,63 @@ class FreeVolume(Compute):
         num_samples (int): Number of samples to evaluate.
 
     `FreeVolume` computes the free volume in the simulation state available to a
-    given test particle using Monte Carlo integration. It must be used in
+    given test particle shape using Monte Carlo integration. Use it in
     combination with `hoomd.hpmc.integrate.HPMCIntegrator`, which defines the
-    particle shape parameters of the type in the ``shape`` property. Particles
-    of ``test_particle_type`` may or may not be present in the simulation state.
+    particle shape parameters. Particles of ``test_particle_type`` may or may
+    not be present in the simulation state.
 
-    `FreeVolume` generates `num_samples` (:math:`n_\mathrm{samples}`) random
-    trial particle configurations with positions :math:`\vec{r}^t_j` uniformly
+    `FreeVolume` generates `num_samples` (:math:`n_\mathrm{samples}`) trial
+    particle configurations with positions :math:`\vec{r}^t_j` uniformly
     distributed in the simulation box, and orientations :math:`\mathbf{q}^t_j`
     uniformly distributed among rotations matching the box dimensionality.
-    `FreeVolume` counts the number of the trial configurations overlap with the
+    `FreeVolume` counts the number of successful samples that do not overlap
     particles in the simulation state:
 
     .. math::
 
-        n_\mathrm{overlaps} = \sum_{j=1}^{n_\mathrm{samples}}
-            \sum_{i=1}^{N_\mathrm{particles}}
+        n_\mathrm{success} = \sum_{j=1}^{n_\mathrm{samples}}
+            \prod_{i=0}^{N_\mathrm{particles}-1}
+            \prod_{\vec{A} \in B_\mathrm{images}}
             \left[
             \mathrm{overlap}\left(
-            \mathrm{minimum\_image}(\vec{r}^t_j - \vec{r}_i),
+            \vec{r}^t_j - (\vec{r}_i + \vec{A}),
             S_i(\mathbf{q}_i),
-            S_t(\mathbf{q}^t_j) \right) \ne \emptyset
+            S_t(\mathbf{q}^t_j) \right) = \emptyset
             \right]
 
     where :math:`\mathrm{overlap}` is the shape overlap function defined in
     `hpmc.integrate.HPMCIntegrator`, :math:`S_i` is the shape of particle
-    :math:`i`, :math:`S_t` is the shape of the test particle, and
-    :math:`\left[ P \right]` is the Iverson bracket.
+    :math:`i`, :math:`S_t` is the shape of the test particle, :math:`\vec{A} =
+    h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a vector that translates by
+    periodic box images, the set of box images includes all image vectors
+    necessary to find overlaps between particles in the primary image with
+    particles in periodic images, and the square brackets denote the Iverson
+    bracket.
 
-    The free volume is given by:
+    The free volume :math:`V_\mathrm{free}` is given by:
 
     .. math::
-        V_\mathrm{free} = \left( \frac{n_\mathrm{samples} - n_\mathrm{overlaps}}
-                               {n_\mathrm{samples}} \right) V_\mathrm{box}
+        V_\mathrm{free} = \frac{n_\mathrm{success}}
+                               {n_\mathrm{samples}} V_\mathrm{box}
 
-    where :math:`V_\mathrm{free}` is the estimated free volume `free_volume`
-    and :math:`V_\mathrm{box}` is the volume of the simulation box (area in 2D).
+    where :math:`V_\mathrm{box}` is the volume of the simulation box (or area in
+    2D).
 
     Note:
 
-        `FreeVolume` respects the ``interaction_matrix`` set in the HPMC
-        integrator.
+        `FreeVolume` respects the HPMC integrator's ``interaction_matrix``.
 
     .. rubric:: Mixed precision
 
     `FreeVolume` uses reduced precision floating point arithmetic when checking
     for particle overlaps in the local particle reference frame.
+
+    .. rubric:: Box images
+
+    On CPU devices, `FreeVolume` does not apply the minimum image convention. It
+    supports small boxes where particles may overlap with non-primary images of
+    other particles, including self overlap. On GPU devices, `FreeVolume`
+    applies the minimum image convention.
 
     Examples::
 
@@ -138,36 +149,62 @@ class SDF(Compute):
         dx (float): Bin width :math:`[\mathrm{length}]`.
 
     `SDF` computes the proability distribution :math:`s(x)` of particles
-    overlapping as a function of separation.
+    overlapping as a function of separation. It estimates :math:`s(x)`
+    numerically by computing a histogram with
+    :math:`\lfloor x_\mathrm{max}/ \delta x \rfloor` bins of width `dx`
+    (:math:`\delta x`).
+
+    See Also:
+         `Anderson 2016 <https://dx.doi.org/10.1016/j.cpc.2016.02.024>`_
+         describes the theory relating `SDF` to the system pressure.
 
     .. rubric:: Implementation
 
     For each pair of particles :math:`i` and :math:`j` `SDF` scales the particle
-    separation vector by :math:`1-x` and finds the smallest value of :math:`x`
-    leading to an overlap of the particle shapes:
+    separation vector by the factor :math:`(1-x)` and finds the smallest
+    positive value of :math:`x` leading to an overlap of the particle shapes:
 
     .. math::
 
-        x_{ij} = \min \{ x \in \mathbb{R}_{> 0} : \mathrm{overlap}\left(
-            (1-x)(\vec{r_j} - \vec{r_i}),
-            S_i(\mathbf{q}_i),
-            S_j(\mathbf{q}_j) \right) \ne \emptyset \}
+        x_{ij}(\vec{A}) = \min \{ x \in \mathbb{R}_{> 0} :
+            \mathrm{overlap}\left(
+                (1-x)(\vec{r}^t_j - (\vec{r}_i + \vec{A})),
+                S_i(\mathbf{q}_i),
+                S_j(\mathbf{q}_j)
+            \right) \ne \emptyset \}
 
     where :math:`\mathrm{overlap}` is the shape overlap function defined in
-    `hpmc.integrate.HPMCIntegrator` and :math:`S_i` is the shape of particle
-    :math:`i`.
+    `hpmc.integrate.HPMCIntegrator`, :math:`S_i` is the shape of particle
+    :math:`i`, and :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a
+    vector that translates by periodic box images.
 
-    `SDF` adds a single count to the histogram for each particle *i* at the
-    minimum value:
+    :math:`x_i` is the minimum value of :math:`x_{ij}` for a single particle:
 
     .. math::
 
-        x_i = \min \{ x_{ij} \}
+        x_i = \min \{ x_{ij} : \vec{A} \in B_\mathrm{images},
+                     j \in [0,N_\mathrm{particles}) \}
+
+    where the set of box images includes all image vectors necessary to find
+    overlaps between particles in the primary image with particles in periodic
+    images.
+
+    `SDF` adds a single count to the histogram for each particle :math:`i`:
+
+    .. math::
+
+        s(x + \delta x/2) = \frac{1}{N_\mathrm{particles} \cdot \delta x}
+            \sum_{i=0}^{N_\mathrm{particles}-1}
+            [x \le x_i < x + \delta x]
+
+    where the square brackets denote the Iverson bracket, and :math:`s(x +
+    \delta x/2)` is evaluated for :math:`\{ x \in \mathbb{R}, 0 \le x <
+    x_\mathrm{max}, x = k \cdot \delta x, k \in \mathbb{Z}^* \}`.
 
     .. rubric:: Pressure
 
     The extrapolation of :math:`s(x)` to :math:`x = 0`, :math:`s(0+)` is related
-    to the pressure:
+    to the pressure :math:`P`:
 
     .. math::
         \beta P = \rho \left(1 + \frac{s(0+)}{2d} \right)
@@ -191,7 +228,7 @@ class SDF(Compute):
         concave particles or enthalpic interactions.
 
     Note:
-        `SDF` runs on the CPU even in GPU simulations.
+        `SDF` always runs on the CPU.
 
     .. rubric:: Mixed precision
 
@@ -201,8 +238,8 @@ class SDF(Compute):
     .. rubric:: Box images
 
     `SDF` does not apply the minimum image convention. It supports small boxes
-    where particles can potentially with particles outside the primary box
-    image.
+    where particles may overlap with non-primary images of other particles,
+    including self overlap.
 
     Attributes:
         xmax (float): Maximum *x* value at the right hand side of the rightmost
@@ -236,8 +273,8 @@ class SDF(Compute):
         """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[k]` - The scale \
         distribution function :math:`[\\mathrm{probability\\ density}]`.
 
-        The :math:`x` value corresponding to bin :math:`k` is:
-        :math:`x = k \\cdot dx + dx/2`.
+        The :math:`x` at the center of bin :math:`k` is:
+        :math:`x = k \\cdot \\delta x + \\delta x/2`.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
@@ -252,7 +289,7 @@ class SDF(Compute):
         :math:`\\left[ \\mathrm{length}^{-d} \\right]`.
 
         Uses a polynomial curve fit of degree 5 to estimate :math:`s(0+)` and
-        compute the pressure via:
+        computes the pressure via:
 
         .. math::
             \\beta P = \\rho \\left(1 + \\frac{s(0+)}{2d} \\right)

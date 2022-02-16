@@ -25,7 +25,7 @@ class RemoveDrift(Updater):
     .. math::
 
         \vec{D} = \frac{1}{\mathrm{N_{particles}}}
-            \sum_{i=1}^\mathrm{N_{particles}}
+            \sum_{i=0}^\mathrm{N_{particles-1}}
             \mathrm{minimum\_image}(\vec{r}_i - \vec{r}_{ref,i})
 
     `RemoveDrift` then shifts all particles in the system by
