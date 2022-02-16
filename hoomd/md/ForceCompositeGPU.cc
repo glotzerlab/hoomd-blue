@@ -103,12 +103,6 @@ void ForceCompositeGPU::computeForces(uint64_t timestep)
         {
         return;
         }
-    if (m_prof)
-        m_prof->push(m_exec_conf, "constrain_rigid");
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "sum force and torque");
-
     // access local molecule data (need to move this on top because of GPUArray scoping issues)
     const Index2D& molecule_indexer = getMoleculeIndexer();
     unsigned int nmol = molecule_indexer.getH();
@@ -313,11 +307,6 @@ void ForceCompositeGPU::computeForces(uint64_t timestep)
         m_tuner_virial->end();
         m_exec_conf->endMultiGPU();
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
@@ -328,11 +317,6 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
         {
         return;
         }
-    if (m_prof)
-        m_prof->push(m_exec_conf, "constrain_rigid");
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "update");
 
     // access molecule order
     const GlobalArray<unsigned int>& molecule_length = getMoleculeLengths();
@@ -445,12 +429,6 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
                                           << std::endl;
         throw std::runtime_error("Error while updating constituent particles");
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void ForceCompositeGPU::findRigidCenters()

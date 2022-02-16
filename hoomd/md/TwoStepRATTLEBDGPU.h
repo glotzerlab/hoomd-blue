@@ -81,10 +81,6 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
 
 template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)
     {
-    // profile this step
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "BD step 1");
-
     if (this->m_box_changed)
         {
         if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
@@ -195,10 +191,6 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
         CHECK_CUDA_ERROR();
 
     this->m_exec_conf->endMultiGPU();
-
-    // done profiling
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -274,10 +266,6 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
         CHECK_CUDA_ERROR();
 
     this->m_exec_conf->endMultiGPU();
-
-    // done profiling
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 namespace detail

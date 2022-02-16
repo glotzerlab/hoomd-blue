@@ -729,9 +729,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
     else
 #endif
         {
-        if (m_prof)
-            m_prof->push("update " + std::string(name) + " table");
-
         ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(),
                                          access_location::host,
                                          access_mode::read);
@@ -849,9 +846,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                     }
                 }
             }
-
-        if (m_prof)
-            m_prof->pop();
         }
     }
 
@@ -859,9 +853,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTableGPU()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "update " + std::string(name) + " table");
-
     // resize groups counter
     m_gpu_n_groups.resize(m_pdata->getN() + m_pdata->getNGhosts());
 
@@ -954,9 +945,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
         else
             done = true;
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 #endif
 
@@ -1315,7 +1303,6 @@ void export_BondedGroupData(pybind11::module& m,
         .def("getNameByType", &T::getNameByType)
         .def("addBondedGroup", &T::addBondedGroup)
         .def("removeBondedGroup", &T::removeBondedGroup)
-        .def("setProfiler", &T::setProfiler)
         .def("getTypes", &T::getTypesPy);
 
     if (T::typemap_val)

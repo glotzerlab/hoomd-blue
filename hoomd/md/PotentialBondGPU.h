@@ -101,10 +101,6 @@ template<class evaluator,
                              unsigned int* d_flags)>
 void PotentialBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
     {
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, this->m_prof_name);
-
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
                                access_location::device,
@@ -181,9 +177,6 @@ void PotentialBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
             }
         }
     this->m_tuner->end();
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 namespace detail

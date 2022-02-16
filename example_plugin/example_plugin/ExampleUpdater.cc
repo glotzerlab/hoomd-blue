@@ -25,9 +25,6 @@ ExampleUpdater::ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef) : Updat
 void ExampleUpdater::update(uint64_t timestep)
     {
     Updater::update(timestep);
-    if (m_prof)
-        m_prof->push("ExampleUpdater");
-
     // access the particle data for writing on the CPU
     assert(m_pdata);
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
@@ -41,9 +38,6 @@ void ExampleUpdater::update(uint64_t timestep)
         h_vel.data[i].y = Scalar(0.0);
         h_vel.data[i].z = Scalar(0.0);
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail
@@ -76,8 +70,6 @@ ExampleUpdaterGPU::ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
 void ExampleUpdaterGPU::update(uint64_t timestep)
     {
     Updater::update(timestep);
-    if (m_prof)
-        m_prof->push("ExampleUpdater");
 
     // access the particle data arrays for writing on the GPU
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
@@ -90,9 +82,6 @@ void ExampleUpdaterGPU::update(uint64_t timestep)
     // check for error codes from the GPU if error checking is enabled
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

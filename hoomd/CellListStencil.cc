@@ -58,9 +58,6 @@ void CellListStencil::compute(uint64_t timestep)
     // sanity check that rstencil is correctly sized
     assert(m_rstencil.size() >= m_pdata->getNTypes());
 
-    if (m_prof)
-        m_prof->push("Stencil");
-
     // compute the size of the bins in each dimension so that we know how big each is
     const uint3 dim = m_cl->getDim();
     const Scalar3 cell_size = m_cl->getCellWidth();
@@ -187,9 +184,6 @@ void CellListStencil::compute(uint64_t timestep)
         assert(n_stencil_i <= max_n_stencil);
         h_n_stencil.data[cur_type] = n_stencil_i;
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 bool CellListStencil::shouldCompute(uint64_t timestep)

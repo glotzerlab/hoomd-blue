@@ -40,12 +40,8 @@ class DummyAnalyzer : public Analyzer
     //! Just prints our name and the current time step
     void analyze(uint64_t timestep)
         {
-        if (m_prof)
-            m_prof->push(m_name);
         cout << m_name << ": " << timestep << endl;
         Sleep(5);
-        if (m_prof)
-            m_prof->pop();
         }
 
     private:
@@ -66,12 +62,8 @@ class DummyUpdater : public Integrator
     //! Just prints our name and the current time step
     void update(uint64_t timestep)
         {
-        if (m_prof)
-            m_prof->push(m_name);
         cout << m_name << ": " << timestep << endl;
         Sleep(8);
-        if (m_prof)
-            m_prof->pop();
         }
 
     private:
@@ -91,12 +83,8 @@ class DummyCompute : public Compute
     //! Just prints our name and the current time step
     void compute(uint64_t timestep)
         {
-        if (m_prof)
-            m_prof->push(m_name);
         cout << m_name << ": " << timestep << endl;
         Sleep(8);
-        if (m_prof)
-            m_prof->pop();
         }
 
     private:
@@ -181,7 +169,7 @@ UP_TEST(getter_setter_tests)
 // since there is no automatic verification, there is no reason to run this test all the time
 // this test can be uncommented only when it needs to be checked by a person
 
-//! Tests System::run(), System::enableProfiler(), and System::setStatsPeriod()
+//! Tests System::run()
 /*! Unfortunately, there is no way to automatically test these. A human will have to
     observe the output and verify that it is correct
 */
@@ -231,15 +219,6 @@ UP_TEST(getter_setter_tests)
     std::shared_ptr< Integrator > integrator(new DummyUpdater(sysdef, "integrator"));
     sys.setIntegrator(integrator);
 
-    cout << "First run: no profiling, statsPeriod = 10 s" << endl;
-    sys.run(100);
-
-    cout << "Second run: no profiling, statsPeriod = 1.0 s" << endl;
-    sys.setStatsPeriod(1);
-    sys.run(100);
-
-    cout << "Third run: profiling enabled" << endl;
-    sys.enableProfiler(true);
     sys.run(100);
 
     Py_Finalize();

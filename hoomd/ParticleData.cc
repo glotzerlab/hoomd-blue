@@ -6,7 +6,6 @@
  */
 
 #include "ParticleData.h"
-#include "Profiler.h"
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
@@ -117,9 +116,6 @@ ParticleData::ParticleData(unsigned int N,
     // initialize all processors
     initializeFromSnapshot(snap);
 
-    // default constructed shared ptr is null as desired
-    m_prof = std::shared_ptr<Profiler>();
-
     // reset external virial
     for (unsigned int i = 0; i < 6; i++)
         m_external_virial[i] = Scalar(0.0);
@@ -183,9 +179,6 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
         m_external_virial[i] = Scalar(0.0);
 
     m_external_energy = Scalar(0.0);
-
-    // default constructed shared ptr is null as desired
-    m_prof = std::shared_ptr<Profiler>();
 
     // zero the origin
     m_origin = make_scalar3(0, 0, 0);
@@ -2793,7 +2786,6 @@ void export_ParticleData(pybind11::module& m)
         .def("getNameByType", &ParticleData::getNameByType)
         .def("getTypeByName", &ParticleData::getTypeByName)
         .def("setTypeName", &ParticleData::setTypeName)
-        .def("setProfiler", &ParticleData::setProfiler)
         .def("getExecConf", &ParticleData::getExecConf)
         .def("__str__", &print_ParticleData)
         .def("getPosition", &ParticleData::getPosition)
@@ -2909,9 +2901,6 @@ struct comm_flag_select : std::unary_function<const unsigned int, bool>
 void ParticleData::removeParticles(std::vector<detail::pdata_element>& out,
                                    std::vector<unsigned int>& comm_flags)
     {
-    if (m_prof)
-        m_prof->push("pack");
-
     unsigned int num_remove_ptls = 0;
 
         {
@@ -3113,9 +3102,6 @@ void ParticleData::removeParticles(std::vector<detail::pdata_element>& out,
             }
         }
 
-    if (m_prof)
-        m_prof->pop();
-
     // notify subscribers that particle data order has been changed
     notifyParticleSort();
     }
@@ -3123,9 +3109,6 @@ void ParticleData::removeParticles(std::vector<detail::pdata_element>& out,
 //! Remove particles from local domain and append new particle data
 void ParticleData::addParticles(const std::vector<detail::pdata_element>& in)
     {
-    if (m_prof)
-        m_prof->push("unpack");
-
     unsigned int num_add_ptls = (unsigned int)in.size();
 
     unsigned int old_nparticles = getN();
@@ -3211,9 +3194,6 @@ void ParticleData::addParticles(const std::vector<detail::pdata_element>& in)
             }
         }
 
-    if (m_prof)
-        m_prof->pop();
-
     // notify subscribers that particle data order has been changed
     notifyParticleSort();
     }
@@ -3227,9 +3207,6 @@ void ParticleData::addParticles(const std::vector<detail::pdata_element>& in)
 void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
                                       GlobalVector<unsigned int>& comm_flags)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "pack");
-
     // this is the maximum number of elements we can possibly write to out
     unsigned int max_n_out = (unsigned int)out.getNumElements();
     if (comm_flags.getNumElements() < max_n_out)
@@ -3421,17 +3398,11 @@ void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
 
     // notify subscribers
     notifyParticleSort();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 //! Add new particle data (GPU version)
 void ParticleData::addParticlesGPU(const GlobalVector<detail::pdata_element>& in)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "unpack");
-
     unsigned int old_nparticles = getN();
     unsigned int num_add_ptls = (unsigned int)in.size();
     unsigned int new_nparticles = old_nparticles + num_add_ptls;
@@ -3513,9 +3484,6 @@ void ParticleData::addParticlesGPU(const GlobalVector<detail::pdata_element>& in
 
     // notify subscribers
     notifyParticleSort();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 #endif // ENABLE_HIP

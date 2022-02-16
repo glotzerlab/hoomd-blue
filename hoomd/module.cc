@@ -21,7 +21,6 @@
 #include "Messenger.h"
 #include "ParticleData.h"
 #include "ParticleFilterUpdater.h"
-#include "Profiler.h"
 #include "PythonAnalyzer.h"
 #include "PythonLocalDataAccess.h"
 #include "PythonTuner.h"
@@ -208,7 +207,6 @@ PYBIND11_MODULE(_hoomd, m)
     // utils
     export_hoomd_math_functions(m);
     export_ClockSource(m);
-    export_Profiler(m);
 
     // data structures
     export_HOOMDHostBuffer(m);

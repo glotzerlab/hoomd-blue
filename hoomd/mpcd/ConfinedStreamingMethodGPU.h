@@ -85,8 +85,6 @@ template<class Geometry> void ConfinedStreamingMethodGPU<Geometry>::stream(uint6
         this->m_validate_geom = false;
         }
 
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "MPCD stream");
     ArrayHandle<Scalar4> d_pos(this->m_mpcd_pdata->getPositions(),
                                access_location::device,
                                access_mode::readwrite);
@@ -111,8 +109,6 @@ template<class Geometry> void ConfinedStreamingMethodGPU<Geometry>::stream(uint6
 
     // particles have moved, so the cell cache is no longer valid
     this->m_mpcd_pdata->invalidateCellCache();
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 namespace detail

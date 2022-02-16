@@ -689,8 +689,6 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                                       this->m_sysdef->getSeed()),
                                           hoomd::Counter(this->m_exec_conf->getRank()));
 
-    if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC update");
-
     uint16_t seed = m_sysdef->getSeed();
 
     // access interaction matrix
@@ -1072,8 +1070,6 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
         }
     #endif
 
-    if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
-
     // migrate and exchange particles
     communicate(true);
 
@@ -1100,8 +1096,6 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
     buildAABBTree();
     // update the image list
     updateImageList();
-
-    if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC count overlaps");
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -1196,8 +1190,6 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
             }
         } // end loop over particles
 
-    if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
-
     #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
@@ -1230,8 +1222,6 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
     buildAABBTree();
     // update the image list
     updateImageList();
-
-    if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC compute patch energy");
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -1325,8 +1315,6 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
                 } // end loop over AABB nodes
             } // end loop over images
         } // end loop over particles
-
-    if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
 
     #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
@@ -1465,8 +1453,6 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
     // box_circumsphere = max(body_diagonals)
     // range = getMaxCoreDiameter() + box_circumsphere
     // while still adding images, examine successively larger blocks of images, checking the outermost against range
-
-    if (m_prof) m_prof->push(m_exec_conf, "HPMC image list");
 
     unsigned int ndim = m_sysdef->getNDimensions();
 
@@ -1652,8 +1638,6 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
         }
 
     m_exec_conf->msg->notice(6) << "Updated image list: " << m_image_list.size() << " images" << std::endl;
-    if (m_prof) m_prof->pop();
-
     return m_image_list;
     }
 
@@ -1742,7 +1726,6 @@ const hoomd::detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
     if (m_aabb_tree_invalid)
         {
         m_exec_conf->msg->notice(8) << "Building AABB tree: " << m_pdata->getN() << " ptls " << m_pdata->getNGhosts() << " ghosts" << std::endl;
-        if (this->m_prof) this->m_prof->push(this->m_exec_conf, "AABB tree build");
         // build the AABB tree
             {
             ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -1772,7 +1755,6 @@ const hoomd::detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
                 }
             }
 
-        if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
         }
 
     m_aabb_tree_invalid = false;

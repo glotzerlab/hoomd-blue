@@ -44,9 +44,6 @@ void TwoStepBerendsenGPU::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    if (m_prof)
-        m_prof->push("Berendsen");
-
     // compute the current thermodynamic quantities and get the temperature
     m_thermo->compute(timestep);
     Scalar curr_T = m_thermo->getTranslationalTemperature();
@@ -88,17 +85,11 @@ void TwoStepBerendsenGPU::integrateStepOne(uint64_t timestep)
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-
-    if (m_prof)
-        m_prof->push("Berendsen");
 
     // get the net force
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
@@ -128,9 +119,6 @@ void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
     // check if an error occurred
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

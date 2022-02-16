@@ -98,8 +98,6 @@ void BoxResizeUpdater::update(uint64_t timestep)
     {
     Updater::update(timestep);
     m_exec_conf->msg->notice(10) << "Box resize update" << endl;
-    if (m_prof)
-        m_prof->push("BoxResize");
 
     // first, compute the new box
     BoxDim new_box = getCurrentBox(timestep);
@@ -151,8 +149,6 @@ void BoxResizeUpdater::update(uint64_t timestep)
             local_box.wrap(h_pos.data[i], h_image.data[i]);
             }
         }
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail
