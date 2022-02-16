@@ -77,6 +77,10 @@ class TestMoveSizeTuneDefinition:
 
     def test_getting_attrs(self, move_definition_dict, move_size_definition):
         for attr in move_definition_dict:
+            if attr == "attr":
+                assert move_definition_dict[attr].split("_")[0] == getattr(
+                    move_size_definition, attr)
+                continue
             assert move_definition_dict[attr] == getattr(
                 move_size_definition, attr)
 
@@ -113,22 +117,20 @@ class TestMoveSizeTuneDefinition:
         attr = move_size_definition.attr
 
         def set_move_size(new_value):
-            splits = attr.split("_")
-            definition = getattr(boxmc, splits[0])
-            if len(splits) == 1:
+            definition = getattr(boxmc, attr)
+            if move_size_definition.index < 0:
                 definition["delta"] = new_value
                 return new_value
             old_value = list(definition["delta"])
-            old_value[{"x": 0, "y": 1, "z": 2}[splits[1]]] = new_value
+            old_value[move_size_definition.index] = new_value
             definition["delta"] = old_value
             return new_value
 
         def get_move_size():
-            splits = attr.split("_")
-            base_size = getattr(boxmc, splits[0])["delta"]
-            if len(splits) == 1:
+            base_size = getattr(boxmc, move_size_definition.attr)["delta"]
+            if move_size_definition.index < 0:
                 return base_size
-            return base_size[{"x": 0, "y": 1, "z": 2}[splits[1]]]
+            return base_size[move_size_definition.index]
 
         simulation.operations += move_size_definition.boxmc
         assert move_size_definition.x == get_move_size()

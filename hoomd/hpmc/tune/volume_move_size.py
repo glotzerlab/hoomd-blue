@@ -31,7 +31,13 @@ class _MoveSizeTuneDefinition(mc_move_tune._MCTuneDefinition):
         if attr not in self.acceptable_attrs:
             raise ValueError(f"Only {self.acceptable_attrs} are allowed as "
                              f"tunable attributes not {attr}.")
-        self.attr = attr
+        splits = attr.split("_")
+        self.attr = splits[0]
+        if len(splits) > 1:
+            self.index = ["x", "y", "z"].index(splits[1])
+        else:
+            self.index = -1
+
         self.boxmc = boxmc
         super().__init__(target, domain)
 
@@ -45,23 +51,18 @@ class _MoveSizeTuneDefinition(mc_move_tune._MCTuneDefinition):
         return getattr(self.boxmc, attr + "_moves")
 
     def _get_x(self):
-        splits = self.attr.split("_")
-        attr = splits[0]
-        if len(splits) > 1:
-            to_index = {"x": 0, "y": 1, "z": 2}
-            return getattr(self.boxmc, attr)["delta"][to_index[splits[1]]]
-        return getattr(self.boxmc, attr)["delta"]
+        x = getattr(self.boxmc, self.attr)["delta"]
+        if self.index >= 0:
+            return x[self.index]
+        return x
 
     def _set_x(self, value):
-        splits = self.attr.split("_")
-        attr = splits[0]
-        if len(splits) == 1:
+        if self.index < 0:
             getattr(self.boxmc, self.attr)["delta"] = value
             return
-        to_index = {"x": 0, "y": 1, "z": 2}
-        new_value = list(getattr(self.boxmc, attr)["delta"])
-        new_value[to_index[splits[1]]] = value
-        getattr(self.boxmc, attr)["delta"] = new_value
+        new_value = list(getattr(self.boxmc, self.attr)["delta"])
+        new_value[self.index] = value
+        getattr(self.boxmc, self.attr)["delta"] = new_value
 
     def __hash__(self):
         return hash((self.attr, self._target, self._domain))
