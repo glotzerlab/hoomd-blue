@@ -10,6 +10,8 @@ values to a file.
 
 See Also:
     Tutorial: :doc:`tutorial/02-Logging/00-index`
+
+    Tutorial: :doc:`tutorial/04-Custom-Actions-In-Python/00-index`
 """
 
 from copy import deepcopy
@@ -220,9 +222,9 @@ class _LoggerQuantity:
     def yield_names(self, user_name=None):
         """Infinitely yield potential namespaces.
 
-        Used to ensure that all namespaces are unique for a `Logger` object. We
-        simple increment a number at the end until the caller stops asking for
-        another namespace.
+        Used to ensure that all namespaces are unique for a `Logger` object.
+        `yield_names` increments a number at the end until the caller stops
+        asking for another namespace.
 
         Yields:
             tuple[str]: A potential namespace for the object.
@@ -370,8 +372,8 @@ def log(func=None,
         requires_run=False):
     """Creates loggable quantities for classes of type Loggable.
 
-    For users this should be used with `hoomd.custom.Action` for exposing
-    loggable quantities from a custom action.
+    Use `log` with `hoomd.custom.Action` to expose loggable quantities from a
+    custom action.
 
     Args:
         func (`method`): class method to make loggable. If using non-default
@@ -400,6 +402,9 @@ def log(func=None,
         the namespace used will be ``('user', 'custom', 'action', 'Foo')``. This
         helps to prevent naming conflicts, and automate the logging
         specification for developers and users.
+
+    See Also:
+        Tutorial: :doc:`tutorial/04-Custom-Actions-In-Python/00-index`
     """
 
     def helper(func):

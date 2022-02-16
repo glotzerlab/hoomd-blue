@@ -408,9 +408,10 @@ class Tuner(Operation):
 class Integrator(Operation):
     """Advance the simulation state forward one time step.
 
-    An integrator is the operation which time evolves a simulation's state. In `hoomd.hpmc`, integrators perform particle based Monte Carlo
-    moves. In `hoomd.md`, the `hoomd.md.Integrator` class organizes the forces,
-    equations of motion, and other factors of the given simulation.
+    An integrator is the operation which evolves a simulation's state in time.
+    In `hoomd.hpmc`, integrators perform particle based Monte Carlo moves. In
+    `hoomd.md`, the `hoomd.md.Integrator` class organizes the forces, equations
+    of motion, and other factors of the given simulation.
 
     Note:
         This class should not be instantiated by users. The class can be used

@@ -187,7 +187,7 @@ class Box:
     `square`, `from_matrix`, and `from_box`. See the method documentation for
     usage.
 
-    Examples:
+    .. rubric:: Examples
 
     * Cubic box with given length: ``hoomd.Box.cube(L=1)``
     * Square box with given length: ``hoomd.Box.square(L=1)``
