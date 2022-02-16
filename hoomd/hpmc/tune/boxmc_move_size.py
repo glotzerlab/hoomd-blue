@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement VolumeMoveSize."""
+"""Implement BoxMCMoveSize."""
 
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
@@ -72,7 +72,7 @@ class _MoveSizeTuneDefinition(mc_move_tune._MCTuneDefinition):
                 and self._domain == other._domain)
 
 
-class _InternalVolumeMoveSize(mc_move_tune._TuneMCMove):
+class _InternalBoxMCMoveSize(mc_move_tune._TuneMCMove):
     """Internal class for the box volume tuner."""
 
     def __init__(
@@ -168,11 +168,11 @@ class _InternalVolumeMoveSize(mc_move_tune._TuneMCMove):
         self._param_dict._cpp_obj = 5
 
 
-class VolumeMoveSize(_InternalCustomTuner):
+class BoxMCMoveSize(_InternalCustomTuner):
     """Tunes ``BoxMC`` move sizes to targeted acceptance rate.
 
-    For most common creation of a `VolumeMoveSize` tuner see
-    `VolumeMoveSize.secant_solver` and `VolumeMoveSize.scale_solver`
+    For most common creation of a `BoxMCMoveSize` tuner see
+    `BoxMCMoveSize.secant_solver` and `BoxMCMoveSize.scale_solver`
     respectively.
 
     Args:
@@ -212,7 +212,7 @@ class VolumeMoveSize(_InternalCustomTuner):
         Over-limiting the maximum move sizes can lead to the inability to
         converge to the desired acceptance rate.
     """
-    _internal_class = _InternalVolumeMoveSize
+    _internal_class = _InternalBoxMCMoveSize
 
     @classmethod
     def scale_solver(cls,
@@ -224,7 +224,7 @@ class VolumeMoveSize(_InternalCustomTuner):
                      max_scale=2.,
                      gamma=1.,
                      tol=1e-2):
-        """Create a `VolumeMoveSize` tuner with a `hoomd.tune.ScaleSolver`.
+        """Create a `BoxMCMoveSize` tuner with a `hoomd.tune.ScaleSolver`.
 
         Args:
             trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
@@ -263,7 +263,7 @@ class VolumeMoveSize(_InternalCustomTuner):
                       max_move_size=None,
                       gamma=0.8,
                       tol=1e-2):
-        """Create a `VolumeMoveSize` tuner with a `hoomd.tune.SecantSolver`.
+        """Create a `BoxMCMoveSize` tuner with a `hoomd.tune.SecantSolver`.
 
         This solver can be faster than `hoomd.tune.ScaleSolver`, but depending
         on the system slightly less stable. In general, with the default value

@@ -7,8 +7,8 @@ import pytest
 
 from hoomd import hpmc
 from hoomd.conftest import operation_pickling_check
-from hoomd.hpmc.tune.volume_move_size import (_MoveSizeTuneDefinition,
-                                              VolumeMoveSize)
+from hoomd.hpmc.tune.boxmc_move_size import (_MoveSizeTuneDefinition,
+                                             BoxMCMoveSize)
 
 MOVE_TYPES = ("aspect", "volume", "shear_x", "shear_y", "shear_z", "length_x",
               "length_y", "length_z")
@@ -162,7 +162,7 @@ class TestMoveSizeTuneDefinition:
 
 @pytest.fixture(params=MOVE_TYPES)
 def boxmc_tuner_method_and_kwargs(request):
-    cls_methods = (VolumeMoveSize.secant_solver, VolumeMoveSize.scale_solver)
+    cls_methods = (BoxMCMoveSize.secant_solver, BoxMCMoveSize.scale_solver)
     cls = cls_methods[rng.integers(2)]
     return cls, {
         "trigger": 100,
@@ -189,7 +189,7 @@ def boxmc_with_tuner(boxmc_tuner_method_and_kwargs):
                 })
     if move.startswith("sh"):
         boxmc.shear["reduce"] = 1.0
-    cls_methods = (VolumeMoveSize.secant_solver, VolumeMoveSize.scale_solver)
+    cls_methods = (BoxMCMoveSize.secant_solver, BoxMCMoveSize.scale_solver)
     cls = cls_methods[rng.integers(2)]
     return boxmc, cls(**move_size_kwargs, boxmc=boxmc)
 
