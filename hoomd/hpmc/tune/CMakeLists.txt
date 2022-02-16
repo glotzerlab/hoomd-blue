@@ -1,4 +1,5 @@
 set(files __init__.py
+          mc_move_tune.py
           move_size.py
 	  volume_move_size.py
           )

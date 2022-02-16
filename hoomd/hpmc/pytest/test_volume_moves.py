@@ -94,7 +94,7 @@ class TestMoveSizeTuneDefinition:
         simulation.run(0)
         # needed to set previous values need to to calculate acceptance rate
         assert move_size_definition.y is None
-        simulation.run(10)
+        simulation.run(20)
         attr = move_size_definition.attr
         accepted, rejected = get_move_acceptance_ratio(boxmc, attr)
         calc_acceptance_rate = (accepted) / (accepted + rejected)
@@ -185,6 +185,8 @@ def boxmc_with_tuner(boxmc_tuner_method_and_kwargs):
                     "weight": 1.0,
                     "delta": (1e-1,) * 3
                 })
+    if move.startswith("sh"):
+        boxmc.shear["reduce"] = 1.0
     cls_methods = (VolumeMoveSize.secant_solver, VolumeMoveSize.scale_solver)
     cls = cls_methods[rng.integers(2)]
     return boxmc, cls(**move_size_kwargs, boxmc=boxmc)
@@ -259,8 +261,9 @@ class TestMoveSize:
         simulation.operations.tuners.append(move_size_tuner)
         simulation.operations += boxmc
         cnt = 0
+        steps = 1601 if move_size_tuner.moves[0].startswith("l") else 1001
         while not move_size_tuner.tuned and cnt < 5:
-            simulation.run(1201)
+            simulation.run(steps)
             cnt += 1
         assert move_size_tuner.tuned
         simulation.run(1_100)
