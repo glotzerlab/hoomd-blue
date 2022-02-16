@@ -66,7 +66,7 @@ class Box:
 
     .. image:: box.svg
 
-    Particles in a simulation state exist in a triclinic simulation box with
+    Particles in a simulation exist in a triclinic box with
     periodic boundary conditions. A triclinic box is defined by six values: the
     extents :math:`L_x`, :math:`L_y` and :math:`L_z` of the box in the three
     directions, and three tilt factors :math:`xy`, :math:`xz` and :math:`yz`.
